@@ -4,7 +4,7 @@ Dieses Verzeichnis enthält eine Markdown-Datei pro Feature/Task.
 
 ## Warum Markdown-Dateien in Git?
 
-- **Observability:** Fortschritt ist jederzeit über Git/GitLab sichtbar
+- **Observability:** Fortschritt ist jederzeit über Git/GitHub sichtbar
 - **Persistenz:** Kontext bleibt über Claude-Sessions hinweg erhalten
 - **Kleine Batches:** Fokussierte Tasks statt eines riesigen "Baue das Auth-System"
 - **Crash Recovery:** Nächste Session setzt dort fort, wo die letzte aufgehört hat

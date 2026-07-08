@@ -34,10 +34,10 @@ learnings back (this is exactly what `/codify` does at the project level).
 
 ## How to contribute
 
-1. **Clone the template**
+1. **Clone the repository**
    ```bash
-   git clone https://gitlab.dm-drogeriemarkt.com/ctech_tv/dm-factory-template
-   cd dm-factory-template
+   git clone https://github.com/nothra/tch-gastro-services
+   cd tch-gastro-services
    ```
 
 2. **Create a feature branch**
@@ -46,7 +46,7 @@ learnings back (this is exactly what `/codify` does at the project level).
    ```
 
 3. **Make your changes**
-   - Keep changes focused – one improvement per Merge Request
+   - Keep changes focused – one improvement per Pull Request
    - If you're adding a new skill, follow the structure of existing ones in `.claude/commands/`
    - If you're adding a guideline, keep it universal – no project-specific content
 
@@ -57,7 +57,7 @@ learnings back (this is exactly what `/codify` does at the project level).
      bash -n scripts/your-script.sh
      ```
 
-5. **Open a Merge Request**
+5. **Open a Pull Request**
    - Title: short and descriptive (e.g. `Add Java/Spring Boot coding guidelines`)
    - Description: What changed, why, and ideally: in which project was it tested?
    - Assign to a Maintainer for review

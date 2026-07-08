@@ -101,31 +101,29 @@ Gates are hard checks – not recommendations. They block the next step.
 The check scripts are themselves covered by a self-test suite
 (`scripts/checks/tests/run-tests.sh`, 36 cases) so the guardrails stay trustworthy.
 
-### Continuous Integration (`.gitlab-ci.yml`)
+### Continuous Integration (GitHub Actions)
 
-The same gates that run locally also run on every push and merge request:
+The same gates that run locally also run on every push and pull request
+(`.github/workflows/factory-ci.yml`):
 
-| Stage | Job | Runs |
-|-------|-----|------|
-| `build-image` | `build-selftest-image` | Only when `ci/factory-selftest.Dockerfile` changes – rebuilds the self-test image |
-| `factory-checks` | `factory-self-test` | Always – validates the factory scripts themselves |
-| `lint` | `lint` | `FACTORY_LINT_COMMAND` (set as a CI/CD variable) |
-| `test` | `test` | `FACTORY_TEST_COMMAND` (set as a CI/CD variable) |
-| `verify` | `post-merge-verify` | Default branch only – `FACTORY_HEALTHCHECK_CMD` (any smoke test) or `FACTORY_HEALTHCHECK_URL` after merge |
-| `orchestrate` | `factory-poll` | Scheduled pipelines only – picks up `factory::run` issues and runs the factory (ADR-008) |
+| Workflow | Job | Runs |
+|----------|-----|------|
+| `factory-ci.yml` | `factory-self-test` | Always – validates the factory scripts themselves |
+| `factory-ci.yml` | `lint` | `FACTORY_LINT_COMMAND` (set as a repository variable) |
+| `factory-ci.yml` | `test` | `FACTORY_TEST_COMMAND` (set as a repository variable) |
+| `factory-ci.yml` | `post-merge-verify` | Default branch only – `FACTORY_HEALTHCHECK_CMD` (any smoke test) or `FACTORY_HEALTHCHECK_URL` after merge |
+| `factory-poll.yml` | `factory-poll` | Scheduled workflow only – picks up `factory::run` issues and runs the factory (ADR-008) |
 
-The `factory-self-test` job runs on a small prebuilt image
-(`ci/factory-selftest.Dockerfile`, ~26 MB: `alpine` + `bash`/`git`/`jq`) that
-lives in the project's Container Registry. It is rebuilt via kaniko only when
-the Dockerfile changes, so most pipelines just pull the cached image instead of
-running `apk add` on every run.
+The jobs run on GitHub-hosted `ubuntu-latest` runners, which already ship
+`bash`/`git`/`jq`; the workflows fetch `yq` (and the `claude` CLI for the poll
+job) at runtime. No prebuilt container image or registry is needed.
 
 Set `FACTORY_LINT_COMMAND` / `FACTORY_TEST_COMMAND` once under
-**Settings → CI/CD → Variables** – the same values the pre-commit / pre-push
-hooks read, so there is no double maintenance. Adopted projects inherit the
-pipeline automatically on clone. Until the commands are configured the `lint` /
-`test` jobs **fail** rather than passing as green no-ops – a missing gate must
-never look like a passing one ("gates over trust").
+**Settings → Secrets and variables → Actions → Variables** – the same values the
+pre-commit / pre-push hooks read, so there is no double maintenance. Adopted
+projects inherit the workflows automatically on clone. Until the commands are
+configured the `lint` / `test` jobs **fail** rather than passing as green
+no-ops – a missing gate must never look like a passing one ("gates over trust").
 
 ### Usage Telemetry (OpenTelemetry)
 
@@ -403,13 +401,13 @@ A dedicated `/audit` or `/migrate` skill is planned once the feature leaves Rese
 ## Quickstart: Setting Up a New Project
 
 ```bash
-# 1. Clone the template
-git clone https://gitlab.dm-drogeriemarkt.com/ctech_tv/dm-factory-template my-project
+# 1. Clone this GitHub-based factory as the starting point
+git clone https://github.com/nothra/tch-gastro-services my-project
 cd my-project
 
 # 2. Start your own git history
 rm -rf .git && git init
-git add -A && git commit -m "Initial commit from dm-factory-template"
+git add -A && git commit -m "Initial commit from dm-factory-template (GitHub)"
 
 # 3. Initialize the factory (asks for project name, stack, team)
 bash scripts/init-factory.sh
@@ -511,7 +509,7 @@ After 50 features, it has more context than any new developer in onboarding.
 Everything in this template – task files, specs, ADRs, review findings –
 lives as Markdown in Git. This has three key advantages:
 
-1. **Observability:** Progress is visible in GitLab at any time, without extra tools
+1. **Observability:** Progress is visible in GitHub at any time, without extra tools
 2. **Persistence:** AI agents have no long-term memory. Git does.
 3. **Crash recovery:** The next session reads the task file and continues seamlessly
 

@@ -14,6 +14,18 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Changed
+- **Plattform-Migration GitLab → GitHub** (ADR-012). Die Factory ist vollständig
+  GitHub-kompatibel: GitLab CI ersetzt durch GitHub Actions
+  (`.github/workflows/factory-ci.yml` + `factory-poll.yml`), `glab` → `gh` in
+  `factory-poll.sh`/`start-work.sh`/`metrics.sh`, Async-Trigger als Scheduled
+  Workflow mit `concurrency`, Wording MR → PR. Budget-Guard, Label-State-Maschine
+  und Quality-Gates unverändert; Self-Test-Suite mitmigriert (mockt `gh`) und grün.
+
+### Removed
+- `.gitlab-ci.yml` und die `ci/`-Dockerfiles (GitHub-hosted Runner bringen die
+  Tools mit; kein Prebuilt-Image/Registry mehr nötig).
+
 ---
 
 ## [0.5.0] – 2026-06-16

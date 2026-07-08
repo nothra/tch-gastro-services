@@ -1,8 +1,8 @@
 # Task 2: GitHub-Kompatibilität der Factory
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die dm-Factory (ursprünglich GitLab) vollständig auf GitHub umstellen.
@@ -20,10 +20,10 @@ GitHub Actions.
 - ADR-012: Plattform-Migration GitLab → GitHub dokumentieren
 
 ## Akzeptanzkriterien
-- [ ] Keine funktionalen glab-/GitLab-CI-Abhängigkeiten mehr im Code
-- [ ] scripts/checks/tests/run-tests.sh läuft vollständig grün
-- [ ] GitHub-Actions-Workflows bilden alle bisherigen CI-Gates ab
-- [ ] factory-poll.sh nutzt gh + GitHub-Labels, Guards unverändert
+- [x] Keine funktionalen glab-/GitLab-CI-Abhängigkeiten mehr im Code
+- [x] scripts/checks/tests/run-tests.sh läuft vollständig grün (127 grün)
+- [x] GitHub-Actions-Workflows bilden alle bisherigen CI-Gates ab
+- [x] factory-poll.sh nutzt gh + GitHub-Labels, Guards unverändert
 
 ---
 Branch: `feature/2-github-kompatibilitaet`
