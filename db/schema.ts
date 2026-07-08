@@ -13,6 +13,8 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   role: userRole("role").notNull().default("member"),
+  // Credentials-Login (ADR-014): bcrypt-Hash. Null bei OAuth-only-Nutzern.
+  passwordHash: text("passwordHash"),
 });
 
 export const accounts = pgTable(
