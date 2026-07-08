@@ -15,6 +15,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **App-Grundgerüst** (#10): lauffähige Next.js-16-App (App Router, TypeScript, pnpm) im
+  Repo-Root – Tailwind v4, ESLint + Prettier, Vitest + Smoke-Test, Web-App-Manifest (PWA,
+  installierbar), minimale TCH-Startseite. `pnpm install/lint/test/build/format:check`
+  lokal grün. Deferred (Folge-Tasks): Service Worker (@serwist), shadcn/ui, Playwright,
+  Drizzle+Neon, Auth.js, CI-Node-Setup.
+
 - **Tech-Stack festgelegt** (ADR-014): TypeScript · Next.js (PWA) auf Vercel · Neon
   Postgres (EU) · Drizzle + Zod · Auth.js (RBAC) · Tailwind/shadcn · Vitest/Playwright ·
   ESLint/Prettier · pnpm. Nicht-kommerziell, dauerhaft kostenfrei. `PROJECT-CONTEXT.md`

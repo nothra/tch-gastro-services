@@ -1,0 +1,22 @@
+# Build-Artefakte & Abhängigkeiten
+.next
+node_modules
+coverage
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Statische Assets
+public
+
+# Factory-eigene Inhalte – hand-gepflegt, NICHT von Prettier verwaltet
+docs/
+tasks/
+scripts/
+.github/
+.claude/
+config/
+CLAUDE.md
+CONTRIBUTING.md
+README.md
+factory.config.yml.example
+factory.defaults.yml
