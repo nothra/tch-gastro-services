@@ -35,6 +35,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 - `.gitlab-ci.yml` und die `ci/`-Dockerfiles (GitHub-hosted Runner bringen die
   Tools mit; kein Prebuilt-Image/Registry mehr nötig).
 
+### Fixed
+- **Bug #8 – Leerzeichen im Pfad:** `completion-check.sh` (Stop-Hook) und `sync-issues.sh`
+  zerlegten Pfade mit Leerzeichen (unquotiertes `for x in $VAR`) → `grep`-Fehler. Umgestellt
+  auf newline-sichere `while IFS= read -r`-Iteration; SIGPIPE-Absicherung an `grep | head`.
+  Regressionstests (Pfad mit Leerzeichen) ergänzt → Self-Test 148 grün.
+
 ---
 
 ## [0.5.0] – 2026-06-16
