@@ -433,6 +433,8 @@ rm -rf "$TMP_POLL"
 TMP_W2="$(mktemp -d)"; mkdir -p "$TMP_W2/scripts" "$TMP_W2/tasks" "$TMP_W2/bin"
 cp "$SCRIPTS_DIR/factory-poll.sh" "$TMP_W2/scripts/"
 printf '#!/bin/sh\nexit 1\n' > "$TMP_W2/scripts/run-pipeline.sh"; chmod +x "$TMP_W2/scripts/run-pipeline.sh"
+# Task-Datei existiert → ensure_task_file ist hier no-op (W-2 testet die Fehler-Etikettierung).
+printf '# Task 50: demo\n' > "$TMP_W2/tasks/task-50-demo.md"
 cat > "$TMP_W2/bin/gh" <<'GHEOF'
 #!/bin/sh
 case "$*" in
@@ -457,6 +459,32 @@ assert_true "$?" "W-2: Pipeline-Stopp mit Sentinel → factory::interrupted"
 grep -q -- '--add-label factory::failed' "$TMP_W2/mut.log"
 assert_true "$([ $? -ne 0 ]; echo $?)" "W-2: Interrupt wird NICHT als failed fehletikettiert"
 rm -rf "$TMP_W2"
+
+# A (ADR-013, umgekehrte Richtung): factory-poll materialisiert die Task-Datei aus dem
+# Issue, wenn sie fehlt – sonst bräche run-pipeline im Async-Pfad ab.
+TMP_MAT="$(mktemp -d)"; mkdir -p "$TMP_MAT/scripts" "$TMP_MAT/tasks" "$TMP_MAT/bin"
+cp "$SCRIPTS_DIR/factory-poll.sh" "$TMP_MAT/scripts/"
+printf '#!/bin/sh\nexit 0\n' > "$TMP_MAT/scripts/run-pipeline.sh"; chmod +x "$TMP_MAT/scripts/run-pipeline.sh"
+git -C "$TMP_MAT" init -q
+git -C "$TMP_MAT" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+cat > "$TMP_MAT/bin/gh" <<'GHEOF'
+#!/bin/sh
+case "$*" in
+  *"issue edit"*) echo '{}' ;;
+  *"issue view"*"title,body"*) echo '{"title":"Neues Feature","body":"Body-Text"}' ;;
+  *"issue view"*) echo '{"labels":[{"name":"factory::running"}]}' ;;
+  *'factory::run"'*) echo '[{"number":60}]' ;;
+  *) echo "[]" ;;
+esac
+GHEOF
+chmod +x "$TMP_MAT/bin/gh"
+PATH="$TMP_MAT/bin:$PATH" FACTORY_DIR="$TMP_MAT" FACTORY_REPO=test/repo \
+  bash "$TMP_MAT/scripts/factory-poll.sh" >/dev/null 2>&1
+matfile=$(find "$TMP_MAT/tasks" -name 'task-60-*.md' | head -1)
+assert_true "$([[ -n "$matfile" ]]; echo $?)" "A: factory-poll materialisiert Task-Datei aus Issue #60 (Issue→Task)"
+grep -q 'Neues Feature' "$matfile" 2>/dev/null
+assert_true "$?" "A: materialisierte Task-Datei übernimmt den Issue-Titel"
+rm -rf "$TMP_MAT"
 
 # ─── Issue-Sync: jeder Task hat ein GitHub-Issue-Pendant (#4, ADR-013) ───────
 echo ""

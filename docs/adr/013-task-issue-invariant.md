@@ -43,6 +43,13 @@ Durchsetzung auf drei Ebenen:
    `sync-issues.sh --check` bei jedem Push/PR. Drift wird rot, nicht still geduldet
    ("gates over trust").
 
+4. **Umgekehrte Richtung (Issue → Task) – `factory-poll.sh`:** Der Async-Trigger startet
+   aus einem Issue; `run-pipeline.sh` verlangt aber eine lokale `task-<id>-*.md`. Fehlt sie,
+   **materialisiert** `factory-poll` sie aus Titel/Body des Issues (commit + best-effort push),
+   bevor die Pipeline startet. So ist der Flow *„Issue anlegen → `factory::run` labeln"* turnkey,
+   ohne vorheriges `start-work`. (Der Feature-Branch/PR-Fluss des eigentlichen Codes bleibt die
+   separate, offene Vorbedingung V-1 aus ADR-008.)
+
 ## Alternatives
 
 ### Option A: Issue-first + Check-Gate (gewählt)
