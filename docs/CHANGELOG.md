@@ -15,6 +15,11 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Tech-Stack festgelegt** (ADR-014): TypeScript · Next.js (PWA) auf Vercel · Neon
+  Postgres (EU) · Drizzle + Zod · Auth.js (RBAC) · Tailwind/shadcn · Vitest/Playwright ·
+  ESLint/Prettier · pnpm. Nicht-kommerziell, dauerhaft kostenfrei. `PROJECT-CONTEXT.md`
+  vollständig gefüllt (keine Platzhalter mehr → Stage-3-Preflight entblockt).
+
 - **Task ↔ GitHub-Issue-Invariante** (ADR-013): jede `tasks/task-<id>-*.md` hat ein
   Issue #`<id>`. `start-work.sh` arbeitet Issue-first (legt das Issue an, Nummer = Task-ID)
   bzw. validiert bestehende Issues; `scripts/sync-issues.sh` prüft (`--check`) und
