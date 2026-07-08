@@ -21,10 +21,35 @@ tasks/pipeline-stuck-*.md
 # es ist die persistente Quelle der Autonomie-Rate und gehört in die Historie.
 tasks/metrics-*.md
 
-# Projekt-spezifisch (nach init-factory.sh anpassen)
-# target/
-# node_modules/
-# dist/
-# build/
-# .env
-# .env.local
+# ─── Next.js / Node-App (TCH Gastro Services) ────────────────────────────────
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing / coverage
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+pnpm-debug.log*
+
+# env files (Secrets: DATABASE_URL, AUTH_SECRET etc. – nie committen)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# misc
+*.pem

@@ -1,0 +1,5 @@
+# Post-install-Build-Skripte, die pnpm ausführen darf (pnpm 11+).
+# sharp = Next.js Bildoptimierung, unrs-resolver = ESLint-Import-Resolver.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
