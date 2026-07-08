@@ -13,8 +13,8 @@
 | Feld | Wert |
 |------|------|
 | **Name** | TCH Gastro Services |
-| **Beschreibung** | Cross-Platform WebApp fuer Browser, Android und iOS; zentrale Komponente auf Vercel |
-| **Typ** | webapp (Browser + Android + iOS, Vercel) |
+| **Beschreibung** | Maßgeschneiderte, nicht-kommerzielle PWA für die Gastronomie-Vorgänge des Tennisclub Heuchelheim (TCH); Browser + iOS + Android, Betrieb auf Vercel |
+| **Typ** | webapp / PWA (Browser + Android + iOS, Vercel) |
 | **Team** | TCH-Developer |
 | **Startdatum** | 2026-07-08 |
 | **Repository** | https://github.com/nothra/tch-gastro-services |
@@ -25,25 +25,25 @@
 
 | Feld | Wert |
 |------|------|
-| **Primärsprache** | TBD (Stack offen) |
-| **Framework / Runtime** | TBD |
-| **Datenbank** | TBD |
-| **Build-Tool** | {{BUILD_TOOL}} |
-| **Weitere Technologien** | {{OTHER_TECH}} |
+| **Primärsprache** | TypeScript |
+| **Framework / Runtime** | Next.js (App Router) / Node 20+ · Hosting: Vercel (Region fra1) |
+| **Datenbank** | PostgreSQL (Neon, Free-Tarif, Region Frankfurt/EU) |
+| **Build-Tool** | pnpm + Next.js |
+| **Weitere Technologien** | PWA (@serwist/next), Tailwind CSS + shadcn/ui, Drizzle ORM, Zod, Auth.js (NextAuth v5) |
 
 ---
 
 ## Build & Run
 
 ```bash
-# Projekt bauen
-{{BUILD_COMMAND}}
+# Abhängigkeiten installieren
+pnpm install
 
 # Dev-Server / lokale Ausführung starten
-{{DEV_COMMAND}}
+pnpm dev
 
 # Produktions-Build
-{{PROD_BUILD_COMMAND}}
+pnpm build
 ```
 
 ---
@@ -51,19 +51,22 @@
 ## Testing
 
 ```bash
-# Alle Tests ausführen
-{{TEST_COMMAND}}
+# Alle Tests ausführen (Unit/Integration)
+pnpm test
 
 # Tests mit Coverage-Report
-{{TEST_COVERAGE_COMMAND}}
+pnpm test:coverage
 
 # Einen einzelnen Test ausführen
-{{SINGLE_TEST_COMMAND}}
+pnpm vitest run <pfad-oder-muster>
+
+# End-to-End-Tests (Playwright)
+pnpm test:e2e
 ```
 
-- **Test-Framework:** {{TEST_FRAMEWORK}}
-- **Mindest-Coverage:** {{COVERAGE_THRESHOLD}} %
-- **Test-Konventionen:** {{TEST_CONVENTIONS}}
+- **Test-Framework:** Vitest (Unit/Integration) + Playwright (E2E)
+- **Mindest-Coverage:** 80 %
+- **Test-Konventionen:** Arrange-Act-Assert; Unit-Tests neben dem Code als `*.test.ts(x)`, E2E unter `e2e/`; siehe `docs/factory/guidelines/testing-standards.md`
 
 ---
 
@@ -71,29 +74,28 @@
 
 ```bash
 # Linting ausführen
-{{LINT_COMMAND}}
+pnpm lint
 
 # Formatierung prüfen
-{{FORMAT_CHECK_COMMAND}}
+pnpm format:check
 
 # Formatierung automatisch anwenden
-{{FORMAT_FIX_COMMAND}}
+pnpm format
 ```
 
-- **Linter:** {{LINTER}}
-- **Formatter:** {{FORMATTER}}
+- **Linter:** ESLint (`next/core-web-vitals`, TypeScript)
+- **Formatter:** Prettier
 
 ---
 
 ## Architektur
 
-- **Stil:** {{ARCHITECTURE_STYLE}}
-  _(z.B. Hexagonal Architecture, Layered, Event-Driven, CQRS)_
-- **Domain-Aufteilung:** {{DOMAIN_STRUCTURE}}
-- **API-Stil:** {{API_STYLE}} _(z.B. REST, GraphQL, gRPC, Event-basiert)_
-- **Besonderheiten:** {{ARCHITECTURE_NOTES}}
+- **Stil:** Feature-orientierte Schichtung mit dem Next.js App Router; UI (Server/Client Components) → Server Actions/Route Handlers → gekapselte Data-Layer (Drizzle). Clean Code/SOLID gemäß `docs/factory/guidelines/`.
+- **Domain-Aufteilung:** nach Feature/Domäne unter `app/`; DB-Schema & -Zugriff gebündelt in einer Data-Layer (`db/`), nicht in UI/Actions verstreut.
+- **API-Stil:** primär **Server Actions** für Formular-Erfassung; REST-artige **Route Handlers** (`app/api/`) wo externe/GET-Zugriffe nötig sind.
+- **Besonderheiten:** installierbare **PWA**; **RBAC** über Auth.js + Rollen-Spalte (serverseitig durchgesetzt); **EU-Datenresidenz** (Neon Frankfurt, Vercel `fra1`).
 
-Relevante ADRs: siehe `docs/adr/`
+Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl).
 
 ---
 
@@ -102,7 +104,11 @@ Relevante ADRs: siehe `docs/adr/`
 > Hier nur Ergänzungen zu den globalen Guidelines in `docs/factory/guidelines/`.
 > Nur dokumentieren, was in diesem Projekt anders oder zusätzlich gilt.
 
-{{PROJECT_SPECIFIC_CONVENTIONS}}
+- **TypeScript strict**; Eingaben an jeder Server-Grenze mit **Zod** validieren.
+- **DB-Zugriff nur über die Drizzle-Data-Layer** – keine rohen SQL-Strings in UI/Server Actions.
+- Aus Vercel-Functions den **Neon serverless HTTP-Treiber** (`@neondatabase/serverless`) nutzen (kein klassischer TCP-Pool → keine Verbindungs-Erschöpfung).
+- **Auth-/Rollen-Checks immer serverseitig** (Middleware + in Server Actions), nie ausschließlich clientseitig.
+- Secrets (DB-URL, Auth-Secret) nur als Env-Vars (Vercel), nie im Repo.
 
 ---
 
