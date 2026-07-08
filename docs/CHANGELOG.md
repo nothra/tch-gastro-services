@@ -14,6 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Added
+- **Task ↔ GitHub-Issue-Invariante** (ADR-013): jede `tasks/task-<id>-*.md` hat ein
+  Issue #`<id>`. `start-work.sh` arbeitet Issue-first (legt das Issue an, Nummer = Task-ID)
+  bzw. validiert bestehende Issues; `scripts/sync-issues.sh` prüft (`--check`) und
+  repariert (`--create`) die Invariante; CI-Job `issue-sync` erzwingt sie bei jedem Push/PR.
+
 ### Changed
 - **Plattform-Migration GitLab → GitHub** (ADR-012). Die Factory ist vollständig
   GitHub-kompatibel: GitLab CI ersetzt durch GitHub Actions

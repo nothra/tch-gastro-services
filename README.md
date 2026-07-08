@@ -109,6 +109,7 @@ The same gates that run locally also run on every push and pull request
 | Workflow | Job | Runs |
 |----------|-----|------|
 | `factory-ci.yml` | `factory-self-test` | Always – validates the factory scripts themselves |
+| `factory-ci.yml` | `issue-sync` | Always – every `tasks/task-<id>-*.md` must have a GitHub issue `#<id>` (ADR-013) |
 | `factory-ci.yml` | `lint` | `FACTORY_LINT_COMMAND` (set as a repository variable) |
 | `factory-ci.yml` | `test` | `FACTORY_TEST_COMMAND` (set as a repository variable) |
 | `factory-ci.yml` | `post-merge-verify` | Default branch only – `FACTORY_HEALTHCHECK_CMD` (any smoke test) or `FACTORY_HEALTHCHECK_URL` after merge |
@@ -463,13 +464,13 @@ lint commands, test commands, and coverage thresholds are adapted to your stack.
 │
 ├── scripts/
 │   ├── init-factory.sh              # One-time bootstrap
-│   ├── start-work.sh                # Create branch + task file
+│   ├── start-work.sh                # Issue-first: create GitHub issue + branch + task file
+│   ├── sync-issues.sh               # Ensure every task has a GitHub issue #<id> (ADR-013)
 │   ├── run-pipeline.sh              # Stage 3 pipeline runner
 │   ├── raise-interrupt.sh           # Agent signals a human-decision stop
 │   ├── metrics.sh                   # Process metrics (lead-time, autonomy, CI rate)
 │   ├── post-merge-verify.sh         # Post-merge healthcheck (CI-green ≠ prod-green)
-│   ├── factory-poll.sh              # Async trigger: scheduled poll of factory::run issues
-│   │                                #   (ci/factory-runtime.Dockerfile = runtime image w/ claude-CLI)
+│   ├── factory-poll.sh              # Async trigger: scheduled GitHub Actions poll of factory::run issues
 │   └── checks/                      # Deterministic quality gates
 │       ├── check.sh                 # Dispatcher
 │       ├── pre-commit.sh

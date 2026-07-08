@@ -458,6 +458,58 @@ grep -q -- '--add-label factory::failed' "$TMP_W2/mut.log"
 assert_true "$([ $? -ne 0 ]; echo $?)" "W-2: Interrupt wird NICHT als failed fehletikettiert"
 rm -rf "$TMP_W2"
 
+# ─── Issue-Sync: jeder Task hat ein GitHub-Issue-Pendant (#4, ADR-013) ───────
+echo ""
+echo "Issue-Sync (#4, ADR-013):"
+
+assert_true "$([[ -f "$FACTORY_ROOT/scripts/sync-issues.sh" ]]; echo $?)" "scripts/sync-issues.sh vorhanden"
+assert_true "$([[ -x "$FACTORY_ROOT/scripts/sync-issues.sh" ]]; echo $?)" "sync-issues.sh ist ausführbar"
+# CI-Gate: Invariante wird im factory-ci.yml geprüft
+grep -q 'issue-sync:' "$CI_FILE"; assert_true "$?" "issue-sync-Job in factory-ci.yml"
+grep -q 'sync-issues.sh --check' "$CI_FILE"; assert_true "$?" "CI ruft sync-issues.sh --check (read-only Gate)"
+
+# Verhalten gegen gemocktes gh (kein echtes GitHub nötig).
+# gh issue view <id> → exit 1 für IDs in FAKE_MISSING (Issue fehlt), sonst 0.
+# gh issue create     → gibt eine Issue-URL mit FAKE_NEWNUM aus.
+TMP_SYNC="$(mktemp -d)"; mkdir -p "$TMP_SYNC/scripts" "$TMP_SYNC/tasks" "$TMP_SYNC/bin"
+cp "$SCRIPTS_DIR/sync-issues.sh" "$TMP_SYNC/scripts/"
+printf '# Task 1: alpha\n' > "$TMP_SYNC/tasks/task-1-alpha.md"
+printf '# Task 2: beta\n'  > "$TMP_SYNC/tasks/task-2-beta.md"
+cat > "$TMP_SYNC/bin/gh" <<'GHEOF'
+#!/bin/sh
+if [ "$1 $2" = "issue view" ]; then
+  for m in ${FAKE_MISSING:-}; do [ "$3" = "$m" ] && exit 1; done
+  echo "{\"number\":$3}"; exit 0
+fi
+if [ "$1 $2" = "issue create" ]; then
+  echo "https://github.com/test/repo/issues/${FAKE_NEWNUM:-999}"; exit 0
+fi
+exit 0
+GHEOF
+chmod +x "$TMP_SYNC/bin/gh"
+sync() { PATH="$TMP_SYNC/bin:$PATH" FACTORY_DIR="$TMP_SYNC" FACTORY_REPO=test/repo \
+  bash "$TMP_SYNC/scripts/sync-issues.sh" "$@" 2>&1; }
+
+# 1. Alle Tasks haben ein Issue → --check exit 0
+FAKE_MISSING="" sync --check >/dev/null 2>&1; assert_exit 0 "$?" "--check: alle Tasks synchron → exit 0"
+# 2. Task #1 ohne Issue → --check exit 1 + Drift-Meldung
+out=$(FAKE_MISSING="1" sync --check); rc=$?
+assert_exit 1 "$rc" "--check: Task ohne Issue → exit 1"
+printf '%s' "$out" | grep -q 'DRIFT'; assert_true "$?" "--check meldet DRIFT bei fehlendem Issue"
+printf '%s' "$out" | grep -q 'Task #1'; assert_true "$?" "--check benennt den betroffenen Task (#1)"
+# 3. --create --dry-run → keine Mutation, exit 0
+out=$(FAKE_MISSING="1" sync --create --dry-run); rc=$?
+assert_exit 0 "$rc" "--create --dry-run → exit 0 (keine Mutation)"
+printf '%s' "$out" | grep -q 'dry-run.*Task #1'; assert_true "$?" "--dry-run zeigt geplante Issue-Anlage"
+# 4. --create mit passender Nummer → exit 0
+FAKE_MISSING="1" FAKE_NEWNUM="1" sync --create >/dev/null 2>&1
+assert_exit 0 "$?" "--create: neue Issue-Nummer == Task-ID → exit 0"
+# 5. --create mit Nummern-Mismatch (GitHub vergibt andere Nummer) → exit 1 + MISMATCH
+out=$(FAKE_MISSING="1" FAKE_NEWNUM="7" sync --create); rc=$?
+assert_exit 1 "$rc" "--create: Nummern-Mismatch → exit 1"
+printf '%s' "$out" | grep -q 'MISMATCH'; assert_true "$?" "--create meldet MISMATCH bei nicht auflösbarer Nummer"
+rm -rf "$TMP_SYNC"
+
 # ─── Codify: Bash-Gotchas-Guideline ──────────────────────────────────────────
 echo ""
 echo "Codify (Bash-Gotchas-Guideline):"
