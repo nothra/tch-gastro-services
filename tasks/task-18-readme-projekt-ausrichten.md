@@ -1,20 +1,18 @@
 # Task 18: readme-projekt-ausrichten
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+README auf TCH Gastro Services ausgerichtet: Projektzweck, Betriebsumgebung
+(Vercel/Neon/Auth.js/PWA), lokales Setup, Env-Vars, Skripte, Deployment,
+Projektstruktur. dm-Factory nur als kurzer Werkzeug-Abschnitt mit Verweisen.
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] README beschreibt Projekt, Stack/Betriebsumgebung, Setup, Env-Vars, Deployment
+- [x] Factory nur als knapper „Werkzeug"-Abschnitt (Verweis CLAUDE.md/CONTRIBUTING/docs)
+- [x] Self-Test bleibt grün (README kein Gate-Artefakt)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
