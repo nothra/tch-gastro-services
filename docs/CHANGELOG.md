@@ -15,6 +15,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Auth.js Credentials-Login + RBAC** (#16): E-Mail+Passwort-Login (bcrypt, JWT-Sessions,
+  next-auth v5) auf dem Drizzle-Schema; Edge/Node-Split (`auth.config.ts`/`auth.ts`),
+  `proxy.ts` (Next-16-Nachfolger von middleware) schützt alle Routen außer `/login`,
+  Rolle in JWT/Session, Login-Seite + Server-Action, Seed-Script (`db:seed`) für
+  Initial-Admin. `passwordHash`-Migration gegen Neon angewendet.
+
 - **Persistenz-Grundlage: Drizzle + Neon** (#14): `db/` mit Neon-serverless-HTTP-Client und
   Auth.js-kompatiblem Schema (user inkl. `role`, account, session, verificationToken),
   `drizzle.config.ts`, generierte Initial-Migration, `db:generate/migrate/studio`-Scripts,
