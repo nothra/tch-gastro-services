@@ -1,0 +1,190 @@
+# dm Development Factory – GitLab CI
+#
+# Gates statt Vertrauen: dieselben Checks, die lokal über scripts/checks/ laufen,
+# laufen hier automatisch bei jedem Push und MR-Update.
+#
+# Konfiguration für adoptierte Projekte (nach /setup-project):
+#   - FACTORY_LINT_COMMAND / FACTORY_TEST_COMMAND als CI/CD-Variablen setzen
+#     (Settings → CI/CD → Variables) – dieselben Werte, die die pre-commit/pre-push-Hooks lesen.
+#   - Falls dein Stack ein anderes Runtime-Image braucht (Java/Node/Go statt alpine):
+#     den &factory-runtime-Anchor überschreiben (image + before_script) in lint/test.
+# Die "factory-checks"-Stage läuft immer und braucht keine Anpassung.
+
+stages:
+  - build-image
+  - factory-checks
+  - lint
+  - test
+  - verify
+  - orchestrate
+
+variables:
+  # Vorgebautes Runtime-Image für den factory-self-test-Job (Project Registry).
+  FACTORY_SELFTEST_IMAGE: "$CI_REGISTRY_IMAGE/factory-selftest:latest"
+  # Runtime-Image für den async Factory-Lauf (claude-CLI + glab, ADR-008).
+  FACTORY_RUNTIME_IMAGE: "$CI_REGISTRY_IMAGE/factory-runtime:latest"
+
+# Runtime für lint/test: adoptierte Projekte überschreiben image/before_script
+# hier für ihren eigenen Stack (Java/Node/Go …). Das Template selbst nutzt
+# alpine + bash/git/jq + yq (yq, weil die gedogfoodete Self-Test-Suite seit
+# Phase 1b run-pipeline.sh ausführt, das factory.defaults.yml via yq liest).
+.factory-runtime: &factory-runtime
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache bash git jq yq
+
+# Gates greifen bei MRs und auf dem Default-Branch.
+.gate-rules: &gate-rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ─── Self-Test-Image bauen ────────────────────────────────────────────────────
+# Bäckt bash/git/jq einmalig in ein ~26-MB-Image (ci/factory-selftest.Dockerfile),
+# damit factory-self-test kein `apk add` mehr bei jedem Lauf braucht.
+#
+# Läuft nur, wenn sich das Dockerfile ändert (rules:changes) – sonst wird das
+# bereits in der Registry liegende Image wiederverwendet. Build via kaniko
+# (kein privilegierter Docker-Daemon nötig). kaniko pusht nur bei Erfolg,
+# ein kaputtes Dockerfile kann also kein defektes Image nach :latest schreiben.
+#
+# Hinweis: Auf MR-Branches, die das Dockerfile ändern, wird :latest schon vor
+# dem Merge aktualisiert – für ein Template-Repo ein bewusst akzeptierter
+# Trade-off zugunsten der Einfachheit (eine mutable Tag-Referenz).
+
+build-selftest-image:
+  stage: build-image
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - ci/factory-selftest.Dockerfile
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - ci/factory-selftest.Dockerfile
+  script:
+    - /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/ci/factory-selftest.Dockerfile"
+      --destination "$FACTORY_SELFTEST_IMAGE"
+      --cache=true
+
+# ─── Factory-eigene Checks ────────────────────────────────────────────────────
+# Prüft die Integrität der Factory-Skripte selbst (Self-Test-Suite).
+# Läuft immer – auch in adoptierten Projekten, die das Template als Basis nutzen.
+#
+# Nutzt das vorgebaute Image (bash/git/jq schon enthalten) – kein before_script
+# mit `apk add` mehr. Hängt nicht via `needs` am Build-Job: bei unverändertem
+# Dockerfile wird der Build übersprungen und das vorhandene :latest verwendet.
+
+factory-self-test:
+  <<: *gate-rules
+  stage: factory-checks
+  image: "$FACTORY_SELFTEST_IMAGE"
+  script:
+    - bash scripts/checks/tests/run-tests.sh
+
+# ─── Projekt-Lint ────────────────────────────────────────────────────────────
+# Konfiguration über die CI/CD-Variable FACTORY_LINT_COMMAND – dieselbe Variable,
+# die scripts/checks/pre-commit.sh liest. Kein Doppel-Pflegen: Befehl an einer Stelle.
+#
+# Bewusste "fail vs. allow"-Entscheidung: Hooks lassen bei fehlender Konfig durch
+# (lokaler Komfort), CI failt (zentrale Schleuse) – genau "Gates statt Vertrauen".
+# Ein grünes No-Op-Gate wäre gefährlicher als kein Gate.
+#
+# Das Template selbst dogfoodt: FACTORY_LINT_COMMAND ist als Projekt-CI/CD-Variable
+# auf einen bash-Syntaxcheck über die eigenen Skripte gesetzt.
+
+lint:
+  <<: [*factory-runtime, *gate-rules]
+  stage: lint
+  script:
+    - |
+      if [ -z "${FACTORY_LINT_COMMAND:-}" ]; then
+        echo "FACTORY_LINT_COMMAND nicht gesetzt – als CI/CD-Variable konfigurieren."
+        echo "Gleicher Wert wie in scripts/checks/pre-commit.sh (kein Doppel-Pflegen)."
+        exit 1
+      fi
+    - eval "$FACTORY_LINT_COMMAND"
+
+# ─── Projekt-Tests ───────────────────────────────────────────────────────────
+# Konfiguration über die CI/CD-Variable FACTORY_TEST_COMMAND – dieselbe Variable,
+# die scripts/checks/pre-push.sh liest. Kein Doppel-Pflegen.
+
+test:
+  <<: [*factory-runtime, *gate-rules]
+  stage: test
+  script:
+    - |
+      if [ -z "${FACTORY_TEST_COMMAND:-}" ]; then
+        echo "FACTORY_TEST_COMMAND nicht gesetzt – als CI/CD-Variable konfigurieren."
+        echo "Gleicher Wert wie in scripts/checks/pre-push.sh (kein Doppel-Pflegen)."
+        exit 1
+      fi
+    - eval "$FACTORY_TEST_COMMAND"
+
+# ─── Post-Merge-Verifikation ──────────────────────────────────────────────────
+# Läuft NUR auf dem Default-Branch (nach dem Merge) – CI-grün ≠ Produktion-grün
+# (ADR-007). Prüft das tatsächliche Verhalten der deployten Umgebung per
+# Healthcheck gegen FACTORY_HEALTHCHECK_URL. Ohne URL: übersprungen (das Template
+# hat kein Deploy-Ziel). Schlägt der Check fehl → POST_MERGE_FAIL-Interrupt + rot.
+#
+# Bewusst NICHT bei merge_request_event: vor dem Merge ist nichts deployt.
+
+post-merge-verify:
+  stage: verify
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache bash curl
+  script:
+    - bash scripts/post-merge-verify.sh
+  rules:
+    # Nur nach echtem Merge (push auf main), nicht bei Scheduled-/anderen Pipelines.
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+
+# ─── Async-Trigger-Runtime-Image bauen (ADR-008) ─────────────────────────────
+# Image mit claude-CLI + glab für den async Lauf. Wie build-selftest-image:
+# kaniko, nur bei Dockerfile-Änderung. Spur B: einmal in die Registry bauen.
+
+build-runtime-image:
+  stage: build-image
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - ci/factory-runtime.Dockerfile
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - ci/factory-runtime.Dockerfile
+  script:
+    - /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/ci/factory-runtime.Dockerfile"
+      --destination "$FACTORY_RUNTIME_IMAGE"
+      --cache=true
+
+# ─── Async-Trigger: Scheduled-Poll (ADR-008, Option A) ───────────────────────
+# Läuft NUR in einer Scheduled Pipeline. Sucht factory::run-Issues und startet
+# fail-closed hinter dem Budget-Guard die Factory-Pipeline.
+#
+# resource_group = Concurrency=1 über Pipelines hinweg: zwei Scheduled-Läufe
+# überlappen nie (zweite Hälfte der Idempotenz; erste ist der In-Skript-Check).
+#
+# Spur B (GitLab-Setup nötig, NICHT in diesem MR verifizierbar):
+#   - Scheduled Pipeline anlegen (Settings → CI/CD → Pipeline schedules)
+#   - Labels factory::run / ::running / ::done / ::interrupted / ::failed anlegen
+#   - masked ANTHROPIC_API_KEY (o. ANTHROPIC_BASE_URL) + GITLAB_TOKEN (write_repository)
+#   - optional FACTORY_RUN_TIMEOUT (Stale-Reaper, Default 3600s)
+
+factory-poll:
+  stage: orchestrate
+  image: "$FACTORY_RUNTIME_IMAGE"
+  resource_group: factory-runtime
+  script:
+    - bash scripts/factory-poll.sh
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
