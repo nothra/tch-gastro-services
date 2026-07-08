@@ -15,7 +15,7 @@
 | **Name** | TCH Gastro Services |
 | **Beschreibung** | Cross-Platform WebApp fuer Browser, Android und iOS; zentrale Komponente auf Vercel |
 | **Typ** | webapp (Browser + Android + iOS, Vercel) |
-| **Team** | TBD |
+| **Team** | TCH-Developer |
 | **Startdatum** | 2026-07-08 |
 | **Repository** | https://github.com/nothra/tch-gastro-services |
 
