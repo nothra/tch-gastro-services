@@ -8,6 +8,9 @@ pnpm-workspace.yaml
 # Statische Assets
 public
 
+# Generierte Drizzle-Migrationen (SQL + Meta) – nicht von Prettier verwalten
+db/migrations
+
 # Factory-eigene Inhalte – hand-gepflegt, NICHT von Prettier verwaltet
 docs/
 tasks/

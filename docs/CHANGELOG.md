@@ -15,6 +15,11 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Persistenz-Grundlage: Drizzle + Neon** (#14): `db/` mit Neon-serverless-HTTP-Client und
+  Auth.js-kompatiblem Schema (user inkl. `role`, account, session, verificationToken),
+  `drizzle.config.ts`, generierte Initial-Migration, `db:generate/migrate/studio`-Scripts,
+  `.env.example`. Build/lint/test bleiben ohne DB grün. Auth.js-Laufzeit folgt separat.
+
 - **App-Grundgerüst** (#10): lauffähige Next.js-16-App (App Router, TypeScript, pnpm) im
   Repo-Root – Tailwind v4, ESLint + Prettier, Vitest + Smoke-Test, Web-App-Manifest (PWA,
   installierbar), minimale TCH-Startseite. `pnpm install/lint/test/build/format:check`

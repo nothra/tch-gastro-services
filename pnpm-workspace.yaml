@@ -1,5 +1,7 @@
 # Post-install-Build-Skripte, die pnpm ausführen darf (pnpm 11+).
-# sharp = Next.js Bildoptimierung, unrs-resolver = ESLint-Import-Resolver.
+# sharp = Next.js Bildoptimierung, unrs-resolver = ESLint-Import-Resolver,
+# esbuild = von drizzle-kit genutzt (Migrations-Tooling).
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true

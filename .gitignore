@@ -43,6 +43,8 @@ pnpm-debug.log*
 
 # env files (Secrets: DATABASE_URL, AUTH_SECRET etc. – nie committen)
 .env*
+# ... außer der Beispiel-Vorlage (ohne echte Werte):
+!.env.example
 
 # vercel
 .vercel
