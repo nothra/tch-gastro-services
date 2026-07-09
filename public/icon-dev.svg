@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TCH DEV">
+  <rect width="512" height="512" rx="96" fill="#475569" />
+  <text x="50%" y="52%" font-family="system-ui, -apple-system, sans-serif" font-size="150"
+        font-weight="700" fill="#ffffff" text-anchor="middle" dominant-baseline="central">TCH</text>
+  <text x="50%" y="80%" font-family="system-ui, -apple-system, sans-serif" font-size="80"
+        font-weight="700" fill="#ffffff" text-anchor="middle" dominant-baseline="central">DEV</text>
+</svg>

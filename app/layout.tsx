@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { STAGE, currentStage } from "@/lib/stage";
+import { StageBanner } from "@/app/components/StageBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,15 +14,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Titel je Stage kenntlich (DEV/INT im Browser-Tab sichtbar), PRD ohne Suffix.
+const stageSuffix = STAGE === "prd" ? "" : ` [${STAGE.toUpperCase()}]`;
+
 export const metadata: Metadata = {
-  title: "TCH Gastro Services",
+  title: `TCH Gastro Services${stageSuffix}`,
   description: "Erfassung der Gastronomie-Vorgänge des Tennisclub Heuchelheim.",
-  applicationName: "TCH Gastro",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "TCH Gastro" },
+  applicationName: `TCH Gastro${stageSuffix}`,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: `TCH Gastro${stageSuffix}`,
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e7490",
+  themeColor: currentStage.color,
 };
 
 export default function RootLayout({
@@ -30,7 +39,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <StageBanner />
+        {children}
+      </body>
     </html>
   );
 }

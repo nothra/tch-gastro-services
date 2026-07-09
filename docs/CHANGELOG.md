@@ -15,6 +15,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **3-Stage-Setup DEV/INT/PRD** (#22): Stage-Erkennung via `NEXT_PUBLIC_STAGE` (`lib/stage.ts`);
+  sichtbare Kennzeichnung (Banner in DEV/INT, stage-eingefärbtes Icon/Manifest/Titel, PRD neutral);
+  **dualer DB-Treiber** (node-postgres lokal, neon-http auf Vercel) je nach `DATABASE_URL`;
+  `docker-compose.yml` für die lokale DEV-Postgres; stage-spezifische Env-Dateien und
+  `db:up/down`, `db:migrate:int/prd`, `db:seed:int`; README-Doku je Stage (Migrations-Fluss DEV→INT→PRD).
+
 - **Auth.js Credentials-Login + RBAC** (#16): E-Mail+Passwort-Login (bcrypt, JWT-Sessions,
   next-auth v5) auf dem Drizzle-Schema; Edge/Node-Split (`auth.config.ts`/`auth.ts`),
   `proxy.ts` (Next-16-Nachfolger von middleware) schützt alle Routen außer `/login`,

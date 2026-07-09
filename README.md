@@ -17,46 +17,75 @@ alltäglicher Vorgänge – mit rollenbasiertem Zugriff.
 | **Hosting** | [Vercel](https://vercel.com) (Hobby, nicht-kommerziell), Function-Region **Frankfurt `fra1`** |
 | **App** | [Next.js](https://nextjs.org) (App Router) · React · **TypeScript** |
 | **Client** | **PWA** (installierbar, iOS + Android) · Tailwind CSS |
-| **Datenbank** | [Neon](https://neon.com) **PostgreSQL** (Free-Tarif, Region Frankfurt/EU) |
-| **DB-Zugriff** | [Drizzle ORM](https://orm.drizzle.team) über den Neon serverless HTTP-Treiber |
+| **Datenbank** | **PostgreSQL** – lokal (Docker) in DEV, [Neon](https://neon.com) (EU/Frankfurt) in INT/PRD |
+| **DB-Zugriff** | [Drizzle ORM](https://orm.drizzle.team) – `node-postgres` lokal, Neon serverless HTTP auf Vercel |
 | **Auth** | [Auth.js / NextAuth v5](https://authjs.dev) – E-Mail+Passwort (bcrypt, JWT), Rollen (RBAC) |
 | **Paketmanager** | pnpm · Node ≥ 20 |
 
-**Datenhaltung in der EU** (Neon Frankfurt + Vercel `fra1`). Alle Bausteine sind im
-Vereinsbetrieb kostenfrei. Hintergrund & Begründung: [ADR-014](docs/adr/014-tech-stack-selection.md).
+Produktivdaten in der EU (Neon Frankfurt + Vercel `fra1`). Alle Bausteine sind im
+Vereinsbetrieb kostenfrei. Hintergrund: [ADR-014](docs/adr/014-tech-stack-selection.md).
 
 ---
 
-## Lokale Entwicklung
+## Umgebungen (Stages)
 
-**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io) (`npm i -g pnpm`).
+Drei getrennte Stages, gesteuert über `NEXT_PUBLIC_STAGE` (`dev` | `int` | `prd`):
+
+| Stage | Zweck | Hosting | Datenbank |
+|-------|-------|---------|-----------|
+| **DEV** | lokale Entwicklung | lokal (`pnpm dev`) | **lokale** Postgres (Docker) auf dem Dev-System |
+| **INT** | Integrationstests, Migrations-Proben mit produktionsnahen Daten | Vercel, Branch **`int`** (Preview) | **eigene** Neon-DB (getrennt von PRD) |
+| **PRD** | Produktion | Vercel, Branch **`main`** (Production) | Neon-Produktions-DB |
+
+**Sichtbare Unterscheidung:** DEV und INT zeigen ein **farbiges Banner** (DEV grau, INT orange),
+ein **stage-eingefärbtes Icon** (Homescreen/Tab) und ein `[DEV]`/`[INT]`-Titel-Suffix. **PRD** hat
+**kein** Banner und das TCH-Standard-Icon (teal) – so ist Produktion nie mit den anderen zu verwechseln.
+
+### DEV – lokale Entwicklung
+
+**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io) (`npm i -g pnpm`), Docker.
 
 ```bash
-# 1. Abhängigkeiten
 pnpm install
-
-# 2. Umgebungsvariablen
-cp .env.example .env.local          # dann Werte eintragen (siehe unten)
-
-# 3. Datenbank vorbereiten
-pnpm db:migrate                     # Schema in Neon anlegen
-pnpm db:seed                        # ersten Admin anlegen (SEED_ADMIN_* aus .env.local)
-
-# 4. Dev-Server
-pnpm dev                            # http://localhost:3000  → Login → Startseite
+cp .env.example .env.local          # NEXT_PUBLIC_STAGE=dev, lokale DATABASE_URL, AUTH_SECRET, SEED_ADMIN_*
+pnpm db:up                          # lokale Postgres via Docker (docker-compose.yml)
+pnpm db:migrate                     # Schema anlegen (nutzt .env.local)
+pnpm db:seed                        # ersten Admin anlegen
+pnpm dev                            # http://localhost:3000 → Login → Startseite (mit DEV-Banner)
 ```
 
-### Umgebungsvariablen (`.env.local`)
+`.env.local` (DEV):
+```
+NEXT_PUBLIC_STAGE=dev
+DATABASE_URL=postgresql://tch:tch@localhost:5432/tch_dev
+AUTH_SECRET=<openssl rand -base64 32>
+SEED_ADMIN_EMAIL=... / SEED_ADMIN_PASSWORD=...
+```
 
-| Variable | Zweck |
-|----------|-------|
-| `DATABASE_URL` | Neon **Pooled** Connection String (Host mit `-pooler`, Region Frankfurt) |
-| `AUTH_SECRET` | Cookie-/JWT-Secret. Erzeugen: `openssl rand -base64 32` |
-| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Zugangsdaten des Initial-Admins für `pnpm db:seed` |
+### INT – Integrationsumgebung
 
-> `.env.local` ist gitignored – **niemals Secrets committen**.
-> Hinweis: `npx auth secret` nicht verwenden (zieht das falsche „Better Auth"-CLI) –
-> stattdessen `openssl rand -base64 32`.
+Zweck: **DB-Migrationen verlässlich testen**, bevor sie auf PRD laufen – mit produktionsnahen Daten.
+
+1. **Neon-INT-DB** anlegen (separates Neon-Projekt **oder** eigener Branch im Neon-Projekt, Region Frankfurt) – **getrennt** von PRD.
+2. **Branch `int`** existiert im Repo → Vercel deployt ihn als Preview.
+3. **Vercel-Env-Variablen** branch-spezifisch für `int` (Scope *Preview*, Git-Branch `int`):
+   `NEXT_PUBLIC_STAGE=int`, `DATABASE_URL=<INT-Neon-Pooled>`, `AUTH_SECRET=<int-secret>`.
+4. **Migrationen/Daten** von lokal aus gegen INT fahren (Env-Datei `.env.int`):
+   ```bash
+   pnpm db:migrate:int      # Migrationen auf INT anwenden (Test vor PRD)
+   pnpm db:seed:int         # Admin/Basisdaten auf INT
+   ```
+   Produktionsnahe Daten: per `pg_dump` aus PRD ziehen und in INT einspielen
+   (**vor** dem Laden personenbezogene Daten anonymisieren – DSGVO).
+
+### PRD – Produktion
+
+- Branch **`main`** → Vercel **Production** (Auto-Deploy bei Merge).
+- **Vercel-Env** (Scope *Production*): `NEXT_PUBLIC_STAGE=prd`, `DATABASE_URL=<PRD-Neon-Pooled>`, `AUTH_SECRET=<prd-secret>`.
+- Migrationen kontrolliert anwenden (Env-Datei `.env.prd`): `pnpm db:migrate:prd` – **erst nachdem sie auf INT geprüft wurden.**
+
+> Die Env-Dateien `.env.local` / `.env.int` / `.env.prd` sind **gitignored** – Secrets nie committen.
+> Secret erzeugen: `openssl rand -base64 32` (**nicht** `npx auth secret` – zieht das falsche CLI).
 
 ---
 
@@ -67,33 +96,36 @@ pnpm dev                            # http://localhost:3000  → Login → Start
 | `pnpm dev` / `pnpm build` / `pnpm start` | Entwicklung / Produktions-Build / Start |
 | `pnpm lint` · `pnpm format` · `pnpm format:check` | ESLint · Prettier |
 | `pnpm test` · `pnpm test:coverage` | Vitest |
+| `pnpm db:up` · `pnpm db:down` | lokale Docker-Postgres starten/stoppen (DEV) |
 | `pnpm db:generate` | Drizzle-Migration aus dem Schema erzeugen (offline) |
-| `pnpm db:migrate` · `pnpm db:studio` | Migration anwenden · Drizzle Studio (nutzen `.env.local`) |
-| `pnpm db:seed` | Initial-Admin anlegen |
+| `pnpm db:migrate` · `db:migrate:int` · `db:migrate:prd` | Migration auf DEV / INT / PRD anwenden |
+| `pnpm db:seed` · `db:seed:int` | Initial-Admin auf DEV / INT anlegen |
+| `pnpm db:studio` | Drizzle Studio (DEV) |
 
 ---
 
 ## Deployment (Vercel)
 
-Das GitHub-Repo ist mit einem Vercel-Projekt verbunden: **Push auf `main` → Produktions-Deploy**,
-Pull Requests erhalten Preview-Deployments.
+Das GitHub-Repo ist mit einem Vercel-Projekt verbunden:
+- **`main` → Production (PRD)**, **`int` → Preview (INT)**, sonstige PRs → Preview.
+- **Function-Region `fra1`** ist über [`vercel.json`](vercel.json) fixiert.
+- Env-Variablen werden **je Environment/Branch** im Vercel-Dashboard gesetzt (siehe Stage-Tabellen oben).
 
-Einmalige Einrichtung im Vercel-Dashboard:
-1. **Environment Variables** (Scope *Production* + *Preview*): `DATABASE_URL`, `AUTH_SECRET`.
-2. **Function-Region** auf **Frankfurt `fra1`** (bzw. `vercel.json`).
-
-Lokal und Vercel nutzen **dieselbe Neon-Datenbank** → Migration/Seed nur einmal nötig.
+INT und PRD nutzen **getrennte** Neon-Datenbanken; DEV eine lokale DB. Migrationen laufen den Weg
+**DEV → INT → PRD**.
 
 ---
 
 ## Projektstruktur (Auszug)
 
 ```
-app/                     # Next.js App Router (Seiten, /login, /api/auth)
-db/                      # Drizzle: schema.ts, index.ts (Client), migrations/, seed.ts
-auth.ts · auth.config.ts # Auth.js (Node bzw. edge-sichere Config)
-proxy.ts                 # Route-Schutz (Next-16-Nachfolger von middleware)
-types/                   # Typ-Erweiterungen (z. B. Rolle in der Session)
+app/                      # Next.js App Router (Seiten, /login, /api/auth, components/StageBanner)
+lib/stage.ts              # Stage-Erkennung (Banner/Icon/Titel je DEV/INT/PRD)
+db/                       # Drizzle: schema.ts, index.ts (dualer Treiber), migrations/, seed.ts
+auth.ts · auth.config.ts  # Auth.js (Node bzw. edge-sichere Config)
+proxy.ts                  # Route-Schutz (Next-16-Nachfolger von middleware)
+docker-compose.yml        # lokale DEV-Postgres
+vercel.json               # Vercel-Region fra1
 ```
 
 ---
