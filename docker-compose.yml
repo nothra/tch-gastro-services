@@ -1,0 +1,26 @@
+# Lokale DEV-Datenbank (Stage DEV) auf dem Entwicklungssystem.
+# Start:  pnpm db:up   (oder: docker compose up -d)
+# Stop:   pnpm db:down
+# Passende DATABASE_URL in .env.local:
+#   postgresql://tch:tch@localhost:5432/tch_dev
+services:
+  db:
+    image: postgres:17
+    container_name: tch-gastro-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tch
+      POSTGRES_PASSWORD: tch
+      POSTGRES_DB: tch_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - tch-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tch -d tch_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tch-db-data:
