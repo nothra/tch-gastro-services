@@ -1,11 +1,12 @@
 # Lokale DEV-Datenbank (Stage DEV) auf dem Entwicklungssystem.
-# Start:  pnpm db:up   (oder: docker compose up -d)
+# Start:  pnpm db:up   (oder: docker compose up -d / docker-compose up -d)
 # Stop:   pnpm db:down
 # Passende DATABASE_URL in .env.local:
 #   postgresql://tch:tch@localhost:5432/tch_dev
+# Postgres-Major an INT/PRD (Neon) angelehnt; -alpine = schlank.
 services:
   db:
-    image: postgres:17
+    image: postgres:16-alpine
     container_name: tch-gastro-db
     restart: unless-stopped
     environment:
