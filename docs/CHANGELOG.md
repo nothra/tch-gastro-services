@@ -12,6 +12,13 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Automatischer INT-DB-Refresh im Deploy-Gate** (#46, ADR-015): Vor den E2E setzt das Gate den
+  INT-Neon-Branch von PRD zurück (`scripts/neon-reset-int.sh`, Restore-API „Reset from parent" +
+  Operationen-Polling), **anonymisiert** sofort, **migriert** und **seedet** den INT-Admin. So
+  testet jeder Lauf gegen frische, prod-nahe, anonymisierte Daten. Konditional an die Neon-Secrets
+  gebunden (`NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_INT_BRANCH_ID`, `NEON_PRD_BRANCH_ID`,
+  `INT_DATABASE_URL`) – fehlen sie, wird der Refresh mit Warnung übersprungen (kein Reset = keine
+  neue PII); sonst fail-closed (Fehler → kein Promote). DSGVO-Restfenster in ADR-015 dokumentiert.
 - **Deploy-Gate scharfgeschaltet** (#40): Vercel **Production Branch = `production`** gesetzt →
   ein `main`-Push erzeugt nur noch eine Preview, Prod deployt ausschließlich über den vom Gate
   promoteten `production`-Branch (nur bei grünem INT-E2E). Dieser Eintrag diente zugleich als
