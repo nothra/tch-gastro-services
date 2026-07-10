@@ -114,9 +114,21 @@ einem **Protection-Bypass-Secret** durch (der Schutz für menschliche Zugriffe b
 
 ### PRD – Produktion
 
-- Branch **`main`** → Vercel **Production** (Auto-Deploy bei Merge).
+- Branch **`production`** → Vercel **Production**. Prod wird **nur über das Deploy-Gate** aktualisiert (nicht direkt bei `main`-Merge).
 - **Vercel-Env** (Scope *Production*): `NEXT_PUBLIC_STAGE=prd`, `DATABASE_URL=<PRD-Neon-Pooled>`, `AUTH_SECRET=<prd-secret>`.
 - Migrationen kontrolliert anwenden (Env-Datei `.env.prd`): `pnpm db:migrate:prd` – **erst nachdem sie auf INT geprüft wurden.**
+
+### Deploy-Gate (E2E vor Production)
+
+`.github/workflows/deploy-gate.yml` entkoppelt Prod vom `main`-Push:
+
+**Push auf `main` → INT auf den Commit bringen → auf INT-Build warten (`/api/version` == Commit) →
+Playwright-E2E gegen INT → nur bei Grün `main` → `production` → Vercel deployt Prod.**
+
+- Benötigt Repository-**Secrets**: `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`.
+- **Aktivierungs-Reihenfolge:** (1) Secrets setzen, (2) Gate einmal grün laufen lassen (legt/aktualisiert `production`),
+  (3) **dann** in Vercel **Production Branch = `production`** setzen. Bis (3) deployt `main` weiter wie bisher – kein Bruch.
+- E2E rot → **kein** Promote → Production bleibt auf dem letzten Stand.
 
 > Die Env-Dateien `.env.local` / `.env.int` / `.env.prd` sind **gitignored** – Secrets nie committen.
 > Secret erzeugen: `openssl rand -base64 32` (**nicht** `npx auth secret` – zieht das falsche CLI).

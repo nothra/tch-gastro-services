@@ -1,0 +1,87 @@
+# Deploy-Gate: Production wird erst deployt, wenn die E2E-Oberflächentests auf INT grün sind.
+#
+# Fluss:  Push auf main  →  INT auf diesen Commit bringen  →  auf INT-Build warten
+#         →  Playwright-E2E gegen INT  →  (nur bei Grün) Promote main → production
+#         →  Vercel deployt Production (sobald Vercel Production Branch = `production`).
+#
+# Voraussetzungen (Repository-Secrets): VERCEL_AUTOMATION_BYPASS_SECRET, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD.
+# Aktivierung: siehe README (erst Gate grün, dann Vercel Production Branch auf `production` umstellen).
+
+name: Deploy Gate (E2E → Production)
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-gate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+      INT_URL: https://tch-gastro-services-git-int-tch-developers.vercel.app
+      BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Secrets vorhanden?
+        run: |
+          missing=0
+          [ -n "$BYPASS" ] || { echo "::error::VERCEL_AUTOMATION_BYPASS_SECRET fehlt"; missing=1; }
+          [ -n "${{ secrets.E2E_ADMIN_EMAIL }}" ] || { echo "::error::E2E_ADMIN_EMAIL fehlt"; missing=1; }
+          [ -n "${{ secrets.E2E_ADMIN_PASSWORD }}" ] || { echo "::error::E2E_ADMIN_PASSWORD fehlt"; missing=1; }
+          [ "$missing" = 0 ] || exit 1
+
+      - name: Abhängigkeiten
+        run: pnpm install --frozen-lockfile
+      - name: Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: INT auf diesen Commit bringen
+        run: git push origin "HEAD:int" --force
+
+      - name: Auf INT-Deployment dieses Commits warten
+        run: |
+          echo "Warte, bis INT den Commit $SHA ausliefert …"
+          for i in $(seq 1 60); do
+            got=$(curl -sf -H "x-vercel-protection-bypass: $BYPASS" "$INT_URL/api/version" \
+                  | jq -r '.sha // ""' 2>/dev/null || true)
+            echo "  Versuch $i: INT sha=${got:-<leer>}"
+            [ "$got" = "$SHA" ] && { echo "INT ist auf $SHA."; exit 0; }
+            sleep 12
+          done
+          echo "::error::Timeout – INT liefert nach ~12 min nicht Commit $SHA aus"; exit 1
+
+      - name: E2E gegen INT
+        env:
+          NEXT_PUBLIC_STAGE: int
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          SEED_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: pnpm exec playwright test
+
+      - name: Playwright-Report bei Fehler sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Promote main → production (nur bei grünem E2E)
+        run: |
+          echo "E2E grün → Promote $SHA nach production"
+          git push origin "HEAD:production"

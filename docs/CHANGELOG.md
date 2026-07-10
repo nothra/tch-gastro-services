@@ -14,6 +14,13 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Added
+- **Deploy-Gate: E2E vor Production** (#38): `.github/workflows/deploy-gate.yml` entkoppelt Prod vom
+  `main`-Push – Push→main bringt INT auf den Commit, wartet (via `/api/version`), fährt Playwright-E2E
+  gegen INT und promotet **nur bei Grün** `main`→`production` (Vercel-Prod-Branch). Neuer öffentlicher
+  `/api/version`-Endpunkt (SHA/Stage) für deterministisches Warten; `api/version` aus dem Proxy-Schutz
+  ausgenommen. Secrets: `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL/PASSWORD`.
+
 ### Fixed
 - **E2E-Timeouts remote-tauglich** (#36): `expect`/`navigation`/`action`-Timeouts erhöht, damit
   die langsameren INT-Läufe (Vercel-Bypass + Internet-Latenz) nicht am 5-s-Default scheitern.
