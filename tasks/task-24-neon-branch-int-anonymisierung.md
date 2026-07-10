@@ -1,20 +1,18 @@
 # Task 24: neon-branch-int-anonymisierung
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+INT auf Neon-Branch-Modell (CoW-Klon von PRD) umgestellt (Doku) und `db/anonymize.ts` +
+`db:anonymize:int` ergänzt (überschreibt Namen/E-Mails, entwertet Prod-Passwörter),
+mit Guard NEXT_PUBLIC_STAGE=int.
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] `db:anonymize:int` vorhanden; bricht ohne NEXT_PUBLIC_STAGE=int ab (Guard)
+- [x] README beschreibt INT als Neon-Branch + Fluss Branch → anonymize:int → migrate:int → seed:int
+- [x] build/lint/test/format:check grün (anonymize.ts typgeprüft)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
