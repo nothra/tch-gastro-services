@@ -11,6 +11,11 @@ public
 # Generierte Drizzle-Migrationen (SQL + Meta) – nicht von Prettier verwalten
 db/migrations
 
+# Playwright-Artefakte
+test-results
+playwright-report
+blob-report
+
 # Factory-eigene Inhalte – hand-gepflegt, NICHT von Prettier verwaltet
 docs/
 tasks/

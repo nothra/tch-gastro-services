@@ -14,6 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Added
+- **Playwright-E2E-Oberflächentests** (#34): `e2e/auth.spec.ts` (Redirect-Schutz, Login-Formular,
+  Admin-Login, Falsch-Login-Fehler, Stage-Banner) + `playwright.config.ts` (baseURL je Stage,
+  Vercel-Bypass-Header, lokaler webServer). Scripts `test:e2e` (DEV, 4 grün) / `test:e2e:int`
+  (INT via `VERCEL_AUTOMATION_BYPASS_SECRET`). Nicht im CI-Gate (braucht Browser/Server/DB).
+
 ### Changed
 - **Lokale DEV-Umgebung: Docker Compose v2 + Postgres 18** (#30): `db:up`/`db:down` V2-only
   (`docker compose …`), lokale DB von `postgres:16-alpine` auf **`postgres:18-alpine`** (= Neon 18.4);
