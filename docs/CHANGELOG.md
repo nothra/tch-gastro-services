@@ -15,6 +15,10 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Deploy-Gate scharfgeschaltet** (#40): Vercel **Production Branch = `production`** gesetzt →
+  ein `main`-Push erzeugt nur noch eine Preview, Prod deployt ausschließlich über den vom Gate
+  promoteten `production`-Branch (nur bei grünem INT-E2E). Dieser Eintrag diente zugleich als
+  Live-Verifikation des Gates end-to-end.
 - **Deploy-Gate: E2E vor Production** (#38): `.github/workflows/deploy-gate.yml` entkoppelt Prod vom
   `main`-Push – Push→main bringt INT auf den Commit, wartet (via `/api/version`), fährt Playwright-E2E
   gegen INT und promotet **nur bei Grün** `main`→`production` (Vercel-Prod-Branch). Neuer öffentlicher

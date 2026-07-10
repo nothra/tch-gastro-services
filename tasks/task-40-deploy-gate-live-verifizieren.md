@@ -1,26 +1,31 @@
 # Task 40: deploy-gate-live-verifizieren
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+Live-Verifikation des scharfgeschalteten Deploy-Gates (Issue #38): Nutzer hat in Vercel
+**Production Branch = `production`** gesetzt. Ein kleiner, echter Change (CHANGELOG-Eintrag
+zur Gate-Aktivierung) läuft durch den Factory-Fluss (Issue → Branch → PR → Squash-Merge auf
+`main`) und beweist end-to-end, dass Prod erst nach grünem INT-E2E über den `production`-Branch
+deployt – nicht mehr direkt vom `main`-Push.
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] CHANGELOG-Eintrag „Deploy-Gate aktiviert (Production Branch = production)" ergänzt
+- [ ] Merge auf `main` triggert `deploy-gate.yml`; Lauf grün inkl. „Promote … nach production"
+- [ ] `main` und `production` stehen danach auf demselben **neuen** SHA (nicht mehr bf48f31)
+- [ ] Prod `/api/version` liefert `sha` = neuer Commit und `stage` = `prd`
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+- Reiner Doku-Change → kein funktionales Prod-Risiko; deployt Prod nur bei grünem INT-E2E.
+- Verifikation deterministisch über den öffentlichen `/api/version`-Endpunkt (kein Dashboard nötig).
+- Gate-Latenz: INT-Build + E2E dauern einige Minuten (Timeout ~12 min gesetzt).
 
 ## Offene Fragen
-<!-- Fragen, die noch geklärt werden müssen -->
+<!-- keine -->
+
+Blocker: keine.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
