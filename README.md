@@ -77,9 +77,14 @@ zunächst **echte personenbezogene Daten** → **direkt nach dem Abzweigen anony
    `NEXT_PUBLIC_STAGE=int`, `DATABASE_URL=<INT-Neon-Branch-Pooled>`, `AUTH_SECRET=<int-secret>`.
 4. Lokal `.env.int` anlegen (`NEXT_PUBLIC_STAGE=int`, `DATABASE_URL=<INT-Branch>`, `SEED_ADMIN_*`).
 
-**Refresh-/Testfluss** (wiederholbar, z. B. vor jeder Migrations-Probe):
+**Automatisch bei jedem INT-Deploy (ADR-015):** Das Deploy-Gate frischt INT bei jedem
+`main`-Push selbst auf – **Reset von PRD → anonymisieren → migrieren → Admin seeden** – bevor
+die E2E laufen. Voraussetzung sind die Neon-Secrets (siehe [Deploy-Gate](#deploy-gate-e2e-vor-production)).
+Fehlen sie, wird der Refresh mit Warnung übersprungen (kein Reset = keine neue PII).
+
+**Manueller Refresh-/Testfluss** (lokal, identische Schritte):
 ```bash
-# (Neon: int-Branch neu von PRD abzweigen = frische Prod-Daten)
+# (Neon: int-Branch von PRD zurücksetzen = frische Prod-Daten; CI nutzt scripts/neon-reset-int.sh)
 pnpm db:anonymize:int    # Namen/E-Mails überschreiben, Prod-Passwörter entwerten (Guard: nur STAGE=int)
 pnpm db:migrate:int      # ausstehende Migrationen auf INT testen (vor PRD)
 pnpm db:seed:int         # bekannten INT-Admin (SEED_ADMIN_*) setzen
@@ -122,10 +127,16 @@ einem **Protection-Bypass-Secret** durch (der Schutz für menschliche Zugriffe b
 
 `.github/workflows/deploy-gate.yml` entkoppelt Prod vom `main`-Push:
 
-**Push auf `main` → INT auf den Commit bringen → auf INT-Build warten (`/api/version` == Commit) →
+**Push auf `main` → INT auf den Commit bringen → INT-DB von PRD auffrischen (Reset → anonymisieren →
+migrieren → seed) → auf INT-Build warten (`/api/version` == Commit) →
 Playwright-E2E gegen INT → nur bei Grün `main` → `production` → Vercel deployt Prod.**
 
-- Benötigt Repository-**Secrets**: `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`.
+- Pflicht-**Secrets** (Gate): `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`.
+- **INT-Refresh-Secrets** (ADR-015, optional – fehlen sie, wird der Refresh mit Warnung übersprungen):
+  `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_INT_BRANCH_ID`, `NEON_PRD_BRANCH_ID`, `INT_DATABASE_URL`.
+  Die Branch-IDs (`br-…`) und das API-Token stehen in der Neon-Konsole; `INT_DATABASE_URL` ist der
+  gepoolte Connection-String des INT-Branches (wie in `.env.int`). Der Refresh läuft **fail-closed**:
+  schlägt Reset/Anonymisierung/Migration fehl, gibt es **kein** Promote.
 - **Aktivierungs-Reihenfolge:** (1) Secrets setzen, (2) Gate einmal grün laufen lassen (legt/aktualisiert `production`),
   (3) **dann** in Vercel **Production Branch = `production`** setzen. Bis (3) deployt `main` weiter wie bisher – kein Bruch.
 - E2E rot → **kein** Promote → Production bleibt auf dem letzten Stand.

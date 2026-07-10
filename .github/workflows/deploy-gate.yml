@@ -1,10 +1,14 @@
 # Deploy-Gate: Production wird erst deployt, wenn die E2E-Oberflächentests auf INT grün sind.
 #
-# Fluss:  Push auf main  →  INT auf diesen Commit bringen  →  auf INT-Build warten
+# Fluss:  Push auf main  →  INT auf diesen Commit bringen  →  INT-DB von PRD auffrischen
+#         (Reset → anonymisieren → migrieren → Admin seeden)  →  auf INT-Build warten
 #         →  Playwright-E2E gegen INT  →  (nur bei Grün) Promote main → production
 #         →  Vercel deployt Production (sobald Vercel Production Branch = `production`).
 #
-# Voraussetzungen (Repository-Secrets): VERCEL_AUTOMATION_BYPASS_SECRET, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD.
+# Pflicht-Secrets (Gate): VERCEL_AUTOMATION_BYPASS_SECRET, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD.
+# Optional (INT-Refresh, ADR-015): NEON_API_KEY, NEON_PROJECT_ID, NEON_INT_BRANCH_ID,
+#   NEON_PRD_BRANCH_ID, INT_DATABASE_URL. Fehlt eines davon, wird der Refresh mit Warnung
+#   ÜBERSPRUNGEN (kein Reset = keine neue PII) – das Gate läuft trotzdem.
 # Aktivierung: siehe README (erst Gate grün, dann Vercel Production Branch auf `production` umstellen).
 
 name: Deploy Gate (E2E → Production)
@@ -58,6 +62,50 @@ jobs:
 
       - name: INT auf diesen Commit bringen
         run: git push origin "HEAD:int" --force
+
+      - name: INT-Refresh aktiv? (Neon-Secrets vorhanden)
+        id: refresh
+        run: |
+          if [ -n "${{ secrets.NEON_API_KEY }}" ] \
+             && [ -n "${{ secrets.NEON_PROJECT_ID }}" ] \
+             && [ -n "${{ secrets.NEON_INT_BRANCH_ID }}" ] \
+             && [ -n "${{ secrets.NEON_PRD_BRANCH_ID }}" ] \
+             && [ -n "${{ secrets.INT_DATABASE_URL }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "INT-Refresh aktiv (alle Neon-Secrets + INT_DATABASE_URL vorhanden)."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::INT-Refresh übersprungen – Neon-Secrets/INT_DATABASE_URL fehlen. INT-DB wird NICHT von PRD aufgefrischt/anonymisiert."
+          fi
+
+      # ACHTUNG (ADR-015): Reset holt ECHTE Prod-Daten auf INT → unmittelbar danach
+      # anonymisieren. Beide Schritte laufen fail-closed; schlägt einer fehl, bricht das
+      # Gate ab (kein Promote). Reihenfolge: Reset → anonymisieren → migrieren → seed.
+      - name: INT-DB von PRD zurücksetzen (Neon Reset from parent)
+        if: steps.refresh.outputs.enabled == 'true'
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_INT_BRANCH_ID: ${{ secrets.NEON_INT_BRANCH_ID }}
+          NEON_PRD_BRANCH_ID: ${{ secrets.NEON_PRD_BRANCH_ID }}
+        run: bash scripts/neon-reset-int.sh
+
+      - name: INT anonymisieren, migrieren, Admin seeden
+        if: steps.refresh.outputs.enabled == 'true'
+        env:
+          NEXT_PUBLIC_STAGE: int
+          DATABASE_URL: ${{ secrets.INT_DATABASE_URL }}
+          SEED_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: |
+          # Die db:*:int-Scripts lesen via `dotenv -e .env.int`; Datei aus Secrets erzeugen.
+          # (.env.int ist gitignored; Runner ist ephemer.) %s nimmt Werte literal → sicher.
+          printf 'NEXT_PUBLIC_STAGE=%s\nDATABASE_URL=%s\nSEED_ADMIN_EMAIL=%s\nSEED_ADMIN_PASSWORD=%s\n' \
+            "$NEXT_PUBLIC_STAGE" "$DATABASE_URL" "$SEED_ADMIN_EMAIL" "$SEED_ADMIN_PASSWORD" > .env.int
+          pnpm db:anonymize:int   # zuerst: reale PII sofort überschreiben (Guard: STAGE=int)
+          pnpm db:migrate:int     # ausstehende Migrationen auf INT anwenden/testen (vor PRD)
+          pnpm db:seed:int        # bekannten INT-Admin (= E2E-Login) sicherstellen
+          rm -f .env.int
 
       - name: Auf INT-Deployment dieses Commits warten
         run: |
