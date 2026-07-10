@@ -1,20 +1,23 @@
 # Task 44: docs-changelog-projektname-und-codify-fetch-depth
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+Reiner Docs-/Codify-Change:
+1. CHANGELOG-Kopf: „dm Development Factory Template" → „Projekt TCH Gastro Services"; die nur für
+   Template-Adoption gedachte Notiz „Für adoptierte Projekte …" entfernt (dieses Repo ist das
+   Produkt, kein Template). Historische Versions-Einträge (0.1.0–0.5.0) bleiben unverändert – sie
+   dokumentieren wahrheitsgemäß die geerbte Template-Historie.
+2. Codify des Deploy-Gate-Bugs aus #42: neue Regel „Fast-Forward-Pushes aus CI brauchen vollen
+   Verlauf (`fetch-depth: 0`)" unter „Bekannte Stolpersteine" in `PROJECT-CONTEXT.md`.
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] CHANGELOG-Kopf nennt „TCH Gastro Services"; keine Template-Adoptions-Notiz mehr
+- [x] `PROJECT-CONTEXT.md` enthält die fetch-depth-Regel als Stolperstein
+- [ ] CI grün, Merge auf `main`; Gate-Lauf grün (Docs-Change deployt via gefixtem Gate)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->

@@ -131,6 +131,19 @@ Wenn eine Regel oder Liste an mehreren Stellen auftaucht (Skill + Persona + Spec
 
 **Regel:** Bei Änderungen an Regel-Listen: (1) Kanonische Quelle aktualisieren, (2) alle Kopien synchronisieren, (3) alte Formulierungen vollständig ersetzen – nie neben neuen stehen lassen.
 
+### Fast-Forward-Pushes aus CI brauchen vollen Verlauf (aus Task 42, bei Live-Verifikation #40)
+
+`actions/checkout@v4` klont per Default **shallow** (`fetch-depth: 1`). Ein normaler
+`git push origin HEAD:<ziel>` auf ein **bereits existierendes** Branch-Ref wird dann serverseitig
+als **non-fast-forward abgelehnt**, weil der Shallow-Clone den Fast-Forward nicht belegen kann –
+selbst wenn das Ziel echter Vorfahr ist. Tückisch: Der **erste** Lauf geht durch, weil er das Ref
+*neu anlegt* (Neuanlage kennt keinen FF-Check) – der Bug schlägt erst beim zweiten Promote zu.
+Konkret aufgetreten im Deploy-Gate beim Promote `main`→`production`.
+
+**Regel:** Für Fast-Forward-/Promote-Pushes aus GitHub Actions **`with: fetch-depth: 0`** am
+Checkout setzen (voller Verlauf → echter FF-Guard, fail-closed). `--force` nur für **Wegwerf-Refs**
+verwenden (z. B. `int`), nie für Deployment-/Prod-Refs.
+
 ---
 
 ## Offene Architektur-Fragen
