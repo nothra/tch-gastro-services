@@ -1,11 +1,8 @@
 # Changelog
 
-Alle nennenswerten Änderungen am dm Development Factory Template.
+Alle nennenswerten Änderungen am Projekt TCH Gastro Services.
 Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab v0.1.0.
 
-> **Für adoptierte Projekte:** Vergleiche deine Basis-Version mit der aktuellen, um zu sehen,
-> welche Verbesserungen du manuell nachziehen kannst.
->
 > **Konvention:** Die `[Unreleased]`-Sektion sammelt Änderungen, die bereits auf `main`
 > liegen, aber noch keiner Version zugewiesen sind. Beim Release wird ihr Inhalt in eine
 > neue datierte Versions-Sektion verschoben und `[Unreleased]` wieder geleert.
