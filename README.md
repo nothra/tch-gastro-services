@@ -107,6 +107,7 @@ einem **Protection-Bypass-Secret** durch (der Schutz für menschliche Zugriffe b
    x-vercel-protection-bypass: <VERCEL_AUTOMATION_BYPASS_SECRET>
    ```
    Ziel-URL (INT): `https://tch-gastro-services-git-int-tch-developers.vercel.app`.
+5. Ausführen: **`pnpm test:e2e:int`** (nutzt `.env.int`: Bypass-Header + INT-Admin-Login).
 
 > Ohne gültiges Bypass-Secret liefern alle INT-Routen (auch `/login`) die Vercel-SSO-Seite –
 > Tests würden dann nicht die App, sondern Vercels Login sehen.
@@ -128,7 +129,9 @@ einem **Protection-Bypass-Secret** durch (der Schutz für menschliche Zugriffe b
 |--------|-------|
 | `pnpm dev` / `pnpm build` / `pnpm start` | Entwicklung / Produktions-Build / Start |
 | `pnpm lint` · `pnpm format` · `pnpm format:check` | ESLint · Prettier |
-| `pnpm test` · `pnpm test:coverage` | Vitest |
+| `pnpm test` · `pnpm test:coverage` | Vitest (Unit) |
+| `pnpm test:e2e` | Playwright-Oberflächentests gegen **DEV** (startet Dev-Server; DB via `pnpm db:up`) |
+| `pnpm test:e2e:int` | Playwright gegen **INT** (Vercel-Preview; benötigt `VERCEL_AUTOMATION_BYPASS_SECRET` in `.env.int`) |
 | `pnpm db:up` · `pnpm db:down` | lokale Docker-Postgres starten/stoppen (DEV) |
 | `pnpm db:generate` | Drizzle-Migration aus dem Schema erzeugen (offline) |
 | `pnpm db:migrate` · `db:migrate:int` · `db:migrate:prd` | Migration auf DEV / INT / PRD anwenden |
