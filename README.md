@@ -43,12 +43,12 @@ ein **stage-eingefärbtes Icon** (Homescreen/Tab) und ein `[DEV]`/`[INT]`-Titel-
 
 ### DEV – lokale Entwicklung
 
-**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io) (`npm i -g pnpm`), Docker.
+**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io) (`npm i -g pnpm`), Docker mit **Docker Compose v2** (`docker compose`).
 
 ```bash
 pnpm install
 cp .env.example .env.local          # NEXT_PUBLIC_STAGE=dev, lokale DATABASE_URL, AUTH_SECRET, SEED_ADMIN_*
-pnpm db:up                          # lokale Postgres via Docker (docker-compose.yml)
+pnpm db:up                          # lokale Postgres 18 via Docker Compose v2 (docker-compose.yml)
 pnpm db:migrate                     # Schema anlegen (nutzt .env.local)
 pnpm db:seed                        # ersten Admin anlegen
 pnpm dev                            # http://localhost:3000 → Login → Startseite (mit DEV-Banner)
