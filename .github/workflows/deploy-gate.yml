@@ -31,6 +31,12 @@ jobs:
       BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        # fetch-depth: 0 = voller Verlauf. Nötig für den Promote-Push nach `production`:
+        # ein Shallow-Clone (Default depth 1) kann den Fast-Forward nicht belegen und wird
+        # serverseitig als non-fast-forward abgelehnt (der erste Lauf ging nur durch, weil er
+        # `production` neu anlegte). INT-Sync nutzt --force und ist davon unabhängig.
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

@@ -26,6 +26,11 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
   ausgenommen. Secrets: `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL/PASSWORD`.
 
 ### Fixed
+- **Deploy-Gate Promote-Push** (#42): Checkout im Gate holt jetzt den vollen Verlauf
+  (`fetch-depth: 0`). Der Shallow-Default (`depth 1`) ließ den Promote-Push
+  `main`→`production` als non-fast-forward abweisen, sobald `production` existierte (der
+  erste Lauf legte den Branch nur an, daher fiel es dort nicht auf). Bei Live-Verifikation
+  (#40) entdeckt.
 - **E2E-Timeouts remote-tauglich** (#36): `expect`/`navigation`/`action`-Timeouts erhöht, damit
   die langsameren INT-Läufe (Vercel-Bypass + Internet-Latenz) nicht am 5-s-Default scheitern.
   `pnpm test:e2e:int` läuft grün gegen die echte INT-Umgebung (4 passed).

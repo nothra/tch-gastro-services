@@ -25,7 +25,12 @@ deployt – nicht mehr direkt vom `main`-Push.
 ## Offene Fragen
 <!-- keine -->
 
-Blocker: keine.
+## Verifikations-Befund (Bug gefunden)
+Blocker 2026-07-10: Gate-Lauf für 8e10a1e lief E2E-grün, aber Promote scheiterte
+(`! [rejected] HEAD -> production (fetch first)`). Ursache: `actions/checkout@v4` klont shallow
+(`fetch-depth: 1`); der erste Lauf legte `production` neu an (kein FF-Check), jetzt kann ein
+Shallow-Push den Fast-Forward nicht belegen. Ancestry ist sauber (production=bf48f31 ist Vorfahr
+von main). Fix in Folge-Task: `fetch-depth: 0` im Checkout. Prod hängt bis dahin auf bf48f31.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
