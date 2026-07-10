@@ -1,20 +1,16 @@
 # Task 32: readme-vercel-bypass-int-tests
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+README (INT-Abschnitt) um die Einrichtung des Vercel-Protection-Bypass-Secrets für
+E2E-/Oberflächentests gegen INT ergänzt; `.env.example` um `VERCEL_AUTOMATION_BYPASS_SECRET`.
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] README erklärt Bypass erzeugen (Vercel Deployment Protection), `.env.int`-Var, Header-Nutzung, INT-Admin
+- [x] .env.example dokumentiert VERCEL_AUTOMATION_BYPASS_SECRET (nur .env.int)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
