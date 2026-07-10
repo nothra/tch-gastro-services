@@ -14,6 +14,11 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Fixed
+- **E2E-Timeouts remote-tauglich** (#36): `expect`/`navigation`/`action`-Timeouts erhöht, damit
+  die langsameren INT-Läufe (Vercel-Bypass + Internet-Latenz) nicht am 5-s-Default scheitern.
+  `pnpm test:e2e:int` läuft grün gegen die echte INT-Umgebung (4 passed).
+
 ### Added
 - **Playwright-E2E-Oberflächentests** (#34): `e2e/auth.spec.ts` (Redirect-Schutz, Login-Formular,
   Admin-Login, Falsch-Login-Fehler, Stage-Banner) + `playwright.config.ts` (baseURL je Stage,
