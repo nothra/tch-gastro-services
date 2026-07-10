@@ -88,6 +88,29 @@ pnpm db:seed:int         # bekannten INT-Admin (SEED_ADMIN_*) setzen
 > `db:anonymize:int` bricht ab, wenn `NEXT_PUBLIC_STAGE` nicht `int` ist – Schutz vor
 > versehentlichem Ausführen gegen DEV/PRD.
 
+**Oberflächentests (E2E) gegen INT – Vercel-Bypass einrichten**
+
+Die INT-Preview ist durch **Vercel Deployment Protection** (SSO) geschützt: jeder Request
+wird auf `vercel.com/sso-api` umgeleitet. Automatisierte Oberflächentests kommen nur mit
+einem **Protection-Bypass-Secret** durch (der Schutz für menschliche Zugriffe bleibt aktiv).
+
+1. In **Vercel** → Projekt → **Settings → Deployment Protection** → **„Protection Bypass for
+   Automation"** aktivieren und ein **Secret** erzeugen (kopieren).
+   *(Alternativ – offener – „Vercel Authentication" für Preview deaktivieren.)*
+2. Secret lokal in `.env.int` hinterlegen (gitignored, nie committen):
+   ```
+   VERCEL_AUTOMATION_BYPASS_SECRET=<secret-aus-vercel>
+   ```
+3. **INT-Testnutzer** sicherstellen: `pnpm db:seed:int` (legt den `SEED_ADMIN_*`-Login in der INT-DB an).
+4. Die E2E-Tests senden das Secret als HTTP-Header an jede Anfrage und melden sich mit dem INT-Admin an:
+   ```
+   x-vercel-protection-bypass: <VERCEL_AUTOMATION_BYPASS_SECRET>
+   ```
+   Ziel-URL (INT): `https://tch-gastro-services-git-int-tch-developers.vercel.app`.
+
+> Ohne gültiges Bypass-Secret liefern alle INT-Routen (auch `/login`) die Vercel-SSO-Seite –
+> Tests würden dann nicht die App, sondern Vercels Login sehen.
+
 ### PRD – Produktion
 
 - Branch **`main`** → Vercel **Production** (Auto-Deploy bei Merge).
