@@ -14,6 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Changed
+- **Lokale DEV-Umgebung: Docker Compose v2 + Postgres 18** (#30): `db:up`/`db:down` V2-only
+  (`docker compose …`), lokale DB von `postgres:16-alpine` auf **`postgres:18-alpine`** (= Neon 18.4);
+  Volume-Mount auf `/var/lib/postgresql` (PG18-Konvention, docker-library/postgres#37). README-DEV
+  nennt Docker Compose v2 als Voraussetzung.
+
 ### Added
 - **INT via Neon-Branch + Anonymisierung** (#24): INT nutzt einen Neon-Branch (CoW-Klon) der
   Produktions-DB statt einer separaten DB → produktionsnahe Daten ohne Dump/Restore. `db/anonymize.ts`
