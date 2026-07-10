@@ -15,6 +15,11 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **INT via Neon-Branch + Anonymisierung** (#24): INT nutzt einen Neon-Branch (CoW-Klon) der
+  Produktions-DB statt einer separaten DB → produktionsnahe Daten ohne Dump/Restore. `db/anonymize.ts`
+  + `db:anonymize:int` überschreibt Namen/E-Mails und entwertet Prod-Passwörter (Guard: nur
+  `NEXT_PUBLIC_STAGE=int`). README-INT-Fluss: Branch → anonymize:int → migrate:int → seed:int.
+
 - **3-Stage-Setup DEV/INT/PRD** (#22): Stage-Erkennung via `NEXT_PUBLIC_STAGE` (`lib/stage.ts`);
   sichtbare Kennzeichnung (Banner in DEV/INT, stage-eingefärbtes Icon/Manifest/Titel, PRD neutral);
   **dualer DB-Treiber** (node-postgres lokal, neon-http auf Vercel) je nach `DATABASE_URL`;

@@ -34,7 +34,7 @@ Drei getrennte Stages, gesteuert über `NEXT_PUBLIC_STAGE` (`dev` | `int` | `prd
 | Stage | Zweck | Hosting | Datenbank |
 |-------|-------|---------|-----------|
 | **DEV** | lokale Entwicklung | lokal (`pnpm dev`) | **lokale** Postgres (Docker) auf dem Dev-System |
-| **INT** | Integrationstests, Migrations-Proben mit produktionsnahen Daten | Vercel, Branch **`int`** (Preview) | **eigene** Neon-DB (getrennt von PRD) |
+| **INT** | Integrationstests, Migrations-Proben mit produktionsnahen Daten | Vercel, Branch **`int`** (Preview) | **Neon-Branch von PRD** (CoW-Klon, anonymisiert) |
 | **PRD** | Produktion | Vercel, Branch **`main`** (Production) | Neon-Produktions-DB |
 
 **Sichtbare Unterscheidung:** DEV und INT zeigen ein **farbiges Banner** (DEV grau, INT orange),
@@ -66,17 +66,27 @@ SEED_ADMIN_EMAIL=... / SEED_ADMIN_PASSWORD=...
 
 Zweck: **DB-Migrationen verlässlich testen**, bevor sie auf PRD laufen – mit produktionsnahen Daten.
 
-1. **Neon-INT-DB** anlegen (separates Neon-Projekt **oder** eigener Branch im Neon-Projekt, Region Frankfurt) – **getrennt** von PRD.
+INT nutzt einen **Neon-Branch der Produktions-DB**: ein Copy-on-Write-Klon, der die
+Produktionsdaten sekundenschnell und ohne Dump/Restore bereitstellt. Der Branch enthält
+zunächst **echte personenbezogene Daten** → **direkt nach dem Abzweigen anonymisieren** (DSGVO).
+
+**Einrichtung:**
+1. In **Neon**: Branch **`int`** von der Produktions-Branch erstellen (Region Frankfurt) → dessen **Pooled**-Connection-String.
 2. **Branch `int`** existiert im Repo → Vercel deployt ihn als Preview.
 3. **Vercel-Env-Variablen** branch-spezifisch für `int` (Scope *Preview*, Git-Branch `int`):
-   `NEXT_PUBLIC_STAGE=int`, `DATABASE_URL=<INT-Neon-Pooled>`, `AUTH_SECRET=<int-secret>`.
-4. **Migrationen/Daten** von lokal aus gegen INT fahren (Env-Datei `.env.int`):
-   ```bash
-   pnpm db:migrate:int      # Migrationen auf INT anwenden (Test vor PRD)
-   pnpm db:seed:int         # Admin/Basisdaten auf INT
-   ```
-   Produktionsnahe Daten: per `pg_dump` aus PRD ziehen und in INT einspielen
-   (**vor** dem Laden personenbezogene Daten anonymisieren – DSGVO).
+   `NEXT_PUBLIC_STAGE=int`, `DATABASE_URL=<INT-Neon-Branch-Pooled>`, `AUTH_SECRET=<int-secret>`.
+4. Lokal `.env.int` anlegen (`NEXT_PUBLIC_STAGE=int`, `DATABASE_URL=<INT-Branch>`, `SEED_ADMIN_*`).
+
+**Refresh-/Testfluss** (wiederholbar, z. B. vor jeder Migrations-Probe):
+```bash
+# (Neon: int-Branch neu von PRD abzweigen = frische Prod-Daten)
+pnpm db:anonymize:int    # Namen/E-Mails überschreiben, Prod-Passwörter entwerten (Guard: nur STAGE=int)
+pnpm db:migrate:int      # ausstehende Migrationen auf INT testen (vor PRD)
+pnpm db:seed:int         # bekannten INT-Admin (SEED_ADMIN_*) setzen
+```
+
+> `db:anonymize:int` bricht ab, wenn `NEXT_PUBLIC_STAGE` nicht `int` ist – Schutz vor
+> versehentlichem Ausführen gegen DEV/PRD.
 
 ### PRD – Produktion
 
@@ -100,6 +110,7 @@ Zweck: **DB-Migrationen verlässlich testen**, bevor sie auf PRD laufen – mit 
 | `pnpm db:generate` | Drizzle-Migration aus dem Schema erzeugen (offline) |
 | `pnpm db:migrate` · `db:migrate:int` · `db:migrate:prd` | Migration auf DEV / INT / PRD anwenden |
 | `pnpm db:seed` · `db:seed:int` | Initial-Admin auf DEV / INT anlegen |
+| `pnpm db:anonymize:int` | INT-Daten anonymisieren (nach Neon-Branch-Refresh; Guard: nur `STAGE=int`) |
 | `pnpm db:studio` | Drizzle Studio (DEV) |
 
 ---
@@ -111,8 +122,8 @@ Das GitHub-Repo ist mit einem Vercel-Projekt verbunden:
 - **Function-Region `fra1`** ist über [`vercel.json`](vercel.json) fixiert.
 - Env-Variablen werden **je Environment/Branch** im Vercel-Dashboard gesetzt (siehe Stage-Tabellen oben).
 
-INT und PRD nutzen **getrennte** Neon-Datenbanken; DEV eine lokale DB. Migrationen laufen den Weg
-**DEV → INT → PRD**.
+INT ist ein **Neon-Branch** der PRD-DB (anonymisiert), DEV eine lokale Docker-DB. Migrationen laufen
+den Weg **DEV → INT → PRD**.
 
 ---
 
