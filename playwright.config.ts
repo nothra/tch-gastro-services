@@ -23,9 +23,14 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
+  // Remote-INT ist deutlich langsamer als localhost (Vercel-Bypass-/validate + Internet-Latenz);
+  // Assertions/Navigation brauchen mehr Zeit als das 5-s-Default.
+  expect: { timeout: 15_000 },
   use: {
     baseURL,
     extraHTTPHeaders,
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
