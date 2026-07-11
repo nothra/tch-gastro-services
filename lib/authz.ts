@@ -26,7 +26,7 @@ export function hasAnyRole(
 }
 
 // Guard für geschützte Server Actions: als erste Zeile aufrufen (fail-closed).
-// Verlangt genau die angegebene Rolle.
+// Verlangt, dass der Nutzer die angegebene Rolle besitzt (ggf. neben weiteren).
 export async function requireRole(required: UserRole): Promise<Session> {
   return requireAnyRole([required]);
 }
