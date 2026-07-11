@@ -5,14 +5,20 @@
 ## Kontext
 
 Jeder Abrechnungsvorgang bezieht sich auf **einen Abend** (eine Veranstaltung). Der
-Abrechner legt den Abend an, bestimmt den **Essenpreis** dieses Abends und wählt die
-teilnehmenden Personen/Familien aus den Stammdaten. Der Abend ist die Klammer um alle
-Erfassungen (F5–F8).
+Abrechner legt den Abend an, bestimmt den **Essenpreis** dieses Abends, wählt die
+**Kasse**, gegen die abgerechnet wird, und die teilnehmenden Personen/Familien aus den
+Stammdaten. Der Abend ist die Klammer um alle Erfassungen (F5–F8).
+
+**Kassen:** Veranstaltungen werden über **unterschiedliche Kassen** abgerechnet – die
+Montagsrunde über ihre **eigene Kasse**, andere Veranstaltungen (z. B. Dorfmeisterschaften)
+über die **Vereinskasse**. Im MVP ist die Kasse ein **fester Satz**
+(`montagsrunde` | `vereinskasse`), nicht pflegbar.
 
 ## Scope
 
 **Inbegriffen:**
 - Abend anlegen mit Datum und Bezeichnung (z. B. „Montagsrunde").
+- **Kasse des Abends** wählen (fester Satz: `montagsrunde` | `vereinskasse`).
 - **Essenpreis des Abends** festlegen (i. d. R. 6 €, teurer auch 7 €).
 - Teilnehmer aus den Stammdaten (F3) für diesen Abend auswählen → je Teilnehmer eine
   Abrechnungszeile.
@@ -26,8 +32,11 @@ Erfassungen (F5–F8).
 
 ## Akzeptanzkriterien
 
-- [ ] GIVEN ein angemeldeter Abrechner WHEN er einen Abend mit Datum, Bezeichnung und
-      Essenpreis anlegt THEN wird ein Abend im Status `offen` erstellt.
+- [ ] GIVEN ein angemeldeter Abrechner WHEN er einen Abend mit Datum, Bezeichnung, Kasse
+      und Essenpreis anlegt THEN wird ein Abend im Status `offen` erstellt.
+- [ ] GIVEN das Anlegen eines Abends WHEN keine Kasse gewählt ist THEN wird das Speichern
+      serverseitig abgelehnt (Kasse ist Pflicht); die zugeordnete Kasse bestimmt, wohin
+      Einnahmen und Auslagenerstattungen dieses Abends wirken (F6/F8).
 - [ ] GIVEN ein offener Abend WHEN der Abrechner Teilnehmer aus den Stammdaten auswählt
       THEN entsteht je ausgewähltem Teilnehmer genau eine Abrechnungszeile mit leeren
       Positionen.
@@ -54,6 +63,9 @@ Erfassungen (F5–F8).
 
 ## Gesetzte Entscheidungen (2026-07-11)
 
+- **Kasse je Abend, fester Satz** (`montagsrunde` | `vereinskasse`), Pflichtfeld, nicht
+  pflegbar im MVP. Ein **laufender Kassenstand** über mehrere Abende bleibt Backlog #57 –
+  im MVP wird nur die **Kassenveränderung je Abend** ausgewiesen (F8).
 - **Essenpreis gilt abendweit einheitlich.** Wird er im offenen Abend geändert, wirkt die
   Änderung auf **alle** Essen dieses Abends (nicht nur auf künftige).
 - **Kaffeepreis** ist im MVP der feste Katalogpreis (F2), **nicht** pro Abend abweichend

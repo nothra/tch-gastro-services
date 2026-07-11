@@ -24,11 +24,14 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
   abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
 - Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Verzehr-Gesamt, Σ Erhalten,
   Σ Spende.
-- **Abend-Gesamtabrechnung (Kassenabrechnung des Abends):** stellt die **Einnahmen**
+- **Abend-Gesamtabrechnung (Kassenabrechnung des Abends):** bezogen auf die dem Abend
+  **zugeordnete Kasse** (F4: `montagsrunde` | `vereinskasse`); stellt die **Einnahmen**
   (Σ Erhalten) den **Ausgaben** (Auslagenerstattungen, F6) gegenüber:
   - Auslagenerstattungen **je Kategorie** (Getränke / Essen / Sonstiges) und gesamt,
-  - **Kassenveränderung des Abends** = Σ Erhalten − Σ Auslagenerstattungen.
-  Kassieren bleibt dabei je Teilnehmer **brutto** (kein Netto mit Auslagen).
+  - **Kassenveränderung des Abends** = Σ Erhalten − Σ Auslagenerstattungen,
+    ausgewiesen **für die zugeordnete Kasse**.
+  Kassieren bleibt dabei je Teilnehmer **brutto** (kein Netto mit Auslagen). Ein
+  laufender Saldo je Kasse über mehrere Abende ist **nicht** Teil des MVP (Backlog #57).
 
 **Nicht inbegriffen:**
 - Verrechnung/Anzeige von Auslagen in der Kassierzeile (eigener Vorgang, F6).
@@ -62,10 +65,11 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - [ ] GIVEN ein abgeschlossener Abend WHEN die Tagessummen angezeigt werden THEN
       entsprechen sie der Summe der Zeilenwerte (Getränke, Sonstige, Verzehr-Gesamt,
       Erhalten, Spende).
-- [ ] GIVEN ein Abend mit Auslagenerstattungen (F6) WHEN die Abend-Gesamtabrechnung
-      angezeigt wird THEN werden die Erstattungen **je Kategorie** und gesamt als Ausgaben
-      ausgewiesen und die **Kassenveränderung** = Σ Erhalten − Σ Auslagenerstattungen
-      korrekt berechnet.
+- [ ] GIVEN ein Abend mit zugeordneter Kasse und Auslagenerstattungen (F6) WHEN die
+      Abend-Gesamtabrechnung angezeigt wird THEN werden die Erstattungen **je Kategorie**
+      und gesamt als Ausgaben ausgewiesen und die **Kassenveränderung**
+      = Σ Erhalten − Σ Auslagenerstattungen **für die zugeordnete Kasse** korrekt
+      berechnet.
 - [ ] GIVEN das individuelle Kassieren eines Teilnehmers mit eigenen Auslagen WHEN sein
       `Erhalten` erfasst wird THEN bleibt der zu kassierende Betrag der **volle**
       Verzehr-Gesamt (die Auslagen wirken nur in der Abend-Gesamtabrechnung, nicht hier).

@@ -5,7 +5,8 @@
 ## Kontext
 
 Teilnehmer haben manchmal **Auslagen** (z. B. für Essenszutaten, Getränke-Einkauf), die
-sie vorstrecken. Diese werden ihnen aus der **Kasse der Montagsrunde** erstattet.
+sie vorstrecken. Diese werden ihnen aus der **dem Abend zugeordneten Kasse** erstattet
+(F4: Montagsrunde-Kasse oder Vereinskasse).
 
 **Entscheidung 2026-07-11 (Abweichung vom Excel-Template):** Die Auslagenerstattung ist
 ein **eigener Vorgang** und wird **vom individuellen Kassieren getrennt**. Auslagen
@@ -52,7 +53,7 @@ Teilnehmer beim Kassieren. Die Kassenwirkung des Abends steht in F8.
       Netto-Verrechnung).
 - [ ] GIVEN die Auslagen eines Abends WHEN die Abend-Gesamtabrechnung gebildet wird (F8)
       THEN gehen die Erstattungen als **Ausgaben je Kategorie** in die Kassenabrechnung
-      des Abends ein.
+      des Abends **für die zugeordnete Kasse** ein.
 - [ ] GIVEN ein Auslagen-Betrag WHEN er kein gültiger EUR-Betrag > 0 mit ≤ 2
       Nachkommastellen ist THEN wird er serverseitig (Zod) abgelehnt.
 - [ ] GIVEN eine Auslage ohne gewählte Kategorie oder ohne Teilnehmer WHEN gespeichert

@@ -33,7 +33,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 ## Backlog (bewusst nicht im MVP, Issues #56–#60)
 
 - #56 Offene Posten übertragen & Teilnehmer-Saldo über mehrere Abende
-- #57 Kassenbuch der Montagsrunde (laufender Saldo)
+- #57 Kassenbuch mit laufendem Saldo **je Kasse** (Montagsrunde-Kasse, Vereinskasse, …)
 - #58 Online-Bezahlung (PayPal)
 - #59 Preis-Templates je Veranstaltungstyp (z. B. Kaffee 1 € vs. 2,50 €)
 - #60 Wiederkehrende Veranstaltungsserie / Vorlagen
@@ -64,9 +64,15 @@ Die **Auslagenerstattung ist ein eigener Vorgang** (Barauszahlung aus der Kasse 
 Teilnehmer), getrennt vom individuellen Kassieren. Dadurch gibt es keinen negativen
 Gesamtbetrag. Jede Auslage ist **einem Teilnehmer** und einer **Kategorie**
 (Getränke / Essen / Sonstiges) zugeordnet. Auf **Abend-Ebene** fließen die Erstattungen
-in die Gesamt-/Kassenabrechnung ein:
-`Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen`.
+in die Gesamt-/Kassenabrechnung der **dem Abend zugeordneten Kasse** ein:
+`Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen` (für die zugeordnete Kasse).
 Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.md).
+
+**Kassen:** Veranstaltungen werden über **unterschiedliche Kassen** abgerechnet – die
+Montagsrunde über ihre eigene **Montagsrunde-Kasse**, andere Veranstaltungen (z. B.
+Dorfmeisterschaften) über die **Vereinskasse**. Im MVP ist die Kasse ein **fester Satz**
+(`montagsrunde` | `vereinskasse`), Pflichtfeld je Abend (F4). Ein **laufender Saldo je
+Kasse** über mehrere Abende ist Backlog #57 – im MVP nur die Kassenveränderung je Abend.
 
 ## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
 
@@ -78,4 +84,7 @@ Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.m
 - **Auslagenerstattung:** **eigener Vorgang**, getrennt vom individuellen Kassieren; je
   Auslage **ein Teilnehmer** + **Kategorie** (Getränke/Essen/Sonstiges); auf **Abend-Ebene**
   in der Gesamt-/Kassenabrechnung als Ausgaben berücksichtigt (siehe oben).
+- **Kassen:** je Abend eine zugeordnete Kasse aus **festem Satz** (`montagsrunde` |
+  `vereinskasse`), Pflichtfeld; nur **Kassenveränderung je Abend**, kein laufender Saldo
+  (Backlog #57).
 - **Abschluss-Korrektur:** ein **Abrechner** darf einen abgeschlossenen Abend **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).
