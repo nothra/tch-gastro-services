@@ -142,8 +142,10 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - **TypeScript strict**; Eingaben an jeder Server-Grenze mit **Zod** validieren.
 - **DB-Zugriff nur über die Drizzle-Data-Layer** – keine rohen SQL-Strings in UI/Server Actions.
 - Aus Vercel-Functions den **Neon serverless HTTP-Treiber** (`@neondatabase/serverless`) nutzen (kein klassischer TCP-Pool → keine Verbindungs-Erschöpfung).
-- **Auth-/Rollen-Checks immer serverseitig** (Middleware + in Server Actions), nie ausschließlich clientseitig.
+- **Auth-/Rollen-Checks immer serverseitig** (Routen-Gate + in Server Actions), nie ausschließlich clientseitig.
 - Secrets (DB-URL, Auth-Secret) nur als Env-Vars (Vercel), nie im Repo.
+- **Login/Credential-Prüfung in konstanter Zeit:** `bcrypt.compare` immer ausführen – bei unbekanntem Nutzer gegen einen konstanten Dummy-Hash (`lib/credentials.ts`), damit die Antwortzeit keine User-Enumeration erlaubt.
+- **Rollen als Enum-Array** (`roles user_role[]`, ADR-016); Prüfung über den Guard `lib/authz.ts` (`requireRole`/`requireAnyRole`, fail-closed), nie über clientseitig ausgeblendete UI.
 
 ---
 
@@ -178,6 +180,48 @@ Konkret aufgetreten im Deploy-Gate beim Promote `main`→`production`.
 **Regel:** Für Fast-Forward-/Promote-Pushes aus GitHub Actions **`with: fetch-depth: 0`** am
 Checkout setzen (voller Verlauf → echter FF-Guard, fail-closed). `--force` nur für **Wegwerf-Refs**
 verwenden (z. B. `int`), nie für Deployment-/Prod-Refs.
+
+### Next.js 16: Middleware heißt `proxy.ts` (aus #48)
+
+Next 16 hat die Middleware-Konvention von `middleware.ts` auf **`proxy.ts`** umbenannt. Sind
+**beide** Dateien vorhanden, bricht `next build` hart ab. NextAuth-v5-Doku und ältere ADRs nennen
+noch `middleware.ts` – der Route-Schutz war hier in Wahrheit längst über `proxy.ts` verdrahtet.
+
+**Regel:** Edge-Routen-Schutz in **`proxy.ts`** (Root) verdrahten, **keine** `middleware.ts`
+anlegen. Muster: `const { auth } = NextAuth(authConfig); export default auth;` mit einer
+`authConfig` **ohne** `db`/`bcrypt` (edge-sicher). Negativ-Lookahead-Matcher eng fassen
+(nur konkrete statische Assets ausnehmen, nicht pauschal `.*\.svg$`) – fail-closed.
+
+### Drizzle-Migration bei Enum-Wert-Wechsel / Spalte→Array (aus #48)
+
+Zwei Fallen: (1) `drizzle-kit generate` braucht bei mehrdeutigen Spalten-Änderungen einen
+**interaktiven Prompt** (rename vs. create) und **hängt** in Non-TTY (CI/Pipeline). (2) Postgres
+kann Enum-Werte nicht entfernen und eine Enum-Spalte nicht nach `Enum[]` casten → das generierte
+SQL ist dann **inkohärent** (ALTER auf eine noch nicht existierende Spalte).
+
+**Regel:** Prompt per `expect`/PTY beantworten (Default „create column" ist meist korrekt). Bei
+Enum-Wert-Änderung/Enum→Enum[] das generierte SQL durch **drop-and-recreate** ersetzen (Spalte →
+Type droppen → Type neu → Spalte neu), den **von drizzle-kit generierten Snapshot behalten**, und
+die Migration **lokal gegen eine Wegwerf-DB** verifizieren (`0000→…→n` grün). Nur zulässig, solange
+kein Prod-Datenbestand betroffen ist.
+
+### NextAuth v5: Custom-Session-/JWT-Claims typisieren (aus #48)
+
+`declare module "next-auth/jwt"` **greift nicht** – `next-auth/jwt` re-exportiert nur (`export *`);
+die Augmentierung muss auf **`@auth/core/jwt`** zielen. Zusätzlich typisiert der `session()`-Callback
+in der v5-Beta den Custom-Claim nicht sauber (`token.x` landet als `{}`).
+
+**Regel:** In `types/next-auth.d.ts` `User`/`Session` über `next-auth` **und** `JWT` über
+`@auth/core/jwt` augmentieren; im `session()`-Callback den JWT-Claim explizit casten
+(`token.x as T`). Typen aus dem Data-Layer nur als `import type` (bleibt edge-sicher).
+
+### Vitest + Testing Library ohne `globals: true` (aus #48)
+
+Ohne `globals: true` registriert Testing Library **kein** Auto-Cleanup → das DOM leakt zwischen
+Component-Tests (ein Test sieht das Markup des vorigen; `screen`-Queries schlagen scheinbar grundlos fehl).
+
+**Regel:** In `vitest.setup.ts` `afterEach(() => cleanup())` behalten – nicht entfernen. Async
+Server Components in Tests via `render(await Component())` prüfen.
 
 ---
 
