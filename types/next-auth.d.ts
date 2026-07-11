@@ -1,17 +1,21 @@
 import type { DefaultSession } from "next-auth";
+import type { UserRole } from "@/db/schema";
 
-// Rolle (RBAC, ADR-014) auf User/Session/JWT verfügbar machen.
+// Rollen (RBAC, ADR-016) auf User/Session/JWT verfügbar machen. Eine Person kann
+// mehrere Rollen tragen → durchgängig als Array geführt.
 declare module "next-auth" {
   interface User {
-    role?: string;
+    roles?: UserRole[];
   }
   interface Session {
-    user: { role?: string } & DefaultSession["user"];
+    user: { roles: UserRole[] } & DefaultSession["user"];
   }
 }
 
-declare module "next-auth/jwt" {
+// Kanonischer Ort der JWT-Schnittstelle: next-auth/jwt re-exportiert nur (`export *`),
+// eine Augmentierung dort würde nicht mergen. Daher direkt @auth/core/jwt augmentieren.
+declare module "@auth/core/jwt" {
   interface JWT {
-    role?: string;
+    roles?: UserRole[];
   }
 }

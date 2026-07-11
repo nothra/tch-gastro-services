@@ -1,9 +1,12 @@
+import { sql } from "drizzle-orm";
 import { pgTable, pgEnum, text, integer, timestamp, primaryKey } from "drizzle-orm/pg-core";
 
-// Rollen für RBAC (ADR-014). Standard "member"; feinere Rechte später bei /requirements.
-export const userRole = pgEnum("user_role", ["admin", "staff", "member"]);
+// Rollen für RBAC (ADR-016): zwei fachliche Rollen. Eine Person kann beide tragen.
+export const userRole = pgEnum("user_role", ["verwalter", "abrechner"]);
+export type UserRole = (typeof userRole.enumValues)[number];
 
-// Auth.js-kompatibles Schema (Drizzle-Adapter). users trägt zusätzlich die Rolle.
+// Auth.js-kompatibles Schema (Drizzle-Adapter). users trägt die Rollen als Array,
+// damit Mehrfach-Rollen ohne Join abbildbar sind (ADR-016, Frage 1).
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -12,7 +15,10 @@ export const users = pgTable("user", {
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
-  role: userRole("role").notNull().default("member"),
+  roles: userRole("roles")
+    .array()
+    .notNull()
+    .default(sql`'{}'::user_role[]`),
   // Credentials-Login (ADR-014): bcrypt-Hash. Null bei OAuth-only-Nutzern.
   passwordHash: text("passwordHash"),
 });
