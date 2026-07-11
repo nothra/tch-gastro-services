@@ -26,7 +26,7 @@
 | AC4 Verwalter → lesen+schreiben | `lib/authz.test.ts` `should_returnSession_when_userHasRole` |
 | AC5 Abmelden → Sitzung beendet, Seiten gesperrt | `app/actions/session.test.ts` (Action) · `AppHeader.test.tsx` (Button-Render) · **neu** e2e `auth.spec.ts` „Abmelden … sperrt geschützte Seiten" |
 | AC6 manipulierte/abgelaufene Session → abgelehnt | `lib/authz.test.ts` `should_throwForbidden_when_noSession` |
-| Fehler: falsche Zugangsdaten → generische Meldung, keine Preisgabe | `auth.ts` (identisch `null` für unbek. E-Mail & falsches PW) · e2e „falsche Zugangsdaten". ⚠️ Timing-Seitenkanal siehe `review-48.md` (Wichtig) |
+| Fehler: falsche Zugangsdaten → generische Meldung, keine Preisgabe | `auth.ts`/`lib/credentials.ts` (identisch `null`; `bcrypt.compare` läuft immer → kein Timing-Leak) · `lib/credentials.test.ts` · e2e „falsche Zugangsdaten" |
 | Fehler: fremde Rolle → 403-artig, protokolliert | `lib/authz.test.ts` `should_logRejection_when_accessDenied` (+ `ForbiddenError`-Test) |
 
 ## Neu ergänzte Tests in diesem Schritt

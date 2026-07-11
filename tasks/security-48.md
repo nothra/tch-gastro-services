@@ -10,15 +10,13 @@
 
 ## Wichtige Findings
 
-- [ ] **[Auth / User-Enumeration] `auth.ts:28-30` — Timing-Seitenkanal.** Bei unbekannter
-      E-Mail kehrt `authorize()` sofort zurück (`if (!user?.passwordHash) return null;`), bei
-      existierender läuft der ~100 ms teure `bcrypt.compare`. Die Fehler*meldung* ist generisch
-      (gut), aber die Antwort*zeit* verrät die Existenz. spec-48 fordert explizit „keine Preisgabe,
-      ob der Benutzername existiert" → **Spec-AK teilweise nicht erfüllt.** Angriff: Response-Zeit
-      über viele E-Mails messen, trennt registrierte Betreiber von Nicht-Registrierten.
-      Praxisrelevanz gering (keine offene Registrierung, Betreiber sind bekannte Clubmitglieder).
-      **Kein Merge-Blocker.** **Lösung:** bei fehlendem User `bcrypt.compare` gegen einen konstanten
-      Dummy-Hash laufen lassen, um die Laufzeit anzugleichen (constant-time-Pfad). Vorbestehend aus #16.
+- [x] **[Auth / User-Enumeration] Timing-Seitenkanal — BEHOBEN.** Zuvor kehrte `authorize()`
+      bei unbekannter E-Mail sofort zurück, bei existierender lief der ~100 ms teure `bcrypt.compare`
+      → die Antwortzeit verriet die Existenz (spec-48 „keine Preisgabe, ob der Benutzername
+      existiert"). **Fix:** `lib/credentials.ts` `verifyCredentials()` führt `bcrypt.compare` **immer**
+      aus – bei fehlendem/hashlosem Nutzer gegen einen konstanten Dummy-Hash (constant-time-Pfad).
+      `auth.ts` delegiert an diese Funktion. Deterministisch getestet
+      (`lib/credentials.test.ts` `should_runBcryptCompare_even_when_userUndefined`).
 
 ## Hinweise
 
@@ -56,7 +54,7 @@
 
 PASSED
 
-> Keine blockierenden Findings. Innerhalb des #48-Scopes sind die Sicherheitsgrundlagen solide.
-> Einziger echter Spec-Bezug: der Timing-Seitenkanal (`auth.ts:28-30`) — niedrige Praxisrelevanz
-> für diese Threat Surface, empfohlen als kleiner Folge-Fix (konstanter Dummy-bcrypt-Vergleich),
-> blockiert den Merge nicht.
+> Keine blockierenden Findings. Der einzige echte Spec-Bezug (Timing-Seitenkanal zur
+> User-Enumeration) wurde direkt behoben (`lib/credentials.ts`, constant-time `bcrypt.compare`,
+> deterministisch getestet). Die verbleibenden Hinweise (403-Boundary-Konvention für F2–F8,
+> `postcss`-Dep beim nächsten `next`-Update, `/sw.js` im PWA-Task) sind Folge-/Betriebsthemen.

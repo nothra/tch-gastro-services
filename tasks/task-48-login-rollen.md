@@ -42,7 +42,9 @@ Entscheidungen: siehe [ADR-016](../adr/016-rbac-rollen-login.md).
       kein/ungültiges Session → `ForbiddenError` (unit-getestet `..._when_noSession`).
 - [x] Falsche Zugangsdaten → verständliche Fehlermeldung, kein Zugang, keine Preisgabe,
       ob der Benutzername existiert. — `authorize()` gibt für unbekannte E-Mail **und**
-      falsches Passwort identisch `null` zurück; UI zeigt eine generische Meldung.
+      falsches Passwort identisch `null` zurück; UI zeigt eine generische Meldung. **Timing:**
+      `lib/credentials.ts` führt `bcrypt.compare` immer aus (konstanter Dummy-Hash bei fehlendem
+      Nutzer) → kein Enumerations-Seitenkanal (deterministisch getestet).
 - [x] Zugriff auf fremde Rolle → serverseitige Ablehnung (403-artig), protokolliert. —
       `ForbiddenError` + `console.warn` im Guard.
 
