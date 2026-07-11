@@ -24,6 +24,11 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
   abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
 - Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Verzehr-Gesamt, Σ Erhalten,
   Σ Spende.
+- **Abend-Gesamtabrechnung (Kassenabrechnung des Abends):** stellt die **Einnahmen**
+  (Σ Erhalten) den **Ausgaben** (Auslagenerstattungen, F6) gegenüber:
+  - Auslagenerstattungen **je Kategorie** (Getränke / Essen / Sonstiges) und gesamt,
+  - **Kassenveränderung des Abends** = Σ Erhalten − Σ Auslagenerstattungen.
+  Kassieren bleibt dabei je Teilnehmer **brutto** (kein Netto mit Auslagen).
 
 **Nicht inbegriffen:**
 - Verrechnung/Anzeige von Auslagen in der Kassierzeile (eigener Vorgang, F6).
@@ -57,6 +62,13 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - [ ] GIVEN ein abgeschlossener Abend WHEN die Tagessummen angezeigt werden THEN
       entsprechen sie der Summe der Zeilenwerte (Getränke, Sonstige, Verzehr-Gesamt,
       Erhalten, Spende).
+- [ ] GIVEN ein Abend mit Auslagenerstattungen (F6) WHEN die Abend-Gesamtabrechnung
+      angezeigt wird THEN werden die Erstattungen **je Kategorie** und gesamt als Ausgaben
+      ausgewiesen und die **Kassenveränderung** = Σ Erhalten − Σ Auslagenerstattungen
+      korrekt berechnet.
+- [ ] GIVEN das individuelle Kassieren eines Teilnehmers mit eigenen Auslagen WHEN sein
+      `Erhalten` erfasst wird THEN bleibt der zu kassierende Betrag der **volle**
+      Verzehr-Gesamt (die Auslagen wirken nur in der Abend-Gesamtabrechnung, nicht hier).
 
 ## Fehlerszenarien
 

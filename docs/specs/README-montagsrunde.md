@@ -61,8 +61,12 @@ Wird über den Getränke-Katalog (F2) gepflegt, nicht im Code fixiert.
 
 Anders als im Excel (Spalte V = T + Q − U) mindern **Auslagen den Verzehr nicht**.
 Die **Auslagenerstattung ist ein eigener Vorgang** (Barauszahlung aus der Kasse an den
-Teilnehmer), getrennt vom Kassieren des Verzehrs. Dadurch gibt es keinen negativen
-Gesamtbetrag. Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.md).
+Teilnehmer), getrennt vom individuellen Kassieren. Dadurch gibt es keinen negativen
+Gesamtbetrag. Jede Auslage ist **einem Teilnehmer** und einer **Kategorie**
+(Getränke / Essen / Sonstiges) zugeordnet. Auf **Abend-Ebene** fließen die Erstattungen
+in die Gesamt-/Kassenabrechnung ein:
+`Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen`.
+Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.md).
 
 ## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
 
@@ -71,5 +75,7 @@ Gesamtbetrag. Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassier
 - **Erfassung ist anonym** – keine Urheber-Nachverfolgung („wer hat eingetragen").
 - **Walk-in:** nur der **Abrechner** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
 - **Teilzahlung:** eine Zeile ist **offen oder bezahlt**, kein Restbetrag im MVP.
-- **Auslagenerstattung:** **eigener Vorgang**, getrennt vom Kassieren (siehe oben).
+- **Auslagenerstattung:** **eigener Vorgang**, getrennt vom individuellen Kassieren; je
+  Auslage **ein Teilnehmer** + **Kategorie** (Getränke/Essen/Sonstiges); auf **Abend-Ebene**
+  in der Gesamt-/Kassenabrechnung als Ausgaben berücksichtigt (siehe oben).
 - **Abschluss-Korrektur:** ein **Abrechner** darf einen abgeschlossenen Abend **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).
