@@ -21,6 +21,41 @@
 
 ---
 
+## Fachdomäne
+
+> Kanonische Quelle: **`docs/specs/README-montagsrunde.md`** (+ `docs/specs/spec-48…55`).
+> Hier nur der Einstieg – Details und Akzeptanzkriterien stehen in den Specs.
+
+**Zweck:** Ablösung des Excel-Templates „Abrechnung Veranstaltung". Der Thekenwart
+rechnet einen Veranstaltungsabend ab (Getränke aus der Theke, Essen, Kaffee, Auslagen –
+je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentliche
+**Montagsrunde**; der Ablauf gilt sinngemäß für weitere Veranstaltungen.
+
+**Kernbegriffe (Ubiquitous Language):**
+- **Veranstaltung/Abend** – eine abzurechnende Zusammenkunft (Datum, Bezeichnung, Kasse,
+  Essenpreis, Status `offen`/`abgeschlossen`).
+- **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
+- **Getränke-Katalog** – pflegbare Preisliste; **Kaffee** fester Katalogpreis, **Essen**
+  pro Abend festgelegt.
+- **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
+- **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
+  Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
+- **Kasse** – Abrechnungs­topf je Abend (fester Satz: `montagsrunde` | `vereinskasse`).
+- **Kassieren / Spende** – Barzahlung des Verzehrs; Überzahlung = Spende.
+
+**Zentrale Regeln:**
+- `Verzehr-Gesamt = Summe Getränke (Theke) + Summe Sonstige (Essen + Kaffee)`
+- `Spende = Erhalten − Verzehr-Gesamt`
+- Auslagen mindern den Verzehr **nicht** (Abweichung vom Excel); Erstattung ist ein
+  eigener Vorgang.
+- `Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
+  Kasse**. Ein laufender Saldo über mehrere Abende ist noch nicht umgesetzt (Backlog #57).
+
+**Rollen:** `verwalter` (Stammdaten & Preise) und `abrechner` (Abende führen & kassieren);
+Teilnehmer erfassen ohne Konto per Abend-Link/QR + Namenswahl. Details in `spec-48`.
+
+---
+
 ## Tech-Stack
 
 | Feld | Wert |
