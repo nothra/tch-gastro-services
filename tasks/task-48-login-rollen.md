@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -34,7 +34,8 @@ Entscheidungen: siehe [ADR-016](../adr/016-rbac-rollen-login.md).
 - [x] GIVEN ein angemeldeter **Verwalter** WHEN er Katalog/Stammdaten öffnet THEN darf
       er lesen und schreiben. — Guard lässt bei vorhandener Rolle durch (unit-getestet).
 - [x] GIVEN ein angemeldeter Nutzer WHEN er sich abmeldet THEN ist die Sitzung beendet
-      und geschützte Seiten sind wieder gesperrt. — `signOutAction` + `AppHeader`-Button.
+      und geschützte Seiten sind wieder gesperrt. — `signOutAction` + `AppHeader`-Button
+      implementiert; Button-Render unit-getestet. **Abmelde-Fluss e2e noch offen → `/test`.**
 - [x] GIVEN ein manipulierter/abgelaufener Session-Zustand WHEN eine geschützte Server
       Action aufgerufen wird THEN wird sie abgelehnt. — `requireAnyRole` ruft `auth()`;
       kein/ungültiges Session → `ForbiddenError` (unit-getestet `..._when_noSession`).
