@@ -78,7 +78,12 @@ Montagsrunde über ihre **eigene Kasse**, andere Veranstaltungen (z. B. Dorfmeis
 - [ ] GIVEN ein offener Abend mit bereits erfassten Essen WHEN der Essenpreis geändert
       wird THEN werden alle Essen-Anteile des Abends mit dem neuen Preis berechnet.
 
-## Offene Fragen
+## Offene Fragen (für /architecture)
 
-- [ ] Keine offenen Produktfragen mehr. (Mehrere gleichzeitig offene Abende, Datenmodell
-      → /architecture.)
+- [ ] **Kasse zukunftssicher modellieren:** Im MVP ist die Kasse ein fester Satz
+      (`montagsrunde` | `vereinskasse`). Das Datenmodell so schneiden, dass daraus später
+      leicht eine **Kassen-Entität** (Referenz statt loses Enum-Feld am Abend) wird –
+      nötig, sobald eine **dritte Kasse** dazukommt oder das **Kassenbuch (#57)** mit
+      laufendem Saldo je Kasse umgesetzt wird. Ziel: Erweiterung ohne Migration der
+      bestehenden Abend-Daten.
+- [ ] Mehrere gleichzeitig offene Abende, übriges Datenmodell → /architecture.
