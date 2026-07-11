@@ -37,6 +37,22 @@ test.describe("Auth & Stage-Oberfläche", () => {
     await expect(page.getByRole("heading", { name: /TCH Gastro Services/i })).toBeVisible();
   });
 
+  test("Abmelden beendet die Sitzung und sperrt geschützte Seiten wieder", async ({ page }) => {
+    test.skip(!email || !password, "SEED_ADMIN_* nicht gesetzt");
+    await page.goto("/login");
+    await page.getByPlaceholder("E-Mail").fill(email);
+    await page.getByPlaceholder("Passwort").fill(password);
+    await page.getByRole("button", { name: /Anmelden/i }).click();
+    await expect(page).not.toHaveURL(/\/login/);
+
+    await page.getByRole("button", { name: /Abmelden/i }).click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // Geschützte Seite ist nach dem Abmelden wieder gesperrt (Redirect auf /login).
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
   test("falsche Zugangsdaten → Fehlermeldung, bleibt auf /login", async ({ page }) => {
     await page.goto("/login");
     await page.getByPlaceholder("E-Mail").fill("nobody@example.com");

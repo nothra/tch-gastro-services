@@ -38,6 +38,20 @@ describe("hasAnyRole", () => {
     expect(hasAnyRole(["abrechner"], ["verwalter"])).toBe(false);
     expect(hasAnyRole(undefined, ["verwalter"])).toBe(false);
   });
+
+  it("should_returnFalse_when_requiredIsEmpty", () => {
+    // Kein erlaubter Rollen-Satz → niemand darf (fail-closed).
+    expect(hasAnyRole(["verwalter", "abrechner"], [])).toBe(false);
+  });
+});
+
+describe("ForbiddenError", () => {
+  it("should_haveDefaultMessageAndName_when_constructedWithoutArgs", () => {
+    const error = new ForbiddenError();
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("ForbiddenError");
+    expect(error.message).toBe("Zugriff verweigert.");
+  });
 });
 
 describe("requireRole", () => {
@@ -57,6 +71,15 @@ describe("requireRole", () => {
   it("should_throwForbidden_when_noSession", async () => {
     authMock.mockResolvedValue(null);
     await expect(requireRole("verwalter")).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("should_logRejection_when_accessDenied", async () => {
+    // AC (spec-48): Zugriff auf fremde Rolle wird protokolliert.
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    await expect(requireRole("verwalter")).rejects.toBeInstanceOf(ForbiddenError);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    warnSpy.mockRestore();
   });
 });
 

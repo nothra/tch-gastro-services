@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -35,7 +35,8 @@ Entscheidungen: siehe [ADR-016](../adr/016-rbac-rollen-login.md).
       er lesen und schreiben. — Guard lässt bei vorhandener Rolle durch (unit-getestet).
 - [x] GIVEN ein angemeldeter Nutzer WHEN er sich abmeldet THEN ist die Sitzung beendet
       und geschützte Seiten sind wieder gesperrt. — `signOutAction` + `AppHeader`-Button
-      implementiert; Button-Render unit-getestet. **Abmelde-Fluss e2e noch offen → `/test`.**
+      implementiert; `signOutAction` + Button-Render unit-getestet; Abmelde-Fluss e2e in
+      `auth.spec.ts` (durch Deploy-Gate-e2e-Lauf abgedeckt, lokal nicht ausgeführt).
 - [x] GIVEN ein manipulierter/abgelaufener Session-Zustand WHEN eine geschützte Server
       Action aufgerufen wird THEN wird sie abgelehnt. — `requireAnyRole` ruft `auth()`;
       kein/ungültiges Session → `ForbiddenError` (unit-getestet `..._when_noSession`).
