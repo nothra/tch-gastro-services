@@ -47,9 +47,22 @@ sein. Teilnehmer haben **kein** Benutzerkonto.
 - [ ] Deaktivieren eines Teilnehmers, der in einem **offenen** Abend geführt wird →
       bleibt in diesem Abend, nur für neue Abende gesperrt.
 
+## Gesetzte Entscheidungen (2026-07-11)
+
+- **Nicht-Mitglieder zahlen dieselben Preise** wie Mitglieder. Das Kennzeichen
+  `mitglied` dient nur der Info/Auswertung, nicht der Preisbildung.
+- **Walk-in:** Der **Abrechner** darf während eines offenen Abends einen **neuen**
+  Teilnehmer anlegen (er landet in den Stammdaten und im Abend). Selbstbedienungs-Nutzer
+  (F7) können **keine** neuen Teilnehmer anlegen, nur aus der Liste wählen.
+
+## Zusätzliche Akzeptanzkriterien
+
+- [ ] GIVEN ein offener Abend WHEN der **Abrechner** einen bisher unbekannten Teilnehmer
+      (Walk-in) mit Anzeigename und Typ anlegt THEN wird dieser in den Stammdaten
+      angelegt **und** dem Abend als Zeile hinzugefügt.
+- [ ] GIVEN die Preisberechnung eines Verzehrs WHEN der Teilnehmer Nicht-Mitglied ist
+      THEN gelten dieselben Preise wie für Mitglieder.
+
 ## Offene Fragen
 
-- [ ] Dürfen Nicht-Mitglieder dieselben Preise wie Mitglieder? (Annahme MVP: **ja**,
-      gleiche Preise; Kennzeichen dient nur der Info/Auswertung.) → bestätigen.
-- [ ] Braucht es beim Abend eine Möglichkeit, spontan einen **neuen** Teilnehmer
-      anzulegen (Walk-in), oder reicht Vorpflege durch den Verwalter? → siehe F4/F5.
+- [ ] Keine offenen Produktfragen mehr. (Datenmodell/Namensgleichheit → /architecture.)

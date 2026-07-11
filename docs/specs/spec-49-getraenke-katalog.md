@@ -46,9 +46,12 @@ gelegentlich ändern. Nur der Verwalter pflegt den Katalog.
 - [ ] Deaktivieren eines Artikels, der in einem **laufenden** (offenen) Abend verwendet
       wird → Artikel bleibt in diesem Abend nutzbar, wird nur für neue Abende gesperrt.
 
-## Offene Fragen
+## Gesetzte Entscheidungen (2026-07-11)
 
-- [ ] Werden mehrere Preisänderungen im selben, noch offenen Abend erwartet? (Annahme:
-      nein – Preis wird bei der jeweiligen Erfassung „eingefroren".) → /architecture.
-- [ ] Soll der Preis pro erfasster Position gespeichert werden (Snapshot) oder pro Abend?
+- **Maßgeblich ist der zum Erfassungszeitpunkt gültige Preis.** Abgeschlossene Abende
+  bleiben von späteren Preisänderungen unberührt.
+
+## Offene Fragen (für /architecture)
+
+- [ ] Umsetzung des Preis-„Einfrierens": Snapshot pro erfasster Position oder pro Abend?
       → Datenmodell-Entscheidung in /architecture.

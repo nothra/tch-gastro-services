@@ -4,59 +4,70 @@
 
 ## Kontext
 
-Zum Ende des Abends kassiert der Abrechner bei jedem Teilnehmer den Gesamtbetrag bar.
+Zum Ende des Abends kassiert der Abrechner bei jedem Teilnehmer seinen **Verzehr** bar.
 Zahlt jemand mehr, gilt der Überschuss als **Spende**. Kann jemand nicht kassiert werden
 (Abrechner geht früher, kein Bargeld), bleibt die Zeile **offen**. Der Abend wird
 abgeschlossen und die Tagessummen stehen fest.
 
+**Wichtig (Entscheidung 2026-07-11):** Auslagen werden hier **nicht** verrechnet – deren
+Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 0.
+
 ## Scope
 
 **Inbegriffen:**
-- Je Zeile: Anzeige `Gesamt` (= Getränke + Sonstige − Auslagen).
+- Je Zeile: Anzeige `Verzehr-Gesamt` = `Summe Getränke (Theke) + Summe Sonstige (Essen + Kaffee)`.
 - `Erhalten` (bar kassiert) je Zeile erfassen.
-- `Spende` = `Erhalten − Gesamt` (automatisch; nur positiver Überschuss ist Spende).
-- Zeile als **`offen`** (nicht kassiert) markieren – ohne Übertrag aufs nächste Mal.
+- `Spende` = `Erhalten − Verzehr-Gesamt` (automatisch; nur positiver Überschuss ist Spende).
+- Zeilen-Status **`offen`** oder **`bezahlt`** – **kein** Restbetrag/Teilzahlung im MVP.
 - Abend **abschließen**: danach schreibgeschützt; Tagessummen fixiert.
-- Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Gesamt, Σ Erhalten, Σ Spende.
+- Abgeschlossenen Abend durch einen **Abrechner wieder öffnen**, korrigieren, erneut
+  abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
+- Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Verzehr-Gesamt, Σ Erhalten,
+  Σ Spende.
 
 **Nicht inbegriffen:**
+- Verrechnung/Anzeige von Auslagen in der Kassierzeile (eigener Vorgang, F6).
+- Teilzahlung / offener Restbetrag (bewusst nicht, MVP).
 - Übertrag offener Beträge / Teilnehmer-Saldo über Abende (Backlog #56).
 - Kassenbuch / laufender Kassen-Saldo (Backlog #57).
 - Bargeldlose Zahlung / PayPal (Backlog #58).
 
 ## Akzeptanzkriterien
 
-- [ ] GIVEN eine Zeile mit Verzehr und Auslagen WHEN der Gesamtbetrag gebildet wird THEN
-      gilt `Gesamt = Summe Getränke + Summe Sonstige − Auslagen` (2 Nachkommastellen).
-- [ ] GIVEN ein Teilnehmer zahlt genau den Gesamtbetrag WHEN `Erhalten = Gesamt` erfasst
-      wird THEN ist `Spende = 0` und die Zeile gilt als **bezahlt**.
-- [ ] GIVEN ein Teilnehmer zahlt mehr WHEN `Erhalten > Gesamt` erfasst wird THEN ist
-      `Spende = Erhalten − Gesamt` und wird als Spende ausgewiesen.
+- [ ] GIVEN eine Zeile mit erfasstem Verzehr WHEN der Verzehr-Gesamt gebildet wird THEN
+      gilt `Verzehr-Gesamt = Summe Getränke + Summe Sonstige` (2 Nachkommastellen,
+      **ohne** Auslagen-Abzug).
+- [ ] GIVEN ein Teilnehmer zahlt genau den Verzehr-Gesamt WHEN `Erhalten = Verzehr-Gesamt`
+      erfasst wird THEN ist `Spende = 0` und die Zeile gilt als **bezahlt**.
+- [ ] GIVEN ein Teilnehmer zahlt mehr WHEN `Erhalten > Verzehr-Gesamt` erfasst wird THEN
+      ist `Spende = Erhalten − Verzehr-Gesamt` und wird als Spende ausgewiesen; Zeile
+      **bezahlt**.
+- [ ] GIVEN ein Teilnehmer zahlt weniger als den Verzehr-Gesamt (`Erhalten < Verzehr-
+      Gesamt`) WHEN das erfasst wird THEN gilt die Zeile **nicht** als bezahlt; sie
+      bleibt/wird **offen** (kein Restbetrag gespeichert – MVP).
 - [ ] GIVEN ein Teilnehmer kann nicht kassiert werden WHEN der Abrechner die Zeile als
       **offen** markiert THEN bleibt sie ohne `Erhalten`, zählt nicht als bezahlt und
       **wird nicht** übertragen (MVP).
 - [ ] GIVEN ein Abend mit gemischt bezahlten und offenen Zeilen WHEN der Abrechner den
       Abend abschließt THEN wird der Abend `abgeschlossen`, ist schreibgeschützt, und die
       Tagessummen sind fixiert.
+- [ ] GIVEN ein abgeschlossener Abend WHEN ein Abrechner ihn wieder öffnet THEN sind
+      Korrekturen (Verzehr, Erhalten, Auslagen) wieder möglich; die Wiederöffnung wird
+      protokolliert; nach erneutem Abschluss sind die Summen neu fixiert.
 - [ ] GIVEN ein abgeschlossener Abend WHEN die Tagessummen angezeigt werden THEN
-      entsprechen sie der Summe der Zeilenwerte (Getränke, Sonstige, Gesamt, Erhalten,
-      Spende).
+      entsprechen sie der Summe der Zeilenwerte (Getränke, Sonstige, Verzehr-Gesamt,
+      Erhalten, Spende).
 
 ## Fehlerszenarien
 
 - [ ] `Erhalten` kein gültiger EUR-Betrag ≥ 0 → serverseitig abgelehnt.
-- [ ] Teilzahlung (`0 < Erhalten < Gesamt`) → im MVP zählt die Zeile als **offen** (nicht
-      teil-bezahlt); Restbetrag-Logik ist Backlog #56. (Bestätigen – siehe offene Fragen.)
 - [ ] Abschluss trotz offener Zeilen → erlaubt, aber mit deutlichem Hinweis, wie viele
       Zeilen offen bleiben.
-- [ ] Negativer Gesamtbetrag (Auslagen > Verzehr, F6) → Auszahlung an Teilnehmer; klare
-      Darstellung, wie `Erhalten` in diesem Fall zu erfassen ist.
+- [ ] Wiederöffnen durch eine Person ohne Abrechner-Rolle → serverseitig abgelehnt (F1).
 
-## Offene Fragen
+## Offene Fragen (für /architecture)
 
-- [ ] Umgang mit **Teilzahlung**: gar nicht (nur offen/bezahlt) oder Restbetrag
-      speichern? MVP-Annahme: nur offen/bezahlt. → bestätigen.
-- [ ] Darf ein abgeschlossener Abend wieder **geöffnet** werden (Korrektur), und durch
-      welche Rolle? → /architecture.
-- [ ] Negativer Gesamtbetrag: Wird ausgezahltes Geld als negatives `Erhalten` erfasst
-      oder als eigener Vorgang? → mit F6 gemeinsam klären.
+- [ ] Protokollierung von Öffnen/Abschluss: eigenes Audit-Log oder Zeitstempel+Nutzer am
+      Abend? → /architecture.
+- [ ] Konsistenz der fixierten Tagessummen bei Wiederöffnung (neu berechnen vs.
+      Snapshot je Abschluss) → /architecture.

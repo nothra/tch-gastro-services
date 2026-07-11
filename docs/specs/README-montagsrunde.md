@@ -55,6 +55,21 @@ Wird über den Getränke-Katalog (F2) gepflegt, nicht im Code fixiert.
 | Kaffee | – | fest im Katalog (Beispiel 1,00 €) |
 | Essen | – | **pro Abend** festgelegt (i. d. R. 6 / 7 €) |
 
-**Zeilenberechnung (aus dem Template):**
-`Gesamt = Summe Getränke (Theke) + Summe Sonstige (Essen + Kaffee) − Auslagen`
-`Spende = Erhalten − Gesamt`
+**Zeilenberechnung (bewusste Abweichung vom Template, Entscheidung 2026-07-11):**
+`Verzehr-Gesamt = Summe Getränke (Theke) + Summe Sonstige (Essen + Kaffee)`
+`Spende = Erhalten − Verzehr-Gesamt`
+
+Anders als im Excel (Spalte V = T + Q − U) mindern **Auslagen den Verzehr nicht**.
+Die **Auslagenerstattung ist ein eigener Vorgang** (Barauszahlung aus der Kasse an den
+Teilnehmer), getrennt vom Kassieren des Verzehrs. Dadurch gibt es keinen negativen
+Gesamtbetrag. Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.md).
+
+## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
+
+- **Nicht-Mitglieder** zahlen dieselben Preise wie Mitglieder (Kennzeichen nur Info/Auswertung).
+- **Essenpreis** gilt **abendweit einheitlich**; eine spätere Änderung wirkt auf alle Essen des Abends.
+- **Erfassung ist anonym** – keine Urheber-Nachverfolgung („wer hat eingetragen").
+- **Walk-in:** nur der **Abrechner** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
+- **Teilzahlung:** eine Zeile ist **offen oder bezahlt**, kein Restbetrag im MVP.
+- **Auslagenerstattung:** **eigener Vorgang**, getrennt vom Kassieren (siehe oben).
+- **Abschluss-Korrektur:** ein **Abrechner** darf einen abgeschlossenen Abend **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).

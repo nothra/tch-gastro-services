@@ -38,9 +38,12 @@ Erfassungen (F5–F8).
 - [ ] GIVEN ein Teilnehmer, der bereits erfasste Positionen hat WHEN versucht wird, ihn
       aus dem Abend zu entfernen THEN wird das verhindert oder erfordert eine bewusste
       Bestätigung (kein Datenverlust aus Versehen).
+- [ ] GIVEN ein offener Abend WHEN der **Abrechner** einen Walk-in (neuen Teilnehmer)
+      anlegt THEN wird dieser in die Stammdaten übernommen und erhält im Abend eine Zeile
+      (siehe F3).
 - [ ] GIVEN ein `abgeschlossener` Abend WHEN jemand ihn bearbeiten will THEN ist er
-      schreibgeschützt (Änderungen nur nach erneutem Öffnen durch berechtigte Rolle –
-      Detail siehe F8 offene Fragen).
+      schreibgeschützt; ein **Abrechner** kann ihn aber wieder öffnen (protokolliert,
+      siehe F8), danach sind Änderungen erneut möglich.
 
 ## Fehlerszenarien
 
@@ -49,10 +52,21 @@ Erfassungen (F5–F8).
       Abschluss (F8) eines komplett leeren Abends erfordert Bestätigung.
 - [ ] Datum in der Zukunft/Vergangenheit → erlaubt (Nacherfassung möglich).
 
+## Gesetzte Entscheidungen (2026-07-11)
+
+- **Essenpreis gilt abendweit einheitlich.** Wird er im offenen Abend geändert, wirkt die
+  Änderung auf **alle** Essen dieses Abends (nicht nur auf künftige).
+- **Kaffeepreis** ist im MVP der feste Katalogpreis (F2), **nicht** pro Abend abweichend
+  (abweichende Preise je Veranstaltungstyp: Backlog #59).
+- **Wiederöffnen:** ein abgeschlossener Abend kann durch einen **Abrechner** wieder
+  geöffnet werden (Details F8).
+
+## Zusätzliche Akzeptanzkriterien
+
+- [ ] GIVEN ein offener Abend mit bereits erfassten Essen WHEN der Essenpreis geändert
+      wird THEN werden alle Essen-Anteile des Abends mit dem neuen Preis berechnet.
+
 ## Offene Fragen
 
-- [ ] Darf der Essenpreis nach ersten Erfassungen noch geändert werden, und gilt er dann
-      rückwirkend für schon erfasste Essen? (Annahme: Änderung wirkt auf alle Essen des
-      Abends, da abendweit einheitlich.) → bestätigen.
-- [ ] Kann der Kaffeepreis pro Abend abweichen? Im MVP **nein** (fester Katalogpreis,
-      F2); abweichende Preise je Veranstaltungstyp sind Backlog #59.
+- [ ] Keine offenen Produktfragen mehr. (Mehrere gleichzeitig offene Abende, Datenmodell
+      → /architecture.)

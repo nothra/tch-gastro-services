@@ -49,11 +49,20 @@ gemeinsamen Theken-Gerät.
 - [ ] Token-Weitergabe an Unbeteiligte → im MVP akzeptiertes Restrisiko (Vertrauens-
       modell wie beim offenen Zettel); dokumentiert für /security-review.
 
-## Offene Fragen
+## Gesetzte Entscheidungen (2026-07-11)
 
-- [ ] Soll das Token pro Abend rotieren/ablaufen (z. B. am Folgetag ungültig)? →
-      /architecture.
-- [ ] Darf ein Selbstbedienungs-Nutzer einen **neuen** Teilnehmer zum Abend hinzufügen
-      (Walk-in), oder nur der Abrechner? (Annahme MVP: nur Abrechner.) → bestätigen.
-- [ ] Ist eine minimale Missbrauchsbremse gewünscht (z. B. Rate-Limit), obwohl kein
-      Passwort? → /security-review.
+- **Walk-in nur durch Abrechner:** Ein Selbstbedienungs-Nutzer kann **keinen** neuen
+  Teilnehmer anlegen; er wählt nur aus der bestehenden Liste des Abends. Neue Namen legt
+  der Abrechner an (F3/F4).
+
+## Zusätzliche Akzeptanzkriterien
+
+- [ ] GIVEN ein Selbstbedienungs-Nutzer über den Link WHEN er einen neuen Teilnehmer
+      anlegen will THEN ist diese Aktion nicht verfügbar (nur Auswahl aus der Liste).
+
+## Offene Fragen (für /architecture & /security-review)
+
+- [ ] Token-Länge/Zufälligkeit, Rotation/Ablauf (z. B. am Folgetag ungültig) →
+      /architecture, /security-review.
+- [ ] Minimale Missbrauchsbremse (z. B. Rate-Limit) trotz fehlendem Passwort? →
+      /security-review.

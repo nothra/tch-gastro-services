@@ -55,10 +55,15 @@ volle Transparenz wie beim gemeinsamen Zettel heute.
       angekommen ist (kein stiller Verlust); WLAN ist stabil, aber der Fall wird
       sauber behandelt.
 
-## Offene Fragen
+## Gesetzte Entscheidungen (2026-07-11)
 
-- [ ] Gibt es beim gemeinsamen Zählen ein Bedürfnis nach „wer hat's eingetragen"
-      (Nachvollziehbarkeit) oder bewusst anonym wie heute? (Annahme: anonym.) → bestätigen.
+- **Erfassung ist anonym** – es wird **nicht** protokolliert, wer eine Menge eingetragen
+  hat (wie beim gemeinsamen Zettel heute).
+- **Walk-in:** Nur der **Abrechner** legt einen neuen Teilnehmer spontan an (F3/F4);
+  Selbstbedienungs-Nutzer wählen ausschließlich aus der bestehenden Liste.
+
+## Offene Fragen (für /architecture)
+
 - [ ] Sollen Änderungen live bei anderen Geräten erscheinen (Echtzeit) oder reicht ein
       Neuladen? → /architecture (Aufwand vs. Nutzen).
-- [ ] Walk-in ohne Stammdaten-Eintrag: spontanes Anlegen einer Zeile? → hängt an F3/F4.
+- [ ] Umgang mit Nebenläufigkeit an derselben Zeile (kein „lost update") → /architecture.

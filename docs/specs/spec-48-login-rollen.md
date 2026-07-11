@@ -57,8 +57,13 @@ Montagsrunde brauchen **kein** Konto (siehe F7 Selbstbedienung).
       Preisgabe, ob der Benutzername existiert.
 - [ ] Zugriff auf fremde Rolle → serverseitige Ablehnung (403-artig), protokolliert.
 
-## Offene Fragen
+## Gesetzte Entscheidungen (2026-07-11)
 
-- [ ] Wie werden die ersten Konten angelegt (Seed durch Verwalter, manuell in DB)?
-- [ ] Login per E-Mail+Passwort (Credentials aus Task #16) oder zusätzlich ein anderer
-      Provider? → Klärung in /architecture.
+- **Keine Selbstregistrierung.** Konten werden vom Verwalter angelegt.
+- **Login im MVP über E-Mail+Passwort** (Credentials-Provider aus Task #16), **kein**
+  zusätzlicher Login-Provider.
+
+## Offene Fragen (für /architecture)
+
+- [ ] Mechanik der initialen Konto-Anlage (Seed-Skript vs. manuell in der DB) →
+      /architecture.
