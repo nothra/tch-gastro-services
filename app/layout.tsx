@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { STAGE, currentStage } from "@/lib/stage";
 import { StageBanner } from "@/app/components/StageBanner";
+import { AppHeader } from "@/app/components/AppHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="de" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <StageBanner />
+        <AppHeader />
         {children}
       </body>
     </html>

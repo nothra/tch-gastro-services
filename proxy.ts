@@ -8,8 +8,9 @@ const { auth } = NextAuth(authConfig);
 export default auth;
 
 export const config = {
-  // Alles schützen außer: Auth-Endpunkte, Versions-Endpunkt, Next-Assets, Favicon, Manifest, Icon.
+  // Alles schützen außer: Auth-Endpunkte, Versions-Endpunkt, Next-Assets, Favicon, Manifest
+  // und statische SVG-Icons (auch die Stage-Icons icon-dev/int/prd.svg → nicht auf /login umleiten).
   matcher: [
-    "/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest).*)",
+    "/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.svg$).*)",
   ],
 };

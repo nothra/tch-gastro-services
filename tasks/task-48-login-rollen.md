@@ -1,7 +1,7 @@
 # Task 48: login-rollen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -21,23 +21,28 @@ Entscheidungen: siehe [ADR-016](../adr/016-rbac-rollen-login.md).
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ein nicht angemeldeter Besucher WHEN er eine geschützte Seite (Stammdaten,
+- [x] GIVEN ein nicht angemeldeter Besucher WHEN er eine geschützte Seite (Stammdaten,
       Abend-Verwaltung) öffnet THEN wird er zur Anmeldung geleitet und sieht keine
-      geschützten Daten.
-- [ ] GIVEN gültige Zugangsdaten WHEN sich eine Person anmeldet THEN ist sie angemeldet
-      und ihre Rolle(n) bestimmen die sichtbaren/erlaubten Aktionen.
-- [ ] GIVEN ein angemeldeter **Abrechner** (ohne Verwalter-Rolle) WHEN er die
+      geschützten Daten. — `proxy.ts` (`authorized`-Callback), e2e `auth.spec.ts`.
+- [x] GIVEN gültige Zugangsdaten WHEN sich eine Person anmeldet THEN ist sie angemeldet
+      und ihre Rolle(n) bestimmen die sichtbaren/erlaubten Aktionen. — `roles` fließen
+      `authorize()` → `jwt()` → `session.user.roles`.
+- [x] GIVEN ein angemeldeter **Abrechner** (ohne Verwalter-Rolle) WHEN er die
       Katalog- oder Stammdaten-Pflege aufruft THEN wird die Aktion serverseitig
-      abgelehnt (nicht nur im UI ausgeblendet).
-- [ ] GIVEN ein angemeldeter **Verwalter** WHEN er Katalog/Stammdaten öffnet THEN darf
-      er lesen und schreiben.
-- [ ] GIVEN ein angemeldeter Nutzer WHEN er sich abmeldet THEN ist die Sitzung beendet
-      und geschützte Seiten sind wieder gesperrt.
-- [ ] GIVEN ein manipulierter/abgelaufener Session-Zustand WHEN eine geschützte Server
-      Action aufgerufen wird THEN wird sie abgelehnt.
-- [ ] Falsche Zugangsdaten → verständliche Fehlermeldung, kein Zugang, keine Preisgabe,
-      ob der Benutzername existiert.
-- [ ] Zugriff auf fremde Rolle → serverseitige Ablehnung (403-artig), protokolliert.
+      abgelehnt (nicht nur im UI ausgeblendet). — **Mechanismus** `requireRole("verwalter")`
+      in `lib/authz.ts` (unit-getestet); die konkreten Katalog-/Stammdaten-Actions sind F2/F3.
+- [x] GIVEN ein angemeldeter **Verwalter** WHEN er Katalog/Stammdaten öffnet THEN darf
+      er lesen und schreiben. — Guard lässt bei vorhandener Rolle durch (unit-getestet).
+- [x] GIVEN ein angemeldeter Nutzer WHEN er sich abmeldet THEN ist die Sitzung beendet
+      und geschützte Seiten sind wieder gesperrt. — `signOutAction` + `AppHeader`-Button.
+- [x] GIVEN ein manipulierter/abgelaufener Session-Zustand WHEN eine geschützte Server
+      Action aufgerufen wird THEN wird sie abgelehnt. — `requireAnyRole` ruft `auth()`;
+      kein/ungültiges Session → `ForbiddenError` (unit-getestet `..._when_noSession`).
+- [x] Falsche Zugangsdaten → verständliche Fehlermeldung, kein Zugang, keine Preisgabe,
+      ob der Benutzername existiert. — `authorize()` gibt für unbekannte E-Mail **und**
+      falsches Passwort identisch `null` zurück; UI zeigt eine generische Meldung.
+- [x] Zugriff auf fremde Rolle → serverseitige Ablehnung (403-artig), protokolliert. —
+      `ForbiddenError` + `console.warn` im Guard.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -80,6 +85,29 @@ Erst danach Schema/JWT-Propagation und der geschützte-Action-Integrationspfad.
 
 - [x] Mechanik der initialen Konto-Anlage → **entschieden in [ADR-016](../adr/016-rbac-rollen-login.md)
       (Frage 3): Seed-Skript (`db/seed.ts`); keine Nutzerverwaltungs-UI im Scope von #48.**
+
+## Implementierungs-Notizen (nicht-offensichtliche Entscheidungen)
+
+- **`middleware.ts` → `proxy.ts` (Next 16).** Die Task-Notiz/ADR-016 gingen von einer
+  neu anzulegenden `middleware.ts` aus. Next 16 hat die Konvention in `proxy.ts` umbenannt;
+  die Datei existierte bereits (aus #42) und verdrahtete den `authorized`-Callback bereits.
+  Die Prämisse „`authorized` nie verdrahtet" gilt für Next 16 also nicht mehr. Statt einer
+  zweiten Datei (Build-Fehler: beide gleichzeitig verboten) wurde `proxy.ts` genutzt und ihr
+  `matcher` um die Stage-SVG-Icons (`icon-dev/int/prd.svg`) erweitert (vorher nur `icon.svg`),
+  damit deren Auslieferung auf `/login` nicht auf die Anmeldung umgeleitet wird.
+- **Migration 0002 hand-angepasst (ADR-016 Consequences).** `drizzle-kit generate` erzeugte
+  inkohärentes SQL (ALTER auf die noch nicht existierende `roles`-Spalte). SQL durch die
+  klare drop-and-recreate-Reihenfolge ersetzt; der **Snapshot** ist der von drizzle-kit
+  korrekt generierte Stand. Migration lokal gegen eine Wegwerf-DB verifiziert
+  (0000→0001→0002 grün, Ergebnis `roles user_role[]`, Enum `verwalter/abrechner`).
+- **JWT-Claim-Typisierung.** `next-auth/jwt` re-exportiert nur (`export *`) → Augmentierung
+  greift dort nicht; daher `@auth/core/jwt` augmentiert. Im `session()`-Callback typisiert
+  next-auth v5 beta den Custom-Claim dennoch nicht sauber → expliziter Cast wie beim
+  Vorgänger (#16). Runtime-Verhalten ist korrekt (getestet).
+- **Test-Isolation:** `vitest.setup.ts` um `afterEach(cleanup)` ergänzt (ohne `globals:true`
+  registriert Testing Library kein Auto-Cleanup → DOM leakte zwischen Tests).
+- **Env-Var-Namen `SEED_ADMIN_*` beibehalten** (kein Churn in `.env*`/e2e); der Seed vergibt
+  jetzt beide Rollen `["verwalter","abrechner"]`.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

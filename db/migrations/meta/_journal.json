@@ -15,6 +15,13 @@
       "when": 1783542481550,
       "tag": "0001_cultured_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783763649868,
+      "tag": "0002_narrow_bloodstorm",
+      "breakpoints": true
     }
   ]
 }
