@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -110,6 +110,15 @@ Erst danach Schema/JWT-Propagation und der geschützte-Action-Integrationspfad.
   registriert Testing Library kein Auto-Cleanup → DOM leakte zwischen Tests).
 - **Env-Var-Namen `SEED_ADMIN_*` beibehalten** (kein Churn in `.env*`/e2e); der Seed vergibt
   jetzt beide Rollen `["verwalter","abrechner"]`.
+
+## Refactor-Notiz
+
+Clean-Code-Pass ausgeführt: **keine Änderungen nötig.** Der Code ist bereits klein,
+fokussiert und duplikationsfrei (Guards als reine Prädikate + `requireRole` delegiert DRY
+an `requireAnyRole`; Early-Return in `AppHeader`; WHY-Kommentare; keine Magic Strings) und
+wurde im Multi-Persona-Review ausdrücklich als sauber bewertet. Ein erzwungenes Refactoring
+wäre Gold-Plating (YAGNI, clean-code.md). Nitpicks aus dem Review (Guard-Kommentar,
+Proxy-Matcher) wurden bereits in Commit `13cb148` adressiert. Tests vor/nach identisch grün (18).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
