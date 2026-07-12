@@ -46,5 +46,6 @@ lesen und nur noch gequotete Variablen testen. **Kein neues Verhalten** – rein
 - [x] `/review` – APPROVED (`tasks/review-66.md`); 2 Prozess-Findings vor PR: committen + rebasen
 - [x] `/refactor` – 219 grün / 0 rot; einzige Änderung: `FIX_BAD`/`FIX_OK` → `TMP_YAML_INLINE`/`TMP_YAML_ENV` (Namens-Konsistenz mit `TMP_*`-Konvention der Datei)
 - [x] `/security-review` – PASSED (`tasks/security-66.md`); keine Blocker, keine Out-of-Scope-Issues
-- [ ] `/codify`
-- [ ] Fertig / PR erstellt
+- [ ] `/codify` – nicht automatisiert gelaufen (Stage-3-Turn-Budget des Skills zu knapp,
+      3 Versuche erschöpft); als Follow-up vorgemerkt, kein Blocker für diesen PR
+- [x] Fertig / PR erstellt – [PR #90](https://github.com/nothra/tch-gastro-services/pull/90)
