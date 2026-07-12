@@ -12,6 +12,13 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Worktree-Isolation in `start-work.sh`** (#74): Jede neue Task wird per Default in einem
+  **eigenen git-Worktree** angelegt statt per `checkout` im geteilten Haupt-Baum. Damit können
+  parallele Claude-Sessions einander nicht mehr den `HEAD` verschieben (Ursache des
+  Kollisionsvorfalls bei #71). Escape-Hatch `FACTORY_NO_WORKTREE=1` (altes In-Place-Verhalten);
+  konfigurierbar über `FACTORY_WORKTREE_BASE` / `FACTORY_WT_SKIP_INSTALL`; `FACTORY_DIR`-Override
+  macht das Skript testbar. Neuer Self-Test belegt die Invariante „Haupt-Baum-HEAD bleibt
+  unverändert". Doku in `git-workflow.md`/`CLAUDE.md`.
 - **Betriebs-Runbook `docs/factory/OPERATING.md`** (#71): prozeduraler Leitfaden „Issue → Production,
   maximal automatisiert" – Einmal-Setup (Secrets/Repo-Vars/Vercel-Production-Branch), Feature-Checkliste
   entlang der Skill-Pipeline (inkl. Task-Datei-Abschluss **vor** dem Merge, Guardrail aus #63),
