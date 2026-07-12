@@ -53,6 +53,10 @@ Konvention (kanonisch in `docs/factory/guidelines/git-workflow.md` → „GitHub
 **genau ein Art-Label** (`bug`/`enhancement`/`documentation`) + passende **Aspekt-Labels**
 (`security`/`tech-debt`/`test`). Die Issue-Nummer erscheint auf stdout; im Report verlinken.
 
+> **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
+> ableiten (nur Titel/Body dürfen Inhalt zitieren). Der `factory::`-Präfix ist der Pipeline
+> vorbehalten und wird vom Seam verworfen.
+
 ### 4. Zusammenfassung ausgeben
 
 Schreibe den Report in `tasks/codify-$ARGUMENTS.md`:

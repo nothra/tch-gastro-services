@@ -57,6 +57,16 @@ Das **verpflichtende Art-Label** wird also nie durch ein fehlendes Aspekt-Label 
 Die kanonische Label-Liste bleibt allein in `git-workflow.md` → „GitHub-Labels"; der Seam
 dupliziert sie nicht.
 
+**Eine Ausnahme – der reservierte `factory::`-Präfix (Security-Review #82, H-1):** Der Seam
+**verwirft** übergebene Labels mit `factory::`-Präfix (Art wie Aspekt, Warnung auf stderr).
+Das ist bewusst **keine** Taxonomie-Allowlist (die bleibt abgelehnt, s. o.), sondern eine
+schmale **Denylist eines einzigen, privilegienrelevanten Präfix**: `factory::run`/`::running`/
+`::done`/… steuern die autonome Pipeline (ADR-008) und werden **ausschließlich** von ihr via
+`gh issue edit` gesetzt – nie über den allgemeinen Anlage-Seam. Da neu auch Skills autonom über
+den Seam anlegen (§5), verhindert der Guard, dass ein Label aus versehentlich untrusted Inhalt
+je einen ungewollten Pipeline-Lauf triggert. Der `factory::`-Präfix ist stabil und in
+`git-workflow.md` bereits als „nicht frei vergeben" dokumentiert → kein Drift-Risiko.
+
 **4 · Repo-Bezug ohne neue Duplikation.** Der Seam leitet den Repo-Slug **nicht** selbst ab
 (bewusst außerhalb des Scopes), sondern liest ihn aus der Umgebung (`FACTORY_REPO`, sonst der
 schon vom Aufrufer gesetzte `REPO`); ist nichts gesetzt, überlässt er `gh` die Auto-Erkennung

@@ -695,6 +695,16 @@ assert_true "$?" "Seam: Body mit Leerzeichen/Quotes bleibt EIN --body-Argument"
 assert_true "$(! grep -qxF -- '[Titel]' "$BRLOG"; echo $?)" \
   "Seam: kein wortgesplittetes Titel-Fragment ([Titel] allein) im Arg-Log"
 
+# 13. Security-Guard (Review #82 H-1): reservierter 'factory::'-Präfix wird als Art- UND
+# Aspekt-Label verworfen (nur die Pipeline setzt diese; verhindert Selbst-Trigger).
+LOG="$TMP_SEAM/c13.log"; : > "$LOG"; ERR="$TMP_SEAM/c13.err"
+out=$(FACTORY_REPO="test/repo" GH_LOG="$LOG" seam "T" "B" "factory::run" "security,factory::running" 2>"$ERR"); rc=$?
+assert_exit 0 "$rc" "Seam: factory::-Labels → Issue trotzdem angelegt (exit 0)"
+assert_true "$([[ "$out" = "123" ]]; echo $?)" "Seam: factory::-Guard → stdout bleibt reine Nummer"
+assert_true "$(! grep -q -- 'factory::' "$LOG"; echo $?)" "Seam: KEIN factory::-Label wird an gh übergeben (Art + Aspekt verworfen)"
+grep -q -- '--label security' "$LOG"; assert_true "$?" "Seam: legitimes Aspekt-Label (security) bleibt trotz factory::-Nachbar erhalten"
+grep -q 'reserviert' "$ERR"; assert_true "$?" "Seam: factory::-Guard warnt auf stderr (reserviert)"
+
 rm -rf "$TMP_SEAM"
 
 # ── Aufrufer nutzen den Seam (kein eigenes 'gh issue create' mehr) ───────────

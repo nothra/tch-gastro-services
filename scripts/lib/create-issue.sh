@@ -54,6 +54,19 @@ create_issue() {
     echo "create_issue: 'gh' nicht gefunden – Issue-Anlage nicht möglich." >&2
     return 1
   }
+  # Sicherheits-Guard (defense-in-depth, Security-Review #82 H-1): der 'factory::'-Präfix ist
+  # der Maschinen-Kontroll-Plane vorbehalten (Auto-Pipeline-Trigger/Status, git-workflow.md →
+  # „factory::-Labels") und wird ausschließlich von der Pipeline via 'gh issue edit' gesetzt –
+  # NIE über den allgemeinen Anlage-Seam. Käme ein solches Label hier durch (etwa aus einem
+  # Skill, das es fälschlich aus untrusted Inhalt ableitet), könnte 'factory::run' einen
+  # ungewollten Pipeline-Lauf auslösen → hart abweisen. Das ist eine schmale Denylist EINES
+  # reservierten Präfix, NICHT die vom ADR-018 §3 abgelehnte Taxonomie-Allowlist.
+  case "$art_label" in
+    factory::*)
+      echo "create_issue: reserviertes Art-Label '$art_label' (factory::-Präfix) verworfen – diese Labels setzt nur die Pipeline." >&2
+      art_label="" ;;
+  esac
+
   [ -n "$art_label" ] || \
     echo "create_issue: kein Art-Label übergeben – Issue entsteht ohne Art-Label (Konvention: genau ein Art-Label)." >&2
 
@@ -68,7 +81,14 @@ create_issue() {
   local remaining="$aspect_csv" token
   while [ -n "$remaining" ]; do
     token="${remaining%%,*}"
-    [ -n "$token" ] && aspects+=("$token")
+    if [ -n "$token" ]; then
+      case "$token" in
+        # Reservierter Maschinen-Präfix (siehe Guard oben) – auch als Aspekt verwerfen.
+        factory::*)
+          echo "create_issue: reserviertes Aspekt-Label '$token' (factory::-Präfix) verworfen – diese Labels setzt nur die Pipeline." >&2 ;;
+        *) aspects+=("$token") ;;
+      esac
+    fi
     [ "$token" = "$remaining" ] && break
     remaining="${remaining#*,}"
   done
