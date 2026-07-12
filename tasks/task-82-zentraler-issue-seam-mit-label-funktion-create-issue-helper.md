@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Issues werden an mehreren Stellen erzeugt (`start-work.sh`, `sync-issues.sh --create`, künftig
@@ -111,7 +111,12 @@ Skills nutzen) reproduziert und behoben; wichtige Findings (interne Duplikation 
   liest mit den Stufen-Kommentaren klar und ist eine kohärente Verantwortung.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-82.md`. Kern-Learning → neue **Gotcha 4** in
+`docs/factory/guidelines/bash-gotchas.md`: `"${arr[@]}"` bei leerem Array wirft unter `set -u`
+auf bash 3.2 (macOS-Default) „unbound variable"; `+`-Guard nutzen. Dazu: `$(…)` unterdrückt
+`set -e`, nicht `set -u` – und gesourcte Libs unter den `set -euo pipefail` der echten Aufrufer
+testen (inkl. Leer-Array-Grenzfälle), sonst maskiert die Test-Umgebung den Bug (genau bei F1
+passiert). Kein Gate (nicht verlässlich erkennbar) → Review-Regel.
 
 ---
 Branch: `feature/82-zentraler-issue-seam-mit-label-funktion-create-issue-helper`
