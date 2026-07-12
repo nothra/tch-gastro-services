@@ -52,24 +52,38 @@ jobs:
           cache: pnpm
 
       - name: Secrets vorhanden?
+        # Secrets über env: als Shell-Variablen lesen und nur gequotet testen (wie $BYPASS).
+        # GitHub ersetzt ${{ … }} textuell VOR der Shell → inline im run: könnte ein Wert mit
+        # "/Backtick aus dem Test-Ausdruck ausbrechen (Actions-Script-Injection). #66 schließt das.
+        env:
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          PRD_DATABASE_URL: ${{ secrets.PRD_DATABASE_URL }}
+          PRD_ADMIN_EMAIL: ${{ secrets.PRD_ADMIN_EMAIL }}
+          PRD_ADMIN_PASSWORD: ${{ secrets.PRD_ADMIN_PASSWORD }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_INT_BRANCH_ID: ${{ secrets.NEON_INT_BRANCH_ID }}
+          NEON_PRD_BRANCH_ID: ${{ secrets.NEON_PRD_BRANCH_ID }}
+          INT_DATABASE_URL: ${{ secrets.INT_DATABASE_URL }}
         run: |
           missing=0
           [ -n "$BYPASS" ] || { echo "::error::VERCEL_AUTOMATION_BYPASS_SECRET fehlt"; missing=1; }
-          [ -n "${{ secrets.E2E_ADMIN_EMAIL }}" ] || { echo "::error::E2E_ADMIN_EMAIL fehlt"; missing=1; }
-          [ -n "${{ secrets.E2E_ADMIN_PASSWORD }}" ] || { echo "::error::E2E_ADMIN_PASSWORD fehlt"; missing=1; }
+          [ -n "$E2E_ADMIN_EMAIL" ] || { echo "::error::E2E_ADMIN_EMAIL fehlt"; missing=1; }
+          [ -n "$E2E_ADMIN_PASSWORD" ] || { echo "::error::E2E_ADMIN_PASSWORD fehlt"; missing=1; }
           # PRD-Migration ist Pflicht (ADR-017): kein stilles Überspringen – fehlt ein Secret, bricht das Gate ab.
-          [ -n "${{ secrets.PRD_DATABASE_URL }}" ] || { echo "::error::PRD_DATABASE_URL fehlt"; missing=1; }
-          [ -n "${{ secrets.PRD_ADMIN_EMAIL }}" ] || { echo "::error::PRD_ADMIN_EMAIL fehlt"; missing=1; }
-          [ -n "${{ secrets.PRD_ADMIN_PASSWORD }}" ] || { echo "::error::PRD_ADMIN_PASSWORD fehlt"; missing=1; }
+          [ -n "$PRD_DATABASE_URL" ] || { echo "::error::PRD_DATABASE_URL fehlt"; missing=1; }
+          [ -n "$PRD_ADMIN_EMAIL" ] || { echo "::error::PRD_ADMIN_EMAIL fehlt"; missing=1; }
+          [ -n "$PRD_ADMIN_PASSWORD" ] || { echo "::error::PRD_ADMIN_PASSWORD fehlt"; missing=1; }
           # Der INT-Refresh (ADR-015) ist die Absicherungs-Vorstufe der PRD-Auto-Migration (ADR-017):
           # er migriert INT gegen prod-nahe, anonymisierte Daten, bevor PRD migriert wird. Solange das
           # Gate PRD automatisch migriert, sind diese Secrets daher PFLICHT (sonst liefe PRD-Migration
           # ohne den bewiesenen INT-Lauf – genau die stille Lücke, die ADR-017 schließt).
-          [ -n "${{ secrets.NEON_API_KEY }}" ] || { echo "::error::NEON_API_KEY fehlt (INT-Refresh = Absicherung der PRD-Migration)"; missing=1; }
-          [ -n "${{ secrets.NEON_PROJECT_ID }}" ] || { echo "::error::NEON_PROJECT_ID fehlt"; missing=1; }
-          [ -n "${{ secrets.NEON_INT_BRANCH_ID }}" ] || { echo "::error::NEON_INT_BRANCH_ID fehlt"; missing=1; }
-          [ -n "${{ secrets.NEON_PRD_BRANCH_ID }}" ] || { echo "::error::NEON_PRD_BRANCH_ID fehlt"; missing=1; }
-          [ -n "${{ secrets.INT_DATABASE_URL }}" ] || { echo "::error::INT_DATABASE_URL fehlt"; missing=1; }
+          [ -n "$NEON_API_KEY" ] || { echo "::error::NEON_API_KEY fehlt (INT-Refresh = Absicherung der PRD-Migration)"; missing=1; }
+          [ -n "$NEON_PROJECT_ID" ] || { echo "::error::NEON_PROJECT_ID fehlt"; missing=1; }
+          [ -n "$NEON_INT_BRANCH_ID" ] || { echo "::error::NEON_INT_BRANCH_ID fehlt"; missing=1; }
+          [ -n "$NEON_PRD_BRANCH_ID" ] || { echo "::error::NEON_PRD_BRANCH_ID fehlt"; missing=1; }
+          [ -n "$INT_DATABASE_URL" ] || { echo "::error::INT_DATABASE_URL fehlt"; missing=1; }
           [ "$missing" = 0 ] || exit 1
 
       - name: Abhängigkeiten
@@ -82,12 +96,19 @@ jobs:
 
       - name: INT-Refresh aktiv? (Neon-Secrets vorhanden)
         id: refresh
+        # Secrets über env: lesen und nur gequotet testen (Härtung #66, wie oben).
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_INT_BRANCH_ID: ${{ secrets.NEON_INT_BRANCH_ID }}
+          NEON_PRD_BRANCH_ID: ${{ secrets.NEON_PRD_BRANCH_ID }}
+          INT_DATABASE_URL: ${{ secrets.INT_DATABASE_URL }}
         run: |
-          if [ -n "${{ secrets.NEON_API_KEY }}" ] \
-             && [ -n "${{ secrets.NEON_PROJECT_ID }}" ] \
-             && [ -n "${{ secrets.NEON_INT_BRANCH_ID }}" ] \
-             && [ -n "${{ secrets.NEON_PRD_BRANCH_ID }}" ] \
-             && [ -n "${{ secrets.INT_DATABASE_URL }}" ]; then
+          if [ -n "$NEON_API_KEY" ] \
+             && [ -n "$NEON_PROJECT_ID" ] \
+             && [ -n "$NEON_INT_BRANCH_ID" ] \
+             && [ -n "$NEON_PRD_BRANCH_ID" ] \
+             && [ -n "$INT_DATABASE_URL" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
             echo "INT-Refresh aktiv (alle Neon-Secrets + INT_DATABASE_URL vorhanden)."
           else

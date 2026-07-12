@@ -20,30 +20,31 @@ lesen und nur noch gequotete Variablen testen. **Kein neues Verhalten** – rein
 
 ## Akzeptanzkriterien (aus Spec)
 
-- [ ] `Secrets vorhanden?`: `run:`-Block enthält kein `${{ secrets.* }}` mehr, nur gequotete `$VAR`
-- [ ] `INT-Refresh aktiv?`: `run:`-Block enthält kein `${{ secrets.* }}` mehr, nur gequotete `$VAR`
-- [ ] Gesamtes `deploy-gate.yml`: keine `${{ secrets.* }}`-Referenz innerhalb eines `run:`-Ausdrucks
-- [ ] Verhalten bei vollständigen Pflicht-Secrets unverändert (Prüfung grün)
-- [ ] Fehlendes Pflicht-Secret → gleiche `::error::`-Meldung + `exit 1` (fail-closed)
-- [ ] Fehlendes Neon-/INT-Secret → `enabled=false` + gleiche `::warning::`-Meldung
+- [x] `Secrets vorhanden?`: `run:`-Block enthält kein `${{ secrets.* }}` mehr, nur gequotete `$VAR`
+- [x] `INT-Refresh aktiv?`: `run:`-Block enthält kein `${{ secrets.* }}` mehr, nur gequotete `$VAR`
+- [x] Gesamtes `deploy-gate.yml`: keine `${{ secrets.* }}`-Referenz innerhalb eines `run:`-Ausdrucks
+- [x] Verhalten bei vollständigen Pflicht-Secrets unverändert (Prüfung grün)
+- [x] Fehlendes Pflicht-Secret → gleiche `::error::`-Meldung + `exit 1` (fail-closed)
+- [x] Fehlendes Neon-/INT-Secret → `enabled=false` + gleiche `::warning::`-Meldung
 
 ## Fehlerszenarien
 
-- [ ] Secret mit `"`/Backtick/`$` wird literal getestet (kein Ausbruch aus dem Test-Ausdruck)
-- [ ] Leeres/ungesetztes Secret → gleiche fail-closed-/Skip-Reaktion wie bisher
+- [x] Secret mit `"`/Backtick/`$` wird literal getestet (kein Ausbruch aus dem Test-Ausdruck)
+- [x] Leeres/ungesetztes Secret → gleiche fail-closed-/Skip-Reaktion wie bisher
 
 ## Verifikation
 
-- [ ] `deploy-gate.yml` bleibt valides YAML
-- [ ] Grep-Nachweis: kein `${{ secrets.* }}` in einem `run:`-Step
-- [ ] `actionlint`/YAML-Parse ohne neuen Fund
+- [x] `deploy-gate.yml` bleibt valides YAML
+- [x] Grep-Nachweis: kein `${{ secrets.* }}` in einem `run:`-Step
+- [x] `actionlint`/YAML-Parse ohne neuen Fund
 
 ## Pipeline
 
 - [x] `/requirements` – Spec erstellt
-- [ ] `/architecture` – ADR nötig? (voraussichtlich **nein**: reine Härtung ohne Architekturentscheidung)
-- [ ] `/implement` – TDD-Umsetzung
-- [ ] `/review`
-- [ ] `/security-review`
+- [x] `/architecture` – ADR nötig? Nein – reine Härtung ohne Architekturentscheidung (Schritt-0-Check: kein Trigger)
+- [x] `/implement` – TDD-Umsetzung
+- [x] `/review` – APPROVED (`tasks/review-66.md`); 2 Prozess-Findings vor PR: committen + rebasen
+- [x] `/refactor` – 219 grün / 0 rot; einzige Änderung: `FIX_BAD`/`FIX_OK` → `TMP_YAML_INLINE`/`TMP_YAML_ENV` (Namens-Konsistenz mit `TMP_*`-Konvention der Datei)
+- [x] `/security-review` – PASSED (`tasks/security-66.md`); keine Blocker, keine Out-of-Scope-Issues
 - [ ] `/codify`
 - [ ] Fertig / PR erstellt
