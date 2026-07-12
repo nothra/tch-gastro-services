@@ -286,7 +286,11 @@ echo ""
 echo -e "${YELLOW}5/5  Erstelle Draft Pull Request...${NC}"
 
 PR_TITLE="${COMMIT_TYPE}: ${TASK_DESC//-/ } (#${TASK_ID})"
-PR_DESC="Task #${TASK_ID}: ${TASK_DESC//-/ }"
+# "Closes #<id>" schließt das Issue beim Merge automatisch. Eine bloße Referenz
+# wie "(#<id>)" ist nur eine Erwähnung und lässt das Issue offen (siehe #74/#71/#76).
+PR_DESC="Closes #${TASK_ID}
+
+Task #${TASK_ID}: ${TASK_DESC//-/ }"
 
 PR_CREATED=0
 
@@ -304,7 +308,7 @@ fi
 
 if [[ $PR_CREATED -eq 0 ]]; then
   echo -e "  ${YELLOW}⚠  PR manuell anlegen:${NC}"
-  echo -e "     gh pr create --draft --title \"${PR_TITLE}\" --base ${DEFAULT_BRANCH}"
+  echo -e "     gh pr create --draft --title \"${PR_TITLE}\" --body \"${PR_DESC}\" --base ${DEFAULT_BRANCH}"
 fi
 
 # ─── Abschluss ───────────────────────────────────────────────────────────────
