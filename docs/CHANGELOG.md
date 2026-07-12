@@ -12,6 +12,13 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Added
+- **Betriebs-Runbook `docs/factory/OPERATING.md`** (#71): prozeduraler Leitfaden „Issue → Production,
+  maximal automatisiert" – Einmal-Setup (Secrets/Repo-Vars/Vercel-Production-Branch), Feature-Checkliste
+  entlang der Skill-Pipeline (inkl. Task-Datei-Abschluss **vor** dem Merge, Guardrail aus #63),
+  Stage-3-Modus (`run-pipeline.sh`), Interrupt-Tabelle (ADR-004), Menschen-Gates (ADR-Trigger,
+  Security, destruktive Prod-Migrationen) und Wartung (Codify/Metriken/Post-Merge). Ordnet
+  Branch-Protection auf `main` bewusst als optionale Hygiene ein (Prod ist über den entkoppelten
+  `production`-Branch + E2E-Deploy-Gate abgesichert, #38), nicht als Prod-Sicherheitslücke.
 - **Automatischer INT-DB-Refresh im Deploy-Gate** (#46, ADR-015): Vor den E2E setzt das Gate den
   INT-Neon-Branch von PRD zurück (`scripts/neon-reset-int.sh`, Restore-API „Reset from parent" +
   Operationen-Polling), **anonymisiert** sofort, **migriert** und **seedet** den INT-Admin. So
