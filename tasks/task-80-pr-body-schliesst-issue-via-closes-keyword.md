@@ -26,15 +26,25 @@ beobachtet an #74, #71, #76 (und deren PRs #75, #72, #77, alle mit leerem
       ausgegeben wird, THEN enthält er `--body` mit derselben `Closes`-Zeile.
 - [x] GIVEN die Git-Workflow-Guideline, WHEN ein Mensch einen PR manuell anlegt, THEN
       ist die `Closes #<id>`-Regel dort dokumentiert.
+- [x] GIVEN start-work.sh legt im Beschreibungs-Modus ein Issue an, WHEN kein Label
+      übergeben ist, THEN wird ein Art-Label aus dem Branch-Typ abgeleitet und gesetzt
+      (`fix`/`hotfix` → `bug`, `docs` → `documentation`, sonst `enhancement`).
+- [x] GIVEN `FACTORY_ISSUE_LABEL` ist gesetzt, WHEN das Issue angelegt wird, THEN
+      übersteuert dieser Wert die Ableitung.
 
 ## Technische Notizen
 - `scripts/start-work.sh`: `PR_DESC` beginnt jetzt mit `Closes #${TASK_ID}` (Leerzeile,
   dann die bisherige `Task #…`-Zeile). Manueller Fallback-Hinweis gibt `--body "$PR_DESC"`
   mit aus.
-- `docs/factory/guidelines/git-workflow.md`: neue Regel im Branch-Abschnitt – PR-Body
-  muss mit Closing-Keyword schließen; deutsches „Behebt" wird von GitHub nicht erkannt.
-- Self-Test (`scripts/checks/tests/run-tests.sh`) stubbt `gh pr create` nur ab und
-  assertet den Body-Inhalt nicht → keine Testanpassung nötig, 154 grün.
+- `scripts/start-work.sh`: `gh issue create` bekommt ein aus dem Branch-Typ abgeleitetes
+  Art-Label (`ISSUE_LABEL`, Override `FACTORY_ISSUE_LABEL`). Fail-open aufs Label
+  (Fallback ohne Label + Warnung, falls das Label im Repo fehlt), fail-closed auf die
+  Issue-Anlage selbst.
+- `docs/factory/guidelines/git-workflow.md`: neue Regeln im Branch-/Labels-Abschnitt –
+  PR-Body muss mit Closing-Keyword schließen (deutsches „Behebt" wird von GitHub nicht
+  erkannt); start-work.sh setzt das Art-Label automatisch, Aspekt-Labels bleiben manuell.
+- Self-Test (`scripts/checks/tests/run-tests.sh`): `gh`-Stub protokolliert jetzt
+  `issue create`-Args; 4 neue Assertions zur Label-Ableitung. 158 grün.
 
 ## Offene Fragen
 Keine.

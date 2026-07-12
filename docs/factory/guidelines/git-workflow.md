@@ -95,6 +95,11 @@ Faustregel: **immer genau ein Art-Label**, dazu die zutreffenden Aspekt-Labels
 (z. B. `enhancement` + `security` + `tech-debt` für eine Secret-Härtung, oder
 `enhancement` + `test` für einen E2E-Task). Neue Labels nur bei echtem Bedarf – kein Wildwuchs.
 
+`start-work.sh` setzt das **Art-Label** bei der Issue-Anlage automatisch aus dem Branch-Typ
+(`fix`/`hotfix` → `bug`, `docs` → `documentation`, sonst `enhancement`; Override via
+`FACTORY_ISSUE_LABEL`). **Aspekt-Labels** (`security`/`tech-debt`/`test`) bleiben manuell –
+sie hängen vom Inhalt ab, nicht vom Branch-Typ.
+
 **`factory::`-Labels – maschinennah, nicht frei vergeben:**
 
 | Label | Bedeutung | Wer setzt es |
