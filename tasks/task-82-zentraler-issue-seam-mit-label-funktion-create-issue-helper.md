@@ -1,7 +1,7 @@
 # Task 82: zentraler-issue-seam-mit-label-funktion-create-issue-helper
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,6 +20,8 @@ uneinheitlich: Das Art-Label wird erst seit #80 in `start-work.sh` gesetzt; **As
 Ziel: **ein einziger Seam** für die Issue-Anlage, durch den *jeder* Erzeugungszeitpunkt läuft
 und der Label-Vergabe (Art-Label + optionale Aspekt-Labels) einheitlich anbietet.
 
+Spec: `docs/specs/spec-82-issue-seam.md` · ADR: `docs/adr/018-central-issue-seam.md`
+
 ## Akzeptanzkriterien
 - [ ] GIVEN eine neue Bibliotheksfunktion `scripts/lib/create-issue.sh`
       (`create_issue <title> <body> <art-label> [aspekt-csv]`), WHEN sie aufgerufen wird,
@@ -33,9 +35,9 @@ und der Label-Vergabe (Art-Label + optionale Aspekt-Labels) einheitlich anbietet
       für Aspekt-Labels.
 - [ ] GIVEN `sync-issues.sh --create`, WHEN es fehlende Issues anlegt, THEN nutzt es
       denselben Seam (kein eigenes `gh issue create` mehr).
-- [ ] GIVEN die Skills `codify`/`review`/`security-review` empfehlen ein Aspekt-Label,
-      WHEN daraus ein Issue entsteht, THEN geben sie die Empfehlung an den Seam weiter
-      (Skill-Doku entsprechend anweisen).
+- [ ] GIVEN die Skills `codify`/`review`/`security-review` haben einen Fund mit Art-/Aspekt-
+      Empfehlung, WHEN daraus ein Issue entsteht, THEN rufen sie `create_issue` **autonom** auf
+      (Entscheidung 2026-07-12) und geben Art- + Aspekt-Labels mit; Skill-Doku entsprechend anweisen.
 - [ ] GIVEN der Self-Test, WHEN er läuft, THEN deckt er den Seam ab (Art-Label, Aspekt-CSV,
       fehlendes Label, stdout-Nummer) und bleibt grün.
 - [ ] GIVEN die Entscheidung „zentraler Issue-Seam + Label-Konvention", THEN ist sie als
@@ -59,11 +61,26 @@ und der Label-Vergabe (Art-Label + optionale Aspekt-Labels) einheitlich anbietet
 - **Scope-Abgrenzung:** baut auf PR #81 (#80) auf – erst mergen lassen, dann hier rebasen,
   damit die Art-Label-Logik in `start-work.sh` schon vorhanden ist.
 
+### Architektur-Notizen (ADR-018) – für den Coding-Agenten
+- **Ort/Form:** sourcebare Lib `scripts/lib/create-issue.sh` (neues Verzeichnis `scripts/lib/`),
+  Signatur `create_issue <title> <body> <art-label> [aspekt-csv]`. Aufrufer sourcen sie.
+- **Interface-Kontrakt (fail-closed nur auf die Anlage):** Issue-Nummer **nur auf stdout**,
+  alle Warnungen/Diagnostik auf **stderr** (damit `num=$(create_issue …)` sauber bleibt).
+  Exit ≠ 0 nur, wenn gar kein Issue entsteht.
+- **Label-Degradation (fail-open aufs Label):** `create` mit Art+allen Aspekt-Labels →
+  bei Fehlschlag `create` nur mit Art-Label (Warnung nennt die weggefallenen Aspekte) →
+  zuletzt ganz ohne Label. Das Art-Label darf nie durch ein fehlendes Aspekt-Label mitgerissen
+  werden. **Keine Allowlist im Seam** – Label-Liste bleibt kanonisch in `git-workflow.md`.
+- **Repo-Bezug:** Slug **nicht** im Seam ableiten. `--repo "${FACTORY_REPO:-$REPO}"` nur setzen,
+  wenn nicht-leer; sonst `gh`-Auto-Erkennung. Aufrufer setzen `REPO` wie bisher.
+- **Test:** gh-Stub-Muster `GH_LOG` aus `run-tests.sh` (#80) wiederverwenden – Fälle: Art-only,
+  Art+Aspekt-CSV, fehlendes Label (Warnung + Issue trotzdem), stdout = reine Nummer.
+
 ## Offene Fragen
-- Dürfen Skills Issues **autonom** anlegen, oder bleibt es bei „Empfehlung in Datei → Mensch
-  entscheidet"? (→ ADR)
-- Soll der Seam Aspekt-Labels gegen eine erlaubte Menge prüfen (fail-closed) oder frei
-  durchreichen (fail-open)? Vorschlag: frei durchreichen, Konvention in der Skill-Doku.
+- ~~Dürfen Skills Issues **autonom** anlegen?~~ **Entschieden 2026-07-12: Ja** – Skills rufen
+  `create_issue` selbst auf (ADR-018 §5).
+- ~~Aspekt-Labels validieren (fail-closed) oder durchreichen (fail-open)?~~ **Entschieden
+  (ADR-018 §3): fail-open pass-through**, gestufte Degradation, keine Allowlist im Seam.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
