@@ -59,7 +59,8 @@ ASPECT_LABELS="${FACTORY_ASPECT_LABELS:-}"
 _args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --labels)   ASPECT_LABELS="${2:-}"; shift 2 ;;
+    --labels)   [[ $# -ge 2 ]] || usage "--labels erwartet einen Wert (CSV, z. B. security,test)"
+                ASPECT_LABELS="$2"; shift 2 ;;
     --labels=*) ASPECT_LABELS="${1#--labels=}"; shift ;;
     *)          _args+=("$1"); shift ;;
   esac
@@ -144,7 +145,9 @@ if [ "$ISSUE_MODE" = "create" ]; then
   . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/create-issue.sh"
   TASK_ID=$(REPO="$REPO" create_issue "$RAW_DESC" "$ISSUE_BODY" "$ISSUE_LABEL" "$ASPECT_LABELS") || TASK_ID=""
   [ -n "$TASK_ID" ] || { echo -e "  ${RED}✗ Issue-Anlage fehlgeschlagen${NC}"; exit 1; }
-  echo -e "  ${GREEN}✓${NC} Issue #${TASK_ID} angelegt → Task-ID ${TASK_ID} (Art: ${ISSUE_LABEL}${ASPECT_LABELS:+, Aspekte: ${ASPECT_LABELS}})"
+  # Angefragte Labels ausweisen (nicht die effektiv gesetzten): bei fehlendem Label degradiert
+  # der Seam fail-open und meldet das auf stderr – daher „angefragt", nicht „gesetzt".
+  echo -e "  ${GREEN}✓${NC} Issue #${TASK_ID} angelegt → Task-ID ${TASK_ID} (Labels angefragt – Art: ${ISSUE_LABEL}${ASPECT_LABELS:+, Aspekte: ${ASPECT_LABELS}})"
 else
   # ID-Modus: das Issue MUSS existieren, sonst bricht die Invariante.
   if command -v gh >/dev/null 2>&1 && [ -n "$REPO" ]; then

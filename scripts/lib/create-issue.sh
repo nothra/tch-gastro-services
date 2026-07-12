@@ -17,6 +17,16 @@
 #     └─ scheitert? → create nur mit Art-Label     (Warnung nennt die weggefallenen Aspekte)
 #          └─ scheitert? → create ohne Label        (Warnung; die Anlage darf nicht scheitern)
 #
+# Robustheit gegen die Aufrufer-Shell-Optionen: Der Seam wird in Skripte mit
+# `set -euo pipefail` gesourct. `set -u` (nounset) gilt auch innerhalb von `$(create_issue …)`,
+# darum werden ALLE Array-Expansionen mit dem `+`-Guard abgesichert. `set -e` (errexit) wird
+# innerhalb der Stufen bewusst über `if num=$(…)` neutralisiert, damit die Degradation auch
+# bei einem bloßen (nicht via `$(…)` gefangenen) Aufruf durchläuft.
+#
+# Annahme (bewusst): `gh issue create` ist bzgl. der Anlage atomar – es löst Label-Namen VOR
+# dem Anlegen zu IDs auf und scheitert bei fehlendem Label, BEVOR ein Issue entsteht. Nur
+# unter dieser Annahme ist der Retry der nächsten Stufe kein Duplikat-Risiko.
+#
 # Repo-Bezug (ADR-018 §4): der Seam leitet den Slug NICHT selbst ab. Er nutzt
 # `--repo "$FACTORY_REPO"` (sonst den vom Aufrufer gesetzten `$REPO`); ist beides leer,
 # überlässt er `gh` die Auto-Erkennung aus dem Arbeitsverzeichnis.
@@ -25,9 +35,15 @@
 # `docs/factory/guidelines/git-workflow.md` → „GitHub-Labels". Der Seam validiert bewusst
 # nicht dagegen (keine Duplikation, kein Drift).
 
-# _cri_issue_number <url> – extrahiert die abschließende Issue-Nummer aus der gh-Ausgabe.
-_cri_issue_number() {
-  printf '%s' "$1" | grep -oE '[0-9]+$'
+# _cri_try_create <gh-issue-create-args…> – versucht EINE Anlage. Druckt bei Erfolg die reine
+# Issue-Nummer auf stdout und gibt 0 zurück; sonst 1 (keine Ausgabe). Bewusst robust gegen
+# set -e/pipefail des Aufrufers (`|| …` statt Verlass auf errexit).
+_cri_try_create() {
+  local url num
+  url=$(gh issue create "$@" 2>/dev/null) || url=""
+  num=$(printf '%s' "$url" | grep -oE '[0-9]+$' | tail -n1) || num=""
+  [ -n "$num" ] || return 1
+  printf '%s\n' "$num"
 }
 
 # create_issue <title> <body> <art-label> [aspekt-csv]
@@ -38,6 +54,8 @@ create_issue() {
     echo "create_issue: 'gh' nicht gefunden – Issue-Anlage nicht möglich." >&2
     return 1
   }
+  [ -n "$art_label" ] || \
+    echo "create_issue: kein Art-Label übergeben – Issue entsteht ohne Art-Label (Konvention: genau ein Art-Label)." >&2
 
   # Repo-Slug aus der Umgebung (nicht selbst ableiten, ADR-018 §4).
   local repo="${FACTORY_REPO:-${REPO:-}}"
@@ -47,49 +65,54 @@ create_issue() {
   # Aspekt-CSV portabel in einzelne Labels zerlegen (leere Felder überspringen) –
   # ohne IFS-Spielereien, damit der Aufrufer-Kontext unberührt bleibt.
   local -a aspects=()
-  local rest="$aspect_csv" tok
-  while [ -n "$rest" ]; do
-    tok="${rest%%,*}"
-    [ -n "$tok" ] && aspects+=("$tok")
-    [ "$tok" = "$rest" ] && break
-    rest="${rest#*,}"
+  local remaining="$aspect_csv" token
+  while [ -n "$remaining" ]; do
+    token="${remaining%%,*}"
+    [ -n "$token" ] && aspects+=("$token")
+    [ "$token" = "$remaining" ] && break
+    remaining="${remaining#*,}"
   done
 
   # Label-Arg-Sätze gestuft aufbauen: voll (Art + Aspekte) und nur-Art.
-  local -a lbl_full=() lbl_art=() a
+  local -a lbl_full=() lbl_art=()
+  local label
   if [ -n "$art_label" ]; then
     lbl_full+=(--label "$art_label")
     lbl_art+=(--label "$art_label")
   fi
-  for a in ${aspects[@]+"${aspects[@]}"}; do
-    lbl_full+=(--label "$a")
+  for label in ${aspects[@]+"${aspects[@]}"}; do
+    lbl_full+=(--label "$label")
   done
 
-  local url num
+  # Gemeinsame Argumente; repo_args set-u-sicher expandieren (leer im gh-Auto-Pfad).
+  local -a common=(${repo_args[@]+"${repo_args[@]}"} --title "$title" --body "$body")
+
+  local num
 
   # Stufe 1: Art + alle Aspekt-Labels (nur, wenn überhaupt Labels vorhanden sind).
   if [ "${#lbl_full[@]}" -gt 0 ]; then
-    url=$(gh issue create "${repo_args[@]}" --title "$title" --body "$body" "${lbl_full[@]}" 2>/dev/null) || url=""
-    num=$(_cri_issue_number "$url")
-    [ -n "$num" ] && { printf '%s\n' "$num"; return 0; }
+    if num=$(_cri_try_create "${common[@]}" "${lbl_full[@]}"); then
+      printf '%s\n' "$num"; return 0
+    fi
   fi
 
   # Stufe 2: nur Art-Label (Aspekte fallen weg) – nur sinnvoll, wenn es Aspekte UND ein
-  # Art-Label gab (sonst wäre das identisch zu Stufe 1 bzw. Stufe 3).
+  # Art-Label gab (sonst identisch zu Stufe 1 bzw. Stufe 3). `gh` verrät nicht, welches Label
+  # es ablehnte, daher neutrale Formulierung.
   if [ "${#aspects[@]}" -gt 0 ] && [ "${#lbl_art[@]}" -gt 0 ]; then
-    echo "create_issue: Aspekt-Label(s) '${aspects[*]}' nicht gesetzt (im Repo nicht vorhanden?) – versuche nur Art-Label '${art_label}'." >&2
-    url=$(gh issue create "${repo_args[@]}" --title "$title" --body "$body" "${lbl_art[@]}" 2>/dev/null) || url=""
-    num=$(_cri_issue_number "$url")
-    [ -n "$num" ] && { printf '%s\n' "$num"; return 0; }
+    echo "create_issue: mind. ein Label wurde abgelehnt (im Repo nicht vorhanden?) – versuche nur mit Art-Label '${art_label}' (Aspekte '${aspects[*]}' fallen weg)." >&2
+    if num=$(_cri_try_create "${common[@]}" "${lbl_art[@]}"); then
+      printf '%s\n' "$num"; return 0
+    fi
   fi
 
   # Stufe 3: ohne jedes Label – die Anlage darf nicht an Label-Kosmetik scheitern.
   if [ "${#lbl_full[@]}" -gt 0 ]; then
-    echo "create_issue: Label(s) nicht gesetzt (im Repo nicht vorhanden?) – lege Issue ohne Label an; bitte manuell klassifizieren." >&2
+    echo "create_issue: Label(s) abgelehnt – lege Issue ohne Label an; bitte manuell klassifizieren." >&2
   fi
-  url=$(gh issue create "${repo_args[@]}" --title "$title" --body "$body" 2>/dev/null) || url=""
-  num=$(_cri_issue_number "$url")
-  [ -n "$num" ] && { printf '%s\n' "$num"; return 0; }
+  if num=$(_cri_try_create "${common[@]}"); then
+    printf '%s\n' "$num"; return 0
+  fi
 
   echo "create_issue: Issue-Anlage fehlgeschlagen (keine Issue-Nummer erhalten)." >&2
   return 1

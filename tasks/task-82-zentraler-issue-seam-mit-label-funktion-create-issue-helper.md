@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -95,7 +95,11 @@ Spec: `docs/specs/spec-82-issue-seam.md` · ADR: `docs/adr/018-central-issue-sea
   für Out-of-Scope-Funde an; `git-workflow.md` nennt den Seam als kanonischen Anlage-Weg.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe `tasks/review-82.md`. Kern: 1 kritisches Finding (F1 – `repo_args`-Expansion ohne
+`+`-Guard → „unbound variable" unter `set -u` auf bash 3.2/macOS im no-repo-Pfad, den die
+Skills nutzen) reproduziert und behoben; wichtige Findings (interne Duplikation → Helfer
+`_cri_try_create`, `set -e`-Härtung, `--labels`-ohne-Wert-Guard, Test-Blindstellen) mit Rework
++ Regressionstests geschlossen. Nach Rework **APPROVED**, 197 Tests grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
