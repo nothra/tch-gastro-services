@@ -28,6 +28,13 @@ aus dem kritischen Review-Finding.
   wäre Über-Engineering (YAGNI). Die Regel + der Gate-Healthcheck als Live-Nachweis genügen.
 - **Stack-spezifisch** (Next 16 proxy.ts) → PROJECT-CONTEXT, nicht die stack-agnostischen Guidelines.
 
+### Prozess-Learning (nachgetragen)
+
+- **Task-Datei vor dem Merge abschließen.** Bei #63 blieb die Box `Fertig / PR erstellt` beim
+  `/pr-shepherd`-Merge offen und war danach nur noch über einen neuen PR änderbar (Direkt-Commit
+  auf `main` verboten). Regel in **CLAUDE.md → Guardrails** ergänzt: letzte Checkbox + Abschluss-
+  Notizen **im Feature-Branch** setzen, bevor der Merge läuft. (Bei #48 war die Reihenfolge korrekt.)
+
 ### Empfehlung für nächste Features
 
 - Prozess-Learning: Unit-Tests, die einen Handler direkt aufrufen, decken **Middleware/Proxy-
