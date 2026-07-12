@@ -35,6 +35,16 @@
 # `docs/factory/guidelines/git-workflow.md` → „GitHub-Labels". Der Seam validiert bewusst
 # nicht dagegen (keine Duplikation, kein Drift).
 
+# _cri_is_reserved_label <label> – 0, wenn das Label dem Maschinen-Kontroll-Plane vorbehalten
+# ist (`factory::`-Präfix, git-workflow.md → „factory::-Labels"). Eine Definition für Art- UND
+# Aspekt-Guard, damit der reservierte Präfix sich nicht an zwei Stellen auseinanderentwickelt.
+_cri_is_reserved_label() {
+  case "$1" in
+    factory::*) return 0 ;;
+    *)          return 1 ;;
+  esac
+}
+
 # _cri_try_create <gh-issue-create-args…> – versucht EINE Anlage. Druckt bei Erfolg die reine
 # Issue-Nummer auf stdout und gibt 0 zurück; sonst 1 (keine Ausgabe). Bewusst robust gegen
 # set -e/pipefail des Aufrufers (`|| …` statt Verlass auf errexit).
@@ -61,11 +71,10 @@ create_issue() {
   # Skill, das es fälschlich aus untrusted Inhalt ableitet), könnte 'factory::run' einen
   # ungewollten Pipeline-Lauf auslösen → hart abweisen. Das ist eine schmale Denylist EINES
   # reservierten Präfix, NICHT die vom ADR-018 §3 abgelehnte Taxonomie-Allowlist.
-  case "$art_label" in
-    factory::*)
-      echo "create_issue: reserviertes Art-Label '$art_label' (factory::-Präfix) verworfen – diese Labels setzt nur die Pipeline." >&2
-      art_label="" ;;
-  esac
+  if _cri_is_reserved_label "$art_label"; then
+    echo "create_issue: reserviertes Art-Label '$art_label' (factory::-Präfix) verworfen – diese Labels setzt nur die Pipeline." >&2
+    art_label=""
+  fi
 
   [ -n "$art_label" ] || \
     echo "create_issue: kein Art-Label übergeben – Issue entsteht ohne Art-Label (Konvention: genau ein Art-Label)." >&2
@@ -82,36 +91,36 @@ create_issue() {
   while [ -n "$remaining" ]; do
     token="${remaining%%,*}"
     if [ -n "$token" ]; then
-      case "$token" in
-        # Reservierter Maschinen-Präfix (siehe Guard oben) – auch als Aspekt verwerfen.
-        factory::*)
-          echo "create_issue: reserviertes Aspekt-Label '$token' (factory::-Präfix) verworfen – diese Labels setzt nur die Pipeline." >&2 ;;
-        *) aspects+=("$token") ;;
-      esac
+      # Reservierter Maschinen-Präfix (siehe Guard oben) – auch als Aspekt verwerfen.
+      if _cri_is_reserved_label "$token"; then
+        echo "create_issue: reserviertes Aspekt-Label '$token' (factory::-Präfix) verworfen – diese Labels setzt nur die Pipeline." >&2
+      else
+        aspects+=("$token")
+      fi
     fi
     [ "$token" = "$remaining" ] && break
     remaining="${remaining#*,}"
   done
 
   # Label-Arg-Sätze gestuft aufbauen: voll (Art + Aspekte) und nur-Art.
-  local -a lbl_full=() lbl_art=()
+  local -a labels_full=() labels_art=()
   local label
   if [ -n "$art_label" ]; then
-    lbl_full+=(--label "$art_label")
-    lbl_art+=(--label "$art_label")
+    labels_full+=(--label "$art_label")
+    labels_art+=(--label "$art_label")
   fi
   for label in ${aspects[@]+"${aspects[@]}"}; do
-    lbl_full+=(--label "$label")
+    labels_full+=(--label "$label")
   done
 
   # Gemeinsame Argumente; repo_args set-u-sicher expandieren (leer im gh-Auto-Pfad).
-  local -a common=(${repo_args[@]+"${repo_args[@]}"} --title "$title" --body "$body")
+  local -a common_args=(${repo_args[@]+"${repo_args[@]}"} --title "$title" --body "$body")
 
   local num
 
   # Stufe 1: Art + alle Aspekt-Labels (nur, wenn überhaupt Labels vorhanden sind).
-  if [ "${#lbl_full[@]}" -gt 0 ]; then
-    if num=$(_cri_try_create "${common[@]}" "${lbl_full[@]}"); then
+  if [ "${#labels_full[@]}" -gt 0 ]; then
+    if num=$(_cri_try_create "${common_args[@]}" "${labels_full[@]}"); then
       printf '%s\n' "$num"; return 0
     fi
   fi
@@ -119,18 +128,18 @@ create_issue() {
   # Stufe 2: nur Art-Label (Aspekte fallen weg) – nur sinnvoll, wenn es Aspekte UND ein
   # Art-Label gab (sonst identisch zu Stufe 1 bzw. Stufe 3). `gh` verrät nicht, welches Label
   # es ablehnte, daher neutrale Formulierung.
-  if [ "${#aspects[@]}" -gt 0 ] && [ "${#lbl_art[@]}" -gt 0 ]; then
+  if [ "${#aspects[@]}" -gt 0 ] && [ "${#labels_art[@]}" -gt 0 ]; then
     echo "create_issue: mind. ein Label wurde abgelehnt (im Repo nicht vorhanden?) – versuche nur mit Art-Label '${art_label}' (Aspekte '${aspects[*]}' fallen weg)." >&2
-    if num=$(_cri_try_create "${common[@]}" "${lbl_art[@]}"); then
+    if num=$(_cri_try_create "${common_args[@]}" "${labels_art[@]}"); then
       printf '%s\n' "$num"; return 0
     fi
   fi
 
   # Stufe 3: ohne jedes Label – die Anlage darf nicht an Label-Kosmetik scheitern.
-  if [ "${#lbl_full[@]}" -gt 0 ]; then
+  if [ "${#labels_full[@]}" -gt 0 ]; then
     echo "create_issue: Label(s) abgelehnt – lege Issue ohne Label an; bitte manuell klassifizieren." >&2
   fi
-  if num=$(_cri_try_create "${common[@]}"); then
+  if num=$(_cri_try_create "${common_args[@]}"); then
     printf '%s\n' "$num"; return 0
   fi
 

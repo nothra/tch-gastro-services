@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -100,6 +100,15 @@ Siehe `tasks/review-82.md`. Kern: 1 kritisches Finding (F1 – `repo_args`-Expan
 Skills nutzen) reproduziert und behoben; wichtige Findings (interne Duplikation → Helfer
 `_cri_try_create`, `set -e`-Härtung, `--labels`-ohne-Wert-Guard, Test-Blindstellen) mit Rework
 + Regressionstests geschlossen. Nach Rework **APPROVED**, 197 Tests grün.
+
+## Refactor-Notizen (kein neues Verhalten – 213 Tests vor/nach identisch grün)
+- Reservierten `factory::`-Präfix-Check in eine Prädikat-Funktion `_cri_is_reserved_label`
+  gezogen (Single Source für Art- + Aspekt-Guard – der Präfix driftet nicht mehr auseinander).
+- Abkürzungen entfernt (clean-code „keine Abkürzungen"): `lbl_full`/`lbl_art` → `labels_full`/
+  `labels_art`, `common` → `common_args`.
+- Bewusst NICHT weiter zerlegt (YAGNI/Anti-Over-Engineering): der große Gewinn – Extraktion der
+  3-fach-gh-Anlage in `_cri_try_create` – war schon im Review-Rework erfolgt; die Staged-Logik
+  liest mit den Stufen-Kommentaren klar und ist eine kohärente Verantwortung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
