@@ -17,13 +17,17 @@ describe("GET /api/health", () => {
     limitMock.mockResolvedValue([{ roles: ["verwalter"] }]);
     const res = await GET();
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toMatchObject({ status: "ok" });
+    // Strikt (toEqual, nicht toMatchObject): stellt sicher, dass KEINE DB-Daten (roles) leaken.
+    await expect(res.json()).resolves.toEqual({ status: "ok", stage: "dev" });
   });
 
   it("should_return503Error_when_dbQueryFails", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     limitMock.mockRejectedValue(new Error('column "roles" does not exist'));
     const res = await GET();
     expect(res.status).toBe(503);
-    await expect(res.json()).resolves.toMatchObject({ status: "error" });
+    await expect(res.json()).resolves.toEqual({ status: "error" });
+    expect(errorSpy).toHaveBeenCalledOnce();
+    errorSpy.mockRestore();
   });
 });

@@ -86,6 +86,11 @@ Projektgrundsatz „Gates statt Vertrauen". Der DB-berührende Healthcheck schli
 **Negativ / Trade-offs:**
 - **Neue Pflicht-Secrets** (`PRD_DATABASE_URL`, `PRD_ADMIN_EMAIL`, `PRD_ADMIN_PASSWORD`) – bis sie
   gesetzt sind, schlägt das Gate bewusst fehl (kein stiller Erfolg).
+- **Kopplung an ADR-015:** Die Absicherung „Migration zuerst auf INT bewiesen" trägt nur, wenn der
+  INT-Refresh tatsächlich läuft. Deshalb werden die INT-Refresh-Secrets (`NEON_*`, `INT_DATABASE_URL`)
+  **von optional (ADR-015) auf Pflicht** hochgestuft, solange das Gate PRD automatisch migriert –
+  sonst liefe die Prod-Migration ohne die bewiesene INT-Vorstufe (stille Lücke). Der Pflicht-Check
+  erzwingt das fail-closed; das `steps.refresh.enabled`-Flag ist damit immer `true`.
 - Kurzes Fenster „alter Code + neues Schema" zwischen Migration und Vercel-Prod-Deploy –
   bei additiven Migrationen unkritisch; destruktive Migrationen (Spalte/Enum entfernen) sollten
   nach Möglichkeit **expand/contract** erfolgen. Für dieses kleine, unlaunchte Projekt akzeptabel.

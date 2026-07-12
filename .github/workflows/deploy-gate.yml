@@ -61,6 +61,15 @@ jobs:
           [ -n "${{ secrets.PRD_DATABASE_URL }}" ] || { echo "::error::PRD_DATABASE_URL fehlt"; missing=1; }
           [ -n "${{ secrets.PRD_ADMIN_EMAIL }}" ] || { echo "::error::PRD_ADMIN_EMAIL fehlt"; missing=1; }
           [ -n "${{ secrets.PRD_ADMIN_PASSWORD }}" ] || { echo "::error::PRD_ADMIN_PASSWORD fehlt"; missing=1; }
+          # Der INT-Refresh (ADR-015) ist die Absicherungs-Vorstufe der PRD-Auto-Migration (ADR-017):
+          # er migriert INT gegen prod-nahe, anonymisierte Daten, bevor PRD migriert wird. Solange das
+          # Gate PRD automatisch migriert, sind diese Secrets daher PFLICHT (sonst liefe PRD-Migration
+          # ohne den bewiesenen INT-Lauf – genau die stille Lücke, die ADR-017 schließt).
+          [ -n "${{ secrets.NEON_API_KEY }}" ] || { echo "::error::NEON_API_KEY fehlt (INT-Refresh = Absicherung der PRD-Migration)"; missing=1; }
+          [ -n "${{ secrets.NEON_PROJECT_ID }}" ] || { echo "::error::NEON_PROJECT_ID fehlt"; missing=1; }
+          [ -n "${{ secrets.NEON_INT_BRANCH_ID }}" ] || { echo "::error::NEON_INT_BRANCH_ID fehlt"; missing=1; }
+          [ -n "${{ secrets.NEON_PRD_BRANCH_ID }}" ] || { echo "::error::NEON_PRD_BRANCH_ID fehlt"; missing=1; }
+          [ -n "${{ secrets.INT_DATABASE_URL }}" ] || { echo "::error::INT_DATABASE_URL fehlt"; missing=1; }
           [ "$missing" = 0 ] || exit 1
 
       - name: Abhängigkeiten
@@ -154,13 +163,15 @@ jobs:
           SEED_ADMIN_EMAIL: ${{ secrets.PRD_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD: ${{ secrets.PRD_ADMIN_PASSWORD }}
         run: |
-          # db:*:prd lesen via `dotenv -e .env.prd`; Datei aus Secrets erzeugen (gitignored,
-          # Runner ephemer). %s nimmt Werte literal → sicher.
+          # .env.prd enthält Prod-DB-URL + Admin-Passwort → per trap auch bei Fehler löschen
+          # (nicht nur am Happy-Path). Runner ist ephemer, aber fail-safe ist billiger als sorry.
+          trap 'rm -f .env.prd' EXIT
+          # db:*:prd lesen via `dotenv -e .env.prd`; Datei aus Secrets erzeugen (gitignored).
+          # %s nimmt Werte literal → sicher.
           printf 'NEXT_PUBLIC_STAGE=%s\nDATABASE_URL=%s\nSEED_ADMIN_EMAIL=%s\nSEED_ADMIN_PASSWORD=%s\n' \
             "$NEXT_PUBLIC_STAGE" "$DATABASE_URL" "$SEED_ADMIN_EMAIL" "$SEED_ADMIN_PASSWORD" > .env.prd
           pnpm db:migrate:prd     # auf INT bereits bewiesene Migration(en) auf PRD anwenden
           pnpm db:seed:prd        # Prod-Login idempotent sicherstellen
-          rm -f .env.prd
 
       - name: Promote main → production (nur bei grünem E2E + PRD-Migration)
         run: |
@@ -182,6 +193,8 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "::error::Timeout – PRD liefert nach ~12 min nicht Commit $SHA aus"; exit 1; }
           echo "PRD ist auf $SHA – Healthcheck $PRD_URL/api/health (DB-Read) …"
-          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$PRD_URL/api/health")
-          [ "$code" = "200" ] || { echo "::error::PRD-Healthcheck fehlgeschlagen (HTTP $code) – DB/Schema prüfen"; exit 1; }
+          # `|| true` + Fallback 000: curl-Hard-Fail (Timeout, exit 28) würde sonst den Step vor
+          # der Diagnose-Meldung abbrechen. So bleibt der Fehlschlag sichtbar UND fail-closed.
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$PRD_URL/api/health" || true)
+          [ "${code:-000}" = "200" ] || { echo "::error::PRD-Healthcheck fehlgeschlagen (HTTP ${code:-000}) – DB/Schema prüfen"; exit 1; }
           echo "PRD-Healthcheck OK (200)."

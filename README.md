@@ -136,11 +136,12 @@ auf PRD-Build warten → `/api/health`-Check (DB-Read).**
   **`PRD_DATABASE_URL`**, **`PRD_ADMIN_EMAIL`**, **`PRD_ADMIN_PASSWORD`** (Prod-Migration + -Seed, ADR-017).
   `PRD_DATABASE_URL` ist der Prod-Neon-Connection-String; `PRD_ADMIN_*` das Prod-Login (idempotent geseedet).
   Fehlt eines davon, bricht das Gate **fail-closed** ab – die Prod-Migration wird **nie still übersprungen.**
-- **INT-Refresh-Secrets** (ADR-015, optional – fehlen sie, wird der Refresh mit Warnung übersprungen):
-  `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_INT_BRANCH_ID`, `NEON_PRD_BRANCH_ID`, `INT_DATABASE_URL`.
-  Die Branch-IDs (`br-…`) und das API-Token stehen in der Neon-Konsole; `INT_DATABASE_URL` ist der
-  gepoolte Connection-String des INT-Branches (wie in `.env.int`). Der Refresh läuft **fail-closed**:
-  schlägt Reset/Anonymisierung/Migration fehl, gibt es **kein** Promote.
+- **INT-Refresh-Secrets** `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_INT_BRANCH_ID`, `NEON_PRD_BRANCH_ID`,
+  `INT_DATABASE_URL`. Seit ADR-017 **ebenfalls Pflicht**: Der INT-Refresh (Reset-from-PRD → anonymisieren
+  → migrieren → E2E) ist die **Absicherungs-Vorstufe** der automatischen PRD-Migration – ohne ihn liefe
+  die Prod-Migration ohne den bewiesenen INT-Lauf. Die Branch-IDs (`br-…`) und das API-Token stehen in
+  der Neon-Konsole; `INT_DATABASE_URL` ist der gepoolte Connection-String des INT-Branches (wie in
+  `.env.int`). Der Refresh läuft **fail-closed**: schlägt Reset/Anonymisierung/Migration fehl, gibt es **kein** Promote.
 - **Prod-Migration automatisiert (ADR-017):** `db:migrate:prd` + `db:seed:prd` laufen **vor** dem
   Promote – abgesichert dadurch, dass die INT-Stufe dieselbe Migration gegen prod-nahe, anonymisierte
   Daten bereits angewandt und per E2E getestet hat. Migration/Seed rot → **kein** Promote.

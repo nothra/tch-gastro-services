@@ -13,7 +13,10 @@ export async function GET() {
     // Ergebnis wird verworfen – keine Datenpreisgabe, nur "Query läuft durch?".
     await db.select({ roles: users.roles }).from(users).limit(1);
     return NextResponse.json({ status: "ok", stage: process.env.NEXT_PUBLIC_STAGE ?? "dev" });
-  } catch {
+  } catch (error) {
+    // Server-seitig loggen (Vercel-Function-Logs) – der Client bekommt nur {status:"error"},
+    // damit das Schema-/DB-Problem diagnostizierbar bleibt, ohne Details preiszugeben.
+    console.error("health: DB-Read fehlgeschlagen", error);
     return NextResponse.json({ status: "error" }, { status: 503 });
   }
 }
