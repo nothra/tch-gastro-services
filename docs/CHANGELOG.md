@@ -11,6 +11,14 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 
 ## [Unreleased]
 
+### Changed
+- **`OPERATING.md` stellt den automatisierten Weg als Primärpfad voran** (#76): Abschnitt 1 ist jetzt
+  „Der automatisierte Weg (Default)" – ein Kommando (`PR_SHEPHERD=true run-pipeline.sh`) fährt die
+  Pipeline bis zum Merge, plus der unbeaufsichtigte `factory::run`-Pfad. Der manuelle Skill-für-Skill-
+  Ablauf wandert als Fallback nach Abschnitt 2. **Beibehalten:** die Empfehlung, die Anforderung
+  (`/requirements`, ggf. `/architecture`) **interaktiv mit dem Menschen zu schärfen**, bevor die
+  Automatik übernimmt – prominent als Schritt 1.1.
+
 ### Added
 - **Worktree-Isolation in `start-work.sh`** (#74): Jede neue Task wird per Default in einem
   **eigenen git-Worktree** angelegt statt per `checkout` im geteilten Haupt-Baum. Damit können
