@@ -12,6 +12,9 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Changed
+- **`OPERATING.md` §1.1 stellt Worktree ↔ Session klar** (#78): Der Worktree gehört der **Task, nicht
+  der Session** – `/requirements` und `/implement` laufen im **selben** Worktree; eine frische
+  Claude-Session je Schritt ist ok, ein frischer Working Tree wäre falsch.
 - **`OPERATING.md` stellt den automatisierten Weg als Primärpfad voran** (#76): Abschnitt 1 ist jetzt
   „Der automatisierte Weg (Default)" – ein Kommando (`PR_SHEPHERD=true run-pipeline.sh`) fährt die
   Pipeline bis zum Merge, plus der unbeaufsichtigte `factory::run`-Pfad. Der manuelle Skill-für-Skill-
