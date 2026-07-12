@@ -77,3 +77,10 @@ Ein vollständiger Stage-3-Lauf setzt voraus, dass die aufgerufene `claude`-CLI
 `ANTHROPIC_API_KEY` gesetzt). In einer nicht-interaktiven Umgebung meldet die
 Sub-CLI `Not logged in`. Dieser Fix behebt den Aufrufform-Fehler; die Authentifizierung
 ist eine Umgebungsvoraussetzung, kein Skript-Bug.
+
+## PR-Shepherd
+
+PR-Shepherd [2026-07-12]: Alle Gates grün – keine offenen Review-Kommentare,
+Branch auf aktuellem `main` (0 hinter), CI grün (lint/test/factory-self-test/
+issue-sync/Vercel), keine erforderlichen Approvals ausstehend. Auto-Merge
+(--squash) freigegeben.
