@@ -115,14 +115,15 @@ jobs:
           SEED_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
-          # Die db:*:int-Scripts lesen via `dotenv -e .env.int`; Datei aus Secrets erzeugen.
-          # (.env.int ist gitignored; Runner ist ephemer.) %s nimmt Werte literal → sicher.
+          # .env.int enthält Credentials → per trap auch bei Fehler löschen (nicht nur Happy-Path),
+          # konsistent zum PRD-Step. (.env.int ist gitignored; Runner ist ephemer.)
+          trap 'rm -f .env.int' EXIT
+          # Die db:*:int-Scripts lesen via `dotenv -e .env.int`; %s nimmt Werte literal → sicher.
           printf 'NEXT_PUBLIC_STAGE=%s\nDATABASE_URL=%s\nSEED_ADMIN_EMAIL=%s\nSEED_ADMIN_PASSWORD=%s\n' \
             "$NEXT_PUBLIC_STAGE" "$DATABASE_URL" "$SEED_ADMIN_EMAIL" "$SEED_ADMIN_PASSWORD" > .env.int
           pnpm db:anonymize:int   # zuerst: reale PII sofort überschreiben (Guard: STAGE=int)
           pnpm db:migrate:int     # ausstehende Migrationen auf INT anwenden/testen (vor PRD)
           pnpm db:seed:int        # bekannten INT-Admin (= E2E-Login) sicherstellen
-          rm -f .env.int
 
       - name: Auf INT-Deployment dieses Commits warten
         run: |
