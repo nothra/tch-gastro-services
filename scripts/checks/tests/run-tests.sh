@@ -647,6 +647,54 @@ tail -n1 "$LOG" | grep -q -- '--label enhancement'; assert_true "$?" "Seam: Mehr
 assert_true "$(! tail -n1 "$LOG" | grep -qE -- '--label (security|tech-debt)'; echo $?)" \
   "Seam: Mehr-Aspekt-Fallback lässt BEIDE Aspekt-Labels weg (Stufe 2 = nur Art)"
 
+# 10. leeres Art-Label (FS2 „leeres Art-Label") → fail-open: Issue OHNE Label, Warnung auf
+# stderr, stdout bleibt reine Nummer. Eigener Code-Pfad (Warn-Branch + übersprungene Stufe 1/2),
+# NICHT identisch zu Test 4 (dort ist das Art-Label nicht-leer, aber von gh abgelehnt).
+LOG="$TMP_SEAM/c10.log"; : > "$LOG"; ERR="$TMP_SEAM/c10.err"
+out=$(GH_LOG="$LOG" seam "T" "B" "" 2>"$ERR"); rc=$?
+assert_exit 0 "$rc" "Seam: leeres Art-Label → Issue trotzdem angelegt (exit 0, FS2)"
+assert_true "$([[ "$out" = "123" ]]; echo $?)" "Seam: leeres Art-Label → stdout bleibt reine Nummer"
+assert_true "$(! grep -q -- '--label' "$LOG"; echo $?)" "Seam: leeres Art-Label → Anlage ganz ohne --label"
+grep -q 'kein Art-Label' "$ERR"; assert_true "$?" "Seam: leeres Art-Label → Warnung auf stderr (kein Art-Label)"
+
+# 11. 'gh' nicht installiert (FS1) → fail-closed: exit ≠ 0, keine Nummer auf stdout, klare
+# stderr-Meldung. Isolation: leerer PATH (nur der gh-Check läuft, vor jedem externen Kommando –
+# create_issue nutzt bis dorthin ausschließlich Shell-Builtins).
+mkdir -p "$TMP_SEAM/empty"
+ERR="$TMP_SEAM/c11.err"
+# bash absolut aufrufen (via env), damit der leere PATH nur den gh-Lookup trifft, nicht bash selbst.
+out=$(env PATH="$TMP_SEAM/empty" "$(command -v bash)" -c 'source "$0"; create_issue "T" "B" "enhancement"' "$SEAM_LIB" 2>"$ERR"); rc=$?
+assert_exit 1 "$rc" "Seam: fehlendes gh → fail-closed (exit 1, FS1)"
+assert_true "$([[ -z "$out" ]]; echo $?)" "Seam: fehlendes gh → keine Nummer auf stdout"
+grep -qi 'gh' "$ERR"; assert_true "$?" "Seam: fehlendes gh → klare stderr-Meldung nennt gh"
+
+# 12. Titel/Body mit Sonderzeichen (Leerzeichen, Anführungszeichen) → landen unversehrt als
+# GENAU EIN --title/--body-Argument (kein Word-Splitting). Der Standard-Stub loggt '$*'
+# (fusioniert Wörter) → hier ein Stub, der jedes Argument einzeln bracket-loggt, damit
+# Argument-Grenzen sichtbar werden.
+BR="$TMP_SEAM/brk"; mkdir -p "$BR"
+cat > "$BR/gh" <<'GHEOF'
+#!/bin/sh
+if [ "$1 $2" = "issue create" ]; then
+  shift 2
+  for a in "$@"; do printf '[%s]\n' "$a" >> "$GH_LOG"; done
+  echo "https://github.com/test/repo/issues/123"; exit 0
+fi
+exit 0
+GHEOF
+chmod +x "$BR/gh"
+BRLOG="$BR/args.log"; : > "$BRLOG"
+PATH="$BR:$PATH" FACTORY_REPO="test/repo" GH_LOG="$BRLOG" \
+  bash -c 'source "$0"; create_issue "$@"' "$SEAM_LIB" \
+  'Titel mit Leerzeichen und "Quotes"' 'Body mit Leer und "Quote"' 'enhancement' >/dev/null 2>&1
+grep -qxF -- '[Titel mit Leerzeichen und "Quotes"]' "$BRLOG"
+assert_true "$?" "Seam: Titel mit Leerzeichen/Quotes bleibt EIN --title-Argument (kein Word-Splitting)"
+grep -qxF -- '[Body mit Leer und "Quote"]' "$BRLOG"
+assert_true "$?" "Seam: Body mit Leerzeichen/Quotes bleibt EIN --body-Argument"
+# Negativ-Kontrolle (Schärfe): ein wortgesplittetes Titel-Fragment darf NICHT als eigene Zeile stehen.
+assert_true "$(! grep -qxF -- '[Titel]' "$BRLOG"; echo $?)" \
+  "Seam: kein wortgesplittetes Titel-Fragment ([Titel] allein) im Arg-Log"
+
 rm -rf "$TMP_SEAM"
 
 # ── Aufrufer nutzen den Seam (kein eigenes 'gh issue create' mehr) ───────────
@@ -683,6 +731,16 @@ PATH="$TMP_SYNC2/bin:$PATH" FACTORY_DIR="$TMP_SYNC2" FACTORY_REPO=test/repo \
 grep -q -- '--label bug' "$TMP_SYNC2/create.log"
 assert_true "$?" "#82: sync-issues respektiert FACTORY_ISSUE_LABEL-Override (bug statt enhancement)"
 rm -rf "$TMP_SYNC2"
+
+# ── FS1 (Aufrufer): ohne 'gh' verhält sich sync-issues wie heute → Exit 2 (Umgebungsfehler) ──
+# Der gh-Check greift vor dem Sourcen des Seams; leerer PATH isoliert den Fall (FACTORY_DIR
+# gesetzt → keine dirname/pwd-Auflösung nötig, kein externes Kommando vor dem Check).
+TMP_NOGH="$(mktemp -d)"; mkdir -p "$TMP_NOGH/empty" "$TMP_NOGH/tasks"
+# bash absolut (via env): der leere PATH soll nur den gh-Lookup treffen, nicht bash selbst.
+env PATH="$TMP_NOGH/empty" FACTORY_DIR="$TMP_NOGH" FACTORY_REPO="test/repo" \
+  "$(command -v bash)" "$SCRIPTS_DIR/sync-issues.sh" --check >/dev/null 2>&1
+assert_exit 2 "$?" "#82/FS1: sync-issues ohne gh → exit 2 (Umgebungsfehler, wie heute)"
+rm -rf "$TMP_NOGH"
 
 # ── Skill-Doku weist den autonomen create_issue-Aufruf an (ADR-018 §5) ───────
 for sk in codify review security-review; do
