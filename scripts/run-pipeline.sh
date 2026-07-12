@@ -8,7 +8,12 @@
 # Orchestriert die vollständige Factory-Pipeline deterministisch.
 # Agenten werden aufgerufen – nicht umgekehrt.
 #
-# Voraussetzung: claude CLI muss installiert und authentifiziert sein.
+# Voraussetzung: claude CLI muss installiert UND authentifiziert sein.
+#   Stage 3 ruft die CLI nicht-interaktiv auf (--print) – dort läuft KEIN
+#   OAuth-Login-Flow. Die Authentifizierung muss also vorab bestehen: entweder
+#   ANTHROPIC_API_KEY gesetzt oder ein gültiger Keychain-Login (claude /login in
+#   einem interaktiven Terminal). Fehlt beides, meldet jeder Sub-Aufruf
+#   "Not logged in" und die Pipeline bricht ab.
 #
 # KOSTEN-HINWEIS: Stage 3 führt pro Feature 6+ Claude-Sessions hintereinander aus.
 # Das verbraucht deutlich mehr Token als interaktive Nutzung.

@@ -56,6 +56,20 @@ In `run_skill()` den Prompt vor dem Aufruf aufbereiten:
       nicht mehr an einer unbekannten Option)
 - [x] `pnpm lint` / `pnpm test` grün (pre-commit/pre-push)
 
+## Entscheidung: `--max-turns` bleibt (kein Wechsel auf `--settings`)
+
+Erwogen wurde, das Turn-Limit über `--settings '{"maxTurns": N}'` statt über den Flag
+`--max-turns` zu übergeben. **Verworfen nach Verifikation** (CLI v2.1.205):
+
+- `maxTurns` ist **kein gültiger settings.json-Schlüssel** → in `--settings` wird er
+  **still ignoriert** (kein Fehler, aber keine Wirkung). `--settings` validiert nur die
+  JSON-Syntax, nicht die Schlüsselnamen – „kein Flag-Fehler" ≠ „Limit greift".
+- `--max-turns` ist dagegen ein **gültiger, dokumentierter Flag** (CLI-Reference,
+  `min-version: 2.1.205`, nur im `--print`-Modus; fehlt lediglich in `claude --help`).
+
+Ein Wechsel auf `--settings maxTurns` hätte die Kostenbremse **lautlos deaktiviert**
+(effektiv unbegrenzte Turns). Daher bleibt der funktionierende Flag `--max-turns`.
+
 ## Bekannte Einschränkung (kein Blocker dieses Fixes)
 
 Ein vollständiger Stage-3-Lauf setzt voraus, dass die aufgerufene `claude`-CLI
