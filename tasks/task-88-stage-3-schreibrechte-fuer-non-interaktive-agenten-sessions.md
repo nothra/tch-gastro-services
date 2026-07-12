@@ -40,9 +40,9 @@ Selbst-Eskalation der eigenen Permissions) und `.env*` (Secrets) bleiben explizi
 - [x] GIVEN derselbe Sub-Agent WHEN er `.claude/**` oder `.env*` schreiben/lesen will THEN bleibt
       das weiterhin gesperrt (Deny-Liste) – verifiziert: Versuch, `.claude/settings.json` selbst
       zu erweitern, wurde vom Agenten selbst als "blocked: deny rule" gemeldet, Datei unverändert
-- [ ] `bash scripts/run-pipeline.sh <task-id> --dry-run` zeigt weiterhin die korrekten
+- [x] `bash scripts/run-pipeline.sh <task-id> --dry-run` zeigt weiterhin die korrekten
       Modell-/Turn-Angaben – keine Regression an der bestehenden Bash-Allow-List
-      (`Bash(scripts/*)`, `Bash(scripts/checks/*)`)
+      (`Bash(scripts/*)`, `Bash(scripts/checks/*)`) – verifiziert mit `run-pipeline.sh 88 --dry-run`
 
 ## Technische Notizen
 Änderung ist rein deklarativ (`.claude/settings.json`, JSON-Permission-Regeln) – kein
