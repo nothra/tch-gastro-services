@@ -121,25 +121,35 @@ einem **Protection-Bypass-Secret** durch (der Schutz für menschliche Zugriffe b
 
 - Branch **`production`** → Vercel **Production**. Prod wird **nur über das Deploy-Gate** aktualisiert (nicht direkt bei `main`-Merge).
 - **Vercel-Env** (Scope *Production*): `NEXT_PUBLIC_STAGE=prd`, `DATABASE_URL=<PRD-Neon-Pooled>`, `AUTH_SECRET=<prd-secret>`.
-- Migrationen kontrolliert anwenden (Env-Datei `.env.prd`): `pnpm db:migrate:prd` – **erst nachdem sie auf INT geprüft wurden.**
+- **Migrationen laufen automatisch im Gate** (`pnpm db:migrate:prd`, ADR-017) – erst **nachdem** dieselbe Migration auf INT (Reset-from-PRD → anonymisiert → migriert → E2E) grün war, und **vor** dem Promote (fail-closed: Migration rot → kein Promote). `.env.prd` ist nur noch für **manuelle** Sonderfälle (Hotfix/Reparatur) gedacht.
 
 ### Deploy-Gate (E2E vor Production)
 
 `.github/workflows/deploy-gate.yml` entkoppelt Prod vom `main`-Push:
 
 **Push auf `main` → INT auf den Commit bringen → INT-DB von PRD auffrischen (Reset → anonymisieren →
-migrieren → seed) → auf INT-Build warten (`/api/version` == Commit) →
-Playwright-E2E gegen INT → nur bei Grün `main` → `production` → Vercel deployt Prod.**
+migrieren → seed) → auf INT-Build warten (`/api/version` == Commit) → Playwright-E2E gegen INT →
+nur bei Grün: PRD-DB migrieren + seeden → `main` → `production` → Vercel deployt Prod →
+auf PRD-Build warten → `/api/health`-Check (DB-Read).**
 
-- Pflicht-**Secrets** (Gate): `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`.
-- **INT-Refresh-Secrets** (ADR-015, optional – fehlen sie, wird der Refresh mit Warnung übersprungen):
-  `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_INT_BRANCH_ID`, `NEON_PRD_BRANCH_ID`, `INT_DATABASE_URL`.
-  Die Branch-IDs (`br-…`) und das API-Token stehen in der Neon-Konsole; `INT_DATABASE_URL` ist der
-  gepoolte Connection-String des INT-Branches (wie in `.env.int`). Der Refresh läuft **fail-closed**:
-  schlägt Reset/Anonymisierung/Migration fehl, gibt es **kein** Promote.
-- **Aktivierungs-Reihenfolge:** (1) Secrets setzen, (2) Gate einmal grün laufen lassen (legt/aktualisiert `production`),
-  (3) **dann** in Vercel **Production Branch = `production`** setzen. Bis (3) deployt `main` weiter wie bisher – kein Bruch.
-- E2E rot → **kein** Promote → Production bleibt auf dem letzten Stand.
+- Pflicht-**Secrets** (Gate): `VERCEL_AUTOMATION_BYPASS_SECRET`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`,
+  **`PRD_DATABASE_URL`**, **`PRD_ADMIN_EMAIL`**, **`PRD_ADMIN_PASSWORD`** (Prod-Migration + -Seed, ADR-017).
+  `PRD_DATABASE_URL` ist der Prod-Neon-Connection-String; `PRD_ADMIN_*` das Prod-Login (idempotent geseedet).
+  Fehlt eines davon, bricht das Gate **fail-closed** ab – die Prod-Migration wird **nie still übersprungen.**
+- **INT-Refresh-Secrets** `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_INT_BRANCH_ID`, `NEON_PRD_BRANCH_ID`,
+  `INT_DATABASE_URL`. Seit ADR-017 **ebenfalls Pflicht**: Der INT-Refresh (Reset-from-PRD → anonymisieren
+  → migrieren → E2E) ist die **Absicherungs-Vorstufe** der automatischen PRD-Migration – ohne ihn liefe
+  die Prod-Migration ohne den bewiesenen INT-Lauf. Die Branch-IDs (`br-…`) und das API-Token stehen in
+  der Neon-Konsole; `INT_DATABASE_URL` ist der gepoolte Connection-String des INT-Branches (wie in
+  `.env.int`). Der Refresh läuft **fail-closed**: schlägt Reset/Anonymisierung/Migration fehl, gibt es **kein** Promote.
+- **Prod-Migration automatisiert (ADR-017):** `db:migrate:prd` + `db:seed:prd` laufen **vor** dem
+  Promote – abgesichert dadurch, dass die INT-Stufe dieselbe Migration gegen prod-nahe, anonymisierte
+  Daten bereits angewandt und per E2E getestet hat. Migration/Seed rot → **kein** Promote.
+- **Aktivierungs-Reihenfolge:** (1) Secrets setzen (inkl. `PRD_*`), (2) Gate einmal grün laufen lassen
+  (legt/aktualisiert `production`), (3) **dann** in Vercel **Production Branch = `production`** setzen.
+- E2E **oder** Prod-Migration rot → **kein** Promote → Production bleibt auf dem letzten Stand.
+- Nach dem Promote verifiziert das Gate das **tatsächlich deployte** Prod via `/api/health`
+  (DB-Read auf die `roles`-Spalte) – CI-grün ↔ Prod-grün (ADR-007).
 
 > Die Env-Dateien `.env.local` / `.env.int` / `.env.prd` sind **gitignored** – Secrets nie committen.
 > Secret erzeugen: `openssl rand -base64 32` (**nicht** `npx auth secret` – zieht das falsche CLI).
@@ -158,7 +168,7 @@ Playwright-E2E gegen INT → nur bei Grün `main` → `production` → Vercel de
 | `pnpm db:up` · `pnpm db:down` | lokale Docker-Postgres starten/stoppen (DEV) |
 | `pnpm db:generate` | Drizzle-Migration aus dem Schema erzeugen (offline) |
 | `pnpm db:migrate` · `db:migrate:int` · `db:migrate:prd` | Migration auf DEV / INT / PRD anwenden |
-| `pnpm db:seed` · `db:seed:int` | Initial-Admin auf DEV / INT anlegen |
+| `pnpm db:seed` · `db:seed:int` · `db:seed:prd` | Login-Admin auf DEV / INT / PRD anlegen (idempotent) |
 | `pnpm db:anonymize:int` | INT-Daten anonymisieren (nach Neon-Branch-Refresh; Guard: nur `STAGE=int`) |
 | `pnpm db:studio` | Drizzle Studio (DEV) |
 

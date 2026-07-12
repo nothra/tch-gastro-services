@@ -215,6 +215,19 @@ in der v5-Beta den Custom-Claim nicht sauber (`token.x` landet als `{}`).
 `@auth/core/jwt` augmentieren; im `session()`-Callback den JWT-Claim explizit casten
 (`token.x as T`). Typen aus dem Data-Layer nur als `import type` (bleibt edge-sicher).
 
+### Öffentliche API-Routen aus dem Auth-Proxy ausnehmen (aus #63)
+
+Eine neue Route unter `app/api/*` ist per Default vom `proxy.ts`-Matcher **erfasst** → der
+`authorized`-Callback leitet Unangemeldete auf `/login` um (307). Ein öffentlicher Endpunkt
+(Healthcheck, Webhook, Versions-Info) bekommt so **nie 200**, sondern einen Redirect. Besonders
+tückisch: Ein Unit-Test, der den Route-Handler (`GET()`) **direkt** aufruft, umgeht den Proxy und
+ist grün – der Bug zeigt sich erst live/e2e (in #63 im Deploy-Gate-Healthcheck erst nach dem Promote).
+
+**Regel:** Jede unauthentifiziert erreichbare Route **explizit** in den Negativ-Lookahead des
+`proxy.ts`-Matchers aufnehmen (Muster: `api/auth|api/version|api/health`). Den Matcher weiterhin
+eng fassen (kein pauschales `api`), damit geschützte Routen fail-closed bleiben. Für solche Routen
+einen Nachweis haben, der die **Proxy-Ebene** einbezieht (Gate-Healthcheck/e2e), nicht nur den Handler.
+
 ### Vitest + Testing Library ohne `globals: true` (aus #48)
 
 Ohne `globals: true` registriert Testing Library **kein** Auto-Cleanup → das DOM leakt zwischen

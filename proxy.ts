@@ -8,11 +8,13 @@ const { auth } = NextAuth(authConfig);
 export default auth;
 
 export const config = {
-  // Alles schützen außer: Auth-Endpunkte, Versions-Endpunkt, Next-Assets, Favicon, Manifest
+  // Alles schützen außer: Auth-/Versions-/Health-Endpunkt, Next-Assets, Favicon, Manifest
   // und die PWA-Icons im Root (icon.svg + Stage-Icons icon-dev/int/prd.svg → nicht auf /login
-  // umleiten). Bewusst als explizite Liste (nur diese Icons), damit das Auth-Gate nicht pauschal
+  // umleiten). api/health muss (wie api/version) unauthentifiziert erreichbar sein, sonst
+  // bekommt der Deploy-Gate-Healthcheck nur einen 307-Redirect auf /login statt 200.
+  // Bewusst als explizite Liste (nur diese Icons), damit das Auth-Gate nicht pauschal
   // jeden .svg-Pfad durchlässt (fail-closed).
   matcher: [
-    "/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|manifest.webmanifest|icon.svg|icon-dev.svg|icon-int.svg|icon-prd.svg).*)",
+    "/((?!api/auth|api/version|api/health|_next/static|_next/image|favicon.ico|manifest.webmanifest|icon.svg|icon-dev.svg|icon-int.svg|icon-prd.svg).*)",
   ],
 };

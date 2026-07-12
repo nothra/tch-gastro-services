@@ -23,6 +23,7 @@
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:seed": "dotenv -e .env.local -- tsx db/seed.ts",
     "db:seed:int": "dotenv -e .env.int -- tsx db/seed.ts",
+    "db:seed:prd": "dotenv -e .env.prd -- tsx db/seed.ts",
     "db:anonymize:int": "dotenv -e .env.int -- tsx db/anonymize.ts"
   },
   "dependencies": {
