@@ -70,9 +70,13 @@ gelegentlich ändern. Nur der Verwalter pflegt den Katalog.
 - **Größe ist optional** (Kaffee hat keine Größe); Duplikat-Prüfung über Bezeichnung+Größe.
 - **Deaktivieren ist reversibel** (Wiederaktivieren möglich); kein hartes Löschen.
 
-## Offene Fragen (für /architecture)
+## Architektur-Entscheidungen (2026-07-13, /architecture)
 
-- [ ] Umsetzung des Preis-„Einfrierens": Snapshot pro erfasster Position oder pro Abend?
-      → Datenmodell-Entscheidung in /architecture.
-- [ ] Mechanik des Seedings (Migration/Seed-Skript vs. idempotenter App-Start) und
-      Verhalten bei bereits vorhandenen Artikeln → /architecture.
+- **Geld = Integer-Cent** ([ADR-021](../adr/021-geldbetraege-integer-cent.md)):
+  `price_cents integer`, Umrechnung/Formatierung zentral in `lib/money.ts`.
+- **Preis-„Einfrieren": Snapshot pro erfasster Position.** In F5 wird der Stückpreis in die
+  Verzehr-Zeile kopiert; Katalog-Änderungen berühren historische Zeilen nie. Keine
+  Preis-Historientabelle. **Verbindliche Modellierung erst in F5 (#52)** – F2 baut es nicht.
+- **Seeding der Referenzliste = idempotente Daten-Migration** (`ON CONFLICT DO NOTHING`),
+  nicht das `db/seed.ts`-Skript – läuft automatisch im Deploy-Gate, in allen Umgebungen
+  präsent. Details + Datenmodell (`catalog_item`) in der Task-Datei.
