@@ -236,6 +236,34 @@ Component-Tests (ein Test sieht das Markup des vorigen; `screen`-Queries schlage
 **Regel:** In `vitest.setup.ts` `afterEach(() => cleanup())` behalten – nicht entfernen. Async
 Server Components in Tests via `render(await Component())` prüfen.
 
+### Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding)
+
+Der `run_skill()`-Report-Guard in `run-pipeline.sh` liest bei non-zero Exit die Report-Datei
+(`tasks/review-<id>.md` / `tasks/security-<id>.md`) und akzeptiert den Verdict **ohne zu prüfen,
+ob der Report in diesem Lauf entstanden ist**. Reports sind versioniert – auf einem Re-Lauf-Branch
+kann ein älterer `APPROVED`/`PASSED` bereits committet sein. Schlägt der `claude`-Aufruf sofort
+fehl (Rate-Limit, Auth-Fehler, Crash), liest der Guard den **alten** Verdict und gibt `return 0` –
+ohne dass in diesem Lauf ein Review stattfand (fail-open statt fail-closed).
+
+**Regel (Issue #92):** Report-Datei im Preflight für die aktuelle Task entfernen – analog zum
+Stale-Sentinel-Cleanup (`INTERRUPT-*.md`). Alternativ: mtime/Hash vor dem `claude`-Aufruf merken,
+Verdict nur honorieren wenn die Datei sich danach verändert hat. Bis dahin: Pipeline-Re-Läufe auf
+Branches mit bereits committetem Report manuell prüfen (ADR-019 §4 ergänzen).
+
+### `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91)
+
+Änderungen an `.claude/settings.json` und `.claude/commands/*.md` sind für einen Agenten hard
+denied (`Edit(.claude/**)` / `Write(.claude/**)` – #88-Grenze). Auch `factory.defaults.yml`
+(root `*.yml`) und andere Konfigurationsdateien außerhalb von `scripts/*`/`pnpm`-Scope sind nicht
+in der Allow-Liste und lösen einen Interrupt aus.
+
+**Regel:** Enthält eine Task solche Änderungen, liefert der Agent sie als **Patch-Datei**
+(`tasks/patch-<id>.diff`, erstellt via `git diff`) und protokolliert den Blocker explizit in der
+Task-Datei. Der Mensch wendet den Patch mit `git apply tasks/patch-<id>.diff` an und erteilt dem
+Agenten danach ggf. einen expliziten Bash-Grant für die Ausführung. Kein stilles Warten –
+Blocker immer mit Datum + Grund + erforderliche Aktion des Menschen notieren
+(Muster: `Blocker [Datum]: [Grund] – [was der Mensch tun muss]`).
+
 ---
 
 ## Offene Architektur-Fragen
