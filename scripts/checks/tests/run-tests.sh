@@ -874,6 +874,24 @@ if [ "$HAS_YQ" = 1 ]; then
   printf '%s' "$ovr_out" | grep -q 'Starte: /implement 1 (model: claude-opus-4-8, max 5 turns)'
   assert_true "$?" "Phase 1b: Team-Override (factory.config.yml) übersteuert Defaults (Turns 20→5)"
   rm -rf "$TMP_CFG"
+
+  # #91 Turn-Budget-Dry-Run: review + security-review zeigen max 14 turns im Output (AC Lücke 2).
+  # Bestehender mock review-2.md (APPROVED) sorgt dafür, dass Review-Loop sofort endet und
+  # die Pipeline bis Phase 5 (security-review) läuft – beide "Starte:"-Zeilen erscheinen.
+  TMP_DRY91="$(mktemp -d)"; mkdir -p "$TMP_DRY91/scripts/checks" "$TMP_DRY91/scripts/lib" "$TMP_DRY91/tasks" "$TMP_DRY91/docs/factory"
+  cp "$PIPELINE" "$TMP_DRY91/scripts/"; cp "$CHECKS_DIR/config-validation-check.sh" "$TMP_DRY91/scripts/checks/"; cp "$DEFAULTS" "$TMP_DRY91/"
+  cp "$SCRIPTS_DIR/lib/report-verdict.sh" "$TMP_DRY91/scripts/lib/"
+  echo "# ctx" > "$TMP_DRY91/docs/factory/PROJECT-CONTEXT.md"
+  echo "# Task 2: budget-dry" > "$TMP_DRY91/tasks/task-2-budget-dry.md"
+  printf 'VERDICT: APPROVED\n' > "$TMP_DRY91/tasks/review-2.md"
+  git -C "$TMP_DRY91" init -q; git -C "$TMP_DRY91" add .
+  git -C "$TMP_DRY91" -c user.email="t@t.com" -c user.name="t" commit -q -m init
+  dry91_out=$(bash "$TMP_DRY91/scripts/run-pipeline.sh" 2 --dry-run 2>&1 || true)
+  printf '%s' "$dry91_out" | grep -q '/review 2 (model: claude-opus-4-8, max 14 turns)'
+  assert_true "$?" "#91: dry-run zeigt /review mit max 14 turns (Turn-Budget, Lücke 2)"
+  printf '%s' "$dry91_out" | grep -q '/security-review 2 (model: claude-opus-4-8, max 14 turns)'
+  assert_true "$?" "#91: dry-run zeigt /security-review mit max 14 turns (Turn-Budget, Lücke 2)"
+  rm -rf "$TMP_DRY91"
 else
   skip_yq "YAML-Parse, Config-Werte (implement/codify/default) und End-to-End-Resolution"
 fi
