@@ -3,11 +3,16 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Tests vollständig
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
+
+> **Bewusst übersprungen (Config/Doku ohne Produktionscode):** `/test` (keine neuen Testpfade –
+> Config/Doku), `/refactor` (nichts zu refactoren), `/codify` (das Learning „`.claude/**` nur
+> per Patch-Workflow" ist bereits in `CLAUDE.md` #91/#94 dokumentiert; kein neues Learning).
+> Entscheidung des Menschen im interaktiven Lauf: „/security-review dann Merge".
 
 ## Beschreibung
 Oberflächentests werden fester Bestandteil der Implementierungsphase (`/implement`) –
