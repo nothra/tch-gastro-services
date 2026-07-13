@@ -97,6 +97,12 @@ Handler-Direktaufruf die `proxy.ts`-Ebene umging):
 Oberflächentests sind **nicht** in den pre-push-Gates verankert (Gates = Lint + `pnpm test`);
 sie laufen zusätzlich und werden in der Task-Datei als erledigt vermerkt.
 
+**Stage 3 (`FACTORY_STAGE=3`, nicht-interaktiv):** Kein Mensch, meist keine DB und kein
+Browser vorhanden. Die interaktive Browser-Verifikation entfällt; automatisierte E2E
+(`pnpm test:e2e`) nur ausführen, wenn DB (`pnpm db:up`) und Dev-Server verfügbar sind. Ist
+das nicht gegeben, die offene UI-Verifikation als Blocker/Nachtest in der Task-Datei
+protokollieren (Nachweis später über `/post-merge-verify`) – nicht still überspringen.
+
 ### Schritt 5: Task-Datei aktualisieren
 - Abgearbeitete Checkboxen abhaken
 - Notizen zu nicht-offensichtlichen Entscheidungen eintragen
