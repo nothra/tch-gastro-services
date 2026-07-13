@@ -1,4 +1,4 @@
-// Best-Effort-Rate-Limiter für den öffentlichen /api/health-Endpunkt (ADR-019).
+// Best-Effort-Rate-Limiter für den öffentlichen /api/health-Endpunkt (ADR-020).
 // Zweck: die DB-Amplifikation auf Neon-Free deckeln, ohne einen geteilten Store, Secrets
 // oder eine Netz-Abhängigkeit im kritischen Deploy-Gate-Pfad einzuführen.
 //

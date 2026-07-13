@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -57,7 +57,7 @@ Request-Zahl entkoppelt. Der Endpunkt bleibt **unauth** und für den Deploy-Gate
 ## Technische Notizen
 <!-- Von /architecture befüllt -->
 
-> Architektur-Entscheidung: **ADR-019** (`docs/adr/019-health-endpoint-rate-limit.md`).
+> Architektur-Entscheidung: **ADR-020** (`docs/adr/020-health-endpoint-rate-limit.md`).
 > Kurz: **In-Memory-Best-Effort-Zähler pro Function-Instanz**, **globale Route-Kappe**,
 > Default **Fixed-Window 60 s / 30 Reads / `429`**, **fail-open**.
 
@@ -126,13 +126,13 @@ einen minütlichen Uptime-Poll nie drosseln.
 
 ## Offene Fragen
 
-> Alle vier Fragen sind in **ADR-019** (`docs/adr/019-health-endpoint-rate-limit.md`) entschieden –
+> Alle vier Fragen sind in **ADR-020** (`docs/adr/020-health-endpoint-rate-limit.md`) entschieden –
 > nicht mehr offen.
 
-- [x] Zustands-Store → **Best-Effort In-Memory pro Function-Instanz** (kein geteilter Store; YAGNI, reversibel) — ADR-019
-- [x] Zähl-Dimension → **globale Route-Kappe** (nicht per-Quelle: spoofbar + unbegrenzter Zustand) — ADR-019
-- [x] Parameter → **Fixed-Window 60 s / Schwellwert 30 / Throttle-Status `429`** — ADR-019
-- [x] Störungsverhalten → **fail-open** (Gate-Zuverlässigkeit vor Amplifikationsschutz, FS-1) — ADR-019
+- [x] Zustands-Store → **Best-Effort In-Memory pro Function-Instanz** (kein geteilter Store; YAGNI, reversibel) — ADR-020
+- [x] Zähl-Dimension → **globale Route-Kappe** (nicht per-Quelle: spoofbar + unbegrenzter Zustand) — ADR-020
+- [x] Parameter → **Fixed-Window 60 s / Schwellwert 30 / Throttle-Status `429`** — ADR-020
+- [x] Störungsverhalten → **fail-open** (Gate-Zuverlässigkeit vor Amplifikationsschutz, FS-1) — ADR-020
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
@@ -151,7 +151,7 @@ einen minütlichen Uptime-Poll nie drosseln.
 **Was nicht verändert wurde (bewusst):**
 - File-Header-Kommentar in `lib/rate-limit.ts`: Erklärt das WHY (fail-open, kein externer Store,
   O(1)-Pfad) – guter WHY-Kommentar nach Clean-Code-Prinzipien, bleibt erhalten.
-- Alle Inline-Kommentare in `app/api/health/route.ts`: Erklären Designentscheidungen (ADR-019,
+- Alle Inline-Kommentare in `app/api/health/route.ts`: Erklären Designentscheidungen (ADR-020,
   AK-4, FS-3, keine Datenpreisgabe) – korrekte WHY-Kommentare.
 - Die 30 und 60_000 im Singleton: Sind durch Interface-JSDoc (`Produktion: 30`, `Produktion: 60_000`)
   kontextualisiert; keine Magic Numbers im Clean-Code-Sinne.

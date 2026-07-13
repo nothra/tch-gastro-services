@@ -1,4 +1,4 @@
-# ADR 019: Rate-Limit für den öffentlichen `/api/health`-Endpunkt
+# ADR 020: Rate-Limit für den öffentlichen `/api/health`-Endpunkt
 
 ## Status
 Accepted

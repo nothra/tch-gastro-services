@@ -10,7 +10,7 @@ import { healthRateLimiter } from "@/lib/rate-limit";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // Rate-Limit VOR dem DB-Read: gedrosselte Anfragen kosten keinen Neon-Roundtrip (ADR-019).
+  // Rate-Limit VOR dem DB-Read: gedrosselte Anfragen kosten keinen Neon-Roundtrip (ADR-020).
   // Status 429 ist deterministisch und ≠ 200/503 → kollidiert nicht mit der Gate-Erwartung.
   if (!healthRateLimiter.tryAcquire()) {
     return NextResponse.json({ status: "throttled" }, { status: 429 });
