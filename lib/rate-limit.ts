@@ -43,6 +43,4 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
   };
 }
 
-// Konfigurierte Singleton-Instanz für den Produktions-Gebrauch (nutzt implizit Date.now).
-// Die Route importiert nur diese Instanz und bleibt dünn.
 export const healthRateLimiter = createRateLimiter({ limit: 30, windowMs: 60_000 });

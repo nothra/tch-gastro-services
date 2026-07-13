@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -139,6 +139,27 @@ einen minütlichen Uptime-Poll nie drosseln.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+### Refactoring-Erkenntnisse (2026-07-13)
+
+**Was geändert wurde:**
+- `lib/rate-limit.ts`: WHAT-Kommentar auf Zeilen 46–47 entfernt. Der Kommentar beschrieb,
+  wie die Route die Instanz nutzt (`Die Route importiert nur diese Instanz und bleibt dünn.`),
+  nicht warum der Singleton existiert. Name (`healthRateLimiter`) und Typ sprechen für sich.
+- `lint-out.tmp.txt` und `scripts/lint-debug.tmp.sh`: Temp-Dateien entfernt (Review-Auflage).
+
+**Was nicht verändert wurde (bewusst):**
+- File-Header-Kommentar in `lib/rate-limit.ts`: Erklärt das WHY (fail-open, kein externer Store,
+  O(1)-Pfad) – guter WHY-Kommentar nach Clean-Code-Prinzipien, bleibt erhalten.
+- Alle Inline-Kommentare in `app/api/health/route.ts`: Erklären Designentscheidungen (ADR-019,
+  AK-4, FS-3, keine Datenpreisgabe) – korrekte WHY-Kommentare.
+- Die 30 und 60_000 im Singleton: Sind durch Interface-JSDoc (`Produktion: 30`, `Produktion: 60_000`)
+  kontextualisiert; keine Magic Numbers im Clean-Code-Sinne.
+
+**Erkenntnis für die Factory:**
+Ein WHAT-Kommentar, der die Nutzung aus Konsumentensicht beschreibt (`Die Route importiert...`),
+gehört nicht in die Modul-Definition – wenn überhaupt, dann in die aufrufende Stelle oder in
+die Dokumentation. In gut benamsten Code ist er redundant.
 
 ---
 Branch: `feature/67-health-rate-limit`
