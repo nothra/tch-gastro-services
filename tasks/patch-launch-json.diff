@@ -1,0 +1,17 @@
+diff --git a/.claude/launch.json b/.claude/launch.json
+new file mode 100644
+index 0000000..80eeee4
+--- /dev/null
++++ b/.claude/launch.json
+@@ -0,0 +1,11 @@
++{
++  "version": "0.0.1",
++  "configurations": [
++    {
++      "name": "dev",
++      "runtimeExecutable": "pnpm",
++      "runtimeArgs": ["dev"],
++      "port": 3000
++    }
++  ]
++}
