@@ -55,10 +55,77 @@ wurde (`docs/factory/PROJECT-CONTEXT.md` → „`.claude/**`-Änderungen erforde
   Mensch wendet `git apply` an und erteilt danach ggf. einen expliziten Bash-Grant.
 - Kein ADR nötig – additive Config-/Doku-Änderung, kein Architektur- oder Technologie-Trigger.
 
+## Architektur-Entscheidung (/architecture, 2026-07-13)
+
+### Technische Analyse
+Kein neues Modul, kein Datenmodell, keine neue Abhängigkeit. Es geht um zwei Dinge:
+1. **Ein fehlender Schritt im Ablauf** von `pr-shepherd.md`: der von `start-work.sh --draft`
+   angelegte PR wird nie aus dem Draft geholt. `gh pr merge --auto` **kann auf einem Draft-PR
+   nicht aktiviert werden** (GitHub lehnt Auto-Merge/Merge für Drafts ab) → Schritt 6 lief tot.
+2. **Ein fehlendes Verb in der Permission-Fläche**: `Bash(gh pr ready:*)` fehlt in
+   `.claude/settings.json` → der neue Schritt würde in Stage 3 einen Interrupt statt einer
+   Merge-Freigabe erzeugen.
+
+### Kein neuer ADR – Anwendung von ADR-019 §3
+ADR-019 §3 hat die Design-Entscheidung „granulare `gh`-Verben, **nur tatsächlich genutzte**,
+**kein** `Bash(gh *)`" bereits getroffen. Diese Task **fügt einen genutzten Verb hinzu** – das ist
+die **Anwendung** dieser Entscheidung, keine **Abweichung** davon. ADR-019 hat den Fall sogar
+explizit als Trade-off vorweggenommen: *„Granulare `gh`-Freigabe muss gepflegt werden, wenn
+`pr-shepherd` neue `gh`-Verben nutzt."* → **kein ADR-020**. ADR-019 selbst wird **nicht** editiert
+(Accepted; die Verb-Liste ist kein „living document" in der ADR, sondern lebt in
+`settings.json` + `pr-shepherd.md`, abgesichert durch den Konsistenz-Test in `run-tests.sh`).
+
+### Entscheidung zur offenen Frage: Un-Draft **spät**, als Schritt 5b (vor Schritt 6)
+`gh pr ready` wird **erst nach** Schritt 2–5 (Review-Konflikte, Rebase, CI grün, Approval)
+aufgerufen – direkt vor der Auto-Merge-Freigabe, und **nur** wenn `gh pr view --json isDraft`
+`true` liefert.
+
+**Option A – spät un-draften (gewählt).**
+Vorteile: Der PR verlässt den Draft nur, wenn er wirklich merge-reif ist; solange ein Gate rot
+ist, bleibt „Draft" ein ehrliches WIP-/Aufmerksamkeits-Signal. Bricht ein früheres Gate per
+Interrupt ab, **bleibt der PR Draft** (fail-closed, kein Draft der fälschlich merge-reif aussieht).
+Un-Draft und Auto-Merge-Freigabe bilden einen zusammenhängenden „Release"-Schritt.
+Nachteile: erforderliche Reviewer/CODEOWNERS werden erst spät angefragt – in dieser Factory
+unkritisch, da Approval ohnehin in Schritt 5 geprüft wird und `gh pr merge --auto` server-seitig
+weiter auf grüne Gates wartet.
+
+**Option B – früh un-draften (Schritt 1, verworfen).**
+Vorteile: Reviewer-Anfragen feuern früh (mehr Vorlauf); einfacheres mentales Modell.
+Nachteile: Der PR verlässt den Draft, während CI evtl. rot / Rebase offen ist → widerspricht der
+Draft=WIP-Semantik; ein später abbrechender Lauf hinterlässt einen Nicht-Draft-PR, der merge-reif
+aussieht, es aber nicht ist; mehr Benachrichtigungs-Rauschen. Schwächere fail-closed-Haltung.
+
+**Begründung:** Option A folgt den `pr-shepherd`-Regeln („Kein Schritt überspringen",
+„Kein Auto-Merge, wenn CI rot oder Approval fehlt") und der Factory-Leitlinie **fail-closed nur
+dort, wo es Korrektheit schützt**. Die Idempotenz-Guard (`isDraft`-Check) erfüllt AC2 (kein
+unnötiger Aufruf) – `gh pr ready` selbst ist zwar idempotent, aber der Guard vermeidet Rauschen.
+
+### Implementierungs-Hinweise für den Coding-Agenten
+- **`pr-shepherd.md`** – neuer **Schritt 5b „Draft-Status auflösen"** zwischen Schritt 5
+  (Approval) und Schritt 6 (Auto-Merge):
+  ```bash
+  # Nur un-draften, wenn nötig – gate-idempotent (AC1/AC2)
+  if [ "$(gh pr view --json isDraft -q .isDraft)" = "true" ]; then
+    gh pr ready            # Draft → ready for review, bevor Auto-Merge aktiviert wird
+  fi
+  ```
+  Die Verb-Liste in der Skill-Doku muss `gh pr ready` sichtbar nennen (der `run-tests.sh`-Check
+  grep-t darauf).
+- **`.claude/settings.json`** – `"Bash(gh pr ready:*)"` in die `allow`-Liste, **direkt bei** den
+  anderen `gh pr *`-Verben (Zeilen 45–48). `deny` (`.claude/**`, `.env*`) unverändert; kein
+  Wildcard. → **Patch-Workflow** (hard denied für Agent, siehe Technische Notizen oben).
+- **`scripts/checks/tests/run-tests.sh`** – bestehenden #91-Konsistenz-Block erweitern (dieser
+  liegt in `scripts/` → vom Agenten direkt editierbar, **kein** Patch nötig):
+  1. Die granulare-`gh`-Verben-Assertion um `grep -qF 'Bash(gh pr ready:*)' "$SETTINGS"` ergänzen.
+  2. Neue Assertion: `pr-shepherd.md` dokumentiert `gh pr ready`
+     (`grep -q 'gh pr ready' "$FACTORY_ROOT/.claude/commands/pr-shepherd.md"`).
+  TDD: Assertions **zuerst** ergänzen (Red gegen aktuellen Stand), dann Skill-Doku + Patch (Green).
+- **Portabilität:** nur POSIX (`grep -qF`), kein PCRE – `clean-code.md` „Portabilität in
+  Gate-Skripten".
+
 ## Offene Fragen
-- [ ] Soll `pr-shepherd` bei `isDraft` generell zuerst ready machen, oder nur wenn alle anderen
-      Gates (Review/Rebase/CI/Approval) schon grün sind? (Aktuell vorgeschlagen: erst kurz vor
-      Schritt 6, um ein PR nicht vorzeitig aus dem Draft zu holen, falls CI/Review noch rot ist.)
+- [x] Un-Draft-Zeitpunkt entschieden: **spät, als Schritt 5b vor Auto-Merge, gated hinter
+      Schritt 2–5** (Option A oben). Erledigt via /architecture 2026-07-13.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
