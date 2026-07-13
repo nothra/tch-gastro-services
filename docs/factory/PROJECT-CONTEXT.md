@@ -264,6 +264,19 @@ Agenten danach ggf. einen expliziten Bash-Grant für die Ausführung. Kein still
 Blocker immer mit Datum + Grund + erforderliche Aktion des Menschen notieren
 (Muster: `Blocker [Datum]: [Grund] – [was der Mensch tun muss]`).
 
+**Patch NICHT von Hand schreiben (aus #94).** Der Agent kann die `.claude/**`-Datei nicht
+editieren – der Reflex, den Unified-Diff dann direkt zu tippen, produziert **korrupte Patches**:
+falsche Hunk-Header-Zählung (`@@ -a,b +c,d @@`) und leere Kontextzeilen ohne führendes Leerzeichen
+brechen `git apply` („corrupt patch at line N"). Stattdessen den Diff **programmatisch** erzeugen:
+Original in eine Temp-Kopie lesen, dort die Änderung anwenden (Python/sed im Scratchpad – **kein**
+`.claude/**`-Write), und den Patch via `git diff --no-index` oder `difflib.unified_diff` generieren
+(Pfad-Header auf `a/.claude/… b/.claude/…` setzen).
+
+**Regel:** Patch immer read-only mit `git apply --check tasks/patch-<id>.diff` verifizieren, bevor
+er dem Menschen übergeben wird; zusätzlich auf Temp-Kopien anwenden und die Akzeptanz-Assertions
+(Grep/JSON-Validität) dagegen laufen lassen – so ist „Green nach Apply" belegt, ohne die
+hard-denied Datei anzufassen.
+
 ---
 
 ## Offene Architektur-Fragen

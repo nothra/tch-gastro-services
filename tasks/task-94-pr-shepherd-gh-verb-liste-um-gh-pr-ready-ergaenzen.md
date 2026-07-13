@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen (No-op: Diff ist minimal & clean – 3 triviale Artefakte, keine Duplikation/Magic Values)
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Beim Live-Lauf von Task #91 (PR_SHEPHERD=true) blieb `/pr-shepherd` in Schritt 6 stecken:
@@ -163,7 +163,9 @@ grün.
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Learning (aus #94): `.claude/**`-Patches nicht von Hand tippen – der hand-getippte Diff war korrupt
+(Hunk-Count/leere Kontextzeilen). Regel ergänzt in `PROJECT-CONTEXT.md` → Patch programmatisch aus
+Temp-Kopien erzeugen + `git apply --check`. Details: `tasks/codify-94.md`.
 
 ---
 Branch: `chore/94-pr-shepherd-gh-verb-liste-um-gh-pr-ready-ergaenzen`
