@@ -127,6 +127,32 @@ unnötiger Aufruf) – `gh pr ready` selbst ist zwar idempotent, aber der Guard 
 - [x] Un-Draft-Zeitpunkt entschieden: **spät, als Schritt 5b vor Auto-Merge, gated hinter
       Schritt 2–5** (Option A oben). Erledigt via /architecture 2026-07-13.
 
+## Implementierungs-Notizen (/implement 2026-07-13)
+
+TDD Red → Green umgesetzt:
+
+- **RED:** In `scripts/checks/tests/run-tests.sh` den #91-Konsistenzblock erweitert:
+  (1) `grep -qF 'Bash(gh pr ready:*)'` in die granulare-gh-Verben-Assertion, (2) neue Assertion
+  `#94: pr-shepherd.md dokumentiert 'gh pr ready'`. Beide schlagen gegen den Ist-Stand fehl
+  (255 grün, 2 rot).
+- **GREEN (via Patch):** Die zwei `.claude/**`-Änderungen liegen in `tasks/patch-94.diff`
+  (Agent hard-denied auf `.claude/**`, #88-Grenze → Patch-Workflow):
+  - `.claude/settings.json`: `"Bash(gh pr ready:*)"` direkt bei den anderen `gh pr *`-Verben.
+  - `.claude/commands/pr-shepherd.md`: neuer **Schritt 5b „Draft-Status auflösen"** vor Schritt 6
+    mit `isDraft`-Guard → `gh pr ready` (Option A, spät un-draften, fail-closed).
+- **Verifikation ohne Schreibzugriff:** `git apply --check tasks/patch-94.diff` läuft sauber;
+  auf Temp-Kopien angewendet → beide Assertions grün, `settings.json` bleibt valides JSON,
+  kein `Bash(gh *)`-Wildcard, `deny` unverändert.
+
+**Erwarteter Endstand nach Patch-Apply:** 257 grün, 0 rot (die 2 aktuell roten Assertions
+werden grün). Bis dahin ist die Suite bewusst 2 rot – der Patch ist Teil dieser Lieferung.
+
+**Blocker [2026-07-13]: GREEN-Schritt nicht vom Agenten abschließbar** – `.claude/settings.json`
+und `.claude/commands/pr-shepherd.md` sind hard denied (`Edit/Write(.claude/**)`, #88). Erforderliche
+Aktion des Menschen: im Worktree `git apply tasks/patch-94.diff` ausführen (macht die 2 roten Tests
+grün), dann `.claude/**`-Änderungen committen (bzw. dem Agenten dafür einen expliziten Bash-Grant
+erteilen). Erst danach sind die Quality Gates vollständig grün und die Task abschließbar.
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
