@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -52,6 +52,19 @@ direkt in der Pipe – das ist unter `set -o pipefail` das dokumentierte
 SIGPIPE-Falschrot-Muster (`grep -q` schließt die Pipe beim ersten Treffer,
 `locale -a` bekommt SIGPIPE). Behoben nach dem in `bash-gotchas.md` §3
 vorgeschriebenen Muster: Output erst in eine Variable einfangen, dann greppen.
+
+### Refactoring-Pass
+
+Keine Refactorings notwendig – Code bereits clean.
+
+Geprüft gegen die Checkliste:
+- **Variablennamen:** `avg_h`, `prs`, `lead_time`, `HAS_JQ`, `HAS_DE_LOCALE`, `TMP_METRICS`, `metrics_err` – alle sprechend, keine Abkürzungen.
+- **Einzelverantwortung:** Der geänderte Block in `metrics.sh` tut genau eine Sache (Lead-Time berechnen und formatieren). Kein Auslagern sinnvoll.
+- **Magic Numbers:** `3600` (Sekunden pro Stunde) und `10` (Multiplikator für 1-Dezimalstellen-Rundung) waren vorher bereits vorhanden; keine neuen eingeführt. Ein benanntes Konstant wäre YAGNI in diesem Shellscript-Kontext.
+- **Kommentare:** Der Block in `metrics.sh` (Z. 78–83) ist ein WHY-Kommentar (erklärt den Locale-Bug und warum jq statt printf). Der SIGPIPE-Kommentar im Test (Z. 285–286) verweist auf `bash-gotchas.md`. Beide korrekt.
+- **Duplikation:** `printf '%s' "$prs" | jq` erscheint zweimal (Z. 84, Z. 88), aber für unterschiedliche Operationen (Durchschnittsberechnung vs. Länge). Zusammenführen würde die jq-Expression verkomplizieren – kein Gewinn.
+
+Tests: 260 grün, 0 rot (inkl. #96-Locale-Test, der auf dieser Maschine vollständig lief).
 
 ## Offene Fragen
 
