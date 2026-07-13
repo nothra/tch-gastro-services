@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Zwei Stage-3-Infra-Lücken (beobachtet beim #66-Live-Lauf nach #88) schließen:
@@ -103,7 +103,19 @@ Ergebnis: 254 grün, 0 rot.
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Drei Learnings codifiziert – Details in `tasks/codify-91.md`:
+
+1. **Bash-Gotcha #5** (`bash-gotchas.md`): Shell-Test-Isolation – beim Kopieren eines Skripts
+   in ein Temp-Verzeichnis müssen alle `source`-Abhängigkeiten mitkopiert werden; sonst bricht
+   `set -euo pipefail` sofort beim `source` ab und der Test schlägt aus dem falschen Grund fehl.
+
+2. **Bekannter Stolperstein** (`PROJECT-CONTEXT.md`): Report-Guard Stale-Verdict – bei
+   Pipeline-Re-Läufen auf Branches mit bereits committeten Reports kann der Guard einen alten
+   `APPROVED`/`PASSED` als Erfolg werten (fail-open). Fix geplant als Issue #92.
+
+3. **Bekannter Stolperstein** (`PROJECT-CONTEXT.md`): `.claude/**`-Änderungen erfordern
+   Patch-Workflow – Agent liefert Patch-Datei, Mensch wendet sie per `git apply` an.
 
 ---
 Branch: `chore/91-stage3-commit-turn-budget`
