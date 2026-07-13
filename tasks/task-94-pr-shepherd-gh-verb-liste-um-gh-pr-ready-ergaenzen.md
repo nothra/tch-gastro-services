@@ -1,7 +1,7 @@
 # Task 94: pr-shepherd-gh-verb-liste-um-gh-pr-ready-ergaenzen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -34,18 +34,20 @@ wurde (`docs/factory/PROJECT-CONTEXT.md` → „`.claude/**`-Änderungen erforde
 > Kanonische Quelle für den Vorfall: PR #92 / Task #91 (Live-Lauf 2026-07-13).
 
 ## Akzeptanzkriterien
-- [ ] GIVEN ein PR ist `isDraft: true`, WHEN `/pr-shepherd` läuft, THEN wird `gh pr ready` vor dem
+- [x] GIVEN ein PR ist `isDraft: true`, WHEN `/pr-shepherd` läuft, THEN wird `gh pr ready` vor dem
       Auto-Merge-Versuch aufgerufen (kein manueller Human-Nachfrage-Loop mehr nötig).
-- [ ] GIVEN ein PR ist bereits `isDraft: false`, WHEN `/pr-shepherd` läuft, THEN wird `gh pr ready`
+      → Schritt 5b mit `isDraft`-Guard in `pr-shepherd.md`.
+- [x] GIVEN ein PR ist bereits `isDraft: false`, WHEN `/pr-shepherd` läuft, THEN wird `gh pr ready`
       nicht unnötig aufgerufen (kein Fehler bei bereits-ready PRs).
-- [ ] GIVEN `.claude/settings.json`, WHEN geprüft, THEN enthält die `allow`-Liste
+      → Guard `if [ "$(gh pr view --json isDraft -q .isDraft)" = "true" ]` ruft `gh pr ready` nur bei Draft.
+- [x] GIVEN `.claude/settings.json`, WHEN geprüft, THEN enthält die `allow`-Liste
       `"Bash(gh pr ready:*)"`; `deny` (`.claude/**`, `.env*`) bleibt unverändert; kein
-      pauschales `Bash(gh *)`.
-- [ ] GIVEN Stage-3-Sub-Agent (`/pr-shepherd`, `FACTORY_STAGE=3`), WHEN er `gh pr ready` ausführt,
-      THEN ohne Permission-Prompt/Interrupt (Verb ist freigegeben).
-- [ ] Self-Test in `scripts/checks/tests/run-tests.sh`: `gh pr ready` ist Teil der dokumentierten
+      pauschales `Bash(gh *)`. → verifiziert im Self-Test + JSON-Validität geprüft.
+- [x] GIVEN Stage-3-Sub-Agent (`/pr-shepherd`, `FACTORY_STAGE=3`), WHEN er `gh pr ready` ausführt,
+      THEN ohne Permission-Prompt/Interrupt (Verb ist freigegeben). → Verb in allow-Liste.
+- [x] Self-Test in `scripts/checks/tests/run-tests.sh`: `gh pr ready` ist Teil der dokumentierten
       Verbliste in `pr-shepherd.md` UND der `allow`-Liste (Konsistenz-Check, analog zu den
-      bestehenden #91-Permissions-Tests) – bleibt grün.
+      bestehenden #91-Permissions-Tests) – bleibt grün. → 257 grün, 0 rot.
 
 ## Technische Notizen
 - Betroffene Artefakte: `.claude/commands/pr-shepherd.md`, `.claude/settings.json`,
@@ -152,6 +154,10 @@ und `.claude/commands/pr-shepherd.md` sind hard denied (`Edit/Write(.claude/**)`
 Aktion des Menschen: im Worktree `git apply tasks/patch-94.diff` ausführen (macht die 2 roten Tests
 grün), dann `.claude/**`-Änderungen committen (bzw. dem Agenten dafür einen expliziten Bash-Grant
 erteilen). Erst danach sind die Quality Gates vollständig grün und die Task abschließbar.
+
+**Blocker aufgelöst [2026-07-13]:** Mensch hat `git apply tasks/patch-94.diff` ausgeführt (257 grün,
+0 rot); Agent hat die `.claude/**`-Änderungen per Bash-Grant committet (`013414f`). Gates vollständig
+grün.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
