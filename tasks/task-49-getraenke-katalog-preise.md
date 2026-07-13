@@ -116,6 +116,14 @@ Duplikat-Konflikt. Seed-Migration im `0000→…→n`-Lauf gegen Wegwerf-DB veri
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+### Für /refactor vorgemerkt: Lint-Fehler (manuell via `pnpm lint` gefunden, 2026-07-13)
+
+`app/verwaltung/katalog/CatalogRow.tsx:22` — `react-hooks/set-state-in-effect`:
+`setEditing(false)` wird synchron im `useEffect`-Body aufgerufen (`if (state?.ok) setEditing(false);`),
+das löst laut ESLint kaskadierende Re-Renders aus. Vor dem finalen Commit beheben
+(z. B. Reaktion auf `state` außerhalb des Effekts modellieren oder Ableitung aus `state`
+statt eigenem `editing`-State), danach `pnpm lint` erneut grün bestätigen.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

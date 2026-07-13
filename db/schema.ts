@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm";
-import { pgTable, pgEnum, text, integer, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  pgEnum,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  primaryKey,
+  unique,
+} from "drizzle-orm/pg-core";
 
 // Rollen für RBAC (ADR-016): zwei fachliche Rollen. Eine Person kann beide tragen.
 export const userRole = pgEnum("user_role", ["verwalter", "abrechner"]);
@@ -60,3 +69,33 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
+
+// Getränke-Katalog (F2, #49). Deutsche Enum-Werte wie user_role. Essen gehört NICHT
+// hierher (wird pro Abend in F4 gesetzt).
+export const catalogCategory = pgEnum("catalog_category", ["getraenk", "kaffee"]);
+export type CatalogCategory = (typeof catalogCategory.enumValues)[number];
+
+// Artikel werden nie hart gelöscht, sondern über `active` deaktiviert/reaktiviert
+// (spec-49). Preis als ganzzahlige Cent (ADR-021, Spalte *_cents). `size` ist
+// NOT NULL DEFAULT '' (leer = "ohne Größe", z. B. Kaffee), damit die Duplikat-Regel
+// eine einfache zusammengesetzte Unique-Constraint UNIQUE(name, size) ist.
+export const catalogItems = pgTable(
+  "catalog_item",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => globalThis.crypto.randomUUID()),
+    name: text("name").notNull(),
+    size: text("size").notNull().default(""),
+    priceCents: integer("price_cents").notNull(),
+    category: catalogCategory("category").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (item) => [unique("catalog_item_name_size_unique").on(item.name, item.size)],
+);
+
+export type CatalogItem = typeof catalogItems.$inferSelect;
+export type NewCatalogItem = typeof catalogItems.$inferInsert;
