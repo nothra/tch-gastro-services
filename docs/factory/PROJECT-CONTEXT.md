@@ -277,6 +277,31 @@ er dem Menschen übergeben wird; zusätzlich auf Temp-Kopien anwenden und die Ak
 (Grep/JSON-Validität) dagegen laufen lassen – so ist „Green nach Apply" belegt, ohne die
 hard-denied Datei anzufassen.
 
+### Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67)
+
+Im Lint-Debugging entstanden `lint-out.tmp.txt` und `scripts/lint-debug.tmp.sh` im
+Arbeitsbaum. `.gitignore` deckte `*.log` und `*-debug.log*` ab, aber keine `.tmp`-Muster.
+Der Review musste explizit auf das Entfernungserfordernis hinweisen – ohne diesen Fund
+wären die Dateien mit `git add .` ins Repo gewandert.
+
+**Regel:** `.gitignore` enthält jetzt `*.tmp.txt` und `*.tmp.sh`. Neue Debugging-/Lint-
+Hilfsskripte, die nicht eingecheckt werden sollen, immer nach einem dieser Muster benennen
+(oder das Muster in `.gitignore` ergänzen), bevor sie erstellt werden – nicht nachträglich
+aufräumen.
+
+### WHAT-Kommentar am Modul-Level (aus #67, Refactoring-Finding)
+
+Ein Kommentar `Die Route importiert nur diese Instanz und bleibt dünn.` beschrieb in der
+**Modul-Definition** (`lib/rate-limit.ts`), wie ein externer Konsument (die Route) das Modul
+nutzt. Das ist ein WHAT-Kommentar am falschen Ort: Er nennt, was der Code macht, nicht warum
+er so entworfen wurde – und er beschreibt den Konsumenten statt das Modul selbst.
+
+**Regel:** Kommentare in einer Modul-Definition beschreiben das WHY der **Modul-Entscheidung**
+(z. B. fail-open, kein I/O, Singleton wegen Function-Instanz-Lebensdauer). Hinweise auf die
+Nutzung durch Konsumenten gehören an die **Aufrufstelle** oder in die öffentliche Schnittstellen-
+Dokumentation – nicht in die Modul-Implementierung. Bereits durch `clean-code.md` abgedecktes
+Prinzip; hier als konkretes Muster festgehalten.
+
 ---
 
 ## Offene Architektur-Fragen
