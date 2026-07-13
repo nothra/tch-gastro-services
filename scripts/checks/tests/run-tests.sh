@@ -1427,6 +1427,11 @@ assert_true "$?" "#91: granulare gh-Verben (pr-shepherd) in allow"
 grep -qF 'gh pr ready' "$SHEPHERD"
 assert_true "$?" "#94: pr-shepherd.md dokumentiert 'gh pr ready' (Draft-Auflösung)"
 
+# #94 (AC2): 'gh pr ready' ist hinter einem isDraft-Guard dokumentiert – nicht unbedingt
+# aufgerufen. Schützt die "nur bei Draft"-Semantik gegen ein späteres Entfernen des Guards.
+grep -qF 'isDraft' "$SHEPHERD"
+assert_true "$?" "#94: pr-shepherd.md guardet 'gh pr ready' hinter isDraft-Check (AC2)"
+
 # Fail-closed: kein pauschales Bash(git *) / Bash(gh *).
 assert_true "$(! grep -qE 'Bash\(git \*\)|Bash\(gh \*\)' "$SETTINGS"; echo $?)" \
   "#91: kein pauschales Bash(git *)/Bash(gh *)"
