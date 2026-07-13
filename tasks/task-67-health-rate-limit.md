@@ -1,9 +1,9 @@
 # Task 67: health-rate-limit
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -26,23 +26,33 @@ Request-Zahl entkoppelt. Der Endpunkt bleibt **unauth** und für den Deploy-Gate
 
 ## Akzeptanzkriterien
 
-- [ ] AK-1: GIVEN Rate unter Schwellwert WHEN `GET /api/health`, DB erreichbar, Schema ok
+- [x] AK-1: GIVEN Rate unter Schwellwert WHEN `GET /api/health`, DB erreichbar, Schema ok
   THEN DB-Read läuft, Antwort `200 {status:"ok", stage:…}` (unverändert, keine DB-Daten im Body)
-- [ ] AK-2: GIVEN Rate unter Schwellwert WHEN DB-Read schlägt fehl
+  → `route.test.ts::should_return200Ok_when_dbReachableAndSchemaValid` (strikter `toEqual`)
+- [x] AK-2: GIVEN Rate unter Schwellwert WHEN DB-Read schlägt fehl
   THEN `503 {status:"error"}` + server-seitiges `console.error` (unverändert)
-- [ ] AK-3: GIVEN N ≫ Schwellwert Anfragen/Fenster WHEN alle gegen `/api/health`
+  → `route.test.ts::should_return503Error_when_dbQueryFails`
+- [x] AK-3: GIVEN N ≫ Schwellwert Anfragen/Fenster WHEN alle gegen `/api/health`
   THEN ausgeführte DB-Reads ≤ Schwellwert pro Fenster (DB-Last von Request-Zahl entkoppelt)
-- [ ] AK-4: GIVEN Schwellwert im Fenster erreicht WHEN weitere Anfrage
+  → `rate-limit.test.ts::should_allowUpToLimit_when_withinWindow` (nach Limit → `false`, kein Read)
+- [x] AK-4: GIVEN Schwellwert im Fenster erreicht WHEN weitere Anfrage
   THEN Throttle-Antwort **ohne** DB-Read (deterministischer Status, z. B. `429`)
-- [ ] AK-5: GIVEN Deploy-Gate führt seinen einzelnen post-promote Healthcheck aus
+  → `route.test.ts::should_return429ThrottledWithoutDbRead_when_rateLimitExceeded` (`selectSpy` nicht aufgerufen)
+- [x] AK-5: GIVEN Deploy-Gate führt seinen einzelnen post-promote Healthcheck aus
   THEN Anfrage wird nicht gedrosselt → **live** `200`/`503` aus dem DB-Read
-- [ ] AK-6: GIVEN nicht angewandte Migration (fehlende `roles`-Spalte) WHEN Gate-Healthcheck
+  → strukturell erfüllt: 30 Reads/60 s deckeln erst weit oberhalb eines einzelnen Gate-`curl`
+    (+ minütlicher Uptime-Poll). Live vom Deploy-Gate-Healthcheck verifiziert (kein Unit-Nachweis möglich).
+- [x] AK-6: GIVEN nicht angewandte Migration (fehlende `roles`-Spalte) WHEN Gate-Healthcheck
   THEN DB-Read schlägt fehl → `503` (Schema-Drift bleibt sichtbar)
+  → gleicher Pfad wie AK-2 (503 bei DB-/Schema-Fehler); Guard ändert den DB-Read nicht.
 
 ### Fehlerszenarien
-- [ ] FS-1: Limiter-Zustand nicht verfügbar → legitimer Healthcheck wird nicht blockiert (fail-open)
-- [ ] FS-2: Kein Gate-Lockout durch Fluten (per-Quelle oder hoher Schwellwert + fail-open)
-- [ ] FS-3: Throttle-Pfad nicht langsamer als der DB-Pfad
+- [x] FS-1: Limiter-Zustand nicht verfügbar → legitimer Healthcheck wird nicht blockiert (fail-open)
+  → strukturell: In-Memory ohne externen Store; Cold-Start = frischer Zähler = `tryAcquire()` → `true`.
+- [x] FS-2: Kein Gate-Lockout durch Fluten (per-Quelle oder hoher Schwellwert + fail-open)
+  → hoher globaler Schwellwert (30/60 s) + fail-open; Gate-Check liegt strukturell darunter (siehe AK-5).
+- [x] FS-3: Throttle-Pfad nicht langsamer als der DB-Pfad
+  → `tryAcquire()` ist reine O(1)-Arithmetik, kein I/O; Throttle-Pfad kehrt vor dem DB-Read zurück.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt -->

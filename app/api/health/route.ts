@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { healthRateLimiter } from "@/lib/rate-limit";
 
 // Healthcheck MIT DB-Read (anders als /api/version): prüft, dass die deployte App die DB
 // erreicht UND das Schema stimmt. Der Read auf die roles-Spalte fängt genau die Schema-Drift
@@ -9,6 +10,11 @@ import { users } from "@/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Rate-Limit VOR dem DB-Read: gedrosselte Anfragen kosten keinen Neon-Roundtrip (ADR-019).
+  // Status 429 ist deterministisch und ≠ 200/503 → kollidiert nicht mit der Gate-Erwartung.
+  if (!healthRateLimiter.tryAcquire()) {
+    return NextResponse.json({ status: "throttled" }, { status: 429 });
+  }
   try {
     // Ergebnis wird verworfen – keine Datenpreisgabe, nur "Query läuft durch?".
     await db.select({ roles: users.roles }).from(users).limit(1);
