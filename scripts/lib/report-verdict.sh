@@ -30,7 +30,7 @@ report_verdict() {
     *) return 0 ;;
   esac
   [ -f "$file" ] || return 0
-  # Letztes Vorkommen gewinnt (wie pipeline_summary() schon las). grep findet nichts →
-  # exit 1; unter pipefail muss das geschluckt werden, sonst bräche der Aufrufer ab.
+  # Letztes Vorkommen gewinnt. grep findet nichts → exit 1; unter pipefail muss das
+  # geschluckt werden, sonst bräche der Aufrufer ab.
   grep -oE "$pattern" "$file" 2>/dev/null | tail -1 || true
 }

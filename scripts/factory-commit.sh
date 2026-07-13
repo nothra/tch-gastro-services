@@ -28,50 +28,48 @@ set -euo pipefail
 
 err() { echo "factory-commit: $*" >&2; }
 
-# 1. Genau ein Argument: die Commit-Message. Mehr Argumente wären ein Einfallstor für
-#    Flags (etwa --force) → fail-closed abweisen. Die Message-Verantwortung (Conventional-
-#    Commit-Präfix) bleibt beim aufrufenden Skill (ADR-019 §1).
+# Genau ein Argument: die Commit-Message. Mehr Argumente wären ein Einfallstor für
+# Flags (etwa --force) → fail-closed abweisen. Die Message-Verantwortung (Conventional-
+# Commit-Präfix) bleibt beim aufrufenden Skill (ADR-019 §1).
 if [ "$#" -ne 1 ] || [ -z "${1:-}" ]; then
   err 'genau ein Argument erwartet: die Commit-Message. Aufruf: factory-commit.sh "<message>"'
   exit 2
 fi
 COMMIT_MESSAGE="$1"
 
-# 2. Innerhalb eines git-Arbeitsbaums?
+# Kein Arbeitsbaum – kein Branch, den wir pushen könnten (fail-closed).
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   err "kein git-Arbeitsbaum – nichts zu committen/pushen (fail-closed)."
   exit 3
 fi
 
-# 3. Aktuellen Branch ermitteln; detached HEAD ist kein Feature-Branch → fail-closed.
+# Aktuellen Branch ermitteln; detached HEAD ist kein Feature-Branch → fail-closed.
 BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)"
 if [ "$BRANCH" = "HEAD" ]; then
   err "detached HEAD – kein Feature-Branch zum Pushen (fail-closed)."
   exit 3
 fi
 
-# 4. Nie auf main/master committen/pushen (doppelt gesichert zu pre-push.sh).
+# Nie auf main/master committen/pushen (doppelt gesichert zu pre-push.sh).
 if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
   err "aktueller Branch ist '$BRANCH' – Commit/Push auf main/master ist nicht erlaubt (fail-closed). Bitte auf einem Feature-Branch arbeiten."
   exit 4
 fi
 
-# 5. Alle Änderungen stagen.
 git add -A
 
-# 6. Nichts zu committen? Kein harter Fehler – die Pipeline soll nicht abbrechen, nur
-#    weil ein Schritt keine Änderungen produziert hat (ADR-019 §1).
+# Nichts zu committen? Kein harter Fehler – die Pipeline soll nicht abbrechen, nur
+# weil ein Schritt keine Änderungen produziert hat (ADR-019 §1).
 if git diff --cached --quiet; then
   err "nichts zu committen auf '$BRANCH' – übersprungen."
   exit 0
 fi
 
-# 7. Committen.
 git commit -m "$COMMIT_MESSAGE"
 
-# 8. Pushen. Ohne Upstream (frischer Branch) das Tracking-Ref neu anlegen, sonst normaler
-#    Push. Kein --force. Schlägt der Push fehl, reicht `set -e` den non-zero Exit weiter →
-#    kein stiller „committed, aber nicht gepusht"-Zustand.
+# Pushen. Ohne Upstream (frischer Branch) das Tracking-Ref neu anlegen, sonst normaler
+# Push. Kein --force. Schlägt der Push fehl, reicht `set -e` den non-zero Exit weiter →
+# kein stiller „committed, aber nicht gepusht"-Zustand.
 if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
   git push
 else

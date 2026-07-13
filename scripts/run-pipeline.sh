@@ -239,7 +239,7 @@ run_skill() {
     local verdict
     verdict="$(report_verdict "$skill" "$task_id")"
     if [ -n "$verdict" ]; then
-      echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Report mit Verdict '${verdict}' vorhanden – Exit/Turn-Limit nach fertigem Report toleriert)"
+      echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '${verdict}' – Turn-Limit nach fertigem Report toleriert)"
       # Auch hier: ein signalisierter Interrupt stoppt hart (kein stiller Übergang).
       bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?
       return 0
