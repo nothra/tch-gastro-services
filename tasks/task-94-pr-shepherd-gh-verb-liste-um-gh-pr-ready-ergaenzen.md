@@ -4,8 +4,8 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen (No-op: Diff ist minimal & clean – 3 triviale Artefakte, keine Duplikation/Magic Values)
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
