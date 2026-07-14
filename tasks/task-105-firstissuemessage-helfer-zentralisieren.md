@@ -1,7 +1,7 @@
 # Task 105: firstissuemessage-helfer-zentralisieren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -10,17 +10,29 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+Die Hilfsfunktion `firstIssueMessage(error)` (Extraktion der ersten Zod-Fehlermeldung
+an der Formulargrenze) war wortgleich in zwei Server-Actions dupliziert:
+`app/verwaltung/katalog/actions.ts` und `app/verwaltung/teilnehmer/actions.ts`
+(je Z. 26–28). Gefunden in Review #50. Ziel: in `lib/` zentralisieren, beide
+Kopien durch den Import ersetzen. Kein neues Verhalten (tech-debt).
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] GIVEN ein fehlgeschlagenes `safeParse` mit Issues WHEN `firstIssueMessage`
+      aufgerufen wird THEN wird die Meldung des ersten Issues zurückgegeben.
+- [x] GIVEN ein Fehler ohne Issues WHEN `firstIssueMessage` aufgerufen wird THEN
+      wird die Fallback-Meldung „Ungültige Eingabe." zurückgegeben.
+- [x] Beide Server-Actions nutzen den zentralen Helfer; keine lokale Kopie mehr.
+- [x] Verhalten der beiden Actions unverändert (bestehende Action-Tests bleiben grün).
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+- Neuer Seam: `lib/form-utils.ts` mit `export function firstIssueMessage(...)`.
+- Parametertyp bleibt strukturell minimal (`{ issues: { message: string }[] }`)
+  statt an `ZodError` gebunden – so ist der Helfer ohne Zod-Aufbau testbar und deckt
+  jede `safeParse`-Fehlerform ab. Verhalten 1:1 aus den Originalkopien übernommen.
+- Import-Pfad `@/lib/form-utils` (Alias-Konvention wie `@/lib/authz`, `@/lib/money`).
 
 ## Offene Fragen
-<!-- Fragen, die noch geklärt werden müssen -->
+Keine.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

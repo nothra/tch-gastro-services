@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/authz";
+import { firstIssueMessage } from "@/lib/form-utils";
 import { createItem, setItemActive, updateItem } from "@/db/catalog";
 import { catalogItemSchema } from "./schema";
 
@@ -21,10 +22,6 @@ function isUniqueViolation(error: unknown): boolean {
     "code" in error &&
     (error as { code?: string }).code === "23505"
   );
-}
-
-function firstIssueMessage(error: { issues: { message: string }[] }): string {
-  return error.issues[0]?.message ?? "Ungültige Eingabe.";
 }
 
 // Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung.
