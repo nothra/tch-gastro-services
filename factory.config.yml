@@ -11,6 +11,13 @@
 # einmal bei /pr-shepherd (Default 8) mit "Reached max turns" abgebrochen, ohne
 # ein Ergebnis zu liefern. Mit MAX_TURNS=40 bzw. 20 (manueller Retry) sind beide
 # Skills durchgelaufen. Werte hier auf die validierten Werte angehoben.
+#
+# ── Knopf: skills.codify (max_turns) ──────────────────────────────────────────
+# Learning aus Task 50 (Teilnehmer-Stammdaten, 2026-07-14): Mit dem Default
+# (8) ist /codify zweimal mit "Reached max turns" abgebrochen, ohne einen
+# Report zu schreiben. Mit MAX_TURNS=16 (manueller Retry) lief der Skill beim
+# ersten Versuch durch. Wert hier auf den validierten Wert angehoben.
 skills:
   implement: { max_turns: 40 }
   pr-shepherd: { max_turns: 20 }
+  codify: { max_turns: 16 }
