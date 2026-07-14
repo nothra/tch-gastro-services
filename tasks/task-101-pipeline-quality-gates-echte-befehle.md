@@ -4,10 +4,10 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -80,7 +80,16 @@ Nitpick adressiert (Clean-Code-Pass):
   (Nitpick 2 „Platzierung CMD-Vars" war explizit als kosmetisch eingestuft – nicht angefasst.)
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**1 neue Regel hinzugefügt** (vollständiger Bericht: `tasks/codify-101.md`):
+
+- `docs/factory/guidelines/bash-gotchas.md` **Gotcha #7:** Strukturelle Guards müssen den
+  spezifischsten (längsten) String suchen – nie eine Abkürzung, die als Substring einer längeren
+  Variante aufgehen kann. Anlass: `grep -q 'pnpm test'` deckte `pnpm test:coverage` nur implizit
+  ab; eine Änderung des Coverage-Befehls wäre unentdeckt geblieben.
+
+**Keine weiteren Regeln notwendig:** Security-Hinweis (`eval` via Env-Var) ist etabliertes Muster;
+kosmetischer Nitpick zur CMD-Var-Platzierung explizit nicht umgesetzt (Review-Empfehlung).
 
 ---
 Branch: `fix/101-pipeline-quality-gates-echte-befehle`
