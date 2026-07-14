@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -131,6 +131,12 @@ Rename-Duplikat) sind akzeptiert oder Produkt-Entscheidungen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Keine neuen CLAUDE.md-Regeln – beide Findings (Drizzle-Return-Type, text.max) waren bereits
+als Regeln erfasst und haben korrekt gegriffen. Positiv-Bestätigung: useCallback-Wrapper und
+Schicht-Trennung ohne Findings. Offene Folgearbeit: `firstIssueMessage`-Duplikat als
+GitHub-Issue anlegen (tech-debt, enhancement) – `gh`-Befehl war permission-gated.
+Vollständiger Report: `tasks/codify-50.md`.
 
 ---
 Branch: `feature/50-teilnehmer-stammdaten`
