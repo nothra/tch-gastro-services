@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/authz";
+import { firstIssueMessage } from "@/lib/form-errors";
 import {
   createTeilnehmer,
   findActiveByName,
@@ -22,10 +23,6 @@ export type TeilnehmerFormState = {
   needsConfirm?: boolean;
   warning?: string;
 };
-
-function firstIssueMessage(error: { issues: { message: string }[] }): string {
-  return error.issues[0]?.message ?? "Ungültige Eingabe.";
-}
 
 export async function createTeilnehmerAction(
   _prevState: TeilnehmerFormState | undefined,
