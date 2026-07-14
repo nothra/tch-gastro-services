@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die Hilfsfunktion `firstIssueMessage(error)` (Extraktion der ersten Zod-Fehlermeldung
@@ -51,6 +51,14 @@ Kopien durch den Import ersetzen. Kein neues Verhalten (tech-debt).
 - Kein weiteres Refactoring nötig: Funktion macht genau eine Sache, 1 Parameter,
   keine Duplikation (das war das Ziel), keine Magic Numbers. Der einzelne Fallback-String
   bleibt inline (Named-Konstante wäre Over-Engineering – siehe Review).
+
+## PR-Shepherd-Notizen
+PR-Shepherd [2026-07-15]: Auto-Merge (--squash) freigegeben – alle Gates grün.
+- Branch 0 hinter / 7 vor `main` (kein Rebase/update-branch nötig).
+- CI grün: factory-self-test, issue-sync, lint, test, Vercel; post-merge-verify skippt off-main.
+- Keine offenen Review-Kommentare (nur automatischer Vercel-Deploy-Kommentar); reviewDecision
+  leer → keine erforderlichen Approvals auf diesem Repo.
+- Draft → ready, dann `gh pr merge --auto --squash`.
 
 ## Offene Fragen
 Keine.
