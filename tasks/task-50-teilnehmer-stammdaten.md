@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -111,6 +111,20 @@ sind in dieser Session permission-gated.** Erforderliche Aktion des Menschen: `p
 (neues Enum + Tabelle, kein Enum-Wert-Wechsel → nicht #48-betroffen), `pnpm lint`, `pnpm test`
 freigeben bzw. ausführen. UI-Oberflächentest (`pnpm db:up` + `pnpm test:e2e` / Browser) danach.
 Erst wenn Lint + Tests grün: Akzeptanzkriterien abhaken und commit über `scripts/factory-commit.sh`.
+
+## Refactoring-Notizen (2026-07-14)
+
+Review-Finding behoben:
+- `db/teilnehmer.ts`: `updateTeilnehmer` und `setTeilnehmerActive` geben jetzt ehrlich
+  `Promise<Teilnehmer | undefined>` zurück (war `Promise<Teilnehmer>` – lügt, wenn die `id`
+  nicht existiert, weil Drizzle `.returning()` ein leeres Array liefert). Kein Laufzeit-
+  Verhalten geändert; beide Actions ignorieren den Rückgabewert.
+- `db/teilnehmer.test.ts`: Test-Assertions auf `updated?.name`/`updated?.mitglied` umgestellt
+  (TypeScript-Konsistenz mit neuem Rückgabetyp).
+
+Bewusst nicht angefasst: `firstIssueMessage`-Duplikat mit `katalog/actions.ts` (Cross-Feature-
+Refactor, eigenes Issue). Alle anderen Nitpicks (confirmDuplicate, mitglied-Schema,
+Rename-Duplikat) sind akzeptiert oder Produkt-Entscheidungen.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

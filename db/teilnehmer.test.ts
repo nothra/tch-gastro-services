@@ -91,8 +91,8 @@ describe.skipIf(!hasDb)("teilnehmer data-layer (integration)", () => {
       row.id,
       person("Umbenannt", { mitglied: true }),
     );
-    expect(updated.name).toBe(`${TEST_PREFIX}Umbenannt`);
-    expect(updated.mitglied).toBe(true);
+    expect(updated?.name).toBe(`${TEST_PREFIX}Umbenannt`);
+    expect(updated?.mitglied).toBe(true);
   });
 
   it("should_findOnlyActiveByName_when_matchingNameExists", async () => {

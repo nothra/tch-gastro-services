@@ -31,7 +31,10 @@ export async function createTeilnehmer(data: TeilnehmerData): Promise<Teilnehmer
   return created;
 }
 
-export async function updateTeilnehmer(id: string, data: TeilnehmerData): Promise<Teilnehmer> {
+export async function updateTeilnehmer(
+  id: string,
+  data: TeilnehmerData,
+): Promise<Teilnehmer | undefined> {
   const [updated] = await db
     .update(teilnehmer)
     .set({ ...data, updatedAt: new Date() })
@@ -42,7 +45,10 @@ export async function updateTeilnehmer(id: string, data: TeilnehmerData): Promis
 
 // Deaktivieren/Reaktivieren statt hartem Löschen (spec-50): historische Abende behalten
 // den Teilnehmer, neue Abende sehen nur aktive.
-export async function setTeilnehmerActive(id: string, active: boolean): Promise<Teilnehmer> {
+export async function setTeilnehmerActive(
+  id: string,
+  active: boolean,
+): Promise<Teilnehmer | undefined> {
   const [updated] = await db
     .update(teilnehmer)
     .set({ active, updatedAt: new Date() })
