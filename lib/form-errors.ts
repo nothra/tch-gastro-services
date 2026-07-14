@@ -2,7 +2,7 @@
 // Actions übersetzen ein fehlgeschlagenes safeParse in genau eine Nutzermeldung. Der
 // Parametertyp ist bewusst strukturell minimal (nur `issues[].message`) statt an
 // `ZodError` gebunden – so bleibt der Helfer ohne Zod-Aufbau testbar und deckt jede
-// safeParse-Fehlerform ab. Fällt zurück, wenn kein Issue vorliegt.
+// safeParse-Fehlerform ab.
 export function firstIssueMessage(error: {
   issues: { message: string }[];
 }): string {

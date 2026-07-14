@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -42,6 +42,15 @@ Kopien durch den Import ersetzen. Kein neues Verhalten (tech-debt).
   gegen `result.error.issues[0].message` – testet Verhalten statt Datenquelle.
 - Gesamt-Coverage 80 % (≥ Schwelle 80 %); Verhalten der Actions über bestehende
   Action-Tests unverändert grün (112 Tests gesamt).
+
+## Refactoring-Notizen
+- Clean-Code-Pass ohne neues Verhalten (Tests vor/nach identisch grün: 112).
+- Modul-Kommentar `lib/form-errors.ts`: letzten Halbsatz („Fällt zurück, wenn kein
+  Issue vorliegt.") entfernt – er beschrieb das WHAT (den `??`-Operator), Rest bleibt
+  WHY (struktureller Parametertyp → testbar). Review-Nitpick behoben.
+- Kein weiteres Refactoring nötig: Funktion macht genau eine Sache, 1 Parameter,
+  keine Duplikation (das war das Ziel), keine Magic Numbers. Der einzelne Fallback-String
+  bleibt inline (Named-Konstante wäre Over-Engineering – siehe Review).
 
 ## Offene Fragen
 Keine.
