@@ -1,0 +1,16 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# factory.config.yml — Team-Override für TCH Gastro Services (ADR-009)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Begründung/Trade-off der Knöpfe: siehe factory.defaults.yml → skills.<name>
+# (Tags @reason/@tradeoff, ADR-011). Diese Datei zitiert nicht, sie überschreibt nur.
+#
+# ── Knopf: skills.implement / skills.pr-shepherd (max_turns) ─────────────────
+# Learning aus Task 49 (Getränke-Katalog-Preise, 2026-07-14): Mit den Default-
+# Turn-Deckeln ist die Stage-3-Pipeline zweimal bei /implement (Default 20) und
+# einmal bei /pr-shepherd (Default 8) mit "Reached max turns" abgebrochen, ohne
+# ein Ergebnis zu liefern. Mit MAX_TURNS=40 bzw. 20 (manueller Retry) sind beide
+# Skills durchgelaufen. Werte hier auf die validierten Werte angehoben.
+skills:
+  implement: { max_turns: 40 }
+  pr-shepherd: { max_turns: 20 }
