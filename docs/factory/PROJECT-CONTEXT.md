@@ -302,6 +302,44 @@ Nutzung durch Konsumenten gehören an die **Aufrufstelle** oder in die öffentli
 Dokumentation – nicht in die Modul-Implementierung. Bereits durch `clean-code.md` abgedecktes
 Prinzip; hier als konkretes Muster festgehalten.
 
+### `useActionState` + Inline-Toggle: ESLint `react-hooks/set-state-in-effect` (aus #49)
+
+Bei Inline-Edit-Formularen entsteht der Reflex, den Erfolgsfall über einen `useEffect` zu
+schließen: `useEffect(() => { if (state?.ok) setEditing(false); }, [state])`. ESLint
+(`react-hooks/set-state-in-effect`) flaggt das als kaskadierende Re-Render-Falle.
+
+**Regel:** Action in einem `useCallback` wrappen, der die originale Server Action **awaitet**
+und `setState` direkt danach aufruft – kein `useEffect`:
+```ts
+const actionWithClose = useCallback(async (prev, formData) => {
+  const result = await myAction(prev, formData);
+  if (result.ok) setEditing(false);
+  return result;
+}, []);
+const [state, formAction, pending] = useActionState(actionWithClose, undefined);
+```
+`useActionState` akzeptiert jeden async `(prev, formData) => State`-Wrapper, nicht nur
+eine direkte Server Action. Der `useCallback`-Wrapper hält die Referenz stabil.
+
+### Zod-Schema: Obergrenze für Integer-mapped Inputs fehlt (aus #49, Security-Hint)
+
+Regex-basierte Preis-Validierung (`/^\d+([.,]\d{1,2})?$/`) prüft das **Format**, aber nicht
+die **Größe**. Ein Verwalter kann `99999999999` eingeben – Zod akzeptiert, `parseEuroToCents`
+liefert > `int4`-Maximum (2 147 483 647), der `INSERT`/`UPDATE` schlägt mit einem generischen
+Postgres-`numeric value out of range`-Fehler fehl. Dieser Error-Code wird nicht als
+Unique-Violation erkannt und re-geworfen → unbehandelter 500, kein Nutzer-Hinweis.
+
+**Regel:** Jedes Zod-Feld, das auf eine PostgreSQL-`int4`-Spalte mappt, braucht nach dem
+`.transform(...)` ein explizites Limit:
+```ts
+z.string()
+  .transform(parseEuroToCents)
+  .refine((c) => c <= 2_147_483_647, "Preis ist zu hoch.")
+```
+Analog für andere Integer-Felder (z. B. `sortOrder`): `.max(2_147_483_647)` oder ein
+domänen-sinnvolles Maximum. Ohne Obergrenze ist der DB-Overflow die einzige Fehlergrenze –
+fail-open für den Nutzerfeedback-Weg.
+
 ---
 
 ## Offene Architektur-Fragen

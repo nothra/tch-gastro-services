@@ -22,6 +22,20 @@
       "when": 1783763649868,
       "tag": "0002_narrow_bloodstorm",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784000000000,
+      "tag": "0003_add_catalog_item",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784000000001,
+      "tag": "0004_seed_catalog_reference",
+      "breakpoints": true
     }
   ]
 }
