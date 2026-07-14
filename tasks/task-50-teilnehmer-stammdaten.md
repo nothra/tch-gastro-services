@@ -46,6 +46,43 @@ Kanonische Spec: [docs/specs/spec-50-teilnehmer-stammdaten.md](../docs/specs/spe
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+Entscheidung: [ADR-022](../docs/adr/022-teilnehmer-datenmodell.md). Muster durchgehend
+analog zum Getränke-Katalog (#49) – **eine Abweichung**: kein Unique auf `name`.
+
+**Datenmodell (`db/schema.ts`):**
+- `pgEnum("teilnehmer_typ", ["person", "familie"])` + `type TeilnehmerTyp`.
+- Tabelle `teilnehmer`: `id` (UUID-PK via `$defaultFn`), `name` text NOT NULL (**kein**
+  Unique), `typ` teilnehmer_typ NOT NULL, `mitglied` boolean NOT NULL DEFAULT false,
+  `active` boolean NOT NULL DEFAULT true, `createdAt`/`updatedAt` timestamptz DEFAULT now().
+- `Teilnehmer`/`NewTeilnehmer` via `$inferSelect`/`$inferInsert`.
+
+**Data-Layer (`db/teilnehmer.ts`, einziger Query-Ort, rollen-neutral):**
+`listTeilnehmer()`, `listActiveTeilnehmer()`, `createTeilnehmer(data)`,
+`updateTeilnehmer(id, data)`, `setTeilnehmerActive(id, active)`, `findActiveByName(name)`.
+Sortierung: `asc(name)`.
+
+**Zod (`app/verwaltung/teilnehmer/schema.ts`):** `name` `z.string().trim().min(1, …)`,
+`typ` `z.enum(teilnehmerTyp.enumValues, …)`, `mitglied` aus Checkbox
+(`z.union`/`"on"`→boolean oder `z.coerce.boolean()`; Checkbox liefert `"on"`/fehlt).
+
+**Actions (`app/verwaltung/teilnehmer/actions.ts`, `"use server"`):**
+`requireRole("verwalter")` als erste Zeile jeder Action (fail-closed). Duplikat-Warnung
+**nicht-blockierend**: vor `createTeilnehmer` `findActiveByName` prüfen → bei Treffer und
+ohne `confirmDuplicate` `{ needsConfirm: true, warning }` zurückgeben (nicht speichern);
+erst mit `confirmDuplicate=true` anlegen. `revalidatePath("/verwaltung/teilnehmer")`.
+Kein `23505`-Pfad nötig (kein Unique).
+
+**UI (`app/verwaltung/teilnehmer/`):** `page.tsx` (Server Component, listet via Data-Layer),
+Formular + Row analog `CatalogItemForm`/`CatalogRow`. Inline-Edit-Erfolgsfall über
+`useCallback`-Wrapper schließen – **kein** `useEffect` (CLAUDE.md: `react-hooks/set-state-in-effect`).
+
+**Migration:** `pnpm drizzle-kit generate` → neues Enum + Tabelle (kein Enum-Wert-Wechsel,
+also nicht von der #48-Drop-and-recreate-Falle betroffen). Lokal gegen Wegwerf-DB `0000→n`
+verifizieren.
+
+**Grenzen:** Historien-Snapshot & Walk-in-Anlage gehören zu **F4/#51**, nicht in diese Task
+(Data-Layer aber rollen-neutral vorbereiten). RBAC-Ablehnung des Abrechners (AK5) ergibt sich
+aus `requireRole("verwalter")` – Test über direkten Action-Aufruf mit Abrechner-Session.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
