@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -33,6 +33,15 @@ Kopien durch den Import ersetzen. Kein neues Verhalten (tech-debt).
   statt an `ZodError` gebunden – so ist der Helfer ohne Zod-Aufbau testbar und deckt
   jede `safeParse`-Fehlerform ab. Verhalten 1:1 aus den Originalkopien übernommen.
 - Import-Pfad `@/lib/form-errors` (Alias-Konvention wie `@/lib/authz`, `@/lib/money`).
+
+## Test-Notizen
+- `lib/form-errors.ts`: 100 % Coverage (Stmts/Branch/Funcs/Lines) – 3 Unit-Tests decken
+  Einzel-Issue, Mehrfach-Issue (Ordering: erstes Issue) und Fallback (leere `issues`) ab.
+- Assertions auf konkrete erwartete Meldungen umgestellt (Review-Nitpick behoben):
+  deterministische Custom-Messages via `z.string({ error: "…" })` statt Vergleich
+  gegen `result.error.issues[0].message` – testet Verhalten statt Datenquelle.
+- Gesamt-Coverage 80 % (≥ Schwelle 80 %); Verhalten der Actions über bestehende
+  Action-Tests unverändert grün (112 Tests gesamt).
 
 ## Offene Fragen
 Keine.
