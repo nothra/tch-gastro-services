@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -71,6 +71,13 @@ Scope-Grenze: nur die Gate-Befehle in `run-pipeline.sh`. Kein Umbau der
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+**APPROVED** (tasks/review-101.md).
+
+Nitpick adressiert (Clean-Code-Pass):
+- `run-tests.sh` Zeile 1513–1515: pnpm-Default-Guard prüfte `pnpm test` als Substring
+  und hätte `pnpm test:coverage`-Änderungen nicht erkannt. Explizit auf
+  `grep -q 'pnpm test:coverage'` erweitert; Assertion-Label angepasst.
+  (Nitpick 2 „Platzierung CMD-Vars" war explizit als kosmetisch eingestuft – nicht angefasst.)
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
