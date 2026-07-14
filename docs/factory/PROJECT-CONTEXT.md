@@ -321,6 +321,24 @@ const [state, formAction, pending] = useActionState(actionWithClose, undefined);
 `useActionState` akzeptiert jeden async `(prev, formData) => State`-Wrapper, nicht nur
 eine direkte Server Action. Der `useCallback`-Wrapper hält die Referenz stabil.
 
+### Drizzle UPDATE/DELETE: `.returning()` liefert `T | undefined`, nicht `T` (aus #50, Refactoring-Finding)
+
+`db.update(…).returning()` gibt `Promise<T[]>` zurück. Trifft der `WHERE`-Ausdruck keine Zeile,
+ist das Array leer – `const [updated] = …` liefert dann `undefined`. Wer die Funktion als
+`Promise<T>` deklariert, lügt gegenüber dem Compiler und allen Konsumenten.
+
+**Regel:** `update()`- und `delete()`-Funktionen mit `.returning()` deklarieren ihren
+Rückgabetyp als `Promise<T | undefined>`. `insert()`-Funktionen dürfen `Promise<T>` zurückgeben
+(der Row ist nach erfolgreichem INSERT garantiert vorhanden):
+```ts
+// Richtig:
+export async function updateTeilnehmer(id: string, data: TeilnehmerData): Promise<Teilnehmer | undefined> {
+  const [updated] = await db.update(teilnehmer).set(data).where(eq(teilnehmer.id, id)).returning();
+  return updated;
+}
+// Falsch: Promise<Teilnehmer> – undefined bei no-match unsichtbar für den Compiler
+```
+
 ### Zod-Schema: Obergrenze für Integer-mapped Inputs fehlt (aus #49, Security-Hint)
 
 Regex-basierte Preis-Validierung (`/^\d+([.,]\d{1,2})?$/`) prüft das **Format**, aber nicht
@@ -339,6 +357,15 @@ z.string()
 Analog für andere Integer-Felder (z. B. `sortOrder`): `.max(2_147_483_647)` oder ein
 domänen-sinnvolles Maximum. Ohne Obergrenze ist der DB-Overflow die einzige Fehlergrenze –
 fail-open für den Nutzerfeedback-Weg.
+
+**Erweiterung auf `text`-Spalten (aus #50, Security-Hint):** Bei Postgres-`text` gibt es keine
+DB-seitige Grenze – überlange Eingaben landen ohne Fehler in der DB. Auch wenn die Bedrohungs-
+oberfläche niedrig ist (nur authentifizierte Verwalter), fehlt jede Nutzerrückmeldung. **Regel:**
+Jedes Zod-String-Feld auf einer `text`-Spalte erhält eine domänen-sinnvolle Obergrenze:
+```ts
+z.string().trim().min(1, "…").max(200, "Name ist zu lang.")
+```
+Faustregel: Displaynamen 200, Freitext 1000, URLs/Keys nach Domäne.
 
 ---
 

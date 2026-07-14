@@ -36,6 +36,13 @@
       "when": 1784000000001,
       "tag": "0004_seed_catalog_reference",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784058375546,
+      "tag": "0005_lean_reavers",
+      "breakpoints": true
     }
   ]
 }
