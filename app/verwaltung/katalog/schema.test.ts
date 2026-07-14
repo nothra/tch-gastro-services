@@ -53,6 +53,11 @@ describe("catalogItemSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("should_rejectPrice_when_exceedingInt4Max", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, priceCents: "99999999999" });
+    expect(result.success).toBe(false);
+  });
+
   it("should_rejectName_when_empty", () => {
     const result = catalogItemSchema.safeParse({ ...valid, name: "   " });
     expect(result.success).toBe(false);

@@ -4,12 +4,7 @@ import { useActionState, useCallback, useState } from "react";
 import { formatCents } from "@/lib/money";
 import type { CatalogItem } from "@/db/schema";
 import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
-import { CatalogFields } from "./CatalogFields";
-
-const CATEGORY_LABEL: Record<CatalogItem["category"], string> = {
-  getraenk: "Getränk",
-  kaffee: "Kaffee",
-};
+import { CatalogFields, CATEGORY_LABEL } from "./CatalogFields";
 
 // Eine Katalog-Zeile: Anzeige, Inline-Bearbeitung und Deaktivieren/Reaktivieren.
 export function CatalogRow({ item }: { item: CatalogItem }) {

@@ -27,6 +27,20 @@ function firstIssueMessage(error: { issues: { message: string }[] }): string {
   return error.issues[0]?.message ?? "Ungültige Eingabe.";
 }
 
+// Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung.
+// Gibt null zurück wenn erfolgreich, ansonsten den Fehlerzustand.
+async function runWithUniqueCheck(
+  fn: () => Promise<unknown>,
+): Promise<CatalogFormState | null> {
+  try {
+    await fn();
+    return null;
+  } catch (error) {
+    if (isUniqueViolation(error)) return { error: DUPLICATE_MESSAGE };
+    throw error;
+  }
+}
+
 export async function createCatalogItemAction(
   _prevState: CatalogFormState | undefined,
   formData: FormData,
@@ -35,12 +49,8 @@ export async function createCatalogItemAction(
   const parsed = catalogItemSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
-  try {
-    await createItem(parsed.data);
-  } catch (error) {
-    if (isUniqueViolation(error)) return { error: DUPLICATE_MESSAGE };
-    throw error;
-  }
+  const result = await runWithUniqueCheck(() => createItem(parsed.data));
+  if (result) return result;
   revalidatePath(CATALOG_PATH);
   return { ok: true };
 }
@@ -56,12 +66,8 @@ export async function updateCatalogItemAction(
   const parsed = catalogItemSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
-  try {
-    await updateItem(id, parsed.data);
-  } catch (error) {
-    if (isUniqueViolation(error)) return { error: DUPLICATE_MESSAGE };
-    throw error;
-  }
+  const result = await runWithUniqueCheck(() => updateItem(id, parsed.data));
+  if (result) return result;
   revalidatePath(CATALOG_PATH);
   return { ok: true };
 }

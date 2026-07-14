@@ -1,5 +1,11 @@
 import type { CatalogItem } from "@/db/schema";
 
+// Kanonische Quelle für Kategorie-Labels – auch von CatalogRow genutzt.
+export const CATEGORY_LABEL: Record<CatalogItem["category"], string> = {
+  getraenk: "Getränk",
+  kaffee: "Kaffee",
+};
+
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
 
@@ -37,8 +43,13 @@ export function CatalogFields({ item }: { item?: CatalogItem }) {
       <label className="flex flex-col gap-1 text-sm">
         Kategorie
         <select name="category" defaultValue={item?.category ?? "getraenk"} className={inputClass}>
-          <option value="getraenk">Getränk</option>
-          <option value="kaffee">Kaffee</option>
+          {(Object.entries(CATEGORY_LABEL) as [CatalogItem["category"], string][]).map(
+            ([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ),
+          )}
         </select>
       </label>
       <label className="flex flex-col gap-1 text-sm">

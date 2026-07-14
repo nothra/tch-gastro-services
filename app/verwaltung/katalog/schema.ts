@@ -17,7 +17,8 @@ export const catalogItemSchema = z.object({
     .string()
     .trim()
     .regex(EURO_INPUT_RE, "Preis muss ein Betrag ≥ 0 mit höchstens 2 Nachkommastellen sein.")
-    .transform(parseEuroToCents),
+    .transform(parseEuroToCents)
+    .refine((cents) => cents <= 2_147_483_647, "Preis ist zu hoch."),
   category: z.enum(catalogCategory.enumValues, {
     error: "Kategorie muss Getränk oder Kaffee sein.",
   }),

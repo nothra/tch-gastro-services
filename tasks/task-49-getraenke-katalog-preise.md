@@ -4,9 +4,9 @@
 - [ ] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -124,8 +124,17 @@ das löst laut ESLint kaskadierende Re-Renders aus. Vor dem finalen Commit beheb
 (z. B. Reaktion auf `state` außerhalb des Effekts modellieren oder Ableitung aus `state`
 statt eigenem `editing`-State), danach `pnpm lint` erneut grün bestätigen.
 
+### Refactoring (2026-07-13)
+- `actions.ts`: `runWithUniqueCheck`-Helper extrahiert – eliminiert identische try/catch-Blöcke in create und update.
+- `CATEGORY_LABEL` nach `CatalogFields.tsx` verschoben und exportiert; `CatalogRow.tsx` importiert es daraus – eine Quelle für Kategorie-Labels.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-49.md`. Zwei neue Stolpersteine in `docs/factory/PROJECT-CONTEXT.md`:
+1. `useActionState` + Inline-Toggle: setState im Callback, nicht im useEffect
+2. Zod-Schema: Obergrenze für Integer-mapped Inputs (int4-Overflow → generischer 500)
+   → umgesetzt in `app/verwaltung/katalog/schema.ts` (`priceCents`-`.refine(... <= 2_147_483_647)`)
+   + Testfall in `schema.test.ts`, noch in diesem PR.
 
 ---
 Branch: `feature/49-getraenke-katalog-preise`
