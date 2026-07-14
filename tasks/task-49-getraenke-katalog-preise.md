@@ -1,9 +1,9 @@
 # Task 49: getraenke-katalog-preise
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] In Bearbeitung
+- [x] Review bestanden
+- [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
