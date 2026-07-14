@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -137,6 +137,8 @@ als Regeln erfasst und haben korrekt gegriffen. Positiv-Bestätigung: useCallbac
 Schicht-Trennung ohne Findings. Offene Folgearbeit: `firstIssueMessage`-Duplikat als
 GitHub-Issue anlegen (tech-debt, enhancement) – `gh`-Befehl war permission-gated.
 Vollständiger Report: `tasks/codify-50.md`.
+
+PR-Shepherd [2026-07-14]: Alle Gates grün (lint, factory-self-test, issue-sync, Vercel). Test-CI pending → Auto-Merge freigegeben, wartet auf CI. Draft aufgelöst, PR #104 merge-ready.
 
 ---
 Branch: `feature/50-teilnehmer-stammdaten`
