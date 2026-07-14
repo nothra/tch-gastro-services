@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { firstIssueMessage } from "./form-utils";
+import { firstIssueMessage } from "./form-errors";
 
 describe("firstIssueMessage", () => {
   it("should_returnFirstIssueMessage_when_singleIssue", () => {

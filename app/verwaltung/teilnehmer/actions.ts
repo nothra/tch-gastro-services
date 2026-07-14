@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/authz";
-import { firstIssueMessage } from "@/lib/form-utils";
+import { firstIssueMessage } from "@/lib/form-errors";
 import {
   createTeilnehmer,
   findActiveByName,

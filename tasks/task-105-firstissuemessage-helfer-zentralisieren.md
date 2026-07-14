@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -25,11 +25,14 @@ Kopien durch den Import ersetzen. Kein neues Verhalten (tech-debt).
 - [x] Verhalten der beiden Actions unverändert (bestehende Action-Tests bleiben grün).
 
 ## Technische Notizen
-- Neuer Seam: `lib/form-utils.ts` mit `export function firstIssueMessage(...)`.
+- Neuer Seam: `lib/form-errors.ts` mit `export function firstIssueMessage(...)`.
+  (Issue schlug `form-utils.ts` vor; im Review auf den domänenspezifischen Namen
+  `form-errors.ts` umbenannt – konsistent mit `authz`/`money`/`credentials`, kein
+  generisches „utils".)
 - Parametertyp bleibt strukturell minimal (`{ issues: { message: string }[] }`)
   statt an `ZodError` gebunden – so ist der Helfer ohne Zod-Aufbau testbar und deckt
   jede `safeParse`-Fehlerform ab. Verhalten 1:1 aus den Originalkopien übernommen.
-- Import-Pfad `@/lib/form-utils` (Alias-Konvention wie `@/lib/authz`, `@/lib/money`).
+- Import-Pfad `@/lib/form-errors` (Alias-Konvention wie `@/lib/authz`, `@/lib/money`).
 
 ## Offene Fragen
 Keine.
