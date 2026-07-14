@@ -1,7 +1,7 @@
 # Task 50: teilnehmer-stammdaten
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -87,6 +87,30 @@ aus `requireRole("verwalter")` – Test über direkten Action-Aufruf mit Abrechn
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 Keine offenen Produktfragen (Spec bestätigt). Datenmodell/Namensgleichheit → `/architecture`.
+
+## Implementierungs-Notizen (2026-07-14)
+
+ADR-Trigger-Check (Schritt 0): kein neuer Trigger – ADR-022 ist bereits *Accepted* und
+deckt alle Modellierungsentscheidungen (eine Tabelle, kein Namens-Unique, Historie in F4).
+
+Implementiert (TDD, Muster analog Getränke-Katalog #49):
+- `db/schema.ts`: Enum `teilnehmer_typ` + Tabelle `teilnehmer` (kein Unique auf `name`).
+- `db/teilnehmer.ts`: rollen-neutraler Data-Layer (`listTeilnehmer`, `listActiveTeilnehmer`,
+  `createTeilnehmer`, `updateTeilnehmer`, `setTeilnehmerActive`, `findActiveByName`), sort `asc(name)`.
+- `app/verwaltung/teilnehmer/schema.ts`: Zod (`name` trim+min1, `typ` enum, `mitglied`
+  Checkbox→boolean).
+- `app/verwaltung/teilnehmer/actions.ts`: `requireRole("verwalter")` fail-closed; nicht-blockierende
+  Duplikat-Warnung über `confirmDuplicate`-Zweig (ADR-022, kein `23505`-Pfad).
+- UI: `page.tsx`, `TeilnehmerForm.tsx`, `TeilnehmerFields.tsx`, `TeilnehmerRow.tsx`
+  (Inline-Edit-Erfolg über `useCallback`-Wrapper, kein `useEffect`).
+- Tests: `schema.test.ts`, `actions.test.ts`, `page.test.tsx` (mockfrei/gemockte Grenze),
+  `db/teilnehmer.test.ts` (Integration, `skipIf` ohne DB).
+
+**Blocker [2026-07-14]: Quality Gates + Migration nicht ausgeführt – `pnpm`-Befehle
+sind in dieser Session permission-gated.** Erforderliche Aktion des Menschen: `pnpm db:generate`
+(neues Enum + Tabelle, kein Enum-Wert-Wechsel → nicht #48-betroffen), `pnpm lint`, `pnpm test`
+freigeben bzw. ausführen. UI-Oberflächentest (`pnpm db:up` + `pnpm test:e2e` / Browser) danach.
+Erst wenn Lint + Tests grün: Akzeptanzkriterien abhaken und commit über `scripts/factory-commit.sh`.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

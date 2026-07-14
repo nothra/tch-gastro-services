@@ -99,3 +99,27 @@ export const catalogItems = pgTable(
 
 export type CatalogItem = typeof catalogItems.$inferSelect;
 export type NewCatalogItem = typeof catalogItems.$inferInsert;
+
+// Teilnehmer-Stammdaten (F3, #50, ADR-022). Eine Zeile ist eine Abrechnungseinheit und
+// kann eine Einzelperson ODER eine Familie sein – unterschieden nur über `typ` (deutsche
+// Enum-Werte wie user_role/catalog_category). Bewusste Abweichung vom Katalog: KEIN
+// Unique auf `name` – Namensgleichheit ist erlaubt (ADR-022, Frage 2), die Warnung sitzt
+// applikativ in der Action. `mitglied` ist reines Info-/Auswertungskennzeichen und NICHT
+// preisrelevant (spec-50). Kein Hard-Delete – Deaktivieren über `active`.
+export const teilnehmerTyp = pgEnum("teilnehmer_typ", ["person", "familie"]);
+export type TeilnehmerTyp = (typeof teilnehmerTyp.enumValues)[number];
+
+export const teilnehmer = pgTable("teilnehmer", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => globalThis.crypto.randomUUID()),
+  name: text("name").notNull(),
+  typ: teilnehmerTyp("typ").notNull(),
+  mitglied: boolean("mitglied").notNull().default(false),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Teilnehmer = typeof teilnehmer.$inferSelect;
+export type NewTeilnehmer = typeof teilnehmer.$inferInsert;
