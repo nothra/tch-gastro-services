@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -59,7 +59,12 @@ Keine.
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Report: `tasks/codify-105.md`. Zwei Regeln abgeleitet (beide im Review gefunden):
+1. `PROJECT-CONTEXT.md` – `lib/`-Module domänenspezifisch benennen, kein generisches `utils`
+   (Rework: `form-utils` → `form-errors`).
+2. `testing-standards.md` – Assertion gegen Literal, nicht gegen das Objekt-under-Test
+   (tautologische `toBe(result.error.issues[0].message)`-Assertion behoben).
+Kein Check, kein Folge-Issue nötig.
 
 ---
 Branch: `refactor/105-firstissuemessage-helfer-zentralisieren`

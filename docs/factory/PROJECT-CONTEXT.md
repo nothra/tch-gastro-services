@@ -367,6 +367,25 @@ z.string().trim().min(1, "…").max(200, "Name ist zu lang.")
 ```
 Faustregel: Displaynamen 200, Freitext 1000, URLs/Keys nach Domäne.
 
+### Neue `lib/`-Module domänenspezifisch benennen, kein generisches `utils` (aus #105, Review-Finding)
+
+Beim Zentralisieren eines gemeinsamen Helfers entsteht der Reflex, ihn in ein
+`lib/form-utils.ts` / `lib/helpers.ts` / `lib/utils.ts` zu legen – auch wenn ein Issue
+diesen Namen bereits vorschlägt (in #105 lautete der Issue-Titel wörtlich „… in
+`lib/form-utils.ts` zentralisieren"). Das kollidiert mit der etablierten `lib/`-Konvention:
+alle Module tragen sprechende Domänennamen (`authz`, `money`, `credentials`, `rate-limit`,
+`stage`). Ein generisches „utils" benennt die technische Kategorie statt der Verantwortung
+und wird zur „Grabbelkiste", in der Unzusammenhängendes landet (clean-code.md: „Keine
+generischen Namen … ohne Kontext").
+
+**Regel:** Ein neues `lib/`-Modul nach seiner **Verantwortung** benennen, nicht nach der
+technischen Kategorie – z. B. `form-errors.ts` (Zod-Fehlermeldung → Nutzertext), nicht
+`form-utils.ts`. Ein im Issue vorgeschlagener generischer Name ist **kein** Freibrief:
+er wurde als Platzhalter notiert, nicht als bindende Design-Entscheidung – im Zweifel im
+Review hinterfragen und umbenennen (kostet 1 Datei + Imports). Landet später mehr im Modul,
+das keine gemeinsame Verantwortung teilt, ist das ein Zeichen, es aufzuteilen, nicht ein
+`utils` zu rechtfertigen.
+
 ---
 
 ## Offene Architektur-Fragen
