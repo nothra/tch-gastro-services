@@ -194,7 +194,7 @@ Für `/implement 120` (dieser ADR implementiert **keinen** Code):
   'veranstalter';` (Snapshot konsistent, lokal gegen Wegwerf-DB verifizieren, #48).
 - `db/schema.ts`: `pgEnum("user_role", ["verwalter", "veranstalter"])`.
 - Code: `requireRole("abrechner")` (×5) und `requireAnyRole(["verwalter","abrechner"])` (×1) in
-  `_fuehren/actions.ts`, `hasRole(..., "abrechner")` in `page.tsx` + `[id]/page.tsx` → jeweils
+  `app/veranstaltung/actions.ts`, `hasRole(..., "abrechner")` in `page.tsx` + `[id]/page.tsx` → jeweils
   `"veranstalter"`; alle Tests mit `["abrechner"]` mitziehen (Codify: `requireRole`-Guard-
   Branches brauchen Tests).
 - Doku synchronisieren (kanonische Quelle zuerst, dann Kopien – Codify W-02/W-03):

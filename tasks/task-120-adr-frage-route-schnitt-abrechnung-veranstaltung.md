@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -134,6 +134,17 @@ Berechtigungen dieser Session gaten mutierende Shell-Kommandos (`git mv`/`mv`, b
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+→ Inhalt: `tasks/review-120.md`
+
+## Refactoring-Notizen (/refactor 120, 2026-07-15)
+
+Kein neues Verhalten. Zwei Nitpicks aus dem Review-120 behoben:
+- **ADR-024:196** `_fuehren/actions.ts` → `app/veranstaltung/actions.ts` (Pfad existiert weder
+  heute noch im Zielbild; korrekter Ziel-Pfad nach D1-Move).
+- **`db/migrations/meta/_journal.json`** Fehlendes Trailing-Newline ergänzt (kosmetisch).
+
+Pre-Commit (Lint) grün. Tests konnten nicht lokal ausgeführt werden (Session-Berechtigung –
+Blocker D1 + Migration-Verifikation durch den Menschen offen, s. Implementierungs-Notizen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
