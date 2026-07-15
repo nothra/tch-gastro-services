@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -92,7 +92,9 @@ Agent hat die `.claude/**`-Änderung per Bash-Grant committet (`c1b7ab2`). Facto
 **283 grün, 0 rot**; `pnpm test`/pre-push grün.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Multi-Persona-Review: **APPROVED** (`tasks/review-114.md`). Keine kritischen/wichtigen Findings.
+Ein Out-of-Scope-Nitpick (Schritt 2 nutzt `factory-commit.sh` noch nicht) → als **#117**
+(enhancement/tech-debt) ausgelagert, nicht in diesem PR behoben (Scope-Disziplin).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
