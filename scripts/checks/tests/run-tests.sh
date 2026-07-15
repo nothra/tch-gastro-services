@@ -1505,6 +1505,18 @@ _shep_merge_line="$(first_match_line 'gh pr merge --auto --squash' "$SHEPHERD")"
 assert_true "$([ "$_shep_commit_line" -gt 0 ] && [ "$_shep_merge_line" -gt 0 ] && [ "$_shep_commit_line" -lt "$_shep_merge_line" ]; echo $?)" \
   "#114: Abschlussnotiz wird vor 'gh pr merge --auto --squash' committet (Reihenfolge)"
 
+# #117: pr-shepherd Schritt 2 (Review-Kommentare auflösen) committet Review-Fixes über den
+# Commit/Push-Seam factory-commit.sh (ADR-019) – analog Schritt 6 (#114) und implement/test/
+# refactor. Bewusst gegen den Schritt-2-ABSCHNITT geprüft (Zeilenbereich zwischen den Headern
+# '### Schritt 2' und '### Schritt 3'), NICHT global: der bereits vorhandene Schritt-6-Treffer
+# darf den Guard nicht fälschlich grün färben (Lehre #114: ein Treffer im falschen Abschnitt ist
+# so wenig ein Nachweis wie ein Prosa-Treffer).
+_shep_s2_start="$(first_match_line '### Schritt 2' "$SHEPHERD")"
+_shep_s3_start="$(first_match_line '### Schritt 3' "$SHEPHERD")"
+assert_true "$([ "$_shep_s2_start" -gt 0 ] && [ "$_shep_s3_start" -gt "$_shep_s2_start" ] \
+  && sed -n "${_shep_s2_start},${_shep_s3_start}p" "$SHEPHERD" | grep -qF 'factory-commit.sh'; echo $?)" \
+  "#117: pr-shepherd.md Schritt 2 committet Review-Fixes via factory-commit.sh (Seam)"
+
 # Fail-closed: kein pauschales Bash(git *) / Bash(gh *).
 assert_true "$(! grep -qE 'Bash\(git \*\)|Bash\(gh \*\)' "$SETTINGS"; echo $?)" \
   "#91: kein pauschales Bash(git *)/Bash(gh *)"
