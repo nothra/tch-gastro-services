@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -106,7 +106,11 @@ Ein Out-of-Scope-Nitpick (Schritt 2 nutzt `factory-commit.sh` noch nicht) → al
 (enhancement/tech-debt) ausgelagert, nicht in diesem PR behoben (Scope-Disziplin).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Details: `tasks/codify-114.md`. Neue Regel in `PROJECT-CONTEXT.md`: „Reihenfolge-Guards:
+Kommando ≠ Prosa-Erwähnung (aus #114)" – die erste Ordering-Assertion matchte einen
+Prosa-Verweis auf `gh pr merge --auto` (Schritt 4) statt das Kommando (Schritt 6); aufgefallen
+bei der Verifikation gegen die gepatchte Temp-Kopie. Bestätigt: Patch-Workflow (#94) +
+Out-of-Scope-Disziplin (#117) funktionieren. Kein neues Issue aus Codify.
 
 ---
 Branch: `docs/114-abschlussnotiz-vor-merge`

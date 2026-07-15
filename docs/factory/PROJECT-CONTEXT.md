@@ -404,6 +404,25 @@ stehen. Ein Konsistenz-Test in `scripts/checks/tests/run-tests.sh` sichert die R
 (grep auf `factory-commit.sh` vor dem Freigabe-Kommando). Verwandt mit der CLAUDE.md-Guardrail
 „Task-Datei final auf dem Feature-Branch abschließen – vor dem Merge" (aus #63).
 
+### Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung (aus #114, Implement-Selbstfund)
+
+Ein Self-Test, der die **Reihenfolge** zweier Elemente in einer Skill-Doku prüft (Kommando A
+vor Kommando B), greppt naheliegend nach der kurzen Kommandoform. Kommt dieselbe Zeichenkette
+im Dokument aber **auch als Prosa-Verweis** vor, matcht `grep -n … | head -1` den *frühesten*
+Treffer – und das ist womöglich die Erwähnung, nicht das Kommando. Konkret in #114: die
+Reihenfolge-Assertion prüfte gegen `gh pr merge --auto`; diese kurze Form steht schon in
+`pr-shepherd.md` Schritt 4 als Prosa-Hinweis (Zeile 68), lange **vor** dem echten Freigabe-
+Kommando in Schritt 6 → falsches FAIL. Aufgefallen erst bei der Verifikation gegen die
+**gepatchte Temp-Kopie** (nicht schon am Rot-gegen-Unpatched).
+
+**Regel:** Reihenfolge-/Positions-Guards gegen die **distinktive, vollständige** Kommandoform
+prüfen (hier `gh pr merge --auto --squash`), nicht gegen ein Präfix, das auch als Fließtext
+auftaucht. Und: den Guard nicht nur „rot gegen den Ist-Stand" verifizieren, sondern zusätzlich
+**grün gegen die gepatchte/gewünschte Fassung** (Temp-Kopie) – nur so fällt ein Fehl-Match auf,
+der zufällig trotzdem rot war. Ergänzt `clean-code.md` „Ein Gate-Regex gehört durch einen Test
+abgesichert … Positiv- **und** Negativ-Beispiel"; der subtile Fall hier ist ein *legitimer*
+Prosa-Treffer, der nicht matchen darf.
+
 ---
 
 ## Offene Architektur-Fragen
