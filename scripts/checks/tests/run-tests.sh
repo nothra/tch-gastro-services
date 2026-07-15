@@ -1517,6 +1517,13 @@ assert_true "$([ "$_shep_s2_start" -gt 0 ] && [ "$_shep_s3_start" -gt "$_shep_s2
   && sed -n "${_shep_s2_start},${_shep_s3_start}p" "$SHEPHERD" | grep -qF 'factory-commit.sh'; echo $?)" \
   "#117: pr-shepherd.md Schritt 2 committet Review-Fixes via factory-commit.sh (Seam)"
 
+# #117 (AC2): das Seam-Kommando trägt im selben Abschnitt die fail-closed-Begründung mit
+# ADR-019-Verweis – separat vom Kommando prüfbar, damit ein späteres Entfernen der Begründung
+# (bei erhaltenem Kommando) auffällt. Wieder auf den Schritt-2-Abschnitt eingegrenzt.
+assert_true "$([ "$_shep_s2_start" -gt 0 ] && [ "$_shep_s3_start" -gt "$_shep_s2_start" ] \
+  && sed -n "${_shep_s2_start},${_shep_s3_start}p" "$SHEPHERD" | grep -qF 'ADR-019'; echo $?)" \
+  "#117: pr-shepherd.md Schritt 2 nennt die fail-closed-Begründung (ADR-019)"
+
 # Fail-closed: kein pauschales Bash(git *) / Bash(gh *).
 assert_true "$(! grep -qE 'Bash\(git \*\)|Bash\(gh \*\)' "$SETTINGS"; echo $?)" \
   "#91: kein pauschales Bash(git *)/Bash(gh *)"
