@@ -111,6 +111,26 @@ Verstoß gegen testing-standards.md). Fix: `vi.resetAllMocks()`. `pnpm lint` + `
 (149 passed) jetzt grün.
 
 ## Review-Findings
+Review 2026-07-15 (`tasks/review-51.md`): Empfehlung NEEDS_REWORK. Behoben:
+
+- **[kritisch] Schreibschutz-Umgehung in `removeZeileAction`/`removeZeile`** – `removeZeile`
+  filterte nur über `veranstaltungZeile.id`, ohne Bindung an `veranstaltungId`. Ein manipulierter
+  Request (offene Veranstaltung + fremde `zeileId` aus abgeschlossener Veranstaltung/Theke) konnte
+  die fremde Zeile löschen. **Fix:** Signatur `removeZeile(zeileId, veranstaltungId)`, Delete via
+  `and(eq(id, …), eq(veranstaltungId, …))`; Action übergibt beide Werte. Data-Layer-Test
+  `should_notRemoveZeileOfOtherVeranstaltung_when_veranstaltungIdMismatch` (belegt no-match →
+  `undefined`, fremde Zeile bleibt) + Action-Test auf `("z1","v1")` angepasst.
+- **[wichtig] Fehlende Active-Prüfung in `addZeileAction`** – `getTeilnehmer` selektiert unabhängig
+  von `active`; ein manipulierter Request konnte einen soft-gelöschten Teilnehmer erfassen.
+  **Fix:** `if (!person || !person.active) return { error: … }`; Test
+  `should_returnErrorAndNotPersist_when_teilnehmerInactive`.
+- Nitpicks (KASSE_LABEL-Fallback, AbrechnerGate-Extraktion, void-Actions ohne Feedback,
+  skipIf-Integrationstests, protokolliertes Wiederöffnen) bewusst nicht in #51 behandelt – teils
+  durch DB-CHECK unmöglich, teils an F8/#55 bzw. spätere Refactorings delegiert (siehe Review-Datei).
+
+**Offen:** Quality-Gates (`pnpm lint`, `pnpm test`, inkl. DB-Integrationstest gegen lokale Docker-DB)
+nach diesen Änderungen erneut grün fahren – in dieser Session per Permission-Mode blockiert (pnpm
+nicht ausführbar). Danach committen via `scripts/factory-commit.sh`.
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen

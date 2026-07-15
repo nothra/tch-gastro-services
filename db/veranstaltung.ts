@@ -87,10 +87,19 @@ export async function addZeile(
   return created;
 }
 
-export async function removeZeile(zeileId: string): Promise<VeranstaltungZeile | undefined> {
+// Löscht eine Zeile nur, wenn sie zur angegebenen Veranstaltung gehört. Die Bindung an
+// veranstaltungId ist der serverseitige Schreibschutz: ohne sie könnte ein manipulierter
+// Request über eine offene Veranstaltung eine fremde Zeile (abgeschlossene Veranstaltung
+// oder Theke) löschen (Review #51, kritisches Finding).
+export async function removeZeile(
+  zeileId: string,
+  veranstaltungId: string,
+): Promise<VeranstaltungZeile | undefined> {
   const [removed] = await db
     .delete(veranstaltungZeile)
-    .where(eq(veranstaltungZeile.id, zeileId))
+    .where(
+      and(eq(veranstaltungZeile.id, zeileId), eq(veranstaltungZeile.veranstaltungId, veranstaltungId)),
+    )
     .returning();
   return removed;
 }

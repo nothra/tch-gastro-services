@@ -159,9 +159,23 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const person = await trackTeilnehmer("Dora");
     const zeile = await addZeile(v.id, person);
 
-    const removed = await removeZeile(zeile.id);
+    const removed = await removeZeile(zeile.id, v.id);
     expect(removed?.id).toBe(zeile.id);
     expect(await listZeilen(v.id)).toHaveLength(0);
+  });
+
+  it("should_notRemoveZeileOfOtherVeranstaltung_when_veranstaltungIdMismatch", async () => {
+    const fremde = await trackVeranstaltung(datierte());
+    const eigene = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Emil");
+    const zeile = await addZeile(fremde.id, person);
+
+    // Löschversuch mit der id einer fremden Zeile, aber der eigenen (offenen) Veranstaltung:
+    // die Bindung an veranstaltungId muss das verhindern (Schreibschutz nicht umgehbar).
+    const removed = await removeZeile(zeile.id, eigene.id);
+
+    expect(removed).toBeUndefined();
+    expect(await listZeilen(fremde.id)).toHaveLength(1);
   });
 
   it("should_rejectSecondThekeForSameKasse_when_insertedDirectly", async () => {

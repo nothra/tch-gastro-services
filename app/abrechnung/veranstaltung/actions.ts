@@ -64,8 +64,11 @@ export async function addZeileAction(
   if (!ziel) return { error: NOT_FOUND };
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
+  // Nur aktive Stammdaten-Teilnehmer dürfen erfasst werden. getTeilnehmer selektiert
+  // unabhängig von `active`, daher hier explizit prüfen – ein manipulierter Request darf
+  // keinen soft-gelöschten (inaktiven) Teilnehmer erfassen (Review #51, ADR-022).
   const person = await getTeilnehmer(teilnehmerId);
-  if (!person) return { error: "Teilnehmer nicht gefunden." };
+  if (!person || !person.active) return { error: "Teilnehmer nicht gefunden." };
 
   try {
     await addZeile(veranstaltungId, person);
@@ -113,7 +116,7 @@ export async function removeZeileAction(formData: FormData): Promise<void> {
   const ziel = await getVeranstaltung(veranstaltungId);
   if (!ziel || ziel.status !== "offen") return;
 
-  await removeZeile(zeileId);
+  await removeZeile(zeileId, veranstaltungId);
   revalidatePath(detailPath(veranstaltungId));
 }
 

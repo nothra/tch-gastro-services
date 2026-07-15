@@ -170,6 +170,15 @@ describe("addZeileAction", () => {
 
     expect(result.error).toMatch(/bereits erfasst/);
   });
+
+  it("should_returnErrorAndNotPersist_when_teilnehmerInactive", async () => {
+    getTeilnehmerMock.mockResolvedValue({ ...person, active: false });
+
+    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" }));
+
+    expect(result.error).toBeDefined();
+    expect(addZeileMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("createWalkInAction", () => {
@@ -210,9 +219,9 @@ describe("createWalkInAction", () => {
 });
 
 describe("removeZeileAction", () => {
-  it("should_removeZeile_when_veranstaltungOpen", async () => {
+  it("should_removeZeileBoundToVeranstaltung_when_veranstaltungOpen", async () => {
     await removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }));
-    expect(removeZeileMock).toHaveBeenCalledWith("z1");
+    expect(removeZeileMock).toHaveBeenCalledWith("z1", "v1");
   });
 
   it("should_notRemove_when_veranstaltungClosed", async () => {
