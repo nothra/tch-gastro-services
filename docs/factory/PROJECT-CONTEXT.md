@@ -236,6 +236,15 @@ Component-Tests (ein Test sieht das Markup des vorigen; `screen`-Queries schlage
 **Regel:** In `vitest.setup.ts` `afterEach(() => cleanup())` behalten – nicht entfernen. Async
 Server Components in Tests via `render(await Component())` prüfen.
 
+**Ergänzung `vi.clearAllMocks()` vs. `vi.resetAllMocks()` (aus #51):** `clearAllMocks()` löscht
+nur Call-History, **nicht** Mock-Implementierungen (`mockReturnValue`/`mockRejectedValue`). Ein
+`mockRejectedValue` aus einem `describe`-Block kann dadurch in den nächsten leaken → Reihenfolge-
+Abhängigkeit zwischen Test-Blöcken (Verstoß gegen Test-Isolation).
+
+**Regel:** In `beforeEach` immer `vi.resetAllMocks()` verwenden – nicht `vi.clearAllMocks()` –
+wenn Test-Blöcke eigene Mock-Implementierungen setzen. `clearAllMocks()` genügt nur, wenn
+keine Mock-Implementierungen gesetzt werden (nur `vi.fn()` ohne `.mockReturnValue`/`.mockRejectedValue`).
+
 ### Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding)
 
 Der `run_skill()`-Report-Guard in `run-pipeline.sh` liest bei non-zero Exit die Report-Datei
@@ -422,6 +431,54 @@ auftaucht. Und: den Guard nicht nur „rot gegen den Ist-Stand" verifizieren, so
 der zufällig trotzdem rot war. Ergänzt `clean-code.md` „Ein Gate-Regex gehört durch einen Test
 abgesichert … Positiv- **und** Negativ-Beispiel"; der subtile Fall hier ist ein *legitimer*
 Prosa-Treffer, der nicht matchen darf.
+
+### IDOR: Data-Layer DELETE/UPDATE müssen Parent-ID einschließen (aus #51, Security-Finding)
+
+`removeZeile(zeileId)` filterte nur über `zeile.id` – ohne Bindung an die übergeordnete
+`veranstaltungId`. Ein manipulierter Request mit einer offenen Veranstaltung konnte über die
+offene Action-Grenze eine Zeile aus einer **anderen** Veranstaltung oder Theke löschen (IDOR).
+**Fix:** Signatur `removeZeile(zeileId, veranstaltungId)`, Delete via
+`and(eq(id, zeileId), eq(veranstaltungId, veranstaltungId))`.
+
+**Regel:** Jede DELETE- oder UPDATE-Operation auf einer Zeilen-Tabelle (mit FK-Bezug auf einen
+Parent) **muss den Parent-Key im WHERE einschließen** – nicht nur den Primärschlüssel der Zeile.
+Nur `id` als Filterbedingung ist ein IDOR-Risiko, auch wenn RBAC auf Action-Ebene greift.
+Pflicht-Begleitung: Integrationstest, der belegt, dass bei `veranstaltungId`-Mismatch `undefined`
+zurückkommt und die fremde Zeile unverändert bleibt.
+
+### Soft-Delete: `active`-Prüfung nach jedem Laden by ID (aus #51, Review-Finding)
+
+`getTeilnehmer(id)` gab soft-gelöschte Teilnehmer (`active = false`) ohne `WHERE active = true`
+zurück. Die aufgerufene Action (`addZeileAction`) prüfte `active` nicht → ein manipulierter
+Request konnte einen inaktiven Teilnehmer in eine Veranstaltung eintragen, obwohl die UI ihn
+nicht anzeigt.
+
+**Regel:** Jede Funktion, die eine Entität per `id` lädt und das Ergebnis anschließend in einer
+Schreiboperation nutzt, prüft explizit auf `active`:
+```ts
+const person = await getTeilnehmer(teilnehmerId);
+if (!person || !person.active) return { error: "Teilnehmer nicht gefunden." };
+```
+Alternativ: `active = true` bereits im Query (z. B. `and(eq(id, …), eq(active, true))`).
+Nie darauf vertrauen, dass die UI nur aktive Entitäten anzeigt – die Action ist die Grenze.
+
+### Guard-Clause-Branches in Server Actions brauchen dedizierte Tests (aus #51, Review-Finding)
+
+Die `!id || !veranstaltungId`-Guards an der Spitze mehrerer Server Actions hatten keine Tests.
+Laut `testing-standards.md` erwartet neuer Code 100 % Coverage – aber der Reflex ist, nur
+Happy-Path + bekannte Error-Paths (z. B. `23505`) zu testen, nicht die Eingabe-Guards.
+
+**Smell:** „Wenn ich diesen Guard entferne, schlägt kein Test fehl" – dann fehlt der Test.
+
+**Regel:** Jeder Guard-Clause-Branch an der Action-Grenze (Leerfeldprüfungen, null-Guards auf
+Pflicht-IDs) erhält einen eigenen Testfall, der genau diesen Branch auslöst. Beispiel:
+```ts
+it("should_returnError_when_veranstaltungIdMissing", async () => {
+  const formData = new FormData(); // veranstaltungId fehlt
+  const result = await addZeileAction(undefined, formData);
+  expect(result?.error).toBeDefined();
+});
+```
 
 ---
 

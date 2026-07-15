@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Feature F4: **Veranstaltung anlegen & führen**. „Veranstaltung" ist der Primärbegriff
@@ -150,7 +150,13 @@ Hinweis Permission-Mode: bare `pnpm` ist nicht allow-gelistet; die Gates laufen 
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Bericht: `tasks/codify-51.md`. Vier neue Regeln in `docs/factory/PROJECT-CONTEXT.md`:
+1. IDOR durch fehlende Parent-ID-Bindung in DELETE/UPDATE
+2. Soft-Delete: `active`-Prüfung nach Laden by ID
+3. `vi.clearAllMocks()` vs. `vi.resetAllMocks()` (Vitest-Abschnitt erweitert)
+4. Guard-Clause-Branches in Server Actions brauchen dedizierte Tests
+
+Offene Aktion (Mensch): Tech-Debt-Issue `isUniqueViolation` zentralisieren (Seam-Kommando in `tasks/codify-51.md`).
 
 ---
 Branch: `feature/51-abend-anlegen-fuehren`
