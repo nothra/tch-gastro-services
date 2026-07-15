@@ -506,4 +506,30 @@ Begründungs-Guard **rot**, Kommando-Guard **grün**). Deckt sich mit `testing-s
 
 > Noch nicht entschiedene Fragen, die eine ADR benötigen.
 
-<!-- Wird bei /architecture befüllt -->
+### Route-Schnitt: `/abrechnung/veranstaltung` – Bereich-zuerst vs. Ressource-zuerst
+
+**Frage:** Ist der Top-Level-Segment `abrechnung` der richtige Schnitt für den
+Veranstaltungs-Lifecycle, oder sollte die Route anders benannt/geschnitten werden?
+
+**Ist-Zustand:** Die App ist **bereichs-/rollenzuerst** geschnitten – symmetrisch zu
+`/verwaltung/*`. Beide Top-Level-Segmente entsprechen 1:1 den Rollen (`verwalter` →
+`/verwaltung`, `abrechner` → `/abrechnung`); jede Seite gated am Anfang auf genau die Rolle.
+`veranstaltung` ist die Ressource innerhalb des Abrechner-Bereichs
+(`/abrechnung/veranstaltung`, `/abrechnung/veranstaltung/[id]`).
+
+**Spannung:** Der Segment-Name `abrechnung` verspricht **Kassieren/Abrechnen**, die Route
+macht heute aber fast nur **Veranstaltungs-Lifecycle** (anlegen, führen, Teilnehmer, Status).
+Das eigentliche Kassieren ist laut Spec noch Backlog. Der Reiz, auf `veranstaltung/abrechnung`
+(bzw. `/veranstaltung/[id]/abrechnung`, ressource-zuerst) umzudrehen, betrifft in Wahrheit die
+**Benennung des Bereichs**, nicht die Reihenfolge.
+
+**Optionen:**
+- **(A) Beibehalten** `/abrechnung/veranstaltung` – bewahrt die Symmetrie zu `/verwaltung/*`
+  und ein sauberes Rollen-Präfix als RBAC-Grenze. Kassieren kommt später als Unteraktion dazu.
+- **(B) Ressource-zuerst** `/veranstaltung/[id]/abrechnung` – liest sich REST-artig, bricht
+  aber die Bereich-Symmetrie und zerstreut das Rollen-Gate über Unteraktionen.
+- **(C) Bereich umbenennen**, z. B. eigener Top-Level `/veranstaltungen` mit Kassieren als
+  Unteraktion – ehrlichere Benennung, aber neuer Kategorien-Mix mit `verwaltung`.
+
+**Nächster ADR:** 024. Entscheidung offen; Trade-off Symmetrie/RBAC-Präfix (A) vs. ehrliche
+Benennung (C). Aufgekommen bei Route-Review nach #51 (Veranstaltung anlegen & führen).
