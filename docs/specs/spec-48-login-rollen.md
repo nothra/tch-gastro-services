@@ -1,19 +1,24 @@
-# Spec: Login & Rollen (Verwalter/Abrechner)
+# Spec: Login & Rollen (Verwalter/Veranstalter)
 
 > Feature F1 · Issue #48 · Epic [Digitale Veranstaltungs-Abrechnung](README-montagsrunde.md)
+>
+> **Rollen-Umbenennung (ADR-024, #120):** Die Rolle `abrechner` wurde in **`veranstalter`**
+> umbenannt (Owner des ganzen Veranstaltungs-Lebenszyklus, nicht nur der Abrechnungs-Phase).
+> Reine Umbenennung, keine Rechte-Änderung – siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 
 Die App verwaltet Preise, Stammdaten, Abende und Bargeld. Diese Aktionen dürfen nur
 berechtigte Personen ausführen. Es gibt zwei Verantwortlichkeiten: **Verwalter** (pflegt
-Stammdaten & Preise) und **Abrechner** (führt Abende, kassiert). Teilnehmer der
+Stammdaten & Preise) und **Veranstalter** (Owner des Veranstaltungs-Lebenszyklus: anlegen,
+führen, kassieren). Teilnehmer der
 Montagsrunde brauchen **kein** Konto (siehe F7 Selbstbedienung).
 
 ## Scope
 
 **Inbegriffen:**
 - Anmeldung für Login-pflichtige Personen (baut auf dem Auth.js-Gerüst aus Task #16 auf).
-- Zwei Rollen: `verwalter` und `abrechner`.
+- Zwei Rollen: `verwalter` und `veranstalter`.
 - Serverseitige Durchsetzung der Rollenrechte (Middleware **und** in Server Actions).
 - Abmelden.
 
@@ -24,7 +29,7 @@ Montagsrunde brauchen **kein** Konto (siehe F7 Selbstbedienung).
 
 ## Rollenrechte (Referenz für abhängige Features)
 
-| Aktion | Verwalter | Abrechner |
+| Aktion | Verwalter | Veranstalter |
 |---|---|---|
 | Getränke-Katalog & Preise pflegen (F2) | ✅ | ❌ |
 | Teilnehmer-Stammdaten pflegen (F3) | ✅ | ❌ |
@@ -41,7 +46,7 @@ Montagsrunde brauchen **kein** Konto (siehe F7 Selbstbedienung).
       geschützten Daten.
 - [ ] GIVEN gültige Zugangsdaten WHEN sich eine Person anmeldet THEN ist sie angemeldet
       und ihre Rolle(n) bestimmen die sichtbaren/erlaubten Aktionen.
-- [ ] GIVEN ein angemeldeter **Abrechner** (ohne Verwalter-Rolle) WHEN er die
+- [ ] GIVEN ein angemeldeter **Veranstalter** (ohne Verwalter-Rolle) WHEN er die
       Katalog- oder Stammdaten-Pflege aufruft THEN wird die Aktion serverseitig
       abgelehnt (nicht nur im UI ausgeblendet).
 - [ ] GIVEN ein angemeldeter **Verwalter** WHEN er Katalog/Stammdaten öffnet THEN darf

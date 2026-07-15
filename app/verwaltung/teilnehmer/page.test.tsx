@@ -26,11 +26,11 @@ const familie: Teilnehmer = {
   updatedAt: new Date(),
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => vi.resetAllMocks());
 
 describe("TeilnehmerPage", () => {
   it("should_denyAccess_when_userIsNotVerwalter", async () => {
-    authMock.mockResolvedValue(session(["abrechner"]));
+    authMock.mockResolvedValue(session(["veranstalter"]));
 
     render(await TeilnehmerPage());
 

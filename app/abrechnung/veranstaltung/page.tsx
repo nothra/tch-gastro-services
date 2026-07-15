@@ -7,15 +7,15 @@ import { VeranstaltungForm } from "./VeranstaltungForm";
 import { ThekeSetup } from "./ThekeSetup";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "./labels";
 
-// Veranstaltungen anlegen & führen (F4, #51). Nur Abrechner. Die UI-Sperre ist Anzeige-
+// Veranstaltungen anlegen & führen (F4, #51). Nur Veranstalter. Die UI-Sperre ist Anzeige-
 // Komfort; die Durchsetzung liegt serverseitig in den Actions (requireRole), nicht nur hier.
 export default async function VeranstaltungenPage() {
   const session = await auth();
-  if (!hasRole(session?.user?.roles, "abrechner")) {
+  if (!hasRole(session?.user?.roles, "veranstalter")) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
         <p className="text-zinc-600 dark:text-zinc-400">
-          Kein Zugriff – nur Abrechner dürfen Veranstaltungen anlegen und führen.
+          Kein Zugriff – nur Veranstalter dürfen Veranstaltungen anlegen und führen.
         </p>
       </main>
     );
@@ -44,7 +44,7 @@ export default async function VeranstaltungenPage() {
                 className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
               >
                 <Link
-                  href={`/abrechnung/veranstaltung/${v.id}`}
+                  href={`/veranstaltung/${v.id}`}
                   className="font-medium text-cyan-700 hover:underline dark:text-cyan-400"
                 >
                   {v.bezeichnung}

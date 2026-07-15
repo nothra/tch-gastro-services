@@ -1,6 +1,11 @@
 # Spec: Auslagenerstattung (eigener Vorgang)
 
 > Feature F6 · Issue #53 · Epic [Digitale Veranstaltungs-Abrechnung](README-montagsrunde.md)
+>
+> **Zielbild (ADR-024, #120):** F6 wird die authentifizierte Unterroute
+> `app/veranstaltung/[id]/auslagen` (Bereich `app/abrechnung/veranstaltung` → **`app/veranstaltung`**
+> umbenannt). Die Owner-Rolle `abrechner` → **`veranstalter`**; „Abrechner" in diesem Dokument
+> meint diese Rolle. Siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 

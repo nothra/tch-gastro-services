@@ -1,5 +1,12 @@
 # ADR 016: RBAC – Mehrfach-Rollen (Verwalter/Abrechner) & serverseitige Durchsetzung
 
+> **Amendment (ADR-024, #120):** Die Rolle **`abrechner` wurde in `veranstalter` umbenannt**
+> (Owner des ganzen Veranstaltungs-Lebenszyklus, nicht nur der Abrechnungs-Phase). Reine
+> Umbenennung, keine Rechte-Änderung. Das hier beschriebene Rollen-Modell (Enum-Array,
+> serverseitige Durchsetzung) bleibt unverändert gültig; nur der Wert `abrechner` heißt jetzt
+> `veranstalter`. Siehe [ADR-024](024-route-schnitt-veranstaltung-lifecycle.md). Die folgenden
+> Textstellen nennen aus historischen Gründen noch `abrechner`.
+
 ## Status
 Proposed
 

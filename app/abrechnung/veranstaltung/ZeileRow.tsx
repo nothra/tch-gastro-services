@@ -2,7 +2,7 @@ import type { VeranstaltungZeile } from "@/db/schema";
 import { removeZeileAction } from "./actions";
 
 // Eine Teilnehmerzeile: zeigt den Namens-Snapshot. Solange die Veranstaltung offen ist
-// (`editable`), kann der Abrechner die Zeile entfernen. In #51 gibt es noch keine erfassten
+// (`editable`), kann der Veranstalter die Zeile entfernen. In #51 gibt es noch keine erfassten
 // Positionen (F5) – daher kein Bestätigungs-Dialog (spec-51, ADR-023 D7).
 export function ZeileRow({
   zeile,

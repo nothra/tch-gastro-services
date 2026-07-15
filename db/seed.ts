@@ -7,7 +7,7 @@ import { ensureThekeForKasse } from "./veranstaltung";
 // Legt das Login-Konto an (vom Verwalter provisioniert, keine offene Registrierung – ADR-016).
 // Bis zu einem späteren User-Admin-Feature ist Seed/DB der einzige Weg (spec-48 Scope).
 // Aufruf: pnpm db:seed  (liest SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD aus .env.local)
-const SEED_ROLES: UserRole[] = ["verwalter", "abrechner"];
+const SEED_ROLES: UserRole[] = ["verwalter", "veranstalter"];
 
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL;
@@ -23,12 +23,12 @@ async function main() {
   } else {
     await db
       .insert(users)
-      .values({ email, passwordHash, roles: SEED_ROLES, name: "Verwalter/Abrechner" });
+      .values({ email, passwordHash, roles: SEED_ROLES, name: "Verwalter/Veranstalter" });
     process.stdout.write(`Konto angelegt: ${email}\n`);
   }
 
   // Stehende Theke der Montagsrunde (ADR-023 D3): die primäre, dauerhaft genutzte Theke wird
-  // idempotent provisioniert. Weitere Kassen richtet der Abrechner bei Bedarf per UI ein
+  // idempotent provisioniert. Weitere Kassen richtet der Veranstalter bei Bedarf per UI ein
   // (spec-51: nur die tatsächlich genutzte Theke, kein Zwang zu zwei).
   const theke = await ensureThekeForKasse("montagsrunde");
   process.stdout.write(`Stehende Theke bereit: montagsrunde (${theke.id})\n`);

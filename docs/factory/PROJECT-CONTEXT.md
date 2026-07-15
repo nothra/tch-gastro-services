@@ -51,7 +51,8 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 - `Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
   Kasse**. Ein laufender Saldo über mehrere Abende ist noch nicht umgesetzt (Backlog #57).
 
-**Rollen:** `verwalter` (Stammdaten & Preise) und `abrechner` (Abende führen & kassieren);
+**Rollen:** `verwalter` (Stammdaten & Preise) und `veranstalter` (Owner des Veranstaltungs-
+Lebenszyklus: anlegen, führen, kassieren – vormals `abrechner`, umbenannt in ADR-024);
 Teilnehmer erfassen ohne Konto per Abend-Link/QR + Namenswahl. Details in `spec-48`.
 
 ---
@@ -506,30 +507,10 @@ Begründungs-Guard **rot**, Kommando-Guard **grün**). Deckt sich mit `testing-s
 
 > Noch nicht entschiedene Fragen, die eine ADR benötigen.
 
-### Route-Schnitt: `/abrechnung/veranstaltung` – Bereich-zuerst vs. Ressource-zuerst
+_Derzeit keine offenen Fragen._
 
-**Frage:** Ist der Top-Level-Segment `abrechnung` der richtige Schnitt für den
-Veranstaltungs-Lifecycle, oder sollte die Route anders benannt/geschnitten werden?
-
-**Ist-Zustand:** Die App ist **bereichs-/rollenzuerst** geschnitten – symmetrisch zu
-`/verwaltung/*`. Beide Top-Level-Segmente entsprechen 1:1 den Rollen (`verwalter` →
-`/verwaltung`, `abrechner` → `/abrechnung`); jede Seite gated am Anfang auf genau die Rolle.
-`veranstaltung` ist die Ressource innerhalb des Abrechner-Bereichs
-(`/abrechnung/veranstaltung`, `/abrechnung/veranstaltung/[id]`).
-
-**Spannung:** Der Segment-Name `abrechnung` verspricht **Kassieren/Abrechnen**, die Route
-macht heute aber fast nur **Veranstaltungs-Lifecycle** (anlegen, führen, Teilnehmer, Status).
-Das eigentliche Kassieren ist laut Spec noch Backlog. Der Reiz, auf `veranstaltung/abrechnung`
-(bzw. `/veranstaltung/[id]/abrechnung`, ressource-zuerst) umzudrehen, betrifft in Wahrheit die
-**Benennung des Bereichs**, nicht die Reihenfolge.
-
-**Optionen:**
-- **(A) Beibehalten** `/abrechnung/veranstaltung` – bewahrt die Symmetrie zu `/verwaltung/*`
-  und ein sauberes Rollen-Präfix als RBAC-Grenze. Kassieren kommt später als Unteraktion dazu.
-- **(B) Ressource-zuerst** `/veranstaltung/[id]/abrechnung` – liest sich REST-artig, bricht
-  aber die Bereich-Symmetrie und zerstreut das Rollen-Gate über Unteraktionen.
-- **(C) Bereich umbenennen**, z. B. eigener Top-Level `/veranstaltungen` mit Kassieren als
-  Unteraktion – ehrlichere Benennung, aber neuer Kategorien-Mix mit `verwaltung`.
-
-**Nächster ADR:** 024. Entscheidung offen; Trade-off Symmetrie/RBAC-Präfix (A) vs. ehrliche
-Benennung (C). Aufgekommen bei Route-Review nach #51 (Veranstaltung anlegen & führen).
+> **Erledigt (ADR-024, #120):** Die Frage nach dem Route-Schnitt des Veranstaltungs-Bereichs
+> (`/abrechnung/veranstaltung` – Bereich- vs. Ressource-zuerst) ist entschieden: Bereich nach
+> der Entität benennen → **`/veranstaltung`** (Liste) + **`/veranstaltung/[id]`** (Detail), je
+> Lifecycle-Phase eine Unterroute. Zugleich Rolle `abrechner` → `veranstalter` umbenannt.
+> Details in [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).

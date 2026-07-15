@@ -6,7 +6,7 @@ import { teilnehmer, type NewTeilnehmer, type Teilnehmer } from "./schema";
 // Drizzle-Queries auf die teilnehmer-Tabelle – Actions/UI greifen nie direkt zu
 // (PROJECT-CONTEXT, Separation of Concerns). Die Funktionen sind bewusst rollen-neutral;
 // der RBAC-Guard sitzt in der jeweiligen Action, damit F4 dieselbe createTeilnehmer-
-// Funktion für den Walk-in (requireRole("abrechner")) wiederverwenden kann (ADR-022).
+// Funktion für den Walk-in (requireRole("veranstalter")) wiederverwenden kann (ADR-022).
 
 const teilnehmerOrder = [asc(teilnehmer.name)];
 

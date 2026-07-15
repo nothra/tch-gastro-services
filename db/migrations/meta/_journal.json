@@ -50,6 +50,13 @@
       "when": 1784129803338,
       "tag": "0006_material_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784260000000,
+      "tag": "0007_rename_abrechner_veranstalter",
+      "breakpoints": true
     }
   ]
 }

@@ -91,6 +91,39 @@ Vorzeichnung für F5/F6/F8 – **nicht** in #120 als Stubs anlegen (YAGNI).
 
 Nächster Schritt: **`/implement 120`** – Konsequenzen-Abschnitt des ADR ist die Arbeitsliste.
 
+## Implementierungs-Notizen (/implement 120, 2026-07-15)
+
+**Erledigt (Rolle B – D6/D7):**
+- `db/schema.ts`: `pgEnum("user_role", ["verwalter","veranstalter"])`.
+- Migration `db/migrations/0007_rename_abrechner_veranstalter.sql`: `ALTER TYPE ... RENAME VALUE`
+  (in-place, verlustfrei); Snapshot `0007_snapshot.json` (`prevId` = 0006-id, Enum-Wert
+  `veranstalter`) + `_journal.json` konsistent.
+- Code: `requireRole/requireAnyRole/hasRole` in `actions.ts`, `page.tsx`, `[id]/page.tsx`,
+  `StatusToggle.tsx`, `ZeileRow.tsx`, `labels.ts`, `db/seed.ts`, `db/teilnehmer.ts`,
+  `db/veranstaltung.ts`, `lib/authz.ts` → `veranstalter`. Alle Tests mitgezogen (Test-Namen +
+  `sessionWithRoles(["veranstalter"])`). **Pre-push-Gate grün: 183 passed / 27 skipped.**
+- Doku-Sync: `spec-48` (Titel + Rollen), `ADR-016` (Amendment-Rückverweis auf ADR-024),
+  `PROJECT-CONTEXT.md` (Rollen-Zeile + „Offene Architektur-Fragen"-Eintrag als erledigt markiert),
+  Phasen-Specs `52/53/54/55` (Zielbild-Verweis auf ADR-024: Route + Rolle).
+
+**Erledigt (Struktur A – D1, Datei-Ebene):** Links/Pfade bereits auf `/veranstaltung` gesetzt
+(`LIST_PATH`, Zurück-Link, Detail-Links); Grep bestätigt: keine `@/app/abrechnung`-Imports, keine
+`/abrechnung`-Referenzen in Code/e2e. `proxy.ts` braucht keinen Matcher-Eintrag (Default-Schutz, D5).
+
+**Blocker [2026-07-15]: physischer Verzeichnis-Move + Migration-DB-Verify nicht ausführbar –
+Berechtigungen dieser Session gaten mutierende Shell-Kommandos (`git mv`/`mv`, bare `pnpm`,
+`pnpm db:up`).** Was der Mensch tun muss (Feature-Branch, Reihenfolge einhalten):
+1. `git mv app/abrechnung/veranstaltung app/veranstaltung` (Verzeichnis hoch; leeres
+   `app/abrechnung` wird durch `git mv` entfernt). Imports sind relativ/co-located → kein weiterer
+   Fix nötig. Kein Redirect (keine externen Deep-Links).
+2. Migration lokal gegen Wegwerf-DB verifizieren (`pnpm db:up` → 0000→0007 grün), da Prod-`roles`
+   betroffen (ADR-024 Risiko, #48). In dieser Session keine DB verfügbar → offener Nachtest.
+3. Gates: `bash scripts/checks/pre-push.sh` (nach dem Move erneut) + `pnpm lint`.
+4. Committen/Pushen via `bash scripts/factory-commit.sh "<msg>"` (ADR-019).
+
+**Label/Branch (aus Task-Beschreibung):** #120 enthält jetzt Code + pgEnum-Migration → Branch
+`docs/…` + Label `documentation` vor dem Merge auf `enhancement` anpassen (mit dem Menschen klären).
+
 ## Offene Fragen
 <!-- Input für /architecture 120, ausführlich in spec-120 -->
 - Eigene URLs für Verzehr/Auslagen/Kassieren (Deep-Link) oder eine Detailseite mit Abschnitten?

@@ -13,8 +13,10 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 
-// Rollen für RBAC (ADR-016): zwei fachliche Rollen. Eine Person kann beide tragen.
-export const userRole = pgEnum("user_role", ["verwalter", "abrechner"]);
+// Rollen für RBAC (ADR-016, umbenannt in ADR-024): zwei fachliche Rollen. Eine Person kann
+// beide tragen. `veranstalter` (vormals `abrechner`) ist Owner des ganzen Veranstaltungs-
+// Lebenszyklus (Anlage → Führen → Abrechnen), nicht nur der Abrechnungs-Phase.
+export const userRole = pgEnum("user_role", ["verwalter", "veranstalter"]);
 export type UserRole = (typeof userRole.enumValues)[number];
 
 // Auth.js-kompatibles Schema (Drizzle-Adapter). users trägt die Rollen als Array,
@@ -131,7 +133,7 @@ export type NewTeilnehmer = typeof teilnehmer.$inferInsert;
 
 // Veranstaltung (F4, #51, ADR-023): die zentrale Vorgangs-Entität der Abrechnung – die
 // Klammer um alle Erfassungen (F5–F8). Zwei Typen in EINER Tabelle (ADR-023 D1): die
-// datierte `veranstaltung` (Abrechner legt sie mit Datum/Kasse an) und die dauerhaft
+// datierte `veranstaltung` (Veranstalter legt sie mit Datum/Kasse an) und die dauerhaft
 // offene `theke` (stehende Selbstbedienung je Kasse). Deutsche Enum-Werte wie user_role.
 export const veranstaltungTyp = pgEnum("veranstaltung_typ", ["veranstaltung", "theke"]);
 export type VeranstaltungTyp = (typeof veranstaltungTyp.enumValues)[number];

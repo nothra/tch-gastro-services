@@ -16,7 +16,7 @@ import {
 } from "@/db/veranstaltung";
 import { veranstaltungSchema } from "./schema";
 
-const LIST_PATH = "/abrechnung/veranstaltung";
+const LIST_PATH = "/veranstaltung";
 const detailPath = (id: string) => `${LIST_PATH}/${id}`;
 
 const NOT_FOUND = "Veranstaltung nicht gefunden.";
@@ -39,7 +39,7 @@ export async function createVeranstaltungAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
 ): Promise<VeranstaltungFormState> {
-  await requireRole("abrechner");
+  await requireRole("veranstalter");
   const parsed = veranstaltungSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
@@ -54,7 +54,7 @@ export async function addZeileAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
 ): Promise<VeranstaltungFormState> {
-  await requireRole("abrechner");
+  await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
   const teilnehmerId = String(formData.get("teilnehmerId") ?? "");
   if (!veranstaltungId || !teilnehmerId) return { error: "Teilnehmer und Veranstaltung nötig." };
@@ -78,12 +78,12 @@ export async function addZeileAction(
   return { ok: true };
 }
 
-// Walk-in durch den Abrechner (ADR-022): der Walk-in bleibt beim Abrechner, nicht beim Gast.
+// Walk-in durch den Veranstalter (ADR-022): der Walk-in bleibt beim Veranstalter, nicht beim Gast.
 export async function createWalkInAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
 ): Promise<VeranstaltungFormState> {
-  await requireRole("abrechner");
+  await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
   if (!veranstaltungId) return { error: "Keine Veranstaltung angegeben." };
 
@@ -102,7 +102,7 @@ export async function createWalkInAction(
 
 // Noch keine erfassten Positionen (F5/ADR-023 D7) – das Entfernen ist bedingungslos.
 export async function removeZeileAction(formData: FormData): Promise<void> {
-  await requireRole("abrechner");
+  await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
   const zeileId = String(formData.get("zeileId") ?? "");
   if (!veranstaltungId || !zeileId) return;
@@ -116,7 +116,7 @@ export async function removeZeileAction(formData: FormData): Promise<void> {
 
 // Die stehende Theke schließt nie (ADR-023 D4) – ein Abschluss für typ='theke' wird abgelehnt.
 export async function setStatusAction(formData: FormData): Promise<void> {
-  await requireRole("abrechner");
+  await requireRole("veranstalter");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!id) return;
@@ -138,7 +138,7 @@ export async function ensureThekeAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
 ): Promise<VeranstaltungFormState> {
-  await requireAnyRole(["verwalter", "abrechner"]);
+  await requireAnyRole(["verwalter", "veranstalter"]);
   const kasse = String(formData.get("kasse") ?? "");
   if (!KASSEN.includes(kasse as Kasse)) return { error: "Bitte eine gültige Kasse wählen." };
 

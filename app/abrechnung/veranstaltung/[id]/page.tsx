@@ -12,7 +12,7 @@ import { StatusToggle } from "../StatusToggle";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
 
 // Detailansicht einer Veranstaltung: Teilnehmer führen (hinzufügen/entfernen/Walk-in) und
-// Status setzen. Nur Abrechner (serverseitig durchgesetzt in den Actions). Abgeschlossene
+// Status setzen. Nur Veranstalter (serverseitig durchgesetzt in den Actions). Abgeschlossene
 // Veranstaltungen sind schreibgeschützt – nur der Status-Umschalter (Wiederöffnen) bleibt.
 export default async function VeranstaltungDetailPage({
   params,
@@ -21,11 +21,11 @@ export default async function VeranstaltungDetailPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  if (!hasRole(session?.user?.roles, "abrechner")) {
+  if (!hasRole(session?.user?.roles, "veranstalter")) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
         <p className="text-zinc-600 dark:text-zinc-400">
-          Kein Zugriff – nur Abrechner dürfen Veranstaltungen führen.
+          Kein Zugriff – nur Veranstalter dürfen Veranstaltungen führen.
         </p>
       </main>
     );
@@ -43,7 +43,7 @@ export default async function VeranstaltungDetailPage({
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
         <Link
-          href="/abrechnung/veranstaltung"
+          href="/veranstaltung"
           className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
         >
           ← Alle Veranstaltungen
