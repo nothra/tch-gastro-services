@@ -480,6 +480,26 @@ it("should_returnError_when_veranstaltungIdMissing", async () => {
 });
 ```
 
+### AC mit Direktive + Begründung: je separierbaren Teil eine eigene Assertion (aus #117, /test-Selbstfund)
+
+Der `#117`-Doc-Guard prüfte, ob `pr-shepherd.md` Schritt 2 das Seam-**Kommando**
+(`factory-commit.sh`) nennt – deckte damit aber nur AC1 ab. Die Task hatte ein zweites,
+im selben Absatz stehendes Kriterium (AC2): die **fail-closed-Begründung mit ADR-019-Verweis**.
+Kommando und Begründung stehen auf **getrennten, einzeln entfernbaren Zeilen** – ein
+Presence-`grep` auf das Kommando lässt die Begründung ungetestet. Aufgefallen erst in `/test`,
+nicht schon in `/implement`: der Reflex ist, den auffälligsten Token (das Kommando) zu prüfen und
+den begleitenden Kontext (Rationale, ADR-Verweis, Warnung) als „mitgetestet" anzunehmen.
+
+**Smell (erweitert #51):** „Entferne ich die **Begründung**, lasse aber das **Kommando** stehen –
+schlägt ein Test fehl?" Wenn nein, ist das Begründungs-Kriterium ungetestet.
+
+**Regel:** Bündelt ein Akzeptanzkriterium eine **Direktive** (Kommando/Config-Wert) **und** ihre
+**Rationale** (Begründung, ADR-Verweis, Warnung), und liegen beide auf getrennt editierbaren
+Zeilen, bekommt jeder separierbare Teil eine **eigene** Assertion – nicht einen gemeinsamen Grep.
+Pflicht-Begleitung: Negativ-Nachweis, der die Unabhängigkeit belegt (Begründung entfernen →
+Begründungs-Guard **rot**, Kommando-Guard **grün**). Deckt sich mit `testing-standards.md`
+(je Kriterium ein Test) und der Positiv-**und**-Negativ-Beispiel-Regel aus `clean-code.md`.
+
 ---
 
 ## Offene Architektur-Fragen

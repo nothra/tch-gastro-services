@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -71,6 +71,10 @@ das CI-Gate `factory-ci` schlägt fehl. Nach dem Apply ist die Suite vollständi
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Report: `tasks/codify-117.md`. Neue Regel in `PROJECT-CONTEXT.md`: „AC mit Direktive + Begründung:
+je separierbaren Teil eine eigene Assertion" (aus dem /test-Selbstfund AC1 getestet, AC2 nicht).
+Bestehende Regeln (#94 Patch-Workflow, #114 section-scoped Guard, ADR-019 Seam) griffen sauber –
+keine weiteren Änderungen, kein Folge-Issue.
 
 ---
 Branch: `improvement/117-pr-shepherd-schritt2-commit-seam`
