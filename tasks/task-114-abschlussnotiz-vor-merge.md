@@ -87,6 +87,10 @@ ist hard denied (`Edit/Write(.claude/**)`, #88). Erforderliche Aktion des Mensch
 `.claude/**`-Änderung committen (bzw. dem Agenten dafür einen expliziten Bash-Grant erteilen).
 Erst danach ist der Factory-Self-Test in CI vollständig grün und die Task abschließbar.
 
+**Blocker aufgelöst [2026-07-15]:** Mensch hat `git apply tasks/patch-114.diff` ausgeführt;
+Agent hat die `.claude/**`-Änderung per Bash-Grant committet (`c1b7ab2`). Factory-Self-Test
+**283 grün, 0 rot**; `pnpm test`/pre-push grün.
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
