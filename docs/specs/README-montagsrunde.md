@@ -4,6 +4,12 @@ Digitaler Ersatz für das Excel-Template „Abrechnung Veranstaltung". Der Theke
 (Dieter, Ralf, …) rechnet einen Veranstaltungsabend ab: Getränke aus der Theke,
 Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 
+> **Begriff (seit 2026-07-15):** Der Fachbegriff ist **Veranstaltung** – „Abend" ist nur ein
+> Synonym; das **Datum** ist Pflichtfeld. Neben der datierten Veranstaltung (Montagsrunde etc.)
+> gibt es die **stehende Theken-Selbstbedienung** (`theke`): ein dauerhaft offener Vorgang je
+> Kasse für den **spontanen Wochentag-Verzehr** ohne anwesenden Abrechner und ohne Login/Rolle
+> (Erfassung nur Getränke + Kaffee, Namenswahl aus den Stammdaten). Details: [spec-51](spec-51-abend-anlegen.md).
+
 ## Fixierte Rahmenentscheidungen (Requirements-Session 2026-07-11)
 
 | Achse | Entscheidung |
@@ -24,7 +30,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 | F1 | #48 Login & Rollen | [spec-48](spec-48-login-rollen.md) | – |
 | F2 | #49 Getränke-Katalog & Preise | [spec-49](spec-49-getraenke-katalog.md) | F1 |
 | F3 | #50 Teilnehmer-Stammdaten | [spec-50](spec-50-teilnehmer-stammdaten.md) | F1 |
-| F4 | #51 Abend anlegen & führen | [spec-51](spec-51-abend-anlegen.md) | F2, F3 |
+| F4 | #51 Veranstaltung anlegen & führen (inkl. stehende Theke) | [spec-51](spec-51-abend-anlegen.md) | F2, F3 |
 | F5 | #52 Verzehr erfassen | [spec-52](spec-52-verzehr-erfassen.md) | F4 |
 | F6 | #53 Auslagen erfassen | [spec-53](spec-53-auslagen.md) | F5 |
 | F7 | #54 Selbstbedienung Link/QR | [spec-54](spec-54-selbstbedienung-link.md) | F5 |
