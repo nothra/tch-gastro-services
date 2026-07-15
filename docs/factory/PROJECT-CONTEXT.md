@@ -386,6 +386,43 @@ Review hinterfragen und umbenennen (kostet 1 Datei + Imports). Landet später me
 das keine gemeinsame Verantwortung teilt, ist das ein Zeichen, es aufzuteilen, nicht ein
 `utils` zu rechtfertigen.
 
+### Notiz-vor-Merge bei Squash-Strategie (aus #114)
+
+Ein Skill-Schritt, der eine Notiz in eine versionierte Datei (Task-Datei, Changelog) schreibt
+und **danach** `gh pr merge --auto --squash` ausführt, produziert einen Verlust: Bei
+Squash-Merge landet nur committeter+gepushter Inhalt auf `main`. Eine nur lokal geschriebene
+Abschlussnotiz wird durch den Merge nie übernommen – und nach dem Merge liegt die Datei auf
+`main`, wo Direkt-Commits verboten sind (Änderung nur noch über einen neuen PR, für ein Häkchen
+unverhältnismäßig). Aufgetreten bei #112/#114 in `/pr-shepherd` Schritt 6, wo das Merge-Kommando
+sogar **vor** der Notiz stand.
+
+**Regel:** Schreibt ein Schritt eine Notiz, die mit-gemergt werden soll, gilt die Reihenfolge
+**(1) Notiz schreiben → (2) committen + pushen (Feature-Branch, via `scripts/factory-commit.sh`,
+nicht rohes `git commit`/`git push`, ADR-019) → (3) erst dann Auto-Merge freigeben**. Der
+commit+push-Schritt muss im Skill sichtbar **vor** dem `gh pr merge --auto --squash`-Kommando
+stehen. Ein Konsistenz-Test in `scripts/checks/tests/run-tests.sh` sichert die Reihenfolge ab
+(grep auf `factory-commit.sh` vor dem Freigabe-Kommando). Verwandt mit der CLAUDE.md-Guardrail
+„Task-Datei final auf dem Feature-Branch abschließen – vor dem Merge" (aus #63).
+
+### Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung (aus #114, Implement-Selbstfund)
+
+Ein Self-Test, der die **Reihenfolge** zweier Elemente in einer Skill-Doku prüft (Kommando A
+vor Kommando B), greppt naheliegend nach der kurzen Kommandoform. Kommt dieselbe Zeichenkette
+im Dokument aber **auch als Prosa-Verweis** vor, matcht `grep -n … | head -1` den *frühesten*
+Treffer – und das ist womöglich die Erwähnung, nicht das Kommando. Konkret in #114: die
+Reihenfolge-Assertion prüfte gegen `gh pr merge --auto`; diese kurze Form steht schon in
+`pr-shepherd.md` Schritt 4 als Prosa-Hinweis (Zeile 68), lange **vor** dem echten Freigabe-
+Kommando in Schritt 6 → falsches FAIL. Aufgefallen erst bei der Verifikation gegen die
+**gepatchte Temp-Kopie** (nicht schon am Rot-gegen-Unpatched).
+
+**Regel:** Reihenfolge-/Positions-Guards gegen die **distinktive, vollständige** Kommandoform
+prüfen (hier `gh pr merge --auto --squash`), nicht gegen ein Präfix, das auch als Fließtext
+auftaucht. Und: den Guard nicht nur „rot gegen den Ist-Stand" verifizieren, sondern zusätzlich
+**grün gegen die gepatchte/gewünschte Fassung** (Temp-Kopie) – nur so fällt ein Fehl-Match auf,
+der zufällig trotzdem rot war. Ergänzt `clean-code.md` „Ein Gate-Regex gehört durch einen Test
+abgesichert … Positiv- **und** Negativ-Beispiel"; der subtile Fall hier ist ein *legitimer*
+Prosa-Treffer, der nicht matchen darf.
+
 ---
 
 ## Offene Architektur-Fragen
