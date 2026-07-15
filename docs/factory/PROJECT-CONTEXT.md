@@ -206,6 +206,36 @@ Type droppen → Type neu → Spalte neu), den **von drizzle-kit generierten Sna
 die Migration **lokal gegen eine Wegwerf-DB** verifizieren (`0000→…→n` grün). Nur zulässig, solange
 kein Prod-Datenbestand betroffen ist.
 
+**Ergänzung ALTER TYPE RENAME VALUE: Deploy-Reihenfolge (aus #120, Security-Hinweis):**
+`ALTER TYPE … RENAME VALUE` (`0007`) ist der korrekte, verlustfreie Weg für einen **reinen
+Enum-Wert-Umbenennung** (kein drop-and-recreate). Aber: Die Migration **muss vor dem Code-Deploy**
+laufen. Deployed der Code zuerst (referenziert `veranstalter`), während die DB noch `abrechner`
+führt, verlieren alle Owner sofort den Zugriff (fail-closed, kein Escalation-Risiko, aber Lockout
+bis zum nächsten Token-Refresh). Reihenfolge: **1. Migration → 2. Code-Deploy**. Sicherstellen,
+dass Vercel/CI-Migrate-Step vor dem Build/Promote-Step liegt.
+
+### Branch-Typ und Label korrigieren wenn Scope über die initiale Annahme hinauswächst (aus #120)
+
+Task #120 startete als `docs/`-Branch mit Label `documentation` (reine ADR-Frage), aber
+`/architecture` bündelte zwei gekoppelte Concerns: ADR + konkreter Code (Enum-Migration,
+Verzeichnis-Move, Tests). Branch-Typ und Label passten danach nicht mehr – was erst im
+Review explizit auffiel.
+
+**Regel:** Nach `/architecture` prüfen, ob der Branch-Typ den tatsächlichen Scope noch korrekt
+abbildet. Enthält der Plan Code-Änderungen (Produktionscode, Migrationen, Tests) statt nur
+Dokumentation, Branch und Label **vor `/implement`** anpassen:
+```bash
+# Branch umbenennen (lokal + remote)
+git branch -m docs/<desc> feature/<desc>          # oder improvement/ für reine Umbenennungen
+git push origin -u feature/<desc>
+git push origin --delete docs/<desc>
+
+# Label anpassen
+gh issue edit <id> --add-label enhancement --remove-label documentation
+```
+Der PR-Body und die Task-Datei müssen den neuen Branch-Namen spiegeln. Kein Merge mit
+irreführendem Branch-Typ – das verzerrt Metriken und die `git-workflow.md`-Konvention.
+
 ### NextAuth v5: Custom-Session-/JWT-Claims typisieren (aus #48)
 
 `declare module "next-auth/jwt"` **greift nicht** – `next-auth/jwt` re-exportiert nur (`export *`);

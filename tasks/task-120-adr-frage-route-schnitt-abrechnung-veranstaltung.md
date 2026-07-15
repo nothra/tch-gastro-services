@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -148,6 +148,13 @@ Blocker D1 + Migration-Verifikation durch den Menschen offen, s. Implementierung
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+→ Vollständiger Report: `tasks/codify-120.md`
+
+Zwei neue Regeln in `docs/factory/PROJECT-CONTEXT.md` ergänzt:
+1. **ALTER TYPE RENAME VALUE: Deploy-Reihenfolge** – Migration muss vor Code-Deploy laufen
+   (Lockout-Risiko bei umgekehrter Reihenfolge; Ergänzung zum #48-Drizzle-Abschnitt).
+2. **Branch-Typ/-Label bei Scope-Expansion korrigieren** – nach `/architecture` prüfen ob
+   Branch-Typ noch passt; falls Code in Scope → vor `/implement` umbenennen + Label anpassen.
 
 ---
 Branch: `docs/120-adr-frage-route-schnitt-abrechnung-veranstaltung`
