@@ -57,17 +57,39 @@ Rahmung, Optionsraum (A–E + R0/R1) und Akzeptanzkriterien:
 - [ ] Kein Gold-Plating (YAGNI): nicht tiefer verschachtelt als F5–F8 es brauchen.
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
-- Ist-Stand: flache Route + `actions.ts` (153 LOC, 7 Actions), 7 colocated Komponenten.
-- Rolle `abrechner` gewired in: `db/schema.ts` (pgEnum `user_role`), `actions.ts`
-  (`requireRole`/`requireAnyRole` ×6), `[id]/page.tsx` + `page.tsx` (`hasRole`), zahlreiche
-  Tests, spec-48, ADR-016, PROJECT-CONTEXT.
-- Migration: `ALTER TYPE user_role RENAME VALUE 'abrechner' TO 'veranstalter'` (in-place,
-  verlustfrei) – **nicht** das #48-drop-and-recreate. Lokal gegen Wegwerf-DB verifizieren.
-- Bindende Randbedingungen in spec-120: App-Router-Semantik (`_ordner`/Route Group),
-  #63 (public route im `proxy.ts`-Lookahead), #48 (`proxy.ts` statt `middleware.ts`),
-  Server Actions bevorzugt, Data-Layer in `db/`, #105 (kein generisches `utils`).
-- Nächster Schritt: `/architecture 120`.
+<!-- Von /architecture befüllt -->
+**Entscheidung: [ADR-024](../docs/adr/024-route-schnitt-veranstaltung-lifecycle.md) (Accepted, 2026-07-15).**
+
+Kurzfassung des Zielbilds (Details + Alternativen im ADR):
+- **D1** Bereich `app/abrechnung/veranstaltung/` → **`app/veranstaltung/`** (Liste `/veranstaltung`,
+  Detail `/veranstaltung/[id]`). Supersedes die „Abrechner-Bereich"-Benennung aus ADR-023 D6.
+- **D2** Jede Phase als **eigene Unterroute**: `[id]/verzehr` (F5), `[id]/auslagen` (F6),
+  `[id]/kassieren` (F8); `[id]/page.tsx` = Übersicht. (Review 2026-07-15.)
+- **D3** Code colocatet je Route-Segment; **einziger geteilter Teil** = Verzehr-Erfassung
+  (von `[id]/verzehr` UND `theke/[token]`) → route-neutrales Modul **`app/_verzehr/`**
+  (beide importieren gleichberechtigt). Auslagen/Kassieren bleiben in ihren Segmenten.
+- **D4** Anlege-/Führen-Actions bleiben bei `app/veranstaltung/`; F5/F6/F8 je eigenes
+  Action-Modul; Verzehr-Erfassung autorisiert per **Rolle ODER Abend-Token** (Detail in F5/F7).
+- **D5** Keine Route Groups – Auth-Grenze bleibt am `proxy.ts`-Matcher (`theke/`-Ausnahme unverändert).
+- **D6** Rolle **`abrechner` → `veranstalter`** (Owner des Lebenszyklus); `verwalter` unverändert.
+  Amendment zu ADR-016.
+- **D7** Migration `ALTER TYPE "user_role" RENAME VALUE` (in-place, verlustfrei), **nicht** #48-
+  drop-and-recreate; von Hand geschrieben, lokal gegen Wegwerf-DB verifiziert.
+
+**Respektierte Fundamente (ADR-023 D6/D7, nicht neu entschieden):** Data-Layer `db/veranstaltung.ts`;
+öffentlicher Zugang `app/theke/[token]/` (Seam in `proxy.ts` bereits vorhanden) für datierte
+Veranstaltungen **und** stehende Theke via `token`-Spalte.
+
+**Befund:** keine Nav-/Deep-Links auf den Bereich (Home/AppHeader linkfrei; einzige interne
+Verweise: Zurück-Link in `[id]/page.tsx` + Detail-Links der Liste) → Bereichs-Rename billig,
+kein Redirect nötig.
+
+**Scope #120 (nur was heute existiert):** Bereichs-Rename (D1: Move `app/abrechnung/veranstaltung`
+→ `app/veranstaltung` + Link-Fix) und Rollen-Rename (D6/D7: Enum-Migration + Code + Tests + Doku-
+Sync spec-48/ADR-016/PROJECT-CONTEXT). D2–D4 (Phasen-Unterrouten, `app/_verzehr/`) sind nur
+Vorzeichnung für F5/F6/F8 – **nicht** in #120 als Stubs anlegen (YAGNI).
+
+Nächster Schritt: **`/implement 120`** – Konsequenzen-Abschnitt des ADR ist die Arbeitsliste.
 
 ## Offene Fragen
 <!-- Input für /architecture 120, ausführlich in spec-120 -->
