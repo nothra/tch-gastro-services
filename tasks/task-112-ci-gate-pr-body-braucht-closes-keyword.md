@@ -41,6 +41,13 @@ Selbst-Review, keine Findings.
 ## Codify-Notizen
 Kein neuer Stolperstein – das Gate operationalisiert eine bereits dokumentierte Regel.
 
+## PR-Shepherd
+PR-Shepherd 2026-07-15: Alle Gates grün (pr-closes-issue, issue-sync, factory-self-test,
+lint, test; post-merge-verify läuft push-only). Auto-Merge (`--squash`) freigegeben.
+Abschlussnotiz bewusst **vor** dem Merge auf dem Branch committet, damit sie im Squash-Merge
+nach `main` landet – nach dem Merge ließe sich die Task-Datei nur noch über einen neuen PR
+ändern (Direkt-Commit auf `main` ist verboten).
+
 ---
 Branch: `chore/112-ci-gate-pr-body-braucht-closes-keyword`
 Erstellt: 2026-07-15 15:43
