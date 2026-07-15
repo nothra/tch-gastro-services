@@ -7,7 +7,12 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+## Abschluss
+PR-Shepherd [2026-07-15]: Auto-Merge freigegeben – alle Gates grün (factory-self-test, lint,
+test, issue-sync, pr-closes-issue, Vercel). Branch auf aktuellem `main` (0 hinterher), keine
+offenen Review-Kommentare, keine erforderlichen Approvals ausstehend. PR #119 (Squash).
 
 ## Beschreibung
 `.claude/commands/pr-shepherd.md` **Schritt 2** (Review-Kommentare auflösen) stellt den
