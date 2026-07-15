@@ -25,8 +25,7 @@ const DUPLICATE_ZEILE = "Dieser Teilnehmer ist bereits erfasst.";
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
-// Postgres unique_violation (SQLSTATE 23505) – unterscheidet den Duplikat-Fall von einem
-// echten Fehler (analog Katalog-Action).
+// Postgres unique_violation (SQLSTATE 23505) – unterscheidet den Duplikat-Fall von einem echten Fehler.
 function isUniqueViolation(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -49,8 +48,8 @@ export async function createVeranstaltungAction(
   return { ok: true };
 }
 
-// Fügt einen Teilnehmer als Zeile hinzu. Der Anzeigename-Snapshot wird serverseitig aus den
-// Stammdaten geholt (nicht vom Client), damit die Zeile den autoritativen Namen konserviert.
+// Anzeigename-Snapshot wird serverseitig aus den Stammdaten geholt (nicht vom Client),
+// damit die Zeile den autoritativen Namen konserviert.
 export async function addZeileAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
@@ -64,9 +63,8 @@ export async function addZeileAction(
   if (!ziel) return { error: NOT_FOUND };
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
-  // Nur aktive Stammdaten-Teilnehmer dürfen erfasst werden. getTeilnehmer selektiert
-  // unabhängig von `active`, daher hier explizit prüfen – ein manipulierter Request darf
-  // keinen soft-gelöschten (inaktiven) Teilnehmer erfassen (Review #51, ADR-022).
+  // getTeilnehmer selektiert unabhängig von `active` – hier explizit prüfen, damit ein
+  // manipulierter Request keinen soft-gelöschten Teilnehmer erfassen kann (ADR-022).
   const person = await getTeilnehmer(teilnehmerId);
   if (!person || !person.active) return { error: "Teilnehmer nicht gefunden." };
 
@@ -80,9 +78,7 @@ export async function addZeileAction(
   return { ok: true };
 }
 
-// Walk-in: der Abrechner legt einen bisher unbekannten Teilnehmer an und erfasst ihn in
-// einem Zug (F3/ADR-022 – der Walk-in bleibt beim Abrechner, nicht beim Gast). Der neue
-// Teilnehmer landet in den Stammdaten und erhält direkt eine Zeile mit Namens-Snapshot.
+// Walk-in durch den Abrechner (ADR-022): der Walk-in bleibt beim Abrechner, nicht beim Gast.
 export async function createWalkInAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
@@ -104,9 +100,7 @@ export async function createWalkInAction(
   return { ok: true };
 }
 
-// Entfernt eine Zeile aus einer offenen Veranstaltung. In #51 gibt es noch keine erfassten
-// Positionen (F5), daher ist das Entfernen bedingungslos; die Schutzabfrage bei bereits
-// erfassten Positionen gehört zu F5/F8 (spec-51, ADR-023 D7).
+// Noch keine erfassten Positionen (F5/ADR-023 D7) – das Entfernen ist bedingungslos.
 export async function removeZeileAction(formData: FormData): Promise<void> {
   await requireRole("abrechner");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
@@ -120,7 +114,6 @@ export async function removeZeileAction(formData: FormData): Promise<void> {
   revalidatePath(detailPath(veranstaltungId));
 }
 
-// Status setzen: Abschließen (F8) und protokolliertes Wiederöffnen durch den Abrechner.
 // Die stehende Theke schließt nie (ADR-023 D4) – ein Abschluss für typ='theke' wird abgelehnt.
 export async function setStatusAction(formData: FormData): Promise<void> {
   await requireRole("abrechner");
@@ -140,9 +133,7 @@ export async function setStatusAction(formData: FormData): Promise<void> {
   revalidatePath(LIST_PATH);
 }
 
-// Richtet die stehende Theke einer Kasse ein (idempotent, ADR-023 D3). Verwalter ODER
-// Abrechner. Ein zweiter Aufruf legt nicht doppelt an, sondern meldet Erfolg (die Theke
-// existiert bereits) – die DB-Idempotenz garantiert der Partial-Unique-Index.
+// Idempotent (ADR-023 D3) – die DB-Idempotenz garantiert der Partial-Unique-Index.
 export async function ensureThekeAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,

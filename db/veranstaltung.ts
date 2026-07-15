@@ -9,16 +9,13 @@ import {
   type VeranstaltungZeile,
 } from "./schema";
 
-// Data-Layer der Veranstaltung (F4, #51, ADR-023). Einziger Ort mit Drizzle-Queries auf
-// veranstaltung/veranstaltung_zeile – Actions/UI greifen nie direkt zu (PROJECT-CONTEXT,
-// Separation of Concerns). Die Funktionen sind bewusst rollen-neutral; der RBAC-Guard sitzt
-// in der jeweiligen Action.
+// Einziger Ort mit Drizzle-Queries auf veranstaltung/veranstaltung_zeile (ADR-023).
+// Bewusst rollen-neutral – der RBAC-Guard sitzt in der jeweiligen Action.
 
 const THEKE_BEZEICHNUNG = "Stehende Theke";
 
 export type VeranstaltungData = { bezeichnung: string; datum: Date; kasse: Kasse };
 
-// Legt eine datierte Veranstaltung an (Typ-Default `veranstaltung`, Status-Default `offen`).
 export async function createVeranstaltung(data: VeranstaltungData): Promise<Veranstaltung> {
   const [created] = await db.insert(veranstaltung).values(data).returning();
   return created;
@@ -90,7 +87,7 @@ export async function addZeile(
 // Löscht eine Zeile nur, wenn sie zur angegebenen Veranstaltung gehört. Die Bindung an
 // veranstaltungId ist der serverseitige Schreibschutz: ohne sie könnte ein manipulierter
 // Request über eine offene Veranstaltung eine fremde Zeile (abgeschlossene Veranstaltung
-// oder Theke) löschen (Review #51, kritisches Finding).
+// oder Theke) löschen.
 export async function removeZeile(
   zeileId: string,
   veranstaltungId: string,
