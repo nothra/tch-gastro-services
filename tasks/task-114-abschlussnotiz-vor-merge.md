@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `/pr-shepherd` Schritt 6 dokumentiert die Abschlussnotiz **nach** `gh pr merge --auto --squash`
@@ -99,6 +99,12 @@ Kein neues Verhalten – Self-Test vor/nach identisch **283 grün, 0 rot**.
   0 zurück, integer-sicher). Aufrufstellen lesen jetzt die Absicht statt der Mechanik.
 - Nur diese eine, lokal begrenzte Änderung; pr-shepherd.md-Patch und PROJECT-CONTEXT-Prosa
   unberührt (bereits im Review als clean befunden).
+
+## PR-Shepherd-Notizen (2026-07-15)
+PR-Shepherd [2026-07-15]: Auto-Merge freigegeben – alle Gates grün (factory-self-test, lint,
+test, issue-sync, pr-closes-issue, Vercel). Kein Rebase nötig (nicht hinter `main`), keine
+offenen Review-Kommentare (nur Vercel-Bot), keine Approvals erforderlich. Abschlussnotiz + letzter
+Task-Haken **vor** dem Merge committet + gepusht (genau die #114-Härtung, hier zuerst angewandt).
 
 ## Review-Findings
 Multi-Persona-Review: **APPROVED** (`tasks/review-114.md`). Keine kritischen/wichtigen Findings.
