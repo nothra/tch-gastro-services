@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "./index";
 import { users, type UserRole } from "./schema";
+import { ensureThekeForKasse } from "./veranstaltung";
 
 // Legt das Login-Konto an (vom Verwalter provisioniert, keine offene Registrierung – ADR-016).
 // Bis zu einem späteren User-Admin-Feature ist Seed/DB der einzige Weg (spec-48 Scope).
@@ -25,6 +26,12 @@ async function main() {
       .values({ email, passwordHash, roles: SEED_ROLES, name: "Verwalter/Abrechner" });
     process.stdout.write(`Konto angelegt: ${email}\n`);
   }
+
+  // Stehende Theke der Montagsrunde (ADR-023 D3): die primäre, dauerhaft genutzte Theke wird
+  // idempotent provisioniert. Weitere Kassen richtet der Abrechner bei Bedarf per UI ein
+  // (spec-51: nur die tatsächlich genutzte Theke, kein Zwang zu zwei).
+  const theke = await ensureThekeForKasse("montagsrunde");
+  process.stdout.write(`Stehende Theke bereit: montagsrunde (${theke.id})\n`);
 }
 
 main()

@@ -4,6 +4,12 @@ Digitaler Ersatz für das Excel-Template „Abrechnung Veranstaltung". Der Theke
 (Dieter, Ralf, …) rechnet einen Veranstaltungsabend ab: Getränke aus der Theke,
 Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 
+> **Begriff (seit 2026-07-15):** Der Fachbegriff ist **Veranstaltung** – „Abend" ist nur ein
+> Synonym; das **Datum** ist Pflichtfeld. Neben der datierten Veranstaltung (Montagsrunde etc.)
+> gibt es die **stehende Theken-Selbstbedienung** (`theke`): ein dauerhaft offener Vorgang je
+> Kasse für den **spontanen Wochentag-Verzehr** ohne anwesenden Abrechner und ohne Login/Rolle
+> (Erfassung nur Getränke + Kaffee, Namenswahl aus den Stammdaten). Details: [spec-51](spec-51-abend-anlegen.md).
+
 ## Fixierte Rahmenentscheidungen (Requirements-Session 2026-07-11)
 
 | Achse | Entscheidung |
@@ -24,7 +30,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 | F1 | #48 Login & Rollen | [spec-48](spec-48-login-rollen.md) | – |
 | F2 | #49 Getränke-Katalog & Preise | [spec-49](spec-49-getraenke-katalog.md) | F1 |
 | F3 | #50 Teilnehmer-Stammdaten | [spec-50](spec-50-teilnehmer-stammdaten.md) | F1 |
-| F4 | #51 Abend anlegen & führen | [spec-51](spec-51-abend-anlegen.md) | F2, F3 |
+| F4 | #51 Veranstaltung anlegen & führen (inkl. stehende Theke) | [spec-51](spec-51-abend-anlegen.md) | F2, F3 |
 | F5 | #52 Verzehr erfassen | [spec-52](spec-52-verzehr-erfassen.md) | F4 |
 | F6 | #53 Auslagen erfassen | [spec-53](spec-53-auslagen.md) | F5 |
 | F7 | #54 Selbstbedienung Link/QR | [spec-54](spec-54-selbstbedienung-link.md) | F5 |
@@ -53,7 +59,7 @@ Wird über den Getränke-Katalog (F2) gepflegt, nicht im Code fixiert.
 | Weizenbier | 0,5 l | 3,00 € |
 | Sekt | 0,1 / 0,7 l | 1,50 / 8,00 € |
 | Kaffee | – | fest im Katalog (Beispiel 1,00 €) |
-| Essen | – | **pro Abend** festgelegt (i. d. R. 6 / 7 €) |
+| Essen | – | Katalog-Kategorie `essen` (feste Preise je Artikel, z. B. „Essen Montagsrunde 6 €", „Bratwurst mit Brötchen 4 €") |
 
 **Zeilenberechnung (bewusste Abweichung vom Template, Entscheidung 2026-07-11):**
 `Verzehr-Gesamt = Summe Getränke (Theke) + Summe Sonstige (Essen + Kaffee)`
@@ -77,7 +83,7 @@ Kasse** über mehrere Abende ist Backlog #57 – im MVP nur die Kassenveränderu
 ## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
 
 - **Nicht-Mitglieder** zahlen dieselben Preise wie Mitglieder (Kennzeichen nur Info/Auswertung).
-- **Essenpreis** gilt **abendweit einheitlich**; eine spätere Änderung wirkt auf alle Essen des Abends.
+- **Essen kommt aus dem Katalog** (Kategorie `essen`, feste Preise je Artikel; Änderung 2026-07-15). Kein Essenpreis je Veranstaltung, keine spontane Preiseingabe. Die Kategorie `essen` ist eine F2-Erweiterung (#116); die Essen-Erfassung per Katalog-Auswahl ist F5.
 - **Erfassung ist anonym** – keine Urheber-Nachverfolgung („wer hat eingetragen").
 - **Walk-in:** nur der **Abrechner** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
 - **Teilzahlung:** eine Zeile ist **offen oder bezahlt**, kein Restbetrag im MVP.

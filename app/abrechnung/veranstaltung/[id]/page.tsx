@@ -1,0 +1,88 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { auth } from "@/auth";
+import { hasRole } from "@/lib/authz";
+import type { Kasse } from "@/db/schema";
+import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
+import { listActiveTeilnehmer } from "@/db/teilnehmer";
+import { AddTeilnehmerForm } from "../AddTeilnehmerForm";
+import { WalkInForm } from "../WalkInForm";
+import { ZeileRow } from "../ZeileRow";
+import { StatusToggle } from "../StatusToggle";
+import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
+
+// Detailansicht einer Veranstaltung: Teilnehmer führen (hinzufügen/entfernen/Walk-in) und
+// Status setzen. Nur Abrechner (serverseitig durchgesetzt in den Actions). Abgeschlossene
+// Veranstaltungen sind schreibgeschützt – nur der Status-Umschalter (Wiederöffnen) bleibt.
+export default async function VeranstaltungDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const session = await auth();
+  if (!hasRole(session?.user?.roles, "abrechner")) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8">
+        <p className="text-zinc-600 dark:text-zinc-400">
+          Kein Zugriff – nur Abrechner dürfen Veranstaltungen führen.
+        </p>
+      </main>
+    );
+  }
+
+  const veranstaltung = await getVeranstaltung(id);
+  if (!veranstaltung) notFound();
+
+  const zeilen = await listZeilen(id);
+  const bereitsErfasst = new Set(zeilen.map((zeile) => zeile.teilnehmerId));
+  const verfuegbar = (await listActiveTeilnehmer()).filter((t) => !bereitsErfasst.has(t.id));
+  const offen = veranstaltung.status === "offen";
+
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
+      <div className="flex flex-col gap-1">
+        <Link
+          href="/abrechnung/veranstaltung"
+          className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
+        >
+          ← Alle Veranstaltungen
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+          {veranstaltung.bezeichnung}
+        </h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
+          {STATUS_LABEL[veranstaltung.status]}
+        </p>
+      </div>
+
+      <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
+
+      {offen && (
+        <section className="flex flex-col gap-4">
+          <AddTeilnehmerForm veranstaltungId={veranstaltung.id} verfuegbar={verfuegbar} />
+          <WalkInForm veranstaltungId={veranstaltung.id} />
+        </section>
+      )}
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-semibold">Teilnehmer ({zeilen.length})</h2>
+        {zeilen.length === 0 ? (
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {zeilen.map((zeile) => (
+              <ZeileRow
+                key={zeile.id}
+                zeile={zeile}
+                veranstaltungId={veranstaltung.id}
+                editable={offen}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}
