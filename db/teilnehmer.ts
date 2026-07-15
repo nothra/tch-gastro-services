@@ -24,6 +24,14 @@ export function listActiveTeilnehmer(): Promise<Teilnehmer[]> {
     .orderBy(...teilnehmerOrder);
 }
 
+// Einzelner Teilnehmer per id – u. a. für den Namens-Snapshot beim Anlegen einer
+// Veranstaltungszeile (F4, ADR-022/ADR-023 D5): die Zeile kopiert den autoritativen Namen
+// serverseitig, nicht den client-gelieferten.
+export async function getTeilnehmer(id: string): Promise<Teilnehmer | undefined> {
+  const [row] = await db.select().from(teilnehmer).where(eq(teilnehmer.id, id)).limit(1);
+  return row;
+}
+
 export type TeilnehmerData = Omit<NewTeilnehmer, "id" | "createdAt" | "updatedAt" | "active">;
 
 export async function createTeilnehmer(data: TeilnehmerData): Promise<Teilnehmer> {

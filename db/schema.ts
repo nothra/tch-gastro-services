@@ -6,8 +6,11 @@ import {
   integer,
   boolean,
   timestamp,
+  date,
   primaryKey,
   unique,
+  uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 // Rollen für RBAC (ADR-016): zwei fachliche Rollen. Eine Person kann beide tragen.
@@ -70,8 +73,10 @@ export const verificationTokens = pgTable(
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
 
-// Getränke-Katalog (F2, #49). Deutsche Enum-Werte wie user_role. Essen gehört NICHT
-// hierher (wird pro Abend in F4 gesetzt).
+// Getränke-Katalog (F2, #49). Deutsche Enum-Werte wie user_role. Essen ist – seit der
+// Modelländerung 2026-07-15 (spec-51, ADR-023 D4) – ebenfalls ein Katalogartikel (eigene
+// Kategorie `essen` mit festen Preisen); diese Kategorie kommt als F2-Erweiterung (#116).
+// Ein Essenpreis je Veranstaltung existiert bewusst NICHT mehr.
 export const catalogCategory = pgEnum("catalog_category", ["getraenk", "kaffee"]);
 export type CatalogCategory = (typeof catalogCategory.enumValues)[number];
 
@@ -123,3 +128,83 @@ export const teilnehmer = pgTable("teilnehmer", {
 
 export type Teilnehmer = typeof teilnehmer.$inferSelect;
 export type NewTeilnehmer = typeof teilnehmer.$inferInsert;
+
+// Veranstaltung (F4, #51, ADR-023): die zentrale Vorgangs-Entität der Abrechnung – die
+// Klammer um alle Erfassungen (F5–F8). Zwei Typen in EINER Tabelle (ADR-023 D1): die
+// datierte `veranstaltung` (Abrechner legt sie mit Datum/Kasse an) und die dauerhaft
+// offene `theke` (stehende Selbstbedienung je Kasse). Deutsche Enum-Werte wie user_role.
+export const veranstaltungTyp = pgEnum("veranstaltung_typ", ["veranstaltung", "theke"]);
+export type VeranstaltungTyp = (typeof veranstaltungTyp.enumValues)[number];
+
+export const veranstaltungStatus = pgEnum("veranstaltung_status", ["offen", "abgeschlossen"]);
+export type VeranstaltungStatus = (typeof veranstaltungStatus.enumValues)[number];
+
+// Kasse ist bewusst KEIN Enum, sondern ein stabiler Text-Key (ADR-023 D2): eine spätere
+// Kassen-Entität (#57, laufender Saldo) kann dieselben Keys als PK adoptieren – per FK,
+// ohne Migration bestehender Zeilen. Diese Konstante ist die kanonische Wertmenge (von Zod
+// und Seed genutzt); die DB-CHECK `veranstaltung_kasse_gueltig` unten muss synchron bleiben.
+export const KASSEN = ["montagsrunde", "vereinskasse"] as const;
+export type Kasse = (typeof KASSEN)[number];
+
+// Zugangs-Token für die öffentliche Selbstbedienung/Theke (F7/#54). Bewusst hoch-entropisch
+// (2× UUID = 256 bit) – Länge/Rotation/Rate-Limit sind offen für F7/#54 & /security-review.
+function unguessableToken(): string {
+  const hex = () => globalThis.crypto.randomUUID().replace(/-/g, "");
+  return hex() + hex();
+}
+
+export const veranstaltung = pgTable(
+  "veranstaltung",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => globalThis.crypto.randomUUID()),
+    typ: veranstaltungTyp("typ").notNull().default("veranstaltung"),
+    bezeichnung: text("bezeichnung").notNull(),
+    // Pflicht nur für `veranstaltung` (CHECK unten erzwingt es); `theke` hat kein Datum.
+    datum: date("datum", { mode: "date" }),
+    kasse: text("kasse").notNull(),
+    status: veranstaltungStatus("status").notNull().default("offen"),
+    token: text("token").notNull().unique().$defaultFn(unguessableToken),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (v) => [
+    // ADR-023 D6/D3 – genau EINE stehende Theke je Kasse (Partial-Unique → Idempotenz).
+    uniqueIndex("veranstaltung_eine_theke_je_kasse")
+      .on(v.kasse)
+      .where(sql`${v.typ} = 'theke'`),
+    // ADR-023 D4 – Datum ist Pflicht für datierte Veranstaltungen, nicht für die Theke.
+    check("veranstaltung_datum_pflicht", sql`${v.typ} <> 'veranstaltung' OR ${v.datum} IS NOT NULL`),
+    // ADR-023 D2 – Kasse fail-closed ohne Enum-Typ (Werte synchron zu KASSEN halten).
+    check("veranstaltung_kasse_gueltig", sql`${v.kasse} IN ('montagsrunde', 'vereinskasse')`),
+  ],
+);
+
+export type Veranstaltung = typeof veranstaltung.$inferSelect;
+export type NewVeranstaltung = typeof veranstaltung.$inferInsert;
+
+// Abrechnungszeile je Teilnehmer (ADR-023 D5). `anzeigename` ist ein SNAPSHOT aus
+// teilnehmer.name beim Anlegen der Zeile (ADR-022-Vertrag): abgeschlossene Veranstaltungen
+// zeigen den Namen wie damals. UNIQUE verhindert Doppel-Zeilen desselben Teilnehmers.
+export const veranstaltungZeile = pgTable(
+  "veranstaltung_zeile",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => globalThis.crypto.randomUUID()),
+    veranstaltungId: text("veranstaltung_id")
+      .notNull()
+      .references(() => veranstaltung.id, { onDelete: "cascade" }),
+    teilnehmerId: text("teilnehmer_id")
+      .notNull()
+      .references(() => teilnehmer.id),
+    anzeigename: text("anzeigename").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (z) => [unique("veranstaltung_zeile_unique").on(z.veranstaltungId, z.teilnehmerId)],
+);
+
+export type VeranstaltungZeile = typeof veranstaltungZeile.$inferSelect;
+export type NewVeranstaltungZeile = typeof veranstaltungZeile.$inferInsert;

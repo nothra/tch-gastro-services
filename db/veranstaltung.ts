@@ -1,0 +1,104 @@
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "./index";
+import {
+  veranstaltung,
+  veranstaltungZeile,
+  type Kasse,
+  type Veranstaltung,
+  type VeranstaltungStatus,
+  type VeranstaltungZeile,
+} from "./schema";
+
+// Data-Layer der Veranstaltung (F4, #51, ADR-023). Einziger Ort mit Drizzle-Queries auf
+// veranstaltung/veranstaltung_zeile – Actions/UI greifen nie direkt zu (PROJECT-CONTEXT,
+// Separation of Concerns). Die Funktionen sind bewusst rollen-neutral; der RBAC-Guard sitzt
+// in der jeweiligen Action.
+
+const THEKE_BEZEICHNUNG = "Stehende Theke";
+
+export type VeranstaltungData = { bezeichnung: string; datum: Date; kasse: Kasse };
+
+// Legt eine datierte Veranstaltung an (Typ-Default `veranstaltung`, Status-Default `offen`).
+export async function createVeranstaltung(data: VeranstaltungData): Promise<Veranstaltung> {
+  const [created] = await db.insert(veranstaltung).values(data).returning();
+  return created;
+}
+
+// Nur datierte Veranstaltungen, neueste zuerst – für die Abrechner-Übersicht. Die stehende
+// Theke wird nicht mitgelistet (sie wird über getThekeForKasse/Token angesteuert).
+export function listVeranstaltungen(): Promise<Veranstaltung[]> {
+  return db
+    .select()
+    .from(veranstaltung)
+    .where(eq(veranstaltung.typ, "veranstaltung"))
+    .orderBy(desc(veranstaltung.datum), desc(veranstaltung.createdAt));
+}
+
+export async function getVeranstaltung(id: string): Promise<Veranstaltung | undefined> {
+  const [row] = await db.select().from(veranstaltung).where(eq(veranstaltung.id, id)).limit(1);
+  return row;
+}
+
+export async function setStatus(
+  id: string,
+  status: VeranstaltungStatus,
+): Promise<Veranstaltung | undefined> {
+  const [updated] = await db
+    .update(veranstaltung)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(veranstaltung.id, id))
+    .returning();
+  return updated;
+}
+
+export async function getThekeForKasse(kasse: Kasse): Promise<Veranstaltung | undefined> {
+  const [row] = await db
+    .select()
+    .from(veranstaltung)
+    .where(and(eq(veranstaltung.typ, "theke"), eq(veranstaltung.kasse, kasse)))
+    .limit(1);
+  return row;
+}
+
+// Provisioniert die stehende Theke idempotent (ADR-023 D3): existiert bereits eine für die
+// Kasse, wird sie zurückgegeben; sonst neu angelegt. Der Partial-Unique-Index
+// `veranstaltung_eine_theke_je_kasse` ist die DB-seitige Idempotenz-Garantie (genau eine
+// Theke je Kasse), auch bei nebenläufigem Aufruf.
+export async function ensureThekeForKasse(kasse: Kasse): Promise<Veranstaltung> {
+  const existing = await getThekeForKasse(kasse);
+  if (existing) return existing;
+  const [created] = await db
+    .insert(veranstaltung)
+    .values({ typ: "theke", bezeichnung: THEKE_BEZEICHNUNG, kasse, datum: null })
+    .returning();
+  return created;
+}
+
+// Legt eine Zeile mit Namens-Snapshot an (ADR-022/ADR-023 D5): `anzeigename` wird aus
+// teilnehmer.name kopiert und bleibt danach stabil.
+export async function addZeile(
+  veranstaltungId: string,
+  teilnehmer: { id: string; name: string },
+): Promise<VeranstaltungZeile> {
+  const [created] = await db
+    .insert(veranstaltungZeile)
+    .values({ veranstaltungId, teilnehmerId: teilnehmer.id, anzeigename: teilnehmer.name })
+    .returning();
+  return created;
+}
+
+export async function removeZeile(zeileId: string): Promise<VeranstaltungZeile | undefined> {
+  const [removed] = await db
+    .delete(veranstaltungZeile)
+    .where(eq(veranstaltungZeile.id, zeileId))
+    .returning();
+  return removed;
+}
+
+export function listZeilen(veranstaltungId: string): Promise<VeranstaltungZeile[]> {
+  return db
+    .select()
+    .from(veranstaltungZeile)
+    .where(eq(veranstaltungZeile.veranstaltungId, veranstaltungId))
+    .orderBy(veranstaltungZeile.anzeigename);
+}

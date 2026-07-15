@@ -94,6 +94,22 @@ Kanonische Spec: `docs/specs/spec-51-abend-anlegen.md`.
 - [ ] Unbekannter Gast an der Theke: nur Stammdaten vs. Freitext → **F7/#54**.
 - [ ] Echtzeit-Updates / Nebenläufigkeit an derselben Zeile → **F5/#52**.
 
+## Implementierungs-Status (2026-07-15)
+Code + Tests sind vollständig geschrieben und intern konsistent (alle Abhängigkeiten geprüft:
+`lib/form-errors`, `lib/authz`, `teilnehmerSchema`/`TeilnehmerFields`; Schema/CHECKs/Index laut
+ADR-023; Actions mit RBAC + `23505`-Handling; UI mit `key`-Reset statt `useEffect`; `proxy.ts`-Seam;
+`seed.ts`). Tests decken alle Akzeptanzkriterien ab (schema/actions/data-layer/labels).
+
+**Blocker 2026-07-15 – behoben:** Migration `0006_material_grey_gargoyle.sql` generiert
+(rein additiv, kein Rename-Prompt) und gegen die lokale Docker-Dev-DB `0000→…→0006` grün
+verifiziert (CHECKs `veranstaltung_datum_pflicht`/`veranstaltung_kasse_gueltig` + Partial-Index
+`veranstaltung_eine_theke_je_kasse` per `\d` bestätigt). Zusätzlich einen Test-Isolation-Bug in
+`actions.test.ts` gefixt: `vi.clearAllMocks()` im `beforeEach` löscht keine Mock-Implementierungen
+(nur Call-History) – `addZeileMock.mockRejectedValue({code:"23505"})` aus dem
+`addZeileAction`-Block leakte dadurch in `createWalkInAction`-Tests (Reihenfolge-Abhängigkeit,
+Verstoß gegen testing-standards.md). Fix: `vi.resetAllMocks()`. `pnpm lint` + `pnpm test`
+(149 passed) jetzt grün.
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
