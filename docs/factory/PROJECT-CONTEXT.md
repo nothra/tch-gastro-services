@@ -386,6 +386,24 @@ Review hinterfragen und umbenennen (kostet 1 Datei + Imports). Landet später me
 das keine gemeinsame Verantwortung teilt, ist das ein Zeichen, es aufzuteilen, nicht ein
 `utils` zu rechtfertigen.
 
+### Notiz-vor-Merge bei Squash-Strategie (aus #114)
+
+Ein Skill-Schritt, der eine Notiz in eine versionierte Datei (Task-Datei, Changelog) schreibt
+und **danach** `gh pr merge --auto --squash` ausführt, produziert einen Verlust: Bei
+Squash-Merge landet nur committeter+gepushter Inhalt auf `main`. Eine nur lokal geschriebene
+Abschlussnotiz wird durch den Merge nie übernommen – und nach dem Merge liegt die Datei auf
+`main`, wo Direkt-Commits verboten sind (Änderung nur noch über einen neuen PR, für ein Häkchen
+unverhältnismäßig). Aufgetreten bei #112/#114 in `/pr-shepherd` Schritt 6, wo das Merge-Kommando
+sogar **vor** der Notiz stand.
+
+**Regel:** Schreibt ein Schritt eine Notiz, die mit-gemergt werden soll, gilt die Reihenfolge
+**(1) Notiz schreiben → (2) committen + pushen (Feature-Branch, via `scripts/factory-commit.sh`,
+nicht rohes `git commit`/`git push`, ADR-019) → (3) erst dann Auto-Merge freigeben**. Der
+commit+push-Schritt muss im Skill sichtbar **vor** dem `gh pr merge --auto --squash`-Kommando
+stehen. Ein Konsistenz-Test in `scripts/checks/tests/run-tests.sh` sichert die Reihenfolge ab
+(grep auf `factory-commit.sh` vor dem Freigabe-Kommando). Verwandt mit der CLAUDE.md-Guardrail
+„Task-Datei final auf dem Feature-Branch abschließen – vor dem Merge" (aus #63).
+
 ---
 
 ## Offene Architektur-Fragen
