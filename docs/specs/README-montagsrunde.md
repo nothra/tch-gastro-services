@@ -59,7 +59,7 @@ Wird über den Getränke-Katalog (F2) gepflegt, nicht im Code fixiert.
 | Weizenbier | 0,5 l | 3,00 € |
 | Sekt | 0,1 / 0,7 l | 1,50 / 8,00 € |
 | Kaffee | – | fest im Katalog (Beispiel 1,00 €) |
-| Essen | – | **pro Abend** festgelegt (i. d. R. 6 / 7 €) |
+| Essen | – | Katalog-Kategorie `essen` (feste Preise je Artikel, z. B. „Essen Montagsrunde 6 €", „Bratwurst mit Brötchen 4 €") |
 
 **Zeilenberechnung (bewusste Abweichung vom Template, Entscheidung 2026-07-11):**
 `Verzehr-Gesamt = Summe Getränke (Theke) + Summe Sonstige (Essen + Kaffee)`
@@ -83,7 +83,7 @@ Kasse** über mehrere Abende ist Backlog #57 – im MVP nur die Kassenveränderu
 ## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
 
 - **Nicht-Mitglieder** zahlen dieselben Preise wie Mitglieder (Kennzeichen nur Info/Auswertung).
-- **Essenpreis** gilt **abendweit einheitlich**; eine spätere Änderung wirkt auf alle Essen des Abends.
+- **Essen kommt aus dem Katalog** (Kategorie `essen`, feste Preise je Artikel; Änderung 2026-07-15). Kein Essenpreis je Veranstaltung, keine spontane Preiseingabe. Die Kategorie `essen` ist eine F2-Erweiterung (#116); die Essen-Erfassung per Katalog-Auswahl ist F5.
 - **Erfassung ist anonym** – keine Urheber-Nachverfolgung („wer hat eingetragen").
 - **Walk-in:** nur der **Abrechner** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
 - **Teilzahlung:** eine Zeile ist **offen oder bezahlt**, kein Restbetrag im MVP.

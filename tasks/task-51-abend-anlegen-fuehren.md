@@ -12,24 +12,26 @@
 ## Beschreibung
 Feature F4: **Veranstaltung anlegen & führen**. „Veranstaltung" ist der Primärbegriff
 (statt „Abend"), das **Datum** ist Pflichtfeld. Zwei Typen (ein gemeinsames Datenmodell):
-1. **Datierte Veranstaltung** (`veranstaltung`) – Abrechner legt sie mit Datum, Bezeichnung,
-   Kasse und Essenpreis an; Teilnehmer aus Stammdaten; Status `offen`/`abgeschlossen`;
-   Namens-Snapshot je Zeile (ADR-022).
+1. **Datierte Veranstaltung** (`veranstaltung`) – Abrechner legt sie mit Datum, Bezeichnung
+   und Kasse an; Teilnehmer aus Stammdaten; Status `offen`/`abgeschlossen`; Namens-Snapshot
+   je Zeile (ADR-022). **Kein** Essenpreis (Essen kommt aus dem Katalog).
 2. **Stehende Theken-Selbstbedienung** (`theke`) – dauerhaft offener Vorgang je Kasse für
    spontanen Wochentag-Verzehr ohne anwesenden Abrechner und ohne Login/Rolle (nur Getränke
    + Kaffee, Namenswahl aus Stammdaten).
+
+**Essen-Modell (Änderung 2026-07-15):** Essen ist keine Eigenschaft der Veranstaltung mehr,
+sondern eine Katalog-Kategorie `essen` (feste Preise). Die Kategorie ist eine **F2-Erweiterung
+(eigenes Issue)**, die Essen-Erfassung ist **F5/#52**. #51 entfernt lediglich jedes Essenpreis-Feld.
 
 Kanonische Spec: `docs/specs/spec-51-abend-anlegen.md`.
 
 ## Akzeptanzkriterien
 **A) Datierte Veranstaltung**
-- [ ] Abrechner legt Veranstaltung mit Datum, Bezeichnung, Kasse, Essenpreis an → Typ `veranstaltung`, Status `offen`.
+- [ ] Abrechner legt Veranstaltung mit Datum, Bezeichnung, Kasse an → Typ `veranstaltung`, Status `offen` (kein Essenpreis).
 - [ ] Kasse fehlt → serverseitige Ablehnung (Pflichtfeld).
 - [ ] Datum fehlt → serverseitige Ablehnung (Pflichtfeld).
 - [ ] Teilnehmer aus Stammdaten auswählen → je Teilnehmer eine Zeile mit Namens-Snapshot.
 - [ ] Offene Veranstaltung: Teilnehmer hinzufügen/entfernen (solange ohne Erfassung).
-- [ ] Essen-Position rechnet mit dem Essenpreis der Veranstaltung.
-- [ ] Essenpreis-Änderung wirkt auf alle Essen der Veranstaltung (abendweit einheitlich).
 - [ ] Teilnehmer mit erfassten Positionen entfernen → verhindert / bewusste Bestätigung.
 - [ ] Abrechner-Walk-in legt neuen Teilnehmer an (in Stammdaten + Zeile).
 - [ ] Abgeschlossene Veranstaltung schreibgeschützt; Abrechner kann protokolliert wieder öffnen (F8).
@@ -43,7 +45,6 @@ Kanonische Spec: `docs/specs/spec-51-abend-anlegen.md`.
 - [ ] Abrechner kassiert offene Einträge später (F8); Theke bleibt danach offen.
 
 **Fehlerszenarien**
-- [ ] Essenpreis ungültig/fehlend/über int4-Max → Ablehnung mit Hinweis (kein DB-500).
 - [ ] Zweite Theke je Kasse → abgelehnt (Idempotenz).
 - [ ] Essen an der Theke → nicht verfügbar (nur Getränke + Kaffee).
 - [ ] Ungültiges Theken-Token → neutraler Fehler.
@@ -54,10 +55,10 @@ Kanonische Spec: `docs/specs/spec-51-abend-anlegen.md`.
 - **Schema (`db/schema.ts`):**
   - Enums `veranstaltung_typ` (`veranstaltung`|`theke`), `veranstaltung_status` (`offen`|`abgeschlossen`).
   - Tabelle `veranstaltung`: `id`(uuid), `typ`(default `veranstaltung`), `bezeichnung`,
-    `datum`(date, nullable), `kasse`(**text-Key**, nicht Enum), `essenpreisCents`(nullable),
-    `status`(default `offen`), `token`(text, unique, unratbar via crypto), `createdAt/updatedAt`.
+    `datum`(date, nullable), `kasse`(**text-Key**, nicht Enum), `status`(default `offen`),
+    `token`(text, unique, unratbar via crypto), `createdAt/updatedAt`. **Kein** Essenpreis-Feld.
   - **Partial-Unique-Index** `on(kasse) where typ='theke'` → genau eine Theke je Kasse.
-  - **CHECK** `typ<>'veranstaltung' OR (datum IS NOT NULL AND essenpreis_cents IS NOT NULL)`.
+  - **CHECK** `typ<>'veranstaltung' OR datum IS NOT NULL` (Datum-Pflicht nur für datierte).
   - **CHECK** `kasse IN ('montagsrunde','vereinskasse')` (fail-closed ohne Enum).
   - Tabelle `veranstaltung_zeile`: `id`, `veranstaltungId`(FK cascade), `teilnehmerId`(FK),
     `anzeigename`(**Snapshot** aus `teilnehmer.name` beim Anlegen), `createdAt/updatedAt`,
@@ -69,9 +70,8 @@ Kanonische Spec: `docs/specs/spec-51-abend-anlegen.md`.
   `removeZeile`, `listZeilen`. UPDATE/DELETE mit `.returning()` → `Promise<T | undefined>` (Codify #50).
   Konstante `KASSEN = ["montagsrunde","vereinskasse"] as const` als kanonische Quelle (Zod + Seed + CHECK).
 - **Actions** unter `app/abrechnung/veranstaltung/` mit `requireRole("abrechner")`. Zod-Grenze:
-  `essenpreis` via `parseEuroToCents` + `.refine(c<=2_147_483_647)` (Codify #49); `datum` Pflicht
-  für `typ='veranstaltung'`; `kasse` gegen `KASSEN`. `useActionState`-Erfolg per `useCallback`-Wrapper
-  schließen, **kein** `useEffect` (Codify #49).
+  `datum` Pflicht für `typ='veranstaltung'`; `kasse` gegen `KASSEN`; **kein** Essenpreis-Feld.
+  `useActionState`-Erfolg per `useCallback`-Wrapper schließen, **kein** `useEffect` (Codify #49).
 - **Provisionierung Theke:** Seed-Erweiterung + `ensureThekeForKasse` (Guard
   `requireAnyRole(["verwalter","abrechner"])`); Idempotenz via Partial-Unique (`23505` → „existiert bereits").
 - **proxy.ts:** Negativ-Lookahead um `theke/[token]` erweitern (eng gefasst, fail-closed, Codify #63).
@@ -87,6 +87,8 @@ Kanonische Spec: `docs/specs/spec-51-abend-anlegen.md`.
   bedingte Pflichtfelder via CHECK (§D4).
 
 **Bewusst an Folge-Features/Reviews delegiert:**
+- [ ] Katalog-Kategorie `essen` (Essen-Preise) → **eigenes F2-Erweiterungs-Issue #116** (Essen ist
+      nicht mehr Teil der Veranstaltung); Essen-Erfassung per Katalog-Auswahl → **F5/#52** (Spec angepasst).
 - [ ] Abrechnungs-Periodik der stehenden Theke (offen vs. kassiert) → **F8/#55** (ADR-023 §D7).
 - [ ] Fester Theken-Token: Länge/Rotation/Rate-Limit → **F7/#54 & /security-review**.
 - [ ] Unbekannter Gast an der Theke: nur Stammdaten vs. Freitext → **F7/#54**.

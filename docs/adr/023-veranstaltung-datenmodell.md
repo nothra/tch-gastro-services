@@ -16,8 +16,8 @@ Erfassungen (Verzehr F5, Auslagen F6, Kassieren F8) und referenziert Teilnehmer-
 Die Requirements-Schärfung 2026-07-15 hat den Schnitt erweitert: „Veranstaltung" ist der
 Primärbegriff (mit Pflicht-**Datum**), und es gibt **zwei Typen**:
 
-1. **Datierte Veranstaltung** (`veranstaltung`) – vom Abrechner angelegt, Datum + Essenpreis
-   + Kasse, Status `offen` → `abgeschlossen`.
+1. **Datierte Veranstaltung** (`veranstaltung`) – vom Abrechner angelegt, Datum + Kasse,
+   Status `offen` → `abgeschlossen`. (Essen ist kein Feld der Veranstaltung, s. D4.)
 2. **Stehende Theken-Selbstbedienung** (`theke`) – dauerhaft offener Vorgang **je Kasse** für
    den spontanen Wochentag-Verzehr, Erfassung **ohne Login/Rolle** über einen **festen**
    Theken-Zugang, nur Getränke + Kaffee.
@@ -31,7 +31,7 @@ Vor der ersten Persistierung dieser Entität – ohne Prod-Daten – sind mehrer
    bekannten Entitäts-Pfad (#57) und die Spec-Vorgabe „Erweiterung **ohne Migration** der
    bestehenden Daten".
 3. **Provisionierung & Idempotenz der stehenden Theke** (genau eine je Kasse).
-4. **Bedingte Pflichtfelder** (Datum/Essenpreis nur für `veranstaltung`).
+4. **Bedingtes Pflichtfeld** (Datum nur für `veranstaltung`); Essen ist Katalog, kein Feld.
 5. **Namens-Snapshot je Zeile** (Vertrag aus ADR-022).
 6. **Feature-Schnitt:** Was baut #51 selbst, was ergänzen F5/F7/F8?
 
@@ -53,16 +53,16 @@ export const veranstaltung = pgTable("veranstaltung", {
   bezeichnung: text("bezeichnung").notNull(),
   datum: date("datum", { mode: "date" }),          // Pflicht nur für 'veranstaltung' (CHECK)
   kasse: text("kasse").notNull(),                  // stabiler Key, s. D2
-  essenpreisCents: integer("essenpreis_cents"),    // Pflicht nur für 'veranstaltung' (CHECK)
   status: veranstaltungStatus("status").notNull().default("offen"), // offen | abgeschlossen
   token: text("token").notNull().unique().$defaultFn(unguessableToken), // Zugang (F7)
   createdAt, updatedAt,
 }, (v) => [
   // D6 – genau eine stehende Theke je Kasse:
   uniqueIndex("veranstaltung_eine_theke_je_kasse").on(v.kasse).where(sql`typ = 'theke'`),
-  // D4 – bedingte Pflichtfelder für datierte Veranstaltungen:
-  check("veranstaltung_datierte_pflichtfelder",
-    sql`typ <> 'veranstaltung' OR (datum IS NOT NULL AND essenpreis_cents IS NOT NULL)`),
+  // D4 – Datum ist Pflicht für datierte Veranstaltungen (nicht für die Theke):
+  check("veranstaltung_datum_pflicht", sql`typ <> 'veranstaltung' OR datum IS NOT NULL`),
+  // D2 – Kasse fail-closed ohne Enum-Typ:
+  check("veranstaltung_kasse_gueltig", sql`kasse IN ('montagsrunde','vereinskasse')`),
 ]);
 ```
 
@@ -94,13 +94,21 @@ ist DB-seitig durch den Partial-Unique-Index aus D1 garantiert (zweiter Insert f
 Kasse → `23505` → Action meldet „existiert bereits", legt nicht doppelt an). Es wird nur die
 tatsächlich genutzte Theke eingerichtet (kein Zwang zu zwei).
 
-### D4 — Bedingte Pflichtfelder über CHECK + Zod
+### D4 — Bedingtes Pflichtfeld Datum über CHECK + Zod; kein Essenpreis im Modell
 
-`datum` und `essenpreis_cents` sind spaltenweise **nullable**, aber per CHECK (D1) für
-`typ='veranstaltung'` erzwungen NOT NULL. Für `typ='theke'` sind sie NULL (kein Datum, kein
-Essen). Zod spiegelt das an der Grenze typ-abhängig. `status` ist für `theke` immer `offen`;
-es gibt **keine** Abschluss-Action für `theke` (App-Guard), sodass die Theke nie durch
-Zeitablauf schließt.
+`datum` ist spaltenweise **nullable**, aber per CHECK (D1) für `typ='veranstaltung'` erzwungen
+NOT NULL; für `typ='theke'` ist es NULL (kein Datum). Zod spiegelt das an der Grenze
+typ-abhängig. `status` ist für `theke` immer `offen`; es gibt **keine** Abschluss-Action für
+`theke` (App-Guard), sodass die Theke nie durch Zeitablauf schließt.
+
+**Kein Essenpreis am Veranstaltungs-Datensatz (Änderung 2026-07-15):** Essen ist keine
+Eigenschaft der Veranstaltung mehr, sondern ein **Katalogartikel der Kategorie `essen`** –
+feste Preise je Artikel (z. B. „Essen Montagsrunde 6 €", „Bratwurst mit Brötchen 4 €"), gewählt
+bei der Erfassung (F5). Es gibt **keine** `essenpreis_cents`-Spalte und **keine** spontane
+Preiseingabe. Die neue Kategorie `essen` (`catalog_category`-Enum-Wert) ist eine
+**F2-Erweiterung in einem eigenen Issue** (F2/#49 ist gemergt); die Essen-Erfassung per
+Katalog-Auswahl gehört zu **F5/#52**. Für #51/F4 bedeutet das schlicht: **keine essenbezogene
+Spalte oder Validierung** an der Veranstaltung.
 
 ### D5 — Abrechnungszeile mit Namens-Snapshot (`veranstaltung_zeile`)
 
@@ -127,8 +135,8 @@ verhindert Doppel-Zeilen desselben Teilnehmers je Veranstaltung.
   UPDATE/DELETE-Funktionen mit `.returning()` deklarieren `Promise<T | undefined>` (Codify #50).
 - **Actions** unter neuem Abrechner-Bereich `app/abrechnung/veranstaltung/` mit
   `requireRole("abrechner")` (Anlegen/Führen/Status). Zod-Schema an der Grenze:
-  `essenpreis` via `parseEuroToCents` + `.refine(c => c <= 2_147_483_647)` (Codify #49),
-  `datum` als Pflicht-Date für `typ='veranstaltung'`, `kasse` gegen `KASSEN` geprüft.
+  `datum` als Pflicht-Date für `typ='veranstaltung'`, `kasse` gegen `KASSEN` geprüft. **Kein**
+  Essenpreis-Feld (Essen ist Katalog, s. D4).
 - **Öffentlicher Theken-Zugang** unter `app/theke/[token]/` – als **Seam** in `proxy.ts`
   vorgesehen (Negativ-Lookahead um `theke/[token]` erweitern, eng gefasst; Codify #63).
   **Die öffentliche Seite selbst baut F7/#54** (Zugang) zusammen mit F5/#52 (Erfassung); siehe D7.
@@ -140,13 +148,17 @@ Um Doppelarbeit und Scope-Creep zu vermeiden, gilt:
 
 - **#51 (F4) baut:** Schema (`veranstaltung`, `veranstaltung_zeile`, Enums, CHECKs, Index,
   Migration), Data-Layer, Abrechner-UI zum **Anlegen/Führen datierter Veranstaltungen**
-  (Datum/Bezeichnung/Kasse/Essenpreis, Teilnehmerzeilen mit Snapshot, Status/Wiederöffnen),
+  (Datum/Bezeichnung/Kasse, Teilnehmerzeilen mit Snapshot, Status/Wiederöffnen),
   **Provisionierung der stehenden Theke** (Seed + `ensureThekeForKasse`, idempotent) inkl.
-  `token`-Spalte und `proxy.ts`-Ausnahme für `theke/[token]`.
+  `token`-Spalte und `proxy.ts`-Ausnahme für `theke/[token]`. **Kein** Essenpreis (s. D4).
+- **F2-Erweiterung (#116) ergänzt:** die Katalog-Kategorie `essen`
+  (`catalog_category`-Enum-Wert + UI/Validierung/Tests), damit Essen-Artikel mit festen Preisen
+  wählbar sind.
 - **F7/#54 ergänzt:** die öffentliche Selbstbedienungs-Seite (Link/QR, Namenswahl) – für
   datierte Veranstaltungen **und** die stehende Theke (fester, dauerhafter Token).
-- **F5/#52 ergänzt:** die eigentliche Verzehr-Erfassung je Zeile (Getränke/Kaffee; Essen nur
-  bei datierten Veranstaltungen).
+- **F5/#52 ergänzt:** die eigentliche Verzehr-Erfassung je Zeile – Getränke/Kaffee sowie
+  **Essen als Auswahl eines `essen`-Katalogartikels** (fester Katalogpreis); an der stehenden
+  Theke nur Getränke + Kaffee. Hängt zusätzlich von der F2-Erweiterung ab.
 - **F8/#55 ergänzt:** Kassieren/Abschluss – inkl. der **Periodik der stehenden Theke** (offene
   vs. kassierte Einträge; die Theke „schließt" nicht, sondern wird periodisch abgerechnet).
 

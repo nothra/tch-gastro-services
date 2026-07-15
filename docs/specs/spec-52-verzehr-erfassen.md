@@ -1,6 +1,10 @@
 # Spec: Verzehr erfassen – Getränke-Strichliste, Essen, Kaffee
 
 > Feature F5 · Issue #52 · Epic [Digitale Veranstaltungs-Abrechnung](README-montagsrunde.md)
+>
+> Hängt ab von F4 (#51) und – seit dem Essen-Modellwechsel 2026-07-15 – zusätzlich von der
+> **F2-Erweiterung „Katalog-Kategorie `essen`"** (#116). „Abend" ist hier synonym zu
+> „Veranstaltung" (spec-51).
 
 ## Kontext
 
@@ -14,11 +18,13 @@ volle Transparenz wie beim gemeinsamen Zettel heute.
 
 **Inbegriffen:**
 - Je Zeile pro Getränke-Artikel eine Menge hoch-/runterzählen (Strichliste, +/−).
-- Essen: Anzahl Portionen (× Essenpreis des Abends, F4).
+- Essen: **Auswahl eines Essen-Katalogartikels** (Kategorie `essen`, F2) und Anzahl Portionen
+  (× fester Katalogpreis des gewählten Artikels). **Kein** Essenpreis je Abend, keine spontane
+  Preiseingabe (Änderung 2026-07-15). An der stehenden Theke wird Essen nicht angeboten.
 - Kaffee: Anzahl (× fester Kaffeepreis aus dem Katalog, F2).
 - **Live-Berechnung** je Zeile:
   - `Summe Getränke (Theke)` = Σ Menge × Getränkepreis
-  - `Summe Sonstige` = Essen-Anzahl × Essenpreis + Kaffee-Anzahl × Kaffeepreis
+  - `Summe Sonstige` = Σ (Essen-Anzahl × Essen-Katalogpreis) + Kaffee-Anzahl × Kaffeepreis
 - Anzeige der ganzen Teilnehmerliste des Abends mit den laufenden Summen.
 - Korrektur: Mengen jederzeit (solange Abend `offen`) nach oben/unten anpassbar.
 
@@ -34,8 +40,9 @@ volle Transparenz wie beim gemeinsamen Zettel heute.
       sich sofort (Menge × aktueller Katalogpreis).
 - [ ] GIVEN eine erfasste Menge > 0 WHEN „−1" gewählt wird THEN sinkt die Menge um 1,
       minimal auf 0 (keine negativen Mengen).
-- [ ] GIVEN ein Abend mit Essenpreis X WHEN bei einer Zeile n Essen erfasst werden THEN
-      beträgt der Essenanteil n × X.
+- [ ] GIVEN ein Essen-Katalogartikel mit Preis X WHEN bei einer Zeile n Portionen dieses
+      Artikels erfasst werden THEN beträgt der Essenanteil n × X (Preis aus dem Katalog, nicht
+      vom Abend).
 - [ ] GIVEN ein Katalog-Kaffeepreis Y WHEN bei einer Zeile m Kaffee erfasst werden THEN
       beträgt der Kaffeeanteil m × Y.
 - [ ] GIVEN mehrere Personen erfassen gleichzeitig (eigenes Handy + Theken-Gerät) WHEN

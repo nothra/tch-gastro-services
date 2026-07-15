@@ -5,9 +5,16 @@
 ## Kontext
 
 Jeder Abrechnungsvorgang bezieht sich auf **eine Veranstaltung**. Der Abrechner legt die
-Veranstaltung an, bestimmt ihr **Datum**, den **Essenpreis** dieses Termins, wählt die
-**Kasse**, gegen die abgerechnet wird, und die teilnehmenden Personen/Familien aus den
-Stammdaten (F3). Die Veranstaltung ist die Klammer um alle Erfassungen (F5–F8).
+Veranstaltung an, bestimmt ihr **Datum**, wählt die **Kasse**, gegen die abgerechnet wird,
+und die teilnehmenden Personen/Familien aus den Stammdaten (F3). Die Veranstaltung ist die
+Klammer um alle Erfassungen (F5–F8).
+
+**Essen ist keine Eigenschaft der Veranstaltung** (Änderung 2026-07-15): Essen-Preise kommen
+**ausschließlich aus dem Katalog** – eine neue Kategorie `essen` (z. B. „Essen Montagsrunde
+6 €", „Bratwurst mit Brötchen 4 €"). Bei der Erfassung (F5) wird ein Essen-Katalogartikel
+**gewählt**; es gibt **keinen** Essenpreis je Veranstaltung und **keine** spontane
+Preiseingabe. Die Katalog-Kategorie `essen` ist eine **F2-Erweiterung in einem eigenen Issue**
+(F2/#49 ist bereits gemergt).
 
 **Begriff (Ubiquitous Language):** Der Fachbegriff ist **Veranstaltung** – „Abend" ist nur
 noch ein umgangssprachliches Synonym. Die **Montagsrunde** ist eine Veranstaltung unter
@@ -37,7 +44,6 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 **Inbegriffen:**
 - **Datierte Veranstaltung anlegen** mit Datum (Pflicht) und Bezeichnung (z. B. „Montagsrunde").
 - **Kasse** wählen (fester Satz: `montagsrunde` | `vereinskasse`, Pflichtfeld).
-- **Essenpreis** der datierten Veranstaltung festlegen (i. d. R. 6 €, teurer auch 7 €).
 - Teilnehmer aus den Stammdaten (F3) auswählen → je Teilnehmer eine Abrechnungszeile.
 - Solange **offen**: Teilnehmer nachträglich hinzufügen/entfernen.
 - Status: `offen` → `abgeschlossen` (Abschluss in F8); Wiederöffnen durch Abrechner.
@@ -55,6 +61,9 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 **Nicht inbegriffen:**
 - Wiederkehrende Serie/Vorlage mit vorbelegten Teilnehmern (Backlog #60).
 - Preis-Templates je Veranstaltungstyp (Backlog #59).
+- **Essenpreis am Veranstaltungs-Datensatz und spontane Preiseingabe** – entfällt. Essen kommt
+  ausschließlich aus dem Katalog (Kategorie `essen`); die **Katalog-Kategorie `essen` selbst
+  ist eine F2-Erweiterung in einem eigenen Issue**, die eigentliche Essen-Erfassung ist F5/#52.
 - **Essen an der stehenden Theke** (bewusst nicht im MVP – nur Getränke + Kaffee).
 - **Freitext-Erfassung unbekannter Gäste** an der Theke (Auswahl nur aus Stammdaten; unbekannte
   Gäste ergänzt der Abrechner später als Walk-in – offene Frage siehe unten).
@@ -70,15 +79,16 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
   Das Modell so schneiden, dass daraus später leicht eine **Kassen-Entität** (Referenz statt
   loses Enum-Feld) wird – nötig, sobald eine dritte Kasse dazukommt oder das Kassenbuch (#57)
   mit laufendem Saldo je Kasse kommt. Ziel: Erweiterung ohne Migration bestehender Daten.
-- **Essenpreis** ist bei `theke` **nicht** gesetzt (nullable / entfällt); bei `veranstaltung`
-  Pflicht. Geldbeträge als Integer-Cent (ADR-021), Zod-Obergrenze `≤ 2_147_483_647` (int4).
+- **Kein Essenpreis** am Veranstaltungs-Datensatz (weder `veranstaltung` noch `theke`). Essen
+  ist ein Katalogartikel der Kategorie `essen` (F2); die Preis-/Cent-Behandlung erbt der Katalog
+  (ADR-021, int4-Grenze, bereits in F2 abgesichert).
 - **Namens-Snapshot** in der Zeile (siehe Scope/ADR-022).
 
 ## Akzeptanzkriterien – A) Datierte Veranstaltung
 
-- [ ] GIVEN ein angemeldeter Abrechner WHEN er eine Veranstaltung mit **Datum**, Bezeichnung,
-      Kasse und Essenpreis anlegt THEN wird eine Veranstaltung vom Typ `veranstaltung` im
-      Status `offen` erstellt.
+- [ ] GIVEN ein angemeldeter Abrechner WHEN er eine Veranstaltung mit **Datum**, Bezeichnung
+      und Kasse anlegt THEN wird eine Veranstaltung vom Typ `veranstaltung` im Status `offen`
+      erstellt (kein Essenpreis).
 - [ ] GIVEN das Anlegen einer Veranstaltung WHEN keine Kasse gewählt ist THEN wird das
       Speichern **serverseitig** abgelehnt (Kasse ist Pflicht).
 - [ ] GIVEN das Anlegen einer datierten Veranstaltung WHEN kein Datum gewählt ist THEN wird
@@ -88,11 +98,6 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
       Positionen und dem **Anzeigenamen-Snapshot**.
 - [ ] GIVEN eine offene Veranstaltung WHEN der Abrechner einen weiteren Teilnehmer hinzufügt
       oder einen (noch ohne Erfassung) wieder entfernt THEN wird die Zeile ergänzt/entfernt.
-- [ ] GIVEN eine offene Veranstaltung mit gesetztem Essenpreis WHEN eine Essen-Position
-      erfasst wird (F5) THEN rechnet sie mit **diesem** Essenpreis.
-- [ ] GIVEN eine offene Veranstaltung mit bereits erfassten Essen WHEN der Essenpreis
-      geändert wird THEN werden **alle** Essen-Anteile dieser Veranstaltung mit dem neuen
-      Preis berechnet (abendweit einheitlich).
 - [ ] GIVEN ein Teilnehmer mit bereits erfassten Positionen WHEN versucht wird, ihn zu
       entfernen THEN wird das verhindert oder erfordert eine **bewusste Bestätigung** (kein
       Datenverlust aus Versehen).
@@ -123,10 +128,6 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 
 ## Fehlerszenarien
 
-- [ ] Essenpreis einer datierten Veranstaltung fehlt oder ist kein gültiger EUR-Betrag ≥ 0 →
-      serverseitige Ablehnung.
-- [ ] Essenpreis über int4-Maximum (> 2 147 483 647 Cent) → Zod-Ablehnung mit Nutzer-Hinweis,
-      **kein** DB-Overflow-500 (Stolperstein #49).
 - [ ] Datierte Veranstaltung ohne jeden Teilnehmer → anlegbar (Teilnehmer kommen später),
       aber Abschluss (F8) einer komplett leeren Veranstaltung erfordert Bestätigung.
 - [ ] Datum in Zukunft/Vergangenheit → erlaubt (Nacherfassung möglich).
@@ -143,7 +144,8 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - **Kasse je Veranstaltung, fester Satz**, Pflichtfeld, nicht pflegbar im MVP. Laufender
   Kassenstand über mehrere Termine bleibt Backlog #57 – im MVP nur die **Kassenveränderung**
   je Veranstaltung (F8).
-- **Essenpreis gilt abendweit einheitlich**; eine spätere Änderung wirkt auf alle Essen.
+- ~~Essenpreis gilt abendweit einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
+  kommt aus dem Katalog).
 - **Kaffeepreis** ist der feste Katalogpreis (F2), nicht pro Termin abweichend (Backlog #59).
 - **Wiederöffnen:** eine abgeschlossene Veranstaltung kann ein **Abrechner** wieder öffnen (F8).
 
@@ -158,6 +160,11 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
   Walk-in unbekannter Gäste bleibt beim Abrechner).
 - **Beide Typen teilen ein Datenmodell** (ein `veranstaltung_typ`-Enum, eine Tabelle, dieselbe
   Verzehr-Mechanik) – keine getrennte Struktur.
+- **Essen kommt ausschließlich aus dem Katalog** (neue Kategorie `essen`): feste Preise je
+  Artikel (z. B. „Essen Montagsrunde 6 €", „Bratwurst mit Brötchen 4 €"). **Kein** Essenpreis
+  am Veranstaltungs-Datensatz, **keine** spontane Preiseingabe. Die Katalog-Kategorie `essen`
+  wird als **eigenes F2-Erweiterungs-Issue** umgesetzt (F2/#49 ist gemergt); die Essen-Erfassung
+  per Katalog-Auswahl gehört zu **F5/#52** (dessen Spec wird entsprechend angepasst).
 
 ## Offene Fragen (für /architecture & /security-review)
 
@@ -186,3 +193,12 @@ Theken-Zugang ist eine **Erweiterung von F7/#54**, das Kassieren der stehenden T
 **Erweiterung von F8/#55**. Kanonische Quelle bleibt der Epic-README
 ([README-montagsrunde.md](README-montagsrunde.md)); die dortige Feature-Tabelle wurde um den
 Theken-Hinweis ergänzt.
+
+**Essen-Modellwechsel (2026-07-15):** Essen ist nun eine Katalog-Kategorie `essen`, nicht mehr
+ein Essenpreis je Abend. Das berührt:
+- **F2/#49 (gemergt):** neue Katalog-Kategorie `essen` (`catalog_category`-Enum-Wert + UI/
+  Validierung/Tests, Update von [spec-49](spec-49-getraenke-katalog.md), Streichen von „Essen
+  gehört NICHT hierher"). → **eigenes Issue #116** (nicht Teil von #51).
+- **F5/#52 (noch offen):** Essen-Erfassung wählt einen `essen`-Katalogartikel (fester Preis)
+  statt eines Essenpreises je Abend; [spec-52](spec-52-verzehr-erfassen.md) wurde entsprechend
+  angepasst und hängt jetzt zusätzlich von der F2-Erweiterung ab.
