@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -37,6 +37,16 @@ und wird direkt editiert.
   `--force`-fail-closed, push inklusive). Message-Konvention bleibt beim Skill.
 - Test-Modell: bestehender #114-Block in `run-tests.sh` (~Z. 1483–1505) – neuer Guard analog,
   aber auf den Schritt-2-Abschnitt eingegrenzt (Lehre #114: Kommando ≠ Prosa-Erwähnung).
+
+### Refactoring (kein neues Verhalten)
+- Die duplizierte Section-Extraktion beider `#117`-Asserts
+  (`[ s2 -gt 0 ] && [ s3 -gt s2 ] && sed … | grep`) in einen Helper `section_contains
+  <start-header> <end-header> <file> <needle>` gezogen (analog zur #114-Dedup in
+  `first_match_line`). Beide Asserts sind jetzt Einzeiler; die ungenutzten Zwischen-Variablen
+  `_shep_s2_start`/`_shep_s3_start` entfielen. Helper ist fail-closed (fehlender/vertauschter
+  Header ⇒ 1) und nutzt `grep -qF --` (Config-Wert-als-Daten-Regel, clean-code.md #36).
+- Verhalten identisch: Suite vor und nach dem Refactor 285 grün / 0 rot; Negativ-Nachweis
+  (Begründung entfernt ⇒ AC2 rot, AC1 grün) bleibt gültig.
 
 ## Blocker / Erforderliche Aktion des Menschen
 Blocker [2026-07-15]: `.claude/commands/pr-shepherd.md` ist für Agenten hard-denied
