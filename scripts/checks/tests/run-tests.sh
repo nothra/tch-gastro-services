@@ -1492,10 +1492,16 @@ assert_true "$?" "#114: pr-shepherd.md committet Abschlussnotiz via factory-comm
 # Feature-Branch liegen, bevor Auto-Merge feuert). Bewusst gegen die volle '--squash'-
 # Form geprüft: die kürzere 'gh pr merge --auto'-Erwähnung in Schritt 4 ist nur ein
 # Prosa-Verweis, kein Kommando.
-_shep_commit_line="$(grep -nF 'factory-commit.sh' "$SHEPHERD" | head -1 | cut -d: -f1)"
-_shep_merge_line="$(grep -nF 'gh pr merge --auto --squash' "$SHEPHERD" | head -1 | cut -d: -f1)"
-case "$_shep_commit_line" in ''|*[!0-9]*) _shep_commit_line=0 ;; esac
-case "$_shep_merge_line" in ''|*[!0-9]*) _shep_merge_line=0 ;; esac
+# Zeilennummer des ersten Fixed-String-Treffers; 0 bei kein/ungültigem Treffer
+# (integer-sicher für den arithmetischen Vergleich).
+first_match_line() {
+  local n
+  n="$(grep -nF "$1" "$2" | head -1 | cut -d: -f1)"
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  printf '%s' "$n"
+}
+_shep_commit_line="$(first_match_line 'factory-commit.sh' "$SHEPHERD")"
+_shep_merge_line="$(first_match_line 'gh pr merge --auto --squash' "$SHEPHERD")"
 assert_true "$([ "$_shep_commit_line" -gt 0 ] && [ "$_shep_merge_line" -gt 0 ] && [ "$_shep_commit_line" -lt "$_shep_merge_line" ]; echo $?)" \
   "#114: Abschlussnotiz wird vor 'gh pr merge --auto --squash' committet (Reihenfolge)"
 

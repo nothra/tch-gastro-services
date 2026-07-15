@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -90,6 +90,15 @@ Erst danach ist der Factory-Self-Test in CI vollständig grün und die Task absc
 **Blocker aufgelöst [2026-07-15]:** Mensch hat `git apply tasks/patch-114.diff` ausgeführt;
 Agent hat die `.claude/**`-Änderung per Bash-Grant committet (`c1b7ab2`). Factory-Self-Test
 **283 grün, 0 rot**; `pnpm test`/pre-push grün.
+
+## Refactoring-Notizen (/refactor 2026-07-15)
+Kein neues Verhalten – Self-Test vor/nach identisch **283 grün, 0 rot**.
+- Duplikation im #114-Reihenfolge-Guard entfernt: das zweimal wiederholte
+  `grep -nF … | head -1 | cut -d: -f1` + `case`-Integer-Guard in eine kleine Helferfunktion
+  `first_match_line <pattern> <datei>` extrahiert (gibt Zeilennummer des ersten Treffers bzw.
+  0 zurück, integer-sicher). Aufrufstellen lesen jetzt die Absicht statt der Mechanik.
+- Nur diese eine, lokal begrenzte Änderung; pr-shepherd.md-Patch und PROJECT-CONTEXT-Prosa
+  unberührt (bereits im Review als clean befunden).
 
 ## Review-Findings
 Multi-Persona-Review: **APPROVED** (`tasks/review-114.md`). Keine kritischen/wichtigen Findings.
