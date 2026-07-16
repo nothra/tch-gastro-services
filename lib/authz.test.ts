@@ -15,7 +15,7 @@ function sessionWithRoles(roles: UserRole[]): Session {
 
 describe("hasRole", () => {
   it("should_returnTrue_when_rolesContainRequired", () => {
-    expect(hasRole(["verwalter", "abrechner"], "verwalter")).toBe(true);
+    expect(hasRole(["verwalter", "veranstalter"], "verwalter")).toBe(true);
   });
 
   it("should_returnFalse_when_rolesUndefinedOrEmpty", () => {
@@ -25,23 +25,29 @@ describe("hasRole", () => {
   });
 
   it("should_returnFalse_when_rolesDoNotContainRequired", () => {
-    expect(hasRole(["abrechner"], "verwalter")).toBe(false);
+    expect(hasRole(["veranstalter"], "verwalter")).toBe(false);
+  });
+
+  it("should_returnFalse_when_roleIsLegacyAbrechner", () => {
+    // Stale-Wert aus einer DB vor ADR-024: 'abrechner' ist kein gültiger UserRole-Wert mehr
+    // und darf keinen Zugriff als 'veranstalter' gewähren (Regression für die Umbenennung).
+    expect(hasRole(["abrechner" as unknown as UserRole], "veranstalter")).toBe(false);
   });
 });
 
 describe("hasAnyRole", () => {
   it("should_returnTrue_when_rolesContainOneOfRequired", () => {
-    expect(hasAnyRole(["abrechner"], ["verwalter", "abrechner"])).toBe(true);
+    expect(hasAnyRole(["veranstalter"], ["verwalter", "veranstalter"])).toBe(true);
   });
 
   it("should_returnFalse_when_rolesContainNoneOfRequired", () => {
-    expect(hasAnyRole(["abrechner"], ["verwalter"])).toBe(false);
+    expect(hasAnyRole(["veranstalter"], ["verwalter"])).toBe(false);
     expect(hasAnyRole(undefined, ["verwalter"])).toBe(false);
   });
 
   it("should_returnFalse_when_requiredIsEmpty", () => {
     // Kein erlaubter Rollen-Satz → niemand darf (fail-closed).
-    expect(hasAnyRole(["verwalter", "abrechner"], [])).toBe(false);
+    expect(hasAnyRole(["verwalter", "veranstalter"], [])).toBe(false);
   });
 });
 
@@ -55,7 +61,7 @@ describe("ForbiddenError", () => {
 });
 
 describe("requireRole", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("should_returnSession_when_userHasRole", async () => {
     const session = sessionWithRoles(["verwalter"]);
@@ -63,8 +69,15 @@ describe("requireRole", () => {
     await expect(requireRole("verwalter")).resolves.toBe(session);
   });
 
+  it("should_returnSession_when_userHasVeranstalterRole", async () => {
+    // Kerntest ADR-024: die umbenannte Rolle gewährt Zugriff (Happy Path).
+    const session = sessionWithRoles(["veranstalter"]);
+    authMock.mockResolvedValue(session);
+    await expect(requireRole("veranstalter")).resolves.toBe(session);
+  });
+
   it("should_throwForbidden_when_userLacksRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
     await expect(requireRole("verwalter")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
@@ -76,7 +89,7 @@ describe("requireRole", () => {
   it("should_logRejection_when_accessDenied", async () => {
     // AC (spec-48): Zugriff auf fremde Rolle wird protokolliert.
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
     await expect(requireRole("verwalter")).rejects.toBeInstanceOf(ForbiddenError);
     expect(warnSpy).toHaveBeenCalledOnce();
     warnSpy.mockRestore();
@@ -84,16 +97,16 @@ describe("requireRole", () => {
 });
 
 describe("requireAnyRole", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("should_returnSession_when_userHasAnyRequiredRole", async () => {
-    const session = sessionWithRoles(["abrechner"]);
+    const session = sessionWithRoles(["veranstalter"]);
     authMock.mockResolvedValue(session);
-    await expect(requireAnyRole(["verwalter", "abrechner"])).resolves.toBe(session);
+    await expect(requireAnyRole(["verwalter", "veranstalter"])).resolves.toBe(session);
   });
 
   it("should_throwForbidden_when_userHasNoneOfRequired", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
     await expect(requireAnyRole(["verwalter"])).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

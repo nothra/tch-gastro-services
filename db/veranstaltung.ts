@@ -21,7 +21,7 @@ export async function createVeranstaltung(data: VeranstaltungData): Promise<Vera
   return created;
 }
 
-// Nur datierte Veranstaltungen, neueste zuerst – für die Abrechner-Übersicht. Die stehende
+// Nur datierte Veranstaltungen, neueste zuerst – für die Veranstalter-Übersicht. Die stehende
 // Theke wird nicht mitgelistet (sie wird über getThekeForKasse/Token angesteuert).
 export function listVeranstaltungen(): Promise<Veranstaltung[]> {
   return db

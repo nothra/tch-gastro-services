@@ -61,7 +61,7 @@ const validFields = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   // Standard: angemeldeter Verwalter (Guard lässt durch). Einzelne Tests überschreiben das.
   authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
   // Standard: kein Namensduplikat. Duplikat-Tests überschreiben das gezielt.
@@ -92,7 +92,7 @@ describe("createTeilnehmerAction", () => {
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
     await expect(createTeilnehmerAction(undefined, form(validFields))).rejects.toThrow(
       ForbiddenError,
@@ -150,7 +150,7 @@ describe("updateTeilnehmerAction", () => {
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
     await expect(
       updateTeilnehmerAction(undefined, form({ ...validFields, id: "abc" })),
@@ -181,7 +181,7 @@ describe("setTeilnehmerActiveAction", () => {
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
     await expect(
       setTeilnehmerActiveAction(form({ id: "abc", active: "false" })),

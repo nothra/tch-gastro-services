@@ -1,6 +1,12 @@
 # Spec: Kassieren & Abend abschließen
 
 > Feature F8 · Issue #55 · Epic [Digitale Veranstaltungs-Abrechnung](README-montagsrunde.md)
+>
+> **Zielbild (ADR-024, #120):** F8 wird die authentifizierte Unterroute
+> `app/veranstaltung/[id]/kassieren` (Bereich `app/abrechnung/veranstaltung` → **`app/veranstaltung`**
+> umbenannt). Die Owner-Rolle `abrechner` → **`veranstalter`**; „Abrechner"/„Abrechner-Rolle" in
+> diesem Dokument meint diese Rolle. Siehe
+> [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 

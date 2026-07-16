@@ -1,7 +1,7 @@
 import type { VeranstaltungStatus } from "@/db/schema";
 import { setStatusAction } from "./actions";
 
-// Abschließen (F8) bzw. protokolliertes Wiederöffnen durch den Abrechner. Das versteckte
+// Abschließen (F8) bzw. protokolliertes Wiederöffnen durch den Veranstalter. Das versteckte
 // Zielstatus-Feld kippt jeweils auf den Gegenwert.
 export function StatusToggle({ id, status }: { id: string; status: VeranstaltungStatus }) {
   const offen = status === "offen";

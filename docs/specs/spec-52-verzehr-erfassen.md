@@ -5,6 +5,13 @@
 > Hängt ab von F4 (#51) und – seit dem Essen-Modellwechsel 2026-07-15 – zusätzlich von der
 > **F2-Erweiterung „Katalog-Kategorie `essen`"** (#116). „Abend" ist hier synonym zu
 > „Veranstaltung" (spec-51).
+>
+> **Zielbild (ADR-024, #120):** F5 wird die authentifizierte Unterroute
+> `app/veranstaltung/[id]/verzehr` und teilt die Erfassungs-UI route-neutral über `app/_verzehr/`
+> mit der öffentlichen `theke/[token]`-Route (F7). Der Bereich `app/abrechnung/veranstaltung`
+> wurde nach **`app/veranstaltung`** umbenannt, die Owner-Rolle `abrechner` → **`veranstalter`**;
+> „Abrechner" in diesem Dokument meint diese Rolle. Siehe
+> [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 

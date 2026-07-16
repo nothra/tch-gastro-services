@@ -45,7 +45,7 @@ const validFields = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   // Standard: angemeldeter Verwalter (Guard lässt durch). Einzelne Tests überschreiben das.
   authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
   // Guard protokolliert Ablehnungen via console.warn (spec-48) – im Test stummschalten.
@@ -63,7 +63,7 @@ describe("createCatalogItemAction", () => {
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
     await expect(createCatalogItemAction(undefined, form(validFields))).rejects.toThrow(
       ForbiddenError,
@@ -112,7 +112,7 @@ describe("updateCatalogItemAction", () => {
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
     await expect(
       updateCatalogItemAction(undefined, form({ ...validFields, id: "abc" })),
@@ -159,7 +159,7 @@ describe("setCatalogItemActiveAction", () => {
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
-    authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+    authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
     await expect(setCatalogItemActiveAction(form({ id: "abc", active: "false" }))).rejects.toThrow(
       ForbiddenError,

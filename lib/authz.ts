@@ -31,7 +31,7 @@ export async function requireRole(required: UserRole): Promise<Session> {
   return requireAnyRole([required]);
 }
 
-// Guard für Aktionen, die eine von mehreren Rollen erlauben (z. B. verwalter ODER abrechner).
+// Guard für Aktionen, die eine von mehreren Rollen erlauben (z. B. verwalter ODER veranstalter).
 export async function requireAnyRole(required: readonly UserRole[]): Promise<Session> {
   const session = await auth();
   if (!session?.user || !hasAnyRole(session.user.roles, required)) {

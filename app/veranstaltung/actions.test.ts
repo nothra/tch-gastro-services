@@ -82,7 +82,7 @@ const validVeranstaltung = { bezeichnung: "Montagsrunde", datum: "2026-07-13", k
 
 beforeEach(() => {
   vi.resetAllMocks();
-  authMock.mockResolvedValue(sessionWithRoles(["abrechner"]));
+  authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
   getVeranstaltungMock.mockResolvedValue(offeneVeranstaltung);
   getTeilnehmerMock.mockResolvedValue(person);
   createTeilnehmerMock.mockResolvedValue(person);
@@ -100,7 +100,7 @@ describe("createVeranstaltungAction", () => {
     expect(createMock.mock.calls[0][0].datum).toBeInstanceOf(Date);
   });
 
-  it("should_rejectAndNotPersist_when_userLacksAbrechnerRole", async () => {
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
 
     await expect(createVeranstaltungAction(undefined, form(validVeranstaltung))).rejects.toThrow(
@@ -136,7 +136,7 @@ describe("addZeileAction", () => {
     expect(addZeileMock).toHaveBeenCalledWith("v1", person);
   });
 
-  it("should_rejectAndNotPersist_when_userLacksAbrechnerRole", async () => {
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
 
     await expect(
@@ -179,6 +179,20 @@ describe("addZeileAction", () => {
     expect(result.error).toBeDefined();
     expect(addZeileMock).not.toHaveBeenCalled();
   });
+
+  it("should_returnError_when_veranstaltungIdMissing", async () => {
+    const result = await addZeileAction(undefined, form({ teilnehmerId: "t1" }));
+
+    expect(result.error).toBeDefined();
+    expect(addZeileMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_teilnehmerIdMissing", async () => {
+    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1" }));
+
+    expect(result.error).toBeDefined();
+    expect(addZeileMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("createWalkInAction", () => {
@@ -210,10 +224,19 @@ describe("createWalkInAction", () => {
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
   });
 
-  it("should_rejectAndNotPersist_when_userLacksAbrechnerRole", async () => {
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
 
     await expect(createWalkInAction(undefined, form(walkIn))).rejects.toThrow(ForbiddenError);
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungIdMissing", async () => {
+    const { veranstaltungId, ...withoutId } = walkIn;
+    void veranstaltungId;
+    const result = await createWalkInAction(undefined, form(withoutId));
+
+    expect(result.error).toBeDefined();
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
   });
 });
@@ -230,11 +253,16 @@ describe("removeZeileAction", () => {
     expect(removeZeileMock).not.toHaveBeenCalled();
   });
 
-  it("should_rejectAndNotPersist_when_userLacksAbrechnerRole", async () => {
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
     await expect(removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }))).rejects.toThrow(
       ForbiddenError,
     );
+    expect(removeZeileMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_idsMissing", async () => {
+    await removeZeileAction(form({}));
     expect(removeZeileMock).not.toHaveBeenCalled();
   });
 });
@@ -266,11 +294,16 @@ describe("setStatusAction", () => {
     expect(setStatusMock).not.toHaveBeenCalled();
   });
 
-  it("should_rejectAndNotPersist_when_userLacksAbrechnerRole", async () => {
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
     await expect(setStatusAction(form({ id: "v1", status: "abgeschlossen" }))).rejects.toThrow(
       ForbiddenError,
     );
+    expect(setStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_idMissing", async () => {
+    await setStatusAction(form({ status: "abgeschlossen" }));
     expect(setStatusMock).not.toHaveBeenCalled();
   });
 });

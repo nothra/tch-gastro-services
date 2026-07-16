@@ -1,6 +1,6 @@
 import type { Kasse, VeranstaltungStatus } from "@/db/schema";
 
-// Kanonische Anzeige-Labels für die Abrechner-UI. Die Schlüssel sind die stabilen Text-Keys
+// Kanonische Anzeige-Labels für die Veranstalter-UI. Die Schlüssel sind die stabilen Text-Keys
 // bzw. Enum-Werte (ADR-023); hier wird nur die Darstellung übersetzt.
 export const KASSE_LABEL: Record<Kasse, string> = {
   montagsrunde: "Montagsrunde",

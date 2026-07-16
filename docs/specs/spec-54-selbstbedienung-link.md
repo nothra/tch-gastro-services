@@ -1,6 +1,13 @@
 # Spec: Selbstbedienung – Zugang per Link/QR & Namenswahl
 
 > Feature F7 · Issue #54 · Epic [Digitale Veranstaltungs-Abrechnung](README-montagsrunde.md)
+>
+> **Zielbild (ADR-024, #120):** F7 baut auf der bereits freigegebenen öffentlichen Route
+> `app/theke/[token]` auf (login-frei, Seam im `proxy.ts`-Matcher) und teilt die Erfassungs-UI
+> route-neutral über `app/_verzehr/` mit F5. Der authentifizierte Bereich heißt **`app/veranstaltung`**
+> (vormals `app/abrechnung/veranstaltung`), die Owner-Rolle `abrechner` → **`veranstalter`**;
+> „Abrechner" in diesem Dokument meint diese Rolle. Siehe
+> [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 

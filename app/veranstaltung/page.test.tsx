@@ -62,13 +62,13 @@ const aVeranstaltung: Veranstaltung = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   // Stabiler Leerzustand für alle eingebetteten Client-Formulare.
   useActionStateMock.mockReturnValue([undefined, vi.fn(), false] as never);
 });
 
 describe("VeranstaltungenPage", () => {
-  it("should_denyAccess_when_userIsNotAbrechner", async () => {
+  it("should_denyAccess_when_userIsNotVeranstalter", async () => {
     authMock.mockResolvedValue(session(["verwalter"]));
 
     render(await VeranstaltungenPage());
@@ -85,8 +85,8 @@ describe("VeranstaltungenPage", () => {
     expect(screen.getByText(/Kein Zugriff/)).toBeInTheDocument();
   });
 
-  it("should_showHeadingAndEmptyMessage_when_abrechnerWithNoVeranstaltungen", async () => {
-    authMock.mockResolvedValue(session(["abrechner"]));
+  it("should_showHeadingAndEmptyMessage_when_veranstalterWithNoVeranstaltungen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
     listVeranstaltungenMock.mockResolvedValue([]);
 
     render(await VeranstaltungenPage());
@@ -99,14 +99,14 @@ describe("VeranstaltungenPage", () => {
   });
 
   it("should_showVeranstaltungLinkWithMeta_when_dataAvailable", async () => {
-    authMock.mockResolvedValue(session(["abrechner"]));
+    authMock.mockResolvedValue(session(["veranstalter"]));
     listVeranstaltungenMock.mockResolvedValue([aVeranstaltung]);
 
     render(await VeranstaltungenPage());
 
     const link = screen.getByRole("link", { name: "Montagsrunde Juli" });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/abrechnung/veranstaltung/v-1");
+    expect(link).toHaveAttribute("href", "/veranstaltung/v-1");
     // Datum in der Metazeile ist eindeutig (getByText wäre für "offen"/"Montagsrunde" ambig,
     // da die eingebetteten Formulare Selects mit denselben Worten rendern).
     expect(screen.getByText(/14\.07\.2026/)).toBeInTheDocument();
