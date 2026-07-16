@@ -159,3 +159,5 @@ Zwei neue Regeln in `docs/factory/PROJECT-CONTEXT.md` ergänzt:
 ---
 Branch: `docs/120-adr-frage-route-schnitt-abrechnung-veranstaltung`
 Erstellt: 2026-07-15 21:09
+
+Blocker 2026-07-15: Pipeline pausiert – REVIEW_BLOCKER: Review NEEDS_REWORK – 3 menschliche Aktionen nötig (nicht Agent-Iteration): (/architecture ausführen, dann Pipeline neu starten)
