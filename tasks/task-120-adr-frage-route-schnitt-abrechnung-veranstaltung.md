@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 ADR-Frage: Wie wird der Lebenszyklus einer **Veranstaltung** geschnitten, bevor die Features
@@ -157,7 +157,9 @@ Zwei neue Regeln in `docs/factory/PROJECT-CONTEXT.md` ergänzt:
    Branch-Typ noch passt; falls Code in Scope → vor `/implement` umbenennen + Label anpassen.
 
 ---
-Branch: `docs/120-adr-frage-route-schnitt-abrechnung-veranstaltung`
+Branch: `improvement/120-route-schnitt-veranstaltung-lifecycle`
 Erstellt: 2026-07-15 21:09
 
 Blocker 2026-07-15: Pipeline pausiert – REVIEW_BLOCKER: Review NEEDS_REWORK – 3 menschliche Aktionen nötig (nicht Agent-Iteration): (/architecture ausführen, dann Pipeline neu starten)
+
+PR-Shepherd 2026-07-16: Auto-Merge freigegeben – alle Gates grün (CI: lint/test/issue-sync/factory-self-test/Vercel alle pass; Review-Blocker durch Mensch aufgelöst: D1-Move, Migration-Verify, Branch-Rename).
