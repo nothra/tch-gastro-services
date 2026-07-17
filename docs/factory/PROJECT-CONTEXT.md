@@ -565,6 +565,26 @@ it("should_nameAllThreeCategoriesInMessage_when_categoryInvalid", () => {
 Verwandt mit der #117-Regel (je separierbares AC-Kriterium eine eigene Assertion) und der
 `testing-standards.md`-Regel (erwarteter Wert ist ein Literal, kein erneuter Ergebnis-Zugriff).
 
+### Route-neutrale Module: keine Feature-Imports beim Implementieren prüfen (aus #52, Review-Finding)
+
+`app/_verzehr/VerzehrErfassung.tsx` importierte `CATEGORY_LABEL` aus
+`app/verwaltung/katalog/CatalogFields.tsx`. `app/_verzehr/` ist laut ADR-025 D5 bewusst
+route-neutral, damit F7 (öffentliche Theke) es ohne Umbau wiederverwenden kann. Der
+Feature-Import untergräbt diese Isolation still – die spätere Theke-Route hätte an einem
+Verwalter-Modul gehangen. Erst das Review erkannte die Verletzung; beim Implementieren
+war kein explizites Prüfkriterium aktiv.
+
+**Regel:** Jedes `app/_<name>/`-Modul (route-neutraler Baustein, Unterstrich-Konvention) darf
+**keine** Imports aus `app/<feature>/`-Verzeichnissen enthalten. Beim Implementieren nach dem
+ersten Draft **explizit prüfen**:
+```bash
+grep -r 'from "@/app/[^_]' app/_<name>/
+```
+Ein Treffer bedeutet: gemeinsam genutzten Code in ein neutrales Modul (`app/_<name>/` selbst
+oder `lib/`) verschieben und **alle** Konsumenten daraus importieren lassen – nicht
+re-exportieren und hoffen. Die ADR-Beschreibung (hier D5) allein verhindert die Verletzung
+nicht; der aktive Check beim Implementieren schon.
+
 ---
 
 ## Offene Architektur-Fragen

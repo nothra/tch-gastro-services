@@ -210,3 +210,37 @@ export const veranstaltungZeile = pgTable(
 
 export type VeranstaltungZeile = typeof veranstaltungZeile.$inferSelect;
 export type NewVeranstaltungZeile = typeof veranstaltungZeile.$inferInsert;
+
+// Erfasster Verzehr je (Teilnehmerzeile, Katalogartikel) mit aggregierter Menge (F5, #52,
+// ADR-025 D1). Seit ADR-023 D4 sind Getränke/Essen/Kaffee alle Katalogartikel – sie
+// unterscheiden sich nur in `catalog_category`; deshalb genügt EINE Verzehr-Tabelle, und die
+// Aufteilung „Getränke (Theke)" vs. „Sonstige (Essen + Kaffee)" ist reine Lese-Gruppierung.
+export const verzehrPosition = pgTable(
+  "verzehr_position",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => globalThis.crypto.randomUUID()),
+    // Entfernt der Veranstalter eine Zeile, verschwinden ihre Positionen mit (cascade).
+    zeileId: text("zeile_id")
+      .notNull()
+      .references(() => veranstaltungZeile.id, { onDelete: "cascade" }),
+    // Kein onDelete (restrict): Katalogartikel werden nie hart gelöscht (Soft-Delete via
+    // `active`, spec-49) → die Preis-/Kategorie-Auflösung per Join gelingt immer.
+    catalogItemId: text("catalog_item_id")
+      .notNull()
+      .references(() => catalogItems.id),
+    menge: integer("menge").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (p) => [
+    // Zugleich Konflikt-Ziel des atomaren Upserts (ADR-025 D3): genau eine Zeile je Paar.
+    unique("verzehr_position_zeile_item_unique").on(p.zeileId, p.catalogItemId),
+    // DB-seitige, fail-closed Absicherung „keine negativen Mengen" (ADR-025 D1/D3).
+    check("verzehr_position_menge_nicht_negativ", sql`${p.menge} >= 0`),
+  ],
+);
+
+export type VerzehrPosition = typeof verzehrPosition.$inferSelect;
+export type NewVerzehrPosition = typeof verzehrPosition.$inferInsert;

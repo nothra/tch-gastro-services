@@ -22,3 +22,19 @@ export const veranstaltungSchema = z.object({
 });
 
 export type VeranstaltungInput = z.infer<typeof veranstaltungSchema>;
+
+// Zod-Grenze für die Verzehr-Erfassung (F5, ADR-025 D6). Der Client sendet ein Delta (±1),
+// nie ein absolutes `menge` – das ist die Konvention gegen Lost Update (ADR-025 D3), die die
+// Action fail-closed erzwingt: Werte außer +1/−1 werden abgelehnt. Meldungen sind für
+// Konsumenten. Die veranstaltungId ist KEIN Feld hier – sie ist ein serverseitig gebundenes,
+// vertrauenswürdiges Argument der Action (route-neutral, ADR-025 D5).
+export const verzehrAdjustSchema = z.object({
+  zeileId: z.string().trim().min(1, "Keine Teilnehmerzeile angegeben."),
+  catalogItemId: z.string().trim().min(1, "Kein Artikel angegeben."),
+  delta: z.coerce
+    .number()
+    .int()
+    .refine((value) => value === 1 || value === -1, "Änderung muss +1 oder −1 sein."),
+});
+
+export type VerzehrAdjustInput = z.infer<typeof verzehrAdjustSchema>;
