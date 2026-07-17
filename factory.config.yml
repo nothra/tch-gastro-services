@@ -42,10 +42,18 @@
 # @tradeoff: Ergebnis dieses Laufs beobachten (Review-Iterationen, Kosten) und
 # danach entscheiden, ob die implement-Umstellung projektweit bleibt oder
 # dieser Override wieder entfernt wird.
+#
+# ── Ergebnis (Task 53, 2026-07-18): implement auf light/Sonnet 5 ist 3x in
+# Folge an max_turns=40 gescheitert (größerer Scope: neue Tabelle, Data-Layer,
+# Actions, Summen-Modul, UI-Route – kein kleiner Fix wie Task 135). implement
+# für diese Task zurück auf tier: heavy (Opus 4.8) gestellt, max_turns auf 80
+# angehoben. model_tiers.light bleibt auf claude-sonnet-5 für andere Skills;
+# die implement-Tier-Frage bleibt offen (@tradeoff oben weiter gültig, jetzt
+# mit Gegenbeispiel: Sonnet 5 reicht nicht für jeden Task-Zuschnitt).
 model_tiers:
   light: claude-sonnet-5
 skills:
-  implement: { tier: light, max_turns: 40 }
+  implement: { tier: heavy, max_turns: 80 }
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 16 }
   test: { max_turns: 40 }
