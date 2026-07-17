@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -34,7 +34,8 @@ Superseding-/Hinweis-Notiz an dieser Stelle – **kein** Rewrite der Entscheidun
 Keine.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Review: [review-130.md](review-130.md) → **APPROVED**. Keine kritischen/wichtigen Findings,
+keine Nitpicks. Notiz gegen ADR-023 §D4/§D7 verifiziert; historischer ADR-Charakter gewahrt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
