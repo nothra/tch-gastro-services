@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -151,8 +151,29 @@ Review-Runden bereits aufgeräumt (Route-Neutralität, Key-Strategie, Trim-Dupli
 dem Schritt. Kein weiterer Refactoring-Bedarf identifiziert (Funktionslängen, Naming, Duplikation,
 Magic Strings bereits im Rahmen der Review-Runden bereinigt).
 
+## Security-Review [2026-07-18]
+
+`tasks/security-137.md` – Ergebnis **PASSED** (keine Blocker, keine wichtigen Findings).
+Geprüft: XSS/Output-Encoding (`size`/`name` nur als JSX-Text-Children, React-Auto-Escaping,
+kein `dangerouslySetInnerHTML`), SQL-Injection (nur zusätzliche `size`-Spalte im Drizzle-
+`.select()`), IDOR/BOLA (Query-Grenze `WHERE veranstaltungId = <id>` unverändert, `size` über
+`innerJoin(catalogItems)` – keine fremde Veranstaltung durchreichbar), keine neuen Dependencies,
+keine Secrets/Logs/Stack-Traces.
+
+Ein **out-of-scope-Hinweis** (kein Blocker): Katalog-Schreibpfad `app/verwaltung/katalog/schema.ts`
+validiert die `text`-Felder `name`/`size` ohne `.max()`-Obergrenze (Codify #50). Verifiziert –
+zutreffend, aber Vorbedingung, nicht durch #137 eingeführt (#137 liest `size` nur). Empfehlung:
+separates Härtungs-Issue (Anlage per Seam durch den Menschen freizugeben – gh-Aufruf brauchte
+in dieser Session Approval).
+
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vollständiger Report: `tasks/codify-137.md`. Kurzfassung: neue Regel in
+PROJECT-CONTEXT.md ("Lint/Vitest fangen keine Typfehler") + `pnpm typecheck`-Gate in
+`scripts/checks/pre-push.sh` ergänzt (schließt den Review-Runde-1-Build-Break-Fund),
+inkl. Mini-Fix eines dadurch aufgedeckten vorbestehenden stale `@ts-expect-error` in
+`db/veranstaltung.test.ts`. Out-of-Scope-Issue `#142` (Katalog-Schema `.max()`-Obergrenze)
+über `create-issue.sh` angelegt.
 
 ---
 Branch: `feature/137-verzehr-erfassen-gre-je-artikel-anzeigen-und-gleichnamige-artikel-gruppieren`
