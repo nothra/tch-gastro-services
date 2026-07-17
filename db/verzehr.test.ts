@@ -33,8 +33,13 @@ async function trackTeilnehmer(name: string) {
   return row;
 }
 
-async function trackItem(name: string, priceCents: number, category: "getraenk" | "kaffee" | "essen") {
-  const row = await createItem({ name: `${TEST_PREFIX}${name}`, size: "", priceCents, category, sortOrder: 0 });
+async function trackItem(
+  name: string,
+  priceCents: number,
+  category: "getraenk" | "kaffee" | "essen",
+  size = "",
+) {
+  const row = await createItem({ name: `${TEST_PREFIX}${name}`, size, priceCents, category, sortOrder: 0 });
   createdItems.push(row.id);
   return row;
 }
@@ -162,6 +167,16 @@ describe.skipIf(!hasDb)("verzehr data-layer (integration)", () => {
     const positionen = await listPositionen(v.id);
 
     expect(positionen.find((p) => p.catalogItemId === item.id)?.active).toBe(false);
+  });
+
+  it("should_joinSize_when_listingPositionen", async () => {
+    const { v, zeile } = await setup();
+    const item = await trackItem("Cola", 250, "getraenk", "0,5 l");
+    await adjustMenge(zeile.id, item.id, 1);
+
+    const positionen = await listPositionen(v.id);
+
+    expect(positionen.find((p) => p.catalogItemId === item.id)?.size).toBe("0,5 l");
   });
 
   it("should_returnUndefined_when_noPositionExistsForZeileAndItem", async () => {

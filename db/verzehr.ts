@@ -22,6 +22,7 @@ export type VerzehrPositionRow = {
   catalogItemId: string;
   menge: number;
   name: string;
+  size: string;
   priceCents: number;
   category: CatalogCategory;
   active: boolean;
@@ -60,6 +61,7 @@ export function listPositionen(veranstaltungId: string): Promise<VerzehrPosition
       catalogItemId: verzehrPosition.catalogItemId,
       menge: verzehrPosition.menge,
       name: catalogItems.name,
+      size: catalogItems.size,
       priceCents: catalogItems.priceCents,
       category: catalogItems.category,
       active: catalogItems.active,

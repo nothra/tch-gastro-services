@@ -101,7 +101,9 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     await expect(
       db
         .insert(veranstaltung)
-        // @ts-expect-error – bewusst ungültiger Kassen-Key zum Prüfen der DB-CHECK
+        // `kasse` ist auf DB-Ebene `text` (kein TS-Enum) – der ungültige Wert ist für
+        // TypeScript ein normaler String, der Fehler kommt ausschließlich aus der
+        // Postgres-CHECK `veranstaltung_kasse_gueltig` zur Laufzeit.
         .values({ bezeichnung: `${TEST_PREFIX}BadKasse`, kasse: "sparkasse", datum: new Date("2026-07-13") })
         .returning(),
     ).rejects.toThrow();

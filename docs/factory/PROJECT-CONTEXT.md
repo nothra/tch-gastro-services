@@ -585,6 +585,24 @@ oder `lib/`) verschieben und **alle** Konsumenten daraus importieren lassen – 
 re-exportieren und hoffen. Die ADR-Beschreibung (hier D5) allein verhindert die Verletzung
 nicht; der aktive Check beim Implementieren schon.
 
+### Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
+
+Review-Runde 1 fand einen Build-Break (fehlender `import type { CatalogCategory }`), den
+`pnpm lint` und `pnpm test` beide grün durchließen: Vitest transpiliert über esbuild
+(Typen werden vor der Ausführung gestrippt, kein Type-Check) und das ESLint-Setup hier
+ist nicht typed-aware. Nur `tsc`/`next build` sieht diese Fehlerklasse – bis dahin blieb
+der Fund nur durch einen manuellen `pnpm build` vor dem Merge sichtbar, kein
+automatisiertes Gate deckte ihn ab.
+
+**Regel:** `package.json` hat jetzt ein `"typecheck": "tsc --noEmit"`-Script, das
+`scripts/checks/pre-push.sh` als eigenen Check ausführt (override via
+`FACTORY_TYPECHECK_COMMAND`) – fail-closed: schlägt der Typecheck fehl, wird der Push
+blockiert, keine stille Degradation. Beim Einführen eines neuen Gate-Checks immer sofort
+`pnpm typecheck` (bzw. den neuen Befehl) gegen den **aktuellen** Baum laufen lassen, nicht
+nur gegen den eigenen Diff – ein vorbestehender Verstoß anderswo im Repo (hier ein
+stale `@ts-expect-error` in `db/veranstaltung.test.ts`, unabhängig von #137) blockiert
+sonst sofort jeden Push auf jedem Branch, sobald das Gate scharf ist.
+
 ---
 
 ## Offene Architektur-Fragen

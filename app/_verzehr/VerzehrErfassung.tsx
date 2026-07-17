@@ -1,22 +1,24 @@
 import { CATEGORY_LABEL } from "./category-labels";
 import { formatCents } from "@/lib/money";
-import type { CatalogCategory } from "@/db/schema";
 import type { VerzehrPositionRow } from "@/db/verzehr";
+import type { CatalogCategory } from "@/db/schema";
 import { zeileSummen } from "./summen";
 import { MengeControl } from "./MengeControl";
 import type { VerzehrFormAction } from "./types";
+import {
+  groessenSuffix,
+  groessenLabel,
+  gruppiereArtikel,
+  type VerzehrArtikel,
+  type VerzehrArtikelGruppe,
+} from "./artikel-anzeige";
 
 // Präsentationale, route-neutrale Erfassungs-UI (ADR-025 D5): kennt keine Auth/Session/Token,
 // erhält Zeilen + Positionen + Katalog und die bereits scope-gebundene Server-Action als Prop.
 // F7 (#54) reicht eine token-scoped Action und einen Katalog ohne Essen herein – ohne Umbau.
 
 export type VerzehrZeile = { id: string; anzeigename: string };
-export type VerzehrArtikel = {
-  id: string;
-  name: string;
-  priceCents: number;
-  category: CatalogCategory;
-};
+export type { VerzehrArtikel };
 
 // Getränke, Essen, Kaffee – Anzeigereihenfolge der Zusammenfassung und der Erfassungs-Abschnitte.
 const CATEGORY_ORDER: readonly CatalogCategory[] = ["getraenk", "essen", "kaffee"];
@@ -91,24 +93,40 @@ function ZeileKarte({
       {CATEGORY_ORDER.map((category) => {
         const artikelDerKategorie = artikel.filter((item) => item.category === category);
         if (artikelDerKategorie.length === 0) return null;
+        const gruppen = gruppiereArtikel(artikelDerKategorie);
         return (
           <section key={category} className="flex flex-col gap-2">
             <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               {CATEGORY_LABEL[category]}
             </h3>
             <ul className="flex flex-col gap-2">
-              {artikelDerKategorie.map((item) => (
-                <PositionZeile
-                  key={item.id}
-                  action={action}
-                  zeileId={zeile.id}
-                  catalogItemId={item.id}
-                  name={item.name}
-                  priceCents={item.priceCents}
-                  menge={mengeJeArtikel.get(item.id) ?? 0}
-                  editable={editable}
-                />
-              ))}
+              {gruppen.map((gruppe) => {
+                if (gruppe.varianten.length > 1) {
+                  return (
+                    <ArtikelGruppe
+                      key={gruppe.name}
+                      gruppe={gruppe}
+                      action={action}
+                      zeileId={zeile.id}
+                      mengeJeArtikel={mengeJeArtikel}
+                      editable={editable}
+                    />
+                  );
+                }
+                const einzelArtikel = gruppe.varianten[0];
+                return (
+                  <PositionZeile
+                    key={gruppe.name}
+                    action={action}
+                    zeileId={zeile.id}
+                    catalogItemId={einzelArtikel.id}
+                    label={`${einzelArtikel.name}${groessenSuffix(einzelArtikel.size)}`}
+                    priceCents={einzelArtikel.priceCents}
+                    menge={mengeJeArtikel.get(einzelArtikel.id) ?? 0}
+                    editable={editable}
+                  />
+                );
+              })}
             </ul>
           </section>
         );
@@ -126,7 +144,7 @@ function ZeileKarte({
                 action={action}
                 zeileId={zeile.id}
                 catalogItemId={position.catalogItemId}
-                name={position.name}
+                label={`${position.name}${groessenSuffix(position.size)}`}
                 priceCents={position.priceCents}
                 menge={position.menge}
                 editable={editable}
@@ -139,11 +157,47 @@ function ZeileKarte({
   );
 }
 
+// Zeigt gleichnamige Artikel mit >1 Größe als Namens-Überschrift + eingerückte
+// Größen-Zeilen (ADR-027 D2) – jede Variante behält ihre eigene Menge + Strichliste.
+function ArtikelGruppe({
+  gruppe,
+  action,
+  zeileId,
+  mengeJeArtikel,
+  editable,
+}: {
+  gruppe: VerzehrArtikelGruppe;
+  action: VerzehrFormAction;
+  zeileId: string;
+  mengeJeArtikel: Map<string, number>;
+  editable: boolean;
+}) {
+  return (
+    <li className="flex flex-col gap-2">
+      <span className="text-sm font-medium">{gruppe.name}</span>
+      <ul className="flex flex-col gap-2 pl-4">
+        {gruppe.varianten.map((variante) => (
+          <PositionZeile
+            key={variante.id}
+            action={action}
+            zeileId={zeileId}
+            catalogItemId={variante.id}
+            label={groessenLabel(variante.size)}
+            priceCents={variante.priceCents}
+            menge={mengeJeArtikel.get(variante.id) ?? 0}
+            editable={editable}
+          />
+        ))}
+      </ul>
+    </li>
+  );
+}
+
 function PositionZeile({
   action,
   zeileId,
   catalogItemId,
-  name,
+  label,
   priceCents,
   menge,
   editable,
@@ -151,7 +205,7 @@ function PositionZeile({
   action: VerzehrFormAction;
   zeileId: string;
   catalogItemId: string;
-  name: string;
+  label: string;
   priceCents: number;
   menge: number;
   editable: boolean;
@@ -159,7 +213,7 @@ function PositionZeile({
   return (
     <li className="flex items-center justify-between gap-3">
       <span className="text-sm">
-        {name} · {formatCents(priceCents)}
+        {label} · {formatCents(priceCents)}
       </span>
       <MengeControl
         action={action}

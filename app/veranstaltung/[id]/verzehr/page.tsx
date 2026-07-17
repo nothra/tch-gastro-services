@@ -68,6 +68,7 @@ export default async function VerzehrPage({
         artikel={artikel.map((item) => ({
           id: item.id,
           name: item.name,
+          size: item.size,
           priceCents: item.priceCents,
           category: item.category,
         }))}
