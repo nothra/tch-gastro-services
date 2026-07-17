@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -69,6 +69,13 @@ Zod-Fehlermeldung („Kategorie muss Getränk, Kaffee oder Essen sein.") war ung
   prüft die Meldung gegen ein festes Literal via `firstIssueMessage` (Muster testing-standards).
   Negativ-Nachweis geführt (Meldung mutiert → nur dieser Test rot). Nitpicks: nicht behoben
   (kein Merge-Blocker, bewusst so belassen laut Review).
+
+Review [2026-07-17, Runde 2]: `tasks/review-116.md` → **APPROVED**. Alle drei Personas
+(Logik/Korrektheit · Code-Qualität · Architektur) empfehlen APPROVED; 32/32 Katalog-Tests grün.
+Keine kritischen und keine in-scope Wichtig-Findings. Ein Wichtig-Finding **out-of-scope**:
+`docs/factory/PROJECT-CONTEXT.md:36,38-39` beschreibt noch das alte Essen-Modell (Essenpreis je
+Veranstaltung) – vorbestehend, außerhalb spec-116-Scope → Follow-up-Issue (autonome Anlage über
+Seam in dieser Session durch Berechtigungsgrenze blockiert; Kommando in review-116.md notiert).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
