@@ -247,3 +247,8 @@ folgt ADR-024 und macht F5 ohne Umbau für F7 wiederverwendbar. Alle Preis-Arith
   zu einem unsichtbaren, nicht korrigierbaren Betrag machen. ADR-026 entscheidet: Read-Model trägt `active`,
   solche Positionen bleiben sichtbar und (bei bestehender Position) beidseitig korrigierbar; Neu-Erfassung
   auf inaktiven Artikeln bleibt blockiert.
+- **Lese-Gruppierung „Getränke/Sonstige" präzisiert durch [ADR-027](027-verzehr-summen-drei-kategorien.md) (#138):**
+  Die hier (Schlüssel-Einsicht, D5, Frage 3) als **zwei** Töpfe „Getränke" vs. „Sonstige (Essen + Kaffee)"
+  beschriebene Kopf-Summe weist ab ADR-027 **alle drei** Katalog-Kategorien einzeln aus
+  (`getraenkeCents`/`essenCents`/`kaffeeCents`, kein `sonstigeCents` mehr). Die Kern-Entscheidung – die
+  Aufteilung ist eine reine Lese-Gruppierung nach `catalog_category`, kein Struktur-Split – bleibt gültig.
