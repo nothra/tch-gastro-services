@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Getränke-Katalog (F2/#49, gemergt) um die Kategorie `essen` erweitern. Essen ist keine
@@ -83,6 +83,8 @@ Codify [2026-07-17]: `tasks/codify-116.md` → 1 neue Regel in PROJECT-CONTEXT.m
   `should_reject…` und `should_nameMessage…` sind separat-testbare Kriterien, eigene `it`-Blöcke).
 - **Follow-up-Issue #127**: PROJECT-CONTEXT veraltetes Essen-Modell (documentation + tech-debt).
 - Bidirektionaler Rename-Nachweis als bewährtes Muster festgehalten.
+
+PR-Shepherd [2026-07-17]: Auto-Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `feature/116-katalog-kategorie-essen`
