@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -174,6 +174,19 @@ PROJECT-CONTEXT.md ("Lint/Vitest fangen keine Typfehler") + `pnpm typecheck`-Gat
 inkl. Mini-Fix eines dadurch aufgedeckten vorbestehenden stale `@ts-expect-error` in
 `db/veranstaltung.test.ts`. Out-of-Scope-Issue `#142` (Katalog-Schema `.max()`-Obergrenze)
 über `create-issue.sh` angelegt.
+
+## PR-Shepherd [2026-07-18]
+
+PR-Shepherd [2026-07-18]: Auto-Merge freigegeben – alle Gates grün.
+
+- Keine offenen Review-Kommentare (nur Vercel-Preview-Bot-Kommentar).
+- Branch via `gh pr update-branch` auf aktuellen `main` (fb0e2b9, #138/#140) aktualisiert
+  (Server-seitiger Merge, kein Force-Push).
+- CI grün: `factory-self-test`, `issue-sync`, `pr-closes-issue`, `lint`, `test`, `Vercel` –
+  alle `pass`.
+- `reviewDecision` leer → kein Approval-Gate aktiv für dieses Repo, keine ausstehenden
+  Approvals.
+- Draft-Status aufgelöst (`gh pr ready 141`), danach Auto-Merge freigegeben.
 
 ---
 Branch: `feature/137-verzehr-erfassen-gre-je-artikel-anzeigen-und-gleichnamige-artikel-gruppieren`
