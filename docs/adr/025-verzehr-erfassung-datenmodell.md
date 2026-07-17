@@ -9,7 +9,7 @@ Accepted
 ## Context
 
 F5 (#52, [spec-52](../specs/spec-52-verzehr-erfassen.md)) ist das Herzstück der Abrechnung:
-Über einen offenen Abend hinweg werden je **Teilnehmerzeile** (`veranstaltung_zeile`, ADR-023 D5)
+Über eine offene Veranstaltung hinweg werden je **Teilnehmerzeile** (`veranstaltung_zeile`, ADR-023 D5)
 die entnommenen **Getränke** als Strichliste (+/−), dazu **Essen** und **Kaffee** erfasst –
 mit **Live-Summen** je Zeile. Erfassen dürfen der Veranstalter **und** (später, F7/#54) die
 Teilnehmer selbst; alle sehen und bearbeiten die ganze Liste (volle Transparenz).
@@ -72,13 +72,13 @@ Typen `VerzehrPosition`/`NewVerzehrPosition` via `$inferSelect`/`$inferInsert`.
 
 ### D2 — Preisquelle: **Live-Katalog** solange `offen`; Einfrieren ist F8
 
-Solange der Abend `offen` ist, ist die **Quelle der Wahrheit für Preise der aktuelle
+Solange die Veranstaltung `offen` ist, ist die **Quelle der Wahrheit für Preise der aktuelle
 Katalog** (`catalog_item.price_cents`). Summen werden **read-time** aus `menge × aktuellem
 Katalogpreis` gebildet (Join `verzehr_position` → `catalog_item`). Das erfüllt die Spec-AC
-wörtlich („Menge × **aktueller** Katalogpreis", „Preis aus dem Katalog, nicht vom Abend").
+wörtlich („Menge × **aktueller** Katalogpreis"; Essenpreis aus dem Katalog, nicht von der Veranstaltung).
 
 Es wird in F5 **kein** Einzelpreis-Snapshot in `verzehr_position` gespeichert. Das **Einfrieren**
-der Preise zum Abrechnungszeitpunkt (damit ein abgeschlossener Abend stabil bleibt, auch wenn der
+der Preise zum Abrechnungszeitpunkt (damit eine abgeschlossene Veranstaltung stabil bleibt, auch wenn der
 Katalog sich später ändert) gehört zur **Abschluss-Transition (F8/#55)** – dort ist der natürliche,
 einmalige Moment dafür. Ohne Prod-Daten kann F8 dies per Migration additiv nachrüsten
 (nullable `einzelpreis_cents` oder eigene Abrechnungs-Tabelle), **ohne** F5-Schreibpfade zu ändern.
@@ -201,13 +201,13 @@ Lese-Gruppierung; ein Schreibpfad, eine FK-Struktur, ein atomarer Upsert. Muster
 #### Option A: Live-Katalog solange offen, Einfrieren in F8 (gewählt)
 **Pros:** Erfüllt „aktueller Katalogpreis" wörtlich; kein Snapshot-Zustand in F5; F8 ownt den
 einmaligen, natürlichen Einfrier-Moment; additiv nachrüstbar (keine Prod-Daten).
-**Cons:** Bis F8 existiert, spiegeln abgeschlossene Abende spätere Katalogänderungen (in F5-Scope
+**Cons:** Bis F8 existiert, spiegeln abgeschlossene Veranstaltungen spätere Katalogänderungen (in F5-Scope
 irrelevant – „Bearbeitung nach Abschluss" ist explizit F8).
 
 #### Option B: Einzelpreis-Snapshot je Schreibvorgang in `verzehr_position`
 **Pros:** Eingefrorener Wert „umsonst".
 **Cons:** Anzeige-Mehrdeutigkeit offen (gespeichert vs. live), inkonsistente Teilmengen bei
-Preisänderung mitten im Abend, und es nimmt F8 die Definition des richtigen Einfrier-Moments vorweg.
+Preisänderung mitten in der Veranstaltung, und es nimmt F8 die Definition des richtigen Einfrier-Moments vorweg.
 Premature. Verworfen (F8 entscheidet die Snapshot-Semantik).
 
 ## Rationale
@@ -232,7 +232,7 @@ folgt ADR-024 und macht F5 ohne Umbau für F7 wiederverwendbar. Alle Preis-Arith
 
 **Zu beachten / Handoff:**
 - **F8/#55** muss die Preise beim Abschluss einfrieren (Snapshot) – bis dahin sind abgeschlossene
-  Abende nicht gegen spätere Katalogänderungen stabil (in F5-Scope akzeptiert).
+  Veranstaltungen nicht gegen spätere Katalogänderungen stabil (in F5-Scope akzeptiert).
 - **F7/#54** ergänzt die token-scoped Erfassungs-Action und blendet Essen an der stehenden Theke aus
   (nur Getränke + Kaffee, ADR-023 D7); nutzt `app/_verzehr/`.
 - Der Client sendet **Deltas (±1)**, nie absolute Mengen – Konvention, die die Action fail-closed

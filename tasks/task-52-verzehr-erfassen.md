@@ -12,7 +12,7 @@
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
 
-F5 (Herzstück): Verzehr je Teilnehmerzeile eines **offenen** Abends erfassen –
+F5 (Herzstück): Verzehr je Teilnehmerzeile einer **offenen** Veranstaltung erfassen –
 Getränke als Strichliste (+/−), Essen (Auswahl eines `essen`-Katalogartikels × Anzahl),
 Kaffee (× Katalog-Kaffeepreis) – mit **Live-Summen** je Zeile und Anzeige der ganzen
 Teilnehmerliste. Kanonische Spec: `docs/specs/spec-52-verzehr-erfassen.md`.
@@ -26,13 +26,13 @@ und Kassieren/Abschluss (F8/#55) sind **nicht** Teil dieser Task.
 <!-- Kanonische Quelle: docs/specs/spec-52-verzehr-erfassen.md -->
 - [ ] AC1 „+1" Getränk erhöht Menge um 1, Zeilensumme Getränke aktualisiert sofort (Menge × aktueller Katalogpreis).
 - [ ] AC2 „−1" senkt Menge um 1, minimal 0 (keine negativen Mengen).
-- [ ] AC3 Essen-Artikel mit Preis X, n Portionen → Essenanteil n × X (Katalogpreis, nicht vom Abend).
+- [ ] AC3 Essen-Artikel mit Preis X, n Portionen → Essenanteil n × X (Katalogpreis, nicht von der Veranstaltung).
 - [ ] AC4 Kaffeepreis Y, m Kaffee → Kaffeeanteil m × Y.
 - [ ] AC5 Zwei Änderungen an **verschiedenen** Zeilen → beide verlustfrei.
 - [ ] AC6 Zwei gleichzeitige Änderungen an **derselben** Zeile/Menge → kein Lost Update (ADR-025 D3).
 - [ ] AC7 Summen auf 2 Nachkommastellen kaufmännisch, deutsches Format (Komma) – via Integer-Cent + `formatCents`.
 - [ ] FS1 Menge < 0 nicht möglich (Minimum 0; App + DB-CHECK).
-- [ ] FS2 Abend `abgeschlossen` → Erfassung abgelehnt.
+- [ ] FS2 Veranstaltung `abgeschlossen` → Erfassung abgelehnt.
 - [ ] FS3 Verbindungsabbruch → Nutzer erkennt, ob Änderung ankam (Action gibt autoritative Menge zurück; Fehler sichtbar).
 
 ## Technische Notizen
