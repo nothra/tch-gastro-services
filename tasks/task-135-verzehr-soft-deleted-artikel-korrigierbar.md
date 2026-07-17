@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -61,6 +61,14 @@ _Keine._
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+## Refactoring-Notizen
+`/review` (APPROVED, keine kritischen/wichtigen Findings) diente als Basis. Duplizierte JSX
+zwischen der Kategorie-Schleife und dem neuen „Nicht mehr im Katalog"-Abschnitt in
+`app/_verzehr/VerzehrErfassung.tsx` (identische `<li>`-Struktur: Name · Preis + `MengeControl`)
+in die Komponente `PositionZeile` extrahiert – kein neues Verhalten, alle Tests weiterhin grün
+(64 Unit-Tests dieser Task, 258 Gesamt-Suite). `db/verzehr.ts` und `app/veranstaltung/actions.ts`
+ohne Änderungsbedarf (Guard-Reihenfolge, Naming, Kommentare bereits clean).
 
 ---
 Branch: `fix/135-verzehr-soft-deleted-artikel-korrigierbar`

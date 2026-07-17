@@ -97,18 +97,16 @@ function ZeileKarte({
             </h3>
             <ul className="flex flex-col gap-2">
               {artikelDerKategorie.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3">
-                  <span className="text-sm">
-                    {item.name} · {formatCents(item.priceCents)}
-                  </span>
-                  <MengeControl
-                    action={action}
-                    zeileId={zeile.id}
-                    catalogItemId={item.id}
-                    menge={mengeJeArtikel.get(item.id) ?? 0}
-                    editable={editable}
-                  />
-                </li>
+                <PositionZeile
+                  key={item.id}
+                  action={action}
+                  zeileId={zeile.id}
+                  catalogItemId={item.id}
+                  name={item.name}
+                  priceCents={item.priceCents}
+                  menge={mengeJeArtikel.get(item.id) ?? 0}
+                  editable={editable}
+                />
               ))}
             </ul>
           </section>
@@ -122,22 +120,53 @@ function ZeileKarte({
           </h3>
           <ul className="flex flex-col gap-2">
             {inaktivePositionen.map((position) => (
-              <li key={position.catalogItemId} className="flex items-center justify-between gap-3">
-                <span className="text-sm">
-                  {position.name} · {formatCents(position.priceCents)}
-                </span>
-                <MengeControl
-                  action={action}
-                  zeileId={zeile.id}
-                  catalogItemId={position.catalogItemId}
-                  menge={position.menge}
-                  editable={editable}
-                />
-              </li>
+              <PositionZeile
+                key={position.catalogItemId}
+                action={action}
+                zeileId={zeile.id}
+                catalogItemId={position.catalogItemId}
+                name={position.name}
+                priceCents={position.priceCents}
+                menge={position.menge}
+                editable={editable}
+              />
             ))}
           </ul>
         </section>
       )}
+    </li>
+  );
+}
+
+function PositionZeile({
+  action,
+  zeileId,
+  catalogItemId,
+  name,
+  priceCents,
+  menge,
+  editable,
+}: {
+  action: VerzehrFormAction;
+  zeileId: string;
+  catalogItemId: string;
+  name: string;
+  priceCents: number;
+  menge: number;
+  editable: boolean;
+}) {
+  return (
+    <li className="flex items-center justify-between gap-3">
+      <span className="text-sm">
+        {name} · {formatCents(priceCents)}
+      </span>
+      <MengeControl
+        action={action}
+        zeileId={zeileId}
+        catalogItemId={catalogItemId}
+        menge={menge}
+        editable={editable}
+      />
     </li>
   );
 }
