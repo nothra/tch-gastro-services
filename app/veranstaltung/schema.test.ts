@@ -89,6 +89,7 @@ describe("verzehrAdjustSchema", () => {
 
   it("should_reportDeltaMessage_when_deltaOutOfRange", () => {
     const result = verzehrAdjustSchema.safeParse({ ...validAdjust, delta: "5" });
+    expect(result.success).toBe(false);
     if (!result.success) {
       expect(firstIssueMessage(result.error)).toBe("Änderung muss +1 oder −1 sein.");
     }

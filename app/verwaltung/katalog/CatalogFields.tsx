@@ -1,11 +1,8 @@
 import type { CatalogItem } from "@/db/schema";
+import { CATEGORY_LABEL } from "@/app/_verzehr/category-labels";
 
-// Kanonische Quelle für Kategorie-Labels – auch von CatalogRow genutzt.
-export const CATEGORY_LABEL: Record<CatalogItem["category"], string> = {
-  getraenk: "Getränk",
-  kaffee: "Kaffee",
-  essen: "Essen",
-};
+// Re-export für bestehende Konsumenten in der Verwaltungs-UI (CatalogRow u. a.).
+export { CATEGORY_LABEL };
 
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";

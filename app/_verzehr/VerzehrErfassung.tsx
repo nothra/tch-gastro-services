@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL } from "@/app/verwaltung/katalog/CatalogFields";
+import { CATEGORY_LABEL } from "./category-labels";
 import { formatCents } from "@/lib/money";
 import type { CatalogCategory } from "@/db/schema";
 import type { VerzehrPositionRow } from "@/db/verzehr";

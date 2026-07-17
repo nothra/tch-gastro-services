@@ -4,7 +4,13 @@
 // wiederverwenden kann. Die Action ist bereits an ihren Scope gebunden (z. B. veranstaltungId);
 // die UI liefert nur zeileId/catalogItemId/delta über das FormData.
 
-export type VerzehrActionState = { ok?: boolean; menge?: number; error?: string };
+export type VerzehrActionState = {
+  ok?: boolean;
+  // Vom Server zurückgegeben, aber in MengeControl bewusst nicht gerendert –
+  // die Menge kommt immer aus der server-autoritativen Prop (revalidatePath, ADR-025 D4).
+  menge?: number;
+  error?: string;
+};
 
 export type VerzehrFormAction = (
   state: VerzehrActionState | undefined,

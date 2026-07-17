@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -80,10 +80,32 @@ Die beiden von der Spec an /architecture delegierten Fragen sind in ADR-025 ents
 Keine offenen Fragen mehr für /implement.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+### Umgesetzte Maßnahmen (Refactoring-Pass)
+
+**Finding 2 – CATEGORY_LABEL entkoppelt (Wichtig):**
+`CATEGORY_LABEL` aus `app/verwaltung/katalog/CatalogFields.tsx` in das neue route-neutrale
+Modul `app/_verzehr/category-labels.ts` verschoben. `VerzehrErfassung.tsx` importiert direkt
+aus dem neuen Modul. `CatalogFields.tsx` re-exportiert für bestehende Konsumenten (CatalogRow).
+Kopplung von `app/_verzehr/` an `app/verwaltung/` aufgelöst (ADR-025 D5).
+
+**Nitpick 2 – state.menge dokumentiert:**
+`VerzehrActionState.menge` mit WHY-Kommentar in `types.ts` versehen: die Action gibt `menge`
+zurück, aber `MengeControl` rendert bewusst die server-autoritative Prop (ADR-025 D4).
+
+**Nitpick 3 – Vorab-Assertion ergänzt:**
+`expect(result.success).toBe(false)` vor dem `if (!result.success)` in
+`should_reportDeltaMessage_when_deltaOutOfRange` (schema.test.ts:90) ergänzt.
+
+### Nicht umgesetzt (neues Verhalten)
+
+**Finding 1 – soft-gelöschter Artikel:** Bewusst zurückgestellt → Folge-Issue #135.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**Offenes Issue #135:** verzehr: Position auf soft-gelöschtem Artikel zeigt unsichtbare,
+nicht korrigierbare Summe. Optionen (a) read-only Zeile, (b) active-Filter in summen(),
+(c) ADR-25-Notiz. Quellen: ADR-025, listPositionen() in db/verzehr.ts.
 
 ---
 Branch: `feature/52-verzehr-erfassen`
