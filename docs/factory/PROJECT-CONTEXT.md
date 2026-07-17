@@ -33,10 +33,12 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 
 **Kernbegriffe (Ubiquitous Language):**
 - **Veranstaltung/Abend** – eine abzurechnende Zusammenkunft (Datum, Bezeichnung, Kasse,
-  Essenpreis, Status `offen`/`abgeschlossen`).
+  Status `offen`/`abgeschlossen`). Essen ist **kein** Feld der Veranstaltung, sondern ein
+  Katalogartikel (ADR-023 §D4/§D7).
 - **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
-- **Getränke-Katalog** – pflegbare Preisliste; **Kaffee** fester Katalogpreis, **Essen**
-  pro Abend festgelegt.
+- **Katalog** – pflegbare Preisliste je Kategorie (`getraenk`/`kaffee`/`essen`); **Kaffee**
+  und **Essen** sind Katalogartikel mit **festem** Preis (Essen = Kategorie `essen`, kein
+  Veranstaltungs-Property), gewählt bei der Erfassung (ADR-023 §D4/§D7, #116).
 - **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
 - **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
   Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
