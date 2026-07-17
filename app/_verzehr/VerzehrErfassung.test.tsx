@@ -389,4 +389,20 @@ describe("VerzehrErfassung", () => {
 
     expect(screen.getByText("Radler · 0,5 l · 2,80 €")).toBeInTheDocument();
   });
+
+  it("should_showOnlyName_when_inactivePositionSizeIsEmpty", () => {
+    // Fehlerszenario „leere Größe" gilt symmetrisch auch für die Inaktiv-Sektion.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[]}
+        positionen={[pos({ menge: 2, active: false, name: "Radler", size: "", priceCents: 280 })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Radler · 2,80 €")).toBeInTheDocument();
+    expect(screen.queryByText(/ohne Größe/)).not.toBeInTheDocument();
+  });
 });

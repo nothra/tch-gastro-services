@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -110,6 +110,30 @@ Aus `tasks/review-137.md` (Empfehlung: NEEDS_REWORK) behoben [2026-07-18]:
   `describe.skipIf(!hasDb)` – bestehendes Muster der Datei, außerhalb Scope dieser Task.
 
 `pnpm lint`, `pnpm test` (279 passed) und `pnpm build` grün nach dem Fix.
+
+## Test-Vervollständigung [2026-07-18]
+
+Review-Runde 2 (`tasks/review-137.md`) ist **APPROVED** mit Empfehlung „weiter zu `/test`".
+Deckungs-/Vollständigkeits-Check:
+
+- **Coverage:** `pnpm test:coverage` – 280 passed, 39 skipped (DB-lose `describe.skipIf(!hasDb)`-
+  Blöcke, bestehendes Muster). `app/_verzehr/VerzehrErfassung.tsx` und `artikel-anzeige.ts` je
+  **100 %** Stmts/Branch/Funcs/Lines (HTML-Report geprüft, `coverage/app/_verzehr/`). `db/verzehr.ts`
+  zeigt 0 % im Text-Summary nur, weil der `size`-Join-Test DB-lose übersprungen wird – kein neuer
+  Befund (bereits in Review-Runde 2 Hinweis 2 notiert).
+- **AC-Abgleich gegen spec-137:** alle 8 Akzeptanzkriterien + beide Fehlerszenarien haben je einen
+  eigenen `it`-Block (Happy Path, leere Größe, Whitespace-Größe, Gruppierung, Einzel-Variante,
+  stabile Reihenfolge inkl. nicht-benachbarter Varianten, Inaktiv-Abschnitt, Preise/Summen
+  unverändert, Route-Neutralität via `grep`).
+- **Ergänzt:** `should_showOnlyName_when_inactivePositionSizeIsEmpty` – Runde-1/2-Fix
+  (`groessenLabel`-Fallback) galt bisher nur für den Gruppen-Zweig; dieser Test belegt, dass die
+  Inaktiv-Sektion bei leerer Größe weiterhin nur den Namen zeigt (kein „ohne Größe"-Fallback dort,
+  da sie nie gruppiert wird, ADR-027 D5).
+- **Verifikations-Hinweis aus Review-Runde 2 abgearbeitet:** `pnpm build` lokal ausgeführt →
+  grün (kompiliert, TypeScript-Check ohne Fehler, alle Routen generiert). Damit ist der
+  Runde-1-Build-Break (fehlender `CatalogCategory`-Import) auch über das Build-Gate bestätigt,
+  nicht nur statisch.
+- `pnpm lint` grün, kein Produktionscode in diesem Schritt geändert (nur Test ergänzt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
