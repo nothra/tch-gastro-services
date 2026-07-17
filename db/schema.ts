@@ -79,7 +79,7 @@ export const verificationTokens = pgTable(
 // Modelländerung 2026-07-15 (spec-51, ADR-023 D4) – ebenfalls ein Katalogartikel (eigene
 // Kategorie `essen` mit festen Preisen); diese Kategorie kommt als F2-Erweiterung (#116).
 // Ein Essenpreis je Veranstaltung existiert bewusst NICHT mehr.
-export const catalogCategory = pgEnum("catalog_category", ["getraenk", "kaffee"]);
+export const catalogCategory = pgEnum("catalog_category", ["getraenk", "kaffee", "essen"]);
 export type CatalogCategory = (typeof catalogCategory.enumValues)[number];
 
 // Artikel werden nie hart gelöscht, sondern über `active` deaktiviert/reaktiviert

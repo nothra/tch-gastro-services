@@ -1,0 +1,1 @@
+ALTER TYPE "public"."catalog_category" ADD VALUE 'essen';

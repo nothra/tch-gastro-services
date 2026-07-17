@@ -57,6 +57,13 @@
       "when": 1784260000000,
       "tag": "0007_rename_abrechner_veranstalter",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784276898290,
+      "tag": "0008_salty_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

@@ -13,14 +13,18 @@ gelegentlich ändern. Nur der Verwalter pflegt den Katalog.
 **Inbegriffen:**
 - Katalog-Artikel anlegen, bearbeiten, deaktivieren **und wieder aktivieren** (nie hart löschen).
 - Felder je Artikel: Bezeichnung, **Größe (optional**, z. B. „0,5 l"), Preis in EUR,
-  Kategorie (`getraenk` | `kaffee`), Sortierreihenfolge, aktiv/inaktiv.
+  Kategorie (`getraenk` | `kaffee` | `essen`), Sortierreihenfolge, aktiv/inaktiv.
 - Preise in EUR mit genau **2 Nachkommastellen**.
 - **Kaffee**: Artikel der Kategorie `kaffee` mit **festem** Preis. **Mehrere** Kaffee-Artikel
   sind erlaubt (z. B. Kaffee, Cappuccino, Espresso) – jeder mit eigenem festen Preis.
+- **Essen**: Artikel der Kategorie `essen` mit **festem** Katalogpreis – wie Getränk/Kaffee
+  ein normaler Katalogartikel (Modelländerung 2026-07-15, ADR-023 §D4/§D7; ergänzt in
+  [spec-116](spec-116-katalog-kategorie-essen.md), #116). Es gibt **keinen** Essenpreis je
+  Veranstaltung mehr.
 - **Initialer Datenbestand:** Die Referenz-Preisliste aus dem Excel-Template
   (Stand 2026-04-28, siehe [README-montagsrunde](README-montagsrunde.md)) wird als
-  Startbestand **geseedet**; der Verwalter kann sie danach frei anpassen.
-- **Essen** ist **nicht** hier – dessen Preis wird pro Abend gesetzt (F4).
+  Startbestand **geseedet**; der Verwalter kann sie danach frei anpassen. Für `essen` gibt es
+  **kein** Seeding – die Kategorie startet leer (spec-116).
 
 **Nicht inbegriffen:**
 - Preis-Historie / zeitliche Gültigkeit von Preisen.

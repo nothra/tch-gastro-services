@@ -63,8 +63,14 @@ describe("catalogItemSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("should_rejectCategory_when_notInEnum", () => {
+  it("should_acceptCategory_when_essen", () => {
     const result = catalogItemSchema.safeParse({ ...valid, category: "essen" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.category).toBe("essen");
+  });
+
+  it("should_rejectCategory_when_notInEnum", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, category: "snack" });
     expect(result.success).toBe(false);
   });
 });

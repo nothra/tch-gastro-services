@@ -20,7 +20,7 @@ export const catalogItemSchema = z.object({
     .transform(parseEuroToCents)
     .refine((cents) => cents <= 2_147_483_647, "Preis ist zu hoch."),
   category: z.enum(catalogCategory.enumValues, {
-    error: "Kategorie muss Getränk oder Kaffee sein.",
+    error: "Kategorie muss Getränk, Kaffee oder Essen sein.",
   }),
   sortOrder: z.coerce
     .number()
