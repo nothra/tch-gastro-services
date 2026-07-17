@@ -1,7 +1,7 @@
 # Task 137: verzehr-erfassen-gre-je-artikel-anzeigen-und-gleichnamige-artikel-gruppieren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -26,22 +26,22 @@ Entscheidungen aus /requirements (2026-07-17):
 
 ## Akzeptanzkriterien
 
-- [ ] GIVEN aktiver Artikel mit gesetzter Größe WHEN er angeboten wird THEN wird die Größe
+- [x] GIVEN aktiver Artikel mit gesetzter Größe WHEN er angeboten wird THEN wird die Größe
       sichtbar angezeigt (`· {size}`, z. B. „Cola · 0,5 l").
-- [ ] GIVEN aktiver Artikel ohne Größe (`size = ""`) WHEN er angezeigt wird THEN erscheint
+- [x] GIVEN aktiver Artikel ohne Größe (`size = ""`) WHEN er angezeigt wird THEN erscheint
       nur der Name (kein Suffix, kein „· ohne Größe").
-- [ ] GIVEN mehrere aktive Artikel mit gleichem `name` und unterschiedlicher `size` in
+- [x] GIVEN mehrere aktive Artikel mit gleichem `name` und unterschiedlicher `size` in
       derselben Kategorie WHEN sie angeboten werden THEN sind sie gruppiert dargestellt und
       die Größen eindeutig unterscheidbar.
-- [ ] GIVEN ein Name mit nur einer Variante WHEN er angezeigt wird THEN entsteht keine
+- [x] GIVEN ein Name mit nur einer Variante WHEN er angezeigt wird THEN entsteht keine
       unnötige Gruppierungs-Verschachtelung (Darstellung bleibt schlank).
-- [ ] GIVEN Größen-Varianten desselben Namens WHEN dargestellt THEN in deterministischer,
+- [x] GIVEN Größen-Varianten desselben Namens WHEN dargestellt THEN in deterministischer,
       stabiler Reihenfolge (Varianten stehen zusammen).
-- [ ] GIVEN soft-gelöschter Artikel mit Verzehr (`menge > 0`) und Größe WHEN im Abschnitt
+- [x] GIVEN soft-gelöschter Artikel mit Verzehr (`menge > 0`) und Größe WHEN im Abschnitt
       „Nicht mehr im Katalog" angezeigt THEN wird seine Größe ebenfalls sichtbar.
-- [ ] GIVEN dieselbe Auswahl WHEN Größe/Gruppierung angezeigt THEN bleiben Mengensteuerung,
+- [x] GIVEN dieselbe Auswahl WHEN Größe/Gruppierung angezeigt THEN bleiben Mengensteuerung,
       Zeilensummen und Preise unverändert.
-- [ ] GIVEN die route-neutrale UI (`app/_verzehr/`, ADR-025 D5) WHEN `size` ergänzt wird
+- [x] GIVEN die route-neutrale UI (`app/_verzehr/`, ADR-025 D5) WHEN `size` ergänzt wird
       THEN bleibt das Modul feature-frei (keine `app/<feature>/`-Imports).
 
 ## Technische Notizen
@@ -81,6 +81,14 @@ alphabetisches Sortieren (ignoriert `sortOrder`).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
+
+Nachtest [2026-07-17]: Interaktive Oberflächenverifikation (Dev-Server + Browser) konnte in
+dieser Session nicht durchgeführt werden – kein Browser-/Screenshot-Tool verfügbar. Abgedeckt
+stattdessen über Komponententests (React Testing Library, rendert echtes DOM, prüft exakten
+Text je Akzeptanzkriterium) + Integrationstest für `size`-Join in `db/verzehr.ts` + statischer
+Route-Neutralitäts-Check (`grep`, leer). `pnpm lint` und `pnpm test` (274 passed) grün. Vor dem
+Merge einen manuellen Klick-Test gegen `pnpm dev` nachholen (deckt sich mit `/post-merge-verify`
+falls das ausfällt).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

@@ -140,6 +140,18 @@ describe("VerzehrPage", () => {
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
   });
 
+  it("should_passSizeToArtikel_when_catalogItemHasSize", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([aZeile]);
+    listActiveCatalogMock.mockResolvedValue([cola]);
+    listPositionenMock.mockResolvedValue([]);
+
+    render(await VerzehrPage({ params: params("v-1") }));
+
+    expect(screen.getByText("Cola · 0,5l · 2,50 €")).toBeInTheDocument();
+  });
+
   it("should_renderReadOnly_when_veranstaltungAbgeschlossen", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
@@ -162,6 +174,7 @@ describe("VerzehrPage", () => {
       catalogItemId: "c-1",
       menge: 3,
       name: "Cola",
+      size: "0,5l",
       priceCents: 250,
       category: "getraenk",
       active: true,

@@ -17,9 +17,9 @@ vi.mock("./MengeControl", () => ({
 const noopAction: VerzehrFormAction = vi.fn(async () => ({ ok: true, menge: 0 }));
 
 const aZeile = { id: "z-1", anzeigename: "Anna" };
-const cola = { id: "c-1", name: "Cola", priceCents: 250, category: "getraenk" as const };
-const schnitzel = { id: "c-2", name: "Schnitzel", priceCents: 890, category: "essen" as const };
-const kaffee = { id: "c-3", name: "Kaffee", priceCents: 100, category: "kaffee" as const };
+const cola = { id: "c-1", name: "Cola", size: "", priceCents: 250, category: "getraenk" as const };
+const schnitzel = { id: "c-2", name: "Schnitzel", size: "", priceCents: 890, category: "essen" as const };
+const kaffee = { id: "c-3", name: "Kaffee", size: "", priceCents: 100, category: "kaffee" as const };
 
 function pos(overrides: Partial<VerzehrPositionRow> = {}): VerzehrPositionRow {
   return {
@@ -27,6 +27,7 @@ function pos(overrides: Partial<VerzehrPositionRow> = {}): VerzehrPositionRow {
     catalogItemId: "c-1",
     menge: 1,
     name: "Cola",
+    size: "",
     priceCents: 250,
     category: "getraenk",
     active: true,
@@ -261,5 +262,110 @@ describe("VerzehrErfassung", () => {
     );
 
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+  });
+
+  it("should_showSizeSuffix_when_artikelHasSize", () => {
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[{ ...cola, size: "0,5 l" }]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Cola · 0,5 l · 2,50 €")).toBeInTheDocument();
+  });
+
+  it("should_showOnlyName_when_sizeIsEmpty", () => {
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[{ ...cola, size: "" }]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Cola · 2,50 €")).toBeInTheDocument();
+    expect(screen.queryByText(/ohne Größe/)).not.toBeInTheDocument();
+  });
+
+  it("should_groupSameNameVarianten_when_multipleSizesInSameCategory", () => {
+    // AC: gleichnamige Artikel mit unterschiedlicher Größe werden gruppiert dargestellt.
+    const colaKlein = { ...cola, id: "c-1", size: "0,3 l", priceCents: 250 };
+    const colaGross = { ...cola, id: "c-1b", size: "0,5 l", priceCents: 290 };
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[colaKlein, colaGross]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Cola")).toBeInTheDocument();
+    expect(screen.getByText("0,3 l · 2,50 €")).toBeInTheDocument();
+    expect(screen.getByText("0,5 l · 2,90 €")).toBeInTheDocument();
+  });
+
+  it("should_renderFlatRow_when_onlyOneVariantForName", () => {
+    // AC: keine unnötige Gruppierungs-Verschachtelung bei genau einer Variante.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[{ ...cola, size: "" }]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Cola · 2,50 €")).toBeInTheDocument();
+    expect(screen.queryByText("Cola")).not.toBeInTheDocument();
+  });
+
+  it("should_keepVariantenTogetherInDeterministicOrder_when_notAdjacentInCatalog", () => {
+    // AC: gleichnamige Varianten stehen zusammen, auch wenn im Katalog ein anderer
+    // Artikel dazwischenliegt (unterschiedliche sortOrder).
+    const colaKlein = { ...cola, id: "c-1", name: "Cola", size: "0,3 l" };
+    const bier = { ...cola, id: "c-2", name: "Bier", size: "" };
+    const colaGross = { ...cola, id: "c-3", name: "Cola", size: "0,5 l" };
+    const { container } = render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[colaKlein, bier, colaGross]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    const text = container.textContent ?? "";
+    const colaKleinIndex = text.indexOf("0,3 l");
+    const colaGrossIndex = text.indexOf("0,5 l");
+    const bierIndex = text.indexOf("Bier");
+
+    expect(colaKleinIndex).toBeGreaterThan(-1);
+    expect(colaGrossIndex).toBeGreaterThan(colaKleinIndex);
+    expect(bierIndex).toBeGreaterThan(colaGrossIndex);
+  });
+
+  it("should_showSize_when_inactivePositionHasSize", () => {
+    // AC: „Nicht mehr im Katalog" zeigt die Größe ebenfalls, ohne Gruppierung.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[]}
+        positionen={[pos({ menge: 2, active: false, name: "Radler", size: "0,5 l", priceCents: 280 })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Radler · 0,5 l · 2,80 €")).toBeInTheDocument();
   });
 });
