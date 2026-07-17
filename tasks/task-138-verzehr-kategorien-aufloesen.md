@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -87,6 +87,9 @@ Einzige Lücke im Zyklus: Der im Refactoring-Pass explizit gemachte Exhaustivene
 nicht schon in `/review`/`/security-review`. Neue universelle Regel dazu ergänzt in
 `docs/factory/guidelines/testing-standards.md` (Exhaustiveness-Guards brauchen einen eigenen
 Test). Review und Security-Review sonst ohne Findings (APPROVED / PASSED).
+
+PR-Shepherd [2026-07-17]: Auto-Merge freigegeben – alle Gates grün (Review APPROVED,
+Security-Review PASSED, Tests 261/261 grün, keine offenen Review-Kommentare).
 
 ---
 Branch: `feature/138-verzehr-kategorien-aufloesen`
