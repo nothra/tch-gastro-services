@@ -17,6 +17,14 @@ die in den Folge-Features aufeinander aufbaut:
 - **F6** Auslagenerstattungen, **F8** `Spende = Erhalten − Verzehr-Gesamt` und
   `Kassenveränderung = Σ Erhalten − Σ Auslagenerstattungen`.
 
+> **Update (2026-07-17, [ADR-023](023-veranstaltung-datenmodell.md) §D4/§D7, umgesetzt in #116):**
+> Das oben genannte Beispiel „**F4** Essenpreis je Abend" ist **überholt**. Ein
+> `essenpreis_cents`-Feld je Abend existiert nicht (mehr) – Essen ist ein **Katalogartikel der
+> Kategorie `essen`** mit festem Katalogpreis, kein Veranstaltungs-Feld. Die Integer-Cent-
+> Entscheidung selbst bleibt davon unberührt; nur dieses eine Beispiel eines persistierten
+> Betrags trifft nicht mehr zu (der Katalogpreis der Kategorie `essen` ist weiterhin ein
+> Integer-Cent-Betrag und damit ein gültiges Beispiel).
+
 Die Wahl der Geld-Repräsentation ist damit **cross-cutting** und faktisch **einmalig**:
 Sie legt fest, wie über alle Features hinweg gespeichert, validiert, summiert, gerundet
 und formatiert wird. Eine spätere Umstellung würde Schema, Data-Layer, Zod-Grenzen und
