@@ -21,6 +21,14 @@ export function groessenSuffix(size: string): string {
   return trimmed === "" ? "" : ` · ${trimmed}`;
 }
 
+// Für Varianten-Zeilen innerhalb einer Namensgruppe (ArtikelGruppe): der Name steht bereits
+// als Gruppenüberschrift, die Zeile selbst braucht daher immer ein Label – nie ein leeres
+// Suffix ohne Kontext wie bei groessenSuffix.
+export function groessenLabel(size: string): string {
+  const trimmed = size.trim();
+  return trimmed === "" ? "ohne Größe" : trimmed;
+}
+
 // Stabiles group-by `name`: Gruppen erscheinen in der Reihenfolge des ersten Auftretens ihres
 // Namens, Varianten in Eingabereihenfolge – kein Re-Sort, damit die sortOrder-Kuratierung des
 // Katalogs (bereits sortiert übergeben) erhalten bleibt (ADR-027 D3).

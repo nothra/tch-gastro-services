@@ -1,11 +1,13 @@
 import { CATEGORY_LABEL } from "./category-labels";
 import { formatCents } from "@/lib/money";
 import type { VerzehrPositionRow } from "@/db/verzehr";
+import type { CatalogCategory } from "@/db/schema";
 import { zeileSummen } from "./summen";
 import { MengeControl } from "./MengeControl";
 import type { VerzehrFormAction } from "./types";
 import {
   groessenSuffix,
+  groessenLabel,
   gruppiereArtikel,
   type VerzehrArtikel,
   type VerzehrArtikelGruppe,
@@ -109,7 +111,7 @@ function ZeileKarte({
                   />
                 ) : (
                   <PositionZeile
-                    key={gruppe.varianten[0].id}
+                    key={gruppe.name}
                     action={action}
                     zeileId={zeile.id}
                     catalogItemId={gruppe.varianten[0].id}
@@ -175,7 +177,7 @@ function ArtikelGruppe({
             action={action}
             zeileId={zeileId}
             catalogItemId={variante.id}
-            label={variante.size.trim()}
+            label={groessenLabel(variante.size)}
             priceCents={variante.priceCents}
             menge={mengeJeArtikel.get(variante.id) ?? 0}
             editable={editable}

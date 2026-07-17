@@ -93,6 +93,24 @@ falls das ausfällt).
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+Aus `tasks/review-137.md` (Empfehlung: NEEDS_REWORK) behoben [2026-07-18]:
+- **Kritisch:** Fehlender `import type { CatalogCategory } from "@/db/schema"` in
+  `VerzehrErfassung.tsx` (Build-Break, von Lint/Vitest nicht erkannt) – Import wieder ergänzt.
+  Verifiziert via `pnpm build` (grün, war zuvor nicht Teil der Gates).
+- **Wichtig:** Leere Größe (`size = ""`) innerhalb einer Mehrfach-Gruppe rendert jetzt über den
+  neuen Helfer `groessenLabel(size)` (`artikel-anzeige.ts`) den Fallback „ohne Größe" statt einer
+  nackten „ · Preis"-Zeile. Test `should_showFallback_when_variantSizeEmptyInGroup` deckt
+  `("Cola","")` + `("Cola","0,5 l")` in derselben Gruppe ab (Katalog erlaubt das via
+  `UNIQUE(name, size)`).
+- **Nitpick:** Key-Strategie im Kategorie-`<ul>` vereinheitlicht (`key={gruppe.name}` für
+  Gruppen- und Flach-Zweig).
+- **Nitpick (Trim-Duplikation):** durch `groessenLabel` als gemeinsamen Helfer neben
+  `groessenSuffix` mit erledigt.
+- Nicht behoben (bewusst, kein neues Problem): DB-Join-Integrationstest bleibt hinter
+  `describe.skipIf(!hasDb)` – bestehendes Muster der Datei, außerhalb Scope dieser Task.
+
+`pnpm lint`, `pnpm test` (279 passed) und `pnpm build` grün nach dem Fix.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

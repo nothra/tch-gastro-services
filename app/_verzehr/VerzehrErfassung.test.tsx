@@ -328,6 +328,27 @@ describe("VerzehrErfassung", () => {
     expect(screen.queryByText("Cola")).not.toBeInTheDocument();
   });
 
+  it("should_showFallback_when_variantSizeEmptyInGroup", () => {
+    // UNIQUE(name, size) erlaubt ("Cola","") und ("Cola","0,5 l") als zwei aktive Artikel –
+    // die leere Variante muss innerhalb der Gruppe ein Label zeigen, keine nackte " · Preis"-Zeile.
+    const colaOhneGroesse = { ...cola, id: "c-1", size: "", priceCents: 250 };
+    const colaGross = { ...cola, id: "c-2", size: "0,5 l", priceCents: 290 };
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[colaOhneGroesse, colaGross]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Cola")).toBeInTheDocument();
+    expect(screen.getByText("ohne Größe · 2,50 €")).toBeInTheDocument();
+    expect(screen.getByText("0,5 l · 2,90 €")).toBeInTheDocument();
+    expect(screen.queryByText(/^\s*·/)).not.toBeInTheDocument();
+  });
+
   it("should_keepVariantenTogetherInDeterministicOrder_when_notAdjacentInCatalog", () => {
     // AC: gleichnamige Varianten stehen zusammen, auch wenn im Katalog ein anderer
     // Artikel dazwischenliegt (unterschiedliche sortOrder).
