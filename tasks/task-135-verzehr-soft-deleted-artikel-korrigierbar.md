@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Bug (#135): `listPositionen` joint `catalog_item` bewusst **ohne** `active`-Filter (damit die
@@ -75,6 +75,13 @@ zwischen der Kategorie-Schleife und dem neuen „Nicht mehr im Katalog"-Abschnit
 in die Komponente `PositionZeile` extrahiert – kein neues Verhalten, alle Tests weiterhin grün
 (64 Unit-Tests dieser Task, 258 Gesamt-Suite). `db/verzehr.ts` und `app/veranstaltung/actions.ts`
 ohne Änderungsbedarf (Guard-Reihenfolge, Naming, Kommentare bereits clean).
+
+## PR-Shepherd-Notizen
+PR-Shepherd [2026-07-17]: Auto-Merge freigegeben – alle Gates grün. Keine offenen
+Review-Kommentare (nur automatischer Vercel-Deploy-Kommentar), Branch war bereits aktuell
+zu `main` (`gh pr update-branch` → no-op), kein Approval erforderlich (kein Reviewer
+angefordert), CI zum Zeitpunkt der Freigabe laufend (nicht rot) – `gh pr merge --auto`
+wartet auf grüne Checks. Draft → Ready via `gh pr ready`.
 
 ---
 Branch: `fix/135-verzehr-soft-deleted-artikel-korrigierbar`
