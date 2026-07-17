@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { db } from "./index";
 import { catalogItems, teilnehmer, veranstaltung } from "./schema";
-import { createItem } from "./catalog";
+import { createItem, setItemActive } from "./catalog";
 import { createTeilnehmer } from "./teilnehmer";
 import { addZeile, createVeranstaltung } from "./veranstaltung";
-import { adjustMenge, listPositionen } from "./verzehr";
+import { adjustMenge, getPosition, listPositionen } from "./verzehr";
 
 // Integrationstests gegen eine echte, migrierte Postgres-DB (analog veranstaltung.test.ts).
 // Voraussetzung: `pnpm db:up` + `pnpm db:migrate`. Ohne DB in CI übersprungen. Nicht-destruktiv:
@@ -139,5 +139,47 @@ describe.skipIf(!hasDb)("verzehr data-layer (integration)", () => {
 
     expect(positionen.some((p) => p.zeileId === zeile.id)).toBe(false);
     expect((await listPositionen(v.id)).some((p) => p.zeileId === zeile.id)).toBe(true);
+  });
+
+  it("should_reportActiveTrue_when_catalogItemIsActive", async () => {
+    const { v, zeile } = await setup();
+    const item = await trackItem("Cola", 250, "getraenk");
+    await adjustMenge(zeile.id, item.id, 1);
+
+    const positionen = await listPositionen(v.id);
+
+    expect(positionen.find((p) => p.catalogItemId === item.id)?.active).toBe(true);
+  });
+
+  it("should_reportActiveFalse_when_catalogItemSoftDeletedAfterConsumption", async () => {
+    // ADR-026 D1: der Join bleibt ohne active-Filter (Preisauflösung gelingt immer), aber
+    // das Read-Model macht den Soft-Delete-Status explizit sichtbar.
+    const { v, zeile } = await setup();
+    const item = await trackItem("Bier", 300, "getraenk");
+    await adjustMenge(zeile.id, item.id, 1);
+
+    await setItemActive(item.id, false);
+    const positionen = await listPositionen(v.id);
+
+    expect(positionen.find((p) => p.catalogItemId === item.id)?.active).toBe(false);
+  });
+
+  it("should_returnUndefined_when_noPositionExistsForZeileAndItem", async () => {
+    const { zeile } = await setup();
+    const item = await trackItem("Cola", 250, "getraenk");
+
+    const result = await getPosition(zeile.id, item.id);
+
+    expect(result).toBeUndefined();
+  });
+
+  it("should_returnPosition_when_positionExistsForZeileAndItem", async () => {
+    const { zeile } = await setup();
+    const item = await trackItem("Cola", 250, "getraenk");
+    await adjustMenge(zeile.id, item.id, 1);
+
+    const result = await getPosition(zeile.id, item.id);
+
+    expect(result).toMatchObject({ zeileId: zeile.id, catalogItemId: item.id, menge: 1 });
   });
 });

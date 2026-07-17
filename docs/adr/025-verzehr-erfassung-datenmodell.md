@@ -242,3 +242,8 @@ folgt ADR-024 und macht F5 ohne Umbau für F7 wiederverwendbar. Alle Preis-Arith
   drizzle-kit-Prompt zu erwarten.
 - `app/veranstaltung/[id]/verzehr` ist eine authentifizierte Route unter dem bestehenden, bereits vom
   `proxy.ts`-Schutz erfassten Bereich – **keine** `proxy.ts`-Ausnahme nötig (anders als `theke/[token]`).
+- **Soft-gelöschte Artikel während offener Veranstaltung (aufgelöst durch [ADR-026](026-verzehr-soft-geloeschter-artikel.md), #135):**
+  Der Live-Join ohne `active`-Filter (D2) konnte einen bereits konsumierten, dann deaktivierten Artikel
+  zu einem unsichtbaren, nicht korrigierbaren Betrag machen. ADR-026 entscheidet: Read-Model trägt `active`,
+  solche Positionen bleiben sichtbar und (bei bestehender Position) beidseitig korrigierbar; Neu-Erfassung
+  auf inaktiven Artikeln bleibt blockiert.

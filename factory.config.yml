@@ -30,8 +30,22 @@
 # Der Skill lief wiederholt in diese scheinbare Lücke hinein. Wert hier auf
 # einen validierten höheren Deckel angehoben, um Spielraum zum Erkennen
 # "kein echter Rückstand" zu geben.
+#
+# ── Knopf: model_tiers.light / skills.implement.tier (Task 135, 2026-07-17) ──
+# Test: implement auf Sonnet 5 statt Opus 4.8 laufen lassen, da Task 135 ein
+# eng spezifizierter, klein geschnittener Fix ist (ADR-026 abgeschlossen, 3
+# Dateien, keine Migration) – kein Fall, der Opus-Tiefe an Reasoning braucht.
+# Zugleich wird model_tiers.light von "claude-sonnet-4-6" (veraltete
+# Modell-ID) auf "claude-sonnet-5" (aktuelle Sonnet-Generation) aktualisiert.
+# review/security-review bleiben unverändert auf tier: heavy (Opus 4.8) –
+# adversarielles Gegenlesen soll bei der schwersten Reasoning-Stufe bleiben.
+# @tradeoff: Ergebnis dieses Laufs beobachten (Review-Iterationen, Kosten) und
+# danach entscheiden, ob die implement-Umstellung projektweit bleibt oder
+# dieser Override wieder entfernt wird.
+model_tiers:
+  light: claude-sonnet-5
 skills:
-  implement: { max_turns: 40 }
+  implement: { tier: light, max_turns: 40 }
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 16 }
   test: { max_turns: 40 }
