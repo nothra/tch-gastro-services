@@ -4,8 +4,7 @@ import { listCatalog } from "@/db/catalog";
 import { CatalogItemForm } from "./CatalogItemForm";
 import { CatalogRow } from "./CatalogRow";
 
-// Katalog-Pflege (F2, #49; Kategorie `essen` ergänzt in #116). Nur Verwalter. Die UI-Sperre
-// ist Anzeige-Komfort;
+// Katalog-Pflege (F2, #49). Nur Verwalter. Die UI-Sperre ist Anzeige-Komfort;
 // die eigentliche Durchsetzung liegt serverseitig in den Actions (requireRole),
 // nicht ausschließlich hier (Defense in Depth, PROJECT-CONTEXT).
 export default async function CatalogPage() {
