@@ -34,8 +34,26 @@ Spec: [docs/specs/spec-138-verzehr-kategorien-aufloesen.md](../docs/specs/spec-1
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
-- Betroffen: `app/_verzehr/summen.ts` (+`.test.ts`), `app/_verzehr/VerzehrErfassung.tsx` (~Z.86, +`.test.tsx`).
-- Vor Umbau Konsumenten prüfen: `grep -rn "sonstigeCents\|zeileSummen" app/ db/ lib/` (AC-6).
+**Architektur-Entscheidung:** [ADR-027](../docs/adr/027-verzehr-summen-drei-kategorien.md) –
+präzisiert die „Getränke/Sonstige"-Lese-Gruppierung aus ADR-025 zu **drei** Kategorien
+(fokussierte Refinement-ADR, analog ADR-026; Cross-Ref in ADR-025 nachgetragen).
+
+**Konsumenten-Check (durchgeführt):** `grep -rn "sonstigeCents\|zeileSummen\|ZeileSummen" app/ db/ lib/`
+→ **nur** in `app/_verzehr/` (summen.ts, summen.test.ts, VerzehrErfassung.tsx). Kein externer
+Konsument → AC-6 (Kassier-/Spenden-Logik unberührt) bestätigt.
+
+**Umsetzung (TDD, Red → Green), nur `app/_verzehr/`:**
+1. `summen.ts`: `ZeileSummen` → `{ getraenkeCents, essenCents, kaffeeCents }`; `else`-Zweig durch
+   explizites Kategorie-Mapping ersetzen; kein `sonstigeCents`. Modul-Kommentar (Z.3–5) angleichen.
+2. `summen.test.ts`: `sonstigeCents`-Assertions auf `essenCents`/`kaffeeCents` umstellen; je Kategorie
+   ein Test; Leer-/`menge=0`-Fall auf drei Felder.
+3. `VerzehrErfassung.tsx` (~Z.86): drei Beträge **Getränke · Essen · Kaffee** (Reihenfolge wie
+   `CATEGORY_ORDER`), alle drei immer zeigen. Veralteten Kommentar Z.21 angleichen.
+4. `VerzehrErfassung.test.tsx`: Component-Test für alle drei Beträge (AC-4) + Getränke-only-Zeile
+   mit `0,00 €` (AC-5).
+
+**Nicht anfassen:** `db/`, Actions, Migrationen, Erfassungs-Sektionen, Abschnitt „Nicht mehr im
+Katalog" (ADR-026), Kassier-/Spenden-Logik.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
