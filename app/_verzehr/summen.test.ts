@@ -40,4 +40,11 @@ describe("zeileSummen", () => {
     const result = zeileSummen([pos({ menge: 0, priceCents: 999, category: "getraenk" })]);
     expect(result).toEqual({ getraenkeCents: 0, essenCents: 0, kaffeeCents: 0 });
   });
+
+  it("should_throw_when_categoryIsUnknown", () => {
+    const invalidCategory = "snack" as unknown as VerzehrPositionSum["category"];
+    expect(() => zeileSummen([pos({ category: invalidCategory })])).toThrow(
+      "Unbekannte Kategorie: snack",
+    );
+  });
 });

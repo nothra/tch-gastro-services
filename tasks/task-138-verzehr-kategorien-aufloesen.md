@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -70,6 +70,14 @@ Refactoring-Pass behoben:
   auf den Betrag allein zu matchen.
 
 Kein neues Verhalten; alle 23 Tests vor und nach dem Refactoring grün.
+
+## Test-Vervollständigung (/test)
+Coverage-Lücke nach dem Refactoring-Pass gefunden: Der neu explizit gemachte Exhaustiveness-
+Guard (`summen.ts:36-37`, `const _exhaustive: never = ...; throw new Error(...)`) war
+ungetestet (0/2 Zeilen). Ergänzt: `should_throw_when_categoryIsUnknown` in `summen.test.ts`
+(erzwingt eine ungültige Kategorie per Type-Cast, prüft den Fehlertext). Kein Produktionscode
+geändert. `app/_verzehr` jetzt 100 % Statements/Branches/Funcs/Lines. Gesamt-Suite: 261/261
+Tests grün (34 Dateien, 4 bewusst geskippt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
