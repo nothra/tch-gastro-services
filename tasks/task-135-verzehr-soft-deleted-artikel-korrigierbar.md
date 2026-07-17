@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -60,7 +60,13 @@ _Keine._
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Voller Report: [codify-135.md](codify-135.md). Keine neuen Regeln – Review (APPROVED) und
+Security-Review (PASSED) hatten keine kritischen/wichtigen Findings; die vorhandenen
+Codify-Regeln (#50, #51, #52, #116/#117) griffen bereits korrekt. Beobachtung für später:
+Das versuchsweise `tier: light`/Sonnet-5-Setup für `/implement` (`factory.config.yml`,
+Commit `4104454`) lief für diesen eng geschnittenen Fix sauber durch – Ausgang im
+Projekt-Memory `implement-sonnet5-tier-trial` festgehalten, Entscheidung über projektweite
+Umstellung noch offen (Stichprobengröße 1).
 
 ## Refactoring-Notizen
 `/review` (APPROVED, keine kritischen/wichtigen Findings) diente als Basis. Duplizierte JSX
