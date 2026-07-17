@@ -17,7 +17,21 @@
 # (8) ist /codify zweimal mit "Reached max turns" abgebrochen, ohne einen
 # Report zu schreiben. Mit MAX_TURNS=16 (manueller Retry) lief der Skill beim
 # ersten Versuch durch. Wert hier auf den validierten Wert angehoben.
+#
+# ── Knopf: skills.test (max_turns) ────────────────────────────────────────────
+# Learning aus Task 52 (Verzehr erfassen, 2026-07-17): Mit dem Default (20) ist
+# /test dreimal mit "Reached max turns" abgebrochen, ohne einen Report zu
+# schreiben. Ursache war kein echter Coverage-Rückstand, sondern ein Text-
+# Reporter-Artefakt von @vitest/coverage-v8: Dateien unter einem Unterstrich-
+# präfigierten Verzeichnis (hier `app/_verzehr/`) fehlen als Zeile in der
+# gedruckten Tabelle, obwohl sie in der aggregierten Summe korrekt mitgezählt
+# werden (manuell verifiziert: `vitest run app/_verzehr/summen.test.ts
+# --coverage` meldet 100% in der Summary, aber keine Zeile in der Tabelle).
+# Der Skill lief wiederholt in diese scheinbare Lücke hinein. Wert hier auf
+# einen validierten höheren Deckel angehoben, um Spielraum zum Erkennen
+# "kein echter Rückstand" zu geben.
 skills:
   implement: { max_turns: 40 }
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 16 }
+  test: { max_turns: 40 }
