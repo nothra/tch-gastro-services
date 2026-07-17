@@ -39,7 +39,19 @@ Kanonisch in [spec-135](../docs/specs/spec-135-verzehr-soft-deleted-artikel-korr
 - [ ] FS2 – Anpassung bei abgeschlossener Veranstaltung → Ablehnung (statusunabhängig vom Artikel).
 
 ## Technische Notizen
-<!-- Von /architecture befüllt -->
+Architektur-Entscheidung: [ADR-026](../docs/adr/026-verzehr-soft-geloeschter-artikel.md)
+(ergänzt ADR-025 Handoff „soft-gelöschte Artikel"). Kernentscheidung: **sichtbar + korrigierbar**,
+Betrag zählt weiter (kein Under-Billing); Neu-Erfassung auf inaktivem Artikel bleibt blockiert.
+
+- `db/verzehr.ts`: `VerzehrPositionRow` um `active: boolean`; `listPositionen`-select um
+  `active: catalogItems.active`. Neu: `getPosition(zeileId, catalogItemId): Promise<VerzehrPosition | undefined>`
+  (Existenz-Check, Codify #50).
+- `app/veranstaltung/actions.ts` `adjustVerzehrAction` Schritt 5 (ADR-026 D2): `!item` → `ITEM_NOT_FOUND`;
+  `item.active` → erlaubt; `!item.active` → nur erlaubt wenn `getPosition(...)` existiert. Reihenfolge
+  (Role → Zod → Status → IDOR → Item/Position → Persist) unverändert fail-closed.
+- `app/_verzehr/VerzehrErfassung.tsx`: je Zeile Abschnitt für `positionen.filter(p => !p.active && p.menge > 0)`
+  mit `MengeControl` (`editable`-gesteuert). `summen.ts` **unverändert** (ADR-026 D4).
+- Keine Schema-/Migrations-Änderung (`active` ist additive Lese-Spalte).
 
 ## Offene Fragen
 _Keine._
