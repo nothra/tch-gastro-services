@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -50,7 +50,9 @@ Keine – alle Entscheidungen sind durch die kanonischen Quellen (ADR-023, spec-
 determiniert.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Review: [review-127.md](review-127.md) → **APPROVED**. Keine kritischen/wichtigen Findings;
+1 Nitpick (belassen, begründet). Out-of-Scope-Fund als **Issue #130** angelegt (veraltetes
+„F4 Essenpreis je Abend"-Beispiel in ADR-021).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
