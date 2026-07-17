@@ -79,6 +79,19 @@ describe.skipIf(!hasDb)("verzehr data-layer (integration)", () => {
     expect(row?.menge).toBe(3);
   });
 
+  it("should_createZeroMenge_when_firstCallIsNegativeDelta", async () => {
+    // FS1: Erste Operation mit delta=-1 (noch keine Zeile existiert).
+    // INSERT-Pfad: menge = GREATEST(0, delta) = GREATEST(0, -1) = 0.
+    // Würde GREATEST aus dem INSERT-Values entfernt, entstünde menge=-1 → DB-CHECK-Verletzung
+    // oder, ohne CHECK, ein negativer Wert. Dieses Test sichert den INSERT-Branch ab.
+    const { zeile } = await setup();
+    const item = await trackItem("Saft", 200, "getraenk");
+
+    const row = await adjustMenge(zeile.id, item.id, -1);
+
+    expect(row?.menge).toBe(0);
+  });
+
   it("should_clampAtZero_when_decrementedBelowZero", async () => {
     const { zeile } = await setup();
     const item = await trackItem("Wasser", 150, "getraenk");
