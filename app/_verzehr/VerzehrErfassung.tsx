@@ -73,6 +73,10 @@ function ZeileKarte({
 }) {
   const mengeJeArtikel = new Map(positionen.map((position) => [position.catalogItemId, position.menge]));
   const summen = zeileSummen(positionen);
+  // ADR-026 D3: bestehende Position auf einem soft-gelöschten Artikel bleibt sichtbar +
+  // korrigierbar (kein Under-Billing, summen.ts zählt sie bereits mit). menge=0 wird nicht
+  // gerendert – re-erfassen ist dann bewusst nicht mehr möglich (Soft-Delete-Zweck).
+  const inaktivePositionen = positionen.filter((position) => !position.active && position.menge > 0);
 
   return (
     <li className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800">
@@ -110,6 +114,30 @@ function ZeileKarte({
           </section>
         );
       })}
+
+      {inaktivePositionen.length > 0 && (
+        <section className="flex flex-col gap-2 border-t border-dashed border-zinc-300 pt-2 dark:border-zinc-700">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Nicht mehr im Katalog
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {inaktivePositionen.map((position) => (
+              <li key={position.catalogItemId} className="flex items-center justify-between gap-3">
+                <span className="text-sm">
+                  {position.name} · {formatCents(position.priceCents)}
+                </span>
+                <MengeControl
+                  action={action}
+                  zeileId={zeile.id}
+                  catalogItemId={position.catalogItemId}
+                  menge={position.menge}
+                  editable={editable}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </li>
   );
 }

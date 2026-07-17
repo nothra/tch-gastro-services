@@ -164,6 +164,7 @@ describe("VerzehrPage", () => {
       name: "Cola",
       priceCents: 250,
       category: "getraenk",
+      active: true,
     };
     listPositionenMock.mockResolvedValue([position]);
 

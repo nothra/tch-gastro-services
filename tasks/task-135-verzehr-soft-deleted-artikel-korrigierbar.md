@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -28,15 +28,15 @@ Anpassung ab (Soft-Delete-Guard) → der Betrag ist unsichtbar **und** nicht meh
 
 ## Akzeptanzkriterien
 Kanonisch in [spec-135](../docs/specs/spec-135-verzehr-soft-deleted-artikel-korrigierbar.md).
-- [ ] AC1 – Position auf soft-gelöschtem Artikel wird als eigene, sichtbare Zeile dargestellt.
-- [ ] AC2 – Betrag zählt weiter in die Zeilensumme (kein Under-Billing).
-- [ ] AC3 – Menge verringern möglich (offene Veranstaltung), Klemmung bei 0 bleibt.
-- [ ] AC4 – Menge erhöhen möglich (offene Veranstaltung).
-- [ ] AC5 – Keine Neu-Erfassung ohne bestehende Position (Soft-Delete behält Zweck).
-- [ ] AC6 – Aktive Artikel unverändert (spec-52 AC1–AC7).
-- [ ] AC7 – Abgeschlossene Veranstaltung: Position sichtbar, nur lesend.
-- [ ] FS1 – Anpassung ohne bestehende Position → Ablehnung, kein Schreibvorgang.
-- [ ] FS2 – Anpassung bei abgeschlossener Veranstaltung → Ablehnung (statusunabhängig vom Artikel).
+- [x] AC1 – Position auf soft-gelöschtem Artikel wird als eigene, sichtbare Zeile dargestellt.
+- [x] AC2 – Betrag zählt weiter in die Zeilensumme (kein Under-Billing).
+- [x] AC3 – Menge verringern möglich (offene Veranstaltung), Klemmung bei 0 bleibt.
+- [x] AC4 – Menge erhöhen möglich (offene Veranstaltung).
+- [x] AC5 – Keine Neu-Erfassung ohne bestehende Position (Soft-Delete behält Zweck).
+- [x] AC6 – Aktive Artikel unverändert (spec-52 AC1–AC7).
+- [x] AC7 – Abgeschlossene Veranstaltung: Position sichtbar, nur lesend.
+- [x] FS1 – Anpassung ohne bestehende Position → Ablehnung, kein Schreibvorgang.
+- [x] FS2 – Anpassung bei abgeschlossener Veranstaltung → Ablehnung (statusunabhängig vom Artikel).
 
 ## Technische Notizen
 Architektur-Entscheidung: [ADR-026](../docs/adr/026-verzehr-soft-geloeschter-artikel.md)

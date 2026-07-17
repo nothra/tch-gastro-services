@@ -17,13 +17,13 @@ vi.mock("@/db/veranstaltung", () => ({
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
 vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn() }));
-vi.mock("@/db/verzehr", () => ({ adjustMenge: vi.fn() }));
+vi.mock("@/db/verzehr", () => ({ adjustMenge: vi.fn(), getPosition: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
 import { getCatalogItem } from "@/db/catalog";
-import { adjustMenge } from "@/db/verzehr";
+import { adjustMenge, getPosition } from "@/db/verzehr";
 import {
   addZeile,
   createVeranstaltung,
@@ -55,6 +55,7 @@ const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
 const getCatalogItemMock = vi.mocked(getCatalogItem);
 const adjustMengeMock = vi.mocked(adjustMenge);
+const getPositionMock = vi.mocked(getPosition);
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -480,10 +481,47 @@ describe("adjustVerzehrAction", () => {
     expect(adjustMengeMock).not.toHaveBeenCalled();
   });
 
-  it("should_returnErrorAndNotPersist_when_catalogItemInactive", async () => {
+  it("should_returnErrorAndNotPersist_when_catalogItemInactiveAndNoExistingPosition", async () => {
+    // FS1/AC5: soft-gelöschter Artikel ohne bereits erfasste Position → keine Neu-Erfassung.
     getCatalogItemMock.mockResolvedValue({ ...cola, active: false });
+    getPositionMock.mockResolvedValue(undefined);
     const result = await boundAction(validAdjust);
     expect(result.error).toBeDefined();
     expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_allowIncrement_when_catalogItemInactiveButPositionExists", async () => {
+    // AC4/ADR-026 D2: bestehende Position auf inaktivem Artikel bleibt korrigierbar (+1).
+    getCatalogItemMock.mockResolvedValue({ ...cola, active: false });
+    getPositionMock.mockResolvedValue({
+      id: "p1",
+      zeileId: "z1",
+      catalogItemId: "c1",
+      menge: 2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await boundAction(validAdjust);
+
+    expect(result).toEqual({ ok: true, menge: 1 });
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+  });
+
+  it("should_allowDecrement_when_catalogItemInactiveButPositionExists", async () => {
+    // AC3/ADR-026 D2: bestehende Position auf inaktivem Artikel bleibt korrigierbar (−1).
+    getCatalogItemMock.mockResolvedValue({ ...cola, active: false });
+    getPositionMock.mockResolvedValue({
+      id: "p1",
+      zeileId: "z1",
+      catalogItemId: "c1",
+      menge: 2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await boundAction({ ...validAdjust, delta: "-1" });
+
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", -1);
   });
 });

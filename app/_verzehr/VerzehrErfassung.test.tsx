@@ -29,6 +29,7 @@ function pos(overrides: Partial<VerzehrPositionRow> = {}): VerzehrPositionRow {
     name: "Cola",
     priceCents: 250,
     category: "getraenk",
+    active: true,
     ...overrides,
   };
 }
@@ -198,5 +199,67 @@ describe("VerzehrErfassung", () => {
     const menges = screen.getAllByTestId("menge");
     expect(menges[0]).toHaveTextContent("2");
     expect(menges[1]).toHaveTextContent("4");
+  });
+
+  it("should_showInactivePositionAsOwnSection_when_softDeletedArtikelHasMenge", () => {
+    // AC1: bestehende Position auf soft-gelöschtem Artikel bleibt sichtbar, eigener Abschnitt.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[]}
+        positionen={[pos({ menge: 2, active: false, name: "Radler", priceCents: 280 })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText("Nicht mehr im Katalog")).toBeInTheDocument();
+    expect(screen.getByText(/Radler/)).toBeInTheDocument();
+    expect(screen.getByTestId("menge")).toHaveTextContent("2");
+  });
+
+  it("should_countInactivePositionInSum_when_softDeletedArtikelHasMenge", () => {
+    // AC2: der Betrag zählt weiter in die Zeilensumme (kein Under-Billing).
+    // 2 × 250 Cent = 500 Cent = 5,00 € (Getränke-Kategorie).
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[]}
+        positionen={[pos({ menge: 2, active: false, priceCents: 250, category: "getraenk" })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument();
+  });
+
+  it("should_notRenderInactivePosition_when_mengeIsZero", () => {
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[cola]}
+        positionen={[pos({ menge: 0, active: false })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.queryByText("Nicht mehr im Katalog")).not.toBeInTheDocument();
+  });
+
+  it("should_passEditableFalseToInactivePosition_when_notEditable", () => {
+    // AC7/FS2: abgeschlossene Veranstaltung → auch die inaktive Position nur lesend.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[]}
+        positionen={[pos({ menge: 2, active: false })]}
+        action={noopAction}
+        editable={false}
+      />,
+    );
+
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
 });

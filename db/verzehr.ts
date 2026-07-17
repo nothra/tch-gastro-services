@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
   catalogItems,
@@ -14,7 +14,9 @@ import {
 // Data-Layer mit einer token-scoped Action wiederverwenden kann.
 
 // Eine Position je Zeile mit aufgelöstem Katalog-Preis/-Name/-Kategorie (Read-Time-Join,
-// ADR-025 D2: Live-Katalog solange offen, kein Snapshot in F5).
+// ADR-025 D2: Live-Katalog solange offen, kein Snapshot in F5). `active` macht den
+// Soft-Delete-Status des Artikels explizit sichtbar (ADR-026 D1) – der Join selbst bleibt
+// ohne `active`-Filter, die Preisauflösung gelingt weiterhin immer.
 export type VerzehrPositionRow = {
   zeileId: string;
   catalogItemId: string;
@@ -22,6 +24,7 @@ export type VerzehrPositionRow = {
   name: string;
   priceCents: number;
   category: CatalogCategory;
+  active: boolean;
 };
 
 // Atomarer Upsert mit Delta (ADR-025 D3): Der Client sendet nie ein absolutes `menge`, sondern
@@ -59,9 +62,26 @@ export function listPositionen(veranstaltungId: string): Promise<VerzehrPosition
       name: catalogItems.name,
       priceCents: catalogItems.priceCents,
       category: catalogItems.category,
+      active: catalogItems.active,
     })
     .from(verzehrPosition)
     .innerJoin(veranstaltungZeile, eq(verzehrPosition.zeileId, veranstaltungZeile.id))
     .innerJoin(catalogItems, eq(verzehrPosition.catalogItemId, catalogItems.id))
     .where(eq(veranstaltungZeile.veranstaltungId, veranstaltungId));
+}
+
+// Existenz-Prüfung einer bestehenden Position (ADR-026 D2): erlaubt der Guard in
+// `adjustVerzehrAction` eine Anpassung auf einem soft-gelöschten Artikel nur, wenn dafür
+// bereits Verzehr erfasst wurde (kein Neu-Erfassen). Reiner Lese-Zugriff, `T | undefined`
+// nach Codify #50.
+export async function getPosition(
+  zeileId: string,
+  catalogItemId: string,
+): Promise<VerzehrPosition | undefined> {
+  const [row] = await db
+    .select()
+    .from(verzehrPosition)
+    .where(and(eq(verzehrPosition.zeileId, zeileId), eq(verzehrPosition.catalogItemId, catalogItemId)))
+    .limit(1);
+  return row;
 }

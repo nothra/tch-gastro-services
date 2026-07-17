@@ -16,7 +16,7 @@ import {
   removeZeile,
   setStatus,
 } from "@/db/veranstaltung";
-import { adjustMenge } from "@/db/verzehr";
+import { adjustMenge, getPosition } from "@/db/verzehr";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
 import { veranstaltungSchema, verzehrAdjustSchema } from "./schema";
 
@@ -168,9 +168,15 @@ export async function adjustVerzehrAction(
   const zeile = await getZeile(zeileId, veranstaltungId);
   if (!zeile) return { error: ZEILE_NOT_FOUND };
 
-  // Soft-Delete-Prüfung nach Laden by id (Codify #51): kein inaktiver Artikel erfassbar.
+  // Soft-Delete-Prüfung nach Laden by id (Codify #51, gelockert durch ADR-026 D2): ein
+  // inaktiver Artikel ist nur anpassbar, wenn auf dieser Zeile bereits eine Position dafür
+  // existiert (Korrektur eines bereits erfassten Verzehrs) – Neu-Erfassung bleibt blockiert.
   const item = await getCatalogItem(catalogItemId);
-  if (!item || !item.active) return { error: ITEM_NOT_FOUND };
+  if (!item) return { error: ITEM_NOT_FOUND };
+  if (!item.active) {
+    const existing = await getPosition(zeileId, catalogItemId);
+    if (!existing) return { error: ITEM_NOT_FOUND };
+  }
 
   const position = await adjustMenge(zeileId, catalogItemId, delta);
   revalidatePath(verzehrPath(veranstaltungId));
