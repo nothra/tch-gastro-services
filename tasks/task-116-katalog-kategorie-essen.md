@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -78,7 +78,11 @@ Veranstaltung) – vorbestehend, außerhalb spec-116-Scope → Follow-up-Issue (
 Seam in dieser Session durch Berechtigungsgrenze blockiert; Kommando in review-116.md notiert).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Codify [2026-07-17]: `tasks/codify-116.md` → 1 neue Regel in PROJECT-CONTEXT.md.
+- **Neue Regel**: Zod-Fehlermeldung Ablehnungs-Test ≠ Meldungs-Test (Review-Runde-1-Finding;
+  `should_reject…` und `should_nameMessage…` sind separat-testbare Kriterien, eigene `it`-Blöcke).
+- **Follow-up-Issue #127**: PROJECT-CONTEXT veraltetes Essen-Modell (documentation + tech-debt).
+- Bidirektionaler Rename-Nachweis als bewährtes Muster festgehalten.
 
 ---
 Branch: `feature/116-katalog-kategorie-essen`
