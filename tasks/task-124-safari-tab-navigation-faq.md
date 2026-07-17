@@ -47,6 +47,11 @@ Vor einem `/bug-fix`-Durchlauf lohnt bei browser-spezifischen Tastatur-/Fokus-Me
 die Prüfung, ob eine OS-/Browser-Einstellung die Ursache ist – erkennbar daran, dass
 das Markup semantisch sauber ist (native Elemente, kein `tabindex`, kein `outline:none`).
 
+## PR-Shepherd
+PR-Shepherd 2026-07-17: Auto-Merge freigegeben – alle Gates grün (lint, test,
+factory-self-test, issue-sync, pr-closes-issue, Vercel). Branch CLEAN/aktuell auf main,
+keine offenen Review-Kommentare, keine Pflicht-Approvals. PR #125.
+
 ---
 Branch: `docs/124-safari-tab-navigation-faq`
 Erstellt: 2026-07-17 10:43
