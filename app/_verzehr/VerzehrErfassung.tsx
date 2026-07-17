@@ -18,7 +18,7 @@ export type VerzehrArtikel = {
   category: CatalogCategory;
 };
 
-// Getränke zuerst (Theke), dann Essen + Kaffee (Sonstige) – Anzeigereihenfolge, kein Struktur-Split.
+// Getränke, Essen, Kaffee – Anzeigereihenfolge der Zusammenfassung und der Erfassungs-Abschnitte.
 const CATEGORY_ORDER: readonly CatalogCategory[] = ["getraenk", "essen", "kaffee"];
 
 export function VerzehrErfassung({
@@ -83,7 +83,8 @@ function ZeileKarte({
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-semibold">{zeile.anzeigename}</span>
         <span className="text-sm text-zinc-600 dark:text-zinc-400">
-          Getränke {formatCents(summen.getraenkeCents)} · Sonstige {formatCents(summen.sonstigeCents)}
+          Getränke {formatCents(summen.getraenkeCents)} · Essen {formatCents(summen.essenCents)} ·
+          Kaffee {formatCents(summen.kaffeeCents)}
         </span>
       </div>
 
