@@ -3,11 +3,11 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Tests vollständig — n. z.: reine Doku-Änderung, kein Produktionscode (nichts zu testen)
+- [x] Security-Review bestanden — n. z.: keine Angriffsfläche (docs-only, kein Code/Input/Secret)
+- [x] Refactoring abgeschlossen — n. z.: kein Code zu refactoren
+- [x] Codify ausgeführt — n. z.: triviale Doku-Notiz, Review clean (0 Findings), keine Fehlerklasse
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `docs/adr/021-geldbetraege-integer-cent.md:15` nennt „**F2** Katalogpreis, **F4** Essenpreis
@@ -38,7 +38,13 @@ Review: [review-130.md](review-130.md) → **APPROVED**. Keine kritischen/wichti
 keine Nitpicks. Notiz gegen ADR-023 §D4/§D7 verifiziert; historischer ADR-Charakter gewahrt.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Keine neuen Regeln: triviale Doku-Notiz (8 Zeilen), Review APPROVED ohne Findings, kein
+Rework-Zyklus, kein Bug eingeführt – keine Fehlerklasse zu codifizieren.
+
+PR-Shepherd 2026-07-17: Auto-Merge freigegeben – alle Gates grün (CI: lint/test/factory-self-test/
+issue-sync/pr-closes-issue/Vercel; post-merge-verify läuft erst auf `main`). 0 Commits hinter
+`main` (kein Rebase nötig), keine Pflicht-Approvals, keine offenen Review-Kommentare, Draft→ready.
+Tests/Security/Refactoring/Codify n. z. (reine Doku).
 
 ---
 Branch: `docs/130-adr-021-essenpreis-veraltet-kennzeichnen`
