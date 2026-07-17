@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -106,6 +106,8 @@ zurück, aber `MengeControl` rendert bewusst die server-autoritative Prop (ADR-0
 **Offenes Issue #135:** verzehr: Position auf soft-gelöschtem Artikel zeigt unsichtbare,
 nicht korrigierbare Summe. Optionen (a) read-only Zeile, (b) active-Filter in summen(),
 (c) ADR-25-Notiz. Quellen: ADR-025, listPositionen() in db/verzehr.ts.
+
+PR-Shepherd [2026-07-17]: Auto-Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `feature/52-verzehr-erfassen`
