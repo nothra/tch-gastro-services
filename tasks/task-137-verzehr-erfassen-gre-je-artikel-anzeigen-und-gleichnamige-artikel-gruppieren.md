@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -134,6 +134,22 @@ Deckungs-/Vollständigkeits-Check:
   Runde-1-Build-Break (fehlender `CatalogCategory`-Import) auch über das Build-Gate bestätigt,
   nicht nur statisch.
 - `pnpm lint` grün, kein Produktionscode in diesem Schritt geändert (nur Test ergänzt).
+
+## Refactoring [2026-07-18]
+
+Clean-Code-Pass über den geänderten Code (`app/_verzehr/artikel-anzeige.ts`,
+`app/_verzehr/VerzehrErfassung.tsx`, `db/verzehr.ts`, Page-Mapping). Der Code war nach zwei
+Review-Runden bereits aufgeräumt (Route-Neutralität, Key-Strategie, Trim-Duplikation via
+`groessenLabel` schon vorher behoben) – ein weiterer Schritt genügte:
+
+- **Erklärende Variable statt wiederholtem Index-Zugriff:** In `ZeileKarte` (Einzel-Varianten-
+  Zweig) wurde `gruppe.varianten[0]` viermal wiederholt (Ternary-Ausdruck). Extrahiert zu
+  `const einzelArtikel = gruppe.varianten[0];`, Ternary zu if/return für die zusätzliche
+  Anweisung. Kein neues Verhalten.
+
+`pnpm lint` und `pnpm test` (280 passed, 39 skipped, identisch zu vorher) grün vor und nach
+dem Schritt. Kein weiterer Refactoring-Bedarf identifiziert (Funktionslängen, Naming, Duplikation,
+Magic Strings bereits im Rahmen der Review-Runden bereinigt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

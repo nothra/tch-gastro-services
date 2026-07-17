@@ -99,29 +99,33 @@ function ZeileKarte({
               {CATEGORY_LABEL[category]}
             </h3>
             <ul className="flex flex-col gap-2">
-              {gruppen.map((gruppe) =>
-                gruppe.varianten.length > 1 ? (
-                  <ArtikelGruppe
-                    key={gruppe.name}
-                    gruppe={gruppe}
-                    action={action}
-                    zeileId={zeile.id}
-                    mengeJeArtikel={mengeJeArtikel}
-                    editable={editable}
-                  />
-                ) : (
+              {gruppen.map((gruppe) => {
+                if (gruppe.varianten.length > 1) {
+                  return (
+                    <ArtikelGruppe
+                      key={gruppe.name}
+                      gruppe={gruppe}
+                      action={action}
+                      zeileId={zeile.id}
+                      mengeJeArtikel={mengeJeArtikel}
+                      editable={editable}
+                    />
+                  );
+                }
+                const einzelArtikel = gruppe.varianten[0];
+                return (
                   <PositionZeile
                     key={gruppe.name}
                     action={action}
                     zeileId={zeile.id}
-                    catalogItemId={gruppe.varianten[0].id}
-                    label={`${gruppe.varianten[0].name}${groessenSuffix(gruppe.varianten[0].size)}`}
-                    priceCents={gruppe.varianten[0].priceCents}
-                    menge={mengeJeArtikel.get(gruppe.varianten[0].id) ?? 0}
+                    catalogItemId={einzelArtikel.id}
+                    label={`${einzelArtikel.name}${groessenSuffix(einzelArtikel.size)}`}
+                    priceCents={einzelArtikel.priceCents}
+                    menge={mengeJeArtikel.get(einzelArtikel.id) ?? 0}
                     editable={editable}
                   />
-                ),
-              )}
+                );
+              })}
             </ul>
           </section>
         );
