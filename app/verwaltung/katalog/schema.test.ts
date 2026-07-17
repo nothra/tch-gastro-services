@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { catalogItemSchema } from "./schema";
+import { firstIssueMessage } from "@/lib/form-errors";
 
 const valid = {
   name: "Cola",
@@ -63,8 +64,24 @@ describe("catalogItemSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("should_rejectCategory_when_notInEnum", () => {
+  it("should_acceptCategory_when_essen", () => {
     const result = catalogItemSchema.safeParse({ ...valid, category: "essen" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.category).toBe("essen");
+  });
+
+  it("should_rejectCategory_when_notInEnum", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, category: "snack" });
     expect(result.success).toBe(false);
+  });
+
+  it("should_nameAllThreeCategoriesInMessage_when_categoryInvalid", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, category: "snack" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe(
+        "Kategorie muss Getränk, Kaffee oder Essen sein.",
+      );
+    }
   });
 });

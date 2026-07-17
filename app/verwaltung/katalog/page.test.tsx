@@ -54,9 +54,23 @@ describe("CatalogPage", () => {
 
     render(await CatalogPage());
 
-    expect(screen.getByText("Getränke-Katalog")).toBeInTheDocument();
+    expect(screen.getByText("Katalog")).toBeInTheDocument();
+    expect(screen.queryByText("Getränke-Katalog")).not.toBeInTheDocument();
     expect(screen.getByText(/ISO-Sportdrink/)).toBeInTheDocument();
     expect(screen.getByText(/2,00 €/)).toBeInTheDocument();
+  });
+
+  it("should_renderEssenLabel_when_itemCategoryIsEssen", async () => {
+    authMock.mockResolvedValue(session(["verwalter"]));
+    listCatalogMock.mockResolvedValue([
+      { ...seededItem, id: "2", name: "Bratwurst mit Brötchen", category: "essen" },
+    ]);
+
+    render(await CatalogPage());
+
+    // Zeilen-Label steht in der Preis-/Kategorie-Zeile ("2,00 € · Essen") – nicht die
+    // gleichnamige <option> im Anlege-Formular.
+    expect(screen.getByText(/· Essen/)).toBeInTheDocument();
   });
 
   it("should_showEmptyCatalogMessage_when_noItems", async () => {

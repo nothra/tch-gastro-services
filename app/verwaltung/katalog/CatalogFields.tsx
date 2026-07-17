@@ -4,6 +4,7 @@ import type { CatalogItem } from "@/db/schema";
 export const CATEGORY_LABEL: Record<CatalogItem["category"], string> = {
   getraenk: "Getränk",
   kaffee: "Kaffee",
+  essen: "Essen",
 };
 
 const inputClass =

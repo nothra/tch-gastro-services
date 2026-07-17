@@ -531,6 +531,38 @@ Pflicht-Begleitung: Negativ-Nachweis, der die Unabhängigkeit belegt (Begründun
 Begründungs-Guard **rot**, Kommando-Guard **grün**). Deckt sich mit `testing-standards.md`
 (je Kriterium ein Test) und der Positiv-**und**-Negativ-Beispiel-Regel aus `clean-code.md`.
 
+### Zod-Fehlermeldung: Ablehnungs-Test ≠ Meldungs-Test (aus #116, Review-Runde-1-Finding)
+
+`should_rejectCategory_when_notInEnum` (`result.success === false`) und
+`should_nameAllThreeCategories_when_categoryInvalid` (`firstIssueMessage === Literal`)
+sind **zwei separate Tests**. Ein Ablehnungs-Test belegt nicht, dass die Meldung den richtigen
+Inhalt hat – eine generische Meldung wie „Ungültige Kategorie." würde genauso durchkommen.
+Aufgefallen erst in Review-Runde 1 (nicht in `/implement`): der Reflex ist, die Ablehnung zu
+testen und den Meldungstext als „mitgetestet" anzunehmen.
+
+**Smell:** „Ersetze ich die custom message im Schema durch eine generische Meldung – schlägt
+ein Test fehl?" Wenn nein, ist der Meldungsinhalt ungetestet.
+
+**Regel:** Wenn das AC den **Inhalt** der Zod-Fehlermeldung vorschreibt (z. B. „nennt alle drei
+Kategorien"), ist das ein separierbar-testbares Kriterium und braucht einen eigenen `it`-Block
+mit `firstIssueMessage(result.error)` gegen ein unabhängiges Literal:
+```ts
+// Assertion 1 – Ablehnungs-Verhalten:
+it("should_rejectCategory_when_notInEnum", () => {
+  const result = schema.safeParse({ category: "snack" });
+  expect(result.success).toBe(false);
+});
+
+// Assertion 2 – Meldungsinhalt (separierbar, eigener it-Block):
+it("should_nameAllThreeCategoriesInMessage_when_categoryInvalid", () => {
+  const result = schema.safeParse({ category: "snack" });
+  if (!result.success)
+    expect(firstIssueMessage(result.error)).toBe("Kategorie muss Getränk, Kaffee oder Essen sein.");
+});
+```
+Verwandt mit der #117-Regel (je separierbares AC-Kriterium eine eigene Assertion) und der
+`testing-standards.md`-Regel (erwarteter Wert ist ein Literal, kein erneuter Ergebnis-Zugriff).
+
 ---
 
 ## Offene Architektur-Fragen
