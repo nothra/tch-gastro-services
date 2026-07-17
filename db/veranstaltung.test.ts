@@ -9,6 +9,7 @@ import {
   ensureThekeForKasse,
   getThekeForKasse,
   getVeranstaltung,
+  getZeileByTeilnehmer,
   listVeranstaltungen,
   listZeilen,
   removeZeile,
@@ -178,6 +179,23 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
 
     expect(removed).toBeUndefined();
     expect(await listZeilen(fremde.id)).toHaveLength(1);
+  });
+
+  it("should_findZeile_when_teilnehmerBelongsToVeranstaltung", async () => {
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Frank");
+    const zeile = await addZeile(v.id, person);
+
+    const found = await getZeileByTeilnehmer(v.id, person.id);
+    expect(found?.id).toBe(zeile.id);
+  });
+
+  it("should_returnUndefined_when_teilnehmerNotInVeranstaltung", async () => {
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Greta");
+
+    const found = await getZeileByTeilnehmer(v.id, person.id);
+    expect(found).toBeUndefined();
   });
 
   it("should_rejectSecondThekeForSameKasse_when_insertedDirectly", async () => {

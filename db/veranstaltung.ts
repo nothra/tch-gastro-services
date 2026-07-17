@@ -126,3 +126,23 @@ export function listZeilen(veranstaltungId: string): Promise<VeranstaltungZeile[
     .where(eq(veranstaltungZeile.veranstaltungId, veranstaltungId))
     .orderBy(veranstaltungZeile.anzeigename);
 }
+
+// Prüft die Teilnehmer-Zugehörigkeit zur Veranstaltung (ADR-028 D1/D5): eine Auslage ist einem
+// Teilnehmer zugeordnet, ohne FK auf die Zeile – die Action prüft stattdessen, dass eine Zeile
+// für (veranstaltungId, teilnehmerId) existiert, bevor sie die Zuordnung erlaubt.
+export async function getZeileByTeilnehmer(
+  veranstaltungId: string,
+  teilnehmerId: string,
+): Promise<VeranstaltungZeile | undefined> {
+  const [row] = await db
+    .select()
+    .from(veranstaltungZeile)
+    .where(
+      and(
+        eq(veranstaltungZeile.veranstaltungId, veranstaltungId),
+        eq(veranstaltungZeile.teilnehmerId, teilnehmerId),
+      ),
+    )
+    .limit(1);
+  return row;
+}

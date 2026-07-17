@@ -13,22 +13,33 @@ import {
   ensureThekeForKasse,
   getVeranstaltung,
   getZeile,
+  getZeileByTeilnehmer,
   removeZeile,
   setStatus,
 } from "@/db/veranstaltung";
 import { adjustMenge, getPosition } from "@/db/verzehr";
+import {
+  createAuslage,
+  removeAuslage,
+  setAuslageStatus,
+  updateAuslage,
+} from "@/db/auslage";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
-import { veranstaltungSchema, verzehrAdjustSchema } from "./schema";
+import { auslageSchema, auslageStatusSchema, veranstaltungSchema, verzehrAdjustSchema } from "./schema";
 
 const LIST_PATH = "/veranstaltung";
 const detailPath = (id: string) => `${LIST_PATH}/${id}`;
 const verzehrPath = (id: string) => `${detailPath(id)}/verzehr`;
+const auslagenPath = (id: string) => `${detailPath(id)}/auslagen`;
 
 const NOT_FOUND = "Veranstaltung nicht gefunden.";
 const NOT_OFFEN = "Die Veranstaltung ist abgeschlossen und schreibgeschützt.";
 const DUPLICATE_ZEILE = "Dieser Teilnehmer ist bereits erfasst.";
 const ZEILE_NOT_FOUND = "Teilnehmerzeile nicht gefunden.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
+const TEILNEHMER_NOT_IN_VERANSTALTUNG = "Teilnehmer gehört nicht zu dieser Veranstaltung.";
+const TEILNEHMER_INACTIVE = "Teilnehmer nicht gefunden.";
+const AUSLAGE_NOT_FOUND = "Auslage nicht gefunden.";
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
@@ -200,4 +211,118 @@ export async function ensureThekeAction(
   }
   revalidatePath(LIST_PATH);
   return { ok: true };
+}
+
+export type AuslageFormState = { ok?: boolean; error?: string };
+
+// Gemeinsame Guard-Sequenz für create/update (ADR-028 D5 Schritt 5): der Teilnehmer muss eine
+// Zeile in dieser Veranstaltung haben (IDOR-artige Zuordnungsprüfung) und aktiv sein
+// (Soft-Delete-Prüfung nach Laden by id, Codify #51).
+async function assertTeilnehmerInVeranstaltung(
+  veranstaltungId: string,
+  teilnehmerId: string,
+): Promise<string | undefined> {
+  const zeile = await getZeileByTeilnehmer(veranstaltungId, teilnehmerId);
+  if (!zeile) return TEILNEHMER_NOT_IN_VERANSTALTUNG;
+
+  const person = await getTeilnehmer(teilnehmerId);
+  if (!person || !person.active) return TEILNEHMER_INACTIVE;
+
+  return undefined;
+}
+
+// Erfasst eine Auslage (F6, #53, ADR-028 D5). `veranstaltungId` ist serverseitig gebunden
+// (die Seite curryt sie über `.bind(null, id)`, analog `adjustVerzehrAction`) – der Client
+// liefert sie nicht.
+export async function createAuslageAction(
+  veranstaltungId: string,
+  _prevState: AuslageFormState | undefined,
+  formData: FormData,
+): Promise<AuslageFormState> {
+  await requireRole("veranstalter");
+
+  const parsed = auslageSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const ziel = await getVeranstaltung(veranstaltungId);
+  if (!ziel) return { error: NOT_FOUND };
+  if (ziel.status !== "offen") return { error: NOT_OFFEN };
+
+  const guardError = await assertTeilnehmerInVeranstaltung(veranstaltungId, parsed.data.teilnehmerId);
+  if (guardError) return { error: guardError };
+
+  await createAuslage({
+    veranstaltungId,
+    teilnehmerId: parsed.data.teilnehmerId,
+    kategorie: parsed.data.kategorie,
+    betragCents: parsed.data.betrag,
+    zweck: parsed.data.zweck,
+  });
+  revalidatePath(auslagenPath(veranstaltungId));
+  return { ok: true };
+}
+
+// Korrigiert eine bestehende Auslage, solange die Veranstaltung offen ist. `veranstaltungId`
+// und `auslageId` sind serverseitig gebunden (`.bind(null, veranstaltungId, auslage.id)`); die
+// Data-Layer bindet `veranstaltungId` zusätzlich ins WHERE (IDOR-Schutz, Codify #51).
+export async function updateAuslageAction(
+  veranstaltungId: string,
+  auslageId: string,
+  _prevState: AuslageFormState | undefined,
+  formData: FormData,
+): Promise<AuslageFormState> {
+  await requireRole("veranstalter");
+
+  const parsed = auslageSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const ziel = await getVeranstaltung(veranstaltungId);
+  if (!ziel) return { error: NOT_FOUND };
+  if (ziel.status !== "offen") return { error: NOT_OFFEN };
+
+  const guardError = await assertTeilnehmerInVeranstaltung(veranstaltungId, parsed.data.teilnehmerId);
+  if (guardError) return { error: guardError };
+
+  const updated = await updateAuslage(auslageId, veranstaltungId, {
+    teilnehmerId: parsed.data.teilnehmerId,
+    kategorie: parsed.data.kategorie,
+    betragCents: parsed.data.betrag,
+    zweck: parsed.data.zweck,
+  });
+  if (!updated) return { error: AUSLAGE_NOT_FOUND };
+
+  revalidatePath(auslagenPath(veranstaltungId));
+  return { ok: true };
+}
+
+// Bestätigt oder nimmt eine Erstattung zurück (ADR-028 D3 – ein Weg, beide Richtungen).
+export async function setAuslageStatusAction(formData: FormData): Promise<void> {
+  await requireRole("veranstalter");
+  const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
+  const id = String(formData.get("id") ?? "");
+  if (!veranstaltungId || !id) return;
+
+  const parsed = auslageStatusSchema.safeParse({ status: formData.get("status") });
+  if (!parsed.success) return;
+
+  const ziel = await getVeranstaltung(veranstaltungId);
+  if (!ziel || ziel.status !== "offen") return;
+
+  await setAuslageStatus(id, veranstaltungId, parsed.data.status);
+  revalidatePath(auslagenPath(veranstaltungId));
+}
+
+// Hard-Delete (ADR-028 D2, Leaf-Entität ohne Referenzen/Audit-Bedarf) – nur solange die
+// Veranstaltung offen ist.
+export async function removeAuslageAction(formData: FormData): Promise<void> {
+  await requireRole("veranstalter");
+  const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
+  const id = String(formData.get("id") ?? "");
+  if (!veranstaltungId || !id) return;
+
+  const ziel = await getVeranstaltung(veranstaltungId);
+  if (!ziel || ziel.status !== "offen") return;
+
+  await removeAuslage(id, veranstaltungId);
+  revalidatePath(auslagenPath(veranstaltungId));
 }
