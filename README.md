@@ -214,6 +214,13 @@ Die Factory ist reines Werkzeug – sie ist **nicht** Teil der ausgelieferten An
 
 ---
 
+## Häufige Fragen (FAQ)
+
+Nutzungsfragen (z. B. Tastaturbedienung im Safari) beantwortet die
+[FAQ](docs/FAQ.md).
+
+---
+
 ## Änderungshistorie
 
 Siehe [docs/CHANGELOG.md](docs/CHANGELOG.md).
