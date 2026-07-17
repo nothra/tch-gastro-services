@@ -74,8 +74,8 @@ describe("VerzehrErfassung", () => {
     expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument();
   });
 
-  it("should_showEssenInSonstige_when_essenPositionExists", () => {
-    // AC3: n Portionen Essen × Katalogpreis → Sonstige.
+  it("should_showEssenFormatted_when_essenPositionExists", () => {
+    // AC3: n Portionen Essen × Katalogpreis → eigene Essen-Summe.
     // 2 × 890 Cent = 1780 Cent = 17,80 €
     render(
       <VerzehrErfassung
@@ -87,11 +87,11 @@ describe("VerzehrErfassung", () => {
       />,
     );
 
-    expect(screen.getByText(/17,80\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/Essen\s*17,80\s*€/)).toBeInTheDocument();
   });
 
-  it("should_showKaffeeInSonstige_when_kaffeePositionExists", () => {
-    // AC4: m × Kaffeepreis → Sonstige.
+  it("should_showKaffeeFormatted_when_kaffeePositionExists", () => {
+    // AC4: m × Kaffeepreis → eigene Kaffee-Summe.
     // 3 × 100 Cent = 300 Cent = 3,00 €
     render(
       <VerzehrErfassung
@@ -103,7 +103,46 @@ describe("VerzehrErfassung", () => {
       />,
     );
 
-    expect(screen.getByText(/3,00\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/Kaffee\s*3,00\s*€/)).toBeInTheDocument();
+  });
+
+  it("should_showAllThreeCategorySumsInOrder_when_mixedPositions", () => {
+    // AC-4/AC-6: Zusammenfassung zeigt Getränke · Essen · Kaffee in dieser Reihenfolge.
+    // Getränke 2 × 250 = 5,00 €; Essen 1 × 890 = 8,90 €; Kaffee 3 × 100 = 3,00 €.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[cola, schnitzel, kaffee]}
+        positionen={[
+          pos({ menge: 2, priceCents: 250, catalogItemId: "c-1", category: "getraenk" }),
+          pos({ menge: 1, priceCents: 890, catalogItemId: "c-2", category: "essen" }),
+          pos({ menge: 3, priceCents: 100, catalogItemId: "c-3", category: "kaffee" }),
+        ]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(
+      screen.getByText(/Getränke\s*5,00\s*€\s*·\s*Essen\s*8,90\s*€\s*·\s*Kaffee\s*3,00\s*€/),
+    ).toBeInTheDocument();
+  });
+
+  it("should_showEssenAndKaffeeAsZero_when_onlyGetraenkPositionExists", () => {
+    // AC-5: Getränke-only-Zeile zeigt trotzdem alle drei Kategorien, Essen/Kaffee mit 0,00 €.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[cola]}
+        positionen={[pos({ menge: 2, priceCents: 250, category: "getraenk" })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(
+      screen.getByText(/Getränke\s*5,00\s*€\s*·\s*Essen\s*0,00\s*€\s*·\s*Kaffee\s*0,00\s*€/),
+    ).toBeInTheDocument();
   });
 
   it("should_renderZeroMengeDefault_when_noPositionForArtikel", () => {
