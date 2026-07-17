@@ -62,6 +62,13 @@ additiver Enum-Wert (kein Drop-and-recreate, #48).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Review [2026-07-17]: `tasks/review-116.md` → NEEDS_REWORK. Ein Wichtig-Finding:
+Zod-Fehlermeldung („Kategorie muss Getränk, Kaffee oder Essen sein.") war ungetestet
+(spec-116 fordert alle drei Kategorien in der Meldung).
+- [x] Behoben: dedizierter Test `schema.test.ts:should_nameAllThreeCategoriesInMessage_when_categoryInvalid`
+  prüft die Meldung gegen ein festes Literal via `firstIssueMessage` (Muster testing-standards).
+  Negativ-Nachweis geführt (Meldung mutiert → nur dieser Test rot). Nitpicks: nicht behoben
+  (kein Merge-Blocker, bewusst so belassen laut Review).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
