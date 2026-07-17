@@ -2,11 +2,11 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -80,7 +80,13 @@ geändert. `app/_verzehr` jetzt 100 % Statements/Branches/Funcs/Lines. Gesamt-Su
 Tests grün (34 Dateien, 4 bewusst geskippt).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Voller Report: [tasks/codify-138.md](codify-138.md).
+
+Einzige Lücke im Zyklus: Der im Refactoring-Pass explizit gemachte Exhaustiveness-Guard
+(`const _exhaustive: never`, `summen.ts:36-37`) wurde erst in `/test` als ungetestet erkannt,
+nicht schon in `/review`/`/security-review`. Neue universelle Regel dazu ergänzt in
+`docs/factory/guidelines/testing-standards.md` (Exhaustiveness-Guards brauchen einen eigenen
+Test). Review und Security-Review sonst ohne Findings (APPROVED / PASSED).
 
 ---
 Branch: `feature/138-verzehr-kategorien-aufloesen`
