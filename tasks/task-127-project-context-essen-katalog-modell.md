@@ -3,11 +3,11 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Tests vollständig — n. z.: reine Doku-Änderung, kein Produktionscode (nichts zu testen)
+- [x] Security-Review bestanden — n. z.: keine Angriffsfläche (docs-only, kein Code/Input/Secret)
+- [x] Refactoring abgeschlossen — n. z.: kein Code zu refactoren
+- [x] Codify ausgeführt — siehe [codify-127.md](codify-127.md); Prozess-Learning als #131 erfasst
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Reiner Doku-Abgleich: `docs/factory/PROJECT-CONTEXT.md` (Sektion „Fachdomäne → Kernbegriffe")
@@ -55,7 +55,13 @@ Review: [review-127.md](review-127.md) → **APPROVED**. Keine kritischen/wichti
 „F4 Essenpreis je Abend"-Beispiel in ADR-021).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Report: [codify-127.md](codify-127.md). Review war sauber (keine Fehlerklasse). Prozess-Learning
+(start-work.sh `--help`-Footgun) als **Issue #131** erfasst; out-of-scope Review-Fund (ADR-021)
+als **Issue #130**. Keine neue Regel auf diesem Branch (Scope-Disziplin).
+
+PR-Shepherd 2026-07-17: Auto-Merge freigegeben – alle Gates grün (CI: lint/test/factory-self-test/
+issue-sync/pr-closes-issue/Vercel), keine Pflicht-Approvals, Draft→ready. Tests/Security/Refactoring
+n. z. (reine Doku), Codify ausgeführt.
 
 ---
 Branch: `docs/127-project-context-essen-katalog-modell`
