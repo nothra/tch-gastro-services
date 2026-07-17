@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
-import type { Teilnehmer, Veranstaltung } from "@/db/schema";
+import type { CatalogItem, Teilnehmer, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 import { ForbiddenError } from "@/lib/authz";
 
 // Gemockt wird die externe Grenze (auth()) sowie Data-Layer und Cache. Der Rollen-Guard
@@ -12,23 +12,30 @@ vi.mock("@/db/veranstaltung", () => ({
   removeZeile: vi.fn(),
   setStatus: vi.fn(),
   getVeranstaltung: vi.fn(),
+  getZeile: vi.fn(),
   ensureThekeForKasse: vi.fn(),
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
+vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn() }));
+vi.mock("@/db/verzehr", () => ({ adjustMenge: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
+import { getCatalogItem } from "@/db/catalog";
+import { adjustMenge } from "@/db/verzehr";
 import {
   addZeile,
   createVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
+  getZeile,
   removeZeile,
   setStatus,
 } from "@/db/veranstaltung";
 import {
   addZeileAction,
+  adjustVerzehrAction,
   createVeranstaltungAction,
   createWalkInAction,
   ensureThekeAction,
@@ -42,9 +49,12 @@ const addZeileMock = vi.mocked(addZeile);
 const removeZeileMock = vi.mocked(removeZeile);
 const setStatusMock = vi.mocked(setStatus);
 const getVeranstaltungMock = vi.mocked(getVeranstaltung);
+const getZeileMock = vi.mocked(getZeile);
 const ensureThekeMock = vi.mocked(ensureThekeForKasse);
 const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
+const getCatalogItemMock = vi.mocked(getCatalogItem);
+const adjustMengeMock = vi.mocked(adjustMenge);
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -80,12 +90,43 @@ const person: Teilnehmer = {
 
 const validVeranstaltung = { bezeichnung: "Montagsrunde", datum: "2026-07-13", kasse: "montagsrunde" };
 
+const zeile: VeranstaltungZeile = {
+  id: "z1",
+  veranstaltungId: "v1",
+  teilnehmerId: "t1",
+  anzeigename: "Anna Beispiel",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const cola: CatalogItem = {
+  id: "c1",
+  name: "Cola",
+  size: "",
+  priceCents: 250,
+  category: "getraenk",
+  sortOrder: 0,
+  active: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
   authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
   getVeranstaltungMock.mockResolvedValue(offeneVeranstaltung);
+  getZeileMock.mockResolvedValue(zeile);
   getTeilnehmerMock.mockResolvedValue(person);
   createTeilnehmerMock.mockResolvedValue(person);
+  getCatalogItemMock.mockResolvedValue(cola);
+  adjustMengeMock.mockResolvedValue({
+    id: "p1",
+    zeileId: "z1",
+    catalogItemId: "c1",
+    menge: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
@@ -193,6 +234,14 @@ describe("addZeileAction", () => {
     expect(result.error).toBeDefined();
     expect(addZeileMock).not.toHaveBeenCalled();
   });
+
+  it("should_rethrow_when_addZeileThrowsNon23505Error", async () => {
+    addZeileMock.mockRejectedValue(new Error("DB connection lost"));
+
+    await expect(
+      addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" })),
+    ).rejects.toThrow("DB connection lost");
+  });
 });
 
 describe("createWalkInAction", () => {
@@ -253,6 +302,12 @@ describe("removeZeileAction", () => {
     expect(removeZeileMock).not.toHaveBeenCalled();
   });
 
+  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    await removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }));
+    expect(removeZeileMock).not.toHaveBeenCalled();
+  });
+
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
     await expect(removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }))).rejects.toThrow(
@@ -306,6 +361,12 @@ describe("setStatusAction", () => {
     await setStatusAction(form({ status: "abgeschlossen" }));
     expect(setStatusMock).not.toHaveBeenCalled();
   });
+
+  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    await setStatusAction(form({ id: "v1", status: "abgeschlossen" }));
+    expect(setStatusMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("ensureThekeAction", () => {
@@ -340,5 +401,89 @@ describe("ensureThekeAction", () => {
     ensureThekeMock.mockRejectedValue({ code: "23505" });
     const result = await ensureThekeAction(undefined, form({ kasse: "montagsrunde" }));
     expect(result).toEqual({ ok: true });
+  });
+
+  it("should_rethrow_when_nonUniqueErrorOccurs", async () => {
+    ensureThekeMock.mockRejectedValue(new Error("Connection lost"));
+    await expect(
+      ensureThekeAction(undefined, form({ kasse: "montagsrunde" })),
+    ).rejects.toThrow("Connection lost");
+  });
+});
+
+describe("adjustVerzehrAction", () => {
+  const boundAction = (fields: Record<string, string>) =>
+    adjustVerzehrAction("v1", undefined, form(fields));
+  const validAdjust = { zeileId: "z1", catalogItemId: "c1", delta: "1" };
+
+  it("should_adjustAndReturnAuthoritativeMenge_when_inputValid", async () => {
+    const result = await boundAction(validAdjust);
+
+    expect(result).toEqual({ ok: true, menge: 1 });
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+  });
+
+  it("should_passNegativeDelta_when_deltaMinusOne", async () => {
+    await boundAction({ ...validAdjust, delta: "-1" });
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", -1);
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+    await expect(boundAction(validAdjust)).rejects.toThrow(ForbiddenError);
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_deltaOutOfRange", async () => {
+    const result = await boundAction({ ...validAdjust, delta: "2" });
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_catalogItemIdMissing", async () => {
+    const result = await boundAction({ zeileId: "z1", delta: "1" });
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_zeileIdMissing", async () => {
+    const result = await boundAction({ catalogItemId: "c1", delta: "1" });
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_veranstaltungClosed", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    const result = await boundAction(validAdjust);
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    const result = await boundAction(validAdjust);
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_zeileNotInVeranstaltung", async () => {
+    getZeileMock.mockResolvedValue(undefined);
+    const result = await boundAction(validAdjust);
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_catalogItemMissing", async () => {
+    getCatalogItemMock.mockResolvedValue(undefined);
+    const result = await boundAction(validAdjust);
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_catalogItemInactive", async () => {
+    getCatalogItemMock.mockResolvedValue({ ...cola, active: false });
+    const result = await boundAction(validAdjust);
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
   });
 });

@@ -59,6 +59,13 @@ export default async function VeranstaltungDetailPage({
 
       <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
 
+      <Link
+        href={`/veranstaltung/${veranstaltung.id}/verzehr`}
+        className="inline-flex w-fit items-center rounded border border-cyan-700 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950"
+      >
+        Verzehr erfassen →
+      </Link>
+
       {offen && (
         <section className="flex flex-col gap-4">
           <AddTeilnehmerForm veranstaltungId={veranstaltung.id} verfuegbar={verfuegbar} />

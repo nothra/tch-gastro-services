@@ -18,6 +18,13 @@ export function listActiveCatalog(): Promise<CatalogItem[]> {
   return db.select().from(catalogItems).where(eq(catalogItems.active, true)).orderBy(...catalogOrder);
 }
 
+// Einzelner Artikel per id – u. a. für die Preis-/Aktiv-Prüfung an der Verzehr-Action-Grenze
+// (F5, ADR-025 D6): die Action lädt den Artikel und prüft `active` (Soft-Delete, Codify #51).
+export async function getCatalogItem(id: string): Promise<CatalogItem | undefined> {
+  const [row] = await db.select().from(catalogItems).where(eq(catalogItems.id, id)).limit(1);
+  return row;
+}
+
 export type CatalogItemData = Omit<NewCatalogItem, "id" | "createdAt" | "updatedAt" | "active">;
 
 export async function createItem(data: CatalogItemData): Promise<CatalogItem> {

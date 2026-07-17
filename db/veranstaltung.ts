@@ -101,6 +101,24 @@ export async function removeZeile(
   return removed;
 }
 
+// Lädt eine Zeile nur, wenn sie zur angegebenen Veranstaltung gehört. Die Bindung an
+// veranstaltungId ist der IDOR-Schutz an der Verzehr-Action-Grenze (F5, Codify #51/ADR-025 D6):
+// ohne sie könnte ein manipulierter Request über eine offene Veranstaltung eine fremde Zeile
+// (andere/abgeschlossene Veranstaltung) bespielen.
+export async function getZeile(
+  zeileId: string,
+  veranstaltungId: string,
+): Promise<VeranstaltungZeile | undefined> {
+  const [row] = await db
+    .select()
+    .from(veranstaltungZeile)
+    .where(
+      and(eq(veranstaltungZeile.id, zeileId), eq(veranstaltungZeile.veranstaltungId, veranstaltungId)),
+    )
+    .limit(1);
+  return row;
+}
+
 export function listZeilen(veranstaltungId: string): Promise<VeranstaltungZeile[]> {
   return db
     .select()

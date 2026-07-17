@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { veranstaltungSchema } from "./schema";
+import { firstIssueMessage } from "@/lib/form-errors";
+import { veranstaltungSchema, verzehrAdjustSchema } from "./schema";
 
 const valid = {
   bezeichnung: "Montagsrunde",
@@ -48,5 +49,48 @@ describe("veranstaltungSchema", () => {
   it("should_reject_when_bezeichnungTooLong", () => {
     const result = veranstaltungSchema.safeParse({ ...valid, bezeichnung: "x".repeat(201) });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("verzehrAdjustSchema", () => {
+  const validAdjust = { zeileId: "z1", catalogItemId: "c1", delta: "1" };
+
+  it("should_coerceDeltaToNumber_when_plusOne", () => {
+    const result = verzehrAdjustSchema.safeParse(validAdjust);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.delta).toBe(1);
+  });
+
+  it("should_acceptMinusOne_when_deltaMinusOne", () => {
+    const result = verzehrAdjustSchema.safeParse({ ...validAdjust, delta: "-1" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.delta).toBe(-1);
+  });
+
+  it("should_reject_when_deltaTwo", () => {
+    const result = verzehrAdjustSchema.safeParse({ ...validAdjust, delta: "2" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_deltaZero", () => {
+    const result = verzehrAdjustSchema.safeParse({ ...validAdjust, delta: "0" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_catalogItemIdEmpty", () => {
+    const result = verzehrAdjustSchema.safeParse({ ...validAdjust, catalogItemId: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_zeileIdEmpty", () => {
+    const result = verzehrAdjustSchema.safeParse({ ...validAdjust, zeileId: "  " });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reportDeltaMessage_when_deltaOutOfRange", () => {
+    const result = verzehrAdjustSchema.safeParse({ ...validAdjust, delta: "5" });
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Änderung muss +1 oder −1 sein.");
+    }
   });
 });
