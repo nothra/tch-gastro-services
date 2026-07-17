@@ -28,8 +28,13 @@ export function zeileSummen(positionen: readonly VerzehrPositionSum[]): ZeileSum
       getraenkeCents += betrag;
     } else if (position.category === "essen") {
       essenCents += betrag;
-    } else {
+    } else if (position.category === "kaffee") {
       kaffeeCents += betrag;
+    } else {
+      // Exhaustiveness-Guard: löst einen Compile-Fehler aus, sobald `CatalogCategory` um
+      // einen vierten Wert erweitert wird, statt ihn hier still als Kaffee mitzuzählen.
+      const _exhaustive: never = position.category;
+      throw new Error(`Unbekannte Kategorie: ${String(_exhaustive)}`);
     }
   }
   return { getraenkeCents, essenCents, kaffeeCents };

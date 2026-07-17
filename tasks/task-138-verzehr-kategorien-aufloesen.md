@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -59,7 +59,17 @@ Katalog" (ADR-026), Kassier-/Spenden-Logik.
 <!-- Fragen, die noch geklärt werden müssen -->
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Aus `tasks/review-138.md` (APPROVED, keine kritischen/wichtigen Findings). Beide Nitpicks im
+Refactoring-Pass behoben:
+- [x] `summen.ts`: `kaffee`-Zweig jetzt explizit (`else if (position.category === "kaffee")`)
+  statt implizitem `else`, plus Exhaustiveness-Guard (`const _exhaustive: never = ...`) – eine
+  künftige vierte Katalog-Kategorie fällt jetzt als Compile-Fehler auf statt still als Kaffee zu
+  zählen.
+- [x] `VerzehrErfassung.test.tsx`: `should_showEssenFormatted`/`should_showKaffeeFormatted`
+  binden den Betrag jetzt an das Label (`/Essen\s*17,80\s*€/`, `/Kaffee\s*3,00\s*€/`) statt lose
+  auf den Betrag allein zu matchen.
+
+Kein neues Verhalten; alle 23 Tests vor und nach dem Refactoring grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

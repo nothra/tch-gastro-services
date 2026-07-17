@@ -87,7 +87,7 @@ describe("VerzehrErfassung", () => {
       />,
     );
 
-    expect(screen.getByText(/17,80\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/Essen\s*17,80\s*€/)).toBeInTheDocument();
   });
 
   it("should_showKaffeeFormatted_when_kaffeePositionExists", () => {
@@ -103,7 +103,7 @@ describe("VerzehrErfassung", () => {
       />,
     );
 
-    expect(screen.getByText(/3,00\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/Kaffee\s*3,00\s*€/)).toBeInTheDocument();
   });
 
   it("should_showAllThreeCategorySumsInOrder_when_mixedPositions", () => {
