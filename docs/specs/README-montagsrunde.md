@@ -1,11 +1,11 @@
 # Epic: Digitale Veranstaltungs-Abrechnung (Montagsrunde)
 
 Digitaler Ersatz für das Excel-Template „Abrechnung Veranstaltung". Der Thekenwart
-(Dieter, Ralf, …) rechnet einen Veranstaltungsabend ab: Getränke aus der Theke,
+(Dieter, Ralf, …) rechnet eine Veranstaltung ab: Getränke aus der Theke,
 Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 
-> **Begriff (seit 2026-07-15):** Der Fachbegriff ist **Veranstaltung** – „Abend" ist nur ein
-> Synonym; das **Datum** ist Pflichtfeld. Neben der datierten Veranstaltung (Montagsrunde etc.)
+> **Begriff (seit 2026-07-15):** Der Fachbegriff ist durchgängig **Veranstaltung**; das
+> **Datum** ist Pflichtfeld. Neben der datierten Veranstaltung (Montagsrunde etc.)
 > gibt es die **stehende Theken-Selbstbedienung** (`theke`): ein dauerhaft offener Vorgang je
 > Kasse für den **spontanen Wochentag-Verzehr** ohne anwesenden Abrechner und ohne Login/Rolle
 > (Erfassung nur Getränke + Kaffee, Namenswahl aus den Stammdaten). Details: [spec-51](spec-51-abend-anlegen.md).
@@ -15,9 +15,9 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 | Achse | Entscheidung |
 |---|---|
 | Erfassung | Hybrid, Selbstbedienung: eigenes Handy **und** gemeinsames Theken-Gerät |
-| Zugang Teilnehmer | Abend-**Link/QR + Namenswahl** aus Stammdaten, **kein** Passwort |
+| Zugang Teilnehmer | Veranstaltungs-**Link/QR + Namenswahl** aus Stammdaten, **kein** Passwort |
 | Sichtbarkeit | **Volle Transparenz** – jeder sieht/bearbeitet die ganze Liste (wie heute) |
-| Rollen (mit Login) | **Verwalter** (Stammdaten/Preise) + **Abrechner** (Abende/kassieren) |
+| Rollen (mit Login) | **Verwalter** (Stammdaten/Preise) + **Abrechner** (Veranstaltungen/kassieren) |
 | Teilnehmer | Zentrale Stammdaten, **kein** eigenes Konto |
 | Bezahlung | Nur **bar** im MVP (PayPal später) |
 | Offene Posten & Kassenbuch | **später** (Backlog) |
@@ -38,7 +38,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 
 ## Backlog (bewusst nicht im MVP, Issues #56–#60)
 
-- #56 Offene Posten übertragen & Teilnehmer-Saldo über mehrere Abende
+- #56 Offene Posten übertragen & Teilnehmer-Saldo über mehrere Veranstaltungen
 - #57 Kassenbuch mit laufendem Saldo **je Kasse** (Montagsrunde-Kasse, Vereinskasse, …)
 - #58 Online-Bezahlung (PayPal)
 - #59 Preis-Templates je Veranstaltungstyp (z. B. Kaffee 1 € vs. 2,50 €)
@@ -69,16 +69,16 @@ Anders als im Excel (Spalte V = T + Q − U) mindern **Auslagen den Verzehr nich
 Die **Auslagenerstattung ist ein eigener Vorgang** (Barauszahlung aus der Kasse an den
 Teilnehmer), getrennt vom individuellen Kassieren. Dadurch gibt es keinen negativen
 Gesamtbetrag. Jede Auslage ist **einem Teilnehmer** und einer **Kategorie**
-(Getränke / Essen / Sonstiges) zugeordnet. Auf **Abend-Ebene** fließen die Erstattungen
-in die Gesamt-/Kassenabrechnung der **dem Abend zugeordneten Kasse** ein:
-`Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen` (für die zugeordnete Kasse).
+(Getränke / Essen / Sonstiges) zugeordnet. Auf **Veranstaltungs-Ebene** fließen die Erstattungen
+in die Gesamt-/Kassenabrechnung der **der Veranstaltung zugeordneten Kasse** ein:
+`Kassenveränderung der Veranstaltung = Σ Erhalten − Σ Auslagenerstattungen` (für die zugeordnete Kasse).
 Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.md).
 
 **Kassen:** Veranstaltungen werden über **unterschiedliche Kassen** abgerechnet – die
 Montagsrunde über ihre eigene **Montagsrunde-Kasse**, andere Veranstaltungen (z. B.
 Dorfmeisterschaften) über die **Vereinskasse**. Im MVP ist die Kasse ein **fester Satz**
-(`montagsrunde` | `vereinskasse`), Pflichtfeld je Abend (F4). Ein **laufender Saldo je
-Kasse** über mehrere Abende ist Backlog #57 – im MVP nur die Kassenveränderung je Abend.
+(`montagsrunde` | `vereinskasse`), Pflichtfeld je Veranstaltung (F4). Ein **laufender Saldo je
+Kasse** über mehrere Veranstaltungen ist Backlog #57 – im MVP nur die Kassenveränderung je Veranstaltung.
 
 ## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
 
@@ -88,9 +88,9 @@ Kasse** über mehrere Abende ist Backlog #57 – im MVP nur die Kassenveränderu
 - **Walk-in:** nur der **Abrechner** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
 - **Teilzahlung:** eine Zeile ist **offen oder bezahlt**, kein Restbetrag im MVP.
 - **Auslagenerstattung:** **eigener Vorgang**, getrennt vom individuellen Kassieren; je
-  Auslage **ein Teilnehmer** + **Kategorie** (Getränke/Essen/Sonstiges); auf **Abend-Ebene**
+  Auslage **ein Teilnehmer** + **Kategorie** (Getränke/Essen/Sonstiges); auf **Veranstaltungs-Ebene**
   in der Gesamt-/Kassenabrechnung als Ausgaben berücksichtigt (siehe oben).
-- **Kassen:** je Abend eine zugeordnete Kasse aus **festem Satz** (`montagsrunde` |
-  `vereinskasse`), Pflichtfeld; nur **Kassenveränderung je Abend**, kein laufender Saldo
+- **Kassen:** je Veranstaltung eine zugeordnete Kasse aus **festem Satz** (`montagsrunde` |
+  `vereinskasse`), Pflichtfeld; nur **Kassenveränderung je Veranstaltung**, kein laufender Saldo
   (Backlog #57).
-- **Abschluss-Korrektur:** ein **Abrechner** darf einen abgeschlossenen Abend **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).
+- **Abschluss-Korrektur:** ein **Abrechner** darf eine abgeschlossene Veranstaltung **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).

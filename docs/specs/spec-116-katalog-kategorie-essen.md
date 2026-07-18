@@ -7,7 +7,7 @@
 ## Kontext
 
 Aus der Requirements-Schärfung von #51 (2026-07-15): **Essen ist keine Eigenschaft der
-Veranstaltung mehr.** Es gibt keinen Essenpreis je Abend und keine spontane Preiseingabe.
+Veranstaltung mehr.** Es gibt keinen Essenpreis je Veranstaltung und keine spontane Preiseingabe.
 Stattdessen sind Essen-Positionen **Katalogartikel mit festem Preis** – eine neue Kategorie
 `essen` neben den bestehenden `getraenk` und `kaffee`. Bei der Verzehr-Erfassung (F5/#52) wählt
 man ein Essen wie jeden anderen Katalogartikel aus.

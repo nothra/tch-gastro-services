@@ -35,15 +35,15 @@ gelegentlich ändern. Nur der Verwalter pflegt den Katalog.
 
 - [ ] GIVEN ein angemeldeter Verwalter WHEN er einen Artikel mit Bezeichnung und
       Preis (Größe optional) anlegt THEN erscheint der Artikel im Katalog und ist für
-      neue Abende auswählbar.
+      neue Veranstaltungen auswählbar.
 - [ ] GIVEN ein bestehender Artikel WHEN der Verwalter den Preis ändert THEN gilt der
-      neue Preis für **künftige** Erfassungen; bereits **abgeschlossene** Abende bleiben
+      neue Preis für **künftige** Erfassungen; bereits **abgeschlossene** Veranstaltungen bleiben
       unverändert (der zum Erfassungszeitpunkt gültige Preis zählt).
 - [ ] GIVEN ein Artikel, der nicht mehr angeboten wird WHEN der Verwalter ihn
-      deaktiviert THEN ist er in neuen Abenden nicht mehr wählbar, bleibt aber in alten
+      deaktiviert THEN ist er in neuen Veranstaltungen nicht mehr wählbar, bleibt aber in alten
       Abrechnungen erhalten.
 - [ ] GIVEN ein deaktivierter Artikel WHEN der Verwalter ihn wieder aktiviert THEN ist er
-      in neuen Abenden erneut auswählbar.
+      in neuen Veranstaltungen erneut auswählbar.
 - [ ] GIVEN mehrere Artikel der Kategorie `kaffee` WHEN der Verwalter sie anlegt THEN sind
       alle als eigene Artikel mit je eigenem festen Preis gültig (kein Ein-Kaffee-Limit).
 - [ ] GIVEN eine Preiseingabe WHEN sie kein gültiger EUR-Betrag ≥ 0 mit ≤ 2
@@ -59,13 +59,13 @@ gelegentlich ändern. Nur der Verwalter pflegt den Katalog.
       (leere Größe zählt als eigener Wert; ein zweiter „Kaffee" ohne Größe kollidiert mit
       dem ersten „Kaffee" ohne Größe).
 - [ ] Ungültiger/negativer Preis → Validierungsfehler an der Server-Grenze.
-- [ ] Deaktivieren eines Artikels, der in einem **laufenden** (offenen) Abend verwendet
-      wird → Artikel bleibt in diesem Abend nutzbar, wird nur für neue Abende gesperrt.
+- [ ] Deaktivieren eines Artikels, der in einer **laufenden** (offenen) Veranstaltung verwendet
+      wird → Artikel bleibt in dieser Veranstaltung nutzbar, wird nur für neue Veranstaltungen gesperrt.
 
 ## Gesetzte Entscheidungen
 
 **2026-07-11**
-- **Maßgeblich ist der zum Erfassungszeitpunkt gültige Preis.** Abgeschlossene Abende
+- **Maßgeblich ist der zum Erfassungszeitpunkt gültige Preis.** Abgeschlossene Veranstaltungen
   bleiben von späteren Preisänderungen unberührt.
 
 **2026-07-13 (Requirements-Schärfung F2)**
