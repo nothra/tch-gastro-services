@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -59,7 +59,17 @@ Verifikation (git grep): siehe Akzeptanzkriterien. Keine Oberflächen-/Unit-Test
 <!-- Fragen, die noch geklärt werden müssen -->
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe [review-144.md](review-144.md): 0 kritische, 3 wichtige (2 in-scope behoben:
+F7-Route→`theke/[token]`, Change-Record-Korrektur; 1 out-of-scope → Issue #148), Nitpicks
+teils behoben (spec-51 „abendweit") bzw. bewusst belassen. Empfehlung: **APPROVED**.
+
+## Refactor-Notiz
+`/refactor` ohne Änderung: Der Branch-Diff enthält **0 Code-Dateien** (ausschließlich `.md`) –
+es gibt keine Code-Struktur (Naming, Funktionen, Duplikation, Magic Numbers, Verschachtelung)
+zu verbessern. Die Review-Prosa-Nitpicks (Doppelartikel „der der …" in README:72/spec-55:33,
+leichte Wiederholung) sind grammatisch korrekt; eine Umformulierung würde den Inhalt nicht
+verbessern und wäre Gold-Plating (Scope-/YAGNI-Regel) – daher bewusst belassen. Tests
+unverändert grün (kein Verhalten berührt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
