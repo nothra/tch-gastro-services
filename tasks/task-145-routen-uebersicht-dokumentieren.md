@@ -60,6 +60,17 @@ Details: [spec-145](../docs/specs/spec-145-routen-uebersicht-dokumentieren.md)
   (programmatisch via `difflib`, `git apply --check` verifiziert) und **angewendet + committet**
   (`ee17aa8`). Kein offener Handlungsbedarf; die stale Patch-Datei `tasks/patch-145.diff` wurde
   entfernt (Review-Finding W1).
+- **Blocker [2026-07-18] – OFFEN (CI_FAILURE, /pr-shepherd Schritt 4):** Alle GitHub-Actions-Jobs
+  (`lint`, `test`, `issue-sync`, `pr-closes-issue`, `factory-self-test`) **starten nicht** – GitHub
+  meldet je Job: „The job was not started because recent account payments have failed or your
+  spending limit needs to be increased." Ursache liegt **außerhalb des Codes** (Actions-Billing/
+  Spending-Limit des Accounts), kein Test-/Lint-Fehler. Lokale Gates sind grün (Tests 376,
+  Typecheck, Lint, Drift-Check). Re-Run ist zwecklos (Jobs können nicht starten). Branch ist
+  mergeable (Konflikt gelöst, `4482699`), aber `mergeStateStatus=UNSTABLE`.
+  **Erforderliche Aktion des Menschen:** GitHub → Settings → Billing & plans klären
+  (Zahlung/Spending-Limit), dann CI neu triggern (`gh run rerun <id>` oder leerer Push); **oder**
+  bewusst per Admin ohne CI mergen (umgeht die pr-shepherd-Regel „kein Auto-Merge bei rotem CI").
+  Kein Auto-Merge durch den Agenten freigegeben.
 
 ## Offene Fragen
 - Keine offen. (Einbindungsstelle des Drift-Checks entschieden → `pre-push.sh`, siehe Techn. Notizen.)
