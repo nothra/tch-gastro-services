@@ -6,7 +6,7 @@
 
 Eine Abrechnungszeile gehört zu einem Teilnehmer – das kann eine **Einzelperson** oder
 eine **Familie** sein (z. B. „Familie Müller"). Die ~14 regelmäßigen Teilnehmer der
-Montagsrunde sollen nicht jeden Abend neu eingetippt werden, sondern aus einer
+Montagsrunde sollen nicht bei jeder Veranstaltung neu eingetippt werden, sondern aus einer
 gepflegten Liste ausgewählt werden. Teilnehmer können Mitglieder oder Nicht-Mitglieder
 sein. Teilnehmer haben **kein** Benutzerkonto.
 
@@ -16,7 +16,7 @@ sein. Teilnehmer haben **kein** Benutzerkonto.
 - Teilnehmer anlegen, bearbeiten, deaktivieren (nicht hart löschen).
 - Felder: Anzeigename, Typ (`person` | `familie`), Kennzeichen `mitglied` (ja/nein),
   aktiv/inaktiv.
-- Liste der Teilnehmer sortierbar/durchsuchbar für die Auswahl beim Abend (F4).
+- Liste der Teilnehmer sortierbar/durchsuchbar für die Auswahl bei der Veranstaltung (F4).
 
 **Nicht inbegriffen:**
 - Kontaktdaten, Adressen, Mitgliedsbeiträge (nicht Teil der Gastro-Abrechnung).
@@ -28,12 +28,12 @@ sein. Teilnehmer haben **kein** Benutzerkonto.
 
 - [ ] GIVEN ein angemeldeter Verwalter WHEN er einen Teilnehmer vom Typ `person` oder
       `familie` mit Anzeigename und Mitglied-Kennzeichen anlegt THEN erscheint dieser in
-      der Stammdatenliste und ist beim Anlegen eines Abends auswählbar.
+      der Stammdatenliste und ist beim Anlegen einer Veranstaltung auswählbar.
 - [ ] GIVEN ein bestehender Teilnehmer WHEN der Verwalter Name oder Mitglied-Kennzeichen
-      ändert THEN gilt die Änderung für künftige Abende; abgeschlossene Abende zeigen
+      ändert THEN gilt die Änderung für künftige Veranstaltungen; abgeschlossene Veranstaltungen zeigen
       weiterhin den Namen wie zum Abrechnungszeitpunkt.
 - [ ] GIVEN ein Teilnehmer, der nicht mehr kommt WHEN der Verwalter ihn deaktiviert THEN
-      ist er für neue Abende nicht mehr wählbar, bleibt aber in alten Abrechnungen
+      ist er für neue Veranstaltungen nicht mehr wählbar, bleibt aber in alten Abrechnungen
       erhalten.
 - [ ] GIVEN eine leere oder nur aus Leerzeichen bestehende Namenseingabe WHEN gespeichert
       wird THEN wird sie serverseitig (Zod) abgelehnt.
@@ -44,22 +44,22 @@ sein. Teilnehmer haben **kein** Benutzerkonto.
 
 - [ ] Zwei Teilnehmer mit identischem Anzeigenamen → erlaubt, aber Warnhinweis
       (Namensgleichheit kommt vor); Unterscheidung über eindeutige ID.
-- [ ] Deaktivieren eines Teilnehmers, der in einem **offenen** Abend geführt wird →
-      bleibt in diesem Abend, nur für neue Abende gesperrt.
+- [ ] Deaktivieren eines Teilnehmers, der in einer **offenen** Veranstaltung geführt wird →
+      bleibt in dieser Veranstaltung, nur für neue Veranstaltungen gesperrt.
 
 ## Gesetzte Entscheidungen (2026-07-11)
 
 - **Nicht-Mitglieder zahlen dieselben Preise** wie Mitglieder. Das Kennzeichen
   `mitglied` dient nur der Info/Auswertung, nicht der Preisbildung.
-- **Walk-in:** Der **Abrechner** darf während eines offenen Abends einen **neuen**
-  Teilnehmer anlegen (er landet in den Stammdaten und im Abend). Selbstbedienungs-Nutzer
+- **Walk-in:** Der **Abrechner** darf während einer offenen Veranstaltung einen **neuen**
+  Teilnehmer anlegen (er landet in den Stammdaten und in der Veranstaltung). Selbstbedienungs-Nutzer
   (F7) können **keine** neuen Teilnehmer anlegen, nur aus der Liste wählen.
 
 ## Zusätzliche Akzeptanzkriterien
 
-- [ ] GIVEN ein offener Abend WHEN der **Abrechner** einen bisher unbekannten Teilnehmer
+- [ ] GIVEN eine offene Veranstaltung WHEN der **Abrechner** einen bisher unbekannten Teilnehmer
       (Walk-in) mit Anzeigename und Typ anlegt THEN wird dieser in den Stammdaten
-      angelegt **und** dem Abend als Zeile hinzugefügt.
+      angelegt **und** der Veranstaltung als Zeile hinzugefügt.
 - [ ] GIVEN die Preisberechnung eines Verzehrs WHEN der Teilnehmer Nicht-Mitglied ist
       THEN gelten dieselben Preise wie für Mitglieder.
 

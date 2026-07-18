@@ -12,21 +12,21 @@
 ## Kontext
 
 Damit Teilnehmer ihre Getränke selbst erfassen können (Punkt 3 des Ablaufs), brauchen
-sie Zugang zum Abend – **ohne** eigenes Konto. Der Abrechner teilt einen Abend-Link bzw.
-QR-Code. Wer ihn öffnet, wählt seinen Namen aus der Teilnehmerliste des Abends und
+sie Zugang zur Veranstaltung – **ohne** eigenes Konto. Der Abrechner teilt einen Veranstaltungs-Link bzw.
+QR-Code. Wer ihn öffnet, wählt seinen Namen aus der Teilnehmerliste der Veranstaltung und
 erfasst wie in F5. Genutzt wird das hybrid: auf dem eigenen Handy und auf einem
 gemeinsamen Theken-Gerät.
 
 ## Scope
 
 **Inbegriffen:**
-- Je offenem Abend ein teilbarer **Zugangs-Link** mit unratbarem Token, als Text und als
+- Je offener Veranstaltung ein teilbarer **Zugangs-Link** mit unratbarem Token, als Text und als
   **QR-Code** darstellbar.
-- Öffnen des Links zeigt den Abend und die Teilnehmerliste; Auswahl des eigenen Namens.
+- Öffnen des Links zeigt die Veranstaltung und die Teilnehmerliste; Auswahl des eigenen Namens.
 - Nach Namenswahl: Erfassen von Getränken/Essen/Kaffee gemäß F5 (volle Sicht auf die
   ganze Liste).
 - Kein Passwort (bewusste Entscheidung).
-- Nur **offene** Abende sind über den Link erfassbar; abgeschlossene sind (höchstens)
+- Nur **offene** Veranstaltungen sind über den Link erfassbar; abgeschlossene sind (höchstens)
   lesbar.
 
 **Nicht inbegriffen:**
@@ -36,21 +36,21 @@ gemeinsamen Theken-Gerät.
 
 ## Akzeptanzkriterien
 
-- [ ] GIVEN ein offener Abend WHEN der Abrechner den Zugang teilt THEN erhält er einen
-      Link **und** einen QR-Code, die auf genau diesen Abend zeigen.
+- [ ] GIVEN eine offene Veranstaltung WHEN der Abrechner den Zugang teilt THEN erhält er einen
+      Link **und** einen QR-Code, die auf genau diese Veranstaltung zeigen.
 - [ ] GIVEN ein Teilnehmer öffnet den gültigen Link WHEN er seinen Namen aus der Liste
       wählt THEN kann er Positionen für **die ganze** Liste erfassen (volle Transparenz)
       und sieht die laufenden Summen.
-- [ ] GIVEN der Link zu einem **abgeschlossenen** Abend WHEN er geöffnet wird THEN ist
+- [ ] GIVEN der Link zu einer **abgeschlossenen** Veranstaltung WHEN er geöffnet wird THEN ist
       keine Erfassung mehr möglich (nur Ansicht oder Hinweis „abgeschlossen").
 - [ ] GIVEN ein ungültiges/unbekanntes Token WHEN der Link geöffnet wird THEN erscheint
-      ein neutraler Fehler, ohne dass andere Abende preisgegeben werden.
+      ein neutraler Fehler, ohne dass andere Veranstaltungen preisgegeben werden.
 - [ ] GIVEN der QR-Code am Theken-Gerät WHEN mehrere Teilnehmer nacheinander erfassen
       THEN funktioniert die Erfassung ohne persönliche Anmeldung.
 
 ## Fehlerszenarien
 
-- [ ] Raten/Erraten fremder Abende → durch unratbares Token verhindert (ausreichend
+- [ ] Raten/Erraten fremder Veranstaltungen → durch unratbares Token verhindert (ausreichend
       lang/zufällig; Detail /architecture, /security-review).
 - [ ] Link nach Abschluss weiterverwendet → keine Schreibwirkung.
 - [ ] Token-Weitergabe an Unbeteiligte → im MVP akzeptiertes Restrisiko (Vertrauens-
@@ -59,7 +59,7 @@ gemeinsamen Theken-Gerät.
 ## Gesetzte Entscheidungen (2026-07-11)
 
 - **Walk-in nur durch Abrechner:** Ein Selbstbedienungs-Nutzer kann **keinen** neuen
-  Teilnehmer anlegen; er wählt nur aus der bestehenden Liste des Abends. Neue Namen legt
+  Teilnehmer anlegen; er wählt nur aus der bestehenden Liste der Veranstaltung. Neue Namen legt
   der Abrechner an (F3/F4).
 
 ## Zusätzliche Akzeptanzkriterien

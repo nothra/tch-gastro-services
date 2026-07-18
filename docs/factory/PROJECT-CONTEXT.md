@@ -27,12 +27,12 @@
 > Hier nur der Einstieg – Details und Akzeptanzkriterien stehen in den Specs.
 
 **Zweck:** Ablösung des Excel-Templates „Abrechnung Veranstaltung". Der Thekenwart
-rechnet einen Veranstaltungsabend ab (Getränke aus der Theke, Essen, Kaffee, Auslagen –
+rechnet eine Veranstaltung ab (Getränke aus der Theke, Essen, Kaffee, Auslagen –
 je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentliche
 **Montagsrunde**; der Ablauf gilt sinngemäß für weitere Veranstaltungen.
 
 **Kernbegriffe (Ubiquitous Language):**
-- **Veranstaltung/Abend** – eine abzurechnende Zusammenkunft (Datum, Bezeichnung, Kasse,
+- **Veranstaltung** – eine abzurechnende Zusammenkunft (Datum, Bezeichnung, Kasse,
   Status `offen`/`abgeschlossen`). Essen ist **kein** Feld der Veranstaltung, sondern ein
   Katalogartikel (ADR-023 §D4/§D7).
 - **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
@@ -42,7 +42,7 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 - **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
 - **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
   Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
-- **Kasse** – Abrechnungs­topf je Abend (fester Satz: `montagsrunde` | `vereinskasse`).
+- **Kasse** – Abrechnungs­topf je Veranstaltung (fester Satz: `montagsrunde` | `vereinskasse`).
 - **Kassieren / Spende** – Barzahlung des Verzehrs; Überzahlung = Spende.
 
 **Zentrale Regeln:**
@@ -50,12 +50,12 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 - `Spende = Erhalten − Verzehr-Gesamt`
 - Auslagen mindern den Verzehr **nicht** (Abweichung vom Excel); Erstattung ist ein
   eigener Vorgang.
-- `Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
-  Kasse**. Ein laufender Saldo über mehrere Abende ist noch nicht umgesetzt (Backlog #57).
+- `Kassenveränderung der Veranstaltung = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
+  Kasse**. Ein laufender Saldo über mehrere Veranstaltungen ist noch nicht umgesetzt (Backlog #57).
 
 **Rollen:** `verwalter` (Stammdaten & Preise) und `veranstalter` (Owner des Veranstaltungs-
 Lebenszyklus: anlegen, führen, kassieren – vormals `abrechner`, umbenannt in ADR-024);
-Teilnehmer erfassen ohne Konto per Abend-Link/QR + Namenswahl. Details in `spec-48`.
+Teilnehmer erfassen ohne Konto per Veranstaltungs-Link/QR + Namenswahl. Details in `spec-48`.
 
 ---
 
@@ -641,6 +641,39 @@ it("should_clearFields_when_createSucceeds", async () => {
   // 2. Submit (erneut erfolgreich) → Felder weiterhin leer, nicht nur beim ersten Mal
 });
 ```
+
+### Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144)
+
+Bei einer reinen Begriffs-Vereinheitlichung (hier „Abend" → „Veranstaltung" in `docs/`) traten
+zwei Muster auf, die eine gleichartige Folge-Task (**#148**: Rollen-Rename `abrechner` →
+`veranstalter` in README/spec-49/50/54) direkt wieder trifft:
+
+1. **`git grep -w -i <wort>` übersieht Komposita.** Der `-w`-Wortgrenzen-Grep (aus dem
+   Akzeptanzkriterium) fand `Abend`, `Abend-Ebene` (Bindestrich = Wortgrenze) und die
+   Dateinamen-Links – aber **nicht** `abendweit` oder `Veranstaltungsabend` (Substring ohne
+   Wortgrenze). Ein durchgestrichenes „abendweit" blieb so bis Review-Runde 1 unentdeckt.
+2. **Ein Code-Pfad-/Route-Beispiel im Fließtext ist bei der Ersetzung nicht automatisch neutral.**
+   `app/abend/[token]/` wurde beim Implementieren „naheliegend" zu `app/veranstaltung/[token]/` –
+   aber `app/veranstaltung/` ist laut ADR-024 D1 der **authentifizierte** Bereich, während die
+   dort beschriebene **öffentliche** F7-Route als `theke/[token]` beschlossen war (ADR-023 D6).
+   Die „neutrale" Ersetzung war dadurch **irreführender** als das Original (Review-Runde 3).
+
+**Regel:** Bei Terminologie-Sweeps:
+- **Zweifach verifizieren:** `git grep -w -i <alt>` (Prosa-Wort inkl. Bindestrich-Komposita)
+  **und** ein Substring-Sweep `git grep -i <alt>` (fängt `…<alt>`/`<alt>…`-Komposita), jeweils
+  die bewussten Ausnahmen herausfiltern (Dateinamen-Links, historische Zitate). `-w` allein
+  genügt nie als Abschluss-Beleg.
+- **Pfad-/Route-/Identifier-Beispiele** vor der Ersetzung gegen die ADRs prüfen: der
+  „offensichtliche" Entitäts-Begriff kann mit einem bereits belegten Segment kollidieren
+  (authentifiziert vs. öffentlich). Den **faktisch korrekten** Bezeichner wählen, nicht den
+  mechanisch naheliegenden.
+- **Own-Voice-Prosa von historischen Zitaten trennen:** In Records, die einen vergangenen
+  Zustand dokumentieren (hier spec-127), die technische Aussage erhalten und nur die
+  Terminologie angleichen – keine Falschbehauptung über den alten Wortlaut erzeugen; jede
+  angefasste Historie-Stelle in der Task-Datei begründen.
+- **Scope-Grep gegen die Ausgabe prüfen, nicht gegen den Exit-Code:** `git diff --name-only`
+  liefert **immer** Exit 0. Ein Guard `git diff … && echo BETROFFEN` feuert deshalb falsch –
+  auf `| wc -l` (Zeilenzahl) testen, nicht auf `&&`/`||`.
 
 ---
 

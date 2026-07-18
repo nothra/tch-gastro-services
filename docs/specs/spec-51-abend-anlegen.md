@@ -16,8 +16,8 @@ Klammer um alle Erfassungen (F5–F8).
 Preiseingabe. Die Katalog-Kategorie `essen` ist eine **F2-Erweiterung in einem eigenen Issue**
 (F2/#49 ist bereits gemergt).
 
-**Begriff (Ubiquitous Language):** Der Fachbegriff ist **Veranstaltung** – „Abend" ist nur
-noch ein umgangssprachliches Synonym. Die **Montagsrunde** ist eine Veranstaltung unter
+**Begriff (Ubiquitous Language):** Der Fachbegriff ist durchgängig **Veranstaltung**.
+Die **Montagsrunde** ist eine Veranstaltung unter
 vielen (Dorfmeisterschaften, Vereinsfeste …). Das **Datum** ist ein erstklassiges
 Pflichtfeld: Eine Veranstaltung findet an einem bestimmten Tag statt.
 
@@ -144,13 +144,13 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - **Kasse je Veranstaltung, fester Satz**, Pflichtfeld, nicht pflegbar im MVP. Laufender
   Kassenstand über mehrere Termine bleibt Backlog #57 – im MVP nur die **Kassenveränderung**
   je Veranstaltung (F8).
-- ~~Essenpreis gilt abendweit einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
+- ~~Essenpreis gilt je Veranstaltung einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
   kommt aus dem Katalog).
 - **Kaffeepreis** ist der feste Katalogpreis (F2), nicht pro Termin abweichend (Backlog #59).
 - **Wiederöffnen:** eine abgeschlossene Veranstaltung kann ein **Abrechner** wieder öffnen (F8).
 
 **Aus Requirements-Schärfung 2026-07-15 (dieser Task):**
-- **„Veranstaltung" ist der Primärbegriff** (statt „Abend"); **Datum ist Pflichtfeld** der
+- **„Veranstaltung" ist der Primärbegriff**; **Datum ist Pflichtfeld** der
   datierten Veranstaltung.
 - **Stehende Theken-Selbstbedienung** als zweiter Veranstaltungs-Typ (`theke`) für den
   spontanen Wochentag-Verzehr – dauerhaft offen, je Kasse einer, Erfassung ohne Login/Rolle
@@ -187,18 +187,17 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 
 ## Auswirkungen auf andere Specs (Terminologie-/Modell-Abgleich)
 
-Da „Veranstaltung" jetzt der Primärbegriff ist und ein zweiter Typ (`theke`) dazukommt, ist
-beim Umsetzen von F5/F7/F8 der Bezug „Abend" als „Veranstaltung" zu lesen. Der feste
-Theken-Zugang ist eine **Erweiterung von F7/#54**, das Kassieren der stehenden Theke eine
+Da „Veranstaltung" der Primärbegriff ist und ein zweiter Typ (`theke`) dazukommt, ist der feste
+Theken-Zugang eine **Erweiterung von F7/#54**, das Kassieren der stehenden Theke eine
 **Erweiterung von F8/#55**. Kanonische Quelle bleibt der Epic-README
 ([README-montagsrunde.md](README-montagsrunde.md)); die dortige Feature-Tabelle wurde um den
 Theken-Hinweis ergänzt.
 
 **Essen-Modellwechsel (2026-07-15):** Essen ist nun eine Katalog-Kategorie `essen`, nicht mehr
-ein Essenpreis je Abend. Das berührt:
+ein Essenpreis je Veranstaltung. Das berührt:
 - **F2/#49 (gemergt):** neue Katalog-Kategorie `essen` (`catalog_category`-Enum-Wert + UI/
   Validierung/Tests, Update von [spec-49](spec-49-getraenke-katalog.md), Streichen von „Essen
   gehört NICHT hierher"). → **eigenes Issue #116** (nicht Teil von #51).
 - **F5/#52 (noch offen):** Essen-Erfassung wählt einen `essen`-Katalogartikel (fester Preis)
-  statt eines Essenpreises je Abend; [spec-52](spec-52-verzehr-erfassen.md) wurde entsprechend
+  statt eines Essenpreises je Veranstaltung; [spec-52](spec-52-verzehr-erfassen.md) wurde entsprechend
   angepasst und hängt jetzt zusätzlich von der F2-Erweiterung ab.
