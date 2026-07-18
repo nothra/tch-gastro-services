@@ -133,6 +133,11 @@ pnpm format
 - **API-Stil:** primär **Server Actions** für Formular-Erfassung; REST-artige **Route Handlers** (`app/api/`) wo externe/GET-Zugriffe nötig sind.
 - **Besonderheiten:** installierbare **PWA**; **RBAC** über Auth.js + Rollen-Spalte (serverseitig durchgesetzt); **EU-Datenresidenz** (Neon Frankfurt, Vercel `fra1`).
 
+**Routen-Übersicht:** Alle Seiten und API-Route-Handler mit Pfad, Funktion und Zugriff
+(Rolle/öffentlich) stehen kuratiert in [`docs/routes.md`](../routes.md). Kanonische Quelle bleibt
+der Code (`app/**/page.tsx`, `app/api/**/route.ts`); die Übereinstimmung sichert der Drift-Check
+`scripts/checks/routes-doc-check.sh` fail-closed im Push-Gate.
+
 Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl).
 
 ---
