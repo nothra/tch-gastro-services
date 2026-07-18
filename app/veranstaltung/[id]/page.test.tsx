@@ -104,6 +104,18 @@ describe("VeranstaltungDetailPage", () => {
     expect(link).toHaveAttribute("href", "/veranstaltung/v-1/verzehr");
   });
 
+  it("should_linkToAuslagenPage_when_veranstalter", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    const link = screen.getByRole("link", { name: /Auslagen erstatten/ });
+    expect(link).toHaveAttribute("href", "/veranstaltung/v-1/auslagen");
+  });
+
   it("should_renderZeileRow_when_zeilenPresent", async () => {
     const aZeile: VeranstaltungZeile = {
       id: "z-1",

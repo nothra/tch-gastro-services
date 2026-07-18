@@ -31,3 +31,15 @@ export function formatCents(cents: number): string {
   const centsPadded = String(remainder).padStart(2, "0");
   return `${negative ? "-" : ""}${eurosGrouped},${centsPadded} €`;
 }
+
+// Cent-Betrag als roher Eingabewert für ein <input> (Prefill beim Korrigieren): Komma als
+// Dezimaltrenner, KEINE Tausendertrenner und KEIN €-Zeichen – so bleibt der Wert direkt
+// re-parsebar durch `parseEuroToCents`/`EURO_INPUT_RE` (im Gegensatz zu `formatCents`).
+export function centsToEuroInput(cents: number): string {
+  if (!Number.isInteger(cents)) {
+    throw new RangeError("centsToEuroInput erwartet ganzzahlige Cent-Werte.");
+  }
+  const euros = Math.floor(cents / 100);
+  const remainder = cents % 100;
+  return `${euros},${String(remainder).padStart(2, "0")}`;
+}

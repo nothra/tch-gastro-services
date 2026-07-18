@@ -122,7 +122,8 @@ describe("auslageSchema", () => {
   });
 
   it("should_normalizeEmptyZweckToNull_when_zweckOmitted", () => {
-    const { zweck: _zweck, ...withoutZweck } = validAuslage;
+    const withoutZweck: Partial<typeof validAuslage> = { ...validAuslage };
+    delete withoutZweck.zweck;
     const result = auslageSchema.safeParse(withoutZweck);
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.zweck).toBeNull();
