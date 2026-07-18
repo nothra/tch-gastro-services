@@ -266,8 +266,8 @@ export const auslage = pgTable(
     veranstaltungId: text("veranstaltung_id")
       .notNull()
       .references(() => veranstaltung.id, { onDelete: "cascade" }),
-    // Kein onDelete (restrict): Teilnehmer werden nie hart gelöscht (Soft-Delete via `active`)
-    // → die Namensauflösung per Join gelingt immer.
+    // Kein onDelete (Postgres-Default "no action", faktisch restriktiv): Teilnehmer werden nie
+    // hart gelöscht (Soft-Delete via `active`) → die Namensauflösung per Join gelingt immer.
     teilnehmerId: text("teilnehmer_id")
       .notNull()
       .references(() => teilnehmer.id),

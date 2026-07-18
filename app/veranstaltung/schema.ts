@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { KASSEN, auslageKategorie, auslageStatus } from "@/db/schema";
-import { EURO_INPUT_RE, parseEuroToCents } from "@/lib/money";
+import { EURO_INPUT_RE, INT4_MAX, parseEuroToCents } from "@/lib/money";
 
 // Zod-Grenze für das Anlegen einer datierten Veranstaltung (Server Action, ADR-023 D6).
 // `datum` ist Pflicht (Datum ist erstklassiges Pflichtfeld, spec-51) und kommt aus einem
@@ -55,7 +55,7 @@ export const auslageSchema = z.object({
     .regex(EURO_INPUT_RE, "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.")
     .transform(parseEuroToCents)
     .refine((cents) => cents > 0, "Betrag muss größer als 0 sein.")
-    .refine((cents) => cents <= 2_147_483_647, "Betrag ist zu hoch."),
+    .refine((cents) => cents <= INT4_MAX, "Betrag ist zu hoch."),
   zweck: z
     .string()
     .trim()

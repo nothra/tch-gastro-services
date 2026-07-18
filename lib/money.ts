@@ -8,6 +8,10 @@
 // der Zod-Grenze verwendet, damit Regel und Fehlermeldung an einem Ort definiert sind.
 export const EURO_INPUT_RE = /^\d+([.,]\d{1,2})?$/;
 
+// Obergrenze für jeden Cent-Betrag, der auf eine PostgreSQL-`int4`-Spalte mappt (Codify #49).
+// Ohne diese Grenze wäre der DB-Overflow die einzige Fehlerrückmeldung an den Nutzer.
+export const INT4_MAX = 2_147_483_647;
+
 export function parseEuroToCents(input: string): number {
   const trimmed = input.trim();
   if (!EURO_INPUT_RE.test(trimmed)) {

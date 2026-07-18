@@ -9,6 +9,17 @@ import { removeAuslageAction, setAuslageStatusAction, updateAuslageAction } from
 
 const buttonClass = "rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700";
 
+// Bindet jede Auslagen-Mutation an Veranstaltung + Eintrag (IDOR, Codify #51) – von jedem
+// der Mutations-Forms unten geteilt.
+function HiddenIds({ veranstaltungId, auslageId }: { veranstaltungId: string; auslageId: string }) {
+  return (
+    <>
+      <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
+      <input type="hidden" name="id" value={auslageId} />
+    </>
+  );
+}
+
 // Eine Auslagen-Zeile (F6, #53, ADR-028): Anzeige plus – solange die Veranstaltung offen ist –
 // Erstattung umschalten (offen ⇄ erstattet), Inline-Korrektur und Löschen. Alle Mutationen laufen
 // über scope-gebundene Server-Actions; `veranstaltungId` steht als Hidden im WHERE (IDOR, Codify #51).
@@ -73,8 +84,7 @@ export function AuslageRow({
       {editable && (
         <div className="flex items-center gap-2">
           <form action={setAuslageStatusAction}>
-            <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
-            <input type="hidden" name="id" value={auslage.id} />
+            <HiddenIds veranstaltungId={veranstaltungId} auslageId={auslage.id} />
             <input type="hidden" name="status" value={erstattet ? "offen" : "erstattet"} />
             <button type="submit" className={buttonClass}>
               {erstattet ? "Erstattung zurücknehmen" : "Als erstattet markieren"}
@@ -84,8 +94,7 @@ export function AuslageRow({
             Bearbeiten
           </button>
           <form action={removeAuslageAction}>
-            <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
-            <input type="hidden" name="id" value={auslage.id} />
+            <HiddenIds veranstaltungId={veranstaltungId} auslageId={auslage.id} />
             <button type="submit" className={buttonClass}>
               Löschen
             </button>

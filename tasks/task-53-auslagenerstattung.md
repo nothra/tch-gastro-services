@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -164,6 +164,39 @@ passed / 52 skip (DB-Integration, ohne laufende DB erwartungsgemäß), `bash scr
 Smoke-Test gegen Wegwerf-DB (Docker-Grant fehlt in dieser Session) und Browser-/E2E-Verifikation
 (`.env.local` fehlt) – beide Session-Umgebungs-Blocker, nicht Test-Suite-Lücken. Nachziehen in
 `/post-merge-verify` bzw. sobald DB/`.env.local` verfügbar sind.
+
+## Refactoring-Notizen (/refactor, 2026-07-18)
+
+Kein neues Verhalten – nur drei der optionalen Nitpicks aus Review-Runde 2 (`tasks/review-53.md`)
+umgesetzt, alle anderen bewusst offen gelassen (echtes YAGNI/Out-of-Scope, s. u.):
+
+- **`HiddenIds`-Teilkomponente** (`AuslageRow.tsx`) extrahiert das wiederholte
+  `veranstaltungId`/`id`-Hidden-Input-Paar aus Status-Toggle- und Löschen-Form (Duplikation weg).
+- **`INT4_MAX`-Konstante** (`lib/money.ts`, zentraler Money-Seam) ersetzt die Magic Number
+  `2_147_483_647` in `auslageSchema` (`schema.ts`). Die gleiche Magic Number in
+  `app/verwaltung/katalog/schema.ts` ist **bewusst unverändert** – vorbestehende Datei außerhalb
+  des Task-53-Diffs, Angleichen wäre Scope-Creep über diese Task hinaus.
+- **Kommentar-Präzisierung** (`db/schema.ts:267`): „kein onDelete" → „Postgres-Default *no action*,
+  faktisch restriktiv" (Nitpick: Migration erzeugt `ON DELETE no action`, nicht `RESTRICT`).
+
+**Bewusst nicht umgesetzt:**
+- `AuslagenSummary.tsx` `bold?: boolean`-Prop: reviewer selbst mit „YAGNI greift teilweise"
+  gehedged; in JSX ist ein benannter Boolean-Prop (`<SummenRow bold />`) am Call-Site
+  selbsterklärend – anders als die positionale `sendEmail(user, true)`-Falle, die die
+  Flag-Parameter-Regel eigentlich adressiert. Kein Klarheitsgewinn, der die Änderung rechtfertigt.
+- `lib/money.ts` `centsToEuroInput` ohne Guard für negative Cents: domänen-unerreichbar (DB-CHECK
+  `betrag_cents > 0`); ein Guard für einen nie eintretenden Fall widerspricht der Projektregel
+  „keine Fehlerbehandlung für Szenarien, die nicht eintreten können".
+- `actions.ts` (`setAuslageStatusAction`/`removeAuslageAction`, ungenutzter `undefined`-Rückgabewert
+  bei IDOR-Mismatch): laut Review bereits fail-closed und konsistent mit bestehenden
+  `setStatusAction`/`removeZeileAction` – keine Struktur-Verbesserung, sondern eine
+  Verhaltensänderung, außerhalb des Refactoring-Scopes.
+- ADR-028-Wortlaut („korrigier-/lösch-/status-bar" für Orphans): reine Doku-Präzisierung ohne
+  Code-Bezug, kein Clean-Code-Ziel dieses Schritts.
+
+Gates nach Refactoring grün: `pnpm test` 376 passed / 52 skip (DB-Integration), `pnpm lint` 0
+Warnungen, `bash scripts/checks/pre-push.sh` (Tests + Typecheck + Branch-Check) grün. Kein Test
+musste angepasst werden – reine Struktur-Änderungen ohne Verhaltensänderung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
