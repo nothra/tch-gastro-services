@@ -22,20 +22,24 @@ Kanonische Quelle: **`docs/specs/spec-53-auslagen.md`**.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt; kanonisch in docs/specs/spec-53-auslagen.md -->
-- [ ] Auslage erfassen: offene Veranstaltung → Eintrag `offen`, einem Teilnehmer + einer Kategorie
+- [x] Auslage erfassen: offene Veranstaltung → Eintrag `offen`, einem Teilnehmer + einer Kategorie
       zugeordnet, ohne den Verzehr-Gesamt zu verändern.
-- [ ] Erstattung bestätigen: `offen` → `erstattet`.
-- [ ] Erstattung zurücknehmen (Veranstaltung offen): `erstattet` → `offen`.
-- [ ] Eintrag korrigieren (Veranstaltung offen): Teilnehmer/Kategorie/Betrag/Notiz änderbar,
+- [x] Erstattung bestätigen: `offen` → `erstattet`.
+- [x] Erstattung zurücknehmen (Veranstaltung offen): `erstattet` → `offen`.
+- [x] Eintrag korrigieren (Veranstaltung offen): Teilnehmer/Kategorie/Betrag/Notiz änderbar,
       serverseitig validiert, ohne Verzehr-Änderung.
-- [ ] Eintrag löschen (Veranstaltung offen): raus aus Übersicht, Summen und Kassenabrechnung.
-- [ ] Übersicht: Summen je Kategorie + gesamt, getrennt nach „offen"/„erstattet".
-- [ ] Kassieren (F8): Verzehr-Gesamt unabhängig von den Auslagen (keine Netto-Verrechnung).
-- [ ] Gesamtabrechnung (F8): Erstattungen als Ausgaben je Kategorie für die zugeordnete Kasse.
-- [ ] Betrag-Validierung (Zod): nur gültiger EUR-Betrag > 0 mit ≤ 2 Nachkommastellen.
-- [ ] Pflichtfelder (Zod): Kategorie und Teilnehmer erforderlich.
-- [ ] Abgeschlossene Veranstaltung: erfassen/ändern/löschen/erstatten/zurücksetzen gesperrt.
-- [ ] IDOR-Schutz: Mutationen schließen `veranstaltungId` im WHERE ein (nicht nur Eintrags-ID).
+- [x] Eintrag löschen (Veranstaltung offen): raus aus Übersicht, Summen und Kassenabrechnung.
+- [x] Übersicht: Summen je Kategorie + gesamt, getrennt nach „offen"/„erstattet".
+- [x] Kassieren (F8): Verzehr-Gesamt unabhängig von den Auslagen (keine Netto-Verrechnung).
+      → strukturell garantiert: `auslage` ist eine eigene Tabelle, keine Auslagen-Action berührt
+      `verzehr`/`adjustMenge`.
+- [~] Gesamtabrechnung (F8): Erstattungen als Ausgaben je Kategorie für die zugeordnete Kasse.
+      → **Handoff** für F8/#55 (ADR-028 D6): `auslagenSummen` liefert `erstattet`-Summen je Kategorie;
+      die eigentliche Kassenabrechnung baut F8/#55, nicht F6.
+- [x] Betrag-Validierung (Zod): nur gültiger EUR-Betrag > 0 mit ≤ 2 Nachkommastellen.
+- [x] Pflichtfelder (Zod): Kategorie und Teilnehmer erforderlich.
+- [x] Abgeschlossene Veranstaltung: erfassen/ändern/löschen/erstatten/zurücksetzen gesperrt.
+- [x] IDOR-Schutz: Mutationen schließen `veranstaltungId` im WHERE ein (nicht nur Eintrags-ID).
 
 ## Technische Notizen
 <!-- Entschieden in ADR-028 (docs/adr/028-auslagen-datenmodell.md); Analog: ADR-025 (Verzehr). -->
@@ -80,6 +84,32 @@ AC-Kriterium eine Assertion (#117); `pnpm build`/typecheck vor Merge (#137, jetz
 - [x] Datenmodell (eigene Entität je Veranstaltung) + Hard- vs. Soft-Delete → **ADR-028 D1/D2** (Hard-Delete).
 - [x] Statusmodell `offen` ⇄ `erstattet` als Boolean/Enum ohne Historie → **ADR-028 D3** (pgEnum).
 - [x] Vormerkung Kassenbuch #57 (nur je Veranstaltung im MVP) → **ADR-028 D6** (additiv, kein Saldo).
+
+## Implementierungs-Notizen (/implement, 2026-07-18)
+
+**Umgesetzt (alle Gates grün: `pnpm test` 371 grün / 51 skip = DB-Integration, `pnpm lint` 0 Warnungen,
+`pnpm typecheck` grün):**
+- Data-Layer `db/auslage.ts` + Schema/Enums/CHECK + Migration `0010` (committet in `1fef533`).
+- Zod-Schema `auslageSchema`/`auslageStatusSchema` (`app/veranstaltung/schema.ts`) + Actions
+  `create/update/setStatus/removeAuslageAction` mit fail-closed-Reihenfolge, IDOR-Bindung und
+  Teilnehmer-/`active`-Guard (`actions.ts`, committet in `1fef533`).
+- DB-freies Summen-Modul `auslagenSummen.ts` (committet in `1fef533`).
+- UI: `AuslageForm`/`AuslageRow`/`AuslagenSummary`, Route `app/veranstaltung/[id]/auslagen/page.tsx`,
+  Verlinkung von der Detailseite, `AUSLAGE_*`-Labels, `centsToEuroInput` (committet in `f7be015`).
+- Lint-Warnung in `schema.test.ts` (unused rest-sibling `_zweck`) bereinigt.
+
+**Offen / Blocker [2026-07-18]:**
+- **Migrations-Smoke-Test gegen Wegwerf-DB (Codify #48)** noch nicht ausgeführt – die dafür nötigen
+  `docker compose`/`docker exec`-Kommandos sind in dieser Session nicht allow-gelistet (Approval
+  verweigert). Migration ist reine Neuanlage (Tabelle + 2 Enums + CHECK + FKs, kein Enum-Wert-Wechsel
+  → kein interaktiver drizzle-kit-Prompt erwartet); Schema/Snapshot-Konsistenz durch `pnpm typecheck`
+  gedeckt. **Erforderliche Aktion Mensch:** Docker-Grant erteilen, dann
+  `docker exec tch-gastro-db psql -U tch -d tch_dev -c "DROP DATABASE IF EXISTS tch_verify;" -c "CREATE DATABASE tch_verify;"`
+  und `DATABASE_URL=postgresql://tch:tch@localhost:5432/tch_verify pnpm exec drizzle-kit migrate`
+  laufen lassen (Nachweis `0000→0010` grün). Alternativ später über `/post-merge-verify`.
+- **Browser-/E2E-Oberflächenverifikation:** UI ist auf Component-Ebene getestet (RTL: Form/Row/Summary +
+  `page.test.tsx`). Volle E2E gegen einen Dev-Server steht aus (`.env.local` fehlt in dieser Session) –
+  in `/verify`/`/test` nachziehen, sobald DB + `.env.local` verfügbar sind.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
