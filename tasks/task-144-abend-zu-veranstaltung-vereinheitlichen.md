@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -37,14 +37,20 @@ Bewusste Entscheidungen (je Datei/Fall dokumentiert):
   Terminologie angeglichen (Entität „Veranstaltung", „je Veranstaltung"); technische Aussage
   (Essen war früher je Veranstaltung fixiert) bleibt erhalten. Stale Zeilennummern-Verweise
   („Zeile 36/38–39") sind vorbestehend und außerhalb #144-Scope.
-- **spec-120** F7-Route-Beispiel `app/abend/[token]/` → `app/veranstaltung/[token]/`: reine
-  Begriffsangleichung in einer **offenen Frage** (keine Entscheidung; ADR-024 wählte separat
-  `theke/[token]`).
+- **spec-120** F7-Route-Beispiel `app/abend/[token]/` → `app/theke/[token]/` (Z. 120/206):
+  zunächst (Implement) auf `app/veranstaltung/[token]/` gesetzt; im Review korrigiert, da
+  `app/veranstaltung/` laut ADR-024 D1 der **authentifizierte** Bereich ist und die öffentliche
+  F7-Route in ADR-023 D6/ADR-024 als `theke/[token]` beschlossen wurde – `theke/[token]` ist
+  terminologisch „Abend"-frei **und** faktisch korrekt.
 - **`Abrechner`** (alte Rolle, in ADR-024 → `veranstalter`) **nicht** angefasst – außerhalb
-  #144-Scope (nur Abend→Veranstaltung).
-- **Obsolete Übergangs-Notizen** entfernt (README-Begriffshinweis, spec-52-Synonym-Zeile,
-  spec-51 „statt Abend"/„Bezug Abend als Veranstaltung lesen") – nach der Vereinheitlichung
-  ohne Wert.
+  #144-Scope (nur Abend→Veranstaltung). Die Rollen-Rename-Propagierung in README/spec-49/50/54
+  ist vorbestehend offen → Folge-Issue (s. Review-Findings).
+- **spec-51:147** durchgestrichenes Alt-Kompositum „abendweit" → „je Veranstaltung einheitlich"
+  (Historien-Text bleibt als `~~…~~ überholt` erhalten).
+- **README-Begriffshinweis** (Z. 7–11) **gekürzt** (nicht entfernt): Synonym-Klausel „‚Abend' ist
+  nur ein Synonym" gestrichen, der Block mit Datum-Pflichtfeld + `theke`-Erklärung bleibt.
+- **Obsolete Übergangs-Notizen entfernt**: spec-52-Synonym-Zeile, spec-51 „statt Abend"/„Bezug
+  Abend als Veranstaltung lesen" – nach der Vereinheitlichung ohne Wert.
 
 Verifikation (git grep): siehe Akzeptanzkriterien. Keine Oberflächen-/Unit-Tests nötig
 (reine Doku, kein Laufzeitverhalten).

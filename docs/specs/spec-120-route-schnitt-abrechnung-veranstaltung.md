@@ -117,7 +117,7 @@ Ablehnung der verworfenen (ADR-README: *Alternatives*).
   `_ordner` erzeugt keine Route).
 - **C – Echte Route-Segmente** je Phase (`[id]/verzehr`, `[id]/auslagen`, `[id]/kassieren`).
 - **D – F7-Schnitt (quer zu A–C):** öffentliche Erfassung außerhalb `/abrechnung`
-  (z. B. `app/veranstaltung/[token]/`), explizit im `proxy.ts`-Negativ-Lookahead freigegeben (#63).
+  (z. B. `app/theke/[token]/`), explizit im `proxy.ts`-Negativ-Lookahead freigegeben (#63).
 - **E – Basis-Route nach Entität/Lebenszyklus** umbenennen (`/veranstaltung…` statt
   `/abrechnung/…`), *abrechnen* als Phase darin (folgt dem Leitgedanken).
 
@@ -203,7 +203,7 @@ Bezogen auf das **Artefakt ADR-024** (nicht auf Laufzeitverhalten):
       bleibt es **eine** Detailseite mit Abschnitten?
 - [ ] Wird die Basis-Route umbenannt (`/veranstaltung…`)? Falls ja: Redirect von der alten
       `/abrechnung/veranstaltung`-URL nötig, oder gibt es noch keine externen Deep-Links?
-- [ ] Wo genau liegt die F7-Route – `app/veranstaltung/[token]/` (top-level, public) – und wie heißt
+- [ ] Wo genau liegt die F7-Route – `app/theke/[token]/` (top-level, public) – und wie heißt
       das Segment?
 - [ ] Teilt der öffentliche F7-Zugang die F5-Komponenten (shared), und wie ohne
       Auth-Kopplung/Server-Action-Rollenprüfung?

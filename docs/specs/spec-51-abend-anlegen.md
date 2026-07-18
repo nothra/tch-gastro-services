@@ -144,7 +144,7 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - **Kasse je Veranstaltung, fester Satz**, Pflichtfeld, nicht pflegbar im MVP. Laufender
   Kassenstand über mehrere Termine bleibt Backlog #57 – im MVP nur die **Kassenveränderung**
   je Veranstaltung (F8).
-- ~~Essenpreis gilt abendweit einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
+- ~~Essenpreis gilt je Veranstaltung einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
   kommt aus dem Katalog).
 - **Kaffeepreis** ist der feste Katalogpreis (F2), nicht pro Termin abweichend (Backlog #59).
 - **Wiederöffnen:** eine abgeschlossene Veranstaltung kann ein **Abrechner** wieder öffnen (F8).
