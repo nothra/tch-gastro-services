@@ -79,6 +79,12 @@ Komposita), (2) Pfad-/Route-Beispiele gegen ADRs prüfen (naheliegender Term ≠
 auf `git diff`-Exit-Code. Direkt anwendbar auf **#148** (Rollen-Rename). Herkunft: Review-Runden
 1/2/3 + /test-Selbstfund.
 
+## PR-Shepherd
+PR-Shepherd 2026-07-18: Auto-Merge freigegeben – alle Gates grün. Keine offenen
+GitHub-Review-Kommentare (nur Vercel-Preview-Bot), Branch aktuell auf `main` (behind 0, kein
+Rebase), CI vollständig grün (lint/test/factory-self-test/issue-sync/pr-closes-issue/Vercel),
+kein Approval-Gate im Repo. Draft→ready, dann `gh pr merge --auto --squash`. PR #146, schließt #144.
+
 ---
 Branch: `docs/144-abend-zu-veranstaltung-vereinheitlichen`
 Erstellt: 2026-07-18 06:38
