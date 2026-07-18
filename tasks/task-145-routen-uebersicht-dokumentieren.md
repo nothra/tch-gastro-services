@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Eine gepflegte **Routen-Übersicht** (`docs/routes.md`) für alle Seiten (`app/**/page.tsx`) und
@@ -71,6 +71,13 @@ Details: [spec-145](../docs/specs/spec-145-routen-uebersicht-dokumentieren.md)
   (Zahlung/Spending-Limit), dann CI neu triggern (`gh run rerun <id>` oder leerer Push); **oder**
   bewusst per Admin ohne CI mergen (umgeht die pr-shepherd-Regel „kein Auto-Merge bei rotem CI").
   Kein Auto-Merge durch den Agenten freigegeben.
+- **ERLEDIGT [2026-07-18]:** Nach der Billing-Klärung blieb CI rot (startup_failure, null Jobs).
+  Eigentliche Ursache: **Repo-Actions-Policy `allowed_actions=local_only`** blockierte
+  `actions/checkout@v4`, `actions/setup-node@v4`, `actions/upload-artifact@v4` und
+  `pnpm/action-setup@v4` (alle Marketplace-Actions) → Workflow-Startabbruch. **Fix (mit Freigabe):**
+  Policy auf `selected` gesetzt mit `github_owned_allowed=true` + `patterns_allowed=[pnpm/action-setup@*]`
+  (enge Allowlist). Danach CI **vollständig grün** (factory-self-test, issue-sync, lint,
+  pr-closes-issue, test), post-merge-verify skipped (nur auf main-Push).
 
 ## Offene Fragen
 - Keine offen. (Einbindungsstelle des Drift-Checks entschieden → `pre-push.sh`, siehe Techn. Notizen.)
@@ -103,6 +110,13 @@ Siehe [codify-145.md](codify-145.md). Zwei Learnings → PROJECT-CONTEXT „Beka
 entfernen) – aus Review-W1; (2) App-Router-Routen jenseits `page.tsx`/`route.ts` (Metadaten wie
 `manifest.ts`) liegen außerhalb des Drift-Checks → manuell pflegen. Out-of-Scope: #149
 (format:check-Drift). W2 durch bestehende Regeln abgedeckt – keine Duplikat-Regel.
+
+## PR-Shepherd (/pr-shepherd)
+- PR-Shepherd [2026-07-18]: Auto-Merge freigegeben – alle Gates grün.
+- Merge-Konflikt mit `main` (#144 vs. #145 Stolperstein in PROJECT-CONTEXT) via Merge gelöst
+  (beide behalten, kein Force-Push, `4482699`).
+- CI-Blocker gelöst: Actions-Policy `local_only` → `selected` (github-owned + `pnpm/action-setup@*`).
+  CI danach vollständig grün (Run 29647720009). PR aus Draft geholt, `Closes #145` im Body.
 
 ---
 Branch: `feature/145-routen-uebersicht-dokumentieren`
