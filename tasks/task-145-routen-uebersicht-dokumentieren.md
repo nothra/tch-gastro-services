@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -78,6 +78,13 @@ W2 ungetesteter Route-Group-Zweig) → beide behoben + verifiziert → **APPROVE
   (Muster gezielt gebrochen → Fixture rot). Suite: 293 grün.
 - Bewusst nicht maschinell getestet: Übereinstimmung der Spalten Zugriff/Funktion (kuratierte
   Doku; der Drift-Check prüft nur Pfade – Review-Nitpick, dokumentiert).
+
+## Refactoring (/refactor)
+Kein neues Verhalten – nur interne Struktur (`scripts/checks/routes-doc-check.sh`):
+- Duplikation entfernt: die zwei fast identischen Drift-Ausgabe-Blöcke in einen Helfer
+  `report_drift <meldung> <liste>` zusammengeführt (clean-code.md „Keine Code-Duplikation").
+- Sprechende Namen: Schleifen-Variablen `f`/`r` → `file`/`route`.
+Verifiziert: Meta-Suite 293 grün (unverändert), Real-Check grün, Drift-Ausgabe identisch.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

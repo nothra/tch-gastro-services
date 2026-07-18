@@ -41,12 +41,12 @@ fi
 actual_routes() {
   find app -type f \( -name 'page.tsx' -o -name 'route.ts' \) \
     | grep -v '/_' \
-    | while IFS= read -r f; do
-        r=$(printf '%s' "$f" \
+    | while IFS= read -r file; do
+        route=$(printf '%s' "$file" \
           | sed -e 's#^app##' -e 's#/page\.tsx$##' -e 's#/route\.ts$##' \
           | sed -E 's#/\([^)]*\)##g')
-        [ -z "$r" ] && r='/'
-        printf '%s\n' "$r"
+        [ -z "$route" ] && route='/'
+        printf '%s\n' "$route"
       done \
     | sort -u
 }
@@ -60,6 +60,13 @@ documented_routes() {
     | sort -u
 }
 
+# ── Drift-Ausgabe: Meldung + eingerückte Routen-Liste (fasst beide Richtungen zusammen) ──
+report_drift() {
+  local message="$1" routes="$2"
+  echo -e "${RED}✗${NC} ${message}"
+  printf '%s\n' "$routes" | sed 's/^/    /'
+}
+
 ACTUAL="$(actual_routes)"
 DOCUMENTED="$(documented_routes)"
 
@@ -70,14 +77,12 @@ MISSING_IN_TREE="$(comm -13 <(printf '%s\n' "$ACTUAL") <(printf '%s\n' "$DOCUMEN
 FAILED=0
 
 if [ -n "$MISSING_IN_DOC" ]; then
-  echo -e "${RED}✗${NC} Route(n) ohne Eintrag in $DOC:"
-  printf '%s\n' "$MISSING_IN_DOC" | sed 's/^/    /'
+  report_drift "Route(n) ohne Eintrag in $DOC:" "$MISSING_IN_DOC"
   FAILED=1
 fi
 
 if [ -n "$MISSING_IN_TREE" ]; then
-  echo -e "${RED}✗${NC} Eintrag/-Einträge in $DOC ohne zugehörige Route-Datei:"
-  printf '%s\n' "$MISSING_IN_TREE" | sed 's/^/    /'
+  report_drift "Eintrag/-Einträge in $DOC ohne zugehörige Route-Datei:" "$MISSING_IN_TREE"
   FAILED=1
 fi
 
