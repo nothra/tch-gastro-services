@@ -114,6 +114,21 @@ AC-Kriterium eine Assertion (#117); `pnpm build`/typecheck vor Merge (#137, jetz
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Review-Runde 1 (NEEDS_REWORK, `tasks/review-53.md`) – Rework 2026-07-18:**
+- **K1 (kritisch, behoben):** `listAuslagen` INNER→**LEFT JOIN** `veranstaltung_zeile` +
+  INNER JOIN `teilnehmer`, `anzeigename = COALESCE(zeile.anzeigename, teilnehmer.name)`
+  (`db/auslage.ts`). Zeile-Löschen verwaist eine (ggf. `erstattet`e) Auslage nicht mehr still
+  aus Übersicht/Summen/F8. ADR-028 D5 + Konsequenzen nachgezogen; Integrationstest ergänzt
+  (`should_keepAuslageVisibleWithFallbackName_when_zeileDeleted`, DB-Integration → skipped ohne DB).
+- **W1 (behoben):** Formular-Reset per `formRef.reset()` statt key-Remount (`AuslageForm.tsx`) –
+  leert die Felder bei jeder erfolgreichen Neu-Erfassung, nicht nur der ersten. Zwei Tests.
+- **W2 (behoben):** Drei separate `firstIssueMessage`-Assertions für die Betrag-Meldungen
+  (Format / `>0` / int4-Obergrenze) in `schema.test.ts` (Codify #116).
+- **Nitpicks:** bewusst offen gelassen (optional, kein Merge-Blocker) – s. `tasks/review-53.md`.
+
+Gates nach Rework grün: `pnpm test` 376 passed / 52 skip (DB-Integration), `pnpm lint` 0 Warnungen,
+`tsc --noEmit` clean.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

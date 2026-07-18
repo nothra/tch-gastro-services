@@ -139,10 +139,15 @@ Gemäß ADR-024 (je Lifecycle-Phase eine Unterroute) und analog ADR-025 D5:
 
 - **Data-Layer neu `db/auslage.ts`** (einziger Query-Ort, rollen-neutral, analog `db/verzehr.ts`):
   - `createAuslage(data)` → `Promise<Auslage>` (INSERT ist nach Erfolg garantiert vorhanden, Codify #50).
-  - `listAuslagen(veranstaltungId)` → Join `auslage` → `veranstaltung_zeile`
-    ON (`veranstaltungId`, `teilnehmerId`), liefert `anzeigename` (Snapshot der Zeile, ADR-022-Vertrag –
-    abgeschlossene Veranstaltungen zeigen den Namen wie damals), Kategorie, Betrag, Status, Zweck.
-    Gefiltert über `veranstaltungId`.
+  - `listAuslagen(veranstaltungId)` → **LEFT JOIN** `auslage` → `veranstaltung_zeile`
+    ON (`veranstaltungId`, `teilnehmerId`) für den `anzeigename`-Snapshot (ADR-022-Vertrag –
+    abgeschlossene Veranstaltungen zeigen den Namen wie damals) **plus INNER JOIN auf `teilnehmer`**;
+    `anzeigename = COALESCE(veranstaltung_zeile.anzeigename, teilnehmer.name)`. Der LEFT JOIN ist
+    bewusst: `auslage` referenziert direkt `teilnehmerId` (D1), **nicht** die Zeile – ihr Lebenszyklus
+    ist von der Verzehr-Zeile unabhängig. Ein INNER JOIN würde eine Auslage still aus Übersicht/Summen/
+    F8 fallen lassen, sobald die Teilnehmerzeile gelöscht wird – bei bereits `erstattet`en Auslagen ein
+    **stiller Kassen-Datenverlust** (#53 Review K1). `teilnehmerId` ist `restrict` → der Fallback-Name
+    ist immer vorhanden (D1). Kategorie, Betrag, Status, Zweck wie gehabt; gefiltert über `veranstaltungId`.
   - `updateAuslage(id, veranstaltungId, data)` → `Promise<Auslage | undefined>` (Codify #50),
     `WHERE and(eq(id, id), eq(veranstaltungId, veranstaltungId))` (IDOR).
   - `setAuslageStatus(id, veranstaltungId, status)` → `Promise<Auslage | undefined>`, IDOR-gebunden;
@@ -246,6 +251,12 @@ Mutationen trivial und fail-closed. Der Status als `pgEnum offen/erstattet` folg
   erwartet (im Gegensatz zu Enum-Wert-Änderungen).
 - **Löschen einer Veranstaltung** kaskadiert auf ihre Auslagen (auch `erstattet`e). Im MVP ohne
   laufenden Kassen-Saldo akzeptiert; mit #57 wandert die Historie in die Kassenbewegung.
+- **Löschen einer Teilnehmerzeile** (`removeZeile`) lässt eine bestehende Auslage als „verwaiste"
+  Zeile stehen (keine Kaskade – bewusste Entkopplung, D1). `listAuslagen` hält sie via LEFT JOIN
+  sichtbar (Anzeigename = aktueller Teilnehmername); sie bleibt über ihre eigenen Actions korrigier-/
+  lösch-/status-bar. Alternativ verworfen: `removeZeile` sperren, solange Auslagen existieren – das
+  koppelt die Lebenszyklen erneut (widerspricht D1) und zwänge, eine bereits ausgezahlte Erstattung
+  zu löschen, nur um eine Zeile zu entfernen (#53 Review K1).
 - **F8/#55** summiert die `erstattet`-Auslagen je Kategorie in die Kassenabrechnung (kein Verzehr-Abzug).
 - **Änderbarkeit des zugeordneten Teilnehmers** bei Update: der neue Teilnehmer muss `active` und
   Mitglied der Veranstaltung sein (D5 Schritt 5) – analog zur Verzehr-/ADR-026-Grenze.

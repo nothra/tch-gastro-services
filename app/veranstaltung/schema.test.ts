@@ -178,6 +178,34 @@ describe("auslageSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  // Meldungsinhalt je Ablehnungsgrund separat vom Ablehnungs-Verhalten prüfen (Codify #116) –
+  // die drei Betrag-Meldungen sind fachlich unterschiedlich und der beobachtbare Vertrag.
+  it("should_nameFormatRule_when_betragNotNumeric", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "abc" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe(
+        "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.",
+      );
+    }
+  });
+
+  it("should_sayGreaterThanZero_when_betragZero", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "0" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Betrag muss größer als 0 sein.");
+    }
+  });
+
+  it("should_sayTooHigh_when_betragExceedsInt4Max", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "99999999999" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Betrag ist zu hoch.");
+    }
+  });
+
   it("should_reject_when_zweckTooLong", () => {
     const result = auslageSchema.safeParse({ ...validAuslage, zweck: "x".repeat(201) });
     expect(result.success).toBe(false);

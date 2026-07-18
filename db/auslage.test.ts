@@ -3,7 +3,7 @@ import { inArray } from "drizzle-orm";
 import { db } from "./index";
 import { auslage, teilnehmer, veranstaltung } from "./schema";
 import { createTeilnehmer } from "./teilnehmer";
-import { addZeile, createVeranstaltung } from "./veranstaltung";
+import { addZeile, createVeranstaltung, removeZeile } from "./veranstaltung";
 import {
   createAuslage,
   listAuslagen,
@@ -41,8 +41,8 @@ async function trackTeilnehmer(name: string) {
 async function setupZeile(name: string) {
   const v = await trackVeranstaltung();
   const person = await trackTeilnehmer(name);
-  await addZeile(v.id, person);
-  return { veranstaltungId: v.id, teilnehmerId: person.id };
+  const zeile = await addZeile(v.id, person);
+  return { veranstaltungId: v.id, teilnehmerId: person.id, zeileId: zeile.id };
 }
 
 function auslageData(overrides: Partial<AuslageData> & Pick<AuslageData, "veranstaltungId" | "teilnehmerId">): AuslageData {
@@ -88,6 +88,20 @@ describe.skipIf(!hasDb)("auslage data-layer (integration)", () => {
     const list = await listAuslagen(veranstaltungId);
     expect(list).toHaveLength(1);
     expect(list[0].anzeigename).toBe(`${TEST_PREFIX}Clara`);
+  });
+
+  // Review K1: Wird die Teilnehmerzeile gelöscht, darf die (ggf. bereits erstattete) Auslage NICHT
+  // still aus Übersicht/Summen/F8 verschwinden (stiller Kassen-Datenverlust). Der LEFT JOIN hält
+  // sie sichtbar; der Anzeigename fällt auf den aktuellen Teilnehmernamen zurück.
+  it("should_keepAuslageVisibleWithFallbackName_when_zeileDeleted", async () => {
+    const { veranstaltungId, teilnehmerId, zeileId } = await setupZeile("Nora");
+    await createAuslage(auslageData({ veranstaltungId, teilnehmerId }));
+
+    await removeZeile(zeileId, veranstaltungId);
+
+    const list = await listAuslagen(veranstaltungId);
+    expect(list).toHaveLength(1);
+    expect(list[0].anzeigename).toBe(`${TEST_PREFIX}Nora`);
   });
 
   it("should_notListAuslageOfOtherVeranstaltung_when_listing", async () => {

@@ -1,7 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
   auslage,
+  teilnehmer,
   veranstaltungZeile,
   type Auslage,
   type AuslageKategorie,
@@ -37,21 +38,28 @@ export async function createAuslage(data: AuslageData): Promise<Auslage> {
   return created;
 }
 
-// Alle Auslagen einer Veranstaltung mit aufgelöstem Anzeigenamen (Join auf die eindeutige
-// Zeile für (veranstaltungId, teilnehmerId), ADR-023 D5-Unique). Gefiltert über veranstaltungId.
+// Alle Auslagen einer Veranstaltung mit aufgelöstem Anzeigenamen. Der Name kommt bevorzugt aus
+// dem stabilen Zeilen-Snapshot (ADR-022/ADR-023 D5-Unique – abgeschlossene Veranstaltungen zeigen
+// den Namen wie damals). Der Join auf die Zeile ist ein LEFT JOIN, damit eine Auslage NICHT still
+// verschwindet, wenn die Teilnehmerzeile gelöscht wird (ADR-028 D1: `auslage` referenziert direkt
+// `teilnehmerId`, nicht die Zeile – ihr Lebenszyklus ist von der Zeile unabhängig; sonst wäre eine
+// bereits erstattete Auslage stiller Kassen-Datenverlust, #53 Review K1). Fällt der Snapshot weg,
+// löst COALESCE auf den aktuellen Teilnehmernamen auf (teilnehmerId ist restrict → immer vorhanden,
+// ADR-028 D1). Gefiltert über veranstaltungId.
 export function listAuslagen(veranstaltungId: string): Promise<AuslageRow[]> {
   return db
     .select({
       id: auslage.id,
       teilnehmerId: auslage.teilnehmerId,
-      anzeigename: veranstaltungZeile.anzeigename,
+      anzeigename: sql<string>`coalesce(${veranstaltungZeile.anzeigename}, ${teilnehmer.name})`,
       kategorie: auslage.kategorie,
       betragCents: auslage.betragCents,
       zweck: auslage.zweck,
       status: auslage.status,
     })
     .from(auslage)
-    .innerJoin(
+    .innerJoin(teilnehmer, eq(auslage.teilnehmerId, teilnehmer.id))
+    .leftJoin(
       veranstaltungZeile,
       and(
         eq(auslage.veranstaltungId, veranstaltungZeile.veranstaltungId),

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { AuslageFormState } from "./actions";
 
 // useActionState steuert alle Renderzustände direkt (Fehler/Erfolg/Pending) – etablierter
@@ -127,6 +127,46 @@ describe("AuslageForm", () => {
 
     expect(result.ok).toBe(true);
     expect(onSuccess).toHaveBeenCalledOnce();
+  });
+
+  // Reset bei jeder erfolgreichen Neu-Erfassung (nicht nur der ersten): der Wrapper leert die
+  // Felder per form.reset() über eine Ref – so bleibt der Reset bei aufeinanderfolgenden
+  // Erfassungen zuverlässig, ohne key-basierten Remount (der beim 2. ok nicht mehr griff).
+  it("should_clearFields_when_createSucceeds", async () => {
+    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+    const betrag = screen.getByLabelText(/Betrag/i);
+    fireEvent.change(betrag, { target: { value: "9,99" } });
+    expect(betrag).toHaveValue("9,99");
+
+    const wrapped = useActionStateMock.mock.calls[0][0] as (
+      prev: AuslageFormState | undefined,
+      fd: FormData,
+    ) => Promise<AuslageFormState>;
+    await wrapped(undefined, new FormData());
+
+    expect(betrag).toHaveValue("");
+  });
+
+  it("should_notResetFields_when_editSucceeds", async () => {
+    render(
+      <AuslageForm
+        action={noopAction}
+        teilnehmer={teilnehmer}
+        submitLabel="Speichern"
+        initial={{ teilnehmerId: "t-2", kategorie: "essen", betrag: "12,50", zweck: "Grillfleisch" }}
+      />,
+    );
+    const betrag = screen.getByLabelText(/Betrag/i);
+    fireEvent.change(betrag, { target: { value: "9,99" } });
+
+    const wrapped = useActionStateMock.mock.calls[0][0] as (
+      prev: AuslageFormState | undefined,
+      fd: FormData,
+    ) => Promise<AuslageFormState>;
+    await wrapped(undefined, new FormData());
+
+    // Im Korrektur-Modus schließt onSuccess das Formular – kein Feld-Reset.
+    expect(betrag).toHaveValue("9,99");
   });
 
   it("should_notCallOnSuccess_when_wrappedActionReturnsError", async () => {

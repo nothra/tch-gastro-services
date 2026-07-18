@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback } from "react";
+import { useActionState, useCallback, useRef } from "react";
 import type { AuslageKategorie } from "@/db/schema";
 import { AUSLAGE_KATEGORIE_LABEL, AUSLAGE_KATEGORIE_ORDER } from "./labels";
 import type { AuslageFormState } from "./actions";
@@ -40,15 +40,23 @@ export function AuslageForm({
   initial?: AuslageFormInitial;
   onSuccess?: () => void;
 }) {
-  // Erfolg schließt (Korrektur) bzw. setzt zurück (Neuerfassung) – via useCallback-Wrapper, nicht
-  // useEffect (Codify #49); die Referenz bleibt stabil.
+  const isEditing = initial !== undefined;
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Erfolg schließt (Korrektur) bzw. leert die Felder (Neuerfassung) – via useCallback-Wrapper,
+  // nicht useEffect (Codify #49); die Referenz bleibt stabil. form.reset() leert bei JEDER
+  // erfolgreichen Erfassung (nicht nur der ersten wie ein key-basierter Remount) und lässt die
+  // Erfolgsmeldung stehen, weil der useActionState-Zustand nicht verworfen wird.
   const actionWithCallback = useCallback<BoundAuslageAction>(
     async (prev, formData) => {
       const result = await action(prev, formData);
-      if (result.ok) onSuccess?.();
+      if (result.ok) {
+        onSuccess?.();
+        if (!isEditing) formRef.current?.reset();
+      }
       return result;
     },
-    [action, onSuccess],
+    [action, onSuccess, isEditing],
   );
   const [state, formAction, pending] = useActionState(actionWithCallback, undefined);
 
@@ -60,11 +68,9 @@ export function AuslageForm({
     );
   }
 
-  const isEditing = initial !== undefined;
-
   return (
     <form
-      key={state?.ok && !isEditing ? "reset" : "edit"}
+      ref={formRef}
       action={formAction}
       className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
     >
