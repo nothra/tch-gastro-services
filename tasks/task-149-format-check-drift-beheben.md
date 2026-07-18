@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -101,6 +101,14 @@ Lücke: der Verhaltens-Test setzt den Override immer explizit, der **Default** (
 grün geblieben. Neuer Grep verifiziert Default + Single-Dash-Semantik; rot gegen manipulierten
 Default und gegen Prosa-only verifiziert. Selbsttests 289 grün. TS-Coverage 84,39 % Stmts /
 83,98 % Lines (≥ 80 %), 376 Tests grün.
+
+## Refactoring-Notizen
+/refactor [2026-07-18]: Keine Code-Änderung nötig. Gate + Selbsttest sind bereits clean
+(sprechende Namen konsistent zu Sibling-Gates, WHY-Kommentare, kein Magic-String).
+Bewusst NICHT gemacht: die 3x-Struktur der Gates (test/typecheck/format) in einen
+`run_gate`-Helper extrahieren – das würde die **vorbestehenden** Gates anfassen (Scope-Creep
+über #149 hinaus) und ist für ein Hook-Skript mit gate-spezifischen Meldungen eher
+Over-Engineering (clean-code.md: kein Gold-Plating). Selbsttests 289 grün, unverändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
