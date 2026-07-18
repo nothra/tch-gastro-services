@@ -32,8 +32,8 @@ Details: [spec-145](../docs/specs/spec-145-routen-uebersicht-dokumentieren.md)
 
 **Prozess-Verankerung:**
 - [x] CLAUDE.md-Guardrails enthalten die Regel „bei jeder Routen-Änderung `docs/routes.md` aktualisieren".
-- [~] `/review`-Kriterium prüft die Doku-Aktualisierung – **als Patch geliefert** (`tasks/patch-145.diff`), Mensch wendet an (siehe Blocker).
-- [~] `/implement`-Checkliste erinnert an die Doku-Aktualisierung – **als Patch geliefert** (`tasks/patch-145.diff`), Mensch wendet an (siehe Blocker).
+- [x] `/review`-Kriterium prüft die Doku-Aktualisierung – Anker via Patch geliefert, **angewendet + committet** (`ee17aa8`).
+- [x] `/implement`-Checkliste erinnert an die Doku-Aktualisierung – Anker via Patch geliefert, **angewendet + committet** (`ee17aa8`).
 
 **Automatischer Drift-Check (`scripts/checks/`):**
 - [x] Übereinstimmung → Exit 0; Drift (Datei ohne Doku-Eintrag oder umgekehrt) → fail-closed Exit ≠ 0, benennt die Route(n). (`scripts/checks/routes-doc-check.sh`)
@@ -55,14 +55,11 @@ Details: [spec-145](../docs/specs/spec-145-routen-uebersicht-dokumentieren.md)
   übersprungen.
 
 ## Blocker / Patch-Übergabe
-- **Blocker [2026-07-18]: `.claude/commands/{review,implement}.md` sind hard-denied
-  (`Edit(.claude/**)`) – der Agent kann sie nicht direkt ändern.** Die beiden Prozess-Anker sind
-  als Patch geliefert: **`tasks/patch-145.diff`** (programmatisch via `difflib` erzeugt, **nicht**
-  von Hand getippt). Verifiziert: `git apply --check tasks/patch-145.diff` = OK **und** grün nach
-  Apply auf Temp-Kopien (Assertions: beide eingefügten Zeilen vorhanden).
-  **Erforderliche Aktion des Menschen:** im Worktree
-  `git apply tasks/patch-145.diff` ausführen, dann mit-committen (die beiden `.md`-Anker gehören
-  in denselben PR wie die übrige Verankerung).
+- **Blocker [2026-07-18] – ERLEDIGT [2026-07-18]:** `.claude/commands/{review,implement}.md` sind
+  hard-denied (`Edit(.claude/**)`). Die beiden Prozess-Anker wurden als Patch geliefert
+  (programmatisch via `difflib`, `git apply --check` verifiziert) und **angewendet + committet**
+  (`ee17aa8`). Kein offener Handlungsbedarf; die stale Patch-Datei `tasks/patch-145.diff` wurde
+  entfernt (Review-Finding W1).
 
 ## Offene Fragen
 - Keine offen. (Einbindungsstelle des Drift-Checks entschieden → `pre-push.sh`, siehe Techn. Notizen.)

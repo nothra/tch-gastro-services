@@ -1646,12 +1646,14 @@ assert_true "$([[ -f "$ROUTES_CHECK" ]]; echo $?)" "routes-doc-check.sh vorhande
 # Fixture: app/-Baum + docs/routes.md; FACTORY_DIR steuert die Projektwurzel des Checks.
 TMP_RT="$(mktemp -d)"
 mkdir -p "$TMP_RT/app/login" "$TMP_RT/app/veranstaltung/[id]" \
-         "$TMP_RT/app/api/health" "$TMP_RT/app/_private" "$TMP_RT/docs"
+         "$TMP_RT/app/api/health" "$TMP_RT/app/_private" \
+         "$TMP_RT/app/(werbung)/info" "$TMP_RT/docs"
 : > "$TMP_RT/app/page.tsx"
 : > "$TMP_RT/app/login/page.tsx"
 : > "$TMP_RT/app/veranstaltung/[id]/page.tsx"   # dynamisches Segment
 : > "$TMP_RT/app/api/health/route.ts"
 : > "$TMP_RT/app/_private/page.tsx"              # privater Ordner → KEINE Route (ignorieren)
+: > "$TMP_RT/app/(werbung)/info/page.tsx"        # Route Group (name) → /info (kein Segment)
 
 write_routes_doc() {
   cat > "$TMP_RT/docs/routes.md" <<'DOCEOF'
@@ -1661,15 +1663,17 @@ write_routes_doc() {
 | `/` | Seite | Home | angemeldet |
 | `/login` | Seite | Login | öffentlich |
 | `/veranstaltung/[id]` | Seite | Detail | veranstalter |
+| `/info` | Seite | Info | öffentlich |
 | `/api/health` | API | Health | öffentlich |
 DOCEOF
 }
 rc_routes() { FACTORY_DIR="$TMP_RT" bash "$ROUTES_CHECK" 2>&1; }
 
-# 1. Doku deckt alle Routen exakt ab (dynamisches [id] gemappt, _private ignoriert) → grün
+# 1. Doku deckt alle Routen exakt ab: dynamisches [id] + Route Group (werbung)→/info gemappt,
+#    _private ignoriert → grün. (Fällt der Route-Group-Strip weg, mappt /info falsch → rot.)
 write_routes_doc
-out=$(rc_routes); rc=$?
-assert_exit 0 "$rc" "in sync (alle Routen dokumentiert, _private ignoriert) → exit 0"
+rc_routes >/dev/null 2>&1; rc=$?
+assert_exit 0 "$rc" "in sync ([id] + (werbung)-Group gemappt, _private ignoriert) → exit 0"
 
 # 2. Neue Route-Datei ohne Doku-Eintrag → fail-closed exit 1 + benennt die Route
 mkdir -p "$TMP_RT/app/neu"; : > "$TMP_RT/app/neu/page.tsx"

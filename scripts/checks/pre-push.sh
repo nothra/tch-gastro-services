@@ -80,6 +80,8 @@ if [ -f "$ROUTES_DOC_CHECK" ]; then
     echo -e "     Ausführen für Details: bash scripts/checks/routes-doc-check.sh"
     FAILED=1
   fi
+else
+  echo -e "  ${YELLOW}⚠${NC}  Routen-Doku-Drift-Check fehlt ($ROUTES_DOC_CHECK) – übersprungen"
 fi
 
 # ─── Check 4: Nicht auf main/master pushen ohne PR ───────────────────────────
