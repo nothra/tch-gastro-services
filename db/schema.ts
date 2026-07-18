@@ -244,3 +244,45 @@ export const verzehrPosition = pgTable(
 
 export type VerzehrPosition = typeof verzehrPosition.$inferSelect;
 export type NewVerzehrPosition = typeof verzehrPosition.$inferInsert;
+
+// Auslagenerstattung (F6, #53, ADR-028 D1): vorgestreckte Kosten eines Teilnehmers, als
+// eigener Vorgang aus der Veranstaltungs-Kasse erstattet. Kein Katalogbezug (keine
+// Preisauflösung per Join) und eine eigene Kategorie-Wertmenge – bewusst nicht
+// `catalog_category` (dort gibt es kein "sonstiges" und kein "kaffee" hier).
+export const auslageKategorie = pgEnum("auslage_kategorie", ["getraenke", "essen", "sonstiges"]);
+export type AuslageKategorie = (typeof auslageKategorie.enumValues)[number];
+
+export const auslageStatus = pgEnum("auslage_status", ["offen", "erstattet"]);
+export type AuslageStatus = (typeof auslageStatus.enumValues)[number];
+
+export const auslage = pgTable(
+  "auslage",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => globalThis.crypto.randomUUID()),
+    // Parent für IDOR-Bindung (Codify #51) + Lifecycle-Sperre: die Auslage gehört zur
+    // Veranstaltung. Cascade – löscht man die Veranstaltung, verschwinden ihre Auslagen mit.
+    veranstaltungId: text("veranstaltung_id")
+      .notNull()
+      .references(() => veranstaltung.id, { onDelete: "cascade" }),
+    // Kein onDelete (Postgres-Default "no action", faktisch restriktiv): Teilnehmer werden nie
+    // hart gelöscht (Soft-Delete via `active`) → die Namensauflösung per Join gelingt immer.
+    teilnehmerId: text("teilnehmer_id")
+      .notNull()
+      .references(() => teilnehmer.id),
+    kategorie: auslageKategorie("kategorie").notNull(),
+    betragCents: integer("betrag_cents").notNull(),
+    zweck: text("zweck"),
+    status: auslageStatus("status").notNull().default("offen"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (a) => [
+    // Fail-closed DB-Guard unabhängig vom Aufrufweg – strikt positiv (nicht >= 0).
+    check("auslage_betrag_positiv", sql`${a.betragCents} > 0`),
+  ],
+);
+
+export type Auslage = typeof auslage.$inferSelect;
+export type NewAuslage = typeof auslage.$inferInsert;

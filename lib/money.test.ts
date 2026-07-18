@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EURO_INPUT_RE, parseEuroToCents, formatCents } from "./money";
+import { EURO_INPUT_RE, parseEuroToCents, formatCents, centsToEuroInput } from "./money";
 
 describe("parseEuroToCents", () => {
   it("should_returnCents_when_wholeEuroWithoutDecimals", () => {
@@ -80,5 +80,27 @@ describe("formatCents", () => {
 
   it("should_throw_when_notAnInteger", () => {
     expect(() => formatCents(2.5)).toThrow();
+  });
+});
+
+describe("centsToEuroInput", () => {
+  it("should_renderCommaSeparatedEuros_when_centsPresent", () => {
+    expect(centsToEuroInput(1250)).toBe("12,50");
+    expect(centsToEuroInput(5)).toBe("0,05");
+  });
+
+  it("should_renderWholeEurosWithTwoDecimals_when_noRemainder", () => {
+    expect(centsToEuroInput(200)).toBe("2,00");
+  });
+
+  it("should_notGroupThousands_when_largeAmount", () => {
+    // Muss re-parsebar durch parseEuroToCents/EURO_INPUT_RE bleiben – keine Tausendertrenner.
+    expect(centsToEuroInput(1234550)).toBe("12345,50");
+    expect(EURO_INPUT_RE.test(centsToEuroInput(1234550))).toBe(true);
+    expect(parseEuroToCents(centsToEuroInput(1234550))).toBe(1234550);
+  });
+
+  it("should_throw_when_notAnInteger", () => {
+    expect(() => centsToEuroInput(2.5)).toThrow();
   });
 });

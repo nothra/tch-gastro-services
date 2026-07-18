@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
-import type { CatalogItem, Teilnehmer, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
+import type { Auslage, CatalogItem, Teilnehmer, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 import { ForbiddenError } from "@/lib/authz";
 
 // Gemockt wird die externe Grenze (auth()) sowie Data-Layer und Cache. Der Rollen-Guard
@@ -13,11 +13,18 @@ vi.mock("@/db/veranstaltung", () => ({
   setStatus: vi.fn(),
   getVeranstaltung: vi.fn(),
   getZeile: vi.fn(),
+  getZeileByTeilnehmer: vi.fn(),
   ensureThekeForKasse: vi.fn(),
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
 vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn() }));
 vi.mock("@/db/verzehr", () => ({ adjustMenge: vi.fn(), getPosition: vi.fn() }));
+vi.mock("@/db/auslage", () => ({
+  createAuslage: vi.fn(),
+  updateAuslage: vi.fn(),
+  setAuslageStatus: vi.fn(),
+  removeAuslage: vi.fn(),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { auth } from "@/auth";
@@ -30,17 +37,23 @@ import {
   ensureThekeForKasse,
   getVeranstaltung,
   getZeile,
+  getZeileByTeilnehmer,
   removeZeile,
   setStatus,
 } from "@/db/veranstaltung";
+import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
 import {
   addZeileAction,
   adjustVerzehrAction,
+  createAuslageAction,
   createVeranstaltungAction,
   createWalkInAction,
   ensureThekeAction,
+  removeAuslageAction,
   removeZeileAction,
+  setAuslageStatusAction,
   setStatusAction,
+  updateAuslageAction,
 } from "./actions";
 
 const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
@@ -50,12 +63,17 @@ const removeZeileMock = vi.mocked(removeZeile);
 const setStatusMock = vi.mocked(setStatus);
 const getVeranstaltungMock = vi.mocked(getVeranstaltung);
 const getZeileMock = vi.mocked(getZeile);
+const getZeileByTeilnehmerMock = vi.mocked(getZeileByTeilnehmer);
 const ensureThekeMock = vi.mocked(ensureThekeForKasse);
 const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
 const getCatalogItemMock = vi.mocked(getCatalogItem);
 const adjustMengeMock = vi.mocked(adjustMenge);
 const getPositionMock = vi.mocked(getPosition);
+const createAuslageMock = vi.mocked(createAuslage);
+const updateAuslageMock = vi.mocked(updateAuslage);
+const setAuslageStatusMock = vi.mocked(setAuslageStatus);
+const removeAuslageMock = vi.mocked(removeAuslage);
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -112,14 +130,33 @@ const cola: CatalogItem = {
   updatedAt: new Date(),
 };
 
+const auslage: Auslage = {
+  id: "a1",
+  veranstaltungId: "v1",
+  teilnehmerId: "t1",
+  kategorie: "sonstiges",
+  betragCents: 550,
+  zweck: "Grillfleisch",
+  status: "offen",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const validAuslage = { teilnehmerId: "t1", kategorie: "sonstiges", betrag: "5,50", zweck: "Grillfleisch" };
+
 beforeEach(() => {
   vi.resetAllMocks();
   authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
   getVeranstaltungMock.mockResolvedValue(offeneVeranstaltung);
   getZeileMock.mockResolvedValue(zeile);
+  getZeileByTeilnehmerMock.mockResolvedValue(zeile);
   getTeilnehmerMock.mockResolvedValue(person);
   createTeilnehmerMock.mockResolvedValue(person);
   getCatalogItemMock.mockResolvedValue(cola);
+  createAuslageMock.mockResolvedValue(auslage);
+  updateAuslageMock.mockResolvedValue(auslage);
+  setAuslageStatusMock.mockResolvedValue(auslage);
+  removeAuslageMock.mockResolvedValue(auslage);
   adjustMengeMock.mockResolvedValue({
     id: "p1",
     zeileId: "z1",
@@ -523,5 +560,222 @@ describe("adjustVerzehrAction", () => {
     await boundAction({ ...validAdjust, delta: "-1" });
 
     expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", -1);
+  });
+});
+
+describe("createAuslageAction", () => {
+  const boundAction = (fields: Record<string, string>) =>
+    createAuslageAction("v1", undefined, form(fields));
+
+  it("should_createAuslage_when_inputValid", async () => {
+    const result = await boundAction(validAuslage);
+
+    expect(result).toEqual({ ok: true });
+    expect(createAuslageMock).toHaveBeenCalledWith({
+      veranstaltungId: "v1",
+      teilnehmerId: "t1",
+      kategorie: "sonstiges",
+      betragCents: 550,
+      zweck: "Grillfleisch",
+    });
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+
+    await expect(boundAction(validAuslage)).rejects.toThrow(ForbiddenError);
+    expect(createAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_zodInvalid", async () => {
+    const result = await boundAction({ ...validAuslage, betrag: "0" });
+
+    expect(result.error).toBeDefined();
+    expect(createAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(createAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungClosed", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(createAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_teilnehmerNotInVeranstaltung", async () => {
+    getZeileByTeilnehmerMock.mockResolvedValue(undefined);
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(createAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_teilnehmerInactive", async () => {
+    getTeilnehmerMock.mockResolvedValue({ ...person, active: false });
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(createAuslageMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateAuslageAction", () => {
+  const boundAction = (fields: Record<string, string>) =>
+    updateAuslageAction("v1", "a1", undefined, form(fields));
+
+  it("should_updateAuslage_when_inputValid", async () => {
+    const result = await boundAction(validAuslage);
+
+    expect(result).toEqual({ ok: true });
+    expect(updateAuslageMock).toHaveBeenCalledWith("a1", "v1", {
+      teilnehmerId: "t1",
+      kategorie: "sonstiges",
+      betragCents: 550,
+      zweck: "Grillfleisch",
+    });
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+
+    await expect(boundAction(validAuslage)).rejects.toThrow(ForbiddenError);
+    expect(updateAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_zodInvalid", async () => {
+    const result = await boundAction({ ...validAuslage, kategorie: "unbekannt" });
+
+    expect(result.error).toBeDefined();
+    expect(updateAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(updateAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungClosed", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(updateAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_teilnehmerNotInVeranstaltung", async () => {
+    getZeileByTeilnehmerMock.mockResolvedValue(undefined);
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(updateAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_teilnehmerInactive", async () => {
+    getTeilnehmerMock.mockResolvedValue({ ...person, active: false });
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+    expect(updateAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_updateReturnsUndefined", async () => {
+    updateAuslageMock.mockResolvedValue(undefined);
+
+    const result = await boundAction(validAuslage);
+
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("setAuslageStatusAction", () => {
+  it("should_setStatusErstattet_when_inputValid", async () => {
+    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" }));
+    expect(setAuslageStatusMock).toHaveBeenCalledWith("a1", "v1", "erstattet");
+  });
+
+  it("should_setStatusOffen_when_reopening", async () => {
+    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "offen" }));
+    expect(setAuslageStatusMock).toHaveBeenCalledWith("a1", "v1", "offen");
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+    await expect(
+      setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" })),
+    ).rejects.toThrow(ForbiddenError);
+    expect(setAuslageStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_veranstaltungClosed", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" }));
+    expect(setAuslageStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" }));
+    expect(setAuslageStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_idsMissing", async () => {
+    await setAuslageStatusAction(form({ status: "erstattet" }));
+    expect(setAuslageStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_statusInvalid", async () => {
+    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "storniert" }));
+    expect(setAuslageStatusMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeAuslageAction", () => {
+  it("should_removeAuslage_when_veranstaltungOpen", async () => {
+    await removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }));
+    expect(removeAuslageMock).toHaveBeenCalledWith("a1", "v1");
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+    await expect(removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }))).rejects.toThrow(
+      ForbiddenError,
+    );
+    expect(removeAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notRemove_when_veranstaltungClosed", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    await removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }));
+    expect(removeAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    await removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }));
+    expect(removeAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_silentlySkip_when_idsMissing", async () => {
+    await removeAuslageAction(form({}));
+    expect(removeAuslageMock).not.toHaveBeenCalled();
   });
 });

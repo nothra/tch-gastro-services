@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { firstIssueMessage } from "@/lib/form-errors";
-import { veranstaltungSchema, verzehrAdjustSchema } from "./schema";
+import {
+  auslageSchema,
+  auslageStatusSchema,
+  veranstaltungSchema,
+  verzehrAdjustSchema,
+} from "./schema";
 
 const valid = {
   bezeichnung: "Montagsrunde",
@@ -93,5 +98,133 @@ describe("verzehrAdjustSchema", () => {
     if (!result.success) {
       expect(firstIssueMessage(result.error)).toBe("Änderung muss +1 oder −1 sein.");
     }
+  });
+});
+
+describe("auslageSchema", () => {
+  const validAuslage = { teilnehmerId: "t1", kategorie: "sonstiges", betrag: "5,50", zweck: "Grillfleisch" };
+
+  it("should_parseAndTransformBetragToCents_when_inputValid", () => {
+    const result = auslageSchema.safeParse(validAuslage);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.teilnehmerId).toBe("t1");
+      expect(result.data.kategorie).toBe("sonstiges");
+      expect(result.data.betrag).toBe(550);
+      expect(result.data.zweck).toBe("Grillfleisch");
+    }
+  });
+
+  it("should_trimAndKeepZweck_when_surroundedByWhitespace", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, zweck: "  Grillfleisch  " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.zweck).toBe("Grillfleisch");
+  });
+
+  it("should_normalizeEmptyZweckToNull_when_zweckOmitted", () => {
+    const withoutZweck: Partial<typeof validAuslage> = { ...validAuslage };
+    delete withoutZweck.zweck;
+    const result = auslageSchema.safeParse(withoutZweck);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.zweck).toBeNull();
+  });
+
+  it("should_normalizeEmptyZweckToNull_when_zweckBlank", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, zweck: "   " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.zweck).toBeNull();
+  });
+
+  it("should_reject_when_teilnehmerIdEmpty", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, teilnehmerId: "  " });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_kategorieNotInEnum", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, kategorie: "getraenk" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_nameAllThreeCategoriesInMessage_when_kategorieInvalid", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, kategorie: "getraenk" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Kategorie muss Getränke, Essen oder Sonstiges sein.");
+    }
+  });
+
+  it("should_reject_when_betragZero", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "0" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_betragNegative", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "-5" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_betragNotNumeric", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "abc" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_betragHasThreeDecimals", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "5,555" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_betragExceedsInt4Max", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "99999999999" });
+    expect(result.success).toBe(false);
+  });
+
+  // Meldungsinhalt je Ablehnungsgrund separat vom Ablehnungs-Verhalten prüfen (Codify #116) –
+  // die drei Betrag-Meldungen sind fachlich unterschiedlich und der beobachtbare Vertrag.
+  it("should_nameFormatRule_when_betragNotNumeric", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "abc" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe(
+        "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.",
+      );
+    }
+  });
+
+  it("should_sayGreaterThanZero_when_betragZero", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "0" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Betrag muss größer als 0 sein.");
+    }
+  });
+
+  it("should_sayTooHigh_when_betragExceedsInt4Max", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, betrag: "99999999999" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Betrag ist zu hoch.");
+    }
+  });
+
+  it("should_reject_when_zweckTooLong", () => {
+    const result = auslageSchema.safeParse({ ...validAuslage, zweck: "x".repeat(201) });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("auslageStatusSchema", () => {
+  it("should_accept_when_statusOffen", () => {
+    const result = auslageStatusSchema.safeParse({ status: "offen" });
+    expect(result.success).toBe(true);
+  });
+
+  it("should_accept_when_statusErstattet", () => {
+    const result = auslageStatusSchema.safeParse({ status: "erstattet" });
+    expect(result.success).toBe(true);
+  });
+
+  it("should_reject_when_statusNotInEnum", () => {
+    const result = auslageStatusSchema.safeParse({ status: "storniert" });
+    expect(result.success).toBe(false);
   });
 });
