@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -128,6 +128,42 @@ AC-Kriterium eine Assertion (#117); `pnpm build`/typecheck vor Merge (#137, jetz
 
 Gates nach Rework grün: `pnpm test` 376 passed / 52 skip (DB-Integration), `pnpm lint` 0 Warnungen,
 `tsc --noEmit` clean.
+
+## Test-Notizen (/test, 2026-07-18)
+
+**Coverage-Analyse:** `pnpm test:coverage` zeigt `app/veranstaltung` (inkl. aller Auslagen-Dateien:
+`AuslageForm.tsx`, `AuslageRow.tsx`, `AuslagenSummary.tsx`, `auslagenSummen.ts`, `schema.ts`,
+`labels.ts`) bei 99,63 % Stmts / 98,19 % Branch / 100 % Funcs / 100 % Lines – alle Auslagen-Dateien
+selbst bei 100 % (Reporter listet nur unvollständige Dateien einzeln; `actions.ts`-Restlücken
+109/139/203 liegen in bereits vor #53 bestehenden, nicht-Auslagen-Actions). `db/auslage.ts` zeigt
+0 % nur weil die Integrationstests ohne laufende DB überspringen (`describe.skipIf(!hasDb)`,
+konsistent mit allen anderen `db/*.ts`-Data-Layer-Dateien im Projekt – kein #53-spezifisches Defizit).
+
+**AC-Vollständigkeits-Check gegen `spec-53-auslagen.md`:** alle Happy-Path-, Fehler- und
+Boundary-Fälle bereits während `/implement` + Review-Rework testbegleitet umgesetzt:
+- Betrag-Validierung: Format/`>0`/int4-Obergrenze je mit eigener Ablehnungs- **und** separater
+  Meldungsinhalts-Assertion (Codify #116/#117) – keine Lücke gefunden.
+- Pflichtfelder (Kategorie/Teilnehmer), Zweck-Obergrenze (200 Zeichen) inkl. Boundary (201 Zeichen
+  abgelehnt) – vorhanden.
+- Abschluss-Sperre (create/update/setStatus/remove) je mit eigenem Testfall – vorhanden.
+- IDOR-Bindung `veranstaltungId` im WHERE: `db/auslage.test.ts` (Integrationstests je Mutation,
+  DB-Integration) + actions-seitig über Mock-Rückgabe `undefined` (Codify #51) – vorhanden.
+- Guard-Clause-Branches (`assertTeilnehmerInVeranstaltung`: nicht zugeordnet / inaktiv) je für
+  create und update separat getestet – vorhanden.
+- Exhaustiveness-`never`-Guard in `auslagenSummen.ts` per Type-Cast erzwungen und getestet
+  (testing-standards.md) – vorhanden.
+- K1-Regressionstest (LEFT JOIN bei Zeilen-Löschung, verwaiste Auslage bleibt sichtbar) –
+  vorhanden (`should_keepAuslageVisibleWithFallbackName_when_zeileDeleted`, DB-Integration).
+
+**Ergebnis:** Keine fehlenden Tests identifiziert – kein Produktionscode oder Testcode geändert
+in diesem Schritt (Skill-Regel „kein Produktionscode ändern"). Gates final grün: `pnpm test` 376
+passed / 52 skip (DB-Integration, ohne laufende DB erwartungsgemäß), `bash scripts/checks/pre-push.sh`
+(Tests + Typecheck + Branch-Check) grün.
+
+**Weiterhin offen (unverändert aus Implementierungs-Notizen, kein `/test`-Scope):** Migrations-
+Smoke-Test gegen Wegwerf-DB (Docker-Grant fehlt in dieser Session) und Browser-/E2E-Verifikation
+(`.env.local` fehlt) – beide Session-Umgebungs-Blocker, nicht Test-Suite-Lücken. Nachziehen in
+`/post-merge-verify` bzw. sobald DB/`.env.local` verfügbar sind.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
