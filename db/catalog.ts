@@ -10,12 +10,19 @@ const catalogOrder = [asc(catalogItems.sortOrder), asc(catalogItems.name), asc(c
 
 // Vollständiger Katalog inkl. deaktivierter Artikel – für die Verwalter-Pflegeansicht.
 export function listCatalog(): Promise<CatalogItem[]> {
-  return db.select().from(catalogItems).orderBy(...catalogOrder);
+  return db
+    .select()
+    .from(catalogItems)
+    .orderBy(...catalogOrder);
 }
 
 // Nur aktive Artikel – für die Auswahl in neuen Abenden (F4/F5).
 export function listActiveCatalog(): Promise<CatalogItem[]> {
-  return db.select().from(catalogItems).where(eq(catalogItems.active, true)).orderBy(...catalogOrder);
+  return db
+    .select()
+    .from(catalogItems)
+    .where(eq(catalogItems.active, true))
+    .orderBy(...catalogOrder);
 }
 
 // Einzelner Artikel per id – u. a. für die Preis-/Aktiv-Prüfung an der Verzehr-Action-Grenze

@@ -95,7 +95,10 @@ export async function removeZeile(
   const [removed] = await db
     .delete(veranstaltungZeile)
     .where(
-      and(eq(veranstaltungZeile.id, zeileId), eq(veranstaltungZeile.veranstaltungId, veranstaltungId)),
+      and(
+        eq(veranstaltungZeile.id, zeileId),
+        eq(veranstaltungZeile.veranstaltungId, veranstaltungId),
+      ),
     )
     .returning();
   return removed;
@@ -113,7 +116,10 @@ export async function getZeile(
     .select()
     .from(veranstaltungZeile)
     .where(
-      and(eq(veranstaltungZeile.id, zeileId), eq(veranstaltungZeile.veranstaltungId, veranstaltungId)),
+      and(
+        eq(veranstaltungZeile.id, zeileId),
+        eq(veranstaltungZeile.veranstaltungId, veranstaltungId),
+      ),
     )
     .limit(1);
   return row;

@@ -177,7 +177,10 @@ export const veranstaltung = pgTable(
       .on(v.kasse)
       .where(sql`${v.typ} = 'theke'`),
     // ADR-023 D4 – Datum ist Pflicht für datierte Veranstaltungen, nicht für die Theke.
-    check("veranstaltung_datum_pflicht", sql`${v.typ} <> 'veranstaltung' OR ${v.datum} IS NOT NULL`),
+    check(
+      "veranstaltung_datum_pflicht",
+      sql`${v.typ} <> 'veranstaltung' OR ${v.datum} IS NOT NULL`,
+    ),
     // ADR-023 D2 – Kasse fail-closed ohne Enum-Typ (Werte synchron zu KASSEN halten).
     check("veranstaltung_kasse_gueltig", sql`${v.kasse} IN ('montagsrunde', 'vereinskasse')`),
   ],

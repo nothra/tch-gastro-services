@@ -35,11 +35,25 @@ export function MengeControl({
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="zeileId" value={zeileId} />
       <input type="hidden" name="catalogItemId" value={catalogItemId} />
-      <button type="submit" name="delta" value="-1" disabled={pending} aria-label="Menge verringern" className={buttonClass}>
+      <button
+        type="submit"
+        name="delta"
+        value="-1"
+        disabled={pending}
+        aria-label="Menge verringern"
+        className={buttonClass}
+      >
         −
       </button>
       <span className="w-6 text-center tabular-nums font-medium">{menge}</span>
-      <button type="submit" name="delta" value="1" disabled={pending} aria-label="Menge erhöhen" className={buttonClass}>
+      <button
+        type="submit"
+        name="delta"
+        value="1"
+        disabled={pending}
+        aria-label="Menge erhöhen"
+        className={buttonClass}
+      >
         +
       </button>
       {state?.error && <span className="text-sm text-red-600">{state.error}</span>}

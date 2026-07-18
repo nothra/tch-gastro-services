@@ -18,14 +18,14 @@ import {
   setStatus,
 } from "@/db/veranstaltung";
 import { adjustMenge, getPosition } from "@/db/verzehr";
-import {
-  createAuslage,
-  removeAuslage,
-  setAuslageStatus,
-  updateAuslage,
-} from "@/db/auslage";
+import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
-import { auslageSchema, auslageStatusSchema, veranstaltungSchema, verzehrAdjustSchema } from "./schema";
+import {
+  auslageSchema,
+  auslageStatusSchema,
+  veranstaltungSchema,
+  verzehrAdjustSchema,
+} from "./schema";
 
 const LIST_PATH = "/veranstaltung";
 const detailPath = (id: string) => `${LIST_PATH}/${id}`;
@@ -138,7 +138,11 @@ export async function setStatusAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!id) return;
-  if (!veranstaltungStatus.enumValues.includes(status as (typeof veranstaltungStatus.enumValues)[number])) {
+  if (
+    !veranstaltungStatus.enumValues.includes(
+      status as (typeof veranstaltungStatus.enumValues)[number],
+    )
+  ) {
     return;
   }
 
@@ -248,7 +252,10 @@ export async function createAuslageAction(
   if (!ziel) return { error: NOT_FOUND };
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
-  const guardError = await assertTeilnehmerInVeranstaltung(veranstaltungId, parsed.data.teilnehmerId);
+  const guardError = await assertTeilnehmerInVeranstaltung(
+    veranstaltungId,
+    parsed.data.teilnehmerId,
+  );
   if (guardError) return { error: guardError };
 
   await createAuslage({
@@ -280,7 +287,10 @@ export async function updateAuslageAction(
   if (!ziel) return { error: NOT_FOUND };
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
-  const guardError = await assertTeilnehmerInVeranstaltung(veranstaltungId, parsed.data.teilnehmerId);
+  const guardError = await assertTeilnehmerInVeranstaltung(
+    veranstaltungId,
+    parsed.data.teilnehmerId,
+  );
   if (guardError) return { error: guardError };
 
   const updated = await updateAuslage(auslageId, veranstaltungId, {

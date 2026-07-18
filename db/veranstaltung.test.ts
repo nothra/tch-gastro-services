@@ -43,7 +43,11 @@ async function trackVeranstaltung(data: VeranstaltungData) {
 }
 
 async function trackTeilnehmer(name: string) {
-  const row = await createTeilnehmer({ name: `${TEST_PREFIX}${name}`, typ: "person", mitglied: false });
+  const row = await createTeilnehmer({
+    name: `${TEST_PREFIX}${name}`,
+    typ: "person",
+    mitglied: false,
+  });
   createdTeilnehmer.push(row.id);
   return row;
 }
@@ -51,7 +55,9 @@ async function trackTeilnehmer(name: string) {
 describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
   afterEach(async () => {
     if (createdVeranstaltungen.length > 0) {
-      await db.delete(veranstaltung).where(inArray(veranstaltung.id, createdVeranstaltungen.splice(0)));
+      await db
+        .delete(veranstaltung)
+        .where(inArray(veranstaltung.id, createdVeranstaltungen.splice(0)));
     }
     if (createdTeilnehmer.length > 0) {
       await db.delete(teilnehmer).where(inArray(teilnehmer.id, createdTeilnehmer.splice(0)));
@@ -93,7 +99,12 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     await expect(
       db
         .insert(veranstaltung)
-        .values({ typ: "veranstaltung", bezeichnung: `${TEST_PREFIX}NoDate`, kasse: "montagsrunde", datum: null })
+        .values({
+          typ: "veranstaltung",
+          bezeichnung: `${TEST_PREFIX}NoDate`,
+          kasse: "montagsrunde",
+          datum: null,
+        })
         .returning(),
     ).rejects.toThrow();
   });
@@ -105,7 +116,11 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
         // `kasse` ist auf DB-Ebene `text` (kein TS-Enum) – der ungültige Wert ist für
         // TypeScript ein normaler String, der Fehler kommt ausschließlich aus der
         // Postgres-CHECK `veranstaltung_kasse_gueltig` zur Laufzeit.
-        .values({ bezeichnung: `${TEST_PREFIX}BadKasse`, kasse: "sparkasse", datum: new Date("2026-07-13") })
+        .values({
+          bezeichnung: `${TEST_PREFIX}BadKasse`,
+          kasse: "sparkasse",
+          datum: new Date("2026-07-13"),
+        })
         .returning(),
     ).rejects.toThrow();
   });
@@ -144,7 +159,10 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const zeile = await addZeile(v.id, person);
 
     // Name in den Stammdaten ändern → die Zeile bleibt namenstreu (ADR-022-Vertrag).
-    await db.update(teilnehmer).set({ name: `${TEST_PREFIX}Geändert` }).where(inArray(teilnehmer.id, [person.id]));
+    await db
+      .update(teilnehmer)
+      .set({ name: `${TEST_PREFIX}Geändert` })
+      .where(inArray(teilnehmer.id, [person.id]));
 
     const [refetched] = await listZeilen(v.id);
     expect(refetched.anzeigename).toBe(zeile.anzeigename);
@@ -204,7 +222,12 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     await expect(
       db
         .insert(veranstaltung)
-        .values({ typ: "theke", bezeichnung: `${TEST_PREFIX}Zweite`, kasse: "montagsrunde", datum: null })
+        .values({
+          typ: "theke",
+          bezeichnung: `${TEST_PREFIX}Zweite`,
+          kasse: "montagsrunde",
+          datum: null,
+        })
         .returning(),
     ).rejects.toThrow();
   });

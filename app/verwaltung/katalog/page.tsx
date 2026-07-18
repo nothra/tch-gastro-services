@@ -23,9 +23,7 @@ export default async function CatalogPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Katalog
-      </h1>
+      <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Katalog</h1>
       <CatalogItemForm />
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">Artikel ({items.length})</h2>

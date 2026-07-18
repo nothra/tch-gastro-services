@@ -87,10 +87,7 @@ describe.skipIf(!hasDb)("teilnehmer data-layer (integration)", () => {
 
   it("should_updateNameAndMitglied_when_updated", async () => {
     const row = await track(person("Umbenennen", { mitglied: false }));
-    const updated = await updateTeilnehmer(
-      row.id,
-      person("Umbenannt", { mitglied: true }),
-    );
+    const updated = await updateTeilnehmer(row.id, person("Umbenannt", { mitglied: true }));
     expect(updated?.name).toBe(`${TEST_PREFIX}Umbenannt`);
     expect(updated?.mitglied).toBe(true);
   });

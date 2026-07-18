@@ -6,7 +6,11 @@ import { teilnehmerTyp } from "@/db/schema";
 // Checkbox: gesetzt → "on", nicht gesetzt → Feld fehlt (undefined) → false. Alle Meldungen
 // sind für Konsumenten, nicht für Entwickler.
 export const teilnehmerSchema = z.object({
-  name: z.string().trim().min(1, "Anzeigename ist erforderlich.").max(200, "Anzeigename ist zu lang."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Anzeigename ist erforderlich.")
+    .max(200, "Anzeigename ist zu lang."),
   typ: z.enum(teilnehmerTyp.enumValues, {
     error: "Typ muss Person oder Familie sein.",
   }),

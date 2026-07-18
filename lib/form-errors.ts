@@ -3,8 +3,6 @@
 // Parametertyp ist bewusst strukturell minimal (nur `issues[].message`) statt an
 // `ZodError` gebunden – so bleibt der Helfer ohne Zod-Aufbau testbar und deckt jede
 // safeParse-Fehlerform ab.
-export function firstIssueMessage(error: {
-  issues: { message: string }[];
-}): string {
+export function firstIssueMessage(error: { issues: { message: string }[] }): string {
   return error.issues[0]?.message ?? "Ungültige Eingabe.";
 }

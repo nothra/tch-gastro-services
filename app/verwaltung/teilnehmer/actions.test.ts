@@ -183,9 +183,9 @@ describe("setTeilnehmerActiveAction", () => {
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
-    await expect(
-      setTeilnehmerActiveAction(form({ id: "abc", active: "false" })),
-    ).rejects.toThrow(ForbiddenError);
+    await expect(setTeilnehmerActiveAction(form({ id: "abc", active: "false" }))).rejects.toThrow(
+      ForbiddenError,
+    );
     expect(setTeilnehmerActiveMock).not.toHaveBeenCalled();
   });
 });

@@ -33,7 +33,11 @@ async function trackVeranstaltung() {
 }
 
 async function trackTeilnehmer(name: string) {
-  const row = await createTeilnehmer({ name: `${TEST_PREFIX}${name}`, typ: "person", mitglied: false });
+  const row = await createTeilnehmer({
+    name: `${TEST_PREFIX}${name}`,
+    typ: "person",
+    mitglied: false,
+  });
   createdTeilnehmer.push(row.id);
   return row;
 }
@@ -45,7 +49,9 @@ async function setupZeile(name: string) {
   return { veranstaltungId: v.id, teilnehmerId: person.id, zeileId: zeile.id };
 }
 
-function auslageData(overrides: Partial<AuslageData> & Pick<AuslageData, "veranstaltungId" | "teilnehmerId">): AuslageData {
+function auslageData(
+  overrides: Partial<AuslageData> & Pick<AuslageData, "veranstaltungId" | "teilnehmerId">,
+): AuslageData {
   return {
     kategorie: "sonstiges",
     betragCents: 500,
@@ -57,7 +63,9 @@ function auslageData(overrides: Partial<AuslageData> & Pick<AuslageData, "verans
 describe.skipIf(!hasDb)("auslage data-layer (integration)", () => {
   afterEach(async () => {
     if (createdVeranstaltungen.length > 0) {
-      await db.delete(veranstaltung).where(inArray(veranstaltung.id, createdVeranstaltungen.splice(0)));
+      await db
+        .delete(veranstaltung)
+        .where(inArray(veranstaltung.id, createdVeranstaltungen.splice(0)));
     }
     if (createdTeilnehmer.length > 0) {
       await db.delete(teilnehmer).where(inArray(teilnehmer.id, createdTeilnehmer.splice(0)));
@@ -76,7 +84,13 @@ describe.skipIf(!hasDb)("auslage data-layer (integration)", () => {
     await expect(
       db
         .insert(auslage)
-        .values({ veranstaltungId, teilnehmerId, kategorie: "sonstiges", betragCents: 0, zweck: null })
+        .values({
+          veranstaltungId,
+          teilnehmerId,
+          kategorie: "sonstiges",
+          betragCents: 0,
+          zweck: null,
+        })
         .returning(),
     ).rejects.toThrow();
   });
@@ -107,7 +121,9 @@ describe.skipIf(!hasDb)("auslage data-layer (integration)", () => {
   it("should_notListAuslageOfOtherVeranstaltung_when_listing", async () => {
     const eigene = await setupZeile("Dora");
     const fremde = await setupZeile("Emil");
-    await createAuslage(auslageData({ veranstaltungId: fremde.veranstaltungId, teilnehmerId: fremde.teilnehmerId }));
+    await createAuslage(
+      auslageData({ veranstaltungId: fremde.veranstaltungId, teilnehmerId: fremde.teilnehmerId }),
+    );
 
     const list = await listAuslagen(eigene.veranstaltungId);
     expect(list).toHaveLength(0);

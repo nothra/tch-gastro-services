@@ -28,7 +28,11 @@ async function trackVeranstaltung() {
 }
 
 async function trackTeilnehmer(name: string) {
-  const row = await createTeilnehmer({ name: `${TEST_PREFIX}${name}`, typ: "person", mitglied: false });
+  const row = await createTeilnehmer({
+    name: `${TEST_PREFIX}${name}`,
+    typ: "person",
+    mitglied: false,
+  });
   createdTeilnehmer.push(row.id);
   return row;
 }
@@ -39,7 +43,13 @@ async function trackItem(
   category: "getraenk" | "kaffee" | "essen",
   size = "",
 ) {
-  const row = await createItem({ name: `${TEST_PREFIX}${name}`, size, priceCents, category, sortOrder: 0 });
+  const row = await createItem({
+    name: `${TEST_PREFIX}${name}`,
+    size,
+    priceCents,
+    category,
+    sortOrder: 0,
+  });
   createdItems.push(row.id);
   return row;
 }
@@ -47,7 +57,9 @@ async function trackItem(
 describe.skipIf(!hasDb)("verzehr data-layer (integration)", () => {
   afterEach(async () => {
     if (createdVeranstaltungen.length > 0) {
-      await db.delete(veranstaltung).where(inArray(veranstaltung.id, createdVeranstaltungen.splice(0)));
+      await db
+        .delete(veranstaltung)
+        .where(inArray(veranstaltung.id, createdVeranstaltungen.splice(0)));
     }
     if (createdTeilnehmer.length > 0) {
       await db.delete(teilnehmer).where(inArray(teilnehmer.id, createdTeilnehmer.splice(0)));
@@ -130,7 +142,12 @@ describe.skipIf(!hasDb)("verzehr data-layer (integration)", () => {
     const positionen = await listPositionen(v.id);
     const eintrag = positionen.find((p) => p.catalogItemId === essen.id);
 
-    expect(eintrag).toMatchObject({ zeileId: zeile.id, menge: 2, priceCents: 890, category: "essen" });
+    expect(eintrag).toMatchObject({
+      zeileId: zeile.id,
+      menge: 2,
+      priceCents: 890,
+      category: "essen",
+    });
     expect(eintrag?.name).toContain("Schnitzel");
   });
 

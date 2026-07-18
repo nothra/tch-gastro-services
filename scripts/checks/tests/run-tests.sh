@@ -1634,6 +1634,36 @@ done
   && grep -q 'github.event.pull_request.body' "$CI_FILE"; }
 assert_true "$?" "#112: CI verdrahtet das Closing-Keyword-Gate (Script + PR-Body-Env)"
 
+# ─── #149: Format-Gate in pre-push.sh (Prettier-Konformität) ─────────────────
+# Ursache des Drifts (Task 149): format:check war an keinem Gate verdrahtet.
+# Struktur UND Verhalten absichern – analog zum #101-Lint-Gate-Test.
+echo ""
+echo "#149 pre-push.sh Format-Gate (prettier --check):"
+
+# (Struktur) Das Gate nutzt den Env-Override FACTORY_FORMAT_COMMAND mit pnpm-Default.
+{ grep -q 'FACTORY_FORMAT_COMMAND' "$CHECKS_DIR/pre-push.sh" \
+  && grep -q 'format:check' "$CHECKS_DIR/pre-push.sh"; }
+assert_true "$?" "#149: pre-push.sh enthält das Format-Gate (FACTORY_FORMAT_COMMAND + format:check)"
+
+# (Verhalten) In einem Temp-Repo auf einem Feature-Branch die teuren Gates via Override
+# neutralisieren (true), sodass allein das Format-Gate das Ergebnis bestimmt. Beweist,
+# dass das Gate den ECHTEN Befehl ausführt (rot → blockiert) und der Env-Override greift.
+TMP_G149="$(mktemp -d)"
+git -C "$TMP_G149" init -q
+git -C "$TMP_G149" checkout -q -b feature/149-format-gate-test
+git -C "$TMP_G149" -c user.email="t@t.com" -c user.name="t" commit -q --allow-empty -m init
+run_prepush_149() { # $1 = FACTORY_FORMAT_COMMAND-Wert
+  ( cd "$TMP_G149" && FACTORY_TEST_COMMAND=true FACTORY_TYPECHECK_COMMAND=true \
+      FACTORY_FORMAT_COMMAND="$1" bash "$CHECKS_DIR/pre-push.sh" >/dev/null 2>&1 )
+}
+run_prepush_149 "false"
+assert_exit 1 "$?" "#149: Drift (Format-Befehl exit 1) blockiert den Push fail-closed"
+run_prepush_149 "true"
+assert_exit 0 "$?" "#149: konform (Format-Befehl exit 0) lässt den Push zu"
+run_prepush_149 ""
+assert_exit 0 "$?" "#149: leerer FACTORY_FORMAT_COMMAND deaktiviert das Gate (nicht blockierend)"
+rm -rf "$TMP_G149"
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"

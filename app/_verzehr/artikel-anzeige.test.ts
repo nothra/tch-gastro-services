@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { groessenSuffix, groessenLabel, gruppiereArtikel, type VerzehrArtikel } from "./artikel-anzeige";
+import {
+  groessenSuffix,
+  groessenLabel,
+  gruppiereArtikel,
+  type VerzehrArtikel,
+} from "./artikel-anzeige";
 
 function artikel(overrides: Partial<VerzehrArtikel> = {}): VerzehrArtikel {
   return {

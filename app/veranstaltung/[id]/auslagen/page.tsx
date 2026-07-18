@@ -16,11 +16,7 @@ import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 // die Summen-Übersicht, das Erfassungsformular (nur solange die Veranstaltung offen ist) und die
 // Auslagen-Liste. Nur Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter
 // dem bereits von `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
-export default async function AuslagenPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AuslagenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
   if (!hasRole(session?.user?.roles, "veranstalter")) {
@@ -71,7 +67,11 @@ export default async function AuslagenPage({
       {offen && (
         <section className="flex flex-col gap-3">
           <h2 className="font-semibold">Auslage erfassen</h2>
-          <AuslageForm action={createAction} teilnehmer={teilnehmer} submitLabel="Auslage erfassen" />
+          <AuslageForm
+            action={createAction}
+            teilnehmer={teilnehmer}
+            submitLabel="Auslage erfassen"
+          />
         </section>
       )}
 

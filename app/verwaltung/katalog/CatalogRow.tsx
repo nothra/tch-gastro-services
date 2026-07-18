@@ -13,10 +13,7 @@ export function CatalogRow({ item }: { item: CatalogItem }) {
   // Schließt die Inline-Bearbeitung nach erfolgreichem Speichern. setState in der
   // Action statt in einem useEffect (react-hooks/set-state-in-effect vermeiden).
   const actionWithClose = useCallback(
-    async (
-      prevState: Parameters<typeof updateCatalogItemAction>[0],
-      formData: FormData,
-    ) => {
+    async (prevState: Parameters<typeof updateCatalogItemAction>[0], formData: FormData) => {
       const result = await updateCatalogItemAction(prevState, formData);
       if (result.ok) setEditing(false);
       return result;

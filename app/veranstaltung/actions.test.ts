@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
-import type { Auslage, CatalogItem, Teilnehmer, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
+import type {
+  Auslage,
+  CatalogItem,
+  Teilnehmer,
+  Veranstaltung,
+  VeranstaltungZeile,
+} from "@/db/schema";
 import { ForbiddenError } from "@/lib/authz";
 
 // Gemockt wird die externe Grenze (auth()) sowie Data-Layer und Cache. Der Rollen-Guard
@@ -107,7 +113,11 @@ const person: Teilnehmer = {
   updatedAt: new Date(),
 };
 
-const validVeranstaltung = { bezeichnung: "Montagsrunde", datum: "2026-07-13", kasse: "montagsrunde" };
+const validVeranstaltung = {
+  bezeichnung: "Montagsrunde",
+  datum: "2026-07-13",
+  kasse: "montagsrunde",
+};
 
 const zeile: VeranstaltungZeile = {
   id: "z1",
@@ -142,7 +152,12 @@ const auslage: Auslage = {
   updatedAt: new Date(),
 };
 
-const validAuslage = { teilnehmerId: "t1", kategorie: "sonstiges", betrag: "5,50", zweck: "Grillfleisch" };
+const validAuslage = {
+  teilnehmerId: "t1",
+  kategorie: "sonstiges",
+  betrag: "5,50",
+  zweck: "Grillfleisch",
+};
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -209,7 +224,10 @@ describe("createVeranstaltungAction", () => {
 
 describe("addZeileAction", () => {
   it("should_addZeileWithSnapshotName_when_inputValid", async () => {
-    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" }));
+    const result = await addZeileAction(
+      undefined,
+      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
+    );
 
     expect(result).toEqual({ ok: true });
     expect(addZeileMock).toHaveBeenCalledWith("v1", person);
@@ -227,7 +245,10 @@ describe("addZeileAction", () => {
   it("should_returnError_when_veranstaltungClosed", async () => {
     getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
 
-    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" }));
+    const result = await addZeileAction(
+      undefined,
+      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
+    );
 
     expect(result.error).toBeDefined();
     expect(addZeileMock).not.toHaveBeenCalled();
@@ -236,7 +257,10 @@ describe("addZeileAction", () => {
   it("should_returnError_when_veranstaltungNotFound", async () => {
     getVeranstaltungMock.mockResolvedValue(undefined);
 
-    const result = await addZeileAction(undefined, form({ veranstaltungId: "x", teilnehmerId: "t1" }));
+    const result = await addZeileAction(
+      undefined,
+      form({ veranstaltungId: "x", teilnehmerId: "t1" }),
+    );
 
     expect(result.error).toBeDefined();
     expect(addZeileMock).not.toHaveBeenCalled();
@@ -245,7 +269,10 @@ describe("addZeileAction", () => {
   it("should_returnFriendlyError_when_teilnehmerAlreadyAdded", async () => {
     addZeileMock.mockRejectedValue({ code: "23505" });
 
-    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" }));
+    const result = await addZeileAction(
+      undefined,
+      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
+    );
 
     expect(result.error).toMatch(/bereits erfasst/);
   });
@@ -253,7 +280,10 @@ describe("addZeileAction", () => {
   it("should_returnErrorAndNotPersist_when_teilnehmerInactive", async () => {
     getTeilnehmerMock.mockResolvedValue({ ...person, active: false });
 
-    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" }));
+    const result = await addZeileAction(
+      undefined,
+      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
+    );
 
     expect(result.error).toBeDefined();
     expect(addZeileMock).not.toHaveBeenCalled();
@@ -443,9 +473,9 @@ describe("ensureThekeAction", () => {
 
   it("should_rethrow_when_nonUniqueErrorOccurs", async () => {
     ensureThekeMock.mockRejectedValue(new Error("Connection lost"));
-    await expect(
-      ensureThekeAction(undefined, form({ kasse: "montagsrunde" })),
-    ).rejects.toThrow("Connection lost");
+    await expect(ensureThekeAction(undefined, form({ kasse: "montagsrunde" }))).rejects.toThrow(
+      "Connection lost",
+    );
   });
 });
 

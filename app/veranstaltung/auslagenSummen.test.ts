@@ -18,17 +18,23 @@ describe("auslagenSummen", () => {
   });
 
   it("should_addToOffen_when_statusOffen", () => {
-    const summen = auslagenSummen([eintrag({ kategorie: "getraenke", betragCents: 300, status: "offen" })]);
+    const summen = auslagenSummen([
+      eintrag({ kategorie: "getraenke", betragCents: 300, status: "offen" }),
+    ]);
     expect(summen.getraenke).toEqual({ offenCents: 300, erstattetCents: 0 });
   });
 
   it("should_addToErstattet_when_statusErstattet", () => {
-    const summen = auslagenSummen([eintrag({ kategorie: "essen", betragCents: 400, status: "erstattet" })]);
+    const summen = auslagenSummen([
+      eintrag({ kategorie: "essen", betragCents: 400, status: "erstattet" }),
+    ]);
     expect(summen.essen).toEqual({ offenCents: 0, erstattetCents: 400 });
   });
 
   it("should_sumSonstiges_when_kategorieSonstiges", () => {
-    const summen = auslagenSummen([eintrag({ kategorie: "sonstiges", betragCents: 250, status: "offen" })]);
+    const summen = auslagenSummen([
+      eintrag({ kategorie: "sonstiges", betragCents: 250, status: "offen" }),
+    ]);
     expect(summen.sonstiges).toEqual({ offenCents: 250, erstattetCents: 0 });
   });
 

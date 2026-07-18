@@ -7,8 +7,7 @@ import { createItem, setItemActive, updateItem } from "@/db/catalog";
 import { catalogItemSchema } from "./schema";
 
 const CATALOG_PATH = "/verwaltung/katalog";
-const DUPLICATE_MESSAGE =
-  "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
+const DUPLICATE_MESSAGE = "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
 
 export type CatalogFormState = { ok?: boolean; error?: string };
 
@@ -26,9 +25,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 // Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung.
 // Gibt null zurück wenn erfolgreich, ansonsten den Fehlerzustand.
-async function runWithUniqueCheck(
-  fn: () => Promise<unknown>,
-): Promise<CatalogFormState | null> {
+async function runWithUniqueCheck(fn: () => Promise<unknown>): Promise<CatalogFormState | null> {
   try {
     await fn();
     return null;

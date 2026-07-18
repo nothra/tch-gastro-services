@@ -4,9 +4,7 @@ import { firstIssueMessage } from "./form-errors";
 
 describe("firstIssueMessage", () => {
   it("should_returnIssueMessage_when_singleIssue", () => {
-    const result = z
-      .object({ name: z.string({ error: "Name fehlt" }) })
-      .safeParse({ name: 123 });
+    const result = z.object({ name: z.string({ error: "Name fehlt" }) }).safeParse({ name: 123 });
     if (result.success) throw new Error("Parsing sollte fehlschlagen");
 
     expect(firstIssueMessage(result.error)).toBe("Name fehlt");

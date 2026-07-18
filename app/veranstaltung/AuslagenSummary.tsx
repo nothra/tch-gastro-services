@@ -5,7 +5,15 @@ import type { AuslagenSummen, KategorieSummen } from "./auslagenSummen";
 // Präsentationale Übersicht der Auslagen-Summen (ADR-028 D4): je Kategorie und gesamt, getrennt
 // nach „offen zu erstatten" und „erstattet". Reine Anzeige – die Summen berechnet das DB-freie
 // `auslagenSummen`-Modul, die Beträge formatiert `formatCents` (de-DE).
-function SummenRow({ label, summen, bold }: { label: string; summen: KategorieSummen; bold?: boolean }) {
+function SummenRow({
+  label,
+  summen,
+  bold,
+}: {
+  label: string;
+  summen: KategorieSummen;
+  bold?: boolean;
+}) {
   const cellClass = bold ? "font-semibold" : "";
   return (
     <tr className="border-t border-zinc-200 dark:border-zinc-800">

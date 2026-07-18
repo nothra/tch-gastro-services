@@ -14,11 +14,7 @@ import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 // reicht die an diese Veranstaltung gebundene Veranstalter-Action in die route-neutrale UI
 // (app/_verzehr). Nur Veranstalter (serverseitig auch in der Action durchgesetzt). Solange die
 // Veranstaltung offen ist, ist die Erfassung editierbar; abgeschlossen → nur Lesesicht.
-export default async function VerzehrPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function VerzehrPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
   if (!hasRole(session?.user?.roles, "veranstalter")) {
