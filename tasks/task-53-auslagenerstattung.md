@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -199,7 +199,19 @@ Warnungen, `bash scripts/checks/pre-push.sh` (Tests + Typecheck + Branch-Check) 
 musste angepasst werden – reine Struktur-Änderungen ohne Verhaltensänderung.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Voller Report: `tasks/codify-53.md`. Zwei neue projektspezifische Regeln in
+`docs/factory/PROJECT-CONTEXT.md` (Bekannte Stolpersteine) ergänzt:
+
+- **Orphan-sichere Joins:** INNER JOIN auf eine Tabelle, die nicht die Existenzgrundlage der
+  eigenen Zeile ist, kann Zeilen still aus Listen/Summen verschwinden lassen, wenn die
+  referenzierte Zeile gelöscht wird (aus Review-Finding K1) – LEFT JOIN + COALESCE-Fallback.
+- **Formular-Reset per `formRef.reset()` statt key-Remount** für Reset nach **jeder**
+  erfolgreichen Erfassung, nicht nur der ersten (aus Review-Finding W1).
+
+W2 (Betrag-Meldungsinhalt) war bereits durch Codify #116/#117 abgedeckt – keine neue Regel,
+nur bestätigt, dass die bestehende Regel den Fund korrekt vorhergesagt hätte. Übrige Nitpicks
+und der Security-Hinweis zeigen kein generalisierbares neues Muster – keine weiteren Änderungen.
 
 ---
 Branch: `feature/53-auslagenerstattung`

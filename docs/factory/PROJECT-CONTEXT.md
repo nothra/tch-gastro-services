@@ -603,6 +603,45 @@ nur gegen den eigenen Diff – ein vorbestehender Verstoß anderswo im Repo (hie
 stale `@ts-expect-error` in `db/veranstaltung.test.ts`, unabhängig von #137) blockiert
 sonst sofort jeden Push auf jedem Branch, sobald das Gate scharf ist.
 
+### Orphan-sichere Joins: Snapshot-Referenz kann verschwinden, auch wenn die Business-Entity bleibt (aus #53, Review-Finding K1)
+
+`listAuslagen` jointe anfangs per **INNER JOIN** auf `veranstaltung_zeile`, nur um den
+Anzeigenamen zu snapshotten. `auslage` hat aber **keinen** FK auf `zeile` – der Bezug läuft
+implizit über `teilnehmerId`. Wird die Zeile gelöscht (Teilnehmer aus der Veranstaltung entfernt),
+aber die zugehörige `auslage` bleibt bestehen (kein Cascade von dort), verschwand sie durch das
+INNER JOIN **still** aus Übersicht, Summen und der F8-Kassenabrechnung – ein stiller
+Kassen-Datenverlust, obwohl der Datensatz selbst unverändert in der DB stand.
+
+**Regel:** Bezieht eine Tabelle einen reinen Anzeigewert (Name, Snapshot) über einen JOIN aus
+einer **anderen** Tabelle, die unabhängig von der eigenen Zeile gelöscht werden kann (kein
+`onDelete: cascade` **von dort auf diese Zeile**), muss der JOIN ein **LEFT JOIN** mit
+`COALESCE`-Fallback auf eine stabilere Quelle sein (hier: `teilnehmer.name`, `onDelete: no
+action`, nie hart gelöscht) – nicht ein INNER JOIN. Faustregel: Ein INNER JOIN auf eine Tabelle,
+die nicht die Existenzgrundlage der eigenen Zeile ist, ist ein Kandidat für stillen Datenverlust
+in Listen/Summen/nachgelagerten Abrechnungen. Pflicht-Begleitung: Integrationstest, der die
+referenzierte Zeile löscht und prüft, dass der Eintrag weiterhin sichtbar/summenwirksam bleibt
+(Fallback-Name) – siehe `should_keepAuslageVisibleWithFallbackName_when_zeileDeleted`.
+
+### Formular-Reset nach jeder Erfassung: key-Remount wirkt nur einmalig (aus #53, Review-Finding W1)
+
+Ein key-basierter Remount (`<Form key={counter} />`, `counter` bei Erfolg hochgezählt) sieht wie
+ein generischer Reset-Trick aus, leert die Felder aber nur **einmal** zuverlässig – bleibt der
+Key nach dem ersten Erfolg unverändert (z. B. weil der Zähler nicht bei jeder Aktion neu
+abgeleitet wird), stehen bei Folge-Erfassungen die alten Werte weiter im Formular. Ein Test, der
+nur den ersten Erfolgsfall prüft, deckt das nicht auf.
+
+**Regel:** Soll ein unkontrolliertes Formular nach **jeder** erfolgreichen Server-Action geleert
+werden (nicht nur einmalig), `formRef.current?.reset()` in dem `useCallback`-Wrapper um die
+Action aufrufen (kein `useEffect`, analog zur bestehenden Regel oben zu `useActionState` +
+Inline-Toggle) – nicht per key-Remount. Der Testfall muss **zwei aufeinanderfolgende**
+erfolgreiche Submits prüfen, nicht nur den ersten, sonst bleibt die Regression unsichtbar:
+```ts
+it("should_clearFields_when_createSucceeds", async () => {
+  // 1. Submit → Felder leer
+  // 2. Submit (erneut erfolgreich) → Felder weiterhin leer, nicht nur beim ersten Mal
+});
+```
+
 ---
 
 ## Offene Architektur-Fragen
