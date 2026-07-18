@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Feature F6 – **Auslagenerstattung als eigener Vorgang**. Der Veranstalter (vormals Abrechner)
@@ -212,6 +212,10 @@ Voller Report: `tasks/codify-53.md`. Zwei neue projektspezifische Regeln in
 W2 (Betrag-Meldungsinhalt) war bereits durch Codify #116/#117 abgedeckt – keine neue Regel,
 nur bestätigt, dass die bestehende Regel den Fund korrekt vorhergesagt hätte. Übrige Nitpicks
 und der Security-Hinweis zeigen kein generalisierbares neues Muster – keine weiteren Änderungen.
+
+PR-Shepherd [2026-07-18]: Auto-Merge freigegeben – alle Gates grün (CI: lint/test/issue-sync/
+pr-closes-issue pass, Branch 0 commits hinter `main`, kein Approval-Gate konfiguriert, keine
+offenen Review-Kommentare). Draft → ready for review überführt (`gh pr ready`).
 
 ---
 Branch: `feature/53-auslagenerstattung`
