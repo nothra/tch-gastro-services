@@ -8,7 +8,7 @@
 
 ## Kontext
 
-Die App verwaltet Preise, Stammdaten, Abende und Bargeld. Diese Aktionen dürfen nur
+Die App verwaltet Preise, Stammdaten, Veranstaltungen und Bargeld. Diese Aktionen dürfen nur
 berechtigte Personen ausführen. Es gibt zwei Verantwortlichkeiten: **Verwalter** (pflegt
 Stammdaten & Preise) und **Veranstalter** (Owner des Veranstaltungs-Lebenszyklus: anlegen,
 führen, kassieren). Teilnehmer der
@@ -33,7 +33,7 @@ Montagsrunde brauchen **kein** Konto (siehe F7 Selbstbedienung).
 |---|---|---|
 | Getränke-Katalog & Preise pflegen (F2) | ✅ | ❌ |
 | Teilnehmer-Stammdaten pflegen (F3) | ✅ | ❌ |
-| Abend anlegen/führen/abschließen (F4, F8) | ✅ | ✅ |
+| Veranstaltung anlegen/führen/abschließen (F4, F8) | ✅ | ✅ |
 | Verzehr erfassen (F5) | ✅ | ✅ |
 | Kassieren (F8) | ✅ | ✅ |
 
@@ -42,7 +42,7 @@ Montagsrunde brauchen **kein** Konto (siehe F7 Selbstbedienung).
 ## Akzeptanzkriterien
 
 - [ ] GIVEN ein nicht angemeldeter Besucher WHEN er eine geschützte Seite (Stammdaten,
-      Abend-Verwaltung) öffnet THEN wird er zur Anmeldung geleitet und sieht keine
+      Veranstaltungs-Verwaltung) öffnet THEN wird er zur Anmeldung geleitet und sieht keine
       geschützten Daten.
 - [ ] GIVEN gültige Zugangsdaten WHEN sich eine Person anmeldet THEN ist sie angemeldet
       und ihre Rolle(n) bestimmen die sichtbaren/erlaubten Aktionen.

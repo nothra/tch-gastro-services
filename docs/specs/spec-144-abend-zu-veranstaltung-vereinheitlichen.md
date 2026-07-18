@@ -52,8 +52,10 @@ Grammatik: die/der, Zusammensetzungen wie „Veranstaltungs-Ebene", „Veranstal
 - [ ] GIVEN `docs/specs/README-montagsrunde.md` und die aktiven Specs (`spec-48/49/50/52/54/55`,
       `spec-116/127`, `spec-51`, `spec-120`)
       WHEN die Vereinheitlichung abgeschlossen ist
-      THEN verwenden sie durchgängig „Veranstaltung" und `git grep -w -i abend` liefert in genau
-      diesen Dateien 0 Treffer.
+      THEN verwenden sie durchgängig „Veranstaltung" in der Prosa; die **einzigen** verbleibenden
+      `git grep -w -i abend`-Treffer sind die Markdown-Links auf `spec-51-abend-anlegen.md`
+      (README Z. 11/33, spec-120 Z. 17/53) – die dokumentierte Ausnahme aus der „Datei nicht
+      umbenennen"-Entscheidung. Sonst 0 Treffer.
 - [ ] GIVEN die Ersetzungen in den inbegriffenen Dateien
       WHEN „Abend" grammatisch korrekt ersetzt wurde
       THEN stimmen Artikel/Genus (die Veranstaltung) und Zusammensetzungen

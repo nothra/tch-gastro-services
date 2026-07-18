@@ -27,12 +27,12 @@
 > Hier nur der Einstieg – Details und Akzeptanzkriterien stehen in den Specs.
 
 **Zweck:** Ablösung des Excel-Templates „Abrechnung Veranstaltung". Der Thekenwart
-rechnet einen Veranstaltungsabend ab (Getränke aus der Theke, Essen, Kaffee, Auslagen –
+rechnet eine Veranstaltung ab (Getränke aus der Theke, Essen, Kaffee, Auslagen –
 je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentliche
 **Montagsrunde**; der Ablauf gilt sinngemäß für weitere Veranstaltungen.
 
 **Kernbegriffe (Ubiquitous Language):**
-- **Veranstaltung/Abend** – eine abzurechnende Zusammenkunft (Datum, Bezeichnung, Kasse,
+- **Veranstaltung** – eine abzurechnende Zusammenkunft (Datum, Bezeichnung, Kasse,
   Status `offen`/`abgeschlossen`). Essen ist **kein** Feld der Veranstaltung, sondern ein
   Katalogartikel (ADR-023 §D4/§D7).
 - **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
@@ -42,7 +42,7 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 - **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
 - **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
   Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
-- **Kasse** – Abrechnungs­topf je Abend (fester Satz: `montagsrunde` | `vereinskasse`).
+- **Kasse** – Abrechnungs­topf je Veranstaltung (fester Satz: `montagsrunde` | `vereinskasse`).
 - **Kassieren / Spende** – Barzahlung des Verzehrs; Überzahlung = Spende.
 
 **Zentrale Regeln:**
@@ -50,12 +50,12 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 - `Spende = Erhalten − Verzehr-Gesamt`
 - Auslagen mindern den Verzehr **nicht** (Abweichung vom Excel); Erstattung ist ein
   eigener Vorgang.
-- `Kassenveränderung des Abends = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
-  Kasse**. Ein laufender Saldo über mehrere Abende ist noch nicht umgesetzt (Backlog #57).
+- `Kassenveränderung der Veranstaltung = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
+  Kasse**. Ein laufender Saldo über mehrere Veranstaltungen ist noch nicht umgesetzt (Backlog #57).
 
 **Rollen:** `verwalter` (Stammdaten & Preise) und `veranstalter` (Owner des Veranstaltungs-
 Lebenszyklus: anlegen, führen, kassieren – vormals `abrechner`, umbenannt in ADR-024);
-Teilnehmer erfassen ohne Konto per Abend-Link/QR + Namenswahl. Details in `spec-48`.
+Teilnehmer erfassen ohne Konto per Veranstaltungs-Link/QR + Namenswahl. Details in `spec-48`.
 
 ---
 

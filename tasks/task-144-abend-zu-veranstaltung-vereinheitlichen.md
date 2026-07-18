@@ -1,7 +1,7 @@
 # Task 144: abend-zu-veranstaltung-vereinheitlichen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -17,15 +17,37 @@ Stand bei Start: 115 Vorkommen in 28 Dateien (ohne die in #53 bereits bereinigte
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt – Detail-GIVEN/WHEN/THEN in spec-144 -->
-- [ ] `docs/factory/PROJECT-CONTEXT.md`: Synonym-Paar „Veranstaltung/Abend" aufgelöst, `git grep -w -i abend` → 0
-- [ ] `README-montagsrunde.md` + aktive Specs (`spec-48/49/50/52/54/55`, `spec-116/127`, `spec-51`, `spec-120`): `git grep -w -i abend` → 0
-- [ ] Grammatisch korrekte Ersetzung (Genus „die Veranstaltung", Komposita „Veranstaltungs-Ebene")
-- [ ] ADRs (`021–024`) + abgeschlossene Task-Records inhaltlich unverzerrt; jede angefasste Historie-Datei mit Begründung dokumentiert
-- [ ] Dateinamen `spec-51-abend-anlegen.md` / `task-51-abend-anlegen-fuehren.md` **nicht** umbenannt; alle 4 Referenzen intakt
-- [ ] Diff berührt ausschließlich `docs/` und `tasks/` – keine Code-/UI-/Test-Änderungen
+- [x] `docs/factory/PROJECT-CONTEXT.md`: Synonym-Paar „Veranstaltung/Abend" aufgelöst, `git grep -w -i abend` → 0 (verifiziert)
+- [x] `README-montagsrunde.md` + aktive Specs (`spec-48/49/50/52/54/55`, `spec-116/127`, `spec-51`, `spec-120`): Prosa durchgängig „Veranstaltung"; einzige verbleibende `git grep -w -i abend`-Treffer sind die 4 Markdown-Links auf `spec-51-abend-anlegen.md` (dokumentierte Ausnahme, s. u.)
+- [x] Grammatisch korrekte Ersetzung (Genus „die Veranstaltung", Komposita „Veranstaltungs-Ebene"); Fehlform-Grep (`einen/diesen/… Veranstaltung`, `Veranstaltungsrunde`, `Veranstaltungsabend`) → 0
+- [x] ADRs (`021–024`) + abgeschlossene Task-Records inhaltlich unverzerrt (nicht angefasst)
+- [x] Dateinamen `spec-51-abend-anlegen.md` / `task-51-abend-anlegen-fuehren.md` **nicht** umbenannt; alle 4 Referenzen intakt
+- [x] Diff berührt ausschließlich `docs/` – keine Code-/UI-/Test-Änderungen (`app/db/lib/e2e/components`-Grep → 0)
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+**12 Doku-Dateien** angepasst; nur `docs/` betroffen, kein Code.
+
+Bewusste Entscheidungen (je Datei/Fall dokumentiert):
+- **Filename-Ausnahme (Entscheidung: nicht umbenennen):** Die Markdown-Links auf
+  `spec-51-abend-anlegen.md` bleiben (README Z. 11/33, spec-120 Z. 17/53) – sonst brächen die
+  4 Referenzen (auch ADR-023, task-51). `git grep -w -i abend` matcht den Bindestrich-Wortteil
+  im Dateinamen; das sind die einzigen verbleibenden Treffer, alles andere ist Prosa-bereinigt.
+- **spec-127** (dokumentiert eine abgeschlossene Doku-Migration): Die „Abend"-Stellen waren
+  **Beschreibungen des alten Modells**, keine wörtlich-kritischen Zitate. Auf die kanonische
+  Terminologie angeglichen (Entität „Veranstaltung", „je Veranstaltung"); technische Aussage
+  (Essen war früher je Veranstaltung fixiert) bleibt erhalten. Stale Zeilennummern-Verweise
+  („Zeile 36/38–39") sind vorbestehend und außerhalb #144-Scope.
+- **spec-120** F7-Route-Beispiel `app/abend/[token]/` → `app/veranstaltung/[token]/`: reine
+  Begriffsangleichung in einer **offenen Frage** (keine Entscheidung; ADR-024 wählte separat
+  `theke/[token]`).
+- **`Abrechner`** (alte Rolle, in ADR-024 → `veranstalter`) **nicht** angefasst – außerhalb
+  #144-Scope (nur Abend→Veranstaltung).
+- **Obsolete Übergangs-Notizen** entfernt (README-Begriffshinweis, spec-52-Synonym-Zeile,
+  spec-51 „statt Abend"/„Bezug Abend als Veranstaltung lesen") – nach der Vereinheitlichung
+  ohne Wert.
+
+Verifikation (git grep): siehe Akzeptanzkriterien. Keine Oberflächen-/Unit-Tests nötig
+(reine Doku, kein Laufzeitverhalten).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

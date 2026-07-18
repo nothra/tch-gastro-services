@@ -9,14 +9,14 @@
 
 Das Essen-Modell wurde am 2026-07-15 geändert (ADR-023 §D4/§D7, umgesetzt in #116): **Essen ist
 keine Eigenschaft der Veranstaltung mehr**, sondern ein **Katalogartikel der Kategorie `essen`**
-mit festem Preis – wie Getränk und Kaffee. Es gibt **keinen** `essenpreis_cents` je Abend und
+mit festem Preis – wie Getränk und Kaffee. Es gibt **keinen** `essenpreis_cents` je Veranstaltung und
 **keine** spontane Preiseingabe. #116 hat zudem den Katalog-Begriff von „Getränke-Katalog" auf
 „Katalog" umbenannt, da er nun auch Speisen enthält.
 
 `docs/factory/PROJECT-CONTEXT.md` (das Onboarding-Dokument für Agenten) beschreibt in der Sektion
 **Fachdomäne → Kernbegriffe** noch das alte Modell:
-- Zeile 36: „Essenpreis" als Eigenschaft von **Veranstaltung/Abend**.
-- Zeile 38–39: Kernbegriff **„Getränke-Katalog"** mit „**Essen** pro Abend festgelegt".
+- Zeile 36: „Essenpreis" als Eigenschaft der **Veranstaltung**.
+- Zeile 38–39: Kernbegriff **„Getränke-Katalog"** mit „**Essen** je Veranstaltung festgelegt".
 
 Beide widersprechen den kanonischen Quellen und führen Agenten in die Irre (Verstoß gegen die
 CLAUDE.md-Regel „Kanonische Quellen immer referenzieren").
@@ -25,7 +25,7 @@ CLAUDE.md-Regel „Kanonische Quellen immer referenzieren").
 
 **Inbegriffen:**
 - Reine Doku-Änderung an `docs/factory/PROJECT-CONTEXT.md`, Sektion „Fachdomäne → Kernbegriffe".
-- Zeile 36: „Essenpreis" aus der Eigenschaftenliste von Veranstaltung/Abend entfernen.
+- Zeile 36: „Essenpreis" aus der Eigenschaftenliste der Veranstaltung entfernen.
 - Zeile 38–39: Katalog-Kernbegriff auf das neue Modell ziehen (Essen = Katalogartikel fester
   Preis, Kategorie `essen`) und – konsistent mit #116/spec-116 – auf „Katalog" umbenennen.
 - Verweis auf die kanonische Quelle (ADR-023 §D4/§D7) an der geänderten Stelle setzen.
@@ -37,11 +37,11 @@ CLAUDE.md-Regel „Kanonische Quellen immer referenzieren").
 - Keine Route-Änderung (`/verwaltung/katalog` bleibt; nur #116-Sache, hier nicht berührt).
 
 ## Akzeptanzkriterien
-- [ ] GIVEN der Kernbegriff „Veranstaltung/Abend" in PROJECT-CONTEXT.md WHEN man seine
+- [ ] GIVEN der Kernbegriff „Veranstaltung" in PROJECT-CONTEXT.md WHEN man seine
   Eigenschaftenliste liest THEN enthält sie **keinen** „Essenpreis" mehr (nur Datum, Bezeichnung,
   Kasse, Status `offen`/`abgeschlossen`).
 - [ ] GIVEN der Katalog-Kernbegriff WHEN man ihn liest THEN wird Essen als **Katalogartikel mit
-  festem Preis (Kategorie `essen`)** beschrieben, nicht als „pro Abend festgelegt".
+  festem Preis (Kategorie `essen`)** beschrieben, nicht als „je Veranstaltung festgelegt".
 - [ ] GIVEN der Katalog-Kernbegriff WHEN man den Namen liest THEN heißt er **„Katalog"** (nicht
   „Getränke-Katalog"), konsistent mit der UI-Umbenennung aus #116/spec-116.
 - [ ] GIVEN die geänderte Stelle WHEN man sie prüft THEN verweist sie auf die kanonische Quelle
@@ -49,7 +49,7 @@ CLAUDE.md-Regel „Kanonische Quellen immer referenzieren").
 
 ## Fehlerszenarien
 - [ ] Keine – reine Doku-Änderung ohne Laufzeitverhalten. Verifikation = Konsistenz-Abgleich
-  gegen ADR-023 §D4/§D7 + spec-49/116 (kein „Essenpreis"/„pro Abend festgelegt" mehr in der
+  gegen ADR-023 §D4/§D7 + spec-49/116 (kein „Essenpreis"/„je Veranstaltung festgelegt" mehr in der
   Kernbegriff-Sektion).
 
 ## Offene Fragen

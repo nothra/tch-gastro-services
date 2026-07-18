@@ -1,4 +1,4 @@
-# Spec: Kassieren & Abend abschließen
+# Spec: Kassieren & Veranstaltung abschließen
 
 > Feature F8 · Issue #55 · Epic [Digitale Veranstaltungs-Abrechnung](README-montagsrunde.md)
 >
@@ -10,9 +10,9 @@
 
 ## Kontext
 
-Zum Ende des Abends kassiert der Abrechner bei jedem Teilnehmer seinen **Verzehr** bar.
+Zum Ende der Veranstaltung kassiert der Abrechner bei jedem Teilnehmer seinen **Verzehr** bar.
 Zahlt jemand mehr, gilt der Überschuss als **Spende**. Kann jemand nicht kassiert werden
-(Abrechner geht früher, kein Bargeld), bleibt die Zeile **offen**. Der Abend wird
+(Abrechner geht früher, kein Bargeld), bleibt die Zeile **offen**. Die Veranstaltung wird
 abgeschlossen und die Tagessummen stehen fest.
 
 **Wichtig (Entscheidung 2026-07-11):** Auslagen werden hier **nicht** verrechnet – deren
@@ -25,24 +25,24 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - `Erhalten` (bar kassiert) je Zeile erfassen.
 - `Spende` = `Erhalten − Verzehr-Gesamt` (automatisch; nur positiver Überschuss ist Spende).
 - Zeilen-Status **`offen`** oder **`bezahlt`** – **kein** Restbetrag/Teilzahlung im MVP.
-- Abend **abschließen**: danach schreibgeschützt; Tagessummen fixiert.
-- Abgeschlossenen Abend durch einen **Abrechner wieder öffnen**, korrigieren, erneut
+- Veranstaltung **abschließen**: danach schreibgeschützt; Tagessummen fixiert.
+- Abgeschlossene Veranstaltung durch einen **Abrechner wieder öffnen**, korrigieren, erneut
   abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
 - Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Verzehr-Gesamt, Σ Erhalten,
   Σ Spende.
-- **Abend-Gesamtabrechnung (Kassenabrechnung des Abends):** bezogen auf die dem Abend
+- **Veranstaltungs-Gesamtabrechnung (Kassenabrechnung der Veranstaltung):** bezogen auf die der Veranstaltung
   **zugeordnete Kasse** (F4: `montagsrunde` | `vereinskasse`); stellt die **Einnahmen**
   (Σ Erhalten) den **Ausgaben** (Auslagenerstattungen, F6) gegenüber:
   - Auslagenerstattungen **je Kategorie** (Getränke / Essen / Sonstiges) und gesamt,
-  - **Kassenveränderung des Abends** = Σ Erhalten − Σ Auslagenerstattungen,
+  - **Kassenveränderung der Veranstaltung** = Σ Erhalten − Σ Auslagenerstattungen,
     ausgewiesen **für die zugeordnete Kasse**.
   Kassieren bleibt dabei je Teilnehmer **brutto** (kein Netto mit Auslagen). Ein
-  laufender Saldo je Kasse über mehrere Abende ist **nicht** Teil des MVP (Backlog #57).
+  laufender Saldo je Kasse über mehrere Veranstaltungen ist **nicht** Teil des MVP (Backlog #57).
 
 **Nicht inbegriffen:**
 - Verrechnung/Anzeige von Auslagen in der Kassierzeile (eigener Vorgang, F6).
 - Teilzahlung / offener Restbetrag (bewusst nicht, MVP).
-- Übertrag offener Beträge / Teilnehmer-Saldo über Abende (Backlog #56).
+- Übertrag offener Beträge / Teilnehmer-Saldo über Veranstaltungen (Backlog #56).
 - Kassenbuch / laufender Kassen-Saldo (Backlog #57).
 - Bargeldlose Zahlung / PayPal (Backlog #58).
 
@@ -62,23 +62,23 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - [ ] GIVEN ein Teilnehmer kann nicht kassiert werden WHEN der Abrechner die Zeile als
       **offen** markiert THEN bleibt sie ohne `Erhalten`, zählt nicht als bezahlt und
       **wird nicht** übertragen (MVP).
-- [ ] GIVEN ein Abend mit gemischt bezahlten und offenen Zeilen WHEN der Abrechner den
-      Abend abschließt THEN wird der Abend `abgeschlossen`, ist schreibgeschützt, und die
+- [ ] GIVEN eine Veranstaltung mit gemischt bezahlten und offenen Zeilen WHEN der Abrechner die
+      Veranstaltung abschließt THEN wird die Veranstaltung `abgeschlossen`, ist schreibgeschützt, und die
       Tagessummen sind fixiert.
-- [ ] GIVEN ein abgeschlossener Abend WHEN ein Abrechner ihn wieder öffnet THEN sind
+- [ ] GIVEN eine abgeschlossene Veranstaltung WHEN ein Abrechner sie wieder öffnet THEN sind
       Korrekturen (Verzehr, Erhalten, Auslagen) wieder möglich; die Wiederöffnung wird
       protokolliert; nach erneutem Abschluss sind die Summen neu fixiert.
-- [ ] GIVEN ein abgeschlossener Abend WHEN die Tagessummen angezeigt werden THEN
+- [ ] GIVEN eine abgeschlossene Veranstaltung WHEN die Tagessummen angezeigt werden THEN
       entsprechen sie der Summe der Zeilenwerte (Getränke, Sonstige, Verzehr-Gesamt,
       Erhalten, Spende).
-- [ ] GIVEN ein Abend mit zugeordneter Kasse und Auslagenerstattungen (F6) WHEN die
-      Abend-Gesamtabrechnung angezeigt wird THEN werden die Erstattungen **je Kategorie**
+- [ ] GIVEN eine Veranstaltung mit zugeordneter Kasse und Auslagenerstattungen (F6) WHEN die
+      Veranstaltungs-Gesamtabrechnung angezeigt wird THEN werden die Erstattungen **je Kategorie**
       und gesamt als Ausgaben ausgewiesen und die **Kassenveränderung**
       = Σ Erhalten − Σ Auslagenerstattungen **für die zugeordnete Kasse** korrekt
       berechnet.
 - [ ] GIVEN das individuelle Kassieren eines Teilnehmers mit eigenen Auslagen WHEN sein
       `Erhalten` erfasst wird THEN bleibt der zu kassierende Betrag der **volle**
-      Verzehr-Gesamt (die Auslagen wirken nur in der Abend-Gesamtabrechnung, nicht hier).
+      Verzehr-Gesamt (die Auslagen wirken nur in der Veranstaltungs-Gesamtabrechnung, nicht hier).
 
 ## Fehlerszenarien
 
@@ -89,7 +89,7 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 
 ## Offene Fragen (für /architecture)
 
-- [ ] Protokollierung von Öffnen/Abschluss: eigenes Audit-Log oder Zeitstempel+Nutzer am
-      Abend? → /architecture.
+- [ ] Protokollierung von Öffnen/Abschluss: eigenes Audit-Log oder Zeitstempel+Nutzer an
+      der Veranstaltung? → /architecture.
 - [ ] Konsistenz der fixierten Tagessummen bei Wiederöffnung (neu berechnen vs.
       Snapshot je Abschluss) → /architecture.
