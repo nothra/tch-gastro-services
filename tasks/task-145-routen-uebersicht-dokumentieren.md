@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -65,7 +65,19 @@ Details: [spec-145](../docs/specs/spec-145-routen-uebersicht-dokumentieren.md)
 - Keine offen. (Einbindungsstelle des Drift-Checks entschieden → `pre-push.sh`, siehe Techn. Notizen.)
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe [review-145.md](review-145.md). Runde 1 NEEDS_REWORK (W1 stale Task-Datei/Patch,
+W2 ungetesteter Route-Group-Zweig) → beide behoben + verifiziert → **APPROVED**.
+
+## Test-Vollständigkeit (/test)
+- Kein neuer TS-Code → vitest-Coverage für die Änderung nicht aussagekräftig. Abdeckung des
+  Gate-Verhaltens liegt in der Bash-Meta-Suite `scripts/checks/tests/run-tests.sh` (#145-Block).
+- Getestete Fälle: in-sync (grün); Drift beide Richtungen (Route ohne Doku / Doku ohne Route,
+  jeweils fail-closed + benannt); fehlende `docs/routes.md`; `_private`-Ausnahme; dynamisches
+  `[id]`; Route-Group `(name)`→`/info`; **`foo_bar` (Unterstrich mitten im Segment ≠ privat)**;
+  Push-Gate-Verdrahtung. Route-Group- und `foo_bar`-Fall zusätzlich **negativ verifiziert**
+  (Muster gezielt gebrochen → Fixture rot). Suite: 293 grün.
+- Bewusst nicht maschinell getestet: Übereinstimmung der Spalten Zugriff/Funktion (kuratierte
+  Doku; der Drift-Check prüft nur Pfade – Review-Nitpick, dokumentiert).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
