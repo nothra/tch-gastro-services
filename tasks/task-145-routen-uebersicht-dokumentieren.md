@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -87,7 +87,11 @@ Kein neues Verhalten – nur interne Struktur (`scripts/checks/routes-doc-check.
 Verifiziert: Meta-Suite 293 grün (unverändert), Real-Check grün, Drift-Ausgabe identisch.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [codify-145.md](codify-145.md). Zwei Learnings → PROJECT-CONTEXT „Bekannte Stolpersteine":
+(1) `.claude/**`-Patch nach Anwendung abgleichen (`[~]`→`[x]`, Blocker erledigt, stale Patch
+entfernen) – aus Review-W1; (2) App-Router-Routen jenseits `page.tsx`/`route.ts` (Metadaten wie
+`manifest.ts`) liegen außerhalb des Drift-Checks → manuell pflegen. Out-of-Scope: #149
+(format:check-Drift). W2 durch bestehende Regeln abgedeckt – keine Duplikat-Regel.
 
 ---
 Branch: `feature/145-routen-uebersicht-dokumentieren`
