@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Rein **dokumentarische** Begriffs-Vereinheitlichung „Abend" → „Veranstaltung" in den lebenden
@@ -72,7 +72,12 @@ verbessern und wäre Gold-Plating (Scope-/YAGNI-Regel) – daher bewusst belasse
 unverändert grün (kein Verhalten berührt).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [codify-144.md](codify-144.md). Neue Regel in PROJECT-CONTEXT.md „Bekannte Stolpersteine":
+**Terminologie-Sweep** – (1) zweifach verifizieren (`-w` + Substring-Grep, `-w` übersieht
+Komposita), (2) Pfad-/Route-Beispiele gegen ADRs prüfen (naheliegender Term ≠ neutral),
+(3) Own-Voice-Prosa von historischen Zitaten trennen, (4) Scope-Grep auf Ausgabe testen, nicht
+auf `git diff`-Exit-Code. Direkt anwendbar auf **#148** (Rollen-Rename). Herkunft: Review-Runden
+1/2/3 + /test-Selbstfund.
 
 ---
 Branch: `docs/144-abend-zu-veranstaltung-vereinheitlichen`

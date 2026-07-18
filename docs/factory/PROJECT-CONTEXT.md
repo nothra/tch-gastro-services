@@ -642,6 +642,39 @@ it("should_clearFields_when_createSucceeds", async () => {
 });
 ```
 
+### Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144)
+
+Bei einer reinen Begriffs-Vereinheitlichung (hier „Abend" → „Veranstaltung" in `docs/`) traten
+zwei Muster auf, die eine gleichartige Folge-Task (**#148**: Rollen-Rename `abrechner` →
+`veranstalter` in README/spec-49/50/54) direkt wieder trifft:
+
+1. **`git grep -w -i <wort>` übersieht Komposita.** Der `-w`-Wortgrenzen-Grep (aus dem
+   Akzeptanzkriterium) fand `Abend`, `Abend-Ebene` (Bindestrich = Wortgrenze) und die
+   Dateinamen-Links – aber **nicht** `abendweit` oder `Veranstaltungsabend` (Substring ohne
+   Wortgrenze). Ein durchgestrichenes „abendweit" blieb so bis Review-Runde 1 unentdeckt.
+2. **Ein Code-Pfad-/Route-Beispiel im Fließtext ist bei der Ersetzung nicht automatisch neutral.**
+   `app/abend/[token]/` wurde beim Implementieren „naheliegend" zu `app/veranstaltung/[token]/` –
+   aber `app/veranstaltung/` ist laut ADR-024 D1 der **authentifizierte** Bereich, während die
+   dort beschriebene **öffentliche** F7-Route als `theke/[token]` beschlossen war (ADR-023 D6).
+   Die „neutrale" Ersetzung war dadurch **irreführender** als das Original (Review-Runde 3).
+
+**Regel:** Bei Terminologie-Sweeps:
+- **Zweifach verifizieren:** `git grep -w -i <alt>` (Prosa-Wort inkl. Bindestrich-Komposita)
+  **und** ein Substring-Sweep `git grep -i <alt>` (fängt `…<alt>`/`<alt>…`-Komposita), jeweils
+  die bewussten Ausnahmen herausfiltern (Dateinamen-Links, historische Zitate). `-w` allein
+  genügt nie als Abschluss-Beleg.
+- **Pfad-/Route-/Identifier-Beispiele** vor der Ersetzung gegen die ADRs prüfen: der
+  „offensichtliche" Entitäts-Begriff kann mit einem bereits belegten Segment kollidieren
+  (authentifiziert vs. öffentlich). Den **faktisch korrekten** Bezeichner wählen, nicht den
+  mechanisch naheliegenden.
+- **Own-Voice-Prosa von historischen Zitaten trennen:** In Records, die einen vergangenen
+  Zustand dokumentieren (hier spec-127), die technische Aussage erhalten und nur die
+  Terminologie angleichen – keine Falschbehauptung über den alten Wortlaut erzeugen; jede
+  angefasste Historie-Stelle in der Task-Datei begründen.
+- **Scope-Grep gegen die Ausgabe prüfen, nicht gegen den Exit-Code:** `git diff --name-only`
+  liefert **immer** Exit 0. Ein Guard `git diff … && echo BETROFFEN` feuert deshalb falsch –
+  auf `| wc -l` (Zeilenzahl) testen, nicht auf `&&`/`||`.
+
 ---
 
 ## Offene Architektur-Fragen
