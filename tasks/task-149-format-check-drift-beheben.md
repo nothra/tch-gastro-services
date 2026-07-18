@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -91,6 +91,16 @@ Nachrüstungen sind CLAUDE.md-Regel + Selbsttest, kein ADR-Material.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Review: APPROVED (0 kritisch, 0 wichtig, 2 Nitpicks) – `tasks/review-149.md`.
+
+/test [2026-07-18]: Struktur-Assertion in `run-tests.sh` gehärtet – von zwei Bezeichner-Greps
+(die auch Kommentar-Prosa matchen, Review-Nitpick #114) auf einen distinktiven Code-Grep
+`grep -qF '${FACTORY_FORMAT_COMMAND-pnpm format:check}'`. Schließt zugleich eine Coverage-
+Lücke: der Verhaltens-Test setzt den Override immer explizit, der **Default** (unset →
+`pnpm format:check`) war ungetestet – ein versehentlich auf `true` geänderter Default wäre
+grün geblieben. Neuer Grep verifiziert Default + Single-Dash-Semantik; rot gegen manipulierten
+Default und gegen Prosa-only verifiziert. Selbsttests 289 grün. TS-Coverage 84,39 % Stmts /
+83,98 % Lines (≥ 80 %), 376 Tests grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

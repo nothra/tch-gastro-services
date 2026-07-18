@@ -1640,10 +1640,13 @@ assert_true "$?" "#112: CI verdrahtet das Closing-Keyword-Gate (Script + PR-Body
 echo ""
 echo "#149 pre-push.sh Format-Gate (prettier --check):"
 
-# (Struktur) Das Gate nutzt den Env-Override FACTORY_FORMAT_COMMAND mit pnpm-Default.
-{ grep -q 'FACTORY_FORMAT_COMMAND' "$CHECKS_DIR/pre-push.sh" \
-  && grep -q 'format:check' "$CHECKS_DIR/pre-push.sh"; }
-assert_true "$?" "#149: pre-push.sh enthält das Format-Gate (FACTORY_FORMAT_COMMAND + format:check)"
+# (Struktur) Distinktive CODE-Zeile prüfen, nicht die Bezeichner allein: `FACTORY_FORMAT_COMMAND`
+# und `format:check` kommen im Gate auch in Kommentar-Prosa vor – ein Grep darauf bliebe grün,
+# wenn nur ein Kommentar stehen bliebe (#114 „Kommando ≠ Prosa-Erwähnung"). Der `${…-…}`-Ausdruck
+# taucht ausschließlich in der Zuweisung auf und belegt zugleich den fail-closed-Default
+# (`pnpm format:check` bei unset) und die Single-Dash-Semantik (leerer Wert = echter Opt-out).
+grep -qF '${FACTORY_FORMAT_COMMAND-pnpm format:check}' "$CHECKS_DIR/pre-push.sh"
+assert_true "$?" "#149: pre-push.sh verdrahtet das Format-Gate mit fail-closed-Default (\${FACTORY_FORMAT_COMMAND-pnpm format:check})"
 
 # (Verhalten) In einem Temp-Repo auf einem Feature-Branch die teuren Gates via Override
 # neutralisieren (true), sodass allein das Format-Gate das Ergebnis bestimmt. Beweist,
