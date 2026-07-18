@@ -133,6 +133,11 @@ pnpm format
 - **API-Stil:** primär **Server Actions** für Formular-Erfassung; REST-artige **Route Handlers** (`app/api/`) wo externe/GET-Zugriffe nötig sind.
 - **Besonderheiten:** installierbare **PWA**; **RBAC** über Auth.js + Rollen-Spalte (serverseitig durchgesetzt); **EU-Datenresidenz** (Neon Frankfurt, Vercel `fra1`).
 
+**Routen-Übersicht:** Alle Seiten und API-Route-Handler mit Pfad, Funktion und Zugriff
+(Rolle/öffentlich) stehen kuratiert in [`docs/routes.md`](../routes.md). Kanonische Quelle bleibt
+der Code (`app/**/page.tsx`, `app/api/**/route.ts`); die Übereinstimmung sichert der Drift-Check
+`scripts/checks/routes-doc-check.sh` fail-closed im Push-Gate.
+
 Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl).
 
 ---
@@ -318,6 +323,18 @@ Original in eine Temp-Kopie lesen, dort die Änderung anwenden (Python/sed im Sc
 er dem Menschen übergeben wird; zusätzlich auf Temp-Kopien anwenden und die Akzeptanz-Assertions
 (Grep/JSON-Validität) dagegen laufen lassen – so ist „Green nach Apply" belegt, ohne die
 hard-denied Datei anzufassen.
+
+**Nach dem Anwenden: Task-Datei + Patch-Datei abgleichen (aus #145, Review-Finding W1).** Wird der
+gelieferte Patch vom Menschen **angewendet und committet**, ist der Branch-Zustand nicht mehr
+identisch mit dem, was die Task-Datei behauptet: Die AC-Checkboxen stehen weiter auf `[~]` „als
+Patch geliefert – Mensch wendet an", der Blocker fordert weiter `git apply`, und `tasks/patch-<id>.diff`
+liegt als **totes Artefakt** herum – `git apply --check` darauf schlägt jetzt fehl („patch does not
+apply"), weil die Änderung schon im Baum ist. Das verstößt gegen die Guardrails „Task-Datei final
+vor Merge abschließen" und „keine offenen Checkboxen → kein Done". **Regel:** Sobald der Patch im
+Branch ist (per `git diff main...HEAD` an der `.claude/**`-Datei sichtbar), die `[~]`-Checkboxen auf
+`[x]` setzen, den Blocker als **erledigt [Datum]** markieren (Historie behalten, nicht löschen) und
+die stale `tasks/patch-<id>.diff` **entfernen** – alles vor `/pr-shepherd`/Merge, committet über
+`factory-commit.sh`.
 
 ### Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67)
 
@@ -641,6 +658,24 @@ it("should_clearFields_when_createSucceeds", async () => {
   // 2. Submit (erneut erfolgreich) → Felder weiterhin leer, nicht nur beim ersten Mal
 });
 ```
+
+### App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145)
+
+Beim Erstellen der Routen-Übersicht (`docs/routes.md`) und des Drift-Checks
+(`scripts/checks/routes-doc-check.sh`) fiel auf: der Next.js App Router erzeugt Routen **nicht nur**
+aus `page.tsx` (Seite) und `route.ts` (Handler), sondern auch aus **Metadaten-Dateikonventionen** –
+`app/manifest.ts` → `/manifest.webmanifest`, ebenso `sitemap.ts`, `robots.ts`, `icon.*`,
+`apple-icon.*`, `opengraph-image.*`. Diese haben **keinen** `page.tsx`/`route.ts` und sind bewusst
+**außerhalb** des Drift-Check-Sets (er greppt nur `page.tsx`/`api/**/route.ts`); im aktuellen Baum
+existiert nur `manifest.ts`, in `docs/routes.md` als **Prosa-Notiz** geführt (keine parsebare
+Tabellenzeile, sonst meldete der Check Fehl-Drift).
+
+**Regel:** Der Drift-Check deckt `page.tsx` + `app/api/**/route.ts` ab – **nicht** die
+Metadaten-Routen. Wird künftig eine solche Datei (`sitemap.ts`, `robots.ts`, `icon.tsx`, …)
+hinzugefügt, den entsprechenden Pfad **manuell** in die Prosa-Notiz von `docs/routes.md` aufnehmen
+(kein Automatismus fängt das). Wer den Drift-Check erweitern will, muss das Ableitungs-Muster für
+diese Konventionen separat definieren **und** per Fixture testen (analog zum bestehenden
+Route-Group-/`_private`-Fall in `run-tests.sh`).
 
 ### Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144)
 
