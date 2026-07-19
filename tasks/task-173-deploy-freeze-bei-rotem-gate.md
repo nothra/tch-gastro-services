@@ -1,7 +1,7 @@
 # Task 173: deploy-freeze-bei-rotem-gate
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -25,15 +25,15 @@ nicht Infra-Flakes. (2) Freeze-Check **vor** der PRD-Migration (kein Prod-DB-Sei
 (3) Aktive Benachrichtigung zusätzlich zum Log.
 
 ## Akzeptanzkriterien
-- [ ] AC1 – Rotes Gate (E2E gegen INT / `db:migrate:int` / `db:migrate:prd`) setzt persistenten Freeze-Marker (Grund + blockierender SHA).
-- [ ] AC2 – Reine Infra-/Vorbereitungsfehler (Secret-Check, Install, INT-Deploy-Timeout, Neon-Reset, Anonymisierung) setzen **keinen** Freeze.
-- [ ] AC3 – Promote fail-closed: Marker gesetzt **oder** unlesbar → weder PRD-Migration+Seed noch Promote-Push.
-- [ ] AC4 – Freeze-Check läuft **vor** der PRD-DB-Migration (kein Seiteneffekt auf die Prod-DB).
-- [ ] AC5 – Wegen Freeze zurückgehaltener Promote endet **ohne Fehler** (nicht rot), mit klarer Meldung (SHA + Grund).
-- [ ] AC6 – Automatisierter Test simuliert #134-rot → #167-grün und belegt: grüner Folgelauf promotet **nicht**.
-- [ ] AC7 – Dokumentierter, manueller Freigabe-Weg (Maintainer); nach Freigabe promotet der nächste Lauf wieder.
-- [ ] AC8 – Aktive Benachrichtigung bei Freeze-Setzen **und** bei blockiertem Promote (SHA + Grund).
-- [ ] AC9 – ADR ergänzt (Marker-Variante, Trigger, Check-Position, Freigabe, Benachrichtigung, Zusammenspiel ADR-007/017/`concurrency`) + README/Runbook-Doku.
+- [x] AC1 – Rotes Gate (E2E gegen INT / `db:migrate:int` / `db:migrate:prd`) setzt persistenten Freeze-Marker (Grund + blockierender SHA).
+- [x] AC2 – Reine Infra-/Vorbereitungsfehler (Secret-Check, Install, INT-Deploy-Timeout, Neon-Reset, Anonymisierung) setzen **keinen** Freeze.
+- [x] AC3 – Promote fail-closed: Marker gesetzt **oder** unlesbar → weder PRD-Migration+Seed noch Promote-Push.
+- [x] AC4 – Freeze-Check läuft **vor** der PRD-DB-Migration (kein Seiteneffekt auf die Prod-DB).
+- [x] AC5 – Wegen Freeze zurückgehaltener Promote endet **ohne Fehler** (nicht rot), mit klarer Meldung (SHA + Grund).
+- [x] AC6 – Automatisierter Test simuliert #134-rot → #167-grün und belegt: grüner Folgelauf promotet **nicht**.
+- [x] AC7 – Dokumentierter, manueller Freigabe-Weg (Maintainer); nach Freigabe promotet der nächste Lauf wieder.
+- [x] AC8 – Aktive Benachrichtigung bei Freeze-Setzen **und** bei blockiertem Promote (SHA + Grund).
+- [x] AC9 – ADR ergänzt (Marker-Variante, Trigger, Check-Position, Freigabe, Benachrichtigung, Zusammenspiel ADR-007/017/`concurrency`) + README/Runbook-Doku.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -63,6 +63,44 @@ Architektur entschieden in [ADR-032](../docs/adr/032-deploy-freeze-bei-rotem-gat
 
 **Live zu verifizieren (nicht annehmen):** `refs/factory/*`-Push mit `GITHUB_TOKEN` (`contents: write`).
 Fällt das aus → Rückfall Option B (PAT + Repo-Variable), siehe ADR-032.
+
+## Implementierungs-Notizen (aus /implement)
+
+**Umgesetzt (TDD, run-tests.sh: 339 grün / 0 rot):**
+- `scripts/deploy-freeze.sh` – Subkommandos `set`/`check`/`release`/`status`; dokumentierte
+  Exit-Codes (`check`: 0=frozen, 10=frei, sonst=unklar→fail-closed). Env-Overrides
+  `FREEZE_REMOTE`/`FREEZE_REF` für den Bare-Repo-Test. **Doppel-Freeze**: `set` überschreibt einen
+  bestehenden Freeze **nicht** (ursprünglicher SHA bleibt nachvollziehbar, Spec-Fehlerszenario).
+- `scripts/deploy-freeze-notify.sh` – fail-open Tracking-Issue-Benachrichtigung (`frozen`/
+  `blocked`/`released`); endet **immer** exit 0, damit der fail-closed Marker nie blockiert wird.
+- `.github/workflows/deploy-gate.yml` – Sammelschritt gesplittet (`db:migrate:int` → eigener
+  `id: migrate_int`, Anonymisierung/Seed bleiben Infra); `id: e2e`/`id: migrate_prd` gesetzt;
+  `.env.int` wird einmal angelegt + per `always()`-Step entfernt. Neuer `check_freeze`-Step **vor**
+  der PRD-Migration (AC4); `if: steps.check_freeze.outputs.frozen != 'true'` an PRD-Migration,
+  Promote-Push und Healthcheck (AC3/AC5). `set_freeze`-Step mit
+  `if: failure() && (e2e|migrate_int|migrate_prd outcome == 'failure')` (AC1/AC2). `permissions:
+  issues: write` ergänzt (AC8).
+- `.github/workflows/deploy-freeze-release.yml` – `workflow_dispatch`-Freigabe (AC7), teilt
+  `concurrency: deploy-gate` (kein Setzen/Freigeben-Race).
+- Doku: README → „Deploy-Freeze bei rotem Gate (ADR-032)" (Konzept + Freigabe-Weg). ADR-032
+  lag bereits vor (/architecture).
+- Tests: neuer Abschnitt in `scripts/checks/tests/run-tests.sh` – Bare-Repo-Simulation der
+  Vorfall-Sequenz #134-rot → #167-grün (AC6), Doppel-Freeze, fail-closed bei unlesbarem Marker,
+  Aufruf-Fehler; notify fail-open (ohne gh) + Happy-Path (gh-Mock); YAML-Verdrahtungs-Guards.
+
+**Hinweis Datei-Modus:** `chmod +x` war in dieser Session durch den Permission-Mode blockiert;
+die neuen Skripte werden ausschließlich via `bash scripts/…` aufgerufen (Workflow, Tests, README) –
+der Exec-Bit ist funktional nicht nötig. Beim Commit über `git update-index --chmod=+x` nachziehen,
+falls Konsistenz gewünscht.
+
+**Blocker [2026-07-19]: `refs/factory/*`-Push mit `GITHUB_TOKEN` live verifizieren** – ADR-032
+verlangt (Projekt-Ethos, nicht annehmen), dass ein `git push origin <sha>:refs/factory/deploy-freeze`
+aus GitHub Actions mit dem `contents: write`-`GITHUB_TOKEN` + `fetch-depth: 0` tatsächlich durchgeht.
+Das ist erst **nach dem Merge** auf `main` (Deploy-Gate läuft nur auf `push:main`) prüfbar. Mensch:
+nach Merge einen kontrollierten roten Verifikations-Lauf oder einen manuellen
+`bash scripts/deploy-freeze.sh set <sha> test` aus dem Actions-Kontext beobachten; scheitert der
+Ref-Push (Ruleset/Token-Scope), auf Option B (PAT + Repo-Variable, ADR-032) umstellen. Bis dahin
+ist die Logik lokal (Bare-Repo) vollständig belegt, die reale Push-Berechtigung aber nicht.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

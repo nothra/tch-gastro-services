@@ -26,6 +26,9 @@ concurrency:
 
 permissions:
   contents: write
+  # issues: write für die aktive Freeze-Benachrichtigung (Tracking-Issue, ADR-032 §5,
+  # fail-open). Der fail-closed Marker (refs/factory/deploy-freeze) nutzt contents: write.
+  issues: write
 
 jobs:
   gate:
@@ -128,7 +131,11 @@ jobs:
           NEON_PRD_BRANCH_ID: ${{ secrets.NEON_PRD_BRANCH_ID }}
         run: bash scripts/neon-reset-int.sh
 
-      - name: INT anonymisieren, migrieren, Admin seeden
+      # Der Sammelschritt ist in drei Steps aufgeteilt (ADR-032 §4): nur die Migration
+      # (db:migrate:int) ist ein Freeze-Trigger; Anonymisierung + Seed bleiben Infra/Safety.
+      # .env.int wird EINMAL angelegt (nur hier stehen die Secrets) und am Ende per always()-Step
+      # wieder entfernt – so überlebt es die drei Steps, ohne die Credentials mehrfach zu schreiben.
+      - name: INT anonymisieren (.env.int anlegen)
         if: steps.refresh.outputs.enabled == 'true'
         env:
           NEXT_PUBLIC_STAGE: int
@@ -136,15 +143,26 @@ jobs:
           SEED_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
-          # .env.int enthält Credentials → per trap auch bei Fehler löschen (nicht nur Happy-Path),
-          # konsistent zum PRD-Step. (.env.int ist gitignored; Runner ist ephemer.)
-          trap 'rm -f .env.int' EXIT
           # Die db:*:int-Scripts lesen via `dotenv -e .env.int`; %s nimmt Werte literal → sicher.
+          # (.env.int ist gitignored; Runner ist ephemer; Aufräumen im always()-Step unten.)
           printf 'NEXT_PUBLIC_STAGE=%s\nDATABASE_URL=%s\nSEED_ADMIN_EMAIL=%s\nSEED_ADMIN_PASSWORD=%s\n' \
             "$NEXT_PUBLIC_STAGE" "$DATABASE_URL" "$SEED_ADMIN_EMAIL" "$SEED_ADMIN_PASSWORD" > .env.int
           pnpm db:anonymize:int   # zuerst: reale PII sofort überschreiben (Guard: STAGE=int)
-          pnpm db:migrate:int     # ausstehende Migrationen auf INT anwenden/testen (vor PRD)
-          pnpm db:seed:int        # bekannten INT-Admin (= E2E-Login) sicherstellen
+
+      - name: INT migrieren
+        id: migrate_int
+        if: steps.refresh.outputs.enabled == 'true'
+        # Freeze-Trigger (ADR-032): schlägt die Schema-Migration fehl, wird die Produktion
+        # eingefroren. Liest die zuvor angelegte .env.int (dotenv), kein eigener env-Block nötig.
+        run: pnpm db:migrate:int     # ausstehende Migrationen auf INT anwenden/testen (vor PRD)
+
+      - name: INT-Admin seeden
+        if: steps.refresh.outputs.enabled == 'true'
+        run: pnpm db:seed:int        # bekannten INT-Admin (= E2E-Login) sicherstellen
+
+      - name: INT-Env aufräumen (.env.int)
+        if: always()
+        run: rm -f .env.int          # Credentials nicht über den Lauf hinaus liegen lassen
 
       - name: Auf INT-Deployment dieses Commits warten
         run: |
@@ -159,6 +177,7 @@ jobs:
           echo "::error::Timeout – INT liefert nach ~12 min nicht Commit $SHA aus"; exit 1
 
       - name: E2E gegen INT
+        id: e2e   # Freeze-Trigger (ADR-032): flaky-/echt-rote E2E friert die Produktion ein.
         env:
           NEXT_PUBLIC_STAGE: int
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
@@ -174,11 +193,47 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-      # PRD-DB migrieren + Login seeden – ERST nach grünem INT-E2E (ADR-017). Das INT-Gate
-      # hat dieselbe Migration gegen prod-nahe, anonymisierte Daten bewiesen. Fail-closed:
-      # schlägt Migration/Seed fehl, bricht das Gate ab → KEIN Promote (Prod-Code bleibt
-      # konsistent zum alten Schema). Reihenfolge bewusst VOR dem Promote.
+      # Deploy-Freeze prüfen – VOR der effektbehafteten PRD-Migration (ADR-032 §3, AC4).
+      # Fail-closed: nur ein eindeutiges „nicht eingefroren" (Exit 10) lässt den Promote-Pfad
+      # zu; „eingefroren" (0) UND „unklar/unlesbar" (jeder andere Exit) setzen frozen=true.
+      # Der Step selbst endet grün (kein exit 1), damit ein legitim zurückgehaltener Lauf
+      # nicht als neuer roter Gate-Lauf erscheint (AC5) und keinen Freeze auslöst.
+      - name: Deploy-Freeze prüfen (fail-closed, vor PRD-Migration)
+        id: check_freeze
+        run: |
+          set +e
+          bash scripts/deploy-freeze.sh check
+          rc=$?
+          set -e
+          if [ "$rc" -eq 10 ]; then
+            echo "frozen=false" >> "$GITHUB_OUTPUT"
+            echo "Kein Deploy-Freeze aktiv – Gate fährt mit PRD-Migration + Promote fort."
+            exit 0
+          fi
+          # rc 0 = eingefroren, alles andere = unklar/unlesbar → in beiden Fällen fail-closed.
+          echo "frozen=true" >> "$GITHUB_OUTPUT"
+          sha=$(bash scripts/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
+          reason="Deploy-Freeze aktiv (Freeze-Check-Exit ${rc}: 0=eingefroren, sonst=Marker unklar)."
+          echo "::warning::${reason} Blockierender Commit: ${sha}. Promote wird zurückgehalten (Lauf bleibt grün, AC5)."
+          {
+            echo "### 🚫 Deploy-Freeze aktiv – Promote zurückgehalten"
+            echo ""
+            echo "Blockierender Commit: \`${sha}\`"
+            echo "Freeze-Check-Exit: ${rc} (10 = frei, 0 = eingefroren, sonst = Marker unklar/fail-closed)"
+            echo ""
+            echo "PRD-Migration + Promote + Healthcheck wurden übersprungen. Nach Fix + Verifikation"
+            echo "über den Workflow **deploy-freeze-release** (workflow_dispatch) freigeben."
+          } >> "$GITHUB_STEP_SUMMARY"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          bash scripts/deploy-freeze-notify.sh blocked "$sha" "$reason" "$run_url" || true
+
+      # PRD-DB migrieren + Login seeden – ERST nach grünem INT-E2E (ADR-017) und nur, wenn KEIN
+      # Deploy-Freeze aktiv ist (ADR-032, AC3/AC4). Das INT-Gate hat dieselbe Migration gegen
+      # prod-nahe, anonymisierte Daten bewiesen. Fail-closed: schlägt Migration/Seed fehl, bricht
+      # das Gate ab → KEIN Promote (Prod-Code bleibt konsistent zum alten Schema).
       - name: PRD-DB migrieren + Login seeden
+        id: migrate_prd
+        if: steps.check_freeze.outputs.frozen != 'true'
         env:
           NEXT_PUBLIC_STAGE: prd
           DATABASE_URL: ${{ secrets.PRD_DATABASE_URL }}
@@ -195,15 +250,17 @@ jobs:
           pnpm db:migrate:prd     # auf INT bereits bewiesene Migration(en) auf PRD anwenden
           pnpm db:seed:prd        # Prod-Login idempotent sicherstellen
 
-      - name: Promote main → production (nur bei grünem E2E + PRD-Migration)
+      - name: Promote main → production (nur bei grünem E2E + PRD-Migration, kein Freeze)
+        if: steps.check_freeze.outputs.frozen != 'true'
         run: |
-          echo "E2E grün + PRD migriert → Promote $SHA nach production"
+          echo "E2E grün + PRD migriert + kein Freeze → Promote $SHA nach production"
           git push origin "HEAD:production"
 
       # CI-grün ≠ Prod-grün (ADR-007): das tatsächlich deployte Prod verifizieren – neuer Code
       # UND migrierte DB. Erst auf den Prod-Build dieses Commits warten, dann /api/health
       # (DB-Read auf die roles-Spalte). Prod ist öffentlich → kein Bypass-Header nötig.
       - name: Auf PRD-Deployment warten + Healthcheck
+        if: steps.check_freeze.outputs.frozen != 'true'
         run: |
           echo "Warte, bis PRD den Commit $SHA ausliefert …"
           ok=0
@@ -220,3 +277,38 @@ jobs:
           code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$PRD_URL/api/health" || true)
           [ "${code:-000}" = "200" ] || { echo "::error::PRD-Healthcheck fehlgeschlagen (HTTP ${code:-000}) – DB/Schema prüfen"; exit 1; }
           echo "PRD-Healthcheck OK (200)."
+
+      # Deploy-Freeze SETZEN – scharf eingegrenzt (ADR-032 §4, AC1/AC2). Läuft nur, wenn der Job
+      # fehlschlägt UND der Fehlschlag aus einem verifikations-/migrationsrelevanten Step stammt
+      # (E2E gegen INT, db:migrate:int, db:migrate:prd). Da ein fehlschlagender Step den Job
+      # abbricht, hat höchstens einer dieser outcomes den Wert 'failure'; ein vorher gescheiterter
+      # reiner Infra-Step (Secret-Check, Install, INT-Deploy-Timeout, Neon-Reset, Anonymisierung)
+      # lässt alle drei leer/'skipped' → KEIN Freeze (AC2).
+      - name: Deploy-Freeze setzen (nur bei verifikationsrelevantem Fehlschlag)
+        id: set_freeze
+        if: >-
+          failure() && (
+            steps.e2e.outcome == 'failure'
+            || steps.migrate_int.outcome == 'failure'
+            || steps.migrate_prd.outcome == 'failure'
+          )
+        run: |
+          # outcome-Werte sind von GitHub kontrolliert (success/failure/…), kein User-Input → inline sicher.
+          if [ "${{ steps.e2e.outcome }}" = "failure" ]; then reason="E2E gegen INT rot"; fi
+          if [ "${{ steps.migrate_int.outcome }}" = "failure" ]; then reason="db:migrate:int rot"; fi
+          if [ "${{ steps.migrate_prd.outcome }}" = "failure" ]; then reason="db:migrate:prd rot"; fi
+          echo "::warning::Verifikationsrelevanter Fehlschlag (${reason}) → Deploy-Freeze wird gesetzt (blockiert Promote bis zur Freigabe)."
+          # Fail-closed: schlägt der Ref-Push fehl, endet dieser Step non-zero (sichtbar). Ein
+          # bestehender Freeze wird nicht überschrieben (deploy-freeze.sh set, ADR-032).
+          bash scripts/deploy-freeze.sh set "$SHA" "$reason"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          # Benachrichtigung ist fail-open – darf den Marker nie blockieren.
+          bash scripts/deploy-freeze-notify.sh frozen "$SHA" "$reason" "$run_url" || true
+          {
+            echo "### 🚫 Deploy-Freeze gesetzt"
+            echo ""
+            echo "Blockierender Commit: \`${SHA}\`"
+            echo "Grund: ${reason}"
+            echo ""
+            echo "Der Promote (inkl. PRD-DB-Migration) ist bis zur Freigabe angehalten."
+          } >> "$GITHUB_STEP_SUMMARY"

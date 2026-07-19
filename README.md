@@ -151,6 +151,32 @@ auf PRD-Build warten → `/api/health`-Check (DB-Read).**
 - Nach dem Promote verifiziert das Gate das **tatsächlich deployte** Prod via `/api/health`
   (DB-Read auf die `roles`-Spalte) – CI-grün ↔ Prod-grün (ADR-007).
 
+#### Deploy-Freeze bei rotem Gate (ADR-032)
+
+Der Promote akkumuliert (`main`-HEAD → `production`) und ist selbst-korrigierend – **solange das
+Gate verlässlich ist**. Ein einmal rotes Gate über echten Code-/Migrationsdefekt darf aber nicht
+durch einen späteren, evtl. **flaky-grünen** Lauf still überholt werden (Vorfall 19.07.2026:
+#134-rot → #167-flaky-grün → Prod-Defekt). Dagegen schützt der **Deploy-Freeze**:
+
+- **Setzen (fail-closed):** Wird ein **verifikationsrelevanter** Schritt rot – *E2E gegen INT*,
+  *`db:migrate:int`* oder *`db:migrate:prd`* – setzt das Gate einen persistenten Marker: das
+  Git-Ref **`refs/factory/deploy-freeze`** (zeigt auf den blockierenden Commit-SHA). Reine
+  Infra-/Vorbereitungsfehler (Secret-Check, Install, INT-Deploy-Timeout, Neon-Reset,
+  Anonymisierung) frieren **nicht** ein.
+- **Blockieren (fail-closed):** Vor der PRD-DB-Migration prüft das Gate den Marker. Ist er gesetzt
+  **oder unlesbar**, werden **PRD-Migration + Seed, Promote-Push und Healthcheck übersprungen** –
+  der Lauf endet **grün** (kein neuer Fehlalarm), aber es wird **nichts deployt**. `main` läuft
+  normal weiter (Merges + Gate-Läufe), nur der **Promote** pausiert.
+- **Benachrichtigung (fail-open):** Beim Setzen/Blockieren kommentiert das Gate ein dediziertes
+  **„Deploy-Freeze"-Tracking-Issue** (SHA + Grund + Run-Link) → GitHub-Notification.
+- **Freigabe (Maintainer):** Voraussetzung ist ein **gemergter, verifizierter Fix**. Dann den
+  Workflow **„Deploy-Freeze aufheben (Freigabe)"** manuell starten:
+  **GitHub → Actions → *Deploy-Freeze aufheben (Freigabe)* → *Run workflow*** (Grund angeben).
+  Er löscht das Ref (idempotent) und schließt das Tracking-Issue; der Lauf protokolliert, **wer**
+  freigegeben hat. Der **nächste grüne** Gate-Lauf promotet wieder regulär.
+  Notfalls per CLI: `bash scripts/deploy-freeze.sh release` (setzt Repo-Schreibrecht + `origin`
+  voraus); `bash scripts/deploy-freeze.sh status` zeigt den blockierenden SHA.
+
 > Die Env-Dateien `.env.local` / `.env.int` / `.env.prd` sind **gitignored** – Secrets nie committen.
 > Secret erzeugen: `openssl rand -base64 32` (**nicht** `npx auth secret` – zieht das falsche CLI).
 

@@ -1,0 +1,62 @@
+# Deploy-Freeze aufheben (Maintainer-Freigabe, ADR-032 §6).
+#
+# Manueller Freigabe-Weg für einen aktiven Deploy-Freeze. Voraussetzung (Runbook/README):
+# der auslösende Defekt ist gefixt UND verifiziert. Nach der Freigabe promotet der nächste
+# grüne Gate-Lauf wieder regulär.
+#
+# workflow_dispatch → nur Personen mit Repo-Schreibrecht können ihn starten; der Actions-Lauf
+# protokolliert (github.actor), WER freigegeben hat. Löscht das Sentinel-Ref
+# refs/factory/deploy-freeze (idempotent) und schließt das Freeze-Tracking-Issue (fail-open).
+
+name: Deploy-Freeze aufheben (Freigabe)
+
+on:
+  workflow_dispatch:
+    inputs:
+      grund:
+        description: "Freigabe-Grund (Fix + Verifikation belegt)"
+        required: true
+        type: string
+
+concurrency:
+  # Teilt die Gruppe mit dem Deploy-Gate: durch cancel-in-progress:false wird die Freigabe
+  # nicht mit einem laufenden Gate verschränkt (kein Setzen/Freigeben-Race, ADR-032).
+  group: deploy-gate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # voller Verlauf – konsistent mit dem Deploy-Gate (Ref-Operationen)
+
+      - name: Aktuellen Freeze-Status anzeigen
+        run: |
+          echo "Freigabe angefordert von: ${{ github.actor }}"
+          echo "Grund: ${{ inputs.grund }}"
+          blocking=$(bash scripts/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
+          echo "Blockierender Commit vor Freigabe: ${blocking}"
+          echo "blocking_sha=${blocking}" >> "$GITHUB_ENV"
+
+      - name: Deploy-Freeze aufheben (Ref löschen, idempotent)
+        run: bash scripts/deploy-freeze.sh release
+
+      - name: Tracking-Issue schließen (Benachrichtigung, fail-open)
+        run: |
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          bash scripts/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "${{ inputs.grund }}" "$run_url" || true
+          {
+            echo "### ✅ Deploy-Freeze aufgehoben"
+            echo ""
+            echo "Freigegeben von: ${{ github.actor }}"
+            echo "Grund: ${{ inputs.grund }}"
+            echo "Der nächste grüne Gate-Lauf promotet wieder regulär."
+          } >> "$GITHUB_STEP_SUMMARY"
