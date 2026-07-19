@@ -90,6 +90,12 @@ Review-Skills zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (t
 neue „Bekannte Stolpersteine"-Regel in `PROJECT-CONTEXT.md` + Follow-up-Issue **#176** für die
 Skill-Vorlagen (`.claude/commands/**`, Patch-Workflow).
 
+## PR-Shepherd
+
+PR-Shepherd [2026-07-19]: Merge freigegeben – alle Gates grün. Kein Rebase nötig (Branch aktuell zu
+`origin/main`), keine offenen Review-Kommentare, required Checks grün/laufend (Auto-Merge wartet),
+0 Approvals erforderlich (ADR-029). PR #175 aus Draft geholt.
+
 ---
 Branch: `docs/161-factory-doku-zwei-phasen`
 Erstellt: 2026-07-19 19:47
