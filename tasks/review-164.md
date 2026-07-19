@@ -1,54 +1,54 @@
 # Review: Task 164
 
-Diff: `app/components/AppNav.tsx`, `app/page.tsx` (Fix: `prefetch={false}`),
-`app/nav-prefetch.test.tsx` (neu), `tasks/task-164-dashboard-force-dynamic.md` (Doku).
-Kein `docs/specs/spec-164.md` (Bug ohne Spec). Keine Routen-Änderung → `docs/routes.md` korrekt unangetastet.
+**Runde 2** (nach Rework zum zentralen `proxy.ts`-Guard). Runde 1 (NEEDS_REWORK, per-Link
+unvollständig) ist adressiert: der Schutz liegt jetzt zentral und deckt ALLE geschützten Links ab.
+Diff ggü. Basis `216e8cc`: `proxy.ts`, `lib/prefetch-session.ts(+test)`, `app/components/AppNav.tsx`,
+`app/page.tsx`, `app/nav-prefetch.test.tsx`. Keine Routen-Änderung → `docs/routes.md` unangetastet.
+
+Der Fix wurde mechanisch gegen die NextAuth-Quelle verifiziert (`node_modules/next-auth/lib/index.js:166`
+baut `finalResponse` via `new Response(body, response)` → Header mutable, `stripSessionRotation` kann
+nicht am Immutable-Guard werfen; Direktaufruf `auth(request, event)` trifft dieselbe `instanceof Request`-
+Branch wie `export default auth`). Laufzeit-A/B am lokalen Prod-Server bestätigt: RSC-GET strippt Session-
+Cookie, Dokument-GET rotiert weiter, abgemeldet → 307 `/login`.
 
 ## Kritische Findings (müssen behoben werden)
-- [ ] **Fix unvollständig für einen `security`-Bug – Logout-Race bleibt auf anderen Seiten offen.**
-      Der belegte Root Cause ist generisch: *jede* authentifizierte Prefetch-Antwort rotiert das
-      Auth.js-Session-Cookie und kann es nach `signOut` wiederbeleben. Der Fix setzt `prefetch={false}`
-      aber nur an zwei Stellen (Header + Dashboard-Hub). Weitere geschützte `<Link>`s prefetchen
-      unverändert und reproduzieren denselben Race beim Abmelden **von diesen Seiten**:
-      - `app/veranstaltung/page.tsx:43` → `/veranstaltung/${v.id}`
-      - `app/veranstaltung/[id]/page.tsx:45` → `/veranstaltung`
-      - `app/veranstaltung/[id]/page.tsx:63` → `/veranstaltung/${id}/verzehr`
-      - `app/veranstaltung/[id]/page.tsx:69` → `/veranstaltung/${id}/auslagen`
-      Der **gemeldete** Pfad (`/`) ist geschlossen (AppNav rendert auf jeder Seite), aber die
-      Schwachstelle „Logout hält nicht" ist nicht durchgängig behoben. **Empfehlung:** zentraler,
-      zukunftssicherer Fix statt Whack-a-Mole – z. B. in `proxy.ts` das rotierende Session-`Set-Cookie`
-      auf **Prefetch-Requests** (Header `Next-Router-Prefetch: 1`) unterdrücken (Prefetch soll die
-      Session ohnehin nicht verlängern). Alternativ `prefetch={false}` **konsistent** auf allen
-      geschützten Links + Guard/Konvention, damit künftige Links es nicht wieder vergessen (genau
-      dieses Vergessen war die #134-Regression).
+- keine.
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] **Test prüft den Prop, nicht das Verhalten.** `app/nav-prefetch.test.tsx` assertet
-      `data-prefetch="false"` (Implementierungsdetail), nicht „kein Netzwerk-Prefetch". Das ist
-      vertretbar, weil das echte Verhalten nur im Browser/e2e beobachtbar ist – aber wenn das
-      Kritische Finding über einen **zentralen** Fix (proxy.ts) gelöst wird, testet dieser Prop-Test
-      das Falsche und müsste durch einen Test der zentralen Logik (Set-Cookie-Unterdrückung bei
-      Prefetch) ersetzt/ergänzt werden. Bei per-Link-Lösung sollte der Test alle betroffenen
-      Call-Sites abdecken, nicht nur Header + Dashboard.
-- [ ] **Keine zentrale Prefetch-Konvention (Architektur/Konsistenz).** Die Prefetch-Entscheidung
-      liegt verstreut an einzelnen `<Link>`-Call-Sites. Ohne gemeinsames Muster (z. B. `AppLink`-
-      Wrapper mit `prefetch={false}`-Default für interne/geschützte Routen) oder zentralen Mechanismus
-      bleibt die Codebase anfällig für dieselbe Klasse Regression. Verstärkt das Kritische Finding.
+- [ ] **[proxy.ts:24-30] Kompositions-Naht nicht automatisiert getestet.** `isRscRequest`/
+      `stripSessionRotation` sind gut getestet, aber die Verknüpfung (RSC-GET → gestrippt /
+      Dokument-GET → rotiert / POST → nie) ist nur empirisch belegt (`proxy.test.ts` fehlt).
+      Kollidiert mit „neuer Code: 100 % Coverage" + #114/#117 (jede separierbare Verhaltensregel
+      eine Assertion). **Für `/test`:** Verknüpfung in eine testbare `applyPrefetchGuard(request,
+      response)` in `lib/prefetch-session.ts` ziehen (bleibt edge-safe) und mit Fake-Response
+      (Session-Set-Cookie) testen: RSC-GET entfernt / Dokument-GET erhält / POST erhält.
+- [ ] **[Task-Doku] Rolling-Session-Verhaltensänderung explizit festhalten.** Der Guard strippt auf
+      ALLEN RSC-GETs (auch echten Soft-Navigationen, nicht nur Prefetch) → das JWT-Fenster erneuert
+      sich nur noch bei Dokumentaufrufen/Login. Risiko praktisch vernachlässigbar (maxAge-Default
+      30 Tage, `auth.ts:19` setzt keins; wöchentliche PWA), aber bewusste projektweite Entscheidung
+      → in der Task-Datei/ADR-Verweis dokumentieren („Entscheidungen dokumentieren").
 
 ## Nitpicks (optional)
-- [ ] WHY-Kommentar in `app/components/AppNav.tsx` und `app/page.tsx` nahezu dupliziert
-      (2–3 Zeilen). Akzeptabel über Dateigrenzen, könnte knapper auf `#164` verweisen.
-- [ ] `areaLinks` + `AREA_HREFS` in `app/nav-prefetch.test.tsx` duplizieren die Bereichs-Href-Logik
-      aus `app/nav-consistency.test.tsx` (`areaHrefsWithin`). Geringe Test-Helfer-Duplikation –
-      ggf. in einen gemeinsamen Test-Helper ziehen.
+- [ ] **[lib/prefetch-session.test.ts:49]** Kommentar behauptet „csrf bleibt unangetastet", getestet
+      wird nur `callback-url`. Einen `__Host-authjs.csrf-token=…`-Keep-Fall ergänzen (#116: Strip-Test
+      ≠ Keep-Test). Für `/test`.
+- [ ] **[proxy.ts:18]** `auth as unknown as EdgeMiddleware` ist ein vollständiger Typ-Bypass (gut
+      kommentiert, per Quelle korrekt) – fängt eine NextAuth-Signaturänderung beim Upgrade nicht.
+      Akzeptabel.
+- [ ] **[app/nav-prefetch.test.tsx]** Prüft jetzt nur noch die Perf-/Defense-in-depth-Eigenschaft
+      (prefetch={false}-Prop), nicht mehr den Sicherheitsfix. Nicht tautologisch, Kommentar rahmt es
+      ehrlich. Beibehalten ok.
 
 ## Positives
-- Root Cause **empirisch** ermittelt (Playwright-Netzwerk-Trace, Set-Cookie-Reihenfolge), nicht geraten;
-  die Issue-Vermutung (`force-dynamic`) korrekt als No-op widerlegt (`/` ist bereits dynamisch/no-store).
-- Deterministischer RED→GREEN-Reproduktionstest trotz nicht-deterministischem Laufzeit-Race.
-- Vorbildliche Root-Cause-/Fix-Dokumentation in der Task-Datei inkl. Trace-Beleg.
-- Server-seitige Durchsetzung (proxy/authz) unangetastet; keine neue Abhängigkeit; korrekt keine
-  `routes.md`-Änderung.
+- Root Cause empirisch getract (Set-Cookie-Reihenfolge) und Fix gegen die NextAuth-Quelle verifiziert –
+  nicht geraten.
+- Konsequent fail-safe: fehlende Signale → nicht strippen; POST nie strippen; Session-Establishment läuft
+  nur über den im Matcher ausgenommenen `api/auth`-POST → der Guard sieht nie ein etablierendes Cookie.
+- Angreifer-Vektor harmlos (`next-url` auf GET betrifft nur die eigene Session-Rotation).
+- Regex präzise verankert (`^(?:__Secure-)?authjs\.session-token(?:\.\d+)?=`): trifft HTTP-/Secure-/
+  gechunkte Varianten, nicht csrf-/callback-url.
+- `lib/prefetch-session.ts` edge-safe (nur Web-`Headers`/`Response`/RegExp) und domänenspezifisch benannt.
+- Sehr gute WHY-Kommentare (Root Cause, Erkennung via next-url/sec-fetch-dest, Fail-safe).
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
