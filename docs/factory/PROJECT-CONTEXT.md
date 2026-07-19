@@ -842,6 +842,43 @@ Jeder Branch bekommt einen eigenen Test (analog zur Exhaustiveness-Guard-Regel i
 `testing-standards.md`) – sonst bleibt die Lücke bis zur Coverage-Analyse in `/test` unsichtbar,
 wie hier geschehen.
 
+### Auto-Prefetch geschützter Routen belebt die Session nach dem Abmelden wieder (aus #164)
+
+Next.js prefetcht `<Link>`s zu geschützten Routen automatisch (Viewport). Auth.js (JWT-Strategie)
+erneuert das Session-Cookie bei **jedem** authentifizierten Request (Rolling Session) → jede
+authentifizierte Prefetch-Antwort trägt ein frisches `…authjs.session-token`-`Set-Cookie`. Klickt
+der Nutzer „Abmelden", während eine solche Prefetch-Antwort noch unterwegs ist, landet sie **nach**
+dem signOut-Clear und **setzt das Cookie neu** → die Session wird wiederbelebt, das Logout „hält
+nicht". Reines Timing ⇒ **flaky** (nur unter Latenz sichtbar, z. B. INT-Deploy-Gate; ~1/6).
+
+**Next-16-Falle bei der Erkennung:** Next strippt seine eigenen RSC-/Prefetch-Marker
+(`next-router-prefetch`, `rsc`) **vor** der Middleware/`proxy.ts` – dort sind sie `null`. In der
+Middleware ist ein RSC-/Prefetch-Request erkennbar am internen **`next-url`**-Header (bei RSC gesetzt,
+bei echten Dokumentaufrufen absent) bzw. an `sec-fetch-dest ≠ "document"`. Empirisch verifiziert
+(Debug-Header + lokaler Prod-Server).
+
+**Regel:**
+- **Zentral in `proxy.ts` fixen, nicht per-Link.** Die NextAuth-Middleware wrappen und auf
+  RSC-/Prefetch-**GET**-Requests das rotierende Session-`Set-Cookie` aus der Antwort entfernen
+  (`lib/prefetch-session.ts`: `isRscRequest` + `stripSessionRotation`). Deckt **alle** geschützten
+  Links ab; per-Link `prefetch={false}` (Review-Runde 1) war unvollständig (andere Seiten blieben
+  offen). `prefetch={false}` auf prominenten Nav-Links bleibt nur als Defense-in-depth/Perf.
+- **Nur GET strippen** – Login/Logout (POST) und `api/auth` (Matcher-Ausnahme) nie anfassen, sonst
+  bricht das Setzen/Löschen der Session. Fail-safe: fehlen die Signale, nicht strippen (Cookie
+  rotiert normal). Kein try/catch im Wrapper → Exception propagiert fail-closed.
+- **Cookie-Regex verankern** (`^(?:__Secure-)?authjs\.session-token(?:\.\d+)?=`), damit CSRF-/
+  callback-url-/`_vercel_jwt`-Cookies **nicht** getroffen werden; chunked `…session-token.0/.1`
+  einschließen. Keep-Test (CSRF bleibt) **und** Strip-Test schreiben (#116).
+- **Bewusster Trade-off:** RSC-Soft-Navigationen erneuern die Rolling-Session dann nicht mehr, nur
+  Dokumentaufrufe/Login. Vernachlässigbar (maxAge-Default 30 Tage). In der Task-Datei festhalten.
+
+**Debugging-Lehre (allgemein):** Server-seitige Korrektheit schließt einen **Client-Race** nicht aus.
+Die Issue-Vermutung `export const dynamic = "force-dynamic"` war hier ein **No-op** – die Route war
+bereits `ƒ Dynamic` und sendete `no-store`. Nicht der gemeldeten Ursache glauben, sondern **empirisch**
+verifizieren: Build-Routen-Tabelle (`○`/`ƒ`), echte Response-Header, und für flaky Races die
+Playwright-Trace mit `--repeat-each` (die **Reihenfolge** der `Set-Cookie`-Header – `[SESSION-CLEARED]`
+vor racenden `[SESSION-SET]`-Prefetch-Antworten – war der entscheidende Beweis).
+
 ### pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
 
 Zum Schließen zweier transitiv gepinnter Dependabot-Alerts (postcss `<8.5.10`, esbuild

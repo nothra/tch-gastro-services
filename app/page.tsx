@@ -26,6 +26,9 @@ export default async function Home() {
             <Link
               key={item.href}
               href={item.href}
+              // Kein Auto-Prefetch geschützter Routen: spart die authentifizierte Hintergrund-RSC-
+              // Abfrage (Neon-Last) und ist Defense-in-depth zur #164-Absicherung (zentral: proxy.ts).
+              prefetch={false}
               className="flex min-h-[44px] items-center rounded-lg border border-zinc-200 p-6 text-lg font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
             >
               {item.label}
