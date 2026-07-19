@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Struktureller Schutz gegen falsch-grüne Deploy-Gates: Sobald ein Gate-Lauf über
@@ -205,6 +205,13 @@ Zwei Out-of-Scope-Follow-ups als eigenständige Issues angelegt (nicht Teil dies
   (siehe Blocker oben) – kann erst nach dem Merge auf `main` geprüft werden (Deploy-Gate
   läuft nur auf `push:main`), daher als eigenes Tracking-Issue statt nur als Notiz in
   dieser Task-Datei, die nach dem Merge nicht mehr direkt änderbar ist.
+
+## PR-Shepherd-Notizen
+
+PR-Shepherd [2026-07-19]: Merge freigegeben – alle Gates grün (lint, test, issue-sync,
+factory-self-test, pr-closes-issue). Kein offener Review-Kommentar, Branch bereits aktuell
+zu `main`, keine Approval-Pflicht (ADR-029, `reviewDecision` leer). Draft → ready gesetzt.
+`mergeStateStatus: CLEAN` → direkter Squash-Merge (kein `--auto`, ADR-030).
 
 ---
 Branch: `feature/173-deploy-freeze-bei-rotem-gate`
