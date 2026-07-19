@@ -1,9 +1,9 @@
 # Task 158: pr-shepherd-direct-merge-fallback
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] In Bearbeitung
+- [x] Review bestanden (APPROVED, `tasks/review-158.md`)
+- [x] Tests vollständig (`run-tests.sh`: 304 grün / 0 rot)
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -48,10 +48,9 @@ Blocker [2026-07-19]: Review-Rework (siehe `tasks/review-158.md`) enthält kosme
 `.claude/commands/pr-shepherd.md`-Fixes (W1 Notiz-Template, N2 Output/Regel/Stage-3, N7
 Encoding) – hard-denied (#88), erneut als `tasks/patch-158.diff` geliefert (programmatisch,
 `git apply --check` grün, keine Verhaltensänderung, 303/303 Self-Tests bleiben grün).
-**Mensch muss:** `git apply tasks/patch-158.diff` im Worktree, dann `bash
-scripts/factory-commit.sh "docs: pr-shepherd review-fixes W1/N2/N7 (task-158)"`. Danach hier
-Blocker als erledigt markieren und stale `tasks/patch-158.diff` entfernen (#145). Fixes an
-editierbaren Dateien (`run-tests.sh`, Spec) sind bereits committet.
+**Erledigt [2026-07-19]:** Mensch hat den Review-Rework-Patch appliziert und committet
+(`049bf7d`); W1/N2/N7 sind im Branch, 303/303 Self-Tests grün. Stale `tasks/patch-158.diff`
+entfernt (#145). Fixes an editierbaren Dateien (`run-tests.sh`, Spec) waren bereits committet.
 
 ## Technische Notizen
 **ADR:** [ADR-030](../docs/adr/030-pr-shepherd-direct-merge-fallback.md) – Accepted.
@@ -85,6 +84,16 @@ schließen (#155) – der Präzisionsgewinn (`improvement/`) wiegt die PR-Ersatz
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 _Keine offen._ Die Zustands-Bedingung ist in ADR-030 auf `CLEAN`-only entschieden (sonst `--auto`).
+
+## Test-Abdeckung (/test)
+Kein neuer TypeScript-Code → vitest-Coverage-Baseline (Schwelle 80 %) unberührt; relevante
+Abdeckung ist die Shell-Self-Test-Suite. AC-Mapping:
+- AC1 `mergeStateStatus` gelesen · AC2 Direct-Merge `--squash` · **AC3 `--auto`-Fallback bleibt
+  (im /test-Schritt ergänzt – vorher nur transitiv über den #114-Order-Guard)** · AC4 Reihenfolge
+  → je eine dedizierte `#158`-Assertion (Section-begrenzt, #117-Prinzip, #94 Positiv+Negativ belegt).
+- AC5 = die Assertions selbst. AC6 (Stolperstein) = Doku, keine Test-Präzedenz für PROJECT-CONTEXT-
+  Prosa (kein Gold-Plating).
+- Ergebnis: `run-tests.sh` 304 grün / 0 rot; `pnpm test` 376 grün.
 
 ## Review-Findings
 Siehe `tasks/review-158.md` – **APPROVED**. Keine kritischen Findings. 2 wichtige (Notiz-Template

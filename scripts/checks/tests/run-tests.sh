@@ -1568,6 +1568,13 @@ assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'mergeSt
 assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'gh pr merge --squash'; echo $?)" \
   "#158: pr-shepherd.md Schritt 6 hat Direct-Merge-Fallback (gh pr merge --squash)"
 
+# AC3: der --auto-Fallback bleibt im Schritt-6-Abschnitt für laufende Checks (≠ CLEAN) erhalten.
+# Separierbar von AC2 (#117): würde der else-Zweig ebenfalls auf direkten Merge umgestellt,
+# bliebe AC2 grün, aber dieser Guard rot. Section-begrenzt (nicht global wie der #114-Order-
+# Guard), damit AC3 als eigenes Kriterium diagnostizierbar ist – nicht nur transitiv über #114.
+assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'gh pr merge --auto --squash'; echo $?)" \
+  "#158: pr-shepherd.md Schritt 6 behält --auto-Fallback für laufende Checks (gh pr merge --auto --squash)"
+
 # AC4: die Abschlussnotiz (factory-commit.sh) steht AUCH VOR dem Direct-Merge-Zweig – nicht
 # nur vor der --auto-Zeile (bereits durch #114 oben geprüft). Sonst könnte der direkte Merge
 # vor dem Notiz-Push feuern (Notiz landet nie auf main, #112/#114). first_match_line auf
