@@ -2,11 +2,11 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -127,6 +127,10 @@ Bugfix stimmig; kein Rename nötig (Art-Label `bug` passt, `security` bereits ge
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Review (APPROVED) und Security-Review (PASSED) ohne kritische/wichtige Findings. Beide
+Nitpicks (doppelter Prädikat-Test, Case-Normalisierung der HTTP-Methode) bereits behandelt
+bzw. bewusst nicht gefixt (Verhaltensänderung widerspräche „kein neues Verhalten" im
+Refactor) – kein neues Regel-Bedürfnis. Details: `tasks/codify-170.md`.
 
 ---
 Branch: `fix/170-logout-race-options-head`
