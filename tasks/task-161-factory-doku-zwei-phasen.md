@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -84,7 +84,11 @@ _Keine._
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [tasks/codify-161.md](codify-161.md). Kern-Learning: Der `git diff main...HEAD`-Scope der
+Review-Skills zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (trat 2× auf) →
+neue „Bekannte Stolpersteine"-Regel in `PROJECT-CONTEXT.md` + Follow-up-Issue **#176** für die
+Skill-Vorlagen (`.claude/commands/**`, Patch-Workflow).
 
 ---
 Branch: `docs/161-factory-doku-zwei-phasen`

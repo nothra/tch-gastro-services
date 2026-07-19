@@ -906,6 +906,28 @@ weil die Fehl-Platzierung still durchgeht: nach `pnpm install` mit `pnpm audit` 
 einer Fehlermeldung vertrauen. Overrides sind „sticky": Sobald die Parents die Patches selbst
 mitbringen, werden sie zu No-ops und sollten entfernt werden (Follow-up-Issue #169).
 
+### Review-Diff-Scope: `git diff main...HEAD` zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (aus #161)
+
+Die Skills `/review`, `/security-review` und `/refactor` laden ihren Diff-Kontext per
+`git diff main...HEAD` (analog `git log main...HEAD` in `/pr-shepherd`). `start-work.sh` legt den
+Feature-Branch aber in einem Worktree an, der auf **`origin/main`** basiert – das **lokale**
+`main`-Ref im Haupt-Baum wird dabei **nicht** aktualisiert. Der Drei-Punkt-Operator difft gegen die
+**Merge-Basis** von `main` und `HEAD`. Liegt lokales `main` hinter `origin/main` (Normalfall direkt
+nach `start-work.sh`, sobald seit dem letzten lokalen `main`-Pull fremde PRs auf `origin/main`
+gemergt wurden), ist die Merge-Basis ein **alter** Commit → der Diff enthält alle zwischenzeitlich
+gemergten **fremden** PRs zusätzlich zur eigenen Task. Konkret in #161: die bereits gemergten
+#170-Dateien (`proxy.ts`, `lib/prefetch-session.ts`, spec-170 …) tauchten im Review-, Security- und
+Refactor-Scope auf. Tückisch: Der Review würde fremden, längst gemergten Code mitprüfen und die
+Änderungs-Statistik verfälschen; ein Fehl-Finding auf Fremdcode ist die Folge.
+
+**Regel:** Den Task-Scope in `/review`/`/security-review`/`/refactor` gegen **`origin/main`**
+bestimmen – nach `git fetch origin` mit `git diff origin/main...HEAD` (bzw.
+`git log origin/main...HEAD`), nicht gegen das lokale `main`. Erscheinen Dateien im Diff, die
+erkennbar nichts mit der Task zu tun haben, **zuerst die Scope-Referenz prüfen** (stale local
+`main`), bevor man sie reviewt. Die Skill-Vorlagen selbst auf `origin/main...HEAD` umzustellen ist
+als Follow-up erfasst (#176) – sie liegen unter `.claude/commands/**` (agent-hard-denied) und
+brauchen daher den Patch-Workflow.
+
 ---
 
 ## Offene Architektur-Fragen
