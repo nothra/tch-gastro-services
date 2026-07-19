@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Security-Review bestanden (n/a – reine Doku, keine Auth-/Secret-/Angriffsflächen)
+- [x] Refactoring abgeschlossen (n/a – reine Doku, kein Verhalten)
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -60,7 +60,13 @@ CI-Check. Rework: korrigiert auf „(Lint, Tests, Issue-Sync, Self-Test u. a.)";
 als lokale pre-push-Gates ausgewiesen. Runde 2 → **APPROVED**. Details: [`tasks/review-160.md`](review-160.md).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+1 Learning aus Review-Runde 1: Onboarding-Doku darf **required CI-Checks** und **lokale
+pre-push-Gates** nicht als eine Liste vermischen (Typecheck ist pre-push-only, kein required
+Check). Neue Regel in `docs/factory/PROJECT-CONTEXT.md` → „Bekannte Stolpersteine". Report:
+[`tasks/codify-160.md`](codify-160.md). Kein Folge-Issue (kein offener Aufwand).
+
+Security-Review/Refactor als n/a übersprungen: reine Doku-Änderung ohne Auth-/Secret-/Angriffs-
+flächen und ohne Verhalten (in Absprache mit dem Entwickler).
 
 ---
 Branch: `docs/160-contributing-tch-app-ausrichten`

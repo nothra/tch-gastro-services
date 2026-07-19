@@ -791,6 +791,32 @@ deaktiviertes Setting hätte auch die Stage-3-Pipeline blockiert. Abzugrenzen vo
 CLEAN-Fall (bereits mergebarer PR): den behandelt der Direct-Merge-Fallback aus
 [ADR-030](../adr/030-pr-shepherd-direct-merge-fallback.md).
 
+### Doku über „die Gates": required CI-Checks ≠ lokale pre-push-Gates nicht vermischen (aus #160)
+
+Beim Neu-Ausrichten von `CONTRIBUTING.md` (Onboarding-Doku) entstand der Reflex, „die Gates"
+als **eine** Liste aufzuzählen – und `Typecheck` unter die **required CI-Checks** zu schreiben.
+Falsch: Das Repo hat **zwei getrennte Ebenen**, die sich überschneiden, aber nicht deckungsgleich
+sind (Review-Runde 1 fand es):
+
+- **Required CI-Checks** (branch-ruleset `protect-main`, auf `pull_request` bis zum Ende laufend,
+  #155): `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue` – die Jobs in
+  `.github/workflows/factory-ci.yml`.
+- **Lokale pre-push-Gates** (`scripts/checks/pre-push.sh`): Tests **plus** `Typecheck` (#137),
+  `Format:check`, `Routen-Doku-Drift` (#145), Branch-Name – ein **Superset**, das nur lokal läuft
+  und **keinen** CI-Check erzeugt.
+
+`Typecheck`/`Format`/`Routen-Drift` als „required Check" zu bezeichnen ist also faktisch falsch –
+für ein Onboarding-Dokument, dessen einziger Zweck Genauigkeit ist, ein echter Fehler. Verwandt
+mit #155 (required Checks gegen **echte** PR-Check-Runs verifizieren, nicht gegen Job-Namen im
+YAML) – hier die Doku-Variante: nicht gegen die pre-push-Gate-Liste verwechseln.
+
+**Regel:** Beschreibt Doku „die Qualitäts-Gates", die beiden Ebenen **getrennt** benennen und
+jede gegen ihre Quelle prüfen: required CI-Checks gegen die `pull_request`-Jobs in
+`factory-ci.yml` (bzw. `gh api repos/<owner>/<repo>/commits/<pr-head-sha>/check-runs`), lokale
+Gates gegen `scripts/checks/pre-push.sh`. Ein Gate, das nur in `pre-push.sh` steht (Typecheck,
+Format, Routen-Drift), ist **kein** required CI-Check und darf nicht so genannt werden. Im Zweifel
+allgemein formulieren („grüne CI-Gates") statt eine falsche Einzelaufzählung zu riskieren.
+
 ---
 
 ## Offene Architektur-Fragen
