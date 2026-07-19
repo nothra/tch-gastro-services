@@ -8,7 +8,8 @@ declare module "next-auth" {
     roles?: UserRole[];
   }
   interface Session {
-    user: { roles: UserRole[] } & DefaultSession["user"];
+    // `id` ist der Akteur-Bezug für das F8-Protokoll (ADR-033 D7), aus `token.sub` gespeist.
+    user: { id: string; roles: UserRole[] } & DefaultSession["user"];
   }
 }
 

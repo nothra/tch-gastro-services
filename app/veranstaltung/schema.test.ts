@@ -3,6 +3,7 @@ import { firstIssueMessage } from "@/lib/form-errors";
 import {
   auslageSchema,
   auslageStatusSchema,
+  kassiereSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
 } from "./schema";
@@ -233,5 +234,50 @@ describe("auslageStatusSchema", () => {
   it("should_reject_when_statusNotInEnum", () => {
     const result = auslageStatusSchema.safeParse({ status: "storniert" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("kassiereSchema", () => {
+  it("should_parseEuroToCents_when_validAmount", () => {
+    const result = kassiereSchema.safeParse({ erhalten: "12,50" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.erhalten).toBe(1250);
+  });
+
+  it("should_mapToNull_when_erhaltenEmpty", () => {
+    // Leer = „noch nicht kassiert" → NULL (unterscheidet sich von „0 kassiert", ADR-033 D1).
+    const result = kassiereSchema.safeParse({ erhalten: "" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.erhalten).toBeNull();
+  });
+
+  it("should_acceptZero_when_erhaltenIsZero", () => {
+    const result = kassiereSchema.safeParse({ erhalten: "0" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.erhalten).toBe(0);
+  });
+
+  it("should_reject_when_negativeAmount", () => {
+    const result = kassiereSchema.safeParse({ erhalten: "-5" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reject_when_notANumber", () => {
+    const result = kassiereSchema.safeParse({ erhalten: "abc" });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_nameFormat_when_invalidAmount", () => {
+    const result = kassiereSchema.safeParse({ erhalten: "1,234" });
+    if (!result.success)
+      expect(firstIssueMessage(result.error)).toBe(
+        "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.",
+      );
+  });
+
+  it("should_reject_when_aboveInt4Max", () => {
+    const result = kassiereSchema.safeParse({ erhalten: "99999999999" });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(firstIssueMessage(result.error)).toBe("Betrag ist zu hoch.");
   });
 });

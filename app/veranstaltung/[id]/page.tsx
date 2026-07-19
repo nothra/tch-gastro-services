@@ -72,6 +72,12 @@ export default async function VeranstaltungDetailPage({
         >
           Auslagen erstatten →
         </Link>
+        <Link
+          href={`/veranstaltung/${veranstaltung.id}/kassieren`}
+          className="inline-flex w-fit items-center rounded border border-cyan-700 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950"
+        >
+          Kassieren →
+        </Link>
       </div>
 
       {offen && (

@@ -5,7 +5,9 @@ import {
   AUSLAGE_KATEGORIE_LABEL,
   AUSLAGE_KATEGORIE_ORDER,
   AUSLAGE_STATUS_LABEL,
+  EREIGNIS_ART_LABEL,
   formatDatum,
+  formatZeitpunkt,
 } from "./labels";
 
 describe("formatDatum", () => {
@@ -15,6 +17,13 @@ describe("formatDatum", () => {
 
   it("should_returnDash_when_null", () => {
     expect(formatDatum(null)).toBe("—");
+  });
+});
+
+describe("formatZeitpunkt", () => {
+  it("should_formatDateAndTimeInBerlinZone_when_timestampGiven", () => {
+    // 2026-07-13T18:30:00Z ist in Europe/Berlin (Sommerzeit, +02:00) der 13.07. um 20:30.
+    expect(formatZeitpunkt(new Date("2026-07-13T18:30:00Z"))).toBe("13.07.2026, 20:30");
   });
 });
 
@@ -38,6 +47,11 @@ describe("labels", () => {
   it("should_provideAuslageStatusLabels", () => {
     expect(AUSLAGE_STATUS_LABEL.offen).toBe("offen zu erstatten");
     expect(AUSLAGE_STATUS_LABEL.erstattet).toBe("erstattet");
+  });
+
+  it("should_provideEreignisArtLabels", () => {
+    expect(EREIGNIS_ART_LABEL.abgeschlossen).toBe("Abgeschlossen");
+    expect(EREIGNIS_ART_LABEL.wiedereroeffnet).toBe("Wiedereröffnet");
   });
 
   it("should_orderAllThreeKategorien_when_ordering", () => {

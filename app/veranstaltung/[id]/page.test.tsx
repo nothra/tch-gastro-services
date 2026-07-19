@@ -116,12 +116,25 @@ describe("VeranstaltungDetailPage", () => {
     expect(link).toHaveAttribute("href", "/veranstaltung/v-1/auslagen");
   });
 
+  it("should_linkToKassierenPage_when_veranstalter", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    const link = screen.getByRole("link", { name: /Kassieren/ });
+    expect(link).toHaveAttribute("href", "/veranstaltung/v-1/kassieren");
+  });
+
   it("should_renderZeileRow_when_zeilenPresent", async () => {
     const aZeile: VeranstaltungZeile = {
       id: "z-1",
       veranstaltungId: "v-1",
       teilnehmerId: "t-1",
       anzeigename: "Anna Beispiel",
+      erhaltenCents: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

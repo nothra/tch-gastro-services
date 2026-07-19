@@ -12,6 +12,7 @@ const aZeile: VeranstaltungZeile = {
   veranstaltungId: "v-1",
   teilnehmerId: "t-1",
   anzeigename: "Erika Mustermann",
+  erhaltenCents: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

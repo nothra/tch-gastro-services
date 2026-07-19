@@ -24,7 +24,12 @@ export const authConfig = {
     session({ session, token }) {
       // Cast wie beim Vorgänger (#16): next-auth v5 beta führt den JWT-Custom-Claim
       // im Callback nicht sauber typisiert.
-      if (session.user) session.user.roles = (token.roles as UserRole[] | undefined) ?? [];
+      if (session.user) {
+        session.user.roles = (token.roles as UserRole[] | undefined) ?? [];
+        // `token.sub` trägt die User-ID (von NextAuth beim Sign-in gesetzt). F8 braucht sie
+        // für den Akteur des Abschluss-/Wiederöffnungs-Protokolls (ADR-033 D4/D7).
+        session.user.id = token.sub ?? "";
+      }
       return session;
     },
   },
