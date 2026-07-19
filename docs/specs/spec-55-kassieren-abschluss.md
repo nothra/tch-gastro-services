@@ -24,6 +24,11 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - `Erhalten` (bar kassiert) je Zeile erfassen.
 - `Spende` = `Erhalten − Verzehr-Gesamt` (automatisch; nur positiver Überschuss ist Spende).
 - Zeilen-Status **`offen`** oder **`bezahlt`** – **kein** Restbetrag/Teilzahlung im MVP.
+  **Status-Logik (hybrid, Entscheidung 2026-07-19):** `Erhalten ≥ Verzehr-Gesamt` ⇒ Zeile
+  automatisch **`bezahlt`**; der Veranstalter kann eine Zeile zusätzlich **explizit `offen`**
+  lassen bzw. wieder auf `offen` setzen (Fall „nicht kassierbar"), auch ohne erfasstes
+  `Erhalten`. Eine Zeile mit `Verzehr-Gesamt = 0` und `Erhalten = 0` gilt als **bezahlt**
+  (nichts zu kassieren) und zählt beim Abschluss **nicht** als offene Zeile.
 - Veranstaltung **abschließen**: danach schreibgeschützt; Tagessummen fixiert.
 - Abgeschlossene Veranstaltung durch einen **Veranstalter wieder öffnen**, korrigieren, erneut
   abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
@@ -52,6 +57,12 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
       **ohne** Auslagen-Abzug).
 - [ ] GIVEN ein Teilnehmer zahlt genau den Verzehr-Gesamt WHEN `Erhalten = Verzehr-Gesamt`
       erfasst wird THEN ist `Spende = 0` und die Zeile gilt als **bezahlt**.
+- [ ] GIVEN eine Zeile ohne jeden Verzehr (`Verzehr-Gesamt = 0`) und ohne `Erhalten` WHEN
+      der Status gebildet wird THEN gilt die Zeile als **bezahlt** (nichts zu kassieren) und
+      zählt beim Abschluss **nicht** als offene Zeile.
+- [ ] GIVEN eine bereits als bezahlt geltende Zeile (z. B. `Erhalten ≥ Verzehr-Gesamt`) WHEN
+      der Veranstalter sie **explizit auf `offen`** setzt (nicht kassierbar) THEN gilt sie als
+      **offen** und zählt als offene Zeile – unabhängig vom erfassten `Erhalten`.
 - [ ] GIVEN ein Teilnehmer zahlt mehr WHEN `Erhalten > Verzehr-Gesamt` erfasst wird THEN
       ist `Spende = Erhalten − Verzehr-Gesamt` und wird als Spende ausgewiesen; Zeile
       **bezahlt**.
