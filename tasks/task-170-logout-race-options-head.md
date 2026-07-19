@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -103,6 +103,17 @@ dem Merge, lokal nicht aussagekräftig. Mensch/Nachtest: nach INT-Deploy dieses 
 - **Restliche Review-Nitpicks (Case-Normalisierung der Methode)** bewusst nicht in Tests gegossen:
   laut Review niedriges, sicherheits-neutrales Risiko (dokumentierte Rationale im Code-Kommentar
   reicht) – nicht blockierend, hier nicht nachgezogen.
+
+### Refactor-Notizen (/refactor, 2026-07-19)
+- **Kein Änderungsbedarf.** `lib/prefetch-session.ts`/`proxy.ts` + Tests erfüllen die
+  Clean-Code-Checkliste bereits (sprechende Namen, kleine Single-Responsibility-Funktionen,
+  benannte Konstanten statt Magic Strings, Guard Clauses, WHY-Kommentare, keine Duplikation –
+  das Duplikat-Nitpick aus dem Review war schon in `/test` behoben, 19 Tests grün verifiziert).
+- Das verbleibende Review-Nitpick (Case-Normalisierung von `request.method`) bleibt bewusst
+  unangetastet: laut Review optional/nicht blockierend, und `.toUpperCase()` wäre eine
+  Verhaltensänderung (Robustheit), kein reines Refactoring – widerspricht der Kernregel
+  „kein neues Verhalten".
+- `pnpm lint` + `pnpm vitest run lib/prefetch-session.test.ts proxy.test.ts` grün (19/19).
 
 ### Scope-/Branch-Check (Stolperstein #120)
 Der Branch `fix/170-…` bündelt Code (`lib/`, `proxy.ts`, Tests) **und** eine ADR – für einen
