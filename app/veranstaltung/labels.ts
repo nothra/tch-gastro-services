@@ -22,7 +22,11 @@ export const AUSLAGE_KATEGORIE_LABEL: Record<AuslageKategorie, string> = {
 
 // Kanonische Anzeigereihenfolge der Kategorien (Übersicht + Erfassungsformular) – eine Quelle,
 // damit Summen und Auswahl dieselbe Ordnung teilen.
-export const AUSLAGE_KATEGORIE_ORDER: readonly AuslageKategorie[] = ["getraenke", "essen", "sonstiges"];
+export const AUSLAGE_KATEGORIE_ORDER: readonly AuslageKategorie[] = [
+  "getraenke",
+  "essen",
+  "sonstiges",
+];
 
 // Anzeige-Labels des Auslagen-Status (Ubiquitous Language, ADR-028 D3).
 export const AUSLAGE_STATUS_LABEL: Record<AuslageStatus, string> = {

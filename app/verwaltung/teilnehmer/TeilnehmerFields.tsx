@@ -6,8 +6,7 @@ export const TYP_LABEL: Record<Teilnehmer["typ"], string> = {
   familie: "Familie",
 };
 
-const inputClass =
-  "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
+const inputClass = "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
 
 // Gemeinsame Eingabefelder für Anlegen und Bearbeiten (kein Copy-Paste zwischen den
 // beiden Formularen). `mitglied` ist eine Checkbox: gesetzt → sendet "on", nicht gesetzt →

@@ -83,7 +83,9 @@ export async function getPosition(
   const [row] = await db
     .select()
     .from(verzehrPosition)
-    .where(and(eq(verzehrPosition.zeileId, zeileId), eq(verzehrPosition.catalogItemId, catalogItemId)))
+    .where(
+      and(eq(verzehrPosition.zeileId, zeileId), eq(verzehrPosition.catalogItemId, catalogItemId)),
+    )
     .limit(1);
   return row;
 }

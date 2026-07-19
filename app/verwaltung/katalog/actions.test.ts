@@ -58,7 +58,12 @@ describe("createCatalogItemAction", () => {
 
     expect(result).toEqual({ ok: true });
     expect(createItemMock).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Cola", size: "0,5 l", priceCents: 210, category: "getraenk" }),
+      expect.objectContaining({
+        name: "Cola",
+        size: "0,5 l",
+        priceCents: 210,
+        category: "getraenk",
+      }),
     );
   });
 
@@ -72,7 +77,10 @@ describe("createCatalogItemAction", () => {
   });
 
   it("should_returnError_when_priceInvalid", async () => {
-    const result = await createCatalogItemAction(undefined, form({ ...validFields, priceCents: "2,105" }));
+    const result = await createCatalogItemAction(
+      undefined,
+      form({ ...validFields, priceCents: "2,105" }),
+    );
 
     expect(result.error).toBeDefined();
     expect(createItemMock).not.toHaveBeenCalled();

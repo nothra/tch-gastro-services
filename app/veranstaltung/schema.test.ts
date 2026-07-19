@@ -102,7 +102,12 @@ describe("verzehrAdjustSchema", () => {
 });
 
 describe("auslageSchema", () => {
-  const validAuslage = { teilnehmerId: "t1", kategorie: "sonstiges", betrag: "5,50", zweck: "Grillfleisch" };
+  const validAuslage = {
+    teilnehmerId: "t1",
+    kategorie: "sonstiges",
+    betrag: "5,50",
+    zweck: "Grillfleisch",
+  };
 
   it("should_parseAndTransformBetragToCents_when_inputValid", () => {
     const result = auslageSchema.safeParse(validAuslage);
@@ -149,7 +154,9 @@ describe("auslageSchema", () => {
     const result = auslageSchema.safeParse({ ...validAuslage, kategorie: "getraenk" });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(firstIssueMessage(result.error)).toBe("Kategorie muss Getränke, Essen oder Sonstiges sein.");
+      expect(firstIssueMessage(result.error)).toBe(
+        "Kategorie muss Getränke, Essen oder Sonstiges sein.",
+      );
     }
   });
 

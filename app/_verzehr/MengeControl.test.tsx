@@ -70,7 +70,11 @@ describe("MengeControl", () => {
   it("should_showErrorMessage_when_actionReturnsError", () => {
     // FS3: Fehler der Action (z. B. Verbindungsabbruch) wird sichtbar –
     // keine stille Ablehnung, kein lost-update ohne Rückmeldung.
-    useActionStateMock.mockReturnValue([{ error: "Speichern fehlgeschlagen." }, noopDispatch, false] as never);
+    useActionStateMock.mockReturnValue([
+      { error: "Speichern fehlgeschlagen." },
+      noopDispatch,
+      false,
+    ] as never);
 
     renderControl();
 

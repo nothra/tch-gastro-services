@@ -51,9 +51,7 @@ describe("AddTeilnehmerForm", () => {
   it("should_showAlleErfasstMessage_when_verfuegbarIsEmpty", () => {
     render(<AddTeilnehmerForm veranstaltungId="v-1" verfuegbar={[]} />);
 
-    expect(
-      screen.getByText("Alle aktiven Teilnehmer sind bereits erfasst."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Alle aktiven Teilnehmer sind bereits erfasst.")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 

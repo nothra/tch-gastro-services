@@ -60,7 +60,12 @@ describe("AuslageForm", () => {
         action={noopAction}
         teilnehmer={teilnehmer}
         submitLabel="Speichern"
-        initial={{ teilnehmerId: "t-2", kategorie: "essen", betrag: "12,50", zweck: "Grillfleisch" }}
+        initial={{
+          teilnehmerId: "t-2",
+          kategorie: "essen",
+          betrag: "12,50",
+          zweck: "Grillfleisch",
+        }}
       />,
     );
 
@@ -153,7 +158,12 @@ describe("AuslageForm", () => {
         action={noopAction}
         teilnehmer={teilnehmer}
         submitLabel="Speichern"
-        initial={{ teilnehmerId: "t-2", kategorie: "essen", betrag: "12,50", zweck: "Grillfleisch" }}
+        initial={{
+          teilnehmerId: "t-2",
+          kategorie: "essen",
+          betrag: "12,50",
+          zweck: "Grillfleisch",
+        }}
       />,
     );
     const betrag = screen.getByLabelText(/Betrag/i);

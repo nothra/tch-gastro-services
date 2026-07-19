@@ -39,10 +39,7 @@ export default async function VeranstaltungenPage() {
         ) : (
           <ul className="flex flex-col gap-2">
             {veranstaltungen.map((v) => (
-              <li
-                key={v.id}
-                className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
-              >
+              <li key={v.id} className="rounded border border-zinc-200 p-3 dark:border-zinc-800">
                 <Link
                   href={`/veranstaltung/${v.id}`}
                   className="font-medium text-cyan-700 hover:underline dark:text-cyan-400"
@@ -50,7 +47,8 @@ export default async function VeranstaltungenPage() {
                   {v.bezeichnung}
                 </Link>
                 <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">
-                  {formatDatum(v.datum)} · {KASSE_LABEL[v.kasse as Kasse]} · {STATUS_LABEL[v.status]}
+                  {formatDatum(v.datum)} · {KASSE_LABEL[v.kasse as Kasse]} ·{" "}
+                  {STATUS_LABEL[v.status]}
                 </span>
               </li>
             ))}

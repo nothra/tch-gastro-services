@@ -14,13 +14,7 @@ vi.mock("./actions", () => ({
 // AuslageForm ist eigenständig getestet (AuslageForm.test.tsx); hier durch ein Stub ersetzt,
 // das die durchgereichten Props sichtbar macht und onSuccess auslösen kann.
 vi.mock("./AuslageForm", () => ({
-  AuslageForm: ({
-    onSuccess,
-    initial,
-  }: {
-    onSuccess?: () => void;
-    initial?: unknown;
-  }) => (
+  AuslageForm: ({ onSuccess, initial }: { onSuccess?: () => void; initial?: unknown }) => (
     <div data-testid="edit-form">
       <span data-testid="edit-initial">{JSON.stringify(initial)}</span>
       <button type="button" onClick={() => onSuccess?.()}>

@@ -12,7 +12,10 @@ const teilnehmerOrder = [asc(teilnehmer.name)];
 
 // Vollständige Liste inkl. deaktivierter Teilnehmer – für die Verwalter-Pflegeansicht.
 export function listTeilnehmer(): Promise<Teilnehmer[]> {
-  return db.select().from(teilnehmer).orderBy(...teilnehmerOrder);
+  return db
+    .select()
+    .from(teilnehmer)
+    .orderBy(...teilnehmerOrder);
 }
 
 // Nur aktive Teilnehmer – für die Auswahl beim Anlegen eines Abends (F4).

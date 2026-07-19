@@ -18,8 +18,20 @@ const noopAction: VerzehrFormAction = vi.fn(async () => ({ ok: true, menge: 0 })
 
 const aZeile = { id: "z-1", anzeigename: "Anna" };
 const cola = { id: "c-1", name: "Cola", size: "", priceCents: 250, category: "getraenk" as const };
-const schnitzel = { id: "c-2", name: "Schnitzel", size: "", priceCents: 890, category: "essen" as const };
-const kaffee = { id: "c-3", name: "Kaffee", size: "", priceCents: 100, category: "kaffee" as const };
+const schnitzel = {
+  id: "c-2",
+  name: "Schnitzel",
+  size: "",
+  priceCents: 890,
+  category: "essen" as const,
+};
+const kaffee = {
+  id: "c-3",
+  name: "Kaffee",
+  size: "",
+  priceCents: 100,
+  category: "kaffee" as const,
+};
 
 function pos(overrides: Partial<VerzehrPositionRow> = {}): VerzehrPositionRow {
   return {
@@ -38,7 +50,13 @@ function pos(overrides: Partial<VerzehrPositionRow> = {}): VerzehrPositionRow {
 describe("VerzehrErfassung", () => {
   it("should_showEmptyMessage_when_noZeilen", () => {
     render(
-      <VerzehrErfassung zeilen={[]} artikel={[cola]} positionen={[]} action={noopAction} editable />,
+      <VerzehrErfassung
+        zeilen={[]}
+        artikel={[cola]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
     );
 
     expect(screen.getByText(/Noch keine Teilnehmer erfasst/)).toBeInTheDocument();
@@ -227,10 +245,7 @@ describe("VerzehrErfassung", () => {
       <VerzehrErfassung
         zeilen={[aZeile, bZeile]}
         artikel={[cola]}
-        positionen={[
-          pos({ zeileId: "z-1", menge: 2 }),
-          pos({ zeileId: "z-2", menge: 4 }),
-        ]}
+        positionen={[pos({ zeileId: "z-1", menge: 2 }), pos({ zeileId: "z-2", menge: 4 })]}
         action={noopAction}
         editable
       />,
@@ -420,7 +435,9 @@ describe("VerzehrErfassung", () => {
       <VerzehrErfassung
         zeilen={[aZeile]}
         artikel={[]}
-        positionen={[pos({ menge: 2, active: false, name: "Radler", size: "0,5 l", priceCents: 280 })]}
+        positionen={[
+          pos({ menge: 2, active: false, name: "Radler", size: "0,5 l", priceCents: 280 }),
+        ]}
         action={noopAction}
         editable
       />,

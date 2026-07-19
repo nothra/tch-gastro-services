@@ -30,9 +30,7 @@ describe("ThekeSetup", () => {
   it("should_showHeadingAndEinrichtenButton_when_rendered", () => {
     render(<ThekeSetup />);
 
-    expect(
-      screen.getByRole("heading", { name: "Stehende Theke einrichten" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Stehende Theke einrichten" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Einrichten" })).toBeInTheDocument();
   });
 

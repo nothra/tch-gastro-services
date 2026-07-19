@@ -91,9 +91,7 @@ describe("VeranstaltungenPage", () => {
 
     render(await VeranstaltungenPage());
 
-    expect(
-      screen.getByRole("heading", { name: "Veranstaltungen", level: 1 }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Veranstaltungen", level: 1 })).toBeInTheDocument();
     expect(screen.getByText(/Noch keine Veranstaltung angelegt/)).toBeInTheDocument();
     expect(screen.getByText(/Veranstaltungen \(0\)/)).toBeInTheDocument();
   });

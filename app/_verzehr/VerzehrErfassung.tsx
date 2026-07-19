@@ -73,12 +73,16 @@ function ZeileKarte({
   action: VerzehrFormAction;
   editable: boolean;
 }) {
-  const mengeJeArtikel = new Map(positionen.map((position) => [position.catalogItemId, position.menge]));
+  const mengeJeArtikel = new Map(
+    positionen.map((position) => [position.catalogItemId, position.menge]),
+  );
   const summen = zeileSummen(positionen);
   // ADR-026 D3: bestehende Position auf einem soft-gelöschten Artikel bleibt sichtbar +
   // korrigierbar (kein Under-Billing, summen.ts zählt sie bereits mit). menge=0 wird nicht
   // gerendert – re-erfassen ist dann bewusst nicht mehr möglich (Soft-Delete-Zweck).
-  const inaktivePositionen = positionen.filter((position) => !position.active && position.menge > 0);
+  const inaktivePositionen = positionen.filter(
+    (position) => !position.active && position.menge > 0,
+  );
 
   return (
     <li className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800">
