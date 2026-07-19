@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `pnpm format:check` meldet 38 nicht Prettier-konforme Dateien (`app/`, `db/`, `lib/`).
@@ -115,6 +115,11 @@ Over-Engineering (clean-code.md: kein Gold-Plating). Selbsttests 289 grün, unve
 /codify [2026-07-18]: Neue Regel bash-gotchas.md §8 (`${VAR-default}` vs `${VAR:-default}` –
 leerer Wert als Opt-out) aus dem `:-`→`-`-Fehler beim Gate. Struktur-Grep-auf-Prosa war bereits
 codifiziert (§7 + #114), nur reaktiv angewandt → §8 verstärkt den Bezug. Report: `tasks/codify-149.md`.
+
+PR-Shepherd [2026-07-18]: main gemergt (advance durch #147/#152); Konflikt in `pre-push.sh`
+und `run-tests.sh` aufgelöst – Format-Gate (#149) und Routen-Doku-Gate (#145) koexistieren
+(Check 3 Format, Check 4 Routen-Doku, Check 5 Branch-Guard). Alle Gates grün (Tests, Typecheck,
+Format, Routen-Doku, Selbsttests 297). Auto-Merge (Squash) freigegeben.
 
 ---
 Branch: `chore/149-format-check-drift-beheben`
