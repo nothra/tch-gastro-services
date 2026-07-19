@@ -7,7 +7,10 @@
 - [x] Security-Review bestanden (PASSED, `tasks/security-158.md`)
 - [x] Refactoring abgeschlossen (line_before-Helper, N4)
 - [x] Codify ausgeführt (`tasks/codify-158.md`)
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd [2026-07-19]: Merge freigegeben – alle Gates grün (Review APPROVED, Security PASSED,
+`run-tests.sh` 304 grün, `pnpm test` 376 grün, CI required Checks pass). PR #159 aus Draft geholt.
 
 ## Beschreibung
 `/pr-shepherd` Schritt 6 aktiviert den Merge nur über `gh pr merge --auto --squash`.
