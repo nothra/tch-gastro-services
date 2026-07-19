@@ -64,6 +64,13 @@ per `git grep` (POSIX-Regex, siehe clean-code.md „Portabilität in Gate-Skript
 
 Keine – Scope & Header-Notiz-Behandlung entschieden (siehe oben).
 
+## PR-Shepherd
+
+PR-Shepherd [2026-07-19]: Auto-Merge freigegeben – alle Gates grün (CI: lint/test/
+factory-self-test/issue-sync/pr-closes-issue/Vercel ✓), `mergeStateStatus=CLEAN`,
+keine offenen Review-Threads (nur Vercel-Bot-Kommentar), keine Pflicht-Reviews. PR #154,
+Squash-Merge.
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
