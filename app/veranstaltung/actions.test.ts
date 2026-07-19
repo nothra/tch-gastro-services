@@ -504,6 +504,24 @@ describe("setStatusAction", () => {
     expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(abschliessenMock).not.toHaveBeenCalled();
   });
+
+  // Review-Finding W1 (#55): passiert der Vor-Check, hat aber eine nebenläufige Anfrage den
+  // Wechsel schon vollzogen, liefert der guarded UPDATE der Data-Layer `undefined` (ADR-033 D3).
+  // Die Action muss diesen No-op als „bereits …"-Fehler ausweisen, statt fälschlich `{ ok: true }`.
+  it("should_returnError_when_abschliessenReturnsUndefined", async () => {
+    abschliessenMock.mockResolvedValue(undefined);
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+    expect(result.error).toBe("Die Veranstaltung ist bereits abgeschlossen.");
+    expect(result.ok).toBeUndefined();
+  });
+
+  it("should_returnError_when_wiedereroeffnenReturnsUndefined", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    wiedereroeffnenMock.mockResolvedValue(undefined);
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "offen" }));
+    expect(result.error).toBe("Die Veranstaltung ist bereits offen.");
+    expect(result.ok).toBeUndefined();
+  });
 });
 
 describe("kassiereZeileAction", () => {
@@ -537,6 +555,15 @@ describe("kassiereZeileAction", () => {
   it("should_returnError_when_amountInvalid", async () => {
     const result = await bound({ zeileId: "z1", erhalten: "-5" });
     expect(result.error).toBeDefined();
+    expect(setErhaltenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungNotFound", async () => {
+    // Guard-Branch NOT_FOUND (Codify #51): ohne diesen Test schlüge das Entfernen des
+    // `!ziel`-Guards keinen Test fehl (Smell-Test) – analog den übrigen mutierenden Actions.
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    const result = await bound({ zeileId: "z1", erhalten: "5" });
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(setErhaltenMock).not.toHaveBeenCalled();
   });
 

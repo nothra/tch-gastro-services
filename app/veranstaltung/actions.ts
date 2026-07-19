@@ -181,6 +181,9 @@ export async function setStatusAction(
   // Akteur-Snapshot für das Protokoll (ADR-033 D4/D7): id aus der Session, Name display-ready.
   const akteur = { userId: session.user.id || null, name: session.user.name ?? null };
 
+  // Der guarded UPDATE der Data-Layer (`WHERE status = …`, ADR-033 D3) liefert `undefined`, wenn
+  // eine nebenläufige Anfrage den Wechsel schon vollzogen hat (TOCTOU nach diesem Vor-Check).
+  // Diesen No-op als „bereits …"-Fehler ausweisen, statt fälschlich `{ ok: true }` zu melden.
   if (status === "abgeschlossen") {
     if (ziel.typ === "theke") return { error: THEKE_NICHT_ABSCHLIESSBAR };
     if (ziel.status !== "offen") return { error: BEREITS_ABGESCHLOSSEN };
@@ -188,10 +191,12 @@ export async function setStatusAction(
     if (offene > 0) {
       return { error: `Abschluss nicht möglich: ${offene} Zeile(n) noch offen.` };
     }
-    await abschliessenVeranstaltung(id, akteur);
+    const closed = await abschliessenVeranstaltung(id, akteur);
+    if (!closed) return { error: BEREITS_ABGESCHLOSSEN };
   } else {
     if (ziel.status !== "abgeschlossen") return { error: BEREITS_OFFEN };
-    await wiedereroeffnenVeranstaltung(id, akteur);
+    const reopened = await wiedereroeffnenVeranstaltung(id, akteur);
+    if (!reopened) return { error: BEREITS_OFFEN };
   }
 
   revalidatePath(detailPath(id));

@@ -10,7 +10,6 @@ import {
   verzehrPosition,
   type Kasse,
   type Veranstaltung,
-  type VeranstaltungStatus,
   type VeranstaltungZeile,
 } from "./schema";
 
@@ -39,18 +38,6 @@ export function listVeranstaltungen(): Promise<Veranstaltung[]> {
 export async function getVeranstaltung(id: string): Promise<Veranstaltung | undefined> {
   const [row] = await db.select().from(veranstaltung).where(eq(veranstaltung.id, id)).limit(1);
   return row;
-}
-
-export async function setStatus(
-  id: string,
-  status: VeranstaltungStatus,
-): Promise<Veranstaltung | undefined> {
-  const [updated] = await db
-    .update(veranstaltung)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(veranstaltung.id, id))
-    .returning();
-  return updated;
 }
 
 export async function getThekeForKasse(kasse: Kasse): Promise<Veranstaltung | undefined> {

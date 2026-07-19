@@ -102,6 +102,35 @@ _Alle drei /architecture-Fragen in [ADR-033](../docs/adr/033-kassieren-abschluss
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+**Review-Runde 1** (`tasks/review-55.md`, Verdict NEEDS_REWORK): keine kritischen, fünf wichtige
+Findings – alle behoben (2026-07-20):
+
+- **W1 – Guarded UPDATE schützt nur die Status-Spalte (Audit-Trail/`{ok:true}`-Race).** Behoben
+  über **Fix-Option (b)** des Reviews: `setStatusAction` wertet jetzt den `undefined`-Rückgabewert
+  von `abschliessenVeranstaltung`/`wiedereroeffnenVeranstaltung` aus und meldet den nebenläufigen
+  No-op als „bereits abgeschlossen/offen"-Fehler statt fälschlich `{ ok: true }`
+  (`app/veranstaltung/actions.ts`). Zwei neue Action-Unit-Tests decken beide Branches ab.
+  Die reine Data-Layer-Idempotenz (Fix-Option a) wurde **bewusst nicht** in SQL nachgezogen: sie
+  erforderte ein `INSERT … SELECT … WHERE EXISTS` mit Enum-Cast, das in dieser Sandbox nicht gegen
+  eine echte Postgres-DB verifizierbar ist – ein ungetesteter Umbau des kassenkritischen
+  Abschluss-Pfads wäre unverhältnismäßig für den Single-Veranstalter-MVP. Die Data-Layer-Funktionen
+  sind bewusst reine atomare Writer; der Guard sitzt in `setStatusAction` (Status-Vor-Check + neue
+  `undefined`-Auswertung). Der verbleibende Phantom-Event bei einem echten Nebenläufigkeits-Rennen
+  ist die in **ADR-033 D3 bewusst akzeptierte TOCTOU**. Die beiden Data-Layer-Doppelaufruf-Tests
+  dokumentieren jetzt die **tatsächliche** Semantik (`listEreignisse` Länge 2 bzw. 1) statt sie zu
+  kaschieren (Review-Vorgabe „In jedem Fall").
+- **W2 – Tote Funktion `setStatus`** (kein Produktionsaufrufer nach dem Action-Refactor): Funktion
+  und ihr Integrationstest entfernt (`db/veranstaltung.ts`, `db/veranstaltung.test.ts`), YAGNI.
+- **W3 – Tote Funktion `logEreignis`** (exportiert, nie aufgerufen): entfernt; der Modul-Kommentar
+  von `db/veranstaltung-ereignis.ts` erklärt jetzt, dass der Ereignis-Insert bewusst inline in der
+  Abschluss-/Wiederöffnungs-Transaktion läuft (ADR-033 D3/D4).
+- **W4 – `kassiereZeileAction` NOT_FOUND-Guard ungetestet:** Test
+  `should_returnError_when_veranstaltungNotFound` ergänzt (Codify #51).
+- **W5 – Test ohne Ablehnungs-Assertion:** `should_nameFormat_when_invalidAmount` um vorgeschaltetes
+  `expect(result.success).toBe(false)` ergänzt (`app/veranstaltung/schema.test.ts`).
+
+Nitpicks (optional) bewusst nicht adressiert, um den Rework-Diff fokussiert zu halten.
+Gates nach Rework grün: `pre-push.sh` (Tests 487 passed, Typecheck, Format, Routen-Drift) + Lint.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

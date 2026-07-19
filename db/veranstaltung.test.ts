@@ -19,7 +19,6 @@ import {
   listZeilen,
   removeZeile,
   setErhalten,
-  setStatus,
   wiedereroeffnenVeranstaltung,
   type VeranstaltungData,
 } from "./veranstaltung";
@@ -110,14 +109,6 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const list = await listVeranstaltungen();
     expect(list.some((row) => row.id === dated.id)).toBe(true);
     expect(list.some((row) => row.id === theke.id)).toBe(false);
-  });
-
-  it("should_updateStatus_when_setStatus", async () => {
-    const row = await trackVeranstaltung(datierte());
-    const closed = await setStatus(row.id, "abgeschlossen");
-    expect(closed?.status).toBe("abgeschlossen");
-    const reopened = await setStatus(row.id, "offen");
-    expect(reopened?.status).toBe("offen");
   });
 
   it("should_rejectMissingDatum_when_typVeranstaltung", async () => {
@@ -322,6 +313,14 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     // Guarded UPDATE (`WHERE status = 'offen'`, ADR-033 D3) → ein Zweit-Abschluss trifft keine Zeile.
     const second = await abschliessenVeranstaltung(v.id, AKTEUR);
     expect(second).toBeUndefined();
+
+    // Dokumentierte Ist-Semantik (Review-Finding W1, #55): nur der Status-UPDATE ist guarded –
+    // der Ereignis-Insert läuft innerhalb der atomaren Klammer UNBEDINGT. Der Zweit-Aufruf
+    // schreibt daher ein zweites „abgeschlossen"-Ereignis. Die Data-Layer-Funktion ist bewusst
+    // ein reiner atomarer Writer; der Idempotenz-Guard sitzt eine Ebene höher in `setStatusAction`
+    // (Status-Vor-Check + Auswertung des `undefined`-Rückgabewerts). Der verbleibende Rest ist die
+    // in ADR-033 D3 bewusst akzeptierte TOCTOU eines echten Nebenläufigkeits-Rennens.
+    expect(await listEreignisse(v.id)).toHaveLength(2);
   });
 
   it("should_resetPriceAndLogEvent_when_wiedereroeffnen", async () => {
@@ -358,5 +357,11 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     // offenen Veranstaltung trifft keine Zeile (die Action gatet zusätzlich davor).
     const result = await wiedereroeffnenVeranstaltung(v.id, AKTEUR);
     expect(result).toBeUndefined();
+
+    // Dokumentierte Ist-Semantik (Review-Finding W1, #55): der Ereignis-Insert ist ungeguarded –
+    // der Aufruf gegen eine ohnehin offene Veranstaltung schreibt trotz No-op-Status ein
+    // „wiedereroeffnet"-Ereignis. Produktiv verhindert `setStatusAction` diesen Aufruf über den
+    // Status-Vor-Check; die rohe Data-Layer-Funktion bleibt ein reiner atomarer Writer (s. o.).
+    expect(await listEreignisse(v.id)).toHaveLength(1);
   });
 });

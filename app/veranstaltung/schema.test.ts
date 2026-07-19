@@ -269,6 +269,9 @@ describe("kassiereSchema", () => {
 
   it("should_nameFormat_when_invalidAmount", () => {
     const result = kassiereSchema.safeParse({ erhalten: "1,234" });
+    // Ohne diese Ablehnungs-Assertion würde der Test still grün bleiben, falls das Schema
+    // "1,234" versehentlich akzeptierte (der if-Block würde übersprungen, Review-Finding W5).
+    expect(result.success).toBe(false);
     if (!result.success)
       expect(firstIssueMessage(result.error)).toBe(
         "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.",
