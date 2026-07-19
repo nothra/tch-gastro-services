@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -156,6 +156,14 @@ defensive Guards ohne praktisch erreichbaren Gegenfall bzw. außerhalb des Task-
 ungetestet (YAGNI, kein Over-Engineering). Gates grün: `pnpm test` (410 passed / 52 skipped),
 `pnpm test:coverage` (85.41 % Stmts / 92.22 % Branches, über der 80 %-Schwelle), Typecheck,
 Format, Routen-Doku (`bash scripts/checks/pre-push.sh`).
+
+**Refactoring [2026-07-19] (`/refactor`):** Fokus-Trap-/Fokus-Management-Logik (Escape,
+Tab-Containment, Fokus-Rückgabe an den Auslöser) aus `AppNav.tsx` in einen eigenen Hook
+`app/components/useNavDrawerFocus.ts` extrahiert (SRP: Rendering vs. Fokus-Verhalten getrennt).
+`AppNav.tsx` von 161 auf 106 Zeilen reduziert, keine Verhaltensänderung – bestehende Tests
+(inkl. Fokus-Trap-Fälle aus Review-Runde 1 und Test-Vervollständigung) laufen unverändert gegen
+die Komponente und blieben grün. Gates grün: Lint, `pnpm test` (410 passed / 52 skipped),
+Typecheck, Format, Routen-Doku (`pre-commit.sh` + `pre-push.sh`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

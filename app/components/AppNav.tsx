@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem } from "@/lib/navigation";
+import { useNavDrawerFocus } from "./useNavDrawerFocus";
 
 type AppNavProps = {
   // Bereits serverseitig gefilterte Einträge (ADR-031): der Client entscheidet keine Rollen.
@@ -19,63 +19,8 @@ const linkClass =
 // da serverseitig gerendert) + "Abmelden" als Form-Action; auf schmalen Viewports ein
 // Off-Canvas-Drawer über den Hamburger-Button (Toggle/Escape/Fokus nur clientseitig).
 export function AppNav({ items, label, signOutAction }: AppNavProps) {
-  const [open, setOpen] = useState(false);
+  const { open, openDrawer, closeDrawer, toggleRef, drawerRef } = useNavDrawerFocus();
   const pathname = usePathname();
-  const toggleRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
-  const wasOpenRef = useRef(false);
-
-  // close/openen setzen nur State (kein Ref-Zugriff im Render-Pfad); das Fokus-Management
-  // erledigt der Effekt unten – so bleibt close mockfrei als onClick weiterreichbar.
-  const close = useCallback(() => setOpen(false), []);
-
-  // Escape schließt den Drawer (Fokus-Rückgabe siehe Fokus-Effekt). Tab wird im Drawer
-  // gefangen: aria-modal="true" sagt der assistiven Technik zu, dass der Fokus den Dialog
-  // nicht verlässt – ohne Trap tabbte man auf die verdeckten Header-Bedienelemente hinter
-  // dem Overlay (WAI-ARIA APG: modaler Dialog verlangt Fokus-Containment).
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        close();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const drawer = drawerRef.current;
-      if (!drawer) return;
-      const focusable = drawer.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-      // Der Drawer-Container selbst (tabIndex=-1) zählt beim Rückwärts-Tab als "vor dem ersten".
-      if (event.shiftKey && (active === first || active === drawer)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      } else if (!drawer.contains(active)) {
-        // Fokus ist aus dem Drawer entwichen → zurück auf das erste Element.
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, close]);
-
-  // Fokus folgt dem sichtbaren Bereich (A11y): beim Öffnen in den Drawer, beim Schließen
-  // zurück auf den Auslöser – Letzteres nur, wenn der Drawer zuvor wirklich offen war.
-  useEffect(() => {
-    if (open) {
-      wasOpenRef.current = true;
-      drawerRef.current?.focus();
-    } else if (wasOpenRef.current) {
-      wasOpenRef.current = false;
-      toggleRef.current?.focus();
-    }
-  }, [open]);
 
   // Cosmetic: aktiver Bereich (exakte Route oder Unterroute) → aria-current="page".
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -100,7 +45,7 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
         aria-expanded={open}
         aria-controls="app-nav-drawer"
         aria-label="Navigation öffnen"
-        onClick={() => setOpen(true)}
+        onClick={openDrawer}
         className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 md:hidden dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
       >
         <span aria-hidden="true" className="text-lg leading-none">
@@ -128,7 +73,7 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
           <button
             type="button"
             aria-label="Menü schließen"
-            onClick={close}
+            onClick={closeDrawer}
             className="fixed inset-0 z-40 bg-black/40 md:hidden"
           />
           <div
@@ -143,7 +88,7 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
             <button
               type="button"
               aria-label="Navigation schließen"
-              onClick={close}
+              onClick={closeDrawer}
               className="mb-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center self-end rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               <span aria-hidden="true" className="text-lg leading-none">
@@ -151,7 +96,7 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
               </span>
             </button>
             <nav aria-label="Hauptnavigation" className="flex flex-col gap-1">
-              {items.map((item) => renderLink(item, close))}
+              {items.map((item) => renderLink(item, closeDrawer))}
             </nav>
           </div>
         </>
