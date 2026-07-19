@@ -78,4 +78,26 @@ describe("stripSessionRotation", () => {
 
     expect(res.headers.getSetCookie()).toEqual(["vercel-experiment-uuid=x"]);
   });
+
+  it("should_keepCsrfToken_when_sessionAndCsrfPresent", () => {
+    // Der Guard darf NUR das Session-Token treffen – der CSRF-Token muss erhalten bleiben
+    // (sonst brechen Folge-POSTs). Strip-Test ≠ Keep-Test (#116).
+    const res = new Response(null);
+    res.headers.append("set-cookie", "__Secure-authjs.session-token=abc; Path=/");
+    res.headers.append("set-cookie", "__Host-authjs.csrf-token=tok%7Csig; Path=/; HttpOnly");
+
+    stripSessionRotation(res);
+
+    const cookies = res.headers.getSetCookie();
+    expect(cookies.some((c) => c.startsWith("__Secure-authjs.session-token="))).toBe(false);
+    expect(cookies).toContain("__Host-authjs.csrf-token=tok%7Csig; Path=/; HttpOnly");
+  });
+
+  it("should_beNoop_when_responseHasNoSetCookie", () => {
+    const res = new Response(null);
+
+    stripSessionRotation(res);
+
+    expect(res.headers.getSetCookie()).toEqual([]);
+  });
 });

@@ -55,6 +55,15 @@ Nur GET wird gestrippt → POST (Login/Logout) nie.
 `<Link>`s in `app/components/AppNav.tsx` + `app/page.tsx` – spart die authentifizierte
 Hintergrund-RSC-Abfrage (Neon-Last). Nicht mehr korrektheits-tragend (zentral abgesichert).
 
+**Bewusste Entscheidung (Review-Runde 2, W2):** Der zentrale Guard unterdrückt die Session-
+Rotation auf **allen** RSC-GETs – also auch echten Soft-Navigationen, nicht nur Prefetches
+(die Prefetch-Marker `next-router-prefetch`/`rsc` sind in der Middleware nicht mehr sichtbar,
+s. o.). Folge: Die Rolling-Session erneuert ihr Fenster nur noch bei **Dokumentaufrufen/Login**,
+nicht bei Soft-Navigation. Risiko vernachlässigbar: `auth.ts` setzt kein `maxAge` → Default
+**30 Tage**; ein Nutzer müsste 30 Tage lang ausschließlich soft navigieren (kein Full-Load),
+um ausgeloggt zu werden – bei einer wöchentlich genutzten PWA praktisch ausgeschlossen.
+Bewusst gewählt gegenüber der nicht möglichen exakten Prefetch-Erkennung.
+
 ## Technische Notizen
 Verifikation:
 - Unit `lib/prefetch-session.test.ts` (9 Tests, RED→GREEN): `isRscRequest` (inkl. POST-Guard) +
