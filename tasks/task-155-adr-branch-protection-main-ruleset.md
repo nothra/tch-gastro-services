@@ -7,7 +7,11 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen (übersprungen – docs-only, kein Code-Smell)
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd 2026-07-19: Auto-Merge freigegeben – alle required Checks grün
+(lint, test, issue-sync, factory-self-test, pr-closes-issue), keine Approvals nötig
+(Ruleset: 0 Approvals), `mergeStateStatus: CLEAN`. PR #157.
 
 ## Beschreibung
 Den bereits live gesetzten Schutz des `main`-Branch (GitHub Repository-Ruleset
