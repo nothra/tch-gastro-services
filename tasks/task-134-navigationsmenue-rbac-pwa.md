@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -167,6 +167,15 @@ Typecheck, Format, Routen-Doku (`pre-commit.sh` + `pre-push.sh`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**Codify [2026-07-19]** (`tasks/codify-134.md`): Neuer Stolperstein in
+`docs/factory/PROJECT-CONTEXT.md` – „`aria-modal="true"` ist ein Versprechen, kein
+Automatismus – Fokus-Trap explizit bauen + alle Branches testen" (aus Review-Finding W1 +
+dem Coverage-Nachfund in `/test`). Review-Finding W2 (`clearAllMocks` vs. `resetAllMocks`)
+brauchte keine neue Regel – bestehende #51-Regel wurde im Rework korrekt angewendet. Die
+Security-Review-Notiz zu `PublicHeader.contextLabel` (XSS-Vorsorge für #54) wurde als
+Breadcrumb-Kommentar auf Issue #54 hinterlassen statt kodifiziert (Folge-Task-spezifisch,
+kein wiederkehrendes Muster).
 
 ---
 Branch: `feature/134-navigationsmenue-rbac-pwa`
