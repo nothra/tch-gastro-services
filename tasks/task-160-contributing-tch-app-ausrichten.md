@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -55,7 +55,9 @@ CONTRIBUTING.md ohne Treffer.
 <!-- Fragen, die noch geklärt werden müssen -->
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Runde 1 → NEEDS_REWORK (1 Wichtig): `CONTRIBUTING.md` listete Typecheck fälschlich als required
+CI-Check. Rework: korrigiert auf „(Lint, Tests, Issue-Sync, Self-Test u. a.)"; Typecheck/Format
+als lokale pre-push-Gates ausgewiesen. Runde 2 → **APPROVED**. Details: [`tasks/review-160.md`](review-160.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

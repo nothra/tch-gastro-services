@@ -8,13 +8,13 @@ Reine Doku-Änderung – kein Produktionscode, keine Routen (`app/**/page.tsx`,
 - keine
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] `CONTRIBUTING.md` (Abschnitt „Arbeitsweise", Punkt 5): **Typecheck** ist als „required
-      Check" gelistet – das ist faktisch falsch. Die CI (`.github/workflows/factory-ci.yml`) hat
-      Jobs `issue-sync`, `factory-self-test`, `lint`, `test`; **kein** Typecheck-Job. Typecheck
+- [x] **Behoben (Rework):** `CONTRIBUTING.md` (Abschnitt „Arbeitsweise", Punkt 5): **Typecheck**
+      war als „required Check" gelistet – faktisch falsch. Die CI (`.github/workflows/factory-ci.yml`)
+      hat Jobs `issue-sync`, `factory-self-test`, `lint`, `test`; **kein** Typecheck-Job. Typecheck
       läuft nur als **lokales pre-push-Gate** (`scripts/checks/pre-push.sh`, #137), nicht als
       required CI-Check (vgl. #155-Learning: required = lint, test, issue-sync, factory-self-test,
-      pr-closes-issue). Da diese Task gerade Doku-Genauigkeit herstellt, korrigieren:
-      „(Lint, Tests, Issue-Sync, Self-Test u. a.)" statt „(Lint, Tests, Typecheck, Issue-Sync u. a.)".
+      pr-closes-issue). → Korrigiert auf „(Lint, Tests, Issue-Sync, Self-Test u. a.)"; Typecheck/
+      Format ausdrücklich als lokale pre-push-Gates ausgewiesen (mit Link auf `pre-push.sh`).
 
 ## Nitpicks (optional)
 - keine
@@ -34,4 +34,7 @@ Reine Doku-Änderung – kein Produktionscode, keine Routen (`app/**/page.tsx`,
   ausgenommen, `.claude/**`/`docs/factory/**` bewusst außerhalb Scope.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
+
+_(Runde 1 NEEDS_REWORK → Rework angewandt → Runde 2 APPROVED. 1 Wichtig-Finding behoben,
+keine offenen Findings.)_

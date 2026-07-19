@@ -60,8 +60,9 @@ Wir arbeiten **Issue-first** und über die Factory-Pipeline. Die verbindlichen D
 
 5. **Grüne CI-Gates & geschützte `main`:** `main` ist server-seitig durch das Ruleset
    `protect-main` geschützt ([ADR-029](docs/adr/029-branch-protection-main-ruleset.md)) – kein
-   Direkt-/Force-Push, PR-Pflicht, Squash-Merge, grüne required Checks (Lint, Tests, Typecheck,
-   Issue-Sync u. a.). Erst wenn alle Checkboxen der Task-Datei abgehakt und die Gates grün sind,
+   Direkt-/Force-Push, PR-Pflicht, Squash-Merge, grüne required Checks (Lint, Tests, Issue-Sync,
+   Self-Test u. a.). Typecheck und Format laufen als lokale pre-push-Gates
+   ([`scripts/checks/pre-push.sh`](scripts/checks/pre-push.sh)). Erst wenn alle Checkboxen der Task-Datei abgehakt und die Gates grün sind,
    gilt eine Aufgabe als fertig.
 
 ---
