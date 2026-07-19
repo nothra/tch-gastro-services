@@ -150,4 +150,35 @@ describe("AppNav", () => {
     const links = within(dialog).getAllByRole("link");
     expect(links[links.length - 1]).toHaveFocus();
   });
+
+  it("should_wrapFocusToLastLink_when_shiftTabPressedRightAfterOpen", async () => {
+    // Beim Öffnen erhält der Drawer-Container selbst den Fokus (tabIndex=-1) – Shift+Tab
+    // von dort muss ebenso ans Ende umlaufen wie vom ersten fokussierbaren Kind aus.
+    const user = userEvent.setup();
+    renderNav();
+    await user.click(screen.getByRole("button", { name: /Navigation öffnen/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveFocus();
+
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+
+    const links = within(dialog).getAllByRole("link");
+    expect(links[links.length - 1]).toHaveFocus();
+  });
+
+  it("should_returnFocusToFirstDrawerElement_when_tabPressedWhileFocusEscapedDrawer", async () => {
+    const user = userEvent.setup();
+    renderNav();
+    const toggle = screen.getByRole("button", { name: /Navigation öffnen/i });
+    await user.click(toggle);
+    const dialog = screen.getByRole("dialog");
+    // Fokus ist (z. B. per Screenreader-Navigation) auf ein verdecktes Header-Element
+    // entwichen, während der Drawer noch offen ist.
+    toggle.focus();
+    expect(toggle).toHaveFocus();
+
+    await user.keyboard("{Tab}");
+
+    expect(within(dialog).getByRole("button", { name: /Navigation schließen/i })).toHaveFocus();
+  });
 });

@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -136,6 +136,26 @@ Nitpicks (safe-area-inset-right, uneinheitliche `aria-label`, zustandsabhängige
 Body-Scroll-Lock) bewusst nicht umgesetzt – optional, kein Merge-Blocker, außerhalb des
 NEEDS_REWORK-Scopes (YAGNI). Gates nach Rework grün: Lint, `pnpm test` (408 passed / 52 skipped),
 Typecheck, Format, Routen-Doku.
+
+**Review-Runde 2 [2026-07-19]** (`tasks/review-134.md`): APPROVED. Beide Runde-1-Findings
+verifiziert behoben, keine kritischen/wichtigen Findings offen; verbleibende Nitpicks bewusst
+dokumentiert außerhalb des Scopes.
+
+**Test-Vervollständigung [2026-07-19] (`/test`):** Coverage-Analyse (`pnpm test:coverage`) ergab
+zwei ungetestete Branches im per Rework neu hinzugekommenen Fokus-Trap
+(`app/components/AppNav.tsx`, Zeilen 52 und 58): (1) Shift+Tab, während der Fokus noch auf dem
+Drawer-Container selbst liegt (Zustand direkt nach dem Öffnen, bevor ein Kind fokussiert wurde),
+und (2) Tab, während der Fokus komplett aus dem Drawer entwichen ist (z. B. Screenreader-
+Navigation auf ein verdecktes Header-Element). Beide sind reale Tastatur-Szenarien des AC
+„Menü per Tastatur bedienbar" – zwei neue Tests ergänzt:
+`should_wrapFocusToLastLink_when_shiftTabPressedRightAfterOpen`,
+`should_returnFocusToFirstDrawerElement_when_tabPressedWhileFocusEscapedDrawer`
+(`app/components/AppNav.test.tsx`). Verbleibende Branch-Lücken (`AppNav.tsx:45-47`, Ref-Null-Guard
+und Leer-Fokusliste-Guard; `AppHeader.tsx:14`, vorbestehender E-Mail-Fallback aus #48/#62) sind
+defensive Guards ohne praktisch erreichbaren Gegenfall bzw. außerhalb des Task-Scopes – bewusst
+ungetestet (YAGNI, kein Over-Engineering). Gates grün: `pnpm test` (410 passed / 52 skipped),
+`pnpm test:coverage` (85.41 % Stmts / 92.22 % Branches, über der 80 %-Schwelle), Typecheck,
+Format, Routen-Doku (`bash scripts/checks/pre-push.sh`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
