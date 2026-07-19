@@ -750,6 +750,24 @@ zwei Muster auf, die eine gleichartige Folge-Task (**#148**: Rollen-Rename `abre
   liefert **immer** Exit 0. Ein Guard `git diff … && echo BETROFFEN` feuert deshalb falsch –
   auf `| wc -l` (Zeilenzahl) testen, nicht auf `&&`/`||`.
 
+### Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158)
+
+`/pr-shepherd` gibt den Merge über `gh pr merge --auto --squash` frei. Das setzt das
+**repo-weite** Setting *Allow auto-merge* (`allow_auto_merge`) voraus – ist es deaktiviert,
+lehnt GitHub **jeden** `--auto`-Aufruf grundsätzlich ab (`enablePullRequestAutoMerge`), nicht
+nur im CLEAN-Fall. In Session #155 war es aus und wurde einmalig aktiviert:
+
+```bash
+gh api -X PATCH repos/nothra/tch-gastro-services -F allow_auto_merge=true
+```
+
+**Regel:** Bleibt beim Merge-Freigabe-Schritt jeder `--auto`-Aufruf mit
+`enablePullRequestAutoMerge` hängen, zuerst dieses Repo-Setting prüfen
+(`gh repo view --json autoMergeAllowed` bzw. das API-Feld `allow_auto_merge`) – ein
+deaktiviertes Setting hätte auch die Stage-3-Pipeline blockiert. Abzugrenzen vom
+CLEAN-Fall (bereits mergebarer PR): den behandelt der Direct-Merge-Fallback aus
+[ADR-030](../adr/030-pr-shepherd-direct-merge-fallback.md).
+
 ---
 
 ## Offene Architektur-Fragen
