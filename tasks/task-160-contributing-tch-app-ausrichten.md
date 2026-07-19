@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden (n/a – reine Doku, keine Auth-/Secret-/Angriffsflächen)
 - [x] Refactoring abgeschlossen (n/a – reine Doku, kein Verhalten)
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Projektbeschreibung – vor allem `CONTRIBUTING.md` – auf die **TCH-Gastro-Services-App**
@@ -52,7 +52,11 @@ Verifikation: `npx prettier --check` grün; Link-Prüfung 9/9 Ziele vorhanden; F
 CONTRIBUTING.md ohne Treffer.
 
 ## Offene Fragen
-<!-- Fragen, die noch geklärt werden müssen -->
+Keine.
+
+PR-Shepherd 2026-07-19: Merge freigegeben – alle Gates grün (required CI-Checks lint/test/
+issue-sync/factory-self-test/pr-closes-issue pass; post-merge-verify skipping = main-only;
+0 Approvals nötig laut ADR-029; Branch auf aktuellem main, mergebar). PR #163.
 
 ## Review-Findings
 Runde 1 → NEEDS_REWORK (1 Wichtig): `CONTRIBUTING.md` listete Typecheck fälschlich als required
