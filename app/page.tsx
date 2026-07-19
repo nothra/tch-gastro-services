@@ -26,6 +26,9 @@ export default async function Home() {
             <Link
               key={item.href}
               href={item.href}
+              // Kein Auto-Prefetch geschützter Routen (#164): eine authentifizierte Prefetch-Antwort
+              // rotiert das Auth.js-Session-Cookie und kann es nach dem Abmelden wiederbeleben (Race).
+              prefetch={false}
               className="flex min-h-[44px] items-center rounded-lg border border-zinc-200 p-6 text-lg font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
             >
               {item.label}
