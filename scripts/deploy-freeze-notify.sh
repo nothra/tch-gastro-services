@@ -51,7 +51,7 @@ body_for_event() {
   [ -n "$RUN_URL" ] && run_line="Lauf: ${RUN_URL}"$'\n'
   case "$EVENT" in
     frozen)
-      printf '### Deploy-Freeze gesetzt\n\nBlockierender Commit: `%s`\nGrund: %s\n%s\nDer Promote (inkl. PRD-DB-Migration) ist bis zur Freigabe angehalten. Nach Fix + Verifikation über den `deploy-freeze-release`-Workflow freigeben (siehe README → Deploy-Gate).' "$SHA" "$GRUND" "$run_line" ;;
+      printf '### Deploy-Freeze gesetzt\n\nBlockierender Commit: `%s`\nGrund: %s\n%s\nDer Promote (inkl. PRD-DB-Migration) ist bis zur Freigabe angehalten. Nach Fix + Verifikation über den Workflow „Deploy-Freeze aufheben (Freigabe)" (Actions → Run workflow) freigeben (siehe README → Deploy-Gate).' "$SHA" "$GRUND" "$run_line" ;;
     blocked)
       printf '### Promote wegen Freeze zurückgehalten\n\nBlockierender Commit: `%s`\nGrund: %s\n%s\nDer Lauf endete grün, aber ohne Promote (Freeze aktiv).' "$SHA" "$GRUND" "$run_line" ;;
     released)

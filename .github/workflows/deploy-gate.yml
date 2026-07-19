@@ -222,7 +222,7 @@ jobs:
             echo "Freeze-Check-Exit: ${rc} (10 = frei, 0 = eingefroren, sonst = Marker unklar/fail-closed)"
             echo ""
             echo "PRD-Migration + Promote + Healthcheck wurden übersprungen. Nach Fix + Verifikation"
-            echo "über den Workflow **deploy-freeze-release** (workflow_dispatch) freigeben."
+            echo "über den Workflow **Deploy-Freeze aufheben (Freigabe)** (Actions → Run workflow) freigeben."
           } >> "$GITHUB_STEP_SUMMARY"
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           bash scripts/deploy-freeze-notify.sh blocked "$sha" "$reason" "$run_url" || true

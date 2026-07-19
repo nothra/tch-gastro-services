@@ -1874,6 +1874,23 @@ assert_exit 2 "$?" "unbekanntes Subkommando → exit 2 (Aufruf-Fehler)"
 df set >/dev/null 2>&1
 assert_exit 1 "$?" "set ohne <sha>/<grund> → exit 1"
 
+# 12. Fail-closed set (K1): Remote unlesbar → set endet non-zero (kein stilles fail-open).
+#     Deckt den freeze_set-*)-Zweig ab: bei unklarer Lage wird der Push VERSUCHT (nicht
+#     still ohne Marker abgebrochen); scheitert er am unerreichbaren Remote, ist der
+#     Fehlschlag sichtbar (non-zero) statt fälschlich exit 0.
+( cd "$TMP_DF/work" && FREEZE_REMOTE="$TMP_DF/does-not-exist.git" bash "$DEPLOY_FREEZE" set "$SHA_A" "E2E rot" ) >/dev/null 2>&1
+assert_true "$([[ "$?" -ne 0 ]]; echo $?)" "AC1/K1: set gegen unlesbaren Remote → non-zero (fail-closed, kein stilles fail-open)"
+
+# 13. freeze_status-*)-Zweig: Remote unlesbar → status exit 2 (unklar, nicht 0).
+( cd "$TMP_DF/work" && FREEZE_REMOTE="$TMP_DF/does-not-exist.git" bash "$DEPLOY_FREEZE" status ) >/dev/null 2>&1
+assert_exit 2 "$?" "status gegen unlesbaren Remote → exit 2 (Marker-Status unklar)"
+
+# 14. freeze_release-*)-Zweig: Remote unlesbar → release bleibt permissiv (exit 0, idempotent).
+#     Freigabe ist die Entblock-Richtung; ein nicht durchführbarer Delete darf keinen roten
+#     Lauf erzeugen (der Freeze bliebe ohnehin bestehen und der Promote-Guard verweigert).
+( cd "$TMP_DF/work" && FREEZE_REMOTE="$TMP_DF/does-not-exist.git" bash "$DEPLOY_FREEZE" release ) >/dev/null 2>&1
+assert_exit 0 "$?" "release gegen unlesbaren Remote → exit 0 (permissiv/idempotent, unklar-Zweig)"
+
 rm -rf "$TMP_DF"
 
 # ─── Benachrichtigung (fail-open, ADR-032 §5) ────────────────────────────────
@@ -1913,6 +1930,47 @@ PATH="$TMP_NOTIFY/bin:$PATH" GH_LOG="$TMP_NOTIFY/gh.log" \
   bash "$NOTIFY" released abc123 "" >/dev/null 2>&1
 assert_exit 0 "$?" "AC8: notify 'released' ohne Issue → exit 0 (keine Neuanlage)"
 assert_true "$(! grep -q 'issue create' "$TMP_NOTIFY/gh.log"; echo $?)" "AC8: 'released' legt kein neues Issue an"
+
+# Existing-Issue-Pfad: gh-Mock mit einem bestehenden Tracking-Issue (issue list → Nummer).
+# Deckt den Kommentar-+reopen/close-Zweig ab (die eigentliche Signalisierung), der beim
+# Neuanlage-Mock (issue list → "") nie durchlaufen wird.
+cat > "$TMP_NOTIFY/bin/gh" <<'GHEOF'
+#!/bin/sh
+case "$1 $2" in
+  "issue list") echo "42" ;;                     # bestehendes Tracking-Issue #42
+  "issue create") echo "$*" >> "$GH_LOG"; echo "https://github.com/x/y/issues/42" ;;
+  "issue comment") echo "$*" >> "$GH_LOG" ;;
+  "issue reopen"|"issue close") echo "$*" >> "$GH_LOG" ;;
+  *) : ;;
+esac
+GHEOF
+chmod +x "$TMP_NOTIFY/bin/gh"
+
+# 'frozen' mit bestehendem Issue → kommentieren + wieder öffnen, KEINE Neuanlage.
+: > "$TMP_NOTIFY/gh.log"
+PATH="$TMP_NOTIFY/bin:$PATH" GH_LOG="$TMP_NOTIFY/gh.log" \
+  bash "$NOTIFY" frozen abc123 "E2E rot" "http://run" >/dev/null 2>&1
+assert_exit 0 "$?" "AC8: notify 'frozen' mit bestehendem Issue → exit 0"
+assert_true "$(! grep -q 'issue create' "$TMP_NOTIFY/gh.log"; echo $?)" "AC8: 'frozen' legt bei bestehendem Issue KEIN neues an"
+grep -q 'issue comment' "$TMP_NOTIFY/gh.log"; assert_true "$?" "AC8: 'frozen' kommentiert das bestehende Tracking-Issue"
+grep -q 'issue reopen' "$TMP_NOTIFY/gh.log"; assert_true "$?" "AC8: 'frozen' öffnet das Tracking-Issue wieder"
+
+# 'blocked' mit bestehendem Issue → kommentieren + wieder öffnen.
+: > "$TMP_NOTIFY/gh.log"
+PATH="$TMP_NOTIFY/bin:$PATH" GH_LOG="$TMP_NOTIFY/gh.log" \
+  bash "$NOTIFY" blocked abc123 "Freeze aktiv" "http://run" >/dev/null 2>&1
+assert_exit 0 "$?" "AC8: notify 'blocked' mit bestehendem Issue → exit 0"
+grep -q 'issue comment' "$TMP_NOTIFY/gh.log"; assert_true "$?" "AC8: 'blocked' kommentiert das Tracking-Issue"
+grep -q 'issue reopen' "$TMP_NOTIFY/gh.log"; assert_true "$?" "AC8: 'blocked' öffnet das Tracking-Issue wieder"
+
+# 'released' mit bestehendem Issue → kommentieren + schließen.
+: > "$TMP_NOTIFY/gh.log"
+PATH="$TMP_NOTIFY/bin:$PATH" GH_LOG="$TMP_NOTIFY/gh.log" \
+  bash "$NOTIFY" released abc123 "" "http://run" >/dev/null 2>&1
+assert_exit 0 "$?" "AC8: notify 'released' mit bestehendem Issue → exit 0"
+grep -q 'issue comment' "$TMP_NOTIFY/gh.log"; assert_true "$?" "AC8: 'released' kommentiert das Tracking-Issue"
+grep -q 'issue close' "$TMP_NOTIFY/gh.log"; assert_true "$?" "AC8: 'released' schließt das Tracking-Issue"
+
 rm -rf "$TMP_NOTIFY"
 
 # ─── Deploy-Gate-Verdrahtung (deploy-gate.yml) ───────────────────────────────

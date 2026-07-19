@@ -95,10 +95,16 @@ freeze_set() {
       ;;
     10) : ;;  # nicht eingefroren → jetzt setzen
     *)
-      # Marker-Status unklar: fail-closed nicht überschreiben. Der Promote-Guard verweigert
-      # ohnehin (check != 10). Ein Push „ins Blaue" könnte einen bestehenden Freeze verdecken.
-      echo "::error::Marker-Status unklar – Freeze wird nicht gesetzt (fail-closed)." >&2
-      return 1
+      # Marker-Status unklar (Remote transient unlesbar). NICHT still ohne Marker abbrechen –
+      # sonst bliebe das System nach einem echten Fehlschlag ungefroren, und ein späterer
+      # (flaky-)grüner Lauf sähe „Ref fehlt" → promotet den kaputten Code (exakt der
+      # #134→#167-Vorfall). Deshalb den (non-force) Push unten TROTZDEM versuchen: fehlt das
+      # Ref, wird es angelegt (Schutz wiederhergestellt); existiert bereits ein Freeze, bleibt
+      # er bestehen (Promote weiter blockiert) – ein Fast-Forward re-pointet ihn höchstens auf
+      # den aktuellen SHA, hebt ihn aber nie auf. Schlägt der Push fehl (Remote wirklich
+      # unerreichbar), endet set non-zero (sichtbar) und der Promote-Guard verweigert ohnehin
+      # (check != 10). In keinem Fall endet das System ungefroren → fail-closed.
+      echo "::warning::Marker-Status unklar – Freeze wird vorsorglich gesetzt (fail-closed)." >&2
       ;;
   esac
 

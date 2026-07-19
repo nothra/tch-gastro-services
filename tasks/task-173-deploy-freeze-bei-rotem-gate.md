@@ -110,6 +110,20 @@ Testbarkeit via `scripts/deploy-freeze.sh` + Bare-Repo-Test. Keine offenen Frage
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Review-Runde 1 (`tasks/review-173.md`): NEEDS_REWORK – 1 kritisch (K1), 2 wichtig (W1/W2),
+1 wichtig (W3) + Nitpicks. **Rework [2026-07-19] behoben:**
+- **K1** (`deploy-freeze.sh`): Fail-open-Loch im `set`-`*)`-Zweig geschlossen – bei unklarer
+  Marker-Lage wird der non-force Push jetzt **trotzdem versucht** (fehlt das Ref → angelegt;
+  Freeze existiert → bleibt, FF re-pointet nur den SHA), statt still ohne Marker abzubrechen.
+  Push-Fehler bleibt non-zero. Kommentar korrigiert.
+- **W1/W2** (Testlücken): `run-tests.sh` deckt jetzt die fail-closed-„unklar"-Zweige
+  (`set`/`status`/`release` gegen unlesbaren Remote) und den notify-Existing-Issue-Pfad
+  (Kommentar + reopen/close für `frozen`/`blocked`/`released`) ab.
+- **W3**: Maintainer-Workflow-Name in `notify.sh` + `deploy-gate.yml` auf den Anzeigenamen
+  „Deploy-Freeze aufheben (Freigabe)" (konsistent mit README).
+- Nitpicks bewusst offen (optional, kein Verhaltensrisiko). Rest-Blocker `refs/factory/*`-Live-Push
+  unverändert (erst post-merge prüfbar).
+- Tests: **352 grün / 0 rot** (vorher 339).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
