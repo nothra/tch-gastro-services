@@ -1552,9 +1552,10 @@ assert_true "$(section_contains '### Schritt 2' '### Schritt 3' "$SHEPHERD" 'ADR
 # GitHub lehnt 'gh pr merge --auto' bei bereits mergebarem PR (mergeStateStatus: CLEAN)
 # ab – Schritt 6 muss den Zustand lesen und bei CLEAN direkt squash-mergen (fail-closed:
 # alles außer CLEAN → --auto). Schritt 6 ist der letzte '### Schritt' → Abschnittsende ist
-# '## Regeln'. AC1 und AC2 sind separat prüfbare Kriterien (je eine Assertion, #117-Regel):
-# entfällt die Zustandsprüfung, bleibt AC2 grün und umgekehrt (Unabhängigkeit belegt in
-# der #94-Temp-Verifikation: unpatched → beide rot, patched → beide grün).
+# '## Regeln'. AC1, AC2 und AC4 sind separat prüfbare Kriterien (je eine Assertion, #117-Regel):
+# entfällt die Zustandsprüfung, bleibt AC2 grün und umgekehrt, und die AC4-Reihenfolge ist von
+# beiden unabhängig (Unabhängigkeit belegt in der #94-Temp-Verifikation: unpatched → alle rot,
+# patched → alle grün).
 
 # AC1: Zustandsprüfung 'mergeStateStatus' im Schritt-6-Abschnitt.
 assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'mergeStateStatus'; echo $?)" \
@@ -1567,13 +1568,13 @@ assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'mergeSt
 assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'gh pr merge --squash'; echo $?)" \
   "#158: pr-shepherd.md Schritt 6 hat Direct-Merge-Fallback (gh pr merge --squash)"
 
-# AC4: die Abschlussnotiz (factory-commit.sh) steht VOR AUCH dem Direct-Merge-Zweig – nicht
+# AC4: die Abschlussnotiz (factory-commit.sh) steht AUCH VOR dem Direct-Merge-Zweig – nicht
 # nur vor der --auto-Zeile (bereits durch #114 oben geprüft). Sonst könnte der direkte Merge
 # vor dem Notiz-Push feuern (Notiz landet nie auf main, #112/#114). first_match_line auf
 # 'gh pr merge --squash' liefert die Direct-Zeile (nicht die --auto-Zeile, s. o.).
-_shep_commit_ln="$(first_match_line 'factory-commit.sh' "$SHEPHERD")"
-_shep_direct_ln="$(first_match_line 'gh pr merge --squash' "$SHEPHERD")"
-assert_true "$([ "$_shep_commit_ln" -gt 0 ] && [ "$_shep_direct_ln" -gt 0 ] && [ "$_shep_commit_ln" -lt "$_shep_direct_ln" ]; echo $?)" \
+# _shep_commit_line ist bereits im #114-Block oben berechnet (gleicher Wert) – wiederverwendet.
+_shep_direct_merge_line="$(first_match_line 'gh pr merge --squash' "$SHEPHERD")"
+assert_true "$([ "$_shep_commit_line" -gt 0 ] && [ "$_shep_direct_merge_line" -gt 0 ] && [ "$_shep_commit_line" -lt "$_shep_direct_merge_line" ]; echo $?)" \
   "#158: Abschlussnotiz wird vor 'gh pr merge --squash' (Direct-Merge) committet (Reihenfolge)"
 
 # Fail-closed: kein pauschales Bash(git *) / Bash(gh *).

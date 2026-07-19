@@ -44,6 +44,15 @@ AC1–AC4 als `tasks/patch-158.diff` geliefert (programmatisch via `difflib` erz
 `#158`-Self-Tests sind grün (`run-tests.sh`: 303 grün / 0 rot). Checkboxen auf `[x]` gesetzt,
 stale `tasks/patch-158.diff` entfernt (#145).
 
+Blocker [2026-07-19]: Review-Rework (siehe `tasks/review-158.md`) enthält kosmetische
+`.claude/commands/pr-shepherd.md`-Fixes (W1 Notiz-Template, N2 Output/Regel/Stage-3, N7
+Encoding) – hard-denied (#88), erneut als `tasks/patch-158.diff` geliefert (programmatisch,
+`git apply --check` grün, keine Verhaltensänderung, 303/303 Self-Tests bleiben grün).
+**Mensch muss:** `git apply tasks/patch-158.diff` im Worktree, dann `bash
+scripts/factory-commit.sh "docs: pr-shepherd review-fixes W1/N2/N7 (task-158)"`. Danach hier
+Blocker als erledigt markieren und stale `tasks/patch-158.diff` entfernen (#145). Fixes an
+editierbaren Dateien (`run-tests.sh`, Spec) sind bereits committet.
+
 ## Technische Notizen
 **ADR:** [ADR-030](../docs/adr/030-pr-shepherd-direct-merge-fallback.md) – Accepted.
 
@@ -78,7 +87,10 @@ schließen (#155) – der Präzisionsgewinn (`improvement/`) wiegt die PR-Ersatz
 _Keine offen._ Die Zustands-Bedingung ist in ADR-030 auf `CLEAN`-only entschieden (sonst `--auto`).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe `tasks/review-158.md` – **APPROVED**. Keine kritischen Findings. 2 wichtige (Notiz-Template
+W1, Test-Namen/Dedup W2) + 5 Nitpicks adressiert; 2 Nitpicks bewusst deferiert (Order-Guard-
+Präzision = pre-existing #114-Muster; Helper-Extraktion → `/refactor`). Editierbare Fixes
+committet, `.claude/**`-Kosmetik als `patch-158.diff` (Mensch appliziert, siehe Blocker).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

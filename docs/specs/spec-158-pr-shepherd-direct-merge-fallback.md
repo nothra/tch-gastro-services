@@ -29,9 +29,10 @@ Pipeline blockiert).
 
 **Inbegriffen:**
 - `.claude/commands/pr-shepherd.md` Schritt 6: Merge-Aufruf robust machen.
-  Zustand prüfen (`gh pr view --json mergeStateStatus,mergeable`); ist der PR
-  bereits mergebar → **direkter** `gh pr merge --squash`; sonst (Checks laufen
-  noch) → `gh pr merge --auto --squash` wie bisher.
+  Zustand prüfen (`gh pr view --json mergeStateStatus`); ist der PR bereits
+  mergebar (`CLEAN`) → **direkter** `gh pr merge --squash`; sonst (Checks laufen
+  noch) → `gh pr merge --auto --squash` wie bisher. (Feinschnitt der Bedingung in
+  ADR-030 auf `CLEAN`-only entschieden; `mergeable` nicht benötigt.)
 - Konsistenz-Test in `scripts/checks/tests/run-tests.sh` (analog zu den
   bestehenden #114-/#117-Guards): belegt, dass Schritt 6 den Zustand prüft und
   einen Direct-Merge-Fallback dokumentiert.
