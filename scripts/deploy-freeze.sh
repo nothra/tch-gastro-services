@@ -134,9 +134,19 @@ freeze_release() {
     echo "Deploy-Freeze aufgehoben: ${FREEZE_REF} gelöscht."
     return 0
   fi
-  # „remote ref does not exist" ist bei einem Race o. Ä. kein Fehler → idempotent.
-  if ! git ls-remote "$FREEZE_REMOTE" "$FREEZE_REF" 2>/dev/null | grep -q .; then
+
+  # Delete fehlgeschlagen – unterscheiden zwischen „Ref bestätigt weg" (Race, idempotent)
+  # und „Remote-Status nicht verifizierbar" (transient unlesbar). Beides als dieselbe
+  # Meldung auszugeben wäre irreführend: nur der erste Fall ist tatsächlich bestätigt.
+  local out rc
+  out="$(freeze_lsremote)"
+  rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ]; then
     echo "Kein Freeze aktiv (Ref bereits weg) – idempotent."
+    return 0
+  fi
+  if [ "$rc" -ne 0 ]; then
+    echo "::warning::Ref-Status nach fehlgeschlagenem Delete nicht verifizierbar (Remote unlesbar) – Freigabe fail-open behandelt, der Freeze könnte weiterhin aktiv sein. Nächsten Gate-Lauf/Tracking-Issue prüfen." >&2
     return 0
   fi
   echo "::error::Deploy-Freeze konnte nicht aufgehoben werden (Delete von ${FREEZE_REF} fehlgeschlagen)." >&2

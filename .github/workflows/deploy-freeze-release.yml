@@ -33,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Einmal auf Job-Ebene statt an jeder Notify-Aufrufstelle einzeln zusammengesetzt.
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,8 +64,7 @@ jobs:
           ACTOR: ${{ github.actor }}
           GRUND: ${{ inputs.grund }}
         run: |
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          bash scripts/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "$GRUND" "$run_url" || true
+          bash scripts/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "$GRUND" "$RUN_URL" || true
           {
             echo "### ✅ Deploy-Freeze aufgehoben"
             echo ""

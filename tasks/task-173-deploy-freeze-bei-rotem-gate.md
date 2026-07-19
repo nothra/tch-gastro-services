@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -166,6 +166,28 @@ aussagekräftig; der maßgebliche Test-Harness ist `scripts/checks/tests/run-tes
 - Keine Lücken gefunden – keine neuen Tests nötig, kein Produktionscode angefasst.
 - Rest-Blocker unverändert: `refs/factory/*`-Live-Push aus GITHUB_TOKEN erst nach Merge auf
   `main` prüfbar (siehe Implementierungs-Notizen).
+
+## Refactoring-Notizen (aus /refactor)
+
+Kein neues Verhalten – drei der Review-Runde-3-Nitpicks behoben (interne Struktur/Robustheit):
+- **`deploy-freeze.sh` (`freeze_release`)**: „Ref bestätigt weg" (Race, idempotent) und „Remote-
+  Status nicht verifizierbar" (transient unlesbar) geben jetzt unterschiedliche, ehrliche
+  Meldungen aus – vorher hieß beides „idempotent", was einen Maintainer im Notfall-Entblock
+  fälschlich glauben lassen konnte, der Freeze sei sicher aufgehoben. Verhalten (fail-open,
+  Exit 0) unverändert, nur die Meldung präzisiert.
+- **`deploy-freeze-notify.sh` (`find_issue`)**: toter Feld-Selektor entfernt (`--json number,state`
+  → `--json number`, `state` wurde nie gelesen).
+- **`deploy-gate.yml` + `deploy-freeze-release.yml`**: `RUN_URL` (Server-URL + Repo + Run-ID) war
+  an drei Stellen einzeln zusammengesetzt – jetzt einmal als Job-`env:` definiert, an allen drei
+  Notify-Aufrufstellen wiederverwendet (DRY).
+- Verbleibende Nitpicks (Emoji-Titel-Suche statt Label-Filter, generischer Grund auf Folgeläufen,
+  toter INT-Refresh-Zweig außerhalb des Scopes) bewusst weiter offen: kein Verhaltensrisiko, und
+  der Label-Filter-Vorschlag hätte einen echten Verhaltens-Trade-off (ein ohne Label angelegtes
+  Fallback-Issue würde von einer reinen Label-Suche nie wiedergefunden) – das wäre keine reine
+  Struktur-Verbesserung mehr, sondern eine funktionale Änderung, die eine eigene Review-Runde
+  verdient.
+- `bash scripts/checks/tests/run-tests.sh` → **358 grün / 0 rot** (unverändert, keine Test-Anpassung
+  nötig – reines internes Refactoring, keine `.ts`/`.tsx`-Dateien betroffen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -40,6 +40,8 @@ jobs:
       INT_URL: https://tch-gastro-services-git-int-tch-developers.vercel.app
       PRD_URL: https://tch-gastro-services.vercel.app
       BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      # Einmal auf Job-Ebene statt an jeder Notify-Aufrufstelle einzeln zusammengesetzt.
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         # fetch-depth: 0 = voller Verlauf. Nötig für den Promote-Push nach `production`:
@@ -224,8 +226,7 @@ jobs:
             echo "PRD-Migration + Promote + Healthcheck wurden übersprungen. Nach Fix + Verifikation"
             echo "über den Workflow **Deploy-Freeze aufheben (Freigabe)** (Actions → Run workflow) freigeben."
           } >> "$GITHUB_STEP_SUMMARY"
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          bash scripts/deploy-freeze-notify.sh blocked "$sha" "$reason" "$run_url" || true
+          bash scripts/deploy-freeze-notify.sh blocked "$sha" "$reason" "$RUN_URL" || true
 
       # PRD-DB migrieren + Login seeden – ERST nach grünem INT-E2E (ADR-017) und nur, wenn KEIN
       # Deploy-Freeze aktiv ist (ADR-032, AC3/AC4). Das INT-Gate hat dieselbe Migration gegen
@@ -301,9 +302,8 @@ jobs:
           # Fail-closed: schlägt der Ref-Push fehl, endet dieser Step non-zero (sichtbar). Ein
           # bestehender Freeze wird nicht überschrieben (deploy-freeze.sh set, ADR-032).
           bash scripts/deploy-freeze.sh set "$SHA" "$reason"
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           # Benachrichtigung ist fail-open – darf den Marker nie blockieren.
-          bash scripts/deploy-freeze-notify.sh frozen "$SHA" "$reason" "$run_url" || true
+          bash scripts/deploy-freeze-notify.sh frozen "$SHA" "$reason" "$RUN_URL" || true
           {
             echo "### 🚫 Deploy-Freeze gesetzt"
             echo ""

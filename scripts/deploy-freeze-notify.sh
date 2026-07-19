@@ -43,7 +43,7 @@ fi
 # Bestehendes Tracking-Issue (offen oder geschlossen) über den exakten Titel finden.
 find_issue() {
   gh issue list --state all --search "in:title \"${TITLE}\"" --limit 1 \
-    --json number,state --jq '.[0].number // empty' 2>/dev/null || true
+    --json number --jq '.[0].number // empty' 2>/dev/null || true
 }
 
 body_for_event() {
