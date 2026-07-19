@@ -879,6 +879,27 @@ verifizieren: Build-Routen-Tabelle (`○`/`ƒ`), echte Response-Header, und für
 Playwright-Trace mit `--repeat-each` (die **Reihenfolge** der `Set-Cookie`-Header – `[SESSION-CLEARED]`
 vor racenden `[SESSION-SET]`-Prefetch-Antworten – war der entscheidende Beweis).
 
+### pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
+
+Zum Schließen zweier transitiv gepinnter Dependabot-Alerts (postcss `<8.5.10`, esbuild
+`<0.25.0` – beide von `next`/`drizzle-kit` gepinnt, von `pnpm update` nicht wegräumbar) war ein
+`pnpm.overrides`-Eintrag nötig. Der Reflex, ihn wie in pnpm ≤10 unter `"pnpm": { "overrides": … }`
+in die **`package.json`** zu schreiben, führt in pnpm@11 zu einem **stillen No-op**: pnpm gibt nur
+`[WARN] The "pnpm" field in package.json is no longer read by pnpm … The following keys were
+ignored: "pnpm.overrides"` aus und **ignoriert die Overrides** – der Lockfile bleibt verwundbar,
+obwohl „alles committed" aussieht. Das Repo hat bereits eine `pnpm-workspace.yaml` (für
+`allowBuilds`); dort – und nur dort – liest pnpm@11 diese Settings.
+
+**Regel:** In diesem Projekt (pnpm@11) gehören `overrides` und andere pnpm-Settings in
+**`pnpm-workspace.yaml`** (Top-Level-Key `overrides:`), nicht in ein `pnpm`-Feld der
+`package.json`. Bei Security-Overrides die **konditionale** Selektor-Form nutzen
+(`"postcss@<8.5.10": ">=8.5.10"`), damit spätere legitime Parent-Upgrades nicht blockiert werden,
+und den Grund + GHSA + Entfern-Kriterium als Kommentar danebenschreiben. **Nachweis ist Pflicht**,
+weil die Fehl-Platzierung still durchgeht: nach `pnpm install` mit `pnpm audit` **und** `pnpm why
+<paket>` belegen, dass die verwundbare Version wirklich aus dem Baum ist – nicht auf die Abwesenheit
+einer Fehlermeldung vertrauen. Overrides sind „sticky": Sobald die Parents die Patches selbst
+mitbringen, werden sie zu No-ops und sollten entfernt werden (Follow-up-Issue #169).
+
 ---
 
 ## Offene Architektur-Fragen
