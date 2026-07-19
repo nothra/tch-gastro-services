@@ -1,19 +1,26 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { db } from "./index";
-import { teilnehmer, veranstaltung } from "./schema";
+import { catalogItems, teilnehmer, veranstaltung } from "./schema";
 import { createTeilnehmer } from "./teilnehmer";
+import { createItem, updateItem } from "./catalog";
+import { adjustMenge, listPositionen } from "./verzehr";
+import { listEreignisse } from "./veranstaltung-ereignis";
 import {
+  abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
   ensureThekeForKasse,
   getThekeForKasse,
   getVeranstaltung,
+  getZeile,
   getZeileByTeilnehmer,
   listVeranstaltungen,
   listZeilen,
   removeZeile,
+  setErhalten,
   setStatus,
+  wiedereroeffnenVeranstaltung,
   type VeranstaltungData,
 } from "./veranstaltung";
 
@@ -26,6 +33,21 @@ const hasDb = Boolean(process.env.DATABASE_URL);
 const TEST_PREFIX = "__test__";
 const createdVeranstaltungen: string[] = [];
 const createdTeilnehmer: string[] = [];
+const createdItems: string[] = [];
+
+const AKTEUR = { userId: null, name: `${TEST_PREFIX}Vera` };
+
+async function trackItem(name: string, priceCents: number) {
+  const item = await createItem({
+    name: `${TEST_PREFIX}${name}`,
+    size: "",
+    priceCents,
+    category: "getraenk",
+    sortOrder: 0,
+  });
+  createdItems.push(item.id);
+  return item;
+}
 
 function datierte(overrides: Partial<VeranstaltungData> = {}): VeranstaltungData {
   return {
@@ -61,6 +83,9 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     }
     if (createdTeilnehmer.length > 0) {
       await db.delete(teilnehmer).where(inArray(teilnehmer.id, createdTeilnehmer.splice(0)));
+    }
+    if (createdItems.length > 0) {
+      await db.delete(catalogItems).where(inArray(catalogItems.id, createdItems.splice(0)));
     }
   });
 
@@ -230,5 +255,108 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
         })
         .returning(),
     ).rejects.toThrow();
+  });
+
+  // --- F8 Kassieren/Abschluss (#55, ADR-033 D2/D3/D4/D6) -------------------------------------
+
+  it("should_setAndResetErhalten_when_setErhalten", async () => {
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Hilde");
+    const zeile = await addZeile(v.id, person);
+
+    const set = await setErhalten(zeile.id, v.id, 1500);
+    expect(set?.erhaltenCents).toBe(1500);
+
+    // `null` = Erhalten zurücksetzen (noch nicht kassiert) – von „0 kassiert" unterschieden.
+    const reset = await setErhalten(zeile.id, v.id, null);
+    expect(reset?.erhaltenCents).toBeNull();
+  });
+
+  it("should_notSetErhaltenOfOtherVeranstaltung_when_veranstaltungIdMismatch", async () => {
+    const fremde = await trackVeranstaltung(datierte());
+    const eigene = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Ida");
+    const zeile = await addZeile(fremde.id, person);
+
+    // IDOR-Bindung (Codify #51): die veranstaltungId muss zur Zeile passen, sonst kein Schreibzugriff.
+    const updated = await setErhalten(zeile.id, eigene.id, 999);
+
+    expect(updated).toBeUndefined();
+    const [unchanged] = await listZeilen(fremde.id);
+    expect(unchanged.erhaltenCents).toBeNull();
+  });
+
+  it("should_freezePriceAndLogEvent_when_abschliessen", async () => {
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Jörg");
+    const zeile = await addZeile(v.id, person);
+    const item = await trackItem("Cola", 250);
+    await adjustMenge(zeile.id, item.id, 1);
+
+    const closed = await abschliessenVeranstaltung(v.id, AKTEUR);
+    expect(closed?.status).toBe("abgeschlossen");
+
+    // Der Verwalter ändert danach den Katalogpreis – die abgeschlossene Veranstaltung bleibt stabil
+    // (Tagessummen fixiert, ADR-033 D2), weil der Preis beim Abschluss eingefroren wurde.
+    await updateItem(item.id, {
+      name: item.name,
+      size: item.size,
+      priceCents: 300,
+      category: "getraenk",
+      sortOrder: item.sortOrder,
+    });
+
+    const [position] = await listPositionen(v.id);
+    expect(position.priceCents).toBe(250); // eingefrorener Snapshot, nicht der neue Live-Preis 300
+
+    const ereignisse = await listEreignisse(v.id);
+    expect(ereignisse).toHaveLength(1);
+    expect(ereignisse[0].art).toBe("abgeschlossen");
+    expect(ereignisse[0].akteurName).toBe(AKTEUR.name);
+  });
+
+  it("should_returnUndefined_when_abschliessenAlreadyClosed", async () => {
+    const v = await trackVeranstaltung(datierte());
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+
+    // Guarded UPDATE (`WHERE status = 'offen'`, ADR-033 D3) → ein Zweit-Abschluss trifft keine Zeile.
+    const second = await abschliessenVeranstaltung(v.id, AKTEUR);
+    expect(second).toBeUndefined();
+  });
+
+  it("should_resetPriceAndLogEvent_when_wiedereroeffnen", async () => {
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Klara");
+    const zeile = await addZeile(v.id, person);
+    const item = await trackItem("Fanta", 250);
+    await adjustMenge(zeile.id, item.id, 1);
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+    await updateItem(item.id, {
+      name: item.name,
+      size: item.size,
+      priceCents: 300,
+      category: "getraenk",
+      sortOrder: item.sortOrder,
+    });
+
+    const reopened = await wiedereroeffnenVeranstaltung(v.id, AKTEUR);
+    expect(reopened?.status).toBe("offen");
+
+    // Nach Wiederöffnung ist der Snapshot auf NULL zurückgesetzt → Position rechnet wieder live (300).
+    const [position] = await listPositionen(v.id);
+    expect(position.priceCents).toBe(300);
+
+    const ereignisse = await listEreignisse(v.id);
+    expect(ereignisse).toHaveLength(2);
+    expect(ereignisse[0].art).toBe("wiedereroeffnet"); // neueste zuerst
+  });
+
+  it("should_returnUndefined_when_wiedereroeffnenAlreadyOffen", async () => {
+    const v = await trackVeranstaltung(datierte());
+
+    // Guarded UPDATE (`WHERE status = 'abgeschlossen'`, ADR-033 D3) → Wiederöffnen einer bereits
+    // offenen Veranstaltung trifft keine Zeile (die Action gatet zusätzlich davor).
+    const result = await wiedereroeffnenVeranstaltung(v.id, AKTEUR);
+    expect(result).toBeUndefined();
   });
 });

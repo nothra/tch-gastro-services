@@ -430,7 +430,16 @@ describe("setStatusAction", () => {
     // Eine Zeile mit Verzehr 250 (1× Cola) und ohne Erhalten → offen.
     listZeilenMock.mockResolvedValue([{ ...zeile, erhaltenCents: null }]);
     listPositionenMock.mockResolvedValue([
-      { zeileId: "z1", menge: 1, name: "Cola", size: "", priceCents: 250, category: "getraenk" },
+      {
+        zeileId: "z1",
+        catalogItemId: "c1",
+        menge: 1,
+        name: "Cola",
+        size: "",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
     ]);
 
     const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
@@ -675,6 +684,7 @@ describe("adjustVerzehrAction", () => {
       zeileId: "z1",
       catalogItemId: "c1",
       menge: 2,
+      einzelpreisCents: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -693,6 +703,7 @@ describe("adjustVerzehrAction", () => {
       zeileId: "z1",
       catalogItemId: "c1",
       menge: 2,
+      einzelpreisCents: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
