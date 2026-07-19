@@ -10,6 +10,8 @@ import { shouldSuppressSessionRotation, stripSessionRotation } from "./prefetch-
 
 describe("shouldSuppressSessionRotation", () => {
   it("should_returnTrue_when_getRequest", () => {
+    // AC5: Das Prädikat akzeptiert nur `{ method }` – rein methodenbasiert, ohne
+    // next-url/sec-fetch-dest-Signale, wird dennoch unterdrückt.
     expect(shouldSuppressSessionRotation({ method: "GET" })).toBe(true);
   });
 
@@ -21,11 +23,6 @@ describe("shouldSuppressSessionRotation", () => {
   it("should_returnTrue_when_optionsRequest", () => {
     // OPTIONS (Preflight/Probe) war die in #170 beobachtete Resurrection-Quelle.
     expect(shouldSuppressSessionRotation({ method: "OPTIONS" })).toBe(true);
-  });
-
-  it("should_returnTrue_when_getWithoutAnySignals", () => {
-    // AC5: rein methodenbasiert – ohne next-url/sec-fetch-dest wird dennoch unterdrückt.
-    expect(shouldSuppressSessionRotation({ method: "GET" })).toBe(true);
   });
 
   it("should_returnFalse_when_postRequest", () => {

@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -34,7 +34,7 @@ Spec: `docs/specs/spec-170-logout-race-nicht-mutierende-methoden.md`
       (`proxy.test.ts` POST/DELETE keep; Prädikat-Units POST/PUT/PATCH/DELETE → false)
 - [x] AC5 – Erkennung rein methodenbasiert (keine `next-url`/`sec-fetch-dest`-Abhängigkeit mehr).
       (Prädikat-Signatur nur `{ method }`; `next-url`/`sec-fetch-dest`-Logik ersatzlos entfernt;
-      `should_returnTrue_when_getWithoutAnySignals`; Header im Proxy-Test leer)
+      `should_returnTrue_when_getRequest`; Header im Proxy-Test leer)
 - [~] AC6 – E2E: `pnpm test:e2e:int e2e/auth.spec.ts -g "Abmelden" --repeat-each=24` → 0 Fehler.
       Nachtest: läuft gegen die INT-Deployment; INT trägt den Fix erst nach dem Merge (aktuell
       noch #164 GET-only, weiterhin flaky). Verifikation nach dem INT-Deploy dieses Branches
@@ -91,6 +91,18 @@ wöchentlich genutzte PWA akzeptabel (feste `maxAge`, Default 30 Tage) und eher 
 Blocker [2026-07-19]: AC6 (E2E `--repeat-each=24` gegen INT) offen – INT trägt den Fix erst nach
 dem Merge, lokal nicht aussagekräftig. Mensch/Nachtest: nach INT-Deploy dieses Branches ausführen
 (`pnpm test:e2e:int e2e/auth.spec.ts -g "Abmelden" --repeat-each=24`) bzw. `/post-merge-verify`.
+
+### Test-Notizen (/test, 2026-07-19)
+- **Coverage:** `lib/prefetch-session.ts` + `proxy.ts` bei 100% (Stmts/Branch/Funcs/Lines).
+  Gesamte Suite weiterhin grün (432 passed, 52 unrelated skipped).
+- **Duplikat entfernt (Review-Nitpick):** `should_returnTrue_when_getWithoutAnySignals` war seit
+  dem Signatur-Wechsel auf `{ method }` identisch zu `should_returnTrue_when_getRequest` (keine
+  zusätzliche Abdeckung, clean-code: keine Duplikation). Die AC5-Zuordnung („rein methoden-
+  basiert") hängt jetzt am verbleibenden GET-Test; die Proxy-Komposition (`should_stripSessionCookie_when_getRequest`
+  mit leeren Headern) belegt AC5 zusätzlich auf Wrapper-Ebene. 20→19 Tests, keine Coverage-Lücke.
+- **Restliche Review-Nitpicks (Case-Normalisierung der Methode)** bewusst nicht in Tests gegossen:
+  laut Review niedriges, sicherheits-neutrales Risiko (dokumentierte Rationale im Code-Kommentar
+  reicht) – nicht blockierend, hier nicht nachgezogen.
 
 ### Scope-/Branch-Check (Stolperstein #120)
 Der Branch `fix/170-…` bündelt Code (`lib/`, `proxy.ts`, Tests) **und** eine ADR – für einen
