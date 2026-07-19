@@ -117,6 +117,26 @@ Durch [ADR-031](../docs/adr/031-navigationsmenue-architektur.md) entschieden:
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Review-Runde 1 [2026-07-19]** (`tasks/review-134.md`, Verdict NEEDS_REWORK, keine kritischen Findings).
+Beide wichtigen Findings behoben (Rework via `/implement`):
+
+- **W1 – Fokus-Trap fehlt trotz `aria-modal="true"` (`AppNav.tsx`):** Der Drawer gibt der
+  assistiven Technik `aria-modal="true"` an, hatte aber kein Fokus-Containment – Tab tabbte auf
+  die verdeckten Header-Bedienelemente (Hamburger, Abmelden) hinter dem Overlay. **Fix:** Tab
+  wird im `keydown`-Effekt gefangen (Vorwärts am letzten Element → erstes; Rückwärts am ersten
+  Element bzw. auf dem Drawer-Container → letztes; entwichener Fokus → zurück auf erstes).
+  Belegt durch zwei neue Tests (`should_wrapFocusToCloseButton_when_tabAtLastDrawerLink`,
+  `should_wrapFocusToLastLink_when_shiftTabAtFirstDrawerElement`).
+- **W2 – `vi.clearAllMocks()` entgegen #51-Regel:** In `AppHeader.test.tsx`, `page.test.tsx`,
+  `nav-consistency.test.tsx` auf `vi.resetAllMocks()` umgestellt (Tests setzen eigene
+  `mockResolvedValue`-Implementierungen → müssen zurückgesetzt werden). `AppNav.test.tsx` behält
+  `clearAllMocks()` (nur `vi.fn()` ohne Implementierung – Regel-konform).
+
+Nitpicks (safe-area-inset-right, uneinheitliche `aria-label`, zustandsabhängiges Toggle-Label,
+Body-Scroll-Lock) bewusst nicht umgesetzt – optional, kein Merge-Blocker, außerhalb des
+NEEDS_REWORK-Scopes (YAGNI). Gates nach Rework grün: Lint, `pnpm test` (408 passed / 52 skipped),
+Typecheck, Format, Routen-Doku.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

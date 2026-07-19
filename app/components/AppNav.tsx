@@ -29,11 +29,37 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
   // erledigt der Effekt unten – so bleibt close mockfrei als onClick weiterreichbar.
   const close = useCallback(() => setOpen(false), []);
 
-  // Escape schließt den Drawer (Fokus-Rückgabe siehe Fokus-Effekt).
+  // Escape schließt den Drawer (Fokus-Rückgabe siehe Fokus-Effekt). Tab wird im Drawer
+  // gefangen: aria-modal="true" sagt der assistiven Technik zu, dass der Fokus den Dialog
+  // nicht verlässt – ohne Trap tabbte man auf die verdeckten Header-Bedienelemente hinter
+  // dem Overlay (WAI-ARIA APG: modaler Dialog verlangt Fokus-Containment).
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
+      if (event.key === "Escape") {
+        close();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+      const focusable = drawer.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      // Der Drawer-Container selbst (tabIndex=-1) zählt beim Rückwärts-Tab als "vor dem ersten".
+      if (event.shiftKey && (active === first || active === drawer)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (!drawer.contains(active)) {
+        // Fokus ist aus dem Drawer entwichen → zurück auf das erste Element.
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);

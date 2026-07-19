@@ -21,7 +21,9 @@ function loginWithRoles(roles: UserRole[]) {
 }
 
 describe("AppHeader", () => {
-  beforeEach(() => vi.clearAllMocks());
+  // resetAllMocks (nicht clearAllMocks): jeder Test setzt eine eigene authMock-Implementierung
+  // (mockResolvedValue) – die muss zwischen Tests zurückgesetzt werden, sonst leakt sie (#51).
+  beforeEach(() => vi.resetAllMocks());
 
   it("should_showSignOutButton_when_userLoggedIn", async () => {
     loginWithRoles(["verwalter"]);

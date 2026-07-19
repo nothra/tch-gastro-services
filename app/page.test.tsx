@@ -16,7 +16,9 @@ function loginWithRoles(roles: UserRole[]) {
 }
 
 describe("Home (Dashboard-Hub)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  // resetAllMocks (nicht clearAllMocks): jeder Test setzt eine eigene authMock-Implementierung
+  // (mockResolvedValue) – die muss zwischen Tests zurückgesetzt werden, sonst leakt sie (#51).
+  beforeEach(() => vi.resetAllMocks());
 
   it("zeigt den Projekttitel als Überschrift", async () => {
     loginWithRoles(["verwalter"]);

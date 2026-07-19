@@ -117,4 +117,37 @@ describe("AppNav", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  // Fokus-Trap: aria-modal="true" sagt der assistiven Technik zu, dass Fokus den Dialog
+  // nicht verlässt – also muss Tab am Rand im Drawer umlaufen, nicht auf verdeckte
+  // Header-Bedienelemente (Hamburger, Abmelden) hinter dem Overlay springen.
+  it("should_wrapFocusToCloseButton_when_tabAtLastDrawerLink", async () => {
+    const user = userEvent.setup();
+    renderNav();
+    await user.click(screen.getByRole("button", { name: /Navigation öffnen/i }));
+    const dialog = screen.getByRole("dialog");
+    const links = within(dialog).getAllByRole("link");
+    const lastLink = links[links.length - 1];
+    lastLink.focus();
+    expect(lastLink).toHaveFocus();
+
+    await user.keyboard("{Tab}");
+
+    expect(within(dialog).getByRole("button", { name: /Navigation schließen/i })).toHaveFocus();
+  });
+
+  it("should_wrapFocusToLastLink_when_shiftTabAtFirstDrawerElement", async () => {
+    const user = userEvent.setup();
+    renderNav();
+    await user.click(screen.getByRole("button", { name: /Navigation öffnen/i }));
+    const dialog = screen.getByRole("dialog");
+    const closeButton = within(dialog).getByRole("button", { name: /Navigation schließen/i });
+    closeButton.focus();
+    expect(closeButton).toHaveFocus();
+
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+
+    const links = within(dialog).getAllByRole("link");
+    expect(links[links.length - 1]).toHaveFocus();
+  });
 });

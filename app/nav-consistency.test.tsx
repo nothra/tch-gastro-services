@@ -35,7 +35,9 @@ describe.each<{ label: string; roles: UserRole[] }>([
   { label: "beide Rollen", roles: ["verwalter", "veranstalter"] },
   { label: "leeres Rollen-Array", roles: [] },
 ])("Header und Dashboard nutzen dieselbe Definition ($label)", ({ roles }) => {
-  beforeEach(() => vi.clearAllMocks());
+  // resetAllMocks (nicht clearAllMocks): jeder Test setzt eine eigene authMock-Implementierung
+  // (mockResolvedValue) – die muss zwischen Tests zurückgesetzt werden, sonst leakt sie (#51).
+  beforeEach(() => vi.resetAllMocks());
 
   it("should_showIdenticalAreaSet_when_sameRoles", async () => {
     loginWithRoles(roles);
