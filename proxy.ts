@@ -1,11 +1,33 @@
 import NextAuth from "next-auth";
+import type { NextFetchEvent, NextRequest } from "next/server";
 import { authConfig } from "@/auth.config";
+import { isRscRequest, stripSessionRotation } from "@/lib/prefetch-session";
 
 // Edge-"Proxy" (Next 16, vormals middleware) auf Basis der edge-sicheren Config:
 // liest die JWT-Session; der `authorized`-Callback entscheidet Zugriff/Redirect.
 const { auth } = NextAuth(authConfig);
 
-export default auth;
+// `auth` ist mehrfach überladen (Route-Handler, RSC, Pages-API, Middleware). Im Edge-Proxy
+// wird es als Middleware `(request, event) => Response` aufgerufen – genau die Form, die
+// Next.js bei `export default auth` selbst nutzt. Wir rufen es hier direkt so auf, um die
+// Antwort nachzubearbeiten; der Doppel-Cast wählt bewusst diese Signatur (Overload-Auswahl).
+type EdgeMiddleware = (
+  request: NextRequest,
+  event: NextFetchEvent,
+) => Promise<Response | undefined>;
+const authMiddleware = auth as unknown as EdgeMiddleware;
+
+// Wrapper um die NextAuth-Middleware: auf RSC-/Prefetch-Requests das rotierende Session-Cookie
+// aus der Antwort entfernen (#164). Sonst kann eine noch fliegende authentifizierte
+// Prefetch-Antwort das Cookie nach einem signOut wiederbeleben (Race → flaky Logout). Zentral
+// hier, damit ALLE geschützten Links abgedeckt sind (nicht per-Link). Details: lib/prefetch-session.
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
+  const response = await authMiddleware(request, event);
+  if (response && isRscRequest(request)) {
+    stripSessionRotation(response);
+  }
+  return response;
+}
 
 export const config = {
   // Alles schützen außer: Auth-/Versions-/Health-Endpunkt, der öffentliche Theken-Zugang

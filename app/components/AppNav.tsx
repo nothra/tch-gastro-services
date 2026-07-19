@@ -29,9 +29,9 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
     <Link
       key={item.href}
       href={item.href}
-      // Kein Auto-Prefetch geschützter Routen (#164): eine authentifizierte Prefetch-Antwort
-      // rotiert das Auth.js-Session-Cookie und kann es nach dem Abmelden wiederbeleben (Race),
-      // sodass das Logout nicht "hält". Fail-closed vor Komfort.
+      // Kein Auto-Prefetch geschützter Routen: spart die authentifizierte Hintergrund-RSC-Abfrage
+      // (Neon-Last) und ist Defense-in-depth zur #164-Absicherung. Die umfassende Garantie liegt
+      // zentral in proxy.ts (RSC/Prefetch rotiert die Session nicht → keine Resurrection).
       prefetch={false}
       aria-current={isActive(item.href) ? "page" : undefined}
       onClick={onNavigate}

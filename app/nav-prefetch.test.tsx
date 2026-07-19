@@ -7,12 +7,11 @@ import { auth } from "@/auth";
 import { AppHeader } from "@/app/components/AppHeader";
 import Home from "@/app/page";
 
-// Regressionsschutz #164: Nav-Links zu geschützten Routen dürfen NICHT automatisch
-// geprefetcht werden. Auto-Prefetch feuert authentifizierte RSC-Requests, deren Antworten
-// das Auth.js-JWT-Session-Cookie rotieren (Rolling Session). Beim Abmelden landen solche
-// noch fliegenden Prefetch-Antworten nach dem signOut-Clear und setzen das Cookie neu →
-// die Session wird wiederbelebt, das Logout "hält nicht" (flaky, Deploy-Gate INT).
-// prefetch={false} entfernt diese Race-Quelle.
+// Guard #164: Die prominenten Nav-Links (Kopfzeile + Dashboard-Hub) opten aus dem
+// Auto-Prefetch aus – spart die authentifizierte Hintergrund-RSC-Abfrage (Neon-Last) und ist
+// Defense-in-depth gegen die Session-Resurrection. Die UMFASSENDE Absicherung für ALLE
+// geschützten Links liegt zentral in proxy.ts / lib/prefetch-session (RSC/Prefetch-Requests
+// rotieren das Session-Cookie nicht → keine Wiederbelebung nach signOut). Getestet dort.
 vi.mock("@/auth", () => ({ auth: vi.fn(), signOut: vi.fn() }));
 const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
