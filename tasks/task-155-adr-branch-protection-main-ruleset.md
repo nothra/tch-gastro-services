@@ -30,8 +30,10 @@ angewandt. Es entsteht kein Produktionscode und kein IaC-Tooling (Entscheidung s
 - [ ] GIVEN die „kanonische Quellen referenzieren"-Regel WHEN `git-workflow.md` den
       main-Schutz erwähnt THEN verweist es auf ADR-029 (der pre-push-Hook wird als lokales
       Feedback, das Ruleset als server-seitige Durchsetzung eingeordnet).
-- [ ] GIVEN die #120-Regel (Branch-Typ ↔ Scope) WHEN feststeht, dass die Task docs-only ist
+- [x] GIVEN die #120-Regel (Branch-Typ ↔ Scope) WHEN feststeht, dass die Task docs-only ist
       THEN sind Branch (`docs/155-…`) und Label (`documentation`) entsprechend gesetzt.
+      _Erledigt 2026-07-19: Branch via GitHub-Rename-API umbenannt, Label gewechselt,
+      PR #156 dadurch geschlossen → ersetzt durch #157._
 
 ## Technische Notizen
 Von `/architecture` befüllt (2026-07-19):
@@ -52,16 +54,16 @@ Ruleset statt Classic Protection; 0 Approvals; squash-only; required Checks
 4. **Keine** Ruleset-JSON-Datei ins Repo und **kein** Drift-Check-Skript (bewusst
    verworfen, ADR-029 Option D2). Wer das später doch will, braucht einen **neuen** ADR.
 
-**Scope-/Branch-Hinweis (#120-Regel):** Die Task ist nach dieser Architektur-Runde
-eindeutig **docs-only** (ADR + Doku-Querverweise, kein Produktionscode). Branch-Typ und
-Label vor `/implement` auf `docs/` bzw. `documentation` umstellen:
+**Scope-/Branch-Hinweis (#120-Regel) — erledigt 2026-07-19:** Die Task ist docs-only
+(ADR + Doku-Querverweise, kein Produktionscode). Branch-Typ und Label wurden auf `docs/`
+bzw. `documentation` umgestellt. Weil PR #156 bereits offen war, erfolgte das Rename über
+die **GitHub-Branch-Rename-API** (nicht delete+recreate). Lesson: die API retargetet einen
+offenen PR hier **nicht** — #156 wurde geschlossen und durch **#157** ersetzt.
 ```bash
-git branch -m feature/155-adr-branch-protection-main-ruleset docs/155-adr-branch-protection-main-ruleset
-git push origin -u docs/155-adr-branch-protection-main-ruleset
-git push origin --delete feature/155-adr-branch-protection-main-ruleset
+gh api -X POST repos/nothra/tch-gastro-services/branches/feature/155-…/rename -f new_name=docs/155-…
 gh issue edit 155 --add-label documentation --remove-label enhancement
+git -C <worktree> fetch -p && git -C <worktree> branch -m feature/155-… docs/155-… && git -C <worktree> branch -u origin/docs/155-…
 ```
-PR-Body (#156) und diese Task-Datei spiegeln den neuen Branch-Namen.
 
 ## Offene Fragen
 _Keine._ Die Speicherungsfrage (IaC vs. dokumentiert) ist in ADR-029 zugunsten der
@@ -74,5 +76,5 @@ dokumentierten Variante (YAGNI) entschieden.
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
 ---
-Branch: `feature/155-adr-branch-protection-main-ruleset`
+Branch: `docs/155-adr-branch-protection-main-ruleset` (vormals `feature/155-…`, umbenannt 2026-07-19)
 Erstellt: 2026-07-19 07:01
