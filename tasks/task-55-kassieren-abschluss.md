@@ -13,7 +13,8 @@
 Feature **F8** (Epic „Digitale Veranstaltungs-Abrechnung"). Der **Veranstalter** kassiert am
 Ende einer Veranstaltung bei jedem Teilnehmer den **Verzehr-Gesamt** bar, erfasst das
 **Erhalten**; die **Spende** = Erhalten − Verzehr-Gesamt ergibt sich automatisch. Zeilen sind
-**offen/bezahlt** (kein Restbetrag im MVP). Die Veranstaltung wird **abgeschlossen** (danach
+**offen/bezahlt** (abgeleitet aus `Erhalten ≥ Verzehr-Gesamt`; kein Restbetrag im MVP). Die
+Veranstaltung kann **nur abgeschlossen werden, wenn jede Zeile bezahlt ist** (danach
 schreibgeschützt, Tagessummen fixiert) und kann von einem Veranstalter **wieder geöffnet**
 werden (protokolliert). Zusätzlich die **Veranstaltungs-Gesamtabrechnung** je zugeordneter
 Kasse (Einnahmen Σ Erhalten vs. Ausgaben Auslagenerstattungen, F6).
@@ -31,8 +32,8 @@ Kanonische Quelle der Akzeptanzkriterien: [`docs/specs/spec-55-kassieren-abschlu
 - [ ] `Erhalten > Verzehr-Gesamt` → `Spende = Erhalten − Verzehr-Gesamt` (als Spende ausgewiesen), Zeile **bezahlt**.
 - [ ] `Erhalten < Verzehr-Gesamt` → Zeile **nicht** bezahlt, bleibt/wird **offen** (kein Restbetrag gespeichert).
 - [ ] Zeile ohne Verzehr (`Verzehr-Gesamt = 0`) und ohne `Erhalten` → **bezahlt** (nichts zu kassieren), zählt nicht als offen.
-- [ ] Veranstalter setzt eine (auch bezahlte) Zeile explizit auf **offen** (nicht kassierbar) → gilt als offen, unabhängig vom `Erhalten`.
-- [ ] Veranstaltung mit gemischt bezahlt/offen abschließen → Status `abgeschlossen`, schreibgeschützt, Tagessummen fixiert.
+- [ ] Abschluss bei mindestens einer offenen Zeile (`Erhalten < Verzehr-Gesamt`) → **abgelehnt** (serverseitig, fail-closed) mit Hinweis welche/wie viele Zeilen offen sind; Status bleibt `offen`.
+- [ ] Abschluss, wenn **jede** Zeile bezahlt ist (inkl. `Verzehr-Gesamt = 0`) → Status `abgeschlossen`, schreibgeschützt, Tagessummen fixiert.
 - [ ] Abgeschlossene Veranstaltung wieder öffnen → Korrekturen (Verzehr/Erhalten/Auslagen) möglich, Wiederöffnung protokolliert, nach erneutem Abschluss Summen neu fixiert.
 - [ ] Tagessummen entsprechen der Summe der Zeilenwerte (Getränke, Sonstige, Verzehr-Gesamt, Erhalten, Spende).
 - [ ] Veranstaltungs-Gesamtabrechnung: Auslagenerstattungen je Kategorie + gesamt als Ausgaben; **Kassenveränderung** = Σ Erhalten − Σ Auslagenerstattungen je zugeordneter Kasse korrekt.
@@ -40,7 +41,7 @@ Kanonische Quelle der Akzeptanzkriterien: [`docs/specs/spec-55-kassieren-abschlu
 
 ### Fehlerszenarien
 - [ ] `Erhalten` kein gültiger EUR-Betrag ≥ 0 → serverseitig abgelehnt (inkl. int4-Obergrenze).
-- [ ] Abschluss trotz offener Zeilen → erlaubt, aber mit deutlichem Hinweis (Anzahl offener Zeilen).
+- [ ] Abschluss bei offener Zeile → serverseitig **abgelehnt** (fail-closed) mit Hinweis welche/wie viele Zeilen offen sind.
 - [ ] Wiederöffnen ohne Veranstalter-Rolle → serverseitig abgelehnt (fail-closed, `lib/authz.ts`).
 
 ## Technische Notizen
