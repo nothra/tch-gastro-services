@@ -29,19 +29,30 @@ Vollständige Spec inkl. Scope & Fallen: [spec-148](../docs/specs/spec-148-rolle
 
 Kanonische Liste in [spec-148](../docs/specs/spec-148-rollen-rename-veranstalter.md); hier gespiegelt:
 
-- [ ] AC1 – README: Rollen-Tabelle Z. 20 + Prosa Z. 10/88/96 → „Veranstalter"
-- [ ] AC2 – spec-49 Z. 53 → „Veranstalter"
-- [ ] AC3 – spec-50 Z. 40/54/60 → „Veranstalter"
-- [ ] AC4 – spec-51: alle Rollen-Vorkommen → „Veranstalter" (Komposita inkl.); „Abrechnungsvorgang" bleibt
-- [ ] AC5 – spec-52/53/55: Fließtext-Rollen → „Veranstalter"
-- [ ] AC6 – spec-54: Fließtext-Rollen → „Veranstalter"
-- [ ] AC7 – Header-Notizen spec-52/53/54/55 auf ADR-024-Pointer eingedampft (kein „…meint diese Rolle" mehr)
-- [ ] AC8 – git-workflow.md Z. 93 → „Verwalter vs. Veranstalter"
-- [ ] AC9 – Konsistenz-Guard: `git grep -i abrechner` über die Dateimenge → nur noch sanktionierte historische Rename-Pointer
-- [ ] AC10 – Substring-Sweep (`-w` **und** Substring) deckt sich mit der AC9-Erlaubnismenge
-- [ ] AC11 – kein `Abrechnung`/`Abrechnungs-` verändert (Tätigkeit bleibt)
-- [ ] AC12 – spec-120 / ADRs / tasks / PROJECT-CONTEXT-Historie unberührt
-- [ ] AC13 – kanonische Übereinstimmung mit spec-48 + PROJECT-CONTEXT
+- [x] AC1 – README: Rollen-Tabelle Z. 20 + Prosa Z. 10/88/96 → „Veranstalter"
+- [x] AC2 – spec-49 Z. 53 → „Veranstalter"
+- [x] AC3 – spec-50 Z. 40/54/60 → „Veranstalter"
+- [x] AC4 – spec-51: alle Rollen-Vorkommen → „Veranstalter" (Komposita inkl.); „Abrechnungsvorgang" bleibt
+- [x] AC5 – spec-52/53/55: Fließtext-Rollen → „Veranstalter"
+- [x] AC6 – spec-54: Fließtext-Rollen → „Veranstalter"
+- [x] AC7 – Header-Notizen spec-52/53/54/55 auf ADR-024-Pointer eingedampft (kein „…meint diese Rolle" mehr)
+- [x] AC8 – git-workflow.md Z. 93 → „Verwalter vs. Veranstalter"
+- [x] AC9 – Konsistenz-Guard: `git grep -i abrechner` (spec-120/spec-148 ausgeschlossen) → nur noch sanktionierte Pointer (spec-48 + 52/53/54/55)
+- [x] AC10 – Substring-Sweep (`-w` **und** Substring) deckt sich mit der AC9-Erlaubnismenge (identische Ausgabe, kein Kompositum übersehen)
+- [x] AC11 – kein `Abrechnung`/`Abrechnungs-` verändert (Tätigkeit bleibt; „Abrechnung"-Count in README/spec-51 unverändert 4/7)
+- [x] AC12 – spec-120 / ADRs / PROJECT-CONTEXT-Historie unberührt (`git diff --quiet` grün)
+- [x] AC13 – kanonische Übereinstimmung mit spec-48 + PROJECT-CONTEXT (Rollen-Vokabel „Verwalter/Veranstalter" deckungsgleich)
+
+### Implementierungs-Notiz (2026-07-19)
+
+Reine Textänderung, kein Produktionscode → kein TDD-Zyklus; Verifikation über `git grep`-Guards
+(POSIX, portabel). Umsetzung: (1) Header-Notizen in spec-52/53/54/55 manuell auf den ADR-024-
+Pointer eingedampft, (2) danach Bulk-Replace `Abrechner` → `Veranstalter` (nur Groß, die Rolle)
+über die 8 lebenden Specs + git-workflow.md. `Abrechnung`/`Abrechnungs-` (Tätigkeit) enthält den
+Teilstring nicht und blieb unangetastet. **Zwei Fallen aus #144 aktiv abgesichert:** Doppel-Grep
+(`-w` **und** Substring, identische Ausgabe) + Pfad-/Identifier-Beispiele gegen die ADRs geprüft
+(spec-120 als Entscheidungs-Record bewusst unberührt). Keine UI-/Routen-Berührung → keine
+E2E-/Browser-Verifikation nötig.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->

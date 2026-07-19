@@ -7,7 +7,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 > **Begriff (seit 2026-07-15):** Der Fachbegriff ist durchgängig **Veranstaltung**; das
 > **Datum** ist Pflichtfeld. Neben der datierten Veranstaltung (Montagsrunde etc.)
 > gibt es die **stehende Theken-Selbstbedienung** (`theke`): ein dauerhaft offener Vorgang je
-> Kasse für den **spontanen Wochentag-Verzehr** ohne anwesenden Abrechner und ohne Login/Rolle
+> Kasse für den **spontanen Wochentag-Verzehr** ohne anwesenden Veranstalter und ohne Login/Rolle
 > (Erfassung nur Getränke + Kaffee, Namenswahl aus den Stammdaten). Details: [spec-51](spec-51-abend-anlegen.md).
 
 ## Fixierte Rahmenentscheidungen (Requirements-Session 2026-07-11)
@@ -17,7 +17,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 | Erfassung | Hybrid, Selbstbedienung: eigenes Handy **und** gemeinsames Theken-Gerät |
 | Zugang Teilnehmer | Veranstaltungs-**Link/QR + Namenswahl** aus Stammdaten, **kein** Passwort |
 | Sichtbarkeit | **Volle Transparenz** – jeder sieht/bearbeitet die ganze Liste (wie heute) |
-| Rollen (mit Login) | **Verwalter** (Stammdaten/Preise) + **Abrechner** (Veranstaltungen/kassieren) |
+| Rollen (mit Login) | **Verwalter** (Stammdaten/Preise) + **Veranstalter** (Veranstaltungen/kassieren) |
 | Teilnehmer | Zentrale Stammdaten, **kein** eigenes Konto |
 | Bezahlung | Nur **bar** im MVP (PayPal später) |
 | Offene Posten & Kassenbuch | **später** (Backlog) |
@@ -85,7 +85,7 @@ Kasse** über mehrere Veranstaltungen ist Backlog #57 – im MVP nur die Kassenv
 - **Nicht-Mitglieder** zahlen dieselben Preise wie Mitglieder (Kennzeichen nur Info/Auswertung).
 - **Essen kommt aus dem Katalog** (Kategorie `essen`, feste Preise je Artikel; Änderung 2026-07-15). Kein Essenpreis je Veranstaltung, keine spontane Preiseingabe. Die Kategorie `essen` ist eine F2-Erweiterung (#116); die Essen-Erfassung per Katalog-Auswahl ist F5.
 - **Erfassung ist anonym** – keine Urheber-Nachverfolgung („wer hat eingetragen").
-- **Walk-in:** nur der **Abrechner** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
+- **Walk-in:** nur der **Veranstalter** legt spontan einen neuen Teilnehmer an (landet in den Stammdaten); Selbstbedienung wählt nur aus der bestehenden Liste.
 - **Teilzahlung:** eine Zeile ist **offen oder bezahlt**, kein Restbetrag im MVP.
 - **Auslagenerstattung:** **eigener Vorgang**, getrennt vom individuellen Kassieren; je
   Auslage **ein Teilnehmer** + **Kategorie** (Getränke/Essen/Sonstiges); auf **Veranstaltungs-Ebene**
@@ -93,4 +93,4 @@ Kasse** über mehrere Veranstaltungen ist Backlog #57 – im MVP nur die Kassenv
 - **Kassen:** je Veranstaltung eine zugeordnete Kasse aus **festem Satz** (`montagsrunde` |
   `vereinskasse`), Pflichtfeld; nur **Kassenveränderung je Veranstaltung**, kein laufender Saldo
   (Backlog #57).
-- **Abschluss-Korrektur:** ein **Abrechner** darf eine abgeschlossene Veranstaltung **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).
+- **Abschluss-Korrektur:** ein **Veranstalter** darf eine abgeschlossene Veranstaltung **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).

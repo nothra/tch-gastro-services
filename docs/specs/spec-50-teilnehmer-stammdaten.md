@@ -37,7 +37,7 @@ sein. Teilnehmer haben **kein** Benutzerkonto.
       erhalten.
 - [ ] GIVEN eine leere oder nur aus Leerzeichen bestehende Namenseingabe WHEN gespeichert
       wird THEN wird sie serverseitig (Zod) abgelehnt.
-- [ ] GIVEN ein Abrechner (ohne Verwalter-Rolle) WHEN er Stammdaten bearbeiten will THEN
+- [ ] GIVEN ein Veranstalter (ohne Verwalter-Rolle) WHEN er Stammdaten bearbeiten will THEN
       wird die Aktion serverseitig abgelehnt (siehe F1).
 
 ## Fehlerszenarien
@@ -51,13 +51,13 @@ sein. Teilnehmer haben **kein** Benutzerkonto.
 
 - **Nicht-Mitglieder zahlen dieselben Preise** wie Mitglieder. Das Kennzeichen
   `mitglied` dient nur der Info/Auswertung, nicht der Preisbildung.
-- **Walk-in:** Der **Abrechner** darf während einer offenen Veranstaltung einen **neuen**
+- **Walk-in:** Der **Veranstalter** darf während einer offenen Veranstaltung einen **neuen**
   Teilnehmer anlegen (er landet in den Stammdaten und in der Veranstaltung). Selbstbedienungs-Nutzer
   (F7) können **keine** neuen Teilnehmer anlegen, nur aus der Liste wählen.
 
 ## Zusätzliche Akzeptanzkriterien
 
-- [ ] GIVEN eine offene Veranstaltung WHEN der **Abrechner** einen bisher unbekannten Teilnehmer
+- [ ] GIVEN eine offene Veranstaltung WHEN der **Veranstalter** einen bisher unbekannten Teilnehmer
       (Walk-in) mit Anzeigename und Typ anlegt THEN wird dieser in den Stammdaten
       angelegt **und** der Veranstaltung als Zeile hinzugefügt.
 - [ ] GIVEN die Preisberechnung eines Verzehrs WHEN der Teilnehmer Nicht-Mitglied ist

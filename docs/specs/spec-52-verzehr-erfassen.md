@@ -8,15 +8,14 @@
 > **Zielbild (ADR-024, #120):** F5 wird die authentifizierte Unterroute
 > `app/veranstaltung/[id]/verzehr` und teilt die Erfassungs-UI route-neutral über `app/_verzehr/`
 > mit der öffentlichen `theke/[token]`-Route (F7). Der Bereich `app/abrechnung/veranstaltung`
-> wurde nach **`app/veranstaltung`** umbenannt, die Owner-Rolle `abrechner` → **`veranstalter`**;
-> „Abrechner" in diesem Dokument meint diese Rolle. Siehe
-> [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
+> wurde nach **`app/veranstaltung`** umbenannt, die Owner-Rolle `abrechner` → **`veranstalter`**.
+> Siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 
 Das Herzstück: Über die Veranstaltung hinweg werden je Teilnehmer-Zeile die entnommenen
 Getränke als **Strichliste** erfasst, dazu Essen und Kaffee. Es ersetzt die Striche in
-der Excel-Tabelle. Erfassen dürfen der Abrechner **und** die Teilnehmer selbst
+der Excel-Tabelle. Erfassen dürfen der Veranstalter **und** die Teilnehmer selbst
 (Selbstbedienung, Zugang siehe F7). Alle sehen und bearbeiten die ganze Liste –
 volle Transparenz wie beim gemeinsamen Zettel heute.
 
@@ -72,7 +71,7 @@ volle Transparenz wie beim gemeinsamen Zettel heute.
 
 - **Erfassung ist anonym** – es wird **nicht** protokolliert, wer eine Menge eingetragen
   hat (wie beim gemeinsamen Zettel heute).
-- **Walk-in:** Nur der **Abrechner** legt einen neuen Teilnehmer spontan an (F3/F4);
+- **Walk-in:** Nur der **Veranstalter** legt einen neuen Teilnehmer spontan an (F3/F4);
   Selbstbedienungs-Nutzer wählen ausschließlich aus der bestehenden Liste.
 
 ## Offene Fragen (für /architecture)

@@ -75,15 +75,18 @@ Sichten sauber auseinanderzuhalten.
       (ADR-024)" – konsistent mit dem spec-48-Muster.
 - [ ] **AC8 (git-workflow.md):** GIVEN `docs/factory/guidelines/git-workflow.md` Z. 93 WHEN
       gelesen THEN lautet das Beispiel „**Verwalter vs. Veranstalter**".
-- [ ] **AC9 (Konsistenz-Guard, positiv):** GIVEN der Baum nach der Änderung WHEN
-      `git grep -i abrechner -- docs/specs docs/factory/guidelines/git-workflow.md` läuft THEN
-      verbleiben **ausschließlich** die sanktionierten historischen Rename-Pointer der Form
+- [ ] **AC9 (Konsistenz-Guard, positiv):** GIVEN der Baum nach der Änderung WHEN der Guard über
+      die lebende Dateimenge läuft (historische Records spec-120 + diese Meta-Spec spec-148 per
+      Pathspec ausgeschlossen)
+      `git grep -i abrechner -- docs/specs docs/factory/guidelines/git-workflow.md ':!docs/specs/spec-120-*' ':!docs/specs/spec-148-*'`
+      THEN verbleiben **ausschließlich** die sanktionierten historischen Rename-Pointer der Form
       `abrechner` → `veranstalter` (spec-48 + die kondensierten Notizen in spec-52/53/54/55) –
-      **kein** Vorkommen bezeichnet die Rolle als aktuellen Begriff im Fließtext.
-- [ ] **AC10 (Substring-Sweep):** GIVEN dieselbe Dateimenge WHEN **sowohl** `git grep -w -i
-      abrechner` (Wort inkl. Bindestrich-Komposita) **als auch** `git grep -i abrechner`
-      (Substring) laufen THEN decken sich beide Ergebnisse mit der AC9-Erlaubnismenge – kein
-      übersehenes Kompositum (z. B. „abrechnerweit", „Abrechner-Rolle").
+      **kein** Vorkommen bezeichnet die Rolle als aktuellen Begriff im Fließtext; README/spec-49/
+      spec-50/spec-51 und git-workflow.md haben **null** Treffer.
+- [ ] **AC10 (Substring-Sweep):** GIVEN dieselbe (spec-120/spec-148-freie) Dateimenge WHEN
+      **sowohl** `git grep -w -i abrechner` (Wort inkl. Bindestrich-Komposita) **als auch**
+      `git grep -i abrechner` (Substring) laufen THEN decken sich beide Ergebnisse mit der
+      AC9-Erlaubnismenge – kein übersehenes Kompositum (z. B. „abrechnerweit", „Abrechner-Rolle").
 - [ ] **AC11 (Tätigkeit unangetastet):** GIVEN der Diff WHEN geprüft THEN wurde **keine**
       Stelle mit `Abrechnung`/`Abrechnungs-` verändert (die Tätigkeit bleibt).
 - [ ] **AC12 (Historie unberührt):** GIVEN der Diff WHEN geprüft THEN sind spec-120, alle
