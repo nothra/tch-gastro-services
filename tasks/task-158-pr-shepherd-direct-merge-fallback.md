@@ -6,7 +6,7 @@
 - [x] Tests vollständig (`run-tests.sh`: 304 grün / 0 rot)
 - [x] Security-Review bestanden (PASSED, `tasks/security-158.md`)
 - [x] Refactoring abgeschlossen (line_before-Helper, N4)
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt (`tasks/codify-158.md`)
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -109,7 +109,11 @@ Präzision = pre-existing #114-Muster; Helper-Extraktion → `/refactor`). Editi
 committet, `.claude/**`-Kosmetik als `patch-158.diff` (Mensch appliziert, siehe Blocker).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-158.md`. Neue Regel in `PROJECT-CONTEXT.md` (#94/#145-Patch-Workflow-Sektion,
+„aus #158"): (1) UTF-8 statt ASCII-Faltung in programmatischen Patch-Replacements; (2) Ganzdatei-
+Sweep bei Semantik-/Header-Änderung einer Skill-Datei (Header/Output/Regeln/Templates), nicht nur
+die geänderten Zeilen – sonst folgt ein vermeidbarer zweiter Apply-Zyklus. Übrige Findings bereits
+durch bestehende Regeln (clean-code, #117, #51, #36) abgedeckt. Keine Folge-Issues.
 
 ---
 Branch: `feature/158-pr-shepherd-direct-merge-fallback`
