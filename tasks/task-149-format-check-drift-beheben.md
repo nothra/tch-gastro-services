@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -112,6 +112,9 @@ Over-Engineering (clean-code.md: kein Gold-Plating). Selbsttests 289 grün, unve
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+/codify [2026-07-18]: Neue Regel bash-gotchas.md §8 (`${VAR-default}` vs `${VAR:-default}` –
+leerer Wert als Opt-out) aus dem `:-`→`-`-Fehler beim Gate. Struktur-Grep-auf-Prosa war bereits
+codifiziert (§7 + #114), nur reaktiv angewandt → §8 verstärkt den Bezug. Report: `tasks/codify-149.md`.
 
 ---
 Branch: `chore/149-format-check-drift-beheben`
