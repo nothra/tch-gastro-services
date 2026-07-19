@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
@@ -137,6 +137,13 @@ Code-Qualität fand ein neues, in-Scope Doku-Drift-Finding – ADR-033 D6 beschr
 entfernten `setStatus`/`logEreignis` noch als „bestehend". Behoben (2026-07-20): beide Sätze in
 ADR-033 auf die Ist-Architektur gezogen (kein roher `setStatus`; Ereignis-Insert läuft inline in
 der atomaren Abschluss-/Wiederöffnungs-Klammer).
+
+**Abschluss ohne Runde 3 (2026-07-20):** `/pr-shepherd` fand den persistierten Verdict in
+`tasks/review-55.md` noch auf NEEDS_REWORK (Stand Runde 2) und den Fix zwar committet, aber nie
+formal in einer neuen Review-Runde bestätigt. Der Fix (`03bde81`) wurde per `git grep` gegen den
+Commit-Verlauf verifiziert – keine stale `setStatus`/`logEreignis`-Referenzen mehr in ADR-033.
+Mensch hat auf Nachfrage bestätigt, den 2-Zeilen-Doku-Fix ohne weitere Review-Runde zu akzeptieren
+(kein Code-Risiko). `tasks/review-55.md` Empfehlung entsprechend auf APPROVED gesetzt.
 
 ## Test-Vervollständigung (`/test`, 2026-07-20)
 

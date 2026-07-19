@@ -71,9 +71,12 @@ alle 11 ACs + 3 Fehlerszenarien der Spec erfüllt.
   Module `app/_verzehr/*` unangetastet (Codify #52).
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
 
-> Keine kritischen Findings; ein wichtiges, in-Scope Doku-Finding: die kanonische ADR-033 widerspricht
-> nach dem Rework dem Code (gelöschte `setStatus`/`logEreignis` als „bestehend" beschrieben). Reine
-> Doku-Korrektur an zwei Sätzen, günstig, berührt aber das nicht-verhandelbare Prinzip 4
-> („Entscheidungen dokumentieren"). Danach → `/test`. Keine Out-of-Scope-Findings → kein neues Issue.
+> Keine kritischen Findings; das eine wichtige Doku-Finding (ADR-033 widersprach nach dem Rework dem
+> Code – gelöschte `setStatus`/`logEreignis` als „bestehend" beschrieben) ist oben als behoben markiert
+> und der Fix wurde per `git grep` gegen den Commit-Verlauf verifiziert (Commit `03bde81`, keine
+> stale Referenzen mehr im Baum). Keine Runde 3 durchgeführt – der Mensch hat die Verifikation am
+> 2026-07-20 explizit bestätigt (kein Code-Risiko, reine 2-Zeilen-Doku-Korrektur), siehe
+> `tasks/task-55-kassieren-abschluss.md` → „Review-Findings" für die Begründung. Keine
+> Out-of-Scope-Findings → kein neues Issue.
