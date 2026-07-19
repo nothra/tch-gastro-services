@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -58,6 +58,18 @@ _Keine._
 - `pnpm format:check` grün (Prettier prüft Markdown). Keine `app/`-Änderung → Routen-Drift n/a.
 - Keine UI-/Runtime-Oberfläche berührt → keine Browser-/E2E-Verifikation nötig.
 - `docs/CHANGELOG.md` `[Unreleased]` ergänzt (Repo-Konvention).
+
+## Verifikation (/test)
+
+- **Keine testbare Laufzeit-Oberfläche:** reine Markdown-Doku, kein Produktionscode hinzugefügt →
+  keine Unit-/Integrationstests anwendbar. Die AC sind Text-Präsenz-Kriterien, per `git grep`
+  gegen die drei Dateien belegt (siehe oben).
+- **Kein Grep-Guard-Skript ergänzt:** außerhalb des Scopes (keine Skript-Änderung) und gegen den
+  Codify-Grundsatz „kein Check-Skript aus Reflex" (OPERATING §5.1) – kein wiederkehrender,
+  verlässlich grep-barer Fehler.
+- **Regressions-Nachweis:** `pnpm test` grün – 431 passed, 52 skipped (52 Test-Dateien),
+  keine Regression durch die Doku-Änderung.
+- Coverage-Schwelle (80 % / 100 % neuer Code) n/a: kein neuer Code.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
