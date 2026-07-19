@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden (PASSED, keine Blocker – `tasks/security-167.md`)
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [x] Fertig / PR erstellt
