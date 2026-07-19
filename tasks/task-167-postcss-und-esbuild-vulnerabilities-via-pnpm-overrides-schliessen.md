@@ -6,7 +6,7 @@
 - [ ] Tests vollständig
 - [x] Security-Review bestanden (PASSED, keine Blocker – `tasks/security-167.md`)
 - [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt (`tasks/codify-167.md`; Regel in PROJECT-CONTEXT, Follow-up #169)
 - [x] Fertig / PR erstellt
 
 ## Beschreibung
@@ -49,7 +49,13 @@ _Keine._
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Learning (aus der Implementierung): pnpm@11 liest das `pnpm`-Feld in `package.json` **nicht mehr** –
+`overrides` gehören in `pnpm-workspace.yaml` (Top-Level `overrides:`). Fehlplatzierung ist ein
+**stilles No-op** (nur `[WARN]`), der Lockfile bliebe verwundbar. Als Regel in
+`docs/factory/PROJECT-CONTEXT.md` → „Bekannte Stolpersteine" festgehalten. Nachweis-Reflex:
+`pnpm audit` + `pnpm why <paket>`, nicht auf Abwesenheit einer Fehlermeldung vertrauen.
+Follow-up **#169**: Overrides entfernen, sobald `next`/`drizzle-kit` gepatcht sind. Voller Report:
+`tasks/codify-167.md`.
 
 ---
 Branch: `chore/167-postcss-und-esbuild-vulnerabilities-via-pnpm-overrides-schliessen`
