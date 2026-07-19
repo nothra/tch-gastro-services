@@ -57,6 +57,12 @@ Learning (aus der Implementierung): pnpm@11 liest das `pnpm`-Feld in `package.js
 Follow-up **#169**: Overrides entfernen, sobald `next`/`drizzle-kit` gepatcht sind. Voller Report:
 `tasks/codify-167.md`.
 
+## PR-Shepherd
+PR-Shepherd [2026-07-19]: Merge freigegeben – alle Gates grün. PR #168, Draft aufgelöst,
+Branch aktuell auf `origin/main` (0 behind), keine offenen Review-Kommentare (nur Vercel-Bot),
+required CI-Checks grün (lint, test, issue-sync, factory-self-test, pr-closes-issue), Ruleset
+`protect-main` = 0 Approvals. Merge-Modus nach `mergeStateStatus` (ADR-030).
+
 ---
 Branch: `chore/167-postcss-und-esbuild-vulnerabilities-via-pnpm-overrides-schliessen`
 Erstellt: 2026-07-19 15:18
