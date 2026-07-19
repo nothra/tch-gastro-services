@@ -21,15 +21,17 @@ angewandt. Es entsteht kein Produktionscode und kein IaC-Tooling (Entscheidung s
 [ADR-029](../docs/adr/029-branch-protection-main-ruleset.md), Option D1 / YAGNI).
 
 ## Akzeptanzkriterien
-- [ ] GIVEN die Entscheidung ist getroffen WHEN `docs/adr/029-branch-protection-main-ruleset.md`
+- [x] GIVEN die Entscheidung ist getroffen WHEN `docs/adr/029-branch-protection-main-ruleset.md`
       vorliegt THEN enthält es Status `Accepted`, Kontext, Entscheidung, ≥ 2 Alternativen je
       Teilfrage, Begründung, Konsequenzen und die reproduzierbare Ruleset-JSON.
-- [ ] GIVEN der Leser will den Live-Stand prüfen WHEN er dem ADR folgt THEN findet er den
+- [x] GIVEN der Leser will den Live-Stand prüfen WHEN er dem ADR folgt THEN findet er den
       `gh api`-Verifikationsbefehl, dessen Ausgabe zur eingebetteten Config passt
       (`strict:false`, 5 Checks, `merge:["squash"]`, `bypass:0`, `enforcement:active`).
-- [ ] GIVEN die „kanonische Quellen referenzieren"-Regel WHEN `git-workflow.md` den
+- [x] GIVEN die „kanonische Quellen referenzieren"-Regel WHEN `git-workflow.md` den
       main-Schutz erwähnt THEN verweist es auf ADR-029 (der pre-push-Hook wird als lokales
       Feedback, das Ruleset als server-seitige Durchsetzung eingeordnet).
+      _Abgesichert durch den Self-Test-Guard `#155` in `scripts/checks/tests/run-tests.sh`
+      (TDD: RED vor dem Verweis, GREEN danach)._
 - [x] GIVEN die #120-Regel (Branch-Typ ↔ Scope) WHEN feststeht, dass die Task docs-only ist
       THEN sind Branch (`docs/155-…`) und Label (`documentation`) entsprechend gesetzt.
       _Erledigt 2026-07-19: Branch via GitHub-Rename-API umbenannt, Label gewechselt,
@@ -68,6 +70,18 @@ git -C <worktree> fetch -p && git -C <worktree> branch -m feature/155-… docs/1
 ## Offene Fragen
 _Keine._ Die Speicherungsfrage (IaC vs. dokumentiert) ist in ADR-029 zugunsten der
 dokumentierten Variante (YAGNI) entschieden.
+
+## Implementierungs-Notizen (`/implement`, 2026-07-19)
+- **ADR-029** geschrieben (bereits in der `/architecture`-Runde).
+- **`git-workflow.md`**: Absatz nach „pre-push Hook blockiert …" ergänzt – lokaler Hook =
+  Feedback, Ruleset `protect-main` = server-seitige, kanonische Durchsetzung (Verweis
+  ADR-029).
+- **`CLAUDE.md`** Guardrail „Nie pushen …" um denselben ADR-029-Verweis ergänzt
+  (W-02/W-03: kanonische Quelle synchron referenziert, da die main-Push-Regel in beiden
+  Dateien steht). Kein separater Guard – bewusst minimal.
+- **Test (TDD):** Doc-Guard `#155` in `scripts/checks/tests/run-tests.sh` (Muster analog
+  `bash-gotchas.md`/`create-issue.sh`), RED→GREEN belegt.
+- **Kein Produktionscode**, keine Routen-/API-Änderung → Routen-Doku-Drift unberührt.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

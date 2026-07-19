@@ -812,6 +812,12 @@ done
 grep -q 'create-issue.sh' "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
 assert_true "$?" "#82: git-workflow.md verweist auf den zentralen Seam (create-issue.sh)"
 
+# ── #155: git-workflow.md verweist auf ADR-029 (server-seitiger main-Schutz) ──
+# Der pre-push-Hook ist nur lokales Feedback; die kanonische Quelle für die
+# server-seitige, fail-closed Durchsetzung ist das GitHub-Ruleset (ADR-029).
+grep -q 'ADR-029' "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
+assert_true "$?" "#155: git-workflow.md verweist auf ADR-029 (main-Ruleset)"
+
 # ─── Bug #8: Check-Skripte robust gegen Leerzeichen im Pfad ──────────────────
 echo ""
 echo "Bug #8 (Leerzeichen im Pfad):"
