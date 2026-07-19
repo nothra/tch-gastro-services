@@ -31,6 +31,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: currentStage.color,
+  // Inhalt bis in die Display-Ausschnitte ziehen, damit env(safe-area-inset-*) auf iOS
+  // echte Werte liefert (sonst 0) – Grundlage der Safe-Area-Abstände der Navigation (ADR-031).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

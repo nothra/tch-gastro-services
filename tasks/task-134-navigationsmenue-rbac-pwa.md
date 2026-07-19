@@ -1,7 +1,7 @@
 # Task 134: navigationsmenue-rbac-pwa
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -25,40 +25,51 @@ gefiltert; die eigentliche Durchsetzung bleibt in den Routen/Server Actions.
 <!-- Von /requirements befüllt oder manuell eingeben -->
 
 ### Rollen-Sichtbarkeit (RBAC)
-- [ ] `veranstalter` sieht „Veranstaltungen", nicht „Katalog"/„Teilnehmer".
-- [ ] `verwalter` sieht „Katalog" + „Teilnehmer", nicht „Veranstaltungen".
-- [ ] Nutzer mit beiden Rollen sieht alle drei Bereichs-Einträge.
-- [ ] Session mit leerem Rollen-Array: kein Bereichs-Eintrag, „Abmelden" bleibt (fail-closed).
-- [ ] Sichtbarkeit serverseitig über `hasRole`/`hasAnyRole` (Server-Component), nicht nur per Client/CSS.
+- [x] `veranstalter` sieht „Veranstaltungen", nicht „Katalog"/„Teilnehmer".
+- [x] `verwalter` sieht „Katalog" + „Teilnehmer", nicht „Veranstaltungen".
+- [x] Nutzer mit beiden Rollen sieht alle drei Bereichs-Einträge.
+- [x] Session mit leerem Rollen-Array: kein Bereichs-Eintrag, „Abmelden" bleibt (fail-closed).
+- [x] Sichtbarkeit serverseitig über `hasRole`/`hasAnyRole` (Server-Component), nicht nur per Client/CSS.
 
 ### Anonymer / login-freier Kontext
-- [ ] Kein angemeldetes Menü ohne Session (z. B. `/login` bleibt sauber).
-- [ ] Anonym-Leiste: kein Personal-Menü, kein Link auf geschützte Bereiche, keine `/login`-Umleitung.
-- [ ] Anonym-Leiste zeigt übergebenen Kontextnamen + höchstens dezenten „Anmelden"-Einstieg.
+- [x] Kein angemeldetes Menü ohne Session (z. B. `/login` bleibt sauber).
+- [x] Anonym-Leiste: kein Personal-Menü, kein Link auf geschützte Bereiche, keine `/login`-Umleitung.
+- [x] Anonym-Leiste zeigt übergebenen Kontextnamen + höchstens dezenten „Anmelden"-Einstieg.
 
 ### Startseite als Dashboard-Hub
-- [ ] Angemeldeter Nutzer sieht auf `/` seine Bereiche als Kacheln – aus derselben Menü-Definition.
-- [ ] Nutzer mit nur einer Rolle sieht nur die zu seiner Rolle gehörenden Kacheln.
+- [x] Angemeldeter Nutzer sieht auf `/` seine Bereiche als Kacheln – aus derselben Menü-Definition.
+- [x] Nutzer mit nur einer Rolle sieht nur die zu seiner Rolle gehörenden Kacheln.
 
 ### PWA / Mobile / Bedienbarkeit
-- [ ] Mobil auf-/zuklappbar über ein Bedienelement; Desktop direkt sichtbar.
-- [ ] Touch-Ziele ≥ 44×44 px; Safe-Area-Insets (`env(safe-area-inset-*)`) respektiert.
-- [ ] Aktiver Bereich via `aria-current="page"` markiert.
-- [ ] „Abmelden" aus dem Menü heraus über bestehende `signOutAction`.
-- [ ] Menü per Tastatur bedienbar (Enter/Space öffnen, Escape schließen, Tab navigieren); ARIA + Fokus-Management.
-- [ ] Dark Mode analog `AppHeader`.
+- [x] Mobil auf-/zuklappbar über ein Bedienelement; Desktop direkt sichtbar.
+- [x] Touch-Ziele ≥ 44×44 px; Safe-Area-Insets (`env(safe-area-inset-*)`) respektiert.
+- [x] Aktiver Bereich via `aria-current="page"` markiert.
+- [x] „Abmelden" aus dem Menü heraus über bestehende `signOutAction`.
+- [x] Menü per Tastatur bedienbar (Enter/Space öffnen, Escape schließen, Tab navigieren); ARIA + Fokus-Management.
+- [x] Dark Mode analog `AppHeader`.
 
 ### Tests
-- [ ] Rollen-Sichtbarkeit je Rolle + „kein Menü ohne Session".
-- [ ] Auf-/Zuklappen des mobilen Menüs (Escape schließt, Fokus).
-- [ ] Anonym-Leiste (Kontextname, kein geschützter Link).
-- [ ] Header-Menü und Dashboard nutzen dieselbe rollengefilterte Definition.
-- [ ] Ggf. E2E für den mobilen Menü-Flow.
+- [x] Rollen-Sichtbarkeit je Rolle + „kein Menü ohne Session".
+- [x] Auf-/Zuklappen des mobilen Menüs (Escape schließt, Fokus).
+- [x] Anonym-Leiste (Kontextname, kein geschützter Link).
+- [x] Header-Menü und Dashboard nutzen dieselbe rollengefilterte Definition.
+- [x] Ggf. E2E für den mobilen Menü-Flow.
 
 ### Fehlerszenarien
-- [ ] Unbekannte/zukünftige Rolle → kein Eintrag (fail-closed, kein Absturz).
-- [ ] Ohne JS: Desktop-Links + „Abmelden" nutzbar (mobiles Aufklappen darf JS voraussetzen).
-- [ ] Navigation schließt das offene mobile Menü (kein hängendes Overlay).
+- [x] Unbekannte/zukünftige Rolle → kein Eintrag (fail-closed, kein Absturz).
+- [x] Ohne JS: Desktop-Links + „Abmelden" nutzbar (mobiles Aufklappen darf JS voraussetzen).
+- [x] Navigation schließt das offene mobile Menü (kein hängendes Overlay).
+
+**Implementierungs-Notiz [2026-07-19]:** Umgesetzt gemäß ADR-031. Neue Dateien:
+`lib/navigation.ts` (kanonische Definition + `visibleNavItems`), `app/components/AppNav.tsx`
+(Client-Drawer: Toggle/Escape/Fokus, `aria-current`), `app/components/PublicHeader.tsx`
+(Anonym-Leiste), erweitert: `app/components/AppHeader.tsx` (Server-Filterung), `app/page.tsx`
+(Dashboard-Hub), `app/layout.tsx` (`viewportFit: "cover"`). Tests: 33 neue Fälle über 6 Dateien
+inkl. `nav-consistency.test.tsx` (Header↔Dashboard gleiche Bereichsmenge) und
+`e2e/navigation.spec.ts` (mobiler Drawer-Flow; skippt ohne `SEED_ADMIN_*`).
+Gates lokal grün: Lint, `pnpm test` (406 passed / 52 skipped), Typecheck, Format, Routen-Doku.
+Interaktive Browser-Verifikation offen (kein lokaler Dev-Server/DB in dieser Session) →
+Nachweis über `/verify` bzw. `/post-merge-verify`.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
