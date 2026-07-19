@@ -4,8 +4,8 @@
 >
 > **Zielbild (ADR-024, #120):** F6 wird die authentifizierte Unterroute
 > `app/veranstaltung/[id]/auslagen` (Bereich `app/abrechnung/veranstaltung` → **`app/veranstaltung`**
-> umbenannt). Die Owner-Rolle `abrechner` → **`veranstalter`**; „Abrechner" in diesem Dokument
-> meint diese Rolle. Siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
+> umbenannt). Die Owner-Rolle `abrechner` → **`veranstalter`**.
+> Siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 
@@ -39,7 +39,7 @@ Teilnehmer beim Kassieren. Die Kassenwirkung der Veranstaltung steht in F8.
   versehentlich bestätigten Barauszahlung), solange die Veranstaltung `offen` ist.
 - Übersicht der Auslagen einer Veranstaltung mit Summen **je Kategorie** und gesamt, getrennt
   nach „offen zu erstatten" und „erstattet".
-- Erfassen/Korrigieren/Löschen/Erstatten durch den Abrechner.
+- Erfassen/Korrigieren/Löschen/Erstatten durch den Veranstalter.
 
 **Nicht inbegriffen:**
 - Netto-Verrechnung mit dem Verzehr des Teilnehmers beim Kassieren (bewusst getrennt).
@@ -49,20 +49,20 @@ Teilnehmer beim Kassieren. Die Kassenwirkung der Veranstaltung steht in F8.
 
 ## Akzeptanzkriterien
 
-- [ ] GIVEN eine offene Veranstaltung WHEN der Abrechner für einen Teilnehmer eine Auslage mit
+- [ ] GIVEN eine offene Veranstaltung WHEN der Veranstalter für einen Teilnehmer eine Auslage mit
       Kategorie, Betrag > 0 und optionaler Notiz erfasst THEN entsteht ein Auslagen-
       Eintrag im Status `offen`, **einem Teilnehmer und einer Kategorie zugeordnet**, und
       **ohne** den Verzehr-Gesamtbetrag dieses Teilnehmers zu verändern.
-- [ ] GIVEN ein Auslagen-Eintrag im Status `offen` WHEN der Abrechner die Barauszahlung
+- [ ] GIVEN ein Auslagen-Eintrag im Status `offen` WHEN der Veranstalter die Barauszahlung
       bestätigt THEN wechselt der Eintrag auf `erstattet`.
 - [ ] GIVEN ein Auslagen-Eintrag im Status `erstattet` UND die Veranstaltung ist `offen` WHEN der
-      Abrechner die Erstattung zurücknimmt THEN wechselt der Eintrag zurück auf `offen` und
+      Veranstalter die Erstattung zurücknimmt THEN wechselt der Eintrag zurück auf `offen` und
       wird wieder als „offen zu erstatten" geführt.
-- [ ] GIVEN ein Auslagen-Eintrag UND die Veranstaltung ist `offen` WHEN der Abrechner Teilnehmer,
+- [ ] GIVEN ein Auslagen-Eintrag UND die Veranstaltung ist `offen` WHEN der Veranstalter Teilnehmer,
       Kategorie, Betrag oder Notiz ändert THEN wird der Eintrag mit den (serverseitig
       validierten) neuen Werten gespeichert, **ohne** den Verzehr-Gesamtbetrag des
       Teilnehmers zu verändern.
-- [ ] GIVEN ein Auslagen-Eintrag UND die Veranstaltung ist `offen` WHEN der Abrechner ihn löscht
+- [ ] GIVEN ein Auslagen-Eintrag UND die Veranstaltung ist `offen` WHEN der Veranstalter ihn löscht
       THEN verschwindet er aus der Übersicht und geht nicht mehr in die Summen
       (offen/erstattet, je Kategorie) noch in die Kassenabrechnung der Veranstaltung ein.
 - [ ] GIVEN Auslagen einer Veranstaltung in verschiedenen Kategorien WHEN die Auslagen-Übersicht
@@ -87,9 +87,9 @@ Teilnehmer beim Kassieren. Die Kassenwirkung der Veranstaltung steht in F8.
 - [ ] Betrag ≤ 0, nicht-numerisch, fehlende Kategorie oder fehlender Teilnehmer →
       serverseitige Ablehnung.
 - [ ] Erstattung bestätigt, obwohl kein Bargeld vorhanden → Eintrag bleibt `offen`; der
-      Abrechner erstattet später (kein Zwang, sofort auf `erstattet` zu setzen).
+      Veranstalter erstattet später (kein Zwang, sofort auf `erstattet` zu setzen).
 - [ ] Auslage für einen Teilnehmer, der (noch) nicht in der Veranstaltung geführt wird → Teilnehmer
-      muss zuvor der Veranstaltung hinzugefügt sein (F4/Walk-in via Abrechner).
+      muss zuvor der Veranstaltung hinzugefügt sein (F4/Walk-in via Veranstalter).
 - [ ] Ändern/Löschen/Erstatten/Zurücksetzen eines Eintrags, der zu einer **anderen** Veranstaltung
       gehört → serverseitige Ablehnung; die Operation muss den Veranstaltungs-Bezug (`veranstaltungId`)
       im WHERE einschließen, nicht nur die Eintrags-ID (IDOR-Schutz, CLAUDE.md).

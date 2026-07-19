@@ -50,7 +50,7 @@ gelegentlich ändern. Nur der Verwalter pflegt den Katalog.
       Nachkommastellen ist THEN wird sie serverseitig (Zod) abgelehnt.
 - [ ] GIVEN ein frisch initialisiertes System WHEN der Katalog erstmals geöffnet wird THEN
       enthält er die geseedete Referenz-Preisliste aus dem Excel-Template.
-- [ ] GIVEN ein angemeldeter Abrechner (ohne Verwalter-Rolle) WHEN er den Katalog
+- [ ] GIVEN ein angemeldeter Veranstalter (ohne Verwalter-Rolle) WHEN er den Katalog
       bearbeiten will THEN wird die Aktion serverseitig abgelehnt (siehe F1).
 
 ## Fehlerszenarien

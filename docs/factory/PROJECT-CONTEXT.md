@@ -698,6 +698,15 @@ zwei Muster auf, die eine gleichartige Folge-Task (**#148**: Rollen-Rename `abre
   **und** ein Substring-Sweep `git grep -i <alt>` (fängt `…<alt>`/`<alt>…`-Komposita), jeweils
   die bewussten Ausnahmen herausfiltern (Dateinamen-Links, historische Zitate). `-w` allein
   genügt nie als Abschluss-Beleg.
+- **Homograph-/Wortstamm-Falle (bestätigt an #148, Rollen-Rename `Abrechner` → `Veranstalter`):**
+  Der Ziel-Begriff kann einen **anderen** Begriff mit gemeinsamem Wortstamm haben, der erhalten
+  bleiben muss (hier Rolle `Abrechner` vs. Tätigkeit `Abrechnung`/`Abrechnungsvorgang`, gemeinsamer
+  Stamm `Abrechn-`). **Nie auf den Stamm ersetzen** (`s/Abrechn.../` hätte die Tätigkeit
+  mitverändert), sondern den **distinktesten vollständigen Token** wählen (`Abrechner`, nicht
+  `Abrechn`) und den zu erhaltenden Homograph per **Count-Assertion vor/nach** absichern
+  (`git grep -c -i abrechnung <dateien>` unverändert). Groß/Klein bewusst nutzen, wenn nur eine
+  Schreibweise die Rolle meint (hier Groß-`Abrechner`) und die Kleinschreibung nur in erlaubten
+  historischen Code-Pointern (`` `abrechner` → `veranstalter` ``) vorkommt.
 - **Pfad-/Route-/Identifier-Beispiele** vor der Ersetzung gegen die ADRs prüfen: der
   „offensichtliche" Entitäts-Begriff kann mit einem bereits belegten Segment kollidieren
   (authentifiziert vs. öffentlich). Den **faktisch korrekten** Bezeichner wählen, nicht den

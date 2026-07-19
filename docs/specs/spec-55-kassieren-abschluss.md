@@ -4,15 +4,14 @@
 >
 > **Zielbild (ADR-024, #120):** F8 wird die authentifizierte Unterroute
 > `app/veranstaltung/[id]/kassieren` (Bereich `app/abrechnung/veranstaltung` → **`app/veranstaltung`**
-> umbenannt). Die Owner-Rolle `abrechner` → **`veranstalter`**; „Abrechner"/„Abrechner-Rolle" in
-> diesem Dokument meint diese Rolle. Siehe
-> [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
+> umbenannt). Die Owner-Rolle `abrechner` → **`veranstalter`**.
+> Siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 
-Zum Ende der Veranstaltung kassiert der Abrechner bei jedem Teilnehmer seinen **Verzehr** bar.
+Zum Ende der Veranstaltung kassiert der Veranstalter bei jedem Teilnehmer seinen **Verzehr** bar.
 Zahlt jemand mehr, gilt der Überschuss als **Spende**. Kann jemand nicht kassiert werden
-(Abrechner geht früher, kein Bargeld), bleibt die Zeile **offen**. Die Veranstaltung wird
+(Veranstalter geht früher, kein Bargeld), bleibt die Zeile **offen**. Die Veranstaltung wird
 abgeschlossen und die Tagessummen stehen fest.
 
 **Wichtig (Entscheidung 2026-07-11):** Auslagen werden hier **nicht** verrechnet – deren
@@ -26,7 +25,7 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - `Spende` = `Erhalten − Verzehr-Gesamt` (automatisch; nur positiver Überschuss ist Spende).
 - Zeilen-Status **`offen`** oder **`bezahlt`** – **kein** Restbetrag/Teilzahlung im MVP.
 - Veranstaltung **abschließen**: danach schreibgeschützt; Tagessummen fixiert.
-- Abgeschlossene Veranstaltung durch einen **Abrechner wieder öffnen**, korrigieren, erneut
+- Abgeschlossene Veranstaltung durch einen **Veranstalter wieder öffnen**, korrigieren, erneut
   abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
 - Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Verzehr-Gesamt, Σ Erhalten,
   Σ Spende.
@@ -59,13 +58,13 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - [ ] GIVEN ein Teilnehmer zahlt weniger als den Verzehr-Gesamt (`Erhalten < Verzehr-
       Gesamt`) WHEN das erfasst wird THEN gilt die Zeile **nicht** als bezahlt; sie
       bleibt/wird **offen** (kein Restbetrag gespeichert – MVP).
-- [ ] GIVEN ein Teilnehmer kann nicht kassiert werden WHEN der Abrechner die Zeile als
+- [ ] GIVEN ein Teilnehmer kann nicht kassiert werden WHEN der Veranstalter die Zeile als
       **offen** markiert THEN bleibt sie ohne `Erhalten`, zählt nicht als bezahlt und
       **wird nicht** übertragen (MVP).
-- [ ] GIVEN eine Veranstaltung mit gemischt bezahlten und offenen Zeilen WHEN der Abrechner die
+- [ ] GIVEN eine Veranstaltung mit gemischt bezahlten und offenen Zeilen WHEN der Veranstalter die
       Veranstaltung abschließt THEN wird die Veranstaltung `abgeschlossen`, ist schreibgeschützt, und die
       Tagessummen sind fixiert.
-- [ ] GIVEN eine abgeschlossene Veranstaltung WHEN ein Abrechner sie wieder öffnet THEN sind
+- [ ] GIVEN eine abgeschlossene Veranstaltung WHEN ein Veranstalter sie wieder öffnet THEN sind
       Korrekturen (Verzehr, Erhalten, Auslagen) wieder möglich; die Wiederöffnung wird
       protokolliert; nach erneutem Abschluss sind die Summen neu fixiert.
 - [ ] GIVEN eine abgeschlossene Veranstaltung WHEN die Tagessummen angezeigt werden THEN
@@ -85,7 +84,7 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - [ ] `Erhalten` kein gültiger EUR-Betrag ≥ 0 → serverseitig abgelehnt.
 - [ ] Abschluss trotz offener Zeilen → erlaubt, aber mit deutlichem Hinweis, wie viele
       Zeilen offen bleiben.
-- [ ] Wiederöffnen durch eine Person ohne Abrechner-Rolle → serverseitig abgelehnt (F1).
+- [ ] Wiederöffnen durch eine Person ohne Veranstalter-Rolle → serverseitig abgelehnt (F1).
 
 ## Offene Fragen (für /architecture)
 

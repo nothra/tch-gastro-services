@@ -4,7 +4,7 @@
 
 ## Kontext
 
-Jeder Abrechnungsvorgang bezieht sich auf **eine Veranstaltung**. Der Abrechner legt die
+Jeder Abrechnungsvorgang bezieht sich auf **eine Veranstaltung**. Der Veranstalter legt die
 Veranstaltung an, bestimmt ihr **Datum**, wählt die **Kasse**, gegen die abgerechnet wird,
 und die teilnehmenden Personen/Familien aus den Stammdaten (F3). Die Veranstaltung ist die
 Klammer um alle Erfassungen (F5–F8).
@@ -24,12 +24,12 @@ Pflichtfeld: Eine Veranstaltung findet an einem bestimmten Tag statt.
 **Zwei Veranstaltungs-Typen (neu, Requirements-Schärfung 2026-07-15):**
 
 1. **Datierte Veranstaltung** (`veranstaltung`) – der Regelfall (Montagsrunde etc.): vom
-   **Abrechner** angelegt, mit Datum und Bezeichnung, Status `offen` → `abgeschlossen`.
+   **Veranstalter** angelegt, mit Datum und Bezeichnung, Status `offen` → `abgeschlossen`.
 2. **Stehende Theken-Selbstbedienung** (`theke`) – ein **dauerhaft offener** Vorgang **je
    Kasse** für den **spontanen Wochentag-Verzehr**: Wer unter der Woche spontan ins Clubhaus
    kommt, sich etwas aus dem Thekenkühlschrank nimmt und es für die spätere Abrechnung
-   notieren will, trägt seinen Verzehr hier ein – **ohne** dass ein Abrechner anwesend ist
-   und **ohne** Login/Rolle. Ein Abrechner rechnet die aufgelaufenen Einträge **später** ab
+   notieren will, trägt seinen Verzehr hier ein – **ohne** dass ein Veranstalter anwesend ist
+   und **ohne** Login/Rolle. Ein Veranstalter rechnet die aufgelaufenen Einträge **später** ab
    (F8). Nutzt bewusst dieselbe Verzehr-/Kasse-/Zeilen-Mechanik wie die datierte
    Veranstaltung (maximale Wiederverwendung, minimaler Eingriff in F5/F7/F8).
 
@@ -46,17 +46,17 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - **Kasse** wählen (fester Satz: `montagsrunde` | `vereinskasse`, Pflichtfeld).
 - Teilnehmer aus den Stammdaten (F3) auswählen → je Teilnehmer eine Abrechnungszeile.
 - Solange **offen**: Teilnehmer nachträglich hinzufügen/entfernen.
-- Status: `offen` → `abgeschlossen` (Abschluss in F8); Wiederöffnen durch Abrechner.
+- Status: `offen` → `abgeschlossen` (Abschluss in F8); Wiederöffnen durch Veranstalter.
 - **Namens-Snapshot je Zeile** (Vorgabe aus ADR-022): Die Zeile referenziert `teilnehmer.id`
   **und** speichert den Anzeigenamen zum Abrechnungszeitpunkt, damit abgeschlossene
   Veranstaltungen den Namen wie damals zeigen.
 - **Stehende Theken-Selbstbedienung einrichten** (je Kasse ein dauerhaft offener Vorgang):
   - Dauerhaft offen, kein Abschluss durch Zeitablauf.
   - Erfassung **ohne Login/Rolle** über einen **festen** Theken-Zugang (Link/QR am
-    Theken-Gerät) – kein anwesender Abrechner nötig.
+    Theken-Gerät) – kein anwesender Veranstalter nötig.
   - Verzehr nur **Getränke + Kaffee** (Essen wird an der Theke im MVP nicht angeboten).
   - Namenswahl **aus den Stammdaten** (wie Selbstbedienung F7); je Person eine Zeile.
-  - Ein Abrechner kassiert die offenen Einträge später (F8); die Theke bleibt danach bestehen.
+  - Ein Veranstalter kassiert die offenen Einträge später (F8); die Theke bleibt danach bestehen.
 
 **Nicht inbegriffen:**
 - Wiederkehrende Serie/Vorlage mit vorbelegten Teilnehmern (Backlog #60).
@@ -66,7 +66,7 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
   ist eine F2-Erweiterung in einem eigenen Issue**, die eigentliche Essen-Erfassung ist F5/#52.
 - **Essen an der stehenden Theke** (bewusst nicht im MVP – nur Getränke + Kaffee).
 - **Freitext-Erfassung unbekannter Gäste** an der Theke (Auswahl nur aus Stammdaten; unbekannte
-  Gäste ergänzt der Abrechner später als Walk-in – offene Frage siehe unten).
+  Gäste ergänzt der Veranstalter später als Walk-in – offene Frage siehe unten).
 - Kassieren/Erhalten/Spende selbst (F8) und die konkrete Abrechnungs-Periodik der stehenden
   Theke – nur die **Anlage/Führung** gehört hierher; das Kassieren definiert F8/#55.
 
@@ -86,43 +86,43 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 
 ## Akzeptanzkriterien – A) Datierte Veranstaltung
 
-- [ ] GIVEN ein angemeldeter Abrechner WHEN er eine Veranstaltung mit **Datum**, Bezeichnung
+- [ ] GIVEN ein angemeldeter Veranstalter WHEN er eine Veranstaltung mit **Datum**, Bezeichnung
       und Kasse anlegt THEN wird eine Veranstaltung vom Typ `veranstaltung` im Status `offen`
       erstellt (kein Essenpreis).
 - [ ] GIVEN das Anlegen einer Veranstaltung WHEN keine Kasse gewählt ist THEN wird das
       Speichern **serverseitig** abgelehnt (Kasse ist Pflicht).
 - [ ] GIVEN das Anlegen einer datierten Veranstaltung WHEN kein Datum gewählt ist THEN wird
       das Speichern serverseitig abgelehnt (Datum ist Pflicht).
-- [ ] GIVEN eine offene Veranstaltung WHEN der Abrechner Teilnehmer aus den Stammdaten
+- [ ] GIVEN eine offene Veranstaltung WHEN der Veranstalter Teilnehmer aus den Stammdaten
       auswählt THEN entsteht je ausgewähltem Teilnehmer genau eine Zeile mit leeren
       Positionen und dem **Anzeigenamen-Snapshot**.
-- [ ] GIVEN eine offene Veranstaltung WHEN der Abrechner einen weiteren Teilnehmer hinzufügt
+- [ ] GIVEN eine offene Veranstaltung WHEN der Veranstalter einen weiteren Teilnehmer hinzufügt
       oder einen (noch ohne Erfassung) wieder entfernt THEN wird die Zeile ergänzt/entfernt.
 - [ ] GIVEN ein Teilnehmer mit bereits erfassten Positionen WHEN versucht wird, ihn zu
       entfernen THEN wird das verhindert oder erfordert eine **bewusste Bestätigung** (kein
       Datenverlust aus Versehen).
-- [ ] GIVEN eine offene Veranstaltung WHEN der **Abrechner** einen Walk-in (neuen Teilnehmer)
+- [ ] GIVEN eine offene Veranstaltung WHEN der **Veranstalter** einen Walk-in (neuen Teilnehmer)
       anlegt THEN wird dieser in die Stammdaten übernommen und erhält eine Zeile (F3/ADR-022).
 - [ ] GIVEN eine `abgeschlossene` Veranstaltung WHEN jemand sie bearbeiten will THEN ist sie
-      schreibgeschützt; ein **Abrechner** kann sie protokolliert wieder öffnen (F8), danach
+      schreibgeschützt; ein **Veranstalter** kann sie protokolliert wieder öffnen (F8), danach
       sind Änderungen erneut möglich.
 
 ## Akzeptanzkriterien – B) Stehende Theken-Selbstbedienung
 
-- [ ] GIVEN ein angemeldeter Verwalter/Abrechner WHEN er für eine Kasse eine stehende
+- [ ] GIVEN ein angemeldeter Verwalter/Veranstalter WHEN er für eine Kasse eine stehende
       Theken-Selbstbedienung einrichtet THEN existiert **genau ein** dauerhaft offener Vorgang
       vom Typ `theke` für diese Kasse (idempotent – kein zweiter für dieselbe Kasse).
 - [ ] GIVEN eine eingerichtete stehende Theke WHEN ein **nicht angemeldeter** Gast den festen
       Theken-Link/QR öffnet THEN sieht er die Selbstbedienung und kann seinen Namen aus den
-      **Stammdaten** wählen – ohne Login und ohne Abrechner-Rolle.
+      **Stammdaten** wählen – ohne Login und ohne Veranstalter-Rolle.
 - [ ] GIVEN ein Gast hat seinen Namen gewählt WHEN er Getränke/Kaffee erfasst (F5) THEN
       entsteht bzw. ergänzt sich seine Zeile in der stehenden Theke, sodass später abgerechnet
       werden kann.
-- [ ] GIVEN kein Abrechner ist anwesend WHEN ein Gast an der stehenden Theke erfasst THEN ist
+- [ ] GIVEN kein Veranstalter ist anwesend WHEN ein Gast an der stehenden Theke erfasst THEN ist
       das möglich, ohne dass jemand die Veranstaltung erst anlegen muss (die Theke steht bereit).
 - [ ] GIVEN eine stehende Theke ist einer Kasse zugeordnet WHEN dort (später) kassiert wird
       (F8) THEN wirken die Einnahmen auf **diese** Kasse.
-- [ ] GIVEN eine stehende Theke WHEN ein Abrechner die offenen Einträge später sichtet und
+- [ ] GIVEN eine stehende Theke WHEN ein Veranstalter die offenen Einträge später sichtet und
       abrechnet (F8) THEN bleibt die Theke danach bestehen und weiter offen (kein Abschluss
       durch Zeitablauf).
 
@@ -136,7 +136,7 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - [ ] Ungültiges/unbekanntes Theken-Token → neutraler Fehler, keine anderen Vorgänge
       preisgegeben (analog F7).
 - [ ] Gast ist **nicht** in den Stammdaten → im MVP keine Selbst-Anlage; unbekannte Gäste
-      ergänzt der Abrechner später als Walk-in (offene Frage siehe unten).
+      ergänzt der Veranstalter später als Walk-in (offene Frage siehe unten).
 
 ## Gesetzte Entscheidungen
 
@@ -147,7 +147,7 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - ~~Essenpreis gilt je Veranstaltung einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
   kommt aus dem Katalog).
 - **Kaffeepreis** ist der feste Katalogpreis (F2), nicht pro Termin abweichend (Backlog #59).
-- **Wiederöffnen:** eine abgeschlossene Veranstaltung kann ein **Abrechner** wieder öffnen (F8).
+- **Wiederöffnen:** eine abgeschlossene Veranstaltung kann ein **Veranstalter** wieder öffnen (F8).
 
 **Aus Requirements-Schärfung 2026-07-15 (dieser Task):**
 - **„Veranstaltung" ist der Primärbegriff**; **Datum ist Pflichtfeld** der
@@ -155,9 +155,9 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 - **Stehende Theken-Selbstbedienung** als zweiter Veranstaltungs-Typ (`theke`) für den
   spontanen Wochentag-Verzehr – dauerhaft offen, je Kasse einer, Erfassung ohne Login/Rolle
   über festen Theken-Zugang, nur Getränke + Kaffee, Namenswahl aus den Stammdaten.
-- **Spontaner Gast ist kein registrierter Nutzer** und trägt keine Abrechner-Rolle – er wählt
+- **Spontaner Gast ist kein registrierter Nutzer** und trägt keine Veranstalter-Rolle – er wählt
   seinen Namen aus den Stammdaten (konsistent mit F7: Selbstbedienung wählt nur aus der Liste;
-  Walk-in unbekannter Gäste bleibt beim Abrechner).
+  Walk-in unbekannter Gäste bleibt beim Veranstalter).
 - **Beide Typen teilen ein Datenmodell** (ein `veranstaltung_typ`-Enum, eine Tabelle, dieselbe
   Verzehr-Mechanik) – keine getrennte Struktur.
 - **Essen kommt ausschließlich aus dem Katalog** (neue Kategorie `essen`): feste Preise je
@@ -177,7 +177,7 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
       Missbrauchsbremse (Rate-Limit) sind höheres Risiko als der per-Termin-Link. →
       /security-review; erweitert F7/#54.
 - [ ] **Unbekannter Gast an der Theke:** Auswahl nur aus Stammdaten (MVP) vs. optionale
-      Freitext-Erfassung mit späterer Zuordnung durch den Abrechner. → /architecture.
+      Freitext-Erfassung mit späterer Zuordnung durch den Veranstalter. → /architecture.
 - [ ] **Kasse der stehenden Theke:** je Kasse eine Theke (bis zu zwei) – wird nur die
       tatsächlich genutzte eingerichtet? Welche Kasse zeigt der Theken-QR standardmäßig? →
       /architecture.

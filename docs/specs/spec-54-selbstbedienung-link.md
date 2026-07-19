@@ -5,14 +5,13 @@
 > **Zielbild (ADR-024, #120):** F7 baut auf der bereits freigegebenen öffentlichen Route
 > `app/theke/[token]` auf (login-frei, Seam im `proxy.ts`-Matcher) und teilt die Erfassungs-UI
 > route-neutral über `app/_verzehr/` mit F5. Der authentifizierte Bereich heißt **`app/veranstaltung`**
-> (vormals `app/abrechnung/veranstaltung`), die Owner-Rolle `abrechner` → **`veranstalter`**;
-> „Abrechner" in diesem Dokument meint diese Rolle. Siehe
-> [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
+> (vormals `app/abrechnung/veranstaltung`), die Owner-Rolle `abrechner` → **`veranstalter`**.
+> Siehe [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
 
 ## Kontext
 
 Damit Teilnehmer ihre Getränke selbst erfassen können (Punkt 3 des Ablaufs), brauchen
-sie Zugang zur Veranstaltung – **ohne** eigenes Konto. Der Abrechner teilt einen Veranstaltungs-Link bzw.
+sie Zugang zur Veranstaltung – **ohne** eigenes Konto. Der Veranstalter teilt einen Veranstaltungs-Link bzw.
 QR-Code. Wer ihn öffnet, wählt seinen Namen aus der Teilnehmerliste der Veranstaltung und
 erfasst wie in F5. Genutzt wird das hybrid: auf dem eigenen Handy und auf einem
 gemeinsamen Theken-Gerät.
@@ -31,12 +30,12 @@ gemeinsamen Theken-Gerät.
 
 **Nicht inbegriffen:**
 - Persönliche Anmeldung/Konten (bewusst nicht, siehe F1/Rahmen).
-- Kassieren über den Link (bleibt beim Abrechner, F8).
+- Kassieren über den Link (bleibt beim Veranstalter, F8).
 - PIN-Schutz des Links (wurde als Option verworfen; ggf. später).
 
 ## Akzeptanzkriterien
 
-- [ ] GIVEN eine offene Veranstaltung WHEN der Abrechner den Zugang teilt THEN erhält er einen
+- [ ] GIVEN eine offene Veranstaltung WHEN der Veranstalter den Zugang teilt THEN erhält er einen
       Link **und** einen QR-Code, die auf genau diese Veranstaltung zeigen.
 - [ ] GIVEN ein Teilnehmer öffnet den gültigen Link WHEN er seinen Namen aus der Liste
       wählt THEN kann er Positionen für **die ganze** Liste erfassen (volle Transparenz)
@@ -58,9 +57,9 @@ gemeinsamen Theken-Gerät.
 
 ## Gesetzte Entscheidungen (2026-07-11)
 
-- **Walk-in nur durch Abrechner:** Ein Selbstbedienungs-Nutzer kann **keinen** neuen
+- **Walk-in nur durch Veranstalter:** Ein Selbstbedienungs-Nutzer kann **keinen** neuen
   Teilnehmer anlegen; er wählt nur aus der bestehenden Liste der Veranstaltung. Neue Namen legt
-  der Abrechner an (F3/F4).
+  der Veranstalter an (F3/F4).
 
 ## Zusätzliche Akzeptanzkriterien
 
