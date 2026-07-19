@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Feature **F8** (Epic „Digitale Veranstaltungs-Abrechnung"). Der **Veranstalter** kassiert am
@@ -224,6 +224,15 @@ Drei **Hinweise** (kein Merge-Blocker, kein eigenes Issue angelegt):
 Coverage-Analyse verlassen (`auth.config.ts` war seit #48 bei 0 % Coverage). Dead-Code- und
 Guard-Clause-Findings (W2–W5) waren Instanzen bestehender Regeln, kein neuer Bedarf. Security-
 Review-Hinweise bereits als MVP-Trade-off in ADR-033 D3 / Backlog #57 dokumentiert, kein neues Issue.
+
+## PR-Shepherd (2026-07-20)
+
+PR-Shepherd 2026-07-20: Merge freigegeben – alle Gates grün. Review-Verdict manuell auf APPROVED
+gesetzt (siehe „Abschluss ohne Runde 3" oben, Mensch-bestätigt), Security PASSED, Refactoring
+abgeschlossen, Codify ausgeführt. Draft-PR #179 aus dem Draft geholt (`gh pr ready`), Branch via
+`gh pr update-branch` aktuell zu `main`. CI-Checks liefen beim Freigabe-Zeitpunkt noch (`pending`),
+kein roter Check vorhanden – Merge über `--auto` freigegeben, GitHub wartet server-seitig auf grüne
+Checks.
 
 ---
 Branch: `feature/55-kassieren-abschluss`
