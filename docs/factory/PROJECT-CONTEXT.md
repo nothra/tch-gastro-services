@@ -817,6 +817,31 @@ Gates gegen `scripts/checks/pre-push.sh`. Ein Gate, das nur in `pre-push.sh` ste
 Format, Routen-Drift), ist **kein** required CI-Check und darf nicht so genannt werden. Im Zweifel
 allgemein formulieren („grüne CI-Gates") statt eine falsche Einzelaufzählung zu riskieren.
 
+### `aria-modal="true"` ist ein Versprechen, kein Automatismus – Fokus-Trap explizit bauen + alle Branches testen (aus #134)
+
+Der Drawer in `AppNav.tsx` setzte `aria-modal="true"`, ohne dass zunächst ein tatsächliches
+Fokus-Containment existierte – Tab tabbte auf verdeckte Header-Bedienelemente hinter dem
+Overlay durch. `aria-modal` ist nur eine **Ankündigung** an assistive Technologie; WAI-ARIA
+verlangt, dass die Anwendung das Fokus-Trapping selbst implementiert (Review-Runde 1, Finding
+W1). Zusätzlich deckte die Coverage-Analyse in `/test` **danach** zwei ungetestete Branches
+in genau dieser neuen Logik auf (Shift+Tab direkt nach dem Öffnen, während der Fokus noch auf
+dem Drawer-Container selbst liegt; Tab, während der Fokus komplett aus dem Drawer entwichen
+ist) – beides reale Tastatur-/Screenreader-Szenarien, die beim ersten TDD-Durchlauf nicht
+mitgedacht wurden.
+
+**Regel:** Jede Komponente mit `aria-modal="true"` (Drawer, Dialog, Modal) braucht einen
+echten Fokus-Trap im `keydown`-Handler, keine reine ARIA-Annotation. Beim Implementieren
+**vor** dem ersten Test alle Tab-Branches enumerieren, nicht nur den Happy Path:
+1. Tab am letzten fokussierbaren Element → zurück zum ersten.
+2. Shift+Tab am ersten fokussierbaren Element → zum letzten.
+3. Shift+Tab, während der Fokus noch auf dem Container selbst liegt (Zustand direkt nach dem
+   Öffnen, bevor ein Kind fokussiert wurde).
+4. Tab/Shift+Tab, während der Fokus komplett aus dem Container entwichen ist (z. B.
+   Screenreader-Navigation auf ein verdecktes Element dahinter) → zurück ins Containment.
+Jeder Branch bekommt einen eigenen Test (analog zur Exhaustiveness-Guard-Regel in
+`testing-standards.md`) – sonst bleibt die Lücke bis zur Coverage-Analyse in `/test` unsichtbar,
+wie hier geschehen.
+
 ---
 
 ## Offene Architektur-Fragen
