@@ -24,14 +24,23 @@ Spec: `docs/specs/spec-170-logout-race-nicht-mutierende-methoden.md`
 
 ## Akzeptanzkriterien
 <!-- Quelle: docs/specs/spec-170-logout-race-nicht-mutierende-methoden.md -->
-- [ ] AC1 – GET: rotierendes Session-Set-Cookie wird aus der Proxy-Antwort entfernt.
-- [ ] AC2 – HEAD: Session-Set-Cookie wird entfernt (keine Resurrection).
-- [ ] AC3 – OPTIONS: Session-Set-Cookie wird entfernt (keine Resurrection).
-- [ ] AC4 – POST/PUT/PATCH/DELETE: Session-Set-Cookie (setzen/löschen) bleibt unangetastet.
-- [ ] AC5 – Erkennung rein methodenbasiert (keine `next-url`/`sec-fetch-dest`-Abhängigkeit mehr).
-- [ ] AC6 – E2E: `pnpm test:e2e:int e2e/auth.spec.ts -g "Abmelden" --repeat-each=24` → 0 Fehler.
-- [ ] AC7 – Stolperstein #164 in `docs/factory/PROJECT-CONTEXT.md` auf „nicht-mutierende
-      Methoden" korrigiert.
+- [x] AC1 – GET: rotierendes Session-Set-Cookie wird aus der Proxy-Antwort entfernt.
+      (`proxy.test.ts` should_stripSessionCookie_when_getRequest; Prädikat-Unit)
+- [x] AC2 – HEAD: Session-Set-Cookie wird entfernt (keine Resurrection).
+      (`proxy.test.ts` should_stripSessionCookie_when_headRequest; Prädikat-Unit)
+- [x] AC3 – OPTIONS: Session-Set-Cookie wird entfernt (keine Resurrection).
+      (`proxy.test.ts` should_stripSessionCookie_when_optionsRequest; Prädikat-Unit)
+- [x] AC4 – POST/PUT/PATCH/DELETE: Session-Set-Cookie (setzen/löschen) bleibt unangetastet.
+      (`proxy.test.ts` POST/DELETE keep; Prädikat-Units POST/PUT/PATCH/DELETE → false)
+- [x] AC5 – Erkennung rein methodenbasiert (keine `next-url`/`sec-fetch-dest`-Abhängigkeit mehr).
+      (Prädikat-Signatur nur `{ method }`; `next-url`/`sec-fetch-dest`-Logik ersatzlos entfernt;
+      `should_returnTrue_when_getWithoutAnySignals`; Header im Proxy-Test leer)
+- [~] AC6 – E2E: `pnpm test:e2e:int e2e/auth.spec.ts -g "Abmelden" --repeat-each=24` → 0 Fehler.
+      Nachtest: läuft gegen die INT-Deployment; INT trägt den Fix erst nach dem Merge (aktuell
+      noch #164 GET-only, weiterhin flaky). Verifikation nach dem INT-Deploy dieses Branches
+      (bzw. via `/post-merge-verify`). Lokal nicht aussagekräftig ausführbar.
+- [x] AC7 – Stolperstein #164 in `docs/factory/PROJECT-CONTEXT.md` auf „nicht-mutierende
+      Methoden" korrigiert (Korrektur-Absatz + Regel-Bullets, Verweis auf ADR-032).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -65,6 +74,23 @@ wöchentlich genutzte PWA akzeptabel (feste `maxAge`, Default 30 Tage) und eher 
    `next-url`/`sec-fetch-dest`-Erkennung. Verweis auf ADR-032.
 5. **Verifikation (AC6)**: `pnpm test:e2e:int e2e/auth.spec.ts -g "Abmelden" --repeat-each=24`
    → 0 Fehler (E2E gegen INT, gehört in die Implementierungs-/Test-Verifikation).
+
+### Implement-Notizen (2026-07-19)
+- **Proxy-Kompositionstest liegt in `proxy.test.ts`** (nicht neu in `prefetch-session.test.ts`):
+  Dort läuft der echte `proxy`-Wrapper gegen eine gemockte NextAuth-Middleware, die realen Helfer
+  laufen mit – die authentischere AC1–AC4-Abdeckung auf Proxy-Ebene. Ein separater Kompositions-
+  Block im Unit-File wäre Duplikat gewesen (clean-code, keine Duplikation).
+- **Verhaltensänderung ggü. #164:** `proxy.test.ts` prüfte zuvor
+  `should_keepSessionCookie_when_documentGetRequest` (Dokument-GET behielt das Cookie). Mit der
+  method-weiten Regel strippt **jeder** GET (auch Dokumentaufrufe) – der Test wurde durch
+  `should_stripSessionCookie_when_getRequest` (GET ohne Signale, AC1+AC5) ersetzt. Das spiegelt
+  den bewussten Trade-off (Rolling-Session nur noch bei Mutationen, ADR-032).
+- **`stripSessionRotation` unverändert** (Regex-Anker, CSRF-/callback-url-Schutz, chunked Cookies) –
+  bestehende Tests bleiben grün (Selektivität nicht regrediert).
+
+Blocker [2026-07-19]: AC6 (E2E `--repeat-each=24` gegen INT) offen – INT trägt den Fix erst nach
+dem Merge, lokal nicht aussagekräftig. Mensch/Nachtest: nach INT-Deploy dieses Branches ausführen
+(`pnpm test:e2e:int e2e/auth.spec.ts -g "Abmelden" --repeat-each=24`) bzw. `/post-merge-verify`.
 
 ### Scope-/Branch-Check (Stolperstein #120)
 Der Branch `fix/170-…` bündelt Code (`lib/`, `proxy.ts`, Tests) **und** eine ADR – für einen

@@ -1,38 +1,48 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import { isRscRequest, stripSessionRotation } from "./prefetch-session";
+import { shouldSuppressSessionRotation, stripSessionRotation } from "./prefetch-session";
 
-// #164: Auf RSC-/Prefetch-Requests darf die Middleware-Antwort das rotierende Auth.js-Session-
-// Cookie nicht mit-erneuern – sonst belebt eine nach dem signOut eintreffende Prefetch-Antwort
-// die Session wieder (Race, flaky Logout). Diese Helfer kapseln die Erkennung + das Strippen.
+// #170 (ADR-032): Auf allen nicht-mutierenden Methoden (alles außer POST/PUT/PATCH/DELETE) darf
+// die Middleware-Antwort das rotierende Auth.js-Session-Cookie nicht mit-erneuern – sonst belebt
+// eine nach dem signOut eintreffende Antwort (GET/HEAD/OPTIONS-Prefetch/Preflight) die Session
+// wieder (Race, flaky Logout). Die Erkennung hängt allein an der Methode – keine next-url/
+// sec-fetch-dest-Signale mehr (#164 war GET-only + fragile Header-Heuristik).
 
-describe("isRscRequest", () => {
-  it("should_returnTrue_when_nextUrlHeaderPresent", () => {
-    // Next hängt bei RSC-/Prefetch-Navigationen den internen next-url-Header an.
-    expect(isRscRequest({ method: "GET", headers: new Headers({ "next-url": "/" }) })).toBe(true);
+describe("shouldSuppressSessionRotation", () => {
+  it("should_returnTrue_when_getRequest", () => {
+    expect(shouldSuppressSessionRotation({ method: "GET" })).toBe(true);
   });
 
-  it("should_returnTrue_when_secFetchDestNotDocument", () => {
-    expect(
-      isRscRequest({ method: "GET", headers: new Headers({ "sec-fetch-dest": "empty" }) }),
-    ).toBe(true);
+  it("should_returnTrue_when_headRequest", () => {
+    // HEAD durchläuft den Proxy und rotiert sonst das Cookie → muss unterdrückt werden.
+    expect(shouldSuppressSessionRotation({ method: "HEAD" })).toBe(true);
   });
 
-  it("should_returnFalse_when_documentNavigation", () => {
-    // Echter Dokumentaufruf → Session darf rotieren (Rolling Session bleibt erhalten).
-    expect(
-      isRscRequest({ method: "GET", headers: new Headers({ "sec-fetch-dest": "document" }) }),
-    ).toBe(false);
+  it("should_returnTrue_when_optionsRequest", () => {
+    // OPTIONS (Preflight/Probe) war die in #170 beobachtete Resurrection-Quelle.
+    expect(shouldSuppressSessionRotation({ method: "OPTIONS" })).toBe(true);
   });
 
-  it("should_returnFalse_when_getWithoutSignals", () => {
-    // Fail-safe: fehlen die Signale (z. B. alter Client), NICHT strippen.
-    expect(isRscRequest({ method: "GET", headers: new Headers() })).toBe(false);
+  it("should_returnTrue_when_getWithoutAnySignals", () => {
+    // AC5: rein methodenbasiert – ohne next-url/sec-fetch-dest wird dennoch unterdrückt.
+    expect(shouldSuppressSessionRotation({ method: "GET" })).toBe(true);
   });
 
   it("should_returnFalse_when_postRequest", () => {
     // Login/Logout laufen als POST – ihr Set-Cookie (setzen/löschen) darf NIE gestrippt werden.
-    expect(isRscRequest({ method: "POST", headers: new Headers({ "next-url": "/" }) })).toBe(false);
+    expect(shouldSuppressSessionRotation({ method: "POST" })).toBe(false);
+  });
+
+  it("should_returnFalse_when_putRequest", () => {
+    expect(shouldSuppressSessionRotation({ method: "PUT" })).toBe(false);
+  });
+
+  it("should_returnFalse_when_patchRequest", () => {
+    expect(shouldSuppressSessionRotation({ method: "PATCH" })).toBe(false);
+  });
+
+  it("should_returnFalse_when_deleteRequest", () => {
+    expect(shouldSuppressSessionRotation({ method: "DELETE" })).toBe(false);
   });
 });
 
