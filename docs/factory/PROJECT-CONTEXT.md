@@ -243,6 +243,37 @@ gh issue edit <id> --add-label enhancement --remove-label documentation
 Der PR-Body und die Task-Datei müssen den neuen Branch-Namen spiegeln. Kein Merge mit
 irreführendem Branch-Typ – das verzerrt Metriken und die `git-workflow.md`-Konvention.
 
+**Ergänzung (aus #155): Ist der Draft-PR schon offen, schließt *jede* Rename-Variante ihn.**
+`start-work.sh` legt den Draft-PR sofort an – bei einer Branch-Typ-Korrektur ist er also meist
+bereits offen. Sowohl das obige `git push origin --delete <old>` **als auch** die GitHub-
+Branch-Rename-API (`gh api -X POST repos/<owner>/<repo>/branches/<old>/rename -f new_name=<new>`)
+**retargeten den offenen PR nicht**, sondern schließen ihn (beobachtet in #155: Draft-PR #156
+wurde geschlossen, sein Head zeigte weiter auf `<old>`; ein `gh pr reopen` scheitert, weil das
+Head-Ref weg ist). **Regel:** Bei bereits offenem PR die Umbenennung als **PR-Ersatz** einplanen:
+(1) Remote-Branch umbenennen bzw. neu pushen, (2) **neuen** PR aus `<new>` erstellen – Draft +
+`Closes #<id>`, (3) auf dem alten PR einen Breadcrumb-Kommentar auf den neuen setzen,
+(4) lokalen Worktree-Branch nachziehen (`git fetch -p && git branch -m <old> <new> && git branch
+-u origin/<new>`), (5) Task-Datei + neuen PR-Body auf den neuen Branch-Namen ziehen. Nicht darauf
+verlassen, dass ein Rename den PR erhält.
+
+### Branch-Protection required Checks: nur `pull_request`-getriggerte Jobs (aus #155)
+
+Beim Einrichten des `main`-Rulesets (bzw. Classic Branch Protection) darf ein CI-Job, der **nur
+auf `push`→`main`** läuft (hier `gate`/Deploy-Gate und `post-merge-verify`, per `on:`/`if:` auf
+den main-Push beschränkt), **nicht** als *required status check* gesetzt werden. Auf einem PR
+erzeugt ein solcher Job **keinen** Check-Run (oder nur `skipped`) → der required Check bleibt
+dauerhaft auf „Expected – Waiting for status" und **blockiert den Merge für immer**. Tückisch:
+der Job **erscheint** in der Check-Run-Liste des PR-Head-Commits als `skipped` (bei `if:`-Skip),
+was fälschlich „läuft ja" suggeriert; ein Job, der per Event gar nicht getriggert wird (`gate`),
+fehlt komplett.
+
+**Regel:** Als required nur Jobs setzen, die auf `pull_request`-Events **bis zum Ende
+durchlaufen** (hier: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`).
+Vor dem Scharfschalten gegen **echte PR-Check-Runs** verifizieren, nicht gegen die Job-Namen im
+Workflow-YAML: `gh api repos/<owner>/<repo>/commits/<pr-head-sha>/check-runs --jq '.check_runs[].name'`.
+Post-Merge-/Deploy-Gates gehören in `/post-merge-verify` bzw. das Deploy-Gate, nicht in die
+required-Checks-Liste. Kanonische Entscheidung: [ADR-029](../adr/029-branch-protection-main-ruleset.md).
+
 ### NextAuth v5: Custom-Session-/JWT-Claims typisieren (aus #48)
 
 `declare module "next-auth/jwt"` **greift nicht** – `next-auth/jwt` re-exportiert nur (`export *`);
