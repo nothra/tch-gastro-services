@@ -5,8 +5,8 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Refactoring abgeschlossen (übersprungen – docs-only, kein Code-Smell)
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
