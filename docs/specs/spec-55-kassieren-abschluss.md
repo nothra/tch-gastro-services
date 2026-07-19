@@ -66,11 +66,11 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - [ ] GIVEN ein Teilnehmer zahlt mehr WHEN `Erhalten > Verzehr-Gesamt` erfasst wird THEN
       ist `Spende = Erhalten − Verzehr-Gesamt` und wird als Spende ausgewiesen; Zeile
       **bezahlt**.
-- [ ] GIVEN ein Teilnehmer zahlt weniger als den Verzehr-Gesamt (`Erhalten < Verzehr-
-      Gesamt`) WHEN das erfasst wird THEN gilt die Zeile **nicht** als bezahlt; sie
+- [ ] GIVEN ein Teilnehmer zahlt weniger als den Verzehr-Gesamt (`Verzehr-Gesamt >
+      Erhalten`) WHEN das erfasst wird THEN gilt die Zeile **nicht** als bezahlt; sie
       bleibt/wird **offen** (kein Restbetrag gespeichert – MVP).
-- [ ] GIVEN eine Veranstaltung mit **mindestens einer offenen Zeile** (`Erhalten <
-      Verzehr-Gesamt`) WHEN der Veranstalter sie abschließen will THEN wird der Abschluss
+- [ ] GIVEN eine Veranstaltung mit **mindestens einer offenen Zeile** (`Verzehr-Gesamt >
+      Erhalten`) WHEN der Veranstalter sie abschließen will THEN wird der Abschluss
       **abgelehnt** (serverseitig, fail-closed) mit Hinweis, welche/wie viele Zeilen noch
       offen sind; die Veranstaltung bleibt `offen`.
 - [ ] GIVEN eine Veranstaltung, in der **jede** Zeile bezahlt ist (`Erhalten ≥
@@ -95,7 +95,7 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 ## Fehlerszenarien
 
 - [ ] `Erhalten` kein gültiger EUR-Betrag ≥ 0 → serverseitig abgelehnt.
-- [ ] Abschluss bei mindestens einer offenen Zeile (`Erhalten < Verzehr-Gesamt`) →
+- [ ] Abschluss bei mindestens einer offenen Zeile (`Verzehr-Gesamt > Erhalten`) →
       serverseitig **abgelehnt** (fail-closed), mit Hinweis welche/wie viele Zeilen offen sind;
       Status bleibt `offen`.
 - [ ] Wiederöffnen durch eine Person ohne Veranstalter-Rolle → serverseitig abgelehnt (F1).

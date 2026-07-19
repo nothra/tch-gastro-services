@@ -30,9 +30,9 @@ Kanonische Quelle der Akzeptanzkriterien: [`docs/specs/spec-55-kassieren-abschlu
 - [ ] Verzehr-Gesamt je Zeile = Σ Getränke + Σ Sonstige (2 Nachkommastellen, **ohne** Auslagen-Abzug).
 - [ ] `Erhalten = Verzehr-Gesamt` → `Spende = 0`, Zeile **bezahlt**.
 - [ ] `Erhalten > Verzehr-Gesamt` → `Spende = Erhalten − Verzehr-Gesamt` (als Spende ausgewiesen), Zeile **bezahlt**.
-- [ ] `Erhalten < Verzehr-Gesamt` → Zeile **nicht** bezahlt, bleibt/wird **offen** (kein Restbetrag gespeichert).
+- [ ] `Verzehr-Gesamt > Erhalten` → Zeile **nicht** bezahlt, bleibt/wird **offen** (kein Restbetrag gespeichert).
 - [ ] Zeile ohne Verzehr (`Verzehr-Gesamt = 0`) und ohne `Erhalten` → **bezahlt** (nichts zu kassieren), zählt nicht als offen.
-- [ ] Abschluss bei mindestens einer offenen Zeile (`Erhalten < Verzehr-Gesamt`) → **abgelehnt** (serverseitig, fail-closed) mit Hinweis welche/wie viele Zeilen offen sind; Status bleibt `offen`.
+- [ ] Abschluss bei mindestens einer offenen Zeile (`Verzehr-Gesamt > Erhalten`) → **abgelehnt** (serverseitig, fail-closed) mit Hinweis welche/wie viele Zeilen offen sind; Status bleibt `offen`.
 - [ ] Abschluss, wenn **jede** Zeile bezahlt ist (inkl. `Verzehr-Gesamt = 0`) → Status `abgeschlossen`, schreibgeschützt, Tagessummen fixiert.
 - [ ] Abgeschlossene Veranstaltung wieder öffnen → Korrekturen (Verzehr/Erhalten/Auslagen) möglich, Wiederöffnung protokolliert, nach erneutem Abschluss Summen neu fixiert.
 - [ ] Tagessummen entsprechen der Summe der Zeilenwerte (Getränke, Sonstige, Verzehr-Gesamt, Erhalten, Spende).
