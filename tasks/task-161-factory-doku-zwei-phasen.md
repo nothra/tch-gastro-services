@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -70,6 +70,15 @@ _Keine._
 - **Regressions-Nachweis:** `pnpm test` grün – 431 passed, 52 skipped (52 Test-Dateien),
   keine Regression durch die Doku-Änderung.
 - Coverage-Schwelle (80 % / 100 % neuer Code) n/a: kein neuer Code.
+
+## Refactoring (/refactor)
+
+- Clean-Code-Pass über die Prosa (kein Verhalten vorhanden – reine Doku). Terminologie über alle
+  drei Dateien konsistent, keine Magic-Values/Naming-Themen (n/a für Prosa).
+- Eine Duplikation entfernt: das Parenthetical „(was gebaut wird, welche Architektur)" stand in der
+  Tabellenzeile **und** direkt darunter im „Warum das zählt"-Block der Zwei-Phasen-Sektion – im
+  Block gestrichen (steht unverändert in der Tabelle).
+- `pnpm format:check` grün; Suite unverändert grün (kein Code berührt).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

@@ -56,8 +56,8 @@ Menschen**:
 
 > **Warum das zählt:** Der größte Qualitäts-Hebel liegt in Phase 1 – je schärfer Spec und
 > Akzeptanzkriterien, desto verlässlicher läuft Phase 2. Deshalb bleibt Phase 1 **bewusst
-> Handarbeit**: menschliches Urteil (was gebaut wird, welche Architektur) ist nicht automatisierbar.
-> Phase 2 dagegen ist Fleißarbeit, die die Automatik übernimmt.
+> Handarbeit**: menschliches Urteil ist nicht automatisierbar. Phase 2 dagegen ist Fleißarbeit,
+> die die Automatik übernimmt.
 >
 > **Automatisiert vs. manuell ist eine Frage von Phase 2, nicht von Phase 1.** Die beiden Wege in
 > diesem Dokument unterscheiden sich **nur** darin, wie Phase 2 abläuft – ein Kommando
