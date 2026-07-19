@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -191,6 +191,20 @@ Kein neues Verhalten – drei der Review-Runde-3-Nitpicks behoben (interne Struk
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Keine neuen projektweiten Regeln nötig – die Task war reiner CI/Shell/YAML-Code, alle
+angetroffenen Fallstricke (Actions-Script-Injection-Muster aus #66, fail-closed-Testlücken)
+waren bereits durch bestehende Guidelines/Codify-Einträge abgedeckt.
+
+Zwei Out-of-Scope-Follow-ups als eigenständige Issues angelegt (nicht Teil dieses PRs):
+- **#177** – Die zwei ad-hoc Actions-Injection-Detektoren in `run-tests.sh`
+  (`secrets_in_run` nur für `deploy-gate.yml`, `userinput_in_run` nur für
+  `deploy-freeze-release.yml`) zu einem generischen Gate über alle
+  `.github/workflows/*.yml` zusammenführen.
+- **#178** – Den `refs/factory/*`-Push mit `GITHUB_TOKEN` post-merge live verifizieren
+  (siehe Blocker oben) – kann erst nach dem Merge auf `main` geprüft werden (Deploy-Gate
+  läuft nur auf `push:main`), daher als eigenes Tracking-Issue statt nur als Notiz in
+  dieser Task-Datei, die nach dem Merge nicht mehr direkt änderbar ist.
 
 ---
 Branch: `feature/173-deploy-freeze-bei-rotem-gate`
