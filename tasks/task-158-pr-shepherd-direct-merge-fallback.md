@@ -23,11 +23,11 @@ Umsetzung über Patch-Workflow (`.claude/**` hard-denied, #88/#94).
 Spec: `docs/specs/spec-158-pr-shepherd-direct-merge-fallback.md`
 
 ## Akzeptanzkriterien
-<!-- Von /requirements befüllt; Detail siehe Spec. [~] = als Patch geliefert, Mensch wendet an -->
-- [~] AC1 – Schritt 6 liest den PR-Merge-Zustand (`gh pr view --json mergeStateStatus`) — in `patch-158.diff`
-- [~] AC2 – bereits mergebar (`CLEAN`) → direkter `gh pr merge --squash` (ohne `--auto`) — in `patch-158.diff`
-- [~] AC3 – Checks laufen noch (≠ `CLEAN`) → `gh pr merge --auto --squash` wie bisher — in `patch-158.diff`
-- [~] AC4 – Reihenfolge (#114): Abschlussnotiz via `factory-commit.sh` VOR beiden Merge-Aufrufen — in `patch-158.diff`
+<!-- Von /requirements befüllt; Detail siehe Spec. Patch appliziert+committet (cce17d1). -->
+- [x] AC1 – Schritt 6 liest den PR-Merge-Zustand (`gh pr view --json mergeStateStatus`)
+- [x] AC2 – bereits mergebar (`CLEAN`) → direkter `gh pr merge --squash` (ohne `--auto`)
+- [x] AC3 – Checks laufen noch (≠ `CLEAN`) → `gh pr merge --auto --squash` wie bisher
+- [x] AC4 – Reihenfolge (#114): Abschlussnotiz via `factory-commit.sh` VOR beiden Merge-Aufrufen
 - [x] AC5 – Konsistenz-Test in `run-tests.sh` (mergeStateStatus + Direct-Merge, Positiv+Negativ #94 belegt)
 - [x] AC6 – Stolperstein `allow_auto_merge` in `PROJECT-CONTEXT.md` dokumentiert
 
@@ -39,11 +39,10 @@ Spec: `docs/specs/spec-158-pr-shepherd-direct-merge-fallback.md`
 ## Blocker
 Blocker [2026-07-19]: `.claude/commands/pr-shepherd.md` ist für den Agenten hard-denied (#88) –
 AC1–AC4 als `tasks/patch-158.diff` geliefert (programmatisch via `difflib` erzeugt, `git apply
---check` verifiziert, gegen Temp-Kopie Positiv+Negativ belegt). **Mensch muss:**
-`git apply tasks/patch-158.diff` im Worktree, dann via `bash scripts/factory-commit.sh
-"feat: pr-shepherd direct-merge fallback (task-158)"` committen+pushen. Danach werden die
-3 aktuell roten `#158`-Self-Tests grün. Anschließend hier: `[~]`→`[x]`, Blocker als erledigt
-markieren, stale `tasks/patch-158.diff` entfernen (#145).
+--check` verifiziert, gegen Temp-Kopie Positiv+Negativ belegt).
+**Erledigt [2026-07-19]:** Mensch hat den Patch appliziert und committet (`cce17d1`). Die 3
+`#158`-Self-Tests sind grün (`run-tests.sh`: 303 grün / 0 rot). Checkboxen auf `[x]` gesetzt,
+stale `tasks/patch-158.diff` entfernt (#145).
 
 ## Technische Notizen
 **ADR:** [ADR-030](../docs/adr/030-pr-shepherd-direct-merge-fallback.md) – Accepted.
