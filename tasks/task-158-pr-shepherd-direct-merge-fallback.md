@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden (APPROVED, `tasks/review-158.md`)
 - [x] Tests vollständig (`run-tests.sh`: 304 grün / 0 rot)
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden (PASSED, `tasks/security-158.md`)
 - [x] Refactoring abgeschlossen (line_before-Helper, N4)
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
