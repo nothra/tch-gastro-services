@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -176,6 +176,12 @@ brauchte keine neue Regel – bestehende #51-Regel wurde im Rework korrekt angew
 Security-Review-Notiz zu `PublicHeader.contextLabel` (XSS-Vorsorge für #54) wurde als
 Breadcrumb-Kommentar auf Issue #54 hinterlassen statt kodifiziert (Folge-Task-spezifisch,
 kein wiederkehrendes Muster).
+
+**PR-Shepherd [2026-07-19]:** Merge freigegeben – alle Gates grün (CodeQL, Vercel-Preview,
+factory-self-test, issue-sync, lint, pr-closes-issue, test alle `pass`), `mergeStateStatus:
+CLEAN`, keine Approval-Pflicht (0-Approvals-Ruleset). Draft-PR #162 via `gh pr ready` aus dem
+Draft geholt. Keine offenen Review-Kommentare, kein Rebase nötig (Branch bereits aktuell zu
+main).
 
 ---
 Branch: `feature/134-navigationsmenue-rbac-pwa`
