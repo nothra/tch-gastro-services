@@ -63,12 +63,45 @@ gefiltert; die eigentliche Durchsetzung bleibt in den Routen/Server Actions.
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
+**ADR:** [docs/adr/031-navigationsmenue-architektur.md](../docs/adr/031-navigationsmenue-architektur.md)
+
+**Entscheidungen:**
+- **UI-Basis: reines Tailwind + eigene Primitive** – kein shadcn/ui (Over-Engineering für eine
+  Komponente; kollidiert mit Tailwind-v4-CSS-first + `prefers-color-scheme`). Konsistent zu
+  `AppHeader`/`StageBanner`.
+- **Mobil: Off-Canvas-Drawer** über Hamburger im `AppHeader`; Desktop (`md:`+) horizontale
+  Inline-Nav. Keine zweite Kopfzeile / kein Bottom-Nav.
+- **Kanonische Menü-Definition** in einem puren Modul; Kopfzeile + Dashboard leiten daraus ab.
+
+**Umsetzung (Implementierungs-Hinweise für `/implement`):**
+- Neues Modul **`lib/navigation.ts`** (pur, framework-frei, analog `lib/authz.ts`):
+  - `type NavItem = { label: string; href: string; requiredRole: UserRole }`
+  - Liste: Veranstaltungen→`/veranstaltung` (`veranstalter`), Katalog→`/verwaltung/katalog`
+    (`verwalter`), Teilnehmer→`/verwaltung/teilnehmer` (`verwalter`).
+  - Reine Funktion `visibleNavItems(roles)` auf Basis `hasRole` (ADR-016).
+  - „Abmelden" ist **keine** `NavItem` (Aktion) → separat im Header via `signOutAction`.
+- **`AppHeader`** (Server Component) erweitern, nicht ersetzen: `auth()` lesen,
+  `visibleNavItems(session.user.roles)` berechnen, Desktop-Inline-Links (SSR `<a>`, ohne JS
+  nutzbar) + „Abmelden" (Form). Gefilterte Items an einen **Client-Teil** für Drawer
+  (Toggle/Escape/Fokus) und aktive Markierung (`usePathname()` → `aria-current="page"`) geben.
+  Ohne Session weiterhin `return null` (`/login` bleibt sauber).
+- **`app/page.tsx`** → Dashboard-Hub (Server Component): dieselbe `visibleNavItems(roles)`,
+  Bereiche als Kacheln (≥ 44×44 px). Kein neuer Routen-Eintrag → `docs/routes.md` unverändert.
+- Neue **`app/components/PublicHeader.tsx`** (Anonym-Leiste): Props `{ contextLabel?: string }`,
+  Kontextname + dezenter „Anmelden"-Link, kein geschützter Link. **Nicht** global gemountet
+  (opt-in; #54 hängt sie auf `theke/[token]` ein).
+- **PWA:** Touch-Ziele `min-h-[44px]`/`min-w-[44px]`; Safe-Area via `env(safe-area-inset-*)`.
+  **`app/layout.tsx` `viewport`-Export um `viewportFit: "cover"` ergänzen** (sonst
+  safe-area-inset = 0 auf iOS). Dark Mode über bestehende `dark:`-Utilities (keine Config-Änderung).
+- **Keine** neuen Laufzeit-Abhängigkeiten; **kein** Umbau bestehender Routen-/Rollen-Guards.
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-Für `/architecture` (siehe Spec):
-- [ ] Navigationsmuster mobil: Off-Canvas-Drawer vs. Bottom-Nav/Bottom-Sheet (ADR).
-- [ ] UI-Baustein-Basis: shadcn/ui einführen (fehlt noch im Repo) vs. reines Tailwind (ggf. ADR).
-- [ ] Schnittstellenform der Anonym-Orientierungsleiste (Props, opt-in statt global gemountet).
+Durch [ADR-031](../docs/adr/031-navigationsmenue-architektur.md) entschieden:
+- [x] Navigationsmuster mobil → **Off-Canvas-Drawer** (kein Bottom-Nav).
+- [x] UI-Baustein-Basis → **reines Tailwind + eigene Primitive** (kein shadcn/ui).
+- [x] Schnittstellenform der Anonym-Leiste → **`PublicHeader`-Komponente**, Props
+      `{ contextLabel? }`, opt-in (nicht global gemountet).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
