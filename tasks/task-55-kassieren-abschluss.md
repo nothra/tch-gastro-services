@@ -1,9 +1,9 @@
 # Task 55: kassieren-abschluss
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -131,6 +131,38 @@ Findings – alle behoben (2026-07-20):
 
 Nitpicks (optional) bewusst nicht adressiert, um den Rework-Diff fokussiert zu halten.
 Gates nach Rework grün: `pre-push.sh` (Tests 487 passed, Typecheck, Format, Routen-Drift) + Lint.
+
+**Review-Runde 2** (`tasks/review-55.md`): Backend/Logik und Architektur/Patterns **APPROVED**;
+Code-Qualität fand ein neues, in-Scope Doku-Drift-Finding – ADR-033 D6 beschrieb die in Runde 1
+entfernten `setStatus`/`logEreignis` noch als „bestehend". Behoben (2026-07-20): beide Sätze in
+ADR-033 auf die Ist-Architektur gezogen (kein roher `setStatus`; Ereignis-Insert läuft inline in
+der atomaren Abschluss-/Wiederöffnungs-Klammer).
+
+## Test-Vervollständigung (`/test`, 2026-07-20)
+
+Coverage-Analyse (`pnpm test:coverage`) gegen den Task-55-Diff (`git diff origin/main...HEAD`)
+zeigte drei ungetestete Branches in **neuem** F8-Code (Rest-Lücken sind entweder DB-Integrations-
+tests, die in dieser Sandbox mangels Postgres skippen, oder unverändertes Fremd-Feature-Coding
+außerhalb des Diffs):
+
+- **`auth.config.ts` (D7, `session.user.id`) komplett ungetestet** (0 % – nie ein eigener Test seit
+  Einführung des Callbacks). Neu: `auth.config.test.ts` – deckt `authorized`/`jwt`/`session` inkl.
+  des `token.sub ?? ""`-Fallbacks direkt als reine Funktionen ab (10 Tests, kein next-auth-Mock nötig).
+- **`app/veranstaltung/[id]/kassieren/page.tsx`**: `ereignis.akteurName ?? "—"`-Fallback (Protokoll-
+  Anzeige bei FK `onDelete set null`) war ungetestet. Neu:
+  `should_showFallbackDash_when_akteurNameMissing`.
+- **`app/veranstaltung/actions.ts`**: zwei `?? ""`-Fallback-Branches auf fehlende (nicht nur leere)
+  Formularfelder ungetestet – `kassiereZeileAction` (`erhalten`-Feld komplett fehlend) und
+  `setStatusAction` (`status`-Feld komplett fehlend); außerdem der `session.user.id || null`- und
+  `session.user.name ?? null`-Fallback im Akteur-Snapshot (leere/fehlende Session-Felder). Neu:
+  `should_resetErhaltenToNull_when_amountFieldMissing`,
+  `should_rejectInvalidStatus_when_statusFieldMissing`,
+  `should_normalizeEmptyActorIdAndMissingName_when_sessionUserIncomplete`.
+
+Gates danach grün: `pre-push.sh` (501 Tests, Typecheck, Format, Routen-Drift) + `pre-commit.sh`
+(Lint; eine vorbestehende, unveränderte Warnung in `db/veranstaltung.test.ts` – außerhalb des
+Task-55-Diffs, blockiert nicht). Coverage F8-relevanter Nicht-DB-Dateien: 100 % (Stmts/Branch/Funcs/
+Lines) bis auf zwei Fremd-Feature-Branches in `actions.ts` (F1/F7, außerhalb #55).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

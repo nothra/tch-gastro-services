@@ -426,6 +426,22 @@ describe("setStatusAction", () => {
     });
   });
 
+  it("should_normalizeEmptyActorIdAndMissingName_when_sessionUserIncomplete", async () => {
+    // `session.user.id || null` und `session.user.name ?? null` (ADR-033 D4/D7): ein leerer
+    // String bzw. fehlender Name (theoretisch nicht authentifiziert, aber FK ist
+    // nullable/onDelete set null) werden zu `null` normalisiert, nicht als leerer
+    // String/`undefined` an den Protokoll-Snapshot übergeben.
+    authMock.mockResolvedValue({
+      user: { id: "", roles: ["veranstalter"] },
+      expires: "2099-01-01T00:00:00.000Z",
+    } as unknown as Session);
+
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+
+    expect(result).toEqual({ ok: true });
+    expect(abschliessenMock).toHaveBeenCalledWith("v1", { userId: null, name: null });
+  });
+
   it("should_rejectClose_when_atLeastOneLineOpen", async () => {
     // Eine Zeile mit Verzehr 250 (1× Cola) und ohne Erhalten → offen.
     listZeilenMock.mockResolvedValue([{ ...zeile, erhaltenCents: null }]);
@@ -467,6 +483,14 @@ describe("setStatusAction", () => {
 
   it("should_rejectInvalidStatus_when_notInEnum", async () => {
     const result = await setStatusAction(undefined, form({ id: "v1", status: "erledigt" }));
+    expect(result.error).toBe("Ungültiger Status.");
+    expect(abschliessenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectInvalidStatus_when_statusFieldMissing", async () => {
+    // formData.get("status") liefert null, wenn das Feld komplett fehlt (nicht nur ein
+    // ungültiger Wert) – eigener Branch (`?? ""`-Fallback) neben dem Enum-Test oben.
+    const result = await setStatusAction(undefined, form({ id: "v1" }));
     expect(result.error).toBe("Ungültiger Status.");
     expect(abschliessenMock).not.toHaveBeenCalled();
   });
@@ -536,6 +560,14 @@ describe("kassiereZeileAction", () => {
 
   it("should_resetErhaltenToNull_when_amountEmpty", async () => {
     const result = await bound({ zeileId: "z1", erhalten: "" });
+    expect(result).toEqual({ ok: true });
+    expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", null);
+  });
+
+  it("should_resetErhaltenToNull_when_amountFieldMissing", async () => {
+    // formData.get("erhalten") liefert null, wenn das Feld komplett fehlt (nicht nur leer) –
+    // eigener Branch (`?? ""`-Fallback) neben dem Leerstring-Fall oben.
+    const result = await bound({ zeileId: "z1" });
     expect(result).toEqual({ ok: true });
     expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", null);
   });

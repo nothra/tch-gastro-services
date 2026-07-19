@@ -261,6 +261,19 @@ describe("KassierenPage", () => {
     expect(screen.getByText(/14\.07\.2026, 20:00/)).toBeInTheDocument();
   });
 
+  it("should_showFallbackDash_when_akteurNameMissing", async () => {
+    arrangeHappyPath();
+    listEreignisseMock.mockResolvedValue([{ ...ereignisse[0], akteurName: null }]);
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    expect(
+      screen.getByText(
+        (_, element) => element?.textContent === "· —" && element.tagName === "SPAN",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("should_showEmptyProtokoll_when_noEreignisse", async () => {
     arrangeHappyPath();
     listEreignisseMock.mockResolvedValue([]);

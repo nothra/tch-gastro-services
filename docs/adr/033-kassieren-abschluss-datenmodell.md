@@ -174,11 +174,13 @@ unit-testbar ohne DB. **Single source** für **Anzeige und Abschluss-Gate** (D3)
     automatisch mitgelesen (neue Spalte, kein neuer Reader).
   - `abschliessenVeranstaltung(veranstaltungId, akteur)` / `wiedereroeffnenVeranstaltung(veranstaltungId, akteur)`
     – transaktional (D3): Preis-Snapshot bzw. `NULL`-Reset auf `verzehr_position` **dieser** Veranstaltung
-    (korrelierter UPDATE über die Zeilen), guarded `status`-UPDATE, Ereignis-Insert. `setStatus`
-    (roh) bleibt für die Theke/Sonderfälle bestehen.
+    (korrelierter UPDATE über die Zeilen), guarded `status`-UPDATE, Ereignis-Insert inline in derselben
+    atomaren Klammer. Kein roher `setStatus` – die beiden Funktionen sind der einzige Weg, den Status
+    zu ändern (Review-Runde-1-Fix, Codify: YAGNI).
   - Preis-Auflösung in `db/verzehr.ts` `listPositionen` auf `COALESCE(einzelpreis_cents, price_cents)`.
-- **Ereignis-Log** in eigenem, kleinem Modul `db/veranstaltung-ereignis.ts`
-  (`logEreignis(...)`, `listEreignisse(veranstaltungId)`).
+- **Ereignis-Log** in eigenem, kleinem Modul `db/veranstaltung-ereignis.ts` (`listEreignisse(veranstaltungId)`);
+  der Insert selbst läuft inline in `runAtomic(...)` der Abschluss-/Wiederöffnungs-Transaktion (D3/D4),
+  nicht über eine separate `logEreignis`-Funktion (Review-Runde-1-Fix, Codify: YAGNI).
 - **Actions** (`app/veranstaltung/actions.ts`, Muster wie `adjustVerzehrAction`/Auslagen):
   - `kassiereZeileAction(veranstaltungId, prev, formData)` → `{ ok } | { error }`:
     `requireRole("veranstalter")`; Zod (`erhalten` via `parseEuroToCents`, `≥ 0`, `≤ INT4_MAX`, leer ⇒
