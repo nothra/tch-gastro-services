@@ -2012,6 +2012,68 @@ assert_true "$?" "AC7: Freigabe läuft über workflow_dispatch"
 grep -q 'deploy-freeze.sh release' "$RELEASE_YML"
 assert_true "$?" "AC7: Freigabe-Workflow ruft deploy-freeze.sh release"
 
+# ─── #173/#66: Freigabe-Workflow liest workflow_dispatch-Input/actor über env: ───
+# Der Freigabe-Workflow ist der Notfall-Entblock-Pfad. `${{ inputs.grund }}` ist frei
+# getippter Text und `${{ github.actor }}` nutzerbeeinflusst – beide dürfen NICHT inline
+# in eine `run:`-Shell interpoliert werden (Actions-Script-Injection + funktionaler Bruch
+# an Sonderzeichen), sondern nur über `env:` gequotet. Gleicher Maßstab wie #66 im
+# Schwester-Workflow deploy-gate.yml. Detektor spiegelt secrets_in_run (Block-Scalar per
+# Einrückung), Zielmuster = nutzerkontrollierte inputs.*/github.actor.
+echo ""
+echo "#173 Härtung – Freigabe-Workflow: inputs.*/github.actor über env: statt inline im run::"
+
+userinput_in_run() {
+  awk '
+    function firstnonspace(s) { if (match(s, /[^ ]/)) return RSTART - 1; return -1 }
+    /^[ ]*$/ { next }
+    {
+      ind = firstnonspace($0)
+      if (in_run && ind <= run_ind) in_run = 0
+      if (!in_run && $0 ~ /^[ ]*run:/) {
+        run_ind = ind
+        rest = $0; sub(/^[ ]*run:/, "", rest)
+        if (rest ~ /\$\{\{[ ]*(inputs\.|github\.actor)/) { print FILENAME ":" NR ": " $0; found = 1 }
+        in_run = 1
+        next
+      }
+      if (in_run && $0 ~ /\$\{\{[ ]*(inputs\.|github\.actor)/) { print FILENAME ":" NR ": " $0; found = 1 }
+    }
+    END { exit(found ? 1 : 0) }
+  ' "$1"
+}
+
+# Positiv-Kontrolle: inline inputs.* im run:-Block wird erkannt (Guard nicht vacuously grün).
+TMP_YAML_INJ="$(mktemp)"
+printf 'jobs:\n  x:\n    steps:\n      - name: bad\n        run: |\n          echo "Grund: ${{ inputs.grund }}"\n' > "$TMP_YAML_INJ"
+userinput_in_run "$TMP_YAML_INJ" >/dev/null 2>&1
+assert_exit 1 "$?" "#173: Detektor erkennt inline \${{ inputs.* }} in einem run:-Block (Positiv-Kontrolle)"
+rm -f "$TMP_YAML_INJ"
+
+# Negativ-Kontrolle: dieselbe Referenz im env:-Block ist erlaubt → kein Fund.
+TMP_YAML_INJ_OK="$(mktemp)"
+printf 'jobs:\n  x:\n    steps:\n      - name: ok\n        env:\n          GRUND: ${{ inputs.grund }}\n        run: |\n          echo "Grund: $GRUND"\n' > "$TMP_YAML_INJ_OK"
+userinput_in_run "$TMP_YAML_INJ_OK" >/dev/null 2>&1
+assert_exit 0 "$?" "#173: Detektor akzeptiert \${{ inputs.* }} im env:-Block (Negativ-Kontrolle)"
+rm -f "$TMP_YAML_INJ_OK"
+
+# Akzeptanzkriterium: der echte Freigabe-Workflow interpoliert inputs/actor nicht inline im run:.
+userinput_in_run "$RELEASE_YML" >/dev/null 2>&1
+assert_exit 0 "$?" "#173: deploy-freeze-release.yml nutzt \$GRUND/\$ACTOR (env:), kein inline \${{ inputs.* }}/\${{ github.actor }}"
+
+# Beleg, dass die Werte tatsächlich über env: bereitgestellt werden (Fix-Muster, wie deploy-gate.yml).
+grep -q 'GRUND: ${{ inputs.grund }}' "$RELEASE_YML"
+assert_true "$?" "#173: inputs.grund wird über env: GRUND bereitgestellt"
+grep -q 'ACTOR: ${{ github.actor }}' "$RELEASE_YML"
+assert_true "$?" "#173: github.actor wird über env: ACTOR bereitgestellt"
+
+# deploy-freeze-release.yml bleibt valides YAML (nur wo yq vorhanden, ADR-009).
+if [ "$HAS_YQ" = 1 ]; then
+  yq '.' "$RELEASE_YML" >/dev/null 2>&1
+  assert_true "$?" "#173: deploy-freeze-release.yml bleibt valides YAML (yq-Parse)"
+else
+  skip_yq "#173: deploy-freeze-release.yml bleibt valides YAML"
+fi
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"

@@ -125,6 +125,19 @@ Review-Runde 1 (`tasks/review-173.md`): NEEDS_REWORK – 1 kritisch (K1), 2 wich
   unverändert (erst post-merge prüfbar).
 - Tests: **352 grün / 0 rot** (vorher 339).
 
+Review-Runde 2 (`tasks/review-173.md`): NEEDS_REWORK – 1 wichtig (W1), Nitpicks unverändert offen.
+**Rework [2026-07-19] behoben:**
+- **W1** (`deploy-freeze-release.yml`): Actions-Script-Injection – die freie `workflow_dispatch`-
+  Eingabe `${{ inputs.grund }}` und `${{ github.actor }}` waren inline in beide `run:`-Shells
+  interpoliert. Jetzt je Step über `env:` (`GRUND`/`ACTOR`) gelesen und nur gequotet als
+  `"$GRUND"`/`"$ACTOR"` genutzt – 1:1 wie das `#66`-Härtungsmuster im Schwester-Workflow
+  `deploy-gate.yml`. Neuer TDD-Guard in `run-tests.sh` (`userinput_in_run`, Block-Scalar-Tracking
+  wie `secrets_in_run`, mit Positiv-/Negativ-Kontrolle) belegt: kein inline `${{ inputs.* }}`/
+  `${{ github.actor }}` in `run:`-Blöcken, Werte über `env:`.
+- Nitpicks bewusst offen (kein Verhaltensrisiko). Rest-Blocker `refs/factory/*`-Live-Push
+  unverändert (erst post-merge prüfbar).
+- Tests: **358 grün / 0 rot** (vorher 355 gesamt, davon 3 rot vor dem Fix).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

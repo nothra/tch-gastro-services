@@ -39,9 +39,15 @@ jobs:
           fetch-depth: 0   # voller Verlauf – konsistent mit dem Deploy-Gate (Ref-Operationen)
 
       - name: Aktuellen Freeze-Status anzeigen
+        # Nutzerkontrollierte Werte (frei getippter inputs.grund, github.actor) über env:
+        # lesen und in der Shell nur gequotet nutzen – kein inline ${{ … }} im run: (sonst
+        # Actions-Script-Injection/Bruch an Sonderzeichen, Härtung wie deploy-gate.yml, #66).
+        env:
+          ACTOR: ${{ github.actor }}
+          GRUND: ${{ inputs.grund }}
         run: |
-          echo "Freigabe angefordert von: ${{ github.actor }}"
-          echo "Grund: ${{ inputs.grund }}"
+          echo "Freigabe angefordert von: $ACTOR"
+          echo "Grund: $GRUND"
           blocking=$(bash scripts/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
           echo "Blockierender Commit vor Freigabe: ${blocking}"
           echo "blocking_sha=${blocking}" >> "$GITHUB_ENV"
@@ -50,13 +56,18 @@ jobs:
         run: bash scripts/deploy-freeze.sh release
 
       - name: Tracking-Issue schließen (Benachrichtigung, fail-open)
+        # inputs.grund/github.actor über env: gequotet weiterreichen (kein inline ${{ … }}
+        # im run: – sonst Script-Injection/falsche Args an notify, Härtung wie #66).
+        env:
+          ACTOR: ${{ github.actor }}
+          GRUND: ${{ inputs.grund }}
         run: |
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          bash scripts/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "${{ inputs.grund }}" "$run_url" || true
+          bash scripts/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "$GRUND" "$run_url" || true
           {
             echo "### ✅ Deploy-Freeze aufgehoben"
             echo ""
-            echo "Freigegeben von: ${{ github.actor }}"
-            echo "Grund: ${{ inputs.grund }}"
+            echo "Freigegeben von: $ACTOR"
+            echo "Grund: $GRUND"
             echo "Der nächste grüne Gate-Lauf promotet wieder regulär."
           } >> "$GITHUB_STEP_SUMMARY"
