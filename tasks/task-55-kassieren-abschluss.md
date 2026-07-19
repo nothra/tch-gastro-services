@@ -45,17 +45,33 @@ Kanonische Quelle der Akzeptanzkriterien: [`docs/specs/spec-55-kassieren-abschlu
 - [ ] Wiederöffnen ohne Veranstalter-Rolle → serverseitig abgelehnt (fail-closed, `lib/authz.ts`).
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
-- Datenmodell heute: `veranstaltung.status` (offen/abgeschlossen) + `auslage` (F6) existieren;
-  `veranstaltung_zeile` hat **noch keine** Felder für `erhalten`/`bezahlt` und es gibt **kein**
-  Reopen/Abschluss-Protokoll-Feld → beides in /architecture entscheiden (siehe Offene Fragen).
-- Beträge als ganzzahlige Cent (`*_cents`, ADR-021); Zod-Validierung an der Server-Grenze,
-  int4-Obergrenze beachten (Codify #49).
+<!-- Kanonische Quelle: docs/adr/033-kassieren-abschluss-datenmodell.md -->
+Architektur entschieden in **[ADR-033](../docs/adr/033-kassieren-abschluss-datenmodell.md)**:
 
-## Offene Fragen (für /architecture)
-- [ ] Protokollierung Öffnen/Abschluss: eigenes Audit-Log oder Zeitstempel+Nutzer an der Veranstaltung?
-- [ ] Fixierte Tagessummen bei Wiederöffnung: neu berechnen vs. Snapshot je Abschluss?
-- [ ] Ablage Zeilen-Status (offen/bezahlt) + `erhalten`: neue Spalten an `veranstaltung_zeile` (Migration).
+- **D1 – Erhalten/Status:** neue nullable Spalte `veranstaltung_zeile.erhalten_cents`
+  (CHECK `IS NULL OR >= 0`). **Keine** Status-Spalte – `bezahlt ⇔ (erhalten ?? 0) ≥ verzehrGesamt`
+  und `spende = max(0, (erhalten ?? 0) − verzehrGesamt)` werden **abgeleitet** (single source).
+- **D2 – Preis-Einfrieren:** neue nullable Spalte `verzehr_position.einzelpreis_cents`; beim Abschluss
+  Katalogpreis snapshotten, Lesen via `COALESCE(einzelpreis_cents, price_cents)`, beim Wiederöffnen
+  auf `NULL` zurücksetzen. `listPositionen` (F5) auf `COALESCE` umstellen. Erfüllt den ADR-025-D2-Handoff.
+- **D3 – Abschluss transaktional & guarded:** block bei ≥1 offener Zeile (`Verzehr-Gesamt > Erhalten`,
+  Hinweis „N Zeile(n) offen"); Preis-Snapshot + `status` + Ereignis atomar (Batch, guarded `WHERE status`).
+- **D4 – Protokoll:** append-only Tabelle `veranstaltung_ereignis` (`art` enum abgeschlossen/wiedereroeffnet,
+  `akteurUserId` nullable `onDelete set null`, `akteurName`-Snapshot, `createdAt`).
+- **D5 – Kassier-Summen:** DB-freies Modul `app/veranstaltung/kassierSummen.ts` (Codify #105) als
+  gemeinsame Quelle für Anzeige **und** Abschluss-Gate; Kassenveränderung = Σ Erhalten − Σ Auslagen(`erstattet`).
+- **D6 – Actions/Route:** `setStatusAction` von `void` → Rückgabe-State erweitern (StatusToggle mitziehen,
+  `useActionState`/`useCallback`, Codify #49); neue `kassiereZeileAction`; neue Route
+  `app/veranstaltung/[id]/kassieren/` → **`docs/routes.md` mitpflegen** (Guardrail #145).
+- **D7 – Session:** `session.user.id` aus `token.sub` freischalten (`auth.config.ts` + `types/next-auth.d.ts`,
+  Codify #48).
+- Beträge Integer-Cent (ADR-021); Zod an der Grenze mit `INT4_MAX` (Codify #49); IDOR-Bindung (Codify #51).
+- **Migration** (`db:generate`) rein additiv → kein interaktiver Prompt erwartet; lokal gegen Wegwerf-DB
+  `0000→…→n` grün verifizieren (Codify #48).
+
+## Offene Fragen
+_Alle drei /architecture-Fragen in [ADR-033](../docs/adr/033-kassieren-abschluss-datenmodell.md) entschieden
+(Protokoll → D4, fixierte Summen → D2, Ablage Erhalten/Status → D1). Derzeit keine offenen Fragen._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
