@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -121,6 +121,8 @@ Bugfix stimmig; kein Rename nötig (Art-Label `bug` passt, `security` bereits ge
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
+AC6 (E2E `--repeat-each=24` gegen INT) bleibt bis zum Post-Merge-Nachtest offen (siehe Blocker
+oben) – lokal nicht aussagekräftig verifizierbar, da INT den Fix erst nach diesem Merge trägt.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
@@ -131,6 +133,12 @@ Review (APPROVED) und Security-Review (PASSED) ohne kritische/wichtige Findings.
 Nitpicks (doppelter Prädikat-Test, Case-Normalisierung der HTTP-Methode) bereits behandelt
 bzw. bewusst nicht gefixt (Verhaltensänderung widerspräche „kein neues Verhalten" im
 Refactor) – kein neues Regel-Bedürfnis. Details: `tasks/codify-170.md`.
+
+## PR-Shepherd-Notiz
+PR-Shepherd [2026-07-19]: Merge freigegeben – alle Gates grün (Review APPROVED,
+Security-Review PASSED, Tests/Lint/Typecheck/Format grün, Branch bereits auf aktuellem main,
+0 Approvals erforderlich gemäß ADR-029). AC6 bleibt als Post-Merge-Nachtest offen (siehe
+Blocker-Notiz und offene Frage oben).
 
 ---
 Branch: `fix/170-logout-race-options-head`
