@@ -1,81 +1,77 @@
 # Review: Task 173 – Deploy-Freeze bei rotem Gate (ADR-032)
 
-Multi-Persona-Review, **Runde 2** (nach Rework von Runde 1). Alle 352 Tests grün.
-Runde 1 (K1/W1/W2/W3) ist im Code nachweisbar behoben: der `freeze_set`-`*)`-Zweig versucht den
-Push jetzt trotzdem (kein Fail-open-Loch), die fail-closed-„unklar"-Zweige und der
-notify-Existing-Issue-Pfad sind getestet, der Maintainer-Workflow-Name ist auf den Anzeigenamen
-gezogen. Gesamteindruck weiterhin: sauber am ADR-032 orientiert, konsequent fail-closed.
+Multi-Persona-Review, **Runde 3** (nach Rework von Runde 1 + Runde 2). Alle **358 Tests grün / 0 rot**
+(lokal verifiziert). Dies ist die dritte Review-Iteration – der Circuit Breaker (max. 3) ist erreicht.
+Die beiden Vorrunden fanden je einen **eigenständigen, realen** Fund (R1: Fail-open-Loch im `set`-`*)`-
+Zweig + Testlücken; R2: Actions-Script-Injection im Freigabe-Workflow) – beide sind im Code nachweisbar
+behoben. Kein wiederkehrender/ungelöster Konflikt → keine Eskalation nötig, sondern **Konvergenz**.
 
-Beim frischen Blick auf den **reworkten** Stand fällt jedoch ein Fund auf, den Runde 1 nicht
-hatte: der **neue** Freigabe-Workflow interpoliert die freie `workflow_dispatch`-Eingabe direkt
-in `run:`-Shell – genau das Script-Injection-Muster, gegen das der Schwester-Workflow
-`deploy-gate.yml` in **demselben PR** bewusst härtet (#66). → NEEDS_REWORK (ein Punkt, klein).
+Frischer Blick auf den reworkten Stand über alle drei Perspektiven (Logik/Korrektheit, Code-Qualität,
+Architektur): konsequent fail-closed an ADR-032 orientiert, sauber getestet, Doku vollständig. **Keine
+neuen kritischen oder wichtigen Findings.** Die verbleibenden Punkte sind Nitpicks ohne Verhaltens-/
+Sicherheitsrisiko (teils schon aus R1/R2 bewusst offen gehalten).
 
 ## Kritische Findings (müssen behoben werden)
 - _keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [x] **`.github/workflows/deploy-freeze-release.yml:44,55,59,60` (auch `:43`) – freie
-      `workflow_dispatch`-Eingabe `${{ inputs.grund }}` (und `${{ github.actor }}`) inline in
-      `run:`-Shell interpoliert (Actions-Script-Injection + funktionaler Bruch).** GitHub ersetzt
-      `${{ … }}` **textuell vor** der Shell; `inputs.grund` ist frei getippter Text. Ein Grund mit
-      Backtick/`$(…)` führt Code als Workflow-Token aus, einer mit `"`/`;` bricht das Kommando bzw.
-      die Argument-Zerlegung (Zeile 55 gibt `grund` positionsbasiert an `notify` weiter → falsche
-      Args). Genau der Fall, den #66 schließt – der Schwester-Workflow `deploy-gate.yml` liest **alle**
-      `${{ }}`-Werte über `env:` und testet nur gequotet (`$BYPASS` …) und begründet sogar explizit,
-      *warum* nur GitHub-kontrollierte `outcome`-Werte inline sicher sind (Z.296). `inputs.grund` ist
-      das Gegenteil (User-Input) und gehört nach demselben Maßstab **nicht** inline. Deckt sich mit
-      der Projekt-Regel „nutzerkontrollierte Werte als Daten behandeln, nie als Code"
-      (`clean-code.md`). Besonders heikel, weil dies der **Notfall-Entblock-Pfad** ist: bricht die
-      Freigabe an einem Sonderzeichen, bleibt die Produktion eingefroren.
-      *Fix:* `inputs.grund`/`github.actor` je als Step-`env:` (`GRUND: ${{ inputs.grund }}`,
-      `ACTOR: ${{ github.actor }}`) setzen und in `run:` nur gequotet als `"$GRUND"`/`"$ACTOR"`
-      nutzen – 1:1 wie in `deploy-gate.yml`. Threat-Surface ist auf Schreibrechte begrenzt (kein
-      Privilege-Escalation), daher „wichtig" statt „kritisch" – aber ein dokumentiert nicht-
-      verhandelbares Härtungsmuster im selben PR einseitig zu verletzen sollte nicht durchrutschen.
+- _keine._
 
 ## Nitpicks (optional)
-Unverändert aus Runde 1 bewusst offen gelassen (kein Verhaltensrisiko):
-- [ ] **`deploy-gate.yml:100-120` – toter „INT-Refresh übersprungen"-Zweig.** Der Pflicht-Secret-Check
-      macht die Neon-Secrets verpflichtend → `steps.refresh.outputs.enabled` ist im scharfen Gate immer
-      `'true'`; die `enabled == 'true'`-Guards + Warnung beschreiben einen unerreichbaren Zustand.
-- [ ] **`deploy-freeze-notify.sh:45` – Tracking-Issue-Suche über Emoji-Titel + Substring.**
+- [ ] **`deploy-freeze.sh:138-140` – irreführende Erfolgsmeldung von `release` bei *unerreichbarem*
+      Remote.** Der `*)`-„unklar"-Zweig von `freeze_release` ist bewusst fail-open (Test 14: Entblock-
+      Richtung, ein nicht durchführbarer Delete soll keinen roten Lauf erzeugen) – das ist korrekt und
+      **sicher** (der Freeze bleibt bestehen, der Promote-Guard verweigert weiter, der nächste Gate-Lauf
+      re-öffnet via `notify blocked` das Tracking-Issue → selbstheilend). Aber die Meldung „Kein Freeze
+      aktiv (Ref bereits weg) – idempotent." ist bei *transient nicht erreichbarem* Remote **faktisch
+      falsch** (verwechselt „Ref bestätigt weg" mit „Delete nicht verifizierbar"). Im Notfall-Entblock-
+      Kontext könnte ein Maintainer den Freeze fälschlich für aufgehoben halten. Keine Verhaltens-
+      änderung nötig – nur die Meldung im `! ls-remote`-Zweig ehrlicher fassen (z. B. „Ref-Status nicht
+      verifizierbar – Freigabe fail-open behandelt; nächsten Gate-Lauf/Tracking-Issue prüfen").
+- [ ] **`deploy-freeze-notify.sh:45` – toter Feld-Selektor** (aus R1/R2): `--json number,state`, `--jq`
+      nutzt nur `.number`. `--json number` genügt.
+- [ ] **`deploy-freeze-notify.sh:45` – Tracking-Issue-Suche über Emoji-Titel + Substring** (aus R1/R2):
       `--search 'in:title "🚫 Deploy-Freeze aktiv"'` – Emoji-Tokenisierung nicht garantiert
-      deterministisch → im Fehlfall Issue-Duplikate (rein fail-open). Besser ohne Emoji / per Label.
-- [ ] **`deploy-freeze-notify.sh:45` – toter Feld-Selektor.** `--json number,state`, `--jq` nutzt nur
-      `number`. `--json number` genügt.
-- [ ] **Run-URL dreifach dupliziert** (`deploy-gate.yml:227,304` + `deploy-freeze-release.yml:54`) –
-      per job-level `env: RUN_URL` DRY-fähig.
-- [ ] **`set_freeze` bei Push-Fehler ohne Notify/Summary** (`deploy-gate.yml:295-314`): default
-      `bash -eo pipefail` bricht bei non-zero `deploy-freeze.sh set` ab → `notify frozen` + Summary
-      laufen nicht mehr. Vertretbar (Step wird rot/sichtbar), aber erwähnenswert.
-- [ ] **Generischer „Grund" auf `blocked`-Folgeläufen** (`deploy-gate.yml:216`): das Ref trägt nur den
-      SHA (ADR §1), der Ursprungsgrund lebt im Tracking-Issue-Verlauf – fällt die `frozen`-Notify aus
-      (fail-open), überlebt der echte Grund nur in Summary/Log des roten Laufs. Ein Satz in ADR/README.
+      deterministisch → im Fehlfall Issue-Duplikate (rein fail-open). Besser per Label filtern.
+- [ ] **Generischer „Grund" auf `blocked`-Folgeläufen** (aus R1/R2, `deploy-gate.yml:216`): das Ref trägt
+      nur den SHA (ADR §1); fällt die `frozen`-Notify aus (fail-open), überlebt der Ursprungsgrund nur in
+      Summary/Log des roten Laufs. Ein Satz in ADR/README würde das explizit machen.
+- [ ] **Run-URL dreifach dupliziert** (aus R1/R2, `deploy-gate.yml:227,304` + `deploy-freeze-release.yml:65`)
+      – per job-level `env: RUN_URL` DRY-fähig.
+- [ ] **`set_freeze` bei Push-Fehler ohne Notify/Summary** (aus R1/R2, `deploy-gate.yml:295-314`):
+      default `bash -eo pipefail` bricht bei non-zero `deploy-freeze.sh set` ab → `notify frozen` +
+      Summary laufen dann nicht. Vertretbar (Step wird rot/sichtbar), aber erwähnenswert.
+- [ ] **Toter „INT-Refresh übersprungen"-Zweig** (aus R1/R2, `deploy-gate.yml:100-120`): der Pflicht-
+      Secret-Check macht die Neon-Secrets verpflichtend → `steps.refresh.outputs.enabled` ist im scharfen
+      Gate immer `'true'`; die `enabled == 'true'`-Guards + Warnung beschreiben einen unerreichbaren
+      Zustand. (Vorbestehend, außerhalb des #173-Scopes.)
 
 ## Positives
-- **Runde-1-Rework sauber:** `freeze_set` `*)`-Zweig pusht jetzt trotzdem (non-FF-Semantik schützt einen
-  bestehenden Freeze; fehlt das Ref, wird es angelegt) → das Fail-open-Loch (K1) ist geschlossen,
-  Kommentar korrigiert; Push-Fehler bleibt non-zero sichtbar.
+- **Konvergenz über drei Runden:** Jede Runde fand einen *distinkten* realen Fund; alle behoben, kein
+  Zurückdrehen. R1-Fix (`freeze_set`-`*)`-Zweig pusht jetzt trotzdem → kein Fail-open-Loch) und R2-Fix
+  (`inputs.grund`/`github.actor` über `env:` gequotet, 1:1 wie #66) sind im Diff **und** durch neue
+  TDD-Guards (`userinput_in_run` mit Positiv-/Negativ-Kontrolle) belegt.
 - **Fail-closed durchgezogen:** `check_freeze` setzt `frozen=false` **ausschließlich** bei Exit 10;
   Exit 0 **und** jeder andere Exit (unklar/unlesbar) → `frozen=true`. `set +e; …; set -e` sauber
-  gekapselt; alle drei Prod-Schritte (PRD-Migration, Promote, Healthcheck) hinter
-  `if: …frozen != 'true'`.
+  gekapselt; alle drei Prod-Schritte (PRD-Migration, Promote, Healthcheck) hinter `if: …frozen != 'true'`.
+- **Trennung Maschine/Mensch** konsequent: Ref = fail-closed Maschinen-Grenze, Tracking-Issue = fail-open
+  Mensch-Signal (`notify.sh` endet immer exit 0). Kein Benachrichtigungs-Ausfall kann die Schutzwirkung
+  untergraben.
+- **Trigger scharf (AC1/AC2):** `set_freeze` nur bei `failure()` **und** `e2e|migrate_int|migrate_prd`
+  outcome `failure`; ein fehlschlagender Step bricht den Job ab → höchstens ein outcome `failure`,
+  Infra-Fehler lassen alle drei leer/skipped → kein Freeze. `db:migrate:int` sauber aus dem Sammelstep
+  herausgelöst.
 - **AC4** robust getestet (`check_freeze` vor `migrate_prd` via Zeilenvergleich, `id:`-Präfix je 1×).
-  **AC5** (frozen-Zweig endet grün, kein `exit 1`). **AC2** (Trigger scharf auf
-  `e2e|migrate_int|migrate_prd`, skipped ≠ failure). **AC6** über Bare-Repo-Simulation der
-  Vorfall-Sequenz #134-rot → #167-grün.
-- **Testabdeckung erweitert (352, +13):** fail-closed-„unklar"-Zweige von `set`/`status`/`release`
-  gegen unlesbaren Remote; notify Existing-Issue-Pfad (Kommentar + reopen/close) für
-  `frozen`/`blocked`/`released` **und** Neuanlage-/kein-Issue-Fälle; Aufruf-/Argument-Fehler.
+  **AC5** (frozen-Zweig endet grün, kein `exit 1`). **AC6** über Bare-Repo-Simulation der Vorfall-
+  Sequenz #134-rot → #167-grün, inkl. Doppel-Freeze (SHA_A bleibt) + fail-closed „unklar"-Zweige.
 - **Concurrency:** Gate + Release teilen `group: deploy-gate`, `cancel-in-progress: false` → kein
   Setzen/Check/Freigabe-Race. **`fetch-depth: 0`** in beiden Workflows (FF-Regel). Least-Privilege
-  `permissions` (`contents`+`issues: write`). Erste `refs/factory/*`-Nutzung korrekt außerhalb
-  `protect-main` (ADR-029).
-- **Trennung Maschine/Mensch** (Ref = fail-closed / Tracking-Issue = fail-open) konsequent; `notify.sh`
-  endet immer exit 0. **Kein required-Check-Risiko (#155):** beide Workflows `push:main`- bzw.
-  `workflow_dispatch`-only. **Routen-Doku (#145):** kein `page.tsx`/`route.ts` im Diff → zu Recht
-  unangetastet. **README (AC9)** vollständig mit korrektem Anzeigenamen.
+  `permissions` (`contents`+`issues: write`). `refs/factory/*` korrekt außerhalb `protect-main` (ADR-029).
+- **Kein required-Check-Risiko (#155):** beide Workflows `push:main`- bzw. `workflow_dispatch`-only.
+  **Routen-Doku (#145):** kein `page.tsx`/`route.ts` im Diff → zu Recht unangetastet.
+- **Doku vollständig (AC9):** ADR-032 deckt Marker-Variante + Alternativen, Trigger, Check-Position,
+  Freigabe, Benachrichtigung und Zusammenspiel `concurrency`/ADR-007/017 ab; README beschreibt Setzen/
+  Blockieren/Benachrichtigung/Freigabe inkl. korrektem Workflow-Anzeigenamen + CLI-Fallback.
 
 ## Offener Rest-Blocker (kein Rework-Punkt, kein Merge-Stopper)
 - **`refs/factory/*`-Push mit `GITHUB_TOKEN` live verifizieren** (Task-Blocker 2026-07-19). Erst
@@ -84,16 +80,10 @@ Unverändert aus Runde 1 bewusst offen gelassen (kein Verhaltensrisiko):
   nicht in der (nach Merge auf `main` liegenden) Task-Datei untergeht.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
 
-Einziger Blocker: der inline-interpolierte `inputs.grund`/`github.actor` im Freigabe-Workflow
-(`deploy-freeze-release.yml`) – über Step-`env:` + Quoting entschärfen (1:1 wie `deploy-gate.yml`,
-#66). Kleiner, klar umrissener Fix. Nitpicks nach Ermessen; Rest-Blocker unverändert (post-merge).
-
-**Rework [2026-07-19] behoben (Runde 2):** `inputs.grund`/`github.actor` in beiden `run:`-Steps
-von `deploy-freeze-release.yml` über Step-`env:` (`GRUND`/`ACTOR`) gelesen und nur gequotet als
-`"$GRUND"`/`"$ACTOR"` genutzt – kein inline `${{ … }}` mehr in der Shell (1:1 wie `deploy-gate.yml`,
-#66). Neuer Test-Guard in `run-tests.sh` (Detektor `userinput_in_run`, Block-Scalar per Einrückung
-wie `secrets_in_run`) mit Positiv-/Negativ-Kontrolle belegt: kein inline `${{ inputs.* }}`/
-`${{ github.actor }}` in `run:`-Blöcken des Freigabe-Workflows, Werte kommen über `env:`. Nitpicks
-bewusst offen (kein Verhaltensrisiko). Tests: **358 grün / 0 rot** (vorher 355 gesamt, 3 rot).
+Keine kritischen oder wichtigen Findings; die drei Runden sind konvergiert (jeweils distinkte, behobene
+Funde – kein Circuit-Breaker-Deadlock). Verbleibende Nitpicks sind optional und ohne Verhaltens-/
+Sicherheitsrisiko; der oben markierte `release`-Meldungs-Nitpick betrifft nur Text, nicht die (sichere,
+getestete) Semantik. Weiter zu `/test` bzw. `/security-review`. Rest-Blocker (Live-Push) unverändert
+post-merge.

@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -137,6 +137,35 @@ Review-Runde 2 (`tasks/review-173.md`): NEEDS_REWORK – 1 wichtig (W1), Nitpick
 - Nitpicks bewusst offen (kein Verhaltensrisiko). Rest-Blocker `refs/factory/*`-Live-Push
   unverändert (erst post-merge prüfbar).
 - Tests: **358 grün / 0 rot** (vorher 355 gesamt, davon 3 rot vor dem Fix).
+
+Review-Runde 3 (`tasks/review-173.md`): **APPROVED** – 0 kritisch, 0 wichtig, nur Nitpicks
+(bewusst offen, kein Verhaltens-/Sicherheitsrisiko). Frischer Drei-Perspektiven-Pass über den
+reworkten Stand fand keine neuen Defekte; die drei Runden sind konvergiert (je distinkter,
+behobener Fund – kein Circuit-Breaker-Deadlock). 358 grün / 0 rot lokal verifiziert. Rest-Blocker
+`refs/factory/*`-Live-Push unverändert (erst post-merge prüfbar). Weiter zu `/test`.
+
+## Test-Notizen (aus /test)
+
+Kein Produktionscode geändert (nur Verifikation), da diese Task ausschließlich Shell-Skripte
+und Workflow-YAML umfasst (`git diff main...HEAD` zeigt keine `.ts`/`.tsx`-Änderungen) – die
+projektweite Vitest-Coverage ist daher eine unveränderte Baseline und für diese Task nicht
+aussagekräftig; der maßgebliche Test-Harness ist `scripts/checks/tests/run-tests.sh`.
+
+- `bash scripts/checks/tests/run-tests.sh` → **358 grün / 0 rot**.
+- AC-für-AC gegen die vorhandenen Tests verifiziert (Zeilen in `run-tests.sh`, Abschnitt
+  „#173 Deploy-Freeze (ADR-032)"): AC1 (set + Grund/SHA), AC3/AC4 (fail-closed vor PRD-Migration,
+  Positions-Guard `check_freeze` vor `migrate_prd`), AC5 (Step endet immer exit 0, Log/Summary
+  mit SHA+Grund), AC6 (Bare-Repo-Simulation #134-rot → #167-grün: Freeze bleibt bestehen, kein
+  Promote), AC7 (release + Idempotenz + workflow_dispatch-Verdrahtung), AC8 (notify fail-open +
+  Happy-Path inkl. Existing-Issue-Pfad), AC9 (README + ADR-032 vorhanden, per Grep bestätigt).
+  AC2 (Infra-Fehler frieren nicht) ist strukturell durch die `if:`-Bedingung von `set_freeze`
+  abgesichert (referenziert ausschließlich `e2e`/`migrate_int`/`migrate_prd`-Outcomes; ein davor
+  gescheiterter Infra-Step lässt diese `skipped`, nie `failure`) – eine volle GH-Actions-Ausführung
+  zur Laufzeit-Verifikation ist nicht Teil des Test-Ansatzes dieses Repos (Workflows werden
+  durchgängig strukturell per Grep/Positions-Guard getestet, nicht via `act`).
+- Keine Lücken gefunden – keine neuen Tests nötig, kein Produktionscode angefasst.
+- Rest-Blocker unverändert: `refs/factory/*`-Live-Push aus GITHUB_TOKEN erst nach Merge auf
+  `main` prüfbar (siehe Implementierungs-Notizen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
