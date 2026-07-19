@@ -20,7 +20,7 @@ function withState(state: VeranstaltungFormState | undefined, isPending = false)
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   withState(undefined);
 });
 

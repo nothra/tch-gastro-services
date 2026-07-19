@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -163,6 +163,29 @@ Gates danach grün: `pre-push.sh` (501 Tests, Typecheck, Format, Routen-Drift) +
 (Lint; eine vorbestehende, unveränderte Warnung in `db/veranstaltung.test.ts` – außerhalb des
 Task-55-Diffs, blockiert nicht). Coverage F8-relevanter Nicht-DB-Dateien: 100 % (Stmts/Branch/Funcs/
 Lines) bis auf zwei Fremd-Feature-Branches in `actions.ts` (F1/F7, außerhalb #55).
+
+## Refactoring (`/refactor`, 2026-07-20)
+
+Kein neues Verhalten. Adressiert die verbliebenen offenen Review-Nitpicks aus `tasks/review-55.md`,
+die günstig und risikoarm waren (Datenkorruption/Revalidate-Nitpicks bewusst nicht angefasst, da sie
+zusätzliches Laufzeitverhalten wären, kein reines Refactoring):
+
+- **`db/veranstaltung.ts`**: Ein-Wort-Kommentar an den beiden positionalen Casts
+  `results[1] as Veranstaltung[]` (`abschliessenVeranstaltung`/`wiedereroeffnenVeranstaltung`), der
+  die implizite Kopplung an die Query-Reihenfolge in `runAtomic` sichtbar macht (Review-Nitpick).
+- **`app/veranstaltung/actions.ts`**: die einzige inline-interpolierte Fehlermeldung
+  (`Abschluss nicht möglich: N Zeile(n) noch offen.`) als benannte `offeneZeilenFehler(n)`-Funktion
+  neben die übrigen Message-Konstanten gezogen – konsistent mit dem Rest der Datei (Review-Nitpick).
+- **`KassiereZeileForm.test.tsx`/`StatusToggle.test.tsx`**: `vi.clearAllMocks()` → `vi.resetAllMocks()`
+  im `beforeEach` (Codify #51-Konvention; hier zuvor faktisch sicher, da `withState()` den Mock direkt
+  danach neu setzt, aber konsistent zum Rest der Test-Suite).
+
+Nicht angefasst (bewusst, siehe Review-Nitpicks): `docs/adr/023-*` (außerhalb Diff-Scope),
+fehlende `verzehrPath`/`auslagenPath`-Revalidierung in `setStatusAction` (wäre neues Verhalten),
+`getAllByText`-Exaktheit in `kassieren/page.test.tsx` (laut Review tolerierbar).
+
+Gates nach dem Refactoring grün: `pre-push.sh` (501 Tests, Typecheck, Format, Routen-Drift) +
+`pre-commit.sh` (Lint).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

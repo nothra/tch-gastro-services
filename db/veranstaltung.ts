@@ -183,7 +183,7 @@ export async function abschliessenVeranstaltung(
       akteurName: akteur.name,
     }),
   ]);
-  const [updated] = results[1] as Veranstaltung[];
+  const [updated] = results[1] as Veranstaltung[]; // Index 1 = Status-UPDATE (Query-Reihenfolge oben)
   return updated;
 }
 
@@ -211,7 +211,7 @@ export async function wiedereroeffnenVeranstaltung(
       akteurName: akteur.name,
     }),
   ]);
-  const [updated] = results[1] as Veranstaltung[];
+  const [updated] = results[1] as Veranstaltung[]; // Index 1 = Status-UPDATE (Query-Reihenfolge oben)
   return updated;
 }
 

@@ -142,6 +142,8 @@ const THEKE_NICHT_ABSCHLIESSBAR = "Die Theke wird nicht abgeschlossen.";
 const BEREITS_ABGESCHLOSSEN = "Die Veranstaltung ist bereits abgeschlossen.";
 const BEREITS_OFFEN = "Die Veranstaltung ist bereits offen.";
 const INVALID_STATUS = "Ungültiger Status.";
+const offeneZeilenFehler = (offeneZeilen: number) =>
+  `Abschluss nicht möglich: ${offeneZeilen} Zeile(n) noch offen.`;
 
 // Zählt die noch offenen Zeilen (`Verzehr-Gesamt > Erhalten`) einer Veranstaltung über die
 // SINGLE-SOURCE-Kassierlogik (ADR-033 D5) – dieselbe Berechnung wie die Anzeige. Speist das
@@ -189,7 +191,7 @@ export async function setStatusAction(
     if (ziel.status !== "offen") return { error: BEREITS_ABGESCHLOSSEN };
     const offene = await offeneZeilenCount(id);
     if (offene > 0) {
-      return { error: `Abschluss nicht möglich: ${offene} Zeile(n) noch offen.` };
+      return { error: offeneZeilenFehler(offene) };
     }
     const closed = await abschliessenVeranstaltung(id, akteur);
     if (!closed) return { error: BEREITS_ABGESCHLOSSEN };
