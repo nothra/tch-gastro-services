@@ -1528,9 +1528,17 @@ section_contains() {
   [ "$s" -gt 0 ] && [ "$e" -gt "$s" ] || return 1
   sed -n "${s},${e}p" "$file" | grep -qF -- "$needle"
 }
-_shep_commit_line="$(first_match_line 'factory-commit.sh' "$SHEPHERD")"
-_shep_merge_line="$(first_match_line 'gh pr merge --auto --squash' "$SHEPHERD")"
-assert_true "$([ "$_shep_commit_line" -gt 0 ] && [ "$_shep_merge_line" -gt 0 ] && [ "$_shep_commit_line" -lt "$_shep_merge_line" ]; echo $?)" \
+
+# 0 (wahr), wenn der erste Fixed-String-Treffer von $a in $file VOR dem ersten Treffer von
+# $b liegt (beide müssen > 0 sein); sonst 1. Fail-closed: fehlt einer der Treffer ⇒ 1
+# (integer-sicher über first_match_line). Für Reihenfolge-Guards „Kommando A steht vor B".
+line_before() {
+  local a b file="$3"
+  a="$(first_match_line "$1" "$file")"
+  b="$(first_match_line "$2" "$file")"
+  [ "$a" -gt 0 ] && [ "$b" -gt 0 ] && [ "$a" -lt "$b" ]
+}
+assert_true "$(line_before 'factory-commit.sh' 'gh pr merge --auto --squash' "$SHEPHERD"; echo $?)" \
   "#114: Abschlussnotiz wird vor 'gh pr merge --auto --squash' committet (Reihenfolge)"
 
 # #117: pr-shepherd Schritt 2 (Review-Kommentare auflösen) committet Review-Fixes über den
@@ -1577,11 +1585,9 @@ assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'gh pr m
 
 # AC4: die Abschlussnotiz (factory-commit.sh) steht AUCH VOR dem Direct-Merge-Zweig – nicht
 # nur vor der --auto-Zeile (bereits durch #114 oben geprüft). Sonst könnte der direkte Merge
-# vor dem Notiz-Push feuern (Notiz landet nie auf main, #112/#114). first_match_line auf
-# 'gh pr merge --squash' liefert die Direct-Zeile (nicht die --auto-Zeile, s. o.).
-# _shep_commit_line ist bereits im #114-Block oben berechnet (gleicher Wert) – wiederverwendet.
-_shep_direct_merge_line="$(first_match_line 'gh pr merge --squash' "$SHEPHERD")"
-assert_true "$([ "$_shep_commit_line" -gt 0 ] && [ "$_shep_direct_merge_line" -gt 0 ] && [ "$_shep_commit_line" -lt "$_shep_direct_merge_line" ]; echo $?)" \
+# vor dem Notiz-Push feuern (Notiz landet nie auf main, #112/#114). Zweiter Marker
+# 'gh pr merge --squash' ist die Direct-Zeile, nicht die --auto-Zeile (kein Teilstring, s. o.).
+assert_true "$(line_before 'factory-commit.sh' 'gh pr merge --squash' "$SHEPHERD"; echo $?)" \
   "#158: Abschlussnotiz wird vor 'gh pr merge --squash' (Direct-Merge) committet (Reihenfolge)"
 
 # Fail-closed: kein pauschales Bash(git *) / Bash(gh *).

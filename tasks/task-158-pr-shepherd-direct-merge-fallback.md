@@ -5,7 +5,7 @@
 - [x] Review bestanden (APPROVED, `tasks/review-158.md`)
 - [x] Tests vollständig (`run-tests.sh`: 304 grün / 0 rot)
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen (line_before-Helper, N4)
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -94,6 +94,13 @@ Abdeckung ist die Shell-Self-Test-Suite. AC-Mapping:
 - AC5 = die Assertions selbst. AC6 (Stolperstein) = Doku, keine Test-Präzedenz für PROJECT-CONTEXT-
   Prosa (kein Gold-Plating).
 - Ergebnis: `run-tests.sh` 304 grün / 0 rot; `pnpm test` 376 grün.
+
+## Refactor (/refactor)
+- Reihenfolge-Check-Muster (3. Wiederholung, Review-Nitpick N4) in Helper `line_before <a> <b>
+  <file>` extrahiert (Prädikat-Stil wie `section_contains`), an #114 **und** #158-AC4 genutzt.
+- Entkoppelt die subtile Cross-Block-Abhängigkeit: #158-AC4 hing zuvor an `_shep_commit_line`
+  aus dem #114-Block – beide sind jetzt eigenständig.
+- Kein neues Verhalten: `run-tests.sh` 304 grün vor und nach dem Refactor.
 
 ## Review-Findings
 Siehe `tasks/review-158.md` – **APPROVED**. Keine kritischen Findings. 2 wichtige (Notiz-Template
