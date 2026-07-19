@@ -1,13 +1,13 @@
 # Task 148: rollen-rename-veranstalter
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung → Implementierung abgeschlossen (alle 13 AC grün)
+- [x] Review bestanden (APPROVED, `tasks/review-148.md`)
+- [x] Tests vollständig (reine Doku: keine Unit-Tests; ACs per `git grep`-Guards belegt – `/test` gegenstandslos)
+- [x] Security-Review bestanden (PASSED, `tasks/security-148.md`)
+- [x] Refactoring abgeschlossen (n/a – kein Produktionscode; Text bereits minimal/konsistent)
+- [x] Codify ausgeführt (`tasks/codify-148.md`; Homograph-Regel in PROJECT-CONTEXT ergänzt)
+- [x] Fertig / PR erstellt (Draft-PR #154; Freigabe/Merge über `/pr-shepherd`)
 
 ## Beschreibung
 
