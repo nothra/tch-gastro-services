@@ -184,7 +184,11 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
               label="Ausgaben – Auslagenerstattungen gesamt"
               cents={abrechnung.ausgabenErstattetCents}
             />
-            <SummenZeile label="Kassenveränderung" cents={abrechnung.kassenveraenderungCents} bold />
+            <SummenZeile
+              label="Kassenveränderung"
+              cents={abrechnung.kassenveraenderungCents}
+              bold
+            />
           </tbody>
         </table>
       </section>
@@ -198,7 +202,10 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {ereignisse.map((ereignis) => (
-              <li key={ereignis.id} className="flex flex-wrap gap-x-2 text-zinc-700 dark:text-zinc-300">
+              <li
+                key={ereignis.id}
+                className="flex flex-wrap gap-x-2 text-zinc-700 dark:text-zinc-300"
+              >
                 <span className="font-medium">{EREIGNIS_ART_LABEL[ereignis.art]}</span>
                 <span>· {ereignis.akteurName ?? "—"}</span>
                 <span className="tabular-nums">· {formatZeitpunkt(ereignis.createdAt)}</span>

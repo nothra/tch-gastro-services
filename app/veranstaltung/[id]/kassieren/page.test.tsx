@@ -267,7 +267,9 @@ describe("KassierenPage", () => {
 
     render(await KassierenPage({ params: params("v-1") }));
 
-    expect(screen.getByText(/Noch kein Abschluss oder Wiederöffnen protokolliert/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Noch kein Abschluss oder Wiederöffnen protokolliert/),
+    ).toBeInTheDocument();
   });
 
   it("should_hideKassiereFormAndShowErhalten_when_abgeschlossen", async () => {
