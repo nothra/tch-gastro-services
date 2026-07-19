@@ -2,6 +2,7 @@
   "name": "tch-gastro-services",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "packageManager": "pnpm@11.10.0",
   "scripts": {
     "dev": "next dev",

@@ -198,6 +198,10 @@ docker-compose.yml        # lokale DEV-Postgres
 vercel.json               # Vercel-Region fra1
 ```
 
+Eine kuratierte **Routen-Übersicht** (alle Seiten + API-Route-Handler mit Funktion und
+Zugriff/Rolle) steht in [`docs/routes.md`](docs/routes.md); ein Drift-Check im Push-Gate hält sie
+mit dem `app/`-Baum synchron.
+
 ---
 
 ## Entwicklung mit der dm-Factory (Werkzeug)
