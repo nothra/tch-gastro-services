@@ -209,10 +209,13 @@ mit dem `app/`-Baum synchron.
 Dieses Repo nutzt als **Entwicklungs-Harness** die [dm-Factory](https://gitlab.dm-drogeriemarkt.com/ctech_tv/dm-factory-template)
 (agentische Entwicklung mit Claude Code) – auf GitHub portiert. Praktisch heißt das:
 
+- **Zwei Phasen:** Der Mensch **schärft die Anforderung** interaktiv (Phase 1: Requirements, ggf.
+  Architecture – nicht automatisierbar), die Automatik **setzt sie um** (Phase 2: Implement → … → PR
+  – vollautomatisierbar oder Skill für Skill). Kanonische Ablauf-Beschreibung: [`docs/factory/OPERATING.md`](docs/factory/OPERATING.md).
 - **Issue-first**: neue Aufgabe mit `bash scripts/start-work.sh "<beschreibung>"` (legt GitHub-Issue,
   Branch und Task-Datei an). Task-ID = Issue-Nummer.
 - **PR-Workflow** mit CI-Gates (`.github/workflows/`): Lint, Tests, Self-Test, Issue-Sync.
-- Details: [`CLAUDE.md`](CLAUDE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/`](docs/) (ADRs, Guidelines).
+- Details: [`docs/factory/OPERATING.md`](docs/factory/OPERATING.md) (Runbook), [`CLAUDE.md`](CLAUDE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/`](docs/) (ADRs, Guidelines).
 
 Die Factory ist reines Werkzeug – sie ist **nicht** Teil der ausgelieferten Anwendung.
 

@@ -12,6 +12,12 @@ Format: [Keep a Changelog](https://keepachangelog.com) · Semantic Versioning ab
 ## [Unreleased]
 
 ### Changed
+- **Factory-Doku als zwei Phasen dargestellt** (#161): `OPERATING.md` bekommt den Rahmen „Die zwei
+  Phasen der Factory" (Phase 1 *Anforderung schärfen* = immer Mensch ↔ Claude via `start-work.sh`;
+  Phase 2 *Umsetzung* = vollautomatisierbar via `run-pipeline.sh` oder Skill für Skill). Die
+  Unterscheidung automatisiert (Abschnitt 1) vs. manuell (Abschnitt 2) betrifft **nur** Phase 2. Die
+  Pipeline-Übersicht in `CLAUDE.md` zeigt jetzt eine sichtbare **Phasengrenze**; `README.md` spiegelt
+  den Zwei-Phasen-Gedanken in einem Satz und verweist auf `OPERATING.md` als kanonische Quelle.
 - **`OPERATING.md` §1.1 stellt Worktree ↔ Session klar** (#78): Der Worktree gehört der **Task, nicht
   der Session** – `/requirements` und `/implement` laufen im **selben** Worktree; eine frische
   Claude-Session je Schritt ist ok, ein frischer Working Tree wäre falsch.
