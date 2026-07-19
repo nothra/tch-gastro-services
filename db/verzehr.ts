@@ -14,8 +14,10 @@ import {
 // Data-Layer mit einer token-scoped Action wiederverwenden kann.
 
 // Eine Position je Zeile mit aufgelöstem Katalog-Preis/-Name/-Kategorie (Read-Time-Join,
-// ADR-025 D2: Live-Katalog solange offen, kein Snapshot in F5). `active` macht den
-// Soft-Delete-Status des Artikels explizit sichtbar (ADR-026 D1) – der Join selbst bleibt
+// ADR-025 D2). Der Preis ist `COALESCE(einzelpreis_cents, catalog_item.price_cents)` (ADR-033 D2):
+// solange offen ist `einzelpreis_cents = NULL` ⇒ Live-Katalog (ADR-025 D2 wörtlich); nach dem
+// Abschluss ⇒ eingefrorener Snapshot, damit Tages-/Zeilensummen stabil bleiben. `active` macht
+// den Soft-Delete-Status des Artikels explizit sichtbar (ADR-026 D1) – der Join selbst bleibt
 // ohne `active`-Filter, die Preisauflösung gelingt weiterhin immer.
 export type VerzehrPositionRow = {
   zeileId: string;
@@ -62,7 +64,8 @@ export function listPositionen(veranstaltungId: string): Promise<VerzehrPosition
       menge: verzehrPosition.menge,
       name: catalogItems.name,
       size: catalogItems.size,
-      priceCents: catalogItems.priceCents,
+      // Eingefrorener Snapshot hat Vorrang, sonst Live-Katalogpreis (ADR-033 D2).
+      priceCents: sql<number>`coalesce(${verzehrPosition.einzelpreisCents}, ${catalogItems.priceCents})`,
       category: catalogItems.category,
       active: catalogItems.active,
     })

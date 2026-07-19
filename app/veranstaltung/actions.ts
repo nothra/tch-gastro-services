@@ -8,21 +8,26 @@ import { getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
 import { KASSEN, veranstaltungStatus, type Kasse } from "@/db/schema";
 import {
+  abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
   getZeile,
   getZeileByTeilnehmer,
+  listZeilen,
   removeZeile,
-  setStatus,
+  setErhalten,
+  wiedereroeffnenVeranstaltung,
 } from "@/db/veranstaltung";
-import { adjustMenge, getPosition } from "@/db/verzehr";
+import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
 import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
+import { kassierTagessummen, kassierZeilen } from "./kassierSummen";
 import {
   auslageSchema,
   auslageStatusSchema,
+  kassiereSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
 } from "./schema";
@@ -31,6 +36,7 @@ const LIST_PATH = "/veranstaltung";
 const detailPath = (id: string) => `${LIST_PATH}/${id}`;
 const verzehrPath = (id: string) => `${detailPath(id)}/verzehr`;
 const auslagenPath = (id: string) => `${detailPath(id)}/auslagen`;
+const kassierenPath = (id: string) => `${detailPath(id)}/kassieren`;
 
 const NOT_FOUND = "Veranstaltung nicht gefunden.";
 const NOT_OFFEN = "Die Veranstaltung ist abgeschlossen und schreibgeschützt.";
@@ -132,27 +138,103 @@ export async function removeZeileAction(formData: FormData): Promise<void> {
   revalidatePath(detailPath(veranstaltungId));
 }
 
-// Die stehende Theke schließt nie (ADR-023 D4) – ein Abschluss für typ='theke' wird abgelehnt.
-export async function setStatusAction(formData: FormData): Promise<void> {
-  await requireRole("veranstalter");
+const THEKE_NICHT_ABSCHLIESSBAR = "Die Theke wird nicht abgeschlossen.";
+const BEREITS_ABGESCHLOSSEN = "Die Veranstaltung ist bereits abgeschlossen.";
+const BEREITS_OFFEN = "Die Veranstaltung ist bereits offen.";
+const INVALID_STATUS = "Ungültiger Status.";
+const offeneZeilenFehler = (offeneZeilen: number) =>
+  `Abschluss nicht möglich: ${offeneZeilen} Zeile(n) noch offen.`;
+
+// Zählt die noch offenen Zeilen (`Verzehr-Gesamt > Erhalten`) einer Veranstaltung über die
+// SINGLE-SOURCE-Kassierlogik (ADR-033 D5) – dieselbe Berechnung wie die Anzeige. Speist das
+// fail-closed Abschluss-Gate (ADR-033 D3).
+async function offeneZeilenCount(veranstaltungId: string): Promise<number> {
+  const [zeilen, positionen] = await Promise.all([
+    listZeilen(veranstaltungId),
+    listPositionen(veranstaltungId),
+  ]);
+  return kassierTagessummen(kassierZeilen(zeilen, positionen)).offeneZeilen;
+}
+
+// Schließt eine Veranstaltung ab bzw. öffnet sie wieder (F8, #55, ADR-033 D3/D6). Erweitert die
+// frühere fire-and-forget-Variante auf einen Rückgabe-State (`useActionState`, Codify #49), damit
+// die Abschluss-Ablehnung „N Zeile(n) offen" sichtbar wird. Abschluss ist fail-closed: die Theke
+// schließt nie (ADR-023 D4), und solange eine Zeile offen ist, wird abgelehnt. Abschluss/
+// Wiederöffnung laufen transaktional (Preis-Snapshot + Status + Protokoll) in der Data-Layer.
+export async function setStatusAction(
+  _prevState: VeranstaltungFormState | undefined,
+  formData: FormData,
+): Promise<VeranstaltungFormState> {
+  const session = await requireRole("veranstalter");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
-  if (!id) return;
+  if (!id) return { error: "Keine Veranstaltung angegeben." };
   if (
     !veranstaltungStatus.enumValues.includes(
       status as (typeof veranstaltungStatus.enumValues)[number],
     )
   ) {
-    return;
+    return { error: INVALID_STATUS };
   }
 
   const ziel = await getVeranstaltung(id);
-  if (!ziel) return;
-  if (ziel.typ === "theke" && status === "abgeschlossen") return;
+  if (!ziel) return { error: NOT_FOUND };
 
-  await setStatus(id, status as (typeof veranstaltungStatus.enumValues)[number]);
+  // Akteur-Snapshot für das Protokoll (ADR-033 D4/D7): id aus der Session, Name display-ready.
+  const akteur = { userId: session.user.id || null, name: session.user.name ?? null };
+
+  // Der guarded UPDATE der Data-Layer (`WHERE status = …`, ADR-033 D3) liefert `undefined`, wenn
+  // eine nebenläufige Anfrage den Wechsel schon vollzogen hat (TOCTOU nach diesem Vor-Check).
+  // Diesen No-op als „bereits …"-Fehler ausweisen, statt fälschlich `{ ok: true }` zu melden.
+  if (status === "abgeschlossen") {
+    if (ziel.typ === "theke") return { error: THEKE_NICHT_ABSCHLIESSBAR };
+    if (ziel.status !== "offen") return { error: BEREITS_ABGESCHLOSSEN };
+    const offene = await offeneZeilenCount(id);
+    if (offene > 0) {
+      return { error: offeneZeilenFehler(offene) };
+    }
+    const closed = await abschliessenVeranstaltung(id, akteur);
+    if (!closed) return { error: BEREITS_ABGESCHLOSSEN };
+  } else {
+    if (ziel.status !== "abgeschlossen") return { error: BEREITS_OFFEN };
+    const reopened = await wiedereroeffnenVeranstaltung(id, akteur);
+    if (!reopened) return { error: BEREITS_OFFEN };
+  }
+
   revalidatePath(detailPath(id));
+  revalidatePath(kassierenPath(id));
   revalidatePath(LIST_PATH);
+  return { ok: true };
+}
+
+// Erfasst den bar kassierten Betrag (`Erhalten`) einer Zeile (F8, #55, ADR-033 D6). `veranstaltungId`
+// ist serverseitig gebunden (`.bind(null, id)`, analog `adjustVerzehrAction`). Fail-closed:
+// Veranstalter-Rolle, offene Veranstaltung, IDOR-Bindung der Zeile (Codify #51). Der Zeilenstatus
+// (bezahlt/offen) und die Spende werden NICHT gespeichert – sie sind abgeleitet (ADR-033 D1).
+export async function kassiereZeileAction(
+  veranstaltungId: string,
+  _prevState: VeranstaltungFormState | undefined,
+  formData: FormData,
+): Promise<VeranstaltungFormState> {
+  await requireRole("veranstalter");
+
+  const zeileId = String(formData.get("zeileId") ?? "");
+  if (!zeileId) return { error: ZEILE_NOT_FOUND };
+
+  const parsed = kassiereSchema.safeParse({ erhalten: formData.get("erhalten") ?? "" });
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const ziel = await getVeranstaltung(veranstaltungId);
+  if (!ziel) return { error: NOT_FOUND };
+  if (ziel.status !== "offen") return { error: NOT_OFFEN };
+
+  // IDOR-Bindung (Codify #51): die Zeile muss zu genau dieser Veranstaltung gehören.
+  const zeile = await getZeile(zeileId, veranstaltungId);
+  if (!zeile) return { error: ZEILE_NOT_FOUND };
+
+  await setErhalten(zeileId, veranstaltungId, parsed.data.erhalten);
+  revalidatePath(kassierenPath(veranstaltungId));
+  return { ok: true };
 }
 
 // Erfasst einen Strich (Delta ±1) auf einer (Zeile, Katalogartikel)-Position (F5, ADR-025 D6).

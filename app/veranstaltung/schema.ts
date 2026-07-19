@@ -73,3 +73,22 @@ export const auslageStatusSchema = z.object({
 });
 
 export type AuslageStatusInput = z.infer<typeof auslageStatusSchema>;
+
+// Zod-Grenze für das Kassieren (F8, #55, ADR-033 D6). `erhalten` durchläuft den Money-Seam
+// (`parseEuroToCents`) wie Katalogpreis/Auslage, mit int4-Obergrenze (Codify #49). Anders als bei
+// der Auslage ist `0` gültig (jemand zahlt nichts), und leer wird zu `null` normalisiert = „noch
+// nicht kassiert" (ADR-033 D1). Der EURO_INPUT_RE lässt keine negativen Werte zu (Fehlerszenario
+// „Betrag ≥ 0"); die DB-CHECK sichert es zusätzlich fail-closed ab.
+export const kassiereSchema = z.object({
+  erhalten: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || EURO_INPUT_RE.test(value),
+      "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.",
+    )
+    .transform((value) => (value === "" ? null : parseEuroToCents(value)))
+    .refine((cents) => cents === null || cents <= INT4_MAX, "Betrag ist zu hoch."),
+});
+
+export type KassiereInput = z.infer<typeof kassiereSchema>;

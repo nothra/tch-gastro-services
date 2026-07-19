@@ -205,10 +205,21 @@ export const veranstaltungZeile = pgTable(
       .notNull()
       .references(() => teilnehmer.id),
     anzeigename: text("anzeigename").notNull(),
+    // Bar kassierter Betrag (F8, #55, ADR-033 D1). NULL = noch nicht kassiert (von „0 kassiert"
+    // unterschieden für Anzeige/Korrektur). Der Zeilenstatus bezahlt/offen ist NICHT gespeichert,
+    // sondern abgeleitet (`(erhalten ?? 0) >= verzehrGesamt`) – single source, kein Drift.
+    erhaltenCents: integer("erhalten_cents"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (z) => [unique("veranstaltung_zeile_unique").on(z.veranstaltungId, z.teilnehmerId)],
+  (z) => [
+    unique("veranstaltung_zeile_unique").on(z.veranstaltungId, z.teilnehmerId),
+    // Fail-closed DB-Guard unabhängig vom Aufrufweg (ADR-033 D1); Obergrenze (INT4_MAX) in Zod.
+    check(
+      "veranstaltung_zeile_erhalten_nicht_negativ",
+      sql`${z.erhaltenCents} IS NULL OR ${z.erhaltenCents} >= 0`,
+    ),
+  ],
 );
 
 export type VeranstaltungZeile = typeof veranstaltungZeile.$inferSelect;
@@ -234,6 +245,11 @@ export const verzehrPosition = pgTable(
       .notNull()
       .references(() => catalogItems.id),
     menge: integer("menge").notNull().default(0),
+    // Eingefrorener Katalogpreis-Snapshot beim Abschluss (F8, #55, ADR-033 D2). NULL = live
+    // Katalog (Normalfall, offene Veranstaltung); gesetzt = eingefroren. Die Preis-Auflösung liest
+    // überall `COALESCE(einzelpreis_cents, catalog_item.price_cents)`, damit abgeschlossene
+    // Veranstaltungen gegen spätere Katalog-Preisänderungen stabil bleiben (Tagessummen fixiert).
+    einzelpreisCents: integer("einzelpreis_cents"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -242,6 +258,11 @@ export const verzehrPosition = pgTable(
     unique("verzehr_position_zeile_item_unique").on(p.zeileId, p.catalogItemId),
     // DB-seitige, fail-closed Absicherung „keine negativen Mengen" (ADR-025 D1/D3).
     check("verzehr_position_menge_nicht_negativ", sql`${p.menge} >= 0`),
+    // Fail-closed DB-Guard für den Preis-Snapshot (ADR-033 D2), analog `menge >= 0`.
+    check(
+      "verzehr_position_einzelpreis_nicht_negativ",
+      sql`${p.einzelpreisCents} IS NULL OR ${p.einzelpreisCents} >= 0`,
+    ),
   ],
 );
 
@@ -289,3 +310,33 @@ export const auslage = pgTable(
 
 export type Auslage = typeof auslage.$inferSelect;
 export type NewAuslage = typeof auslage.$inferInsert;
+
+// Append-only Protokoll jedes Abschluss-/Wiederöffnungs-Vorgangs einer Veranstaltung (F8, #55,
+// ADR-033 D4). Eine Veranstaltung kann mehrfach geöffnet/geschlossen werden; ein Log (statt
+// Zeitstempel an der Entität) bewahrt die vollständige Historie des kassenintegritäts-kritischen
+// Reopenings (wer/wann). Deutsche Enum-Werte wie die übrigen Enums.
+export const veranstaltungEreignisArt = pgEnum("veranstaltung_ereignis_art", [
+  "abgeschlossen",
+  "wiedereroeffnet",
+]);
+export type VeranstaltungEreignisArt = (typeof veranstaltungEreignisArt.enumValues)[number];
+
+export const veranstaltungEreignis = pgTable("veranstaltung_ereignis", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => globalThis.crypto.randomUUID()),
+  // Cascade – löscht man die Veranstaltung, verschwinden ihre Ereignisse mit (konsistent zu
+  // Zeilen/Positionen/Auslagen).
+  veranstaltungId: text("veranstaltung_id")
+    .notNull()
+    .references(() => veranstaltung.id, { onDelete: "cascade" }),
+  art: veranstaltungEreignisArt("art").notNull(),
+  // Akteur aus der Session. `set null` + nullable, damit der Eintrag eine spätere User-Löschung
+  // übersteht; der Name-Snapshot (ADR-022-Philosophie) hält den Eintrag anzeigbar ohne Join.
+  akteurUserId: text("akteur_user_id").references(() => users.id, { onDelete: "set null" }),
+  akteurName: text("akteur_name"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type VeranstaltungEreignis = typeof veranstaltungEreignis.$inferSelect;
+export type NewVeranstaltungEreignis = typeof veranstaltungEreignis.$inferInsert;

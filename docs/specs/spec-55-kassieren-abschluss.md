@@ -10,9 +10,9 @@
 ## Kontext
 
 Zum Ende der Veranstaltung kassiert der Veranstalter bei jedem Teilnehmer seinen **Verzehr** bar.
-Zahlt jemand mehr, gilt der Überschuss als **Spende**. Kann jemand nicht kassiert werden
-(Veranstalter geht früher, kein Bargeld), bleibt die Zeile **offen**. Die Veranstaltung wird
-abgeschlossen und die Tagessummen stehen fest.
+Zahlt jemand mehr, gilt der Überschuss als **Spende**. Die Veranstaltung kann erst
+**abgeschlossen** werden, wenn **jede** Zeile vollständig bezahlt ist – danach stehen die
+Tagessummen fest.
 
 **Wichtig (Entscheidung 2026-07-11):** Auslagen werden hier **nicht** verrechnet – deren
 Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 0.
@@ -24,7 +24,15 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 - `Erhalten` (bar kassiert) je Zeile erfassen.
 - `Spende` = `Erhalten − Verzehr-Gesamt` (automatisch; nur positiver Überschuss ist Spende).
 - Zeilen-Status **`offen`** oder **`bezahlt`** – **kein** Restbetrag/Teilzahlung im MVP.
-- Veranstaltung **abschließen**: danach schreibgeschützt; Tagessummen fixiert.
+  **Status-Logik (abgeleitet, Entscheidung 2026-07-19):** Eine Zeile ist genau dann
+  **`bezahlt`**, wenn `Erhalten ≥ Verzehr-Gesamt` gilt; sonst **`offen`**. Eine Zeile mit
+  `Verzehr-Gesamt = 0` (nichts konsumiert) ist damit auch ohne `Erhalten` **bezahlt** (nichts
+  zu kassieren). Es gibt **kein** manuelles Offen-/Bezahlt-Setzen und **keinen** Fall
+  „nicht kassierbar" (strikte Abschluss-Regel unten).
+- Veranstaltung **abschließen**: **nur möglich, wenn keine offene Zeile mehr existiert**
+  (jede Zeile `bezahlt`, d. h. `Erhalten ≥ Verzehr-Gesamt`). Ein Abschluss bei mindestens
+  einer offenen Zeile wird **serverseitig abgelehnt** (fail-closed) mit Hinweis, welche/wie
+  viele Zeilen noch offen sind. Nach dem Abschluss: schreibgeschützt; Tagessummen fixiert.
 - Abgeschlossene Veranstaltung durch einen **Veranstalter wieder öffnen**, korrigieren, erneut
   abschließen – jede (Wieder-)Öffnung/Abschluss wird protokolliert.
 - Tagessummen über alle Zeilen: Σ Getränke, Σ Sonstige, Σ Verzehr-Gesamt, Σ Erhalten,
@@ -52,18 +60,23 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
       **ohne** Auslagen-Abzug).
 - [ ] GIVEN ein Teilnehmer zahlt genau den Verzehr-Gesamt WHEN `Erhalten = Verzehr-Gesamt`
       erfasst wird THEN ist `Spende = 0` und die Zeile gilt als **bezahlt**.
+- [ ] GIVEN eine Zeile ohne jeden Verzehr (`Verzehr-Gesamt = 0`) und ohne `Erhalten` WHEN
+      der Status gebildet wird THEN gilt die Zeile als **bezahlt** (nichts zu kassieren) und
+      zählt beim Abschluss **nicht** als offene Zeile.
 - [ ] GIVEN ein Teilnehmer zahlt mehr WHEN `Erhalten > Verzehr-Gesamt` erfasst wird THEN
       ist `Spende = Erhalten − Verzehr-Gesamt` und wird als Spende ausgewiesen; Zeile
       **bezahlt**.
-- [ ] GIVEN ein Teilnehmer zahlt weniger als den Verzehr-Gesamt (`Erhalten < Verzehr-
-      Gesamt`) WHEN das erfasst wird THEN gilt die Zeile **nicht** als bezahlt; sie
+- [ ] GIVEN ein Teilnehmer zahlt weniger als den Verzehr-Gesamt (`Verzehr-Gesamt >
+      Erhalten`) WHEN das erfasst wird THEN gilt die Zeile **nicht** als bezahlt; sie
       bleibt/wird **offen** (kein Restbetrag gespeichert – MVP).
-- [ ] GIVEN ein Teilnehmer kann nicht kassiert werden WHEN der Veranstalter die Zeile als
-      **offen** markiert THEN bleibt sie ohne `Erhalten`, zählt nicht als bezahlt und
-      **wird nicht** übertragen (MVP).
-- [ ] GIVEN eine Veranstaltung mit gemischt bezahlten und offenen Zeilen WHEN der Veranstalter die
-      Veranstaltung abschließt THEN wird die Veranstaltung `abgeschlossen`, ist schreibgeschützt, und die
-      Tagessummen sind fixiert.
+- [ ] GIVEN eine Veranstaltung mit **mindestens einer offenen Zeile** (`Verzehr-Gesamt >
+      Erhalten`) WHEN der Veranstalter sie abschließen will THEN wird der Abschluss
+      **abgelehnt** (serverseitig, fail-closed) mit Hinweis, welche/wie viele Zeilen noch
+      offen sind; die Veranstaltung bleibt `offen`.
+- [ ] GIVEN eine Veranstaltung, in der **jede** Zeile bezahlt ist (`Erhalten ≥
+      Verzehr-Gesamt`, inkl. Zeilen mit `Verzehr-Gesamt = 0`) WHEN der Veranstalter die
+      Veranstaltung abschließt THEN wird die Veranstaltung `abgeschlossen`, ist
+      schreibgeschützt, und die Tagessummen sind fixiert.
 - [ ] GIVEN eine abgeschlossene Veranstaltung WHEN ein Veranstalter sie wieder öffnet THEN sind
       Korrekturen (Verzehr, Erhalten, Auslagen) wieder möglich; die Wiederöffnung wird
       protokolliert; nach erneutem Abschluss sind die Summen neu fixiert.
@@ -82,8 +95,9 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
 ## Fehlerszenarien
 
 - [ ] `Erhalten` kein gültiger EUR-Betrag ≥ 0 → serverseitig abgelehnt.
-- [ ] Abschluss trotz offener Zeilen → erlaubt, aber mit deutlichem Hinweis, wie viele
-      Zeilen offen bleiben.
+- [ ] Abschluss bei mindestens einer offenen Zeile (`Verzehr-Gesamt > Erhalten`) →
+      serverseitig **abgelehnt** (fail-closed), mit Hinweis welche/wie viele Zeilen offen sind;
+      Status bleibt `offen`.
 - [ ] Wiederöffnen durch eine Person ohne Veranstalter-Rolle → serverseitig abgelehnt (F1).
 
 ## Offene Fragen (für /architecture)

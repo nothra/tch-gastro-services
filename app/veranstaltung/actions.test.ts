@@ -16,15 +16,22 @@ vi.mock("@/db/veranstaltung", () => ({
   createVeranstaltung: vi.fn(),
   addZeile: vi.fn(),
   removeZeile: vi.fn(),
-  setStatus: vi.fn(),
+  setErhalten: vi.fn(),
+  abschliessenVeranstaltung: vi.fn(),
+  wiedereroeffnenVeranstaltung: vi.fn(),
   getVeranstaltung: vi.fn(),
   getZeile: vi.fn(),
   getZeileByTeilnehmer: vi.fn(),
+  listZeilen: vi.fn(),
   ensureThekeForKasse: vi.fn(),
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
 vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn() }));
-vi.mock("@/db/verzehr", () => ({ adjustMenge: vi.fn(), getPosition: vi.fn() }));
+vi.mock("@/db/verzehr", () => ({
+  adjustMenge: vi.fn(),
+  getPosition: vi.fn(),
+  listPositionen: vi.fn(),
+}));
 vi.mock("@/db/auslage", () => ({
   createAuslage: vi.fn(),
   updateAuslage: vi.fn(),
@@ -36,16 +43,19 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
 import { getCatalogItem } from "@/db/catalog";
-import { adjustMenge, getPosition } from "@/db/verzehr";
+import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
 import {
+  abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
   getZeile,
   getZeileByTeilnehmer,
+  listZeilen,
   removeZeile,
-  setStatus,
+  setErhalten,
+  wiedereroeffnenVeranstaltung,
 } from "@/db/veranstaltung";
 import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
 import {
@@ -55,6 +65,7 @@ import {
   createVeranstaltungAction,
   createWalkInAction,
   ensureThekeAction,
+  kassiereZeileAction,
   removeAuslageAction,
   removeZeileAction,
   setAuslageStatusAction,
@@ -66,10 +77,14 @@ const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
 const createMock = vi.mocked(createVeranstaltung);
 const addZeileMock = vi.mocked(addZeile);
 const removeZeileMock = vi.mocked(removeZeile);
-const setStatusMock = vi.mocked(setStatus);
+const setErhaltenMock = vi.mocked(setErhalten);
+const abschliessenMock = vi.mocked(abschliessenVeranstaltung);
+const wiedereroeffnenMock = vi.mocked(wiedereroeffnenVeranstaltung);
 const getVeranstaltungMock = vi.mocked(getVeranstaltung);
 const getZeileMock = vi.mocked(getZeile);
 const getZeileByTeilnehmerMock = vi.mocked(getZeileByTeilnehmer);
+const listZeilenMock = vi.mocked(listZeilen);
+const listPositionenMock = vi.mocked(listPositionen);
 const ensureThekeMock = vi.mocked(ensureThekeForKasse);
 const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
@@ -88,7 +103,10 @@ function form(fields: Record<string, string>): FormData {
 }
 
 function sessionWithRoles(roles: string[]): Session {
-  return { user: { roles }, expires: "2099-01-01T00:00:00.000Z" } as Session;
+  return {
+    user: { id: "u1", name: "Vera Veranstalter", roles },
+    expires: "2099-01-01T00:00:00.000Z",
+  } as Session;
 }
 
 const offeneVeranstaltung: Veranstaltung = {
@@ -124,6 +142,7 @@ const zeile: VeranstaltungZeile = {
   veranstaltungId: "v1",
   teilnehmerId: "t1",
   anzeigename: "Anna Beispiel",
+  erhaltenCents: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -165,6 +184,11 @@ beforeEach(() => {
   getVeranstaltungMock.mockResolvedValue(offeneVeranstaltung);
   getZeileMock.mockResolvedValue(zeile);
   getZeileByTeilnehmerMock.mockResolvedValue(zeile);
+  listZeilenMock.mockResolvedValue([]);
+  listPositionenMock.mockResolvedValue([]);
+  setErhaltenMock.mockResolvedValue(zeile);
+  abschliessenMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+  wiedereroeffnenMock.mockResolvedValue(offeneVeranstaltung);
   getTeilnehmerMock.mockResolvedValue(person);
   createTeilnehmerMock.mockResolvedValue(person);
   getCatalogItemMock.mockResolvedValue(cola);
@@ -176,6 +200,7 @@ beforeEach(() => {
     id: "p1",
     zeileId: "z1",
     catalogItemId: "c1",
+    einzelpreisCents: null,
     menge: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -391,49 +416,202 @@ describe("removeZeileAction", () => {
 });
 
 describe("setStatusAction", () => {
-  it("should_closeVeranstaltung_when_statusAbgeschlossen", async () => {
-    await setStatusAction(form({ id: "v1", status: "abgeschlossen" }));
-    expect(setStatusMock).toHaveBeenCalledWith("v1", "abgeschlossen");
+  it("should_closeVeranstaltung_when_allLinesPaid", async () => {
+    // Keine Zeilen → keine offene Zeile → abschließbar.
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+    expect(result).toEqual({ ok: true });
+    expect(abschliessenMock).toHaveBeenCalledWith("v1", {
+      userId: "u1",
+      name: "Vera Veranstalter",
+    });
+  });
+
+  it("should_normalizeEmptyActorIdAndMissingName_when_sessionUserIncomplete", async () => {
+    // `session.user.id || null` und `session.user.name ?? null` (ADR-033 D4/D7): ein leerer
+    // String bzw. fehlender Name (theoretisch nicht authentifiziert, aber FK ist
+    // nullable/onDelete set null) werden zu `null` normalisiert, nicht als leerer
+    // String/`undefined` an den Protokoll-Snapshot übergeben.
+    authMock.mockResolvedValue({
+      user: { id: "", roles: ["veranstalter"] },
+      expires: "2099-01-01T00:00:00.000Z",
+    } as unknown as Session);
+
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+
+    expect(result).toEqual({ ok: true });
+    expect(abschliessenMock).toHaveBeenCalledWith("v1", { userId: null, name: null });
+  });
+
+  it("should_rejectClose_when_atLeastOneLineOpen", async () => {
+    // Eine Zeile mit Verzehr 250 (1× Cola) und ohne Erhalten → offen.
+    listZeilenMock.mockResolvedValue([{ ...zeile, erhaltenCents: null }]);
+    listPositionenMock.mockResolvedValue([
+      {
+        zeileId: "z1",
+        catalogItemId: "c1",
+        menge: 1,
+        name: "Cola",
+        size: "",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
+    ]);
+
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+
+    expect(result.error).toContain("1 Zeile(n) noch offen");
+    expect(abschliessenMock).not.toHaveBeenCalled();
   });
 
   it("should_reopenVeranstaltung_when_statusOffen", async () => {
     getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
-    await setStatusAction(form({ id: "v1", status: "offen" }));
-    expect(setStatusMock).toHaveBeenCalledWith("v1", "offen");
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "offen" }));
+    expect(result).toEqual({ ok: true });
+    expect(wiedereroeffnenMock).toHaveBeenCalledWith("v1", {
+      userId: "u1",
+      name: "Vera Veranstalter",
+    });
   });
 
   it("should_notCloseTheke_when_typTheke", async () => {
-    getVeranstaltungMock.mockResolvedValue({
-      ...offeneVeranstaltung,
-      typ: "theke",
-      datum: null,
-    });
-    await setStatusAction(form({ id: "v1", status: "abgeschlossen" }));
-    expect(setStatusMock).not.toHaveBeenCalled();
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, typ: "theke", datum: null });
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+    expect(result.error).toBeDefined();
+    expect(abschliessenMock).not.toHaveBeenCalled();
   });
 
-  it("should_ignoreInvalidStatus_when_notInEnum", async () => {
-    await setStatusAction(form({ id: "v1", status: "erledigt" }));
-    expect(setStatusMock).not.toHaveBeenCalled();
+  it("should_rejectInvalidStatus_when_notInEnum", async () => {
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "erledigt" }));
+    expect(result.error).toBe("Ungültiger Status.");
+    expect(abschliessenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectInvalidStatus_when_statusFieldMissing", async () => {
+    // formData.get("status") liefert null, wenn das Feld komplett fehlt (nicht nur ein
+    // ungültiger Wert) – eigener Branch (`?? ""`-Fallback) neben dem Enum-Test oben.
+    const result = await setStatusAction(undefined, form({ id: "v1" }));
+    expect(result.error).toBe("Ungültiger Status.");
+    expect(abschliessenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectClose_when_alreadyClosed", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+    expect(result.error).toBeDefined();
+    expect(abschliessenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectReopen_when_alreadyOpen", async () => {
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "offen" }));
+    expect(result.error).toBeDefined();
+    expect(wiedereroeffnenMock).not.toHaveBeenCalled();
   });
 
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
-    await expect(setStatusAction(form({ id: "v1", status: "abgeschlossen" }))).rejects.toThrow(
-      ForbiddenError,
-    );
-    expect(setStatusMock).not.toHaveBeenCalled();
+    await expect(
+      setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" })),
+    ).rejects.toThrow(ForbiddenError);
+    expect(abschliessenMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_idMissing", async () => {
-    await setStatusAction(form({ status: "abgeschlossen" }));
-    expect(setStatusMock).not.toHaveBeenCalled();
+  it("should_returnError_when_idMissing", async () => {
+    const result = await setStatusAction(undefined, form({ status: "abgeschlossen" }));
+    expect(result.error).toBeDefined();
+    expect(abschliessenMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+  it("should_returnError_when_veranstaltungNotFound", async () => {
     getVeranstaltungMock.mockResolvedValue(undefined);
-    await setStatusAction(form({ id: "v1", status: "abgeschlossen" }));
-    expect(setStatusMock).not.toHaveBeenCalled();
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(abschliessenMock).not.toHaveBeenCalled();
+  });
+
+  // Review-Finding W1 (#55): passiert der Vor-Check, hat aber eine nebenläufige Anfrage den
+  // Wechsel schon vollzogen, liefert der guarded UPDATE der Data-Layer `undefined` (ADR-033 D3).
+  // Die Action muss diesen No-op als „bereits …"-Fehler ausweisen, statt fälschlich `{ ok: true }`.
+  it("should_returnError_when_abschliessenReturnsUndefined", async () => {
+    abschliessenMock.mockResolvedValue(undefined);
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "abgeschlossen" }));
+    expect(result.error).toBe("Die Veranstaltung ist bereits abgeschlossen.");
+    expect(result.ok).toBeUndefined();
+  });
+
+  it("should_returnError_when_wiedereroeffnenReturnsUndefined", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    wiedereroeffnenMock.mockResolvedValue(undefined);
+    const result = await setStatusAction(undefined, form({ id: "v1", status: "offen" }));
+    expect(result.error).toBe("Die Veranstaltung ist bereits offen.");
+    expect(result.ok).toBeUndefined();
+  });
+});
+
+describe("kassiereZeileAction", () => {
+  const bound = (fields: Record<string, string>) =>
+    kassiereZeileAction("v1", undefined, form(fields));
+
+  it("should_persistErhalten_when_validAmount", async () => {
+    const result = await bound({ zeileId: "z1", erhalten: "12,50" });
+    expect(result).toEqual({ ok: true });
+    expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", 1250);
+  });
+
+  it("should_resetErhaltenToNull_when_amountEmpty", async () => {
+    const result = await bound({ zeileId: "z1", erhalten: "" });
+    expect(result).toEqual({ ok: true });
+    expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", null);
+  });
+
+  it("should_resetErhaltenToNull_when_amountFieldMissing", async () => {
+    // formData.get("erhalten") liefert null, wenn das Feld komplett fehlt (nicht nur leer) –
+    // eigener Branch (`?? ""`-Fallback) neben dem Leerstring-Fall oben.
+    const result = await bound({ zeileId: "z1" });
+    expect(result).toEqual({ ok: true });
+    expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", null);
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+    await expect(bound({ zeileId: "z1", erhalten: "5" })).rejects.toThrow(ForbiddenError);
+    expect(setErhaltenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_zeileIdMissing", async () => {
+    const result = await bound({ erhalten: "5" });
+    expect(result.error).toBeDefined();
+    expect(setErhaltenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_amountInvalid", async () => {
+    const result = await bound({ zeileId: "z1", erhalten: "-5" });
+    expect(result.error).toBeDefined();
+    expect(setErhaltenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungNotFound", async () => {
+    // Guard-Branch NOT_FOUND (Codify #51): ohne diesen Test schlüge das Entfernen des
+    // `!ziel`-Guards keinen Test fehl (Smell-Test) – analog den übrigen mutierenden Actions.
+    getVeranstaltungMock.mockResolvedValue(undefined);
+    const result = await bound({ zeileId: "z1", erhalten: "5" });
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(setErhaltenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_veranstaltungNotOffen", async () => {
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    const result = await bound({ zeileId: "z1", erhalten: "5" });
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(setErhaltenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_zeileNotInVeranstaltung", async () => {
+    // IDOR-Bindung: fremde/unbekannte Zeile → getZeile liefert undefined (Codify #51).
+    getZeileMock.mockResolvedValue(undefined);
+    const result = await bound({ zeileId: "z1", erhalten: "5" });
+    expect(result.error).toBe("Teilnehmerzeile nicht gefunden.");
+    expect(setErhaltenMock).not.toHaveBeenCalled();
   });
 });
 
@@ -565,6 +743,7 @@ describe("adjustVerzehrAction", () => {
       zeileId: "z1",
       catalogItemId: "c1",
       menge: 2,
+      einzelpreisCents: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -583,6 +762,7 @@ describe("adjustVerzehrAction", () => {
       zeileId: "z1",
       catalogItemId: "c1",
       menge: 2,
+      einzelpreisCents: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

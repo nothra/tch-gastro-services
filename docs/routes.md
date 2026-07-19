@@ -28,6 +28,7 @@
 | `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail) | `veranstalter` |
 | `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Getränke, Essen, Kaffee) | `veranstalter` |
 | `/veranstaltung/[id]/auslagen` | Seite | Auslagenerstattung | `veranstalter` |
+| `/veranstaltung/[id]/kassieren` | Seite | Kassieren & Abschluss | `veranstalter` |
 | `/verwaltung/katalog` | Seite | Katalog/Preise pflegen | `verwalter` |
 | `/verwaltung/teilnehmer` | Seite | Teilnehmer-Stammdaten pflegen | `verwalter` |
 
