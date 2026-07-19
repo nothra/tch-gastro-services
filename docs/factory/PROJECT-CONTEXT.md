@@ -284,6 +284,15 @@ in der v5-Beta den Custom-Claim nicht sauber (`token.x` landet als `{}`).
 `@auth/core/jwt` augmentieren; im `session()`-Callback den JWT-Claim explizit casten
 (`token.x as T`). Typen aus dem Data-Layer nur als `import type` (bleibt edge-sicher).
 
+**Ergänzung – Coverage-Lücke bei `auth.config.ts` (aus #55, `/test`-Fund):** `authorized`/`jwt`/
+`session` sind reine Funktionen ohne next-auth-Laufzeit-Abhängigkeit (direkt aufrufbar, kein Mock
+nötig) – trotzdem blieb `auth.config.ts` seit der Einführung in #48 über mehrere Folge-Tasks hinweg
+bei 0 % Coverage, weil ein Config-/Callback-Modul nicht wie „normale" Business-Logic aussieht und
+deshalb beim Implementieren übersprungen wird. Erst die Coverage-Analyse in `/test` bei #55 deckte
+es auf. **Regel:** Beim Einführen oder Ändern eines next-auth-Callbacks sofort einen Test daneben
+schreiben, der die Funktion **direkt** aufruft (kein next-auth-Bootstrap nötig) – nicht auf eine
+spätere `/test`-Coverage-Analyse verlassen.
+
 ### Öffentliche API-Routen aus dem Auth-Proxy ausnehmen (aus #63)
 
 Eine neue Route unter `app/api/*` ist per Default vom `proxy.ts`-Matcher **erfasst** → der
@@ -927,6 +936,46 @@ erkennbar nichts mit der Task zu tun haben, **zuerst die Scope-Referenz prüfen*
 `main`), bevor man sie reviewt. Die Skill-Vorlagen selbst auf `origin/main...HEAD` umzustellen ist
 als Follow-up erfasst (#176) – sie liegen unter `.claude/commands/**` (agent-hard-denied) und
 brauchen daher den Patch-Workflow.
+
+### Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
+
+`setStatusAction` rief `abschliessenVeranstaltung`/`wiedereroeffnenVeranstaltung` auf – beide
+Data-Layer-Funktionen guarden ihr UPDATE mit `WHERE status = <erwarteter-alt-Status>`, um einen
+nebenläufigen Doppel-Abschluss zu verhindern (TOCTOU-Schutz). Der erste Entwurf der Action prüfte
+den Rückgabewert nicht und gab bei einem nebenläufigen Zweitaufruf (0 betroffene Zeilen, Funktion
+liefert `undefined`) trotzdem `{ ok: true }` zurück – der Nutzer bekam ein irreführendes Erfolgs-
+Feedback für einen Vorgang, der real nichts verändert hat. Direkte Anwendung der bestehenden Regel
+„`.returning()` liefert `T | undefined`" (#50) auf die **Aufrufer**-Seite: der Typ allein verhindert
+den Bug nicht, wenn der Aufrufer den `undefined`-Fall nicht auswertet.
+
+**Regel:** Jede Action, die eine guarded-UPDATE-Data-Layer-Funktion (WHERE auf den erwarteten
+Vorzustand) für eine Status-Transition aufruft, muss den `undefined`-Rückgabewert explizit als
+„nebenläufig bereits im Zielzustand" behandeln und einen eigenen Fehlercode zurückgeben (z. B.
+`BEREITS_ABGESCHLOSSEN`/`BEREITS_OFFEN`), nicht stillschweigend Erfolg melden:
+```ts
+const updated = await abschliessenVeranstaltung(id);
+if (!updated) return { error: "Bereits abgeschlossen." };
+return { ok: true };
+```
+Pflicht-Begleitung: ein Test, der die Data-Layer-Funktion zweimal hintereinander aufruft und die
+**tatsächliche** Semantik dokumentiert (z. B. Ereignis-Log-Länge), statt sie zu kaschieren.
+
+### ADR nach Review-Rework auf Drift prüfen – nicht nur `docs/routes.md` (aus #55, Review-Runde-2-Finding)
+
+Ein ADR wird in `/architecture` **vor** der Implementierung geschrieben und beschreibt geplante
+Funktionen konkret (hier ADR-033 D6: „`setStatus` bleibt für Theke/Sonderfälle bestehen",
+„`logEreignis(...)`"). Ein Review-Runde-1-Fix (W2/W3) entfernte beide Funktionen als tote Code
+(YAGNI) – der ADR-Text wurde dabei **nicht** nachgezogen und behauptete in Runde 2 weiterhin, die
+gelöschten Funktionen seien Teil der Architektur. Der bestehende Guardrail „Routen-Doku bei jeder
+Routen-Änderung aktualisieren" deckt nur `docs/routes.md` ab; ein technisches ADR, das während des
+Rework-Zyklus (Review ↔ Implement) faktisch überholt wird, hat keinen äquivalenten Drift-Check.
+
+**Regel:** Ändert ein Review-Fix die im referenzierten ADR **konkret benannte** Architektur (Funktions-
+Existenz, Modulgrenzen, Datenfluss), das ADR **im selben Fix-Commit** auf den Ist-Stand ziehen – nicht
+erst wenn ein späteres Review es bemerkt. Faustregel vor dem Schließen eines Findings: `git grep -n
+<entfernter-Funktionsname> docs/adr/<aktuelle-adr>.md` – ein Treffer bedeutet Doku-Drift. Analog zum
+Terminologie-Sweep (#144): der Auslöser ist eine **Verhaltens-/Architektur-Änderung**, nicht nur ein
+Term-Rename.
 
 ---
 

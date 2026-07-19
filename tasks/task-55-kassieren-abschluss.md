@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -187,8 +187,36 @@ fehlende `verzehrPath`/`auslagenPath`-Revalidierung in `setStatusAction` (wäre 
 Gates nach dem Refactoring grün: `pre-push.sh` (501 Tests, Typecheck, Format, Routen-Drift) +
 `pre-commit.sh` (Lint).
 
+## Security-Review (`/security-review`, 2026-07-20)
+
+`tasks/security-55.md`, Verdict **PASSED** – **keine** kritischen, **keine** wichtigen Findings.
+Scope `git diff origin/main...HEAD` (Codify #161, kein Fremd-PR-Bleed). Positiv am Code (nicht nur
+laut Task-Datei) verifiziert: RBAC fail-closed in jeder Action + serverseitiges Route-Gate (defense
+in depth), IDOR-Bindung (`veranstaltungId` im WHERE bei `getZeile`/`setErhalten`/Preis-Snapshot),
+Write-Sperre für abgeschlossene Veranstaltungen, guarded UPDATE gegen Doppel-Abschluss, Zod mit
+`INT4_MAX` + DB-CHECKs (kein Overflow-Bypass), keine SQL-Injection (Drizzle parametrisiert), kein
+XSS (React-Escaping, kein `dangerouslySetInnerHTML`), keine neuen Dependencies, keine Secrets/PII
+in Logs.
+
+Drei **Hinweise** (kein Merge-Blocker, kein eigenes Issue angelegt):
+1. **Phantom-Ereignis-TOCTOU** – nebenläufiger Doppel-Abschluss/-Wiederöffnen kann einen
+   Protokolleintrag ohne realen Zustandswechsel schreiben. Bereits als akzeptierter MVP-Trade-off
+   dokumentiert (ADR-033 D3, Review-Runde 1 W1); optionale Härtung (konditionaler INSERT) → Backlog #57.
+2. **Append-only nur konventionell** (nur INSERTs im Data-Layer, keine DB-seitige Erzwingung) – fürs
+   Bedrohungsmodell ausreichend, Notiz fürs künftige Kassenbuch (#57).
+3. **`session.user.id`-Exposition (D7)** – nur die eigene, signierte, nicht-manipulierbare User-ID;
+   Standard, kein Handlungsbedarf.
+
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+`tasks/codify-55.md` – drei neue Regeln in `docs/factory/PROJECT-CONTEXT.md` ergänzt:
+(1) Guarded-UPDATE/Status-Transition-Actions müssen den `undefined`-Rückgabewert auswerten statt
+`{ok:true}` anzunehmen (Review W1, generalisiert #50); (2) ADR nach Review-Rework auf Drift prüfen
+(`git grep` auf entfernte Funktionsnamen), nicht nur `docs/routes.md` (Review-Runde-2-Finding);
+(3) Ergänzung am #48-Eintrag: NextAuth-Callbacks sofort testen, nicht auf spätere
+Coverage-Analyse verlassen (`auth.config.ts` war seit #48 bei 0 % Coverage). Dead-Code- und
+Guard-Clause-Findings (W2–W5) waren Instanzen bestehender Regeln, kein neuer Bedarf. Security-
+Review-Hinweise bereits als MVP-Trade-off in ADR-033 D3 / Backlog #57 dokumentiert, kein neues Issue.
 
 ---
 Branch: `feature/55-kassieren-abschluss`
