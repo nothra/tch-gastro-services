@@ -9,6 +9,9 @@
 - [x] Codify ausgeführt (Stolperstein #164 in PROJECT-CONTEXT.md)
 - [x] Fertig / PR erstellt (Draft-PR #165)
 
+PR-Shepherd [2026-07-19]: main gemergt (Stolperstein-Konflikt in PROJECT-CONTEXT.md aufgelöst,
+beide Einträge behalten), alle lokalen Gates + Pre-Push grün, PR mergebar. Merge freigegeben.
+
 ## Beschreibung
 Bug #164 (Deploy Gate INT, Label `bug` + `security`): Nach dem Abmelden liefert die
 Route `/` **weiterhin das authentifizierte Dashboard** statt auf `/login` umzuleiten.
