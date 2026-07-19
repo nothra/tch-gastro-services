@@ -74,6 +74,13 @@ Verifikation:
 - Gesamte Unit-Suite, Typecheck, Lint, Build grün.
 - Integrations-Beweis (der echte Race) = INT-Deploy-Gate-e2e `e2e/auth.spec.ts` nach Merge `main`→`int`.
 
+### Refactoring (/refactor)
+Kein Refactoring nötig. Clean-Code-Checkliste gegen den Diff geprüft: sprechende Namen, kleine
+Funktionen (SRP, Early Returns), Regex als benannte Konstante, keine Duplikation/Magic Numbers,
+durchgängig WHY-Kommentare. Bewusst nichts geändert (kein Gold-Plating): Header-Namen-Literale
+als Einzelnutzung bleiben inline; die kurzen `prefetch={false}`-Kommentare in AppNav/page sind nicht
+sinnvoll DRY-bar. Suite vor/nach identisch grün (427 passed).
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 
