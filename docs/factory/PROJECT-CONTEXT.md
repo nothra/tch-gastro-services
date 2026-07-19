@@ -367,6 +367,29 @@ Branch ist (per `git diff main...HEAD` an der `.claude/**`-Datei sichtbar), die 
 die stale `tasks/patch-<id>.diff` **entfernen** – alles vor `/pr-shepherd`/Merge, committet über
 `factory-commit.sh`.
 
+**Programmatischer Patch: UTF-8 nutzen + bei Semantik-Änderung die ganze Datei sweepen (aus #158).**
+Zwei Fallen tauchten beim `.claude/**`-Patch von `pr-shepherd.md` auf und kosteten einen **zweiten**
+Human-Apply-Zyklus (Review-Findings W1/N2/N7):
+1. **ASCII-Faltung in den Replacement-Strings.** Beim Tippen des difflib-Skripts entstand der Reflex,
+   Umlaute ASCII zu falten (`waehlen`/`wuerde`), um „Encoding-Ärger" zu vermeiden. Unnötig: die Datei
+   ist UTF-8, `open(..., encoding="utf-8")` + `difflib` + UTF-8-Write handhaben `ä/ö/ü/ß/→/„"`
+   problemlos. Die ASCII-Fassung wurde zum Review-Nitpick. **Regel:** Replacement-Strings immer in
+   **korrektem UTF-8** schreiben, nie ASCII-falten; das umgebende Fließtext-Deutsch nutzt ohnehin
+   Umlaute – ein ASCII-Kommentar daneben ist sofort inkonsistent.
+2. **Ganzdatei-Sweep bei Semantik-Änderung, nicht nur die geänderten Zeilen.** Der Patch benannte den
+   Schritt-6-Header um (`… dann Auto-Merge freigeben` → `… Merge freigeben`) und fügte einen
+   Direct-Merge-Zweig hinzu – ließ aber **abhängige Beschreibungen desselben Schritts anderswo in der
+   Datei** stehen: das committete Notiz-Template (`Auto-Merge freigegeben – alle Gates grün`), die
+   `## Output`- und `## Hinweis für Stage 3`-Abschnitte, eine Regel-Zeile. Im neuen Direct-Merge-Pfad
+   ist „Auto-Merge freigegeben" **faktisch falsch** – und das Notiz-Template landet per Squash-Merge
+   auf `main` (dort nur per neuem PR korrigierbar). Verwandt mit dem #144-Terminologie-Sweep, aber der
+   Auslöser ist hier eine **Verhaltens-/Semantik-Änderung** (nicht nur ein Term-Rename): Ändert ein
+   Patch, **was** ein Schritt tut oder wie er heißt, die ganze Skill-Datei nach nun veralteten
+   Beschreibungen dieses Schritts durchsuchen – **Header, Zusammenfassungs-/Output-Abschnitte,
+   Regeln und committete Templates** – und im selben Patch mitziehen. Sonst folgt ein vermeidbarer
+   zweiter Patch-/Apply-Zyklus. Faustregel: `git grep -n <alter-Begriff> <skill-datei>` nach dem
+   ersten Draft, bewusste Ausnahmen (z. B. Skill-Titel „…bis Auto-Merge" = Gesamtziel) begründen.
+
 ### Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67)
 
 Im Lint-Debugging entstanden `lint-out.tmp.txt` und `scripts/lint-debug.tmp.sh` im
@@ -749,6 +772,24 @@ zwei Muster auf, die eine gleichartige Folge-Task (**#148**: Rollen-Rename `abre
 - **Scope-Grep gegen die Ausgabe prüfen, nicht gegen den Exit-Code:** `git diff --name-only`
   liefert **immer** Exit 0. Ein Guard `git diff … && echo BETROFFEN` feuert deshalb falsch –
   auf `| wc -l` (Zeilenzahl) testen, nicht auf `&&`/`||`.
+
+### Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158)
+
+`/pr-shepherd` gibt den Merge über `gh pr merge --auto --squash` frei. Das setzt das
+**repo-weite** Setting *Allow auto-merge* (`allow_auto_merge`) voraus – ist es deaktiviert,
+lehnt GitHub **jeden** `--auto`-Aufruf grundsätzlich ab (`enablePullRequestAutoMerge`), nicht
+nur im CLEAN-Fall. In Session #155 war es aus und wurde einmalig aktiviert:
+
+```bash
+gh api -X PATCH repos/nothra/tch-gastro-services -F allow_auto_merge=true
+```
+
+**Regel:** Bleibt beim Merge-Freigabe-Schritt jeder `--auto`-Aufruf mit
+`enablePullRequestAutoMerge` hängen, zuerst dieses Repo-Setting prüfen
+(`gh repo view --json autoMergeAllowed` bzw. das API-Feld `allow_auto_merge`) – ein
+deaktiviertes Setting hätte auch die Stage-3-Pipeline blockiert. Abzugrenzen vom
+CLEAN-Fall (bereits mergebarer PR): den behandelt der Direct-Merge-Fallback aus
+[ADR-030](../adr/030-pr-shepherd-direct-merge-fallback.md).
 
 ---
 
