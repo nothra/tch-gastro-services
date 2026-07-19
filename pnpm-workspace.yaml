@@ -5,3 +5,13 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Sicherheits-Overrides: heben verwundbare, transitiv gepinnte Kopien auf den
+# jeweiligen Patch-Floor. Konditionale Form (paket@<version) → greift NUR unterhalb
+# des Patches; spätere legitime Upgrades der Parents (next, drizzle-kit) fließen
+# ungehindert durch. Entfernen, sobald die Parents die Patches selbst mitbringen.
+# - postcss  <8.5.10: GHSA-qx2v-qp2m-jg93 (XSS im CSS-Stringify), via next (Build-Zeit)
+# - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev)
+overrides:
+  "postcss@<8.5.10": ">=8.5.10"
+  "esbuild@<0.25.0": ">=0.25.0"
