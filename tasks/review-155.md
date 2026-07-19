@@ -43,9 +43,14 @@ und Pfad-Auflösung der Querverweise.
   bewusst verworfene IaC-Variante ist in ADR-029 (Option D2) begründet.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
 
-> Begründung: ein Wichtig-Finding, das direkt der codifizierten #117-Regel (Direktive +
-> Rationale je eigene Assertion) entspricht und billig zu beheben ist. Genau der Fall, den
-> Review fangen soll, nachdem Implement ihn übersah (#116/#117-Muster). Der Nitpick ist
-> optional. Nach dem Fix ist die Task aus Review-Sicht APPROVED-reif.
+> **Runde 2 (2026-07-19):** Beide Findings behoben und re-verifiziert. Der Guard hat nun
+> zwei getrennte Assertions (Direktive `ADR-029` + Rationale `umgehbar`); die Unabhängigkeit
+> ist per Negativ-Nachweis belegt (Framing entfernt → Rationale-Guard rot, Verweis-Guard
+> grün). Der Verweis in `git-workflow.md` ist Plain-Text (Datei-Konvention). Volle
+> Self-Test-Suite **299 grün, 0 rot**; keine neuen Findings. Kein weiterer Rework nötig.
+>
+> _Runde 1 (Historie): NEEDS_REWORK – ein Wichtig-Finding (#117: Direktive + Rationale je
+> eigene Assertion) + ein Nitpick; genau der Fall, den Review fangen soll, nachdem Implement
+> ihn übersah (#116/#117-Muster)._
