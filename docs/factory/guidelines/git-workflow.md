@@ -41,7 +41,7 @@ Branch-Konvention (aligned mit Conventional Commits):
 Der pre-push Hook blockiert direkte Pushes auf `main`/`master` hart. Dieser Hook ist jedoch
 nur **lokales** Feedback und umgehbar (`--no-verify`, zweiter Clone, CI-Token). Die
 kanonische, **server-seitige** Durchsetzung liefert das GitHub-Ruleset `protect-main`
-([ADR-029](../../adr/029-branch-protection-main-ruleset.md)): es unterbindet Direkt- und
+(ADR-029): es unterbindet Direkt- und
 Force-Pushes auf `main` fail-closed (auch für Admins), erzwingt den PR-Weg (0 Approvals,
 damit der autonome Auto-Merge erhalten bleibt), `squash`-Merges und grüne required Checks.
 Beide Ebenen ergänzen sich (defense in depth) – Hook = schnelles lokales Feedback, Ruleset =

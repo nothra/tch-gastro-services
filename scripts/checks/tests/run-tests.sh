@@ -813,10 +813,17 @@ grep -q 'create-issue.sh' "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md
 assert_true "$?" "#82: git-workflow.md verweist auf den zentralen Seam (create-issue.sh)"
 
 # ── #155: git-workflow.md verweist auf ADR-029 (server-seitiger main-Schutz) ──
-# Der pre-push-Hook ist nur lokales Feedback; die kanonische Quelle für die
-# server-seitige, fail-closed Durchsetzung ist das GitHub-Ruleset (ADR-029).
-grep -q 'ADR-029' "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
+# AC3 bündelt Direktive + Rationale auf getrennt editierbaren Zeilen → je eigene
+# Assertion (codifizierte #117-Regel), sonst bleibt das Framing ungetestet.
+GITWF="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
+# (a) Direktive: der Verweis auf ADR-029 ist vorhanden.
+grep -q 'ADR-029' "$GITWF"
 assert_true "$?" "#155: git-workflow.md verweist auf ADR-029 (main-Ruleset)"
+# (b) Rationale (separierbar): der pre-push-Hook ist als lokales, *umgehbares* Feedback
+# eingeordnet – die Begründung, warum server-seitige Durchsetzung nötig ist. Token
+# 'umgehbar' steht nur im Framing-Satz, unabhängig vom Verweis-Satz (ADR-029).
+grep -q 'umgehbar' "$GITWF"
+assert_true "$?" "#155: git-workflow.md ordnet den pre-push-Hook als umgehbares lokales Feedback ein (AC3-Rationale)"
 
 # ─── Bug #8: Check-Skripte robust gegen Leerzeichen im Pfad ──────────────────
 echo ""

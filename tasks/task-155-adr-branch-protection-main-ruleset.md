@@ -83,6 +83,15 @@ dokumentierten Variante (YAGNI) entschieden.
   `bash-gotchas.md`/`create-issue.sh`), RED→GREEN belegt.
 - **Kein Produktionscode**, keine Routen-/API-Änderung → Routen-Doku-Drift unberührt.
 
+### Runde 2 (`/implement` nach Review, 2026-07-19)
+- **Wichtig-Finding behoben:** zweite Guard-Assertion in `run-tests.sh` (`#155` AC3-Rationale)
+  auf das distinktive Token `umgehbar` – prüft jetzt nicht nur den Verweis, sondern auch das
+  Framing (Hook = lokal/umgehbar vs. Ruleset = server-seitig). Unabhängigkeit belegt
+  (Framing entfernt → Rationale-Guard rot, Verweis-Guard grün; #117-Muster).
+- **Nitpick behoben:** ADR-029-Verweis in `git-workflow.md` von Markdown-Link auf Plain-Text
+  `(ADR-029)` umgestellt – konsistent mit der Datei-Konvention (`(ADR-013)`/`(ADR-018)`).
+  CLAUDE.md-Link bleibt (dort ist der Link-Stil Datei-Konvention).
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 

@@ -8,7 +8,9 @@ und Pfad-Auflösung der Querverweise.
 - _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] [scripts/checks/tests/run-tests.sh – Guard `#155`] Der Guard prüft nur die **Präsenz**
+- [x] **Behoben (Runde 2):** zweite Assertion (`umgehbar`) ergänzt; Unabhängigkeit per
+      Negativ-Nachweis belegt (Framing entfernt → Rationale-Guard rot, Verweis-Guard grün).
+- [x] [scripts/checks/tests/run-tests.sh – Guard `#155`] Der Guard prüft nur die **Präsenz**
       des Tokens `ADR-029` in `git-workflow.md`, nicht die im AC3 mitverlangte **Einordnung**
       (pre-push-Hook = lokales Feedback vs. Ruleset = server-seitige Durchsetzung). AC3
       bündelt eine Direktive (Verweis) **und** ihre Rationale (Framing) auf getrennt
@@ -20,7 +22,8 @@ und Pfad-Auflösung der Querverweise.
       plus Negativ-Nachweis (Framing entfernen → neuer Guard rot, Token-Guard grün).
 
 ## Nitpicks (optional)
-- [ ] [docs/factory/guidelines/git-workflow.md:41] Der Verweis ist als Markdown-Link
+- [x] **Behoben (Runde 2):** auf Plain-Text `(ADR-029)` umgestellt (Datei-Konvention).
+- [x] [docs/factory/guidelines/git-workflow.md:41] Der Verweis ist als Markdown-Link
       `[ADR-029](../../adr/…)` gesetzt, während die **lokale Konvention dieser Datei** ADRs
       als reinen Text nennt (`(ADR-013)`, `(ADR-018)`). Der Link ist nützlicher (klickbar),
       weicht aber vom Datei-Stil ab – bewusst so lassen oder an den Fließtext-Stil angleichen.
