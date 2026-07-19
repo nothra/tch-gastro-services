@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Review bestanden (Runde 2 APPROVED; Runde 1 NEEDS_REWORK → zentraler Fix)
+- [x] Tests vollständig (proxy-Naht + prefetch-session, csrf-keep; Suite grün)
+- [x] Security-Review bestanden (PASSED – rein additiv, Access-Control unverändert)
+- [x] Refactoring abgeschlossen (kein Refactoring nötig – Code bereits clean)
+- [x] Codify ausgeführt (Stolperstein #164 in PROJECT-CONTEXT.md)
+- [x] Fertig / PR erstellt (Draft-PR #165)
 
 ## Beschreibung
 Bug #164 (Deploy Gate INT, Label `bug` + `security`): Nach dem Abmelden liefert die
