@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { authConfig } from "@/auth.config";
-import { isRscRequest, stripSessionRotation } from "@/lib/prefetch-session";
+import { shouldSuppressSessionRotation, stripSessionRotation } from "@/lib/prefetch-session";
 
 // Edge-"Proxy" (Next 16, vormals middleware) auf Basis der edge-sicheren Config:
 // liest die JWT-Session; der `authorized`-Callback entscheidet Zugriff/Redirect.
@@ -17,13 +17,14 @@ type EdgeMiddleware = (
 ) => Promise<Response | undefined>;
 const authMiddleware = auth as unknown as EdgeMiddleware;
 
-// Wrapper um die NextAuth-Middleware: auf RSC-/Prefetch-Requests das rotierende Session-Cookie
-// aus der Antwort entfernen (#164). Sonst kann eine noch fliegende authentifizierte
-// Prefetch-Antwort das Cookie nach einem signOut wiederbeleben (Race → flaky Logout). Zentral
-// hier, damit ALLE geschützten Links abgedeckt sind (nicht per-Link). Details: lib/prefetch-session.
+// Wrapper um die NextAuth-Middleware: auf allen nicht-mutierenden Methoden das rotierende
+// Session-Cookie aus der Antwort entfernen (#164, #170 / ADR-032). Sonst kann eine noch fliegende
+// authentifizierte GET/HEAD/OPTIONS-Antwort das Cookie nach einem signOut wiederbeleben (Race →
+// flaky Logout). Zentral hier, damit ALLE geschützten Routen abgedeckt sind (nicht per-Link).
+// Kein try/catch: eine Exception im Guard propagiert fail-closed. Details: lib/prefetch-session.
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   const response = await authMiddleware(request, event);
-  if (response && isRscRequest(request)) {
+  if (response && shouldSuppressSessionRotation(request)) {
     stripSessionRotation(response);
   }
   return response;

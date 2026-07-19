@@ -1,33 +1,33 @@
-// Schutz gegen Session-Wiederbelebung durch Prefetch/RSC-Requests (#164).
+// Schutz gegen Session-Wiederbelebung durch nicht-mutierende Requests (#164, #170 / ADR-032).
 //
 // Auth.js (JWT-Strategie) erneuert das Session-Cookie bei *jedem* authentifizierten Request
 // (Rolling Session) – die Antwort trägt dann ein frisches `…authjs.session-token`-Set-Cookie.
-// Next.js prefetcht `<Link>`s zu geschützten Routen automatisch; diese Prefetch-Antworten
-// rotieren das Cookie im Hintergrund. Klickt der Nutzer „Abmelden", während eine solche
-// Prefetch-Antwort noch unterwegs ist, landet sie NACH dem signOut-Clear und setzt das Cookie
-// neu → die Session wird wiederbelebt, das Logout „hält nicht" (Race, flaky Deploy-Gate INT).
+// Klickt der Nutzer „Abmelden", während eine solche authentifizierte Antwort (Prefetch-GET,
+// aber auch HEAD/OPTIONS-Preflight, die Playwright rund um `page.goto` feuert) noch unterwegs
+// ist, landet sie NACH dem signOut-Clear und setzt das Cookie neu → die Session wird
+// wiederbelebt, das Logout „hält nicht" (Race, flaky Deploy-Gate INT).
 //
-// Gegenmittel (zentral in `proxy.ts`, deckt ALLE geschützten Links ab): Auf RSC-/Prefetch-
-// Requests das rotierende Session-Set-Cookie aus der Antwort entfernen. Diese Hintergrund-
-// Requests sollen die Session ohnehin nicht verlängern; nur echte Dokumentaufrufe (und der
-// Login-POST) setzen/erneuern das Cookie.
+// Gegenmittel (zentral in `proxy.ts`, deckt ALLE geschützten Routen ab): Auf allen
+// nicht-mutierenden Methoden das rotierende Session-Set-Cookie aus der Antwort entfernen. Nur
+// mutierende Requests (Login/Logout/Server-Actions = POST/PUT/PATCH/DELETE) dürfen das Cookie
+// setzen oder löschen – kein GET/HEAD/OPTIONS etabliert je legitim eine Session (Login läuft
+// über Credentials = POST; `api/auth` ist ohnehin aus dem Matcher ausgenommen).
 //
-// Erkennung: Next strippt seine eigenen Marker (`next-router-prefetch`, `rsc`) VOR der
-// Middleware. Sichtbar bleibt der interne `next-url`-Header (bei RSC-/Prefetch-Navigationen
-// gesetzt, bei echten Dokumentaufrufen absent) bzw. `sec-fetch-dest` (≠ "document" = fetch/RSC).
+// #164 unterdrückte nur GET über die fragile `next-url`/`sec-fetch-dest`-Heuristik (Whack-a-Mole:
+// OPTIONS/HEAD blieben offen). ADR-032 ersetzt das durch eine rein methodenbasierte Entscheidung.
 
 // Auth.js-Session-Cookie: `authjs.session-token` (HTTP) bzw. `__Secure-authjs.session-token`
 // (HTTPS), inklusive gechunkter Varianten `…session-token.0/.1` bei großen Tokens.
 const SESSION_TOKEN_SET_COOKIE = /^(?:__Secure-)?authjs\.session-token(?:\.\d+)?=/;
 
-// Ist der Request ein RSC-/Prefetch-Aufruf (kein Top-Level-Dokumentaufruf, kein POST)?
-// Nur solche GET-Requests dürfen die Session NICHT rotieren – POST (Login/Logout) und echte
-// Dokumentaufrufe bleiben unangetastet (fail-safe: bei fehlenden Signalen NICHT strippen).
-export function isRscRequest(request: { method: string; headers: Headers }): boolean {
-  if (request.method !== "GET") return false;
-  if (request.headers.has("next-url")) return true;
-  const dest = request.headers.get("sec-fetch-dest");
-  return dest !== null && dest !== "document";
+// Mutierende HTTP-Methoden – nur sie dürfen das Session-Cookie setzen/löschen. HTTP-Methoden
+// sind als Uppercase definiert; die Web-Request-API liefert sie so (bewusst nicht gefaltet).
+const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+// Soll die Session-Rotation aus der Antwort gestrippt werden? Ja für jede nicht-mutierende
+// Methode (GET/HEAD/OPTIONS und künftige) – nein nur für POST/PUT/PATCH/DELETE (ADR-032).
+export function shouldSuppressSessionRotation(request: { method: string }): boolean {
+  return !MUTATION_METHODS.has(request.method);
 }
 
 // Entfernt jedes Session-Token-Set-Cookie aus der Antwort und lässt alle anderen Cookies

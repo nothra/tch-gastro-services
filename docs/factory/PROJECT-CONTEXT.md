@@ -851,26 +851,32 @@ der Nutzer „Abmelden", während eine solche Prefetch-Antwort noch unterwegs is
 dem signOut-Clear und **setzt das Cookie neu** → die Session wird wiederbelebt, das Logout „hält
 nicht". Reines Timing ⇒ **flaky** (nur unter Latenz sichtbar, z. B. INT-Deploy-Gate; ~1/6).
 
-**Next-16-Falle bei der Erkennung:** Next strippt seine eigenen RSC-/Prefetch-Marker
-(`next-router-prefetch`, `rsc`) **vor** der Middleware/`proxy.ts` – dort sind sie `null`. In der
-Middleware ist ein RSC-/Prefetch-Request erkennbar am internen **`next-url`**-Header (bei RSC gesetzt,
-bei echten Dokumentaufrufen absent) bzw. an `sec-fetch-dest ≠ "document"`. Empirisch verifiziert
-(Debug-Header + lokaler Prod-Server).
+**Korrektur (aus #170 / ADR-032): nicht-mutierende Methoden statt GET-only.** Der #164-Fix
+unterdrückte die Rotation **nur bei `GET`** und erkannte den Request über die Next-16-internen
+Header `next-url`/`sec-fetch-dest`. Das war Whack-a-Mole: Auch **`OPTIONS`- und `HEAD`-Requests**
+durchlaufen den Proxy, rotieren das Cookie und können den signOut-Clear überholen (Playwright
+feuert solche Preflight-/Probe-Requests rund um `page.goto`) → Logout blieb auf INT flaky
+(`--repeat-each=24` → 1 Fehler). #170 ersetzt die Erkennung durch ein **rein methodenbasiertes**
+Kriterium und die fragile Header-Heuristik entfällt ersatzlos. (Die ursprüngliche Prefetch-GET-
+Analyse bleibt als Historie gültig; nur die Erkennungs-Aussage ist überholt.)
 
 **Regel:**
 - **Zentral in `proxy.ts` fixen, nicht per-Link.** Die NextAuth-Middleware wrappen und auf
-  RSC-/Prefetch-**GET**-Requests das rotierende Session-`Set-Cookie` aus der Antwort entfernen
-  (`lib/prefetch-session.ts`: `isRscRequest` + `stripSessionRotation`). Deckt **alle** geschützten
-  Links ab; per-Link `prefetch={false}` (Review-Runde 1) war unvollständig (andere Seiten blieben
-  offen). `prefetch={false}` auf prominenten Nav-Links bleibt nur als Defense-in-depth/Perf.
-- **Nur GET strippen** – Login/Logout (POST) und `api/auth` (Matcher-Ausnahme) nie anfassen, sonst
-  bricht das Setzen/Löschen der Session. Fail-safe: fehlen die Signale, nicht strippen (Cookie
-  rotiert normal). Kein try/catch im Wrapper → Exception propagiert fail-closed.
+  **allen nicht-mutierenden Methoden** das rotierende Session-`Set-Cookie` aus der Antwort
+  entfernen (`lib/prefetch-session.ts`: `shouldSuppressSessionRotation` + `stripSessionRotation`).
+  Deckt **alle** geschützten Routen und Methoden ab; per-Link `prefetch={false}` (Review-Runde 1)
+  war unvollständig. `prefetch={false}` auf prominenten Nav-Links bleibt nur als
+  Defense-in-depth/Perf.
+- **Nur bei Mutationen NICHT strippen** – `POST`/`PUT`/`PATCH`/`DELETE` (Login/Logout/Server-Actions)
+  dürfen das Session-Cookie setzen/löschen und bleiben unangetastet; `api/auth` ist ohnehin aus dem
+  Matcher ausgenommen. Sicher per Konstruktion: **kein GET/HEAD/OPTIONS etabliert je legitim eine
+  Session** (Login = Credentials-POST). Kein try/catch im Wrapper → Exception propagiert fail-closed.
 - **Cookie-Regex verankern** (`^(?:__Secure-)?authjs\.session-token(?:\.\d+)?=`), damit CSRF-/
   callback-url-/`_vercel_jwt`-Cookies **nicht** getroffen werden; chunked `…session-token.0/.1`
   einschließen. Keep-Test (CSRF bleibt) **und** Strip-Test schreiben (#116).
-- **Bewusster Trade-off:** RSC-Soft-Navigationen erneuern die Rolling-Session dann nicht mehr, nur
-  Dokumentaufrufe/Login. Vernachlässigbar (maxAge-Default 30 Tage). In der Task-Datei festhalten.
+- **Bewusster Trade-off:** Die Rolling-Session erneuert sich danach nur noch bei mutierenden
+  Requests (faktisch beim Login-POST), nicht mehr bei jeder Navigation. Vernachlässigbar
+  (maxAge-Default 30 Tage), eher sicherer. In der Task-Datei festhalten.
 
 **Debugging-Lehre (allgemein):** Server-seitige Korrektheit schließt einen **Client-Race** nicht aus.
 Die Issue-Vermutung `export const dynamic = "force-dynamic"` war hier ein **No-op** – die Route war
