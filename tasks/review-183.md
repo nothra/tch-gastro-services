@@ -1,62 +1,53 @@
 # Review: Task 183
 
+> **Runde 2** (2026-07-20). Runde 1 (NEEDS_REWORK, 1 wichtig + 3 Nitpicks) ist abgearbeitet;
+> das wichtige Finding wurde behoben (Commit `50f85e3`). Diese Runde ist eine unabhängige
+> Frisch-Prüfung über alle drei Perspektiven gegen `git diff origin/main...HEAD` (Codify #161).
+
 ## Kritische Findings (müssen behoben werden)
 - _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [x] **BEHOBEN (/implement, 2026-07-20):** `toggle` delegiert jetzt an `waehleZiel`
-      (`openId === id ? setOpenId(null) : waehleZiel(id)`); die Seiteneffekte (`writeZielId`,
-      `scrollIntoView`) laufen dadurch außerhalb der `setOpenId`-Updater-Funktion. Der Updater ist
-      rein → keine Doppelausführung unter StrictMode/Concurrent-Rendering, kein Cross-Component-
-      State-Update während des Renders. Gates grün (558 Tests, Typecheck, Format, Routen-Doku).
-- [ ] **`app/theke/[token]/FokusListe.tsx:51-61`** – `toggle` ruft Seiteneffekte
-      (`writeZielId(...)` und `scrollIntoView(...)`) **innerhalb der `setOpenId`-Updater-Funktion**
-      auf. Updater-Funktionen müssen rein sein (React-Regel) – sie laufen in der Render-Phase und
-      unter StrictMode/Concurrent-Rendering **zweimal**. Zwei konkrete Folgen:
-      (1) doppeltes `writeZielId` + doppeltes `scrollIntoView`;
-      (2) das synchrone `dispatchChange()` in `writeZielId` benachrichtigt **während des Renderns
-      von `FokusListe`** die `useSyncExternalStore`-Subscription des Elternteils `IdentityGate`
-      (dessen `useIdentitaet` das Event abonniert und beim Kartenwechsel eine geänderte `zielId`
-      liest) → Cross-Component-State-Update während des Renders (die Fehlerklasse „Cannot update a
-      component while rendering a different component"). Funktional bleibt es unauffällig, weil
-      `writeZielId` idempotent denselben Wert schreibt und die Tests ohne StrictMode grün sind – es
-      ist aber genau die React-Reinheitsverletzung, die dieses Projekt wiederholt codifiziert hat
-      (`set-state-in-effect`, Purity-Regeln). `waehleZiel` (Zeile 41-48) macht es bereits **richtig**
-      (Effekte außerhalb des Updaters). Empfehlung: `toggle` an `waehleZiel` delegieren, z. B.
-      `const toggle = useCallback((id) => (openId === id ? setOpenId(null) : waehleZiel(id)), [openId, waehleZiel])`,
-      oder Seiteneffekte aus dem Updater herausziehen und `setOpenId` rein lassen.
+- _Keine._
+
+  **Verifiziert behoben (aus Runde 1):** `app/theke/[token]/FokusListe.tsx:53-56` – `toggle`
+  delegiert nun an `waehleZiel` (`openId === id ? setOpenId(null) : waehleZiel(id)`). Der
+  `setOpenId`-Updater ist rein; die Seiteneffekte (`writeZielId`, `scrollIntoView`) laufen im
+  Event-Handler außerhalb des Updaters. Damit keine Doppelausführung unter StrictMode/Concurrent-
+  Rendering und kein Cross-Component-State-Update während des Renders mehr. Nachgeprüft: `waehleZiel`
+  (Z.41-48) kapselt die Effekte, `dispatchChange` feuert nur aus Event-Handlern, nicht aus der
+  Render-Phase.
 
 ## Nitpicks (optional)
 - [ ] **`app/theke/[token]/IdentityGate.tsx:136`** – `erfasser?.anzeigename ?? ""` ist ein
-      faktisch unerreichbarer Null-Fall: `erfasserId` stammt aus `readErfasserId`, das die ID bereits
-      gegen `zeilen` validiert (Stale → `null`), daher findet `zeilen.find(...)` hier immer einen
-      Treffer. Defensiv, aber toter Fallback – kann entfallen oder als bewusst-defensiv kommentiert
-      werden.
+      faktisch unerreichbarer Null-Fall (`erfasserId` ist über `readErfasserId` bereits gegen
+      `zeilen` validiert → `zeilen.find(...)` trifft immer). In den Implementierungs-Notizen bewusst
+      als defensiver Fallback belassen – vertretbar. Optional: entfernen oder Inline-Kommentar.
+- [ ] **`app/theke/[token]/IdentityGate.tsx:130,145`** – `const erfasser = zeilen.find((z) => z.id === erfasserId)`
+      steht in zwei getrennten Branches identisch. Durch die Guard-Clause-Struktur (Early Returns)
+      wird nie doppelt ausgeführt; die duplizierte Ausdrucksform ist minimal. Optional
+      zusammenziehen, sobald beide Branches den Wert teilen könnten.
 - [ ] **`app/_verzehr/VerzehrErfassung.tsx:118-124`** – Der collapsible Kopf-Button trägt
-      `aria-expanded`, aber keine Verknüpfung (`aria-controls`) zum Körper-Bereich (WAI-ARIA
-      Disclosure-Pattern). Für einfache AT ausreichend; `aria-controls` + `id` am Körper würde die
-      Zuordnung für Screenreader schärfen (vgl. Codify #134 zu ARIA-Versprechen).
-- [ ] **`app/theke/[token]/FokusListe.test.tsx:68-75`** –
-      `should_switchZielCloseOthersAndPersist_when_chipTapped` prüft nach dem Chip-Tipp nur
-      `getAllByTestId("menge").toHaveLength(1)` (genau eine offen) + `localStorage`-Ziel, aber nicht
-      **welche** Karte offen ist. Ein zusätzliches `expect(cardHead("Bernd")).toHaveAttribute("aria-expanded","true")`
-      würde belegen, dass wirklich die Ziel-Karte (nicht Anna) offen ist. Der Kopf-Tipp-Test deckt
-      das indirekt bereits ab.
+      `aria-expanded`, aber kein `aria-controls` auf den Körper (WAI-ARIA Disclosure-Pattern).
+      Für einfache AT ausreichend; `aria-controls` + `id` am Körper würde die Zuordnung schärfen.
+      Berührt die geteilte F5-Karte → bewusst als optionale A11y-Verbesserung offen (vgl. Codify #134).
 
 ## Positives
-- **Saubere Wiederverwendung ohne F5-Regression:** `ZeileKarte` exportiert + optionale Akkordeon-Props;
-  ohne die Props unverändert (F5-Pfad), mit Regressions-Test `should_renderFullBody_when_noAccordionProps`.
+- **Runde-1-Fix punktgenau:** Reine Updater-Funktion wiederhergestellt, ohne die restliche
+  Akkordeon-Logik anzufassen; keine neue Regression, Gates grün.
+- **Saubere Wiederverwendung ohne F5-Regression:** `ZeileKarte` exportiert + optionale Akkordeon-
+  Props; ohne Props unverändert flach (Regressions-Test `should_renderFullBody_when_noAccordionProps`).
   Import-Richtung `app/theke → app/_verzehr` regelkonform (Codify #52), ADR-035 D2 exakt umgesetzt.
-- **Persistenz solide:** IDs statt Namen (robust gegen Namensgleichheit/Umbenennung), fail-open
-  try/catch bei fehlendem localStorage, Stale-ID → `null`, Legacy-Adoption (#54, D6) inkl.
-  Keep-/No-Match-/Idempotenz-Tests – alle Fehlerszenarien abgedeckt.
+- **Persistenz solide:** Zeilen-IDs statt Namen (robust gegen Namensgleichheit/Umbenennung),
+  fail-open try/catch, Stale-ID → `null`, Legacy-Adoption (#54, D6) inkl. Keep-/No-Match-/
+  Idempotenz-Tests – alle Fehlerszenarien abgedeckt.
 - **`useSyncExternalStore` statt `useEffect`+setState** zum Lesen der Identität – vermeidet die
   codifizierte `set-state-in-effect`-Falle (#49); Legacy-Adoption im Effekt schreibt nur
   localStorage + Event, kein setState.
-- **AC-Abdeckung vollständig und je Kriterium separiert** (Zweischritt, „Für mich" als erste Option +
-  Reihenfolge-Assertion, Stale-Fallbacks je Schritt, Erfasser-Wechsel, Read-only ohne Gate, Leerliste).
-- Read-only „geschenkt" über denselben `FokusListe`-Pfad (`editable=false`, kein Gate), inkl. Test,
-  dass Chips read-only aufklappen ohne zu persistieren.
+- **AC-Abdeckung vollständig und je Kriterium separiert** (Zweischritt, „Für mich" als erste Option
+  + Reihenfolge-Assertion, Stale-Fallbacks je Schritt, Erfasser-Wechsel, Read-only ohne Gate,
+  Leerliste). Read-only „geschenkt" über denselben `FokusListe`-Pfad, inkl. Test, dass Chips
+  read-only aufklappen ohne zu persistieren.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED

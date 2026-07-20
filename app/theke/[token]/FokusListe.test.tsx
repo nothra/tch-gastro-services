@@ -100,6 +100,39 @@ describe("FokusListe (#183/ADR-035)", () => {
     expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
   });
 
+  it("should_showOnlyOwnPositions_when_multipleZeilenHavePositions", () => {
+    // Belegt, dass jede Karte NUR ihre eigenen Positionen erhält (Filter in FokusListe, nicht nur
+    // in der geteilten VerzehrErfassung/F5) – unterschiedliche Mengen je Zeile für denselben Artikel.
+    const positionenMitMehrerenZeilen: VerzehrPositionRow[] = [
+      {
+        zeileId: "z1",
+        catalogItemId: "c1",
+        menge: 2,
+        name: "Cola",
+        size: "",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
+      {
+        zeileId: "z2",
+        catalogItemId: "c1",
+        menge: 5,
+        name: "Cola",
+        size: "",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
+    ];
+
+    renderListe({ positionen: positionenMitMehrerenZeilen, initialOpenId: "z1" });
+    expect(screen.getByTestId("menge")).toHaveTextContent("2");
+
+    fireEvent.click(cardHead("Bernd"));
+    expect(screen.getByTestId("menge")).toHaveTextContent("5");
+  });
+
   it("should_collapseAllAndNotPersist_when_readOnly", () => {
     // Read-only (D5): alle Karten zu, kein Ziel-Flow. Chip klappt lokal auf, merkt aber nichts.
     renderListe({ editable: false, initialOpenId: null });

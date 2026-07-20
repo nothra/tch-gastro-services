@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -158,6 +158,40 @@ Nitpicks (optional, bewusst nicht umgesetzt – YAGNI/Scope):
   `aria-expanded` genügt für einfache AT. Als optionale A11y-Verbesserung offen.
 - `FokusListe.test.tsx` Chip-Test – die offene Ziel-Karte ist über den Kopf-Tipp-Test bereits
   indirekt belegt; keine funktionale Lücke.
+
+**Review-Runde 2 (siehe `tasks/review-183.md`): APPROVED.** Unabhängige Frisch-Prüfung gegen
+`git diff origin/main...HEAD` (Codify #161) über alle drei Perspektiven; der Runde-1-Fix wurde
+verifiziert (reiner `setOpenId`-Updater, Effekte im Event-Handler). Keine kritischen/wichtigen
+Findings. Verbleibende Nitpicks unverändert bewusst offen (s.o.).
+
+## Test-Notizen (/test, 2026-07-20)
+
+**Coverage-Analyse:** Gesamt-Coverage 87,3 % Stmts / 93,75 % Branch / 87,07 % Lines (Schwelle
+80 %, siehe PROJECT-CONTEXT.md) – 559 Tests grün, 59 skipped (E2E). Neuer Code des Tasks
+(`app/theke/[token]/`) lag bei 97,4 % Stmts / 94,4 % Branch / 97 % Lines; eine Lücke identifiziert
+und geschlossen:
+
+- **`FokusListe.tsx:95`** (`positionen.filter(...)`-Callback) war ungetestet, weil
+  `FokusListe.test.tsx` durchgängig eine leere `positionen`-Liste nutzte – der Filter lief nie über
+  ein Element. Neuer Test `should_showOnlyOwnPositions_when_multipleZeilenHavePositions` belegt
+  reales Verhalten (nicht nur Coverage): zwei Zeilen mit demselben Artikel, aber unterschiedlicher
+  Menge – jede Karte zeigt ausschließlich ihre eigene Menge. Datei jetzt 100 % (Modul-Aggregat
+  `app/theke/[token]` 98,27 % Stmts / 98 % Lines).
+- **`IdentityGate.tsx:50,55`** (`() => null`-`getServerSnapshot` für die beiden
+  `useSyncExternalStore`-Aufrufe) bleibt ungetestet – bewusst. React ruft `getServerSnapshot` nur
+  bei echtem SSR-Rendering auf (`ReactDOMServer`), nicht bei einem Client-Render in jsdom/Testing
+  Library. Im Projekt existiert keine SSR-Test-Infrastruktur (kein anderes `useSyncExternalStore`-
+  Vorkommen, kein `renderToString` in Tests); ein Test nur für diese zwei Zeilen würde reine
+  Framework-Verdrahtung prüfen, kein Nutzerverhalten (Testing-Agent-Grundsatz: „Coverage ist ein
+  Mittel, kein Ziel"). Akzeptierte, dokumentierte Lücke.
+
+**AC-Vollständigkeit:** Alle Akzeptanzkriterien aus `docs/specs/spec-183-erfasser-ziel-teilnehmer-
+verzehr.md` sind laut Implementierungs-Notizen einzeln testabgedeckt (Zweischritt, Wiederkehr,
+Akkordeon, Sticky-Navigation, Erfasser-Wechsel, Read-only, alle drei Fehlerszenarien) – keine
+zusätzlichen Lücken beim Abgleich gefunden.
+
+**Gates:** `pnpm test:coverage` grün, `bash scripts/checks/pre-push.sh` grün (Tests, Typecheck,
+Format, Routen-Doku-Drift).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
