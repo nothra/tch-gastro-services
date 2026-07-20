@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -48,10 +48,10 @@ die `.afm`-Dateien bereits vor dem Fix; das Problem war der **falsche Pfad** im 
 nicht eine fehlende Datei. `outputFileTracingIncludes` allein hätte den Bug NICHT behoben.
 
 ### Root Cause
-`Root Cause [2026-07-21]: next.config.ts (fehlende serverExternalPackages) → Turbopack inlint`
-`pdfkit in den Route-Chunk und ersetzt dessen Laufzeit-\`__dirname\` durch den nicht existenten`
-`Build-Sentinel \`/ROOT/...\`; pdfkits \`fs.readFileSync(__dirname + "/data/*.afm")\` (Standard-`
-`Font-Metriken) läuft dadurch auf Vercel in ENOENT → HTTP 500.`
+Root Cause [2026-07-21]: `next.config.ts` (fehlende `serverExternalPackages`) → Turbopack inlint
+pdfkit in den Route-Chunk und ersetzt dessen Laufzeit-`__dirname` durch den nicht existenten
+Build-Sentinel `/ROOT/...`; pdfkits `fs.readFileSync(__dirname + "/data/*.afm")` (Standard-Font-
+Metriken) läuft dadurch auf Vercel in ENOENT → HTTP 500.
 
 ### Fix (minimal, chirurgisch)
 `next.config.ts`: `serverExternalPackages: ["pdfmake"]`. Damit bündelt Turbopack pdfmake/pdfkit
@@ -82,6 +82,13 @@ File-Tracing (@vercel/nft) zieht die `.afm`-Dateien an ihren echten Pfad.
   `/post-merge-verify`. AC2 (Regressions-Guard RED→GREEN) durch `next.config.test.ts`.
 - Keine sinnvollen fehlenden Tests: ein `.next/server`-Bundle-Test wäre in der vitest-Suite nicht
   hermetisch; weitere Config-Assertions wären Gold-Plating. Kein Produktionscode geändert.
+
+## Refactoring (/refactor)
+Kein Code-Refactoring nötig: geänderter Produktionscode ist ein statisches Config-Objekt
+(`serverExternalPackages: ["pdfmake"]`) mit WHY-Kommentar; der Guard-Test ist klar benannt,
+deterministisch und WHY-kommentiert – keine Naming-/SRP-/Duplikations-/Magic-Value-Verstöße.
+Kein neues Verhalten. Miterledigt: Review-Nitpick #1 (Root-Cause-Block als sauberer Absatz statt
+zeilenweiser Backticks) – reine Doku-Kosmetik, kein Code.
 
 ## Offene Fragen
 _Keine._
