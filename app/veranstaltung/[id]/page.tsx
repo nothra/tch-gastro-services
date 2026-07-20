@@ -9,6 +9,7 @@ import { AddTeilnehmerForm } from "../AddTeilnehmerForm";
 import { WalkInForm } from "../WalkInForm";
 import { ZeileRow } from "../ZeileRow";
 import { StatusToggle } from "../StatusToggle";
+import { ZugangTeilen } from "./ZugangTeilen";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
 
 // Detailansicht einer Veranstaltung: Teilnehmer führen (hinzufügen/entfernen/Walk-in) und
@@ -79,6 +80,8 @@ export default async function VeranstaltungDetailPage({
           Kassieren →
         </Link>
       </div>
+
+      {offen && <ZugangTeilen token={veranstaltung.token} />}
 
       {offen && (
         <section className="flex flex-col gap-4">

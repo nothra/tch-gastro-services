@@ -13,7 +13,7 @@ import {
   ensureThekeForKasse,
   getThekeForKasse,
   getVeranstaltung,
-  getZeile,
+  getVeranstaltungByToken,
   getZeileByTeilnehmer,
   listVeranstaltungen,
   listZeilen,
@@ -148,6 +148,17 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     expect(second.id).toBe(first.id);
     expect(first.datum).toBeNull();
     expect(first.typ).toBe("theke");
+  });
+
+  it("should_returnVeranstaltung_when_getByToken", async () => {
+    const row = await trackVeranstaltung(datierte());
+    const found = await getVeranstaltungByToken(row.token);
+    expect(found?.id).toBe(row.id);
+  });
+
+  it("should_returnUndefined_when_tokenUnknown", async () => {
+    const found = await getVeranstaltungByToken("__does_not_exist__");
+    expect(found).toBeUndefined();
   });
 
   it("should_findThekeForKasse_when_provisioned", async () => {

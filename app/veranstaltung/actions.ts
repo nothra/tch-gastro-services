@@ -6,13 +6,14 @@ import { firstIssueMessage } from "@/lib/form-errors";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
 import { getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
-import { KASSEN, veranstaltungStatus, type Kasse } from "@/db/schema";
+import { KASSEN, veranstaltungStatus, type Kasse, type Veranstaltung } from "@/db/schema";
 import {
   abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
+  getVeranstaltungByToken,
   getZeile,
   getZeileByTeilnehmer,
   listZeilen,
@@ -37,6 +38,7 @@ const detailPath = (id: string) => `${LIST_PATH}/${id}`;
 const verzehrPath = (id: string) => `${detailPath(id)}/verzehr`;
 const auslagenPath = (id: string) => `${detailPath(id)}/auslagen`;
 const kassierenPath = (id: string) => `${detailPath(id)}/kassieren`;
+const thekePath = (token: string) => `/theke/${token}`;
 
 const NOT_FOUND = "Veranstaltung nicht gefunden.";
 const NOT_OFFEN = "Die Veranstaltung ist abgeschlossen und schreibgeschützt.";
@@ -237,18 +239,16 @@ export async function kassiereZeileAction(
   return { ok: true };
 }
 
-// Erfasst einen Strich (Delta ±1) auf einer (Zeile, Katalogartikel)-Position (F5, ADR-025 D6).
-// `veranstaltungId` ist ein serverseitig gebundenes Argument (route-neutral, ADR-025 D5) – der
-// Client liefert es nicht. Fail-closed in der ADR-025-D6-Reihenfolge; jeder Guard hat einen
-// eigenen Test (Codify #51). Gibt die autoritative neue Menge zurück (ADR-025 D3): schlägt die
-// Action fehl, bleibt der alte, server-gerenderte Wert stehen und der Fehler wird sichtbar (FS3).
-export async function adjustVerzehrAction(
-  veranstaltungId: string,
-  _prevState: VerzehrActionState | undefined,
+// Gemeinsamer Kern der Verzehr-Erfassung (ADR-034 D3), von beiden Actions genutzt (DRY):
+// Zod-Parse → Status `offen` → IDOR-Bindung → Soft-Delete-Prüfung → atomarer Delta-Upsert →
+// autoritative Menge. Erwartet die bereits aufgelöste UND autorisierte Veranstaltung; die
+// Auflösung + Autorisierung (Rolle bei F5 bzw. Token bei F7) und das `revalidatePath` (Pfad je
+// Aufrufweg) liegen bewusst bei der jeweiligen Action, nicht hier. Fail-closed in der
+// ADR-025-D6-Reihenfolge; jeder Guard hat einen eigenen Test (Codify #51).
+async function applyVerzehrAdjust(
+  ziel: Veranstaltung,
   formData: FormData,
 ): Promise<VerzehrActionState> {
-  await requireRole("veranstalter");
-
   const parsed = verzehrAdjustSchema.safeParse({
     zeileId: formData.get("zeileId"),
     catalogItemId: formData.get("catalogItemId"),
@@ -257,12 +257,10 @@ export async function adjustVerzehrAction(
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
   const { zeileId, catalogItemId, delta } = parsed.data;
 
-  const ziel = await getVeranstaltung(veranstaltungId);
-  if (!ziel) return { error: NOT_FOUND };
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
   // IDOR-Bindung (Codify #51): die Zeile muss zu genau dieser Veranstaltung gehören.
-  const zeile = await getZeile(zeileId, veranstaltungId);
+  const zeile = await getZeile(zeileId, ziel.id);
   if (!zeile) return { error: ZEILE_NOT_FOUND };
 
   // Soft-Delete-Prüfung nach Laden by id (Codify #51, gelockert durch ADR-026 D2): ein
@@ -276,8 +274,45 @@ export async function adjustVerzehrAction(
   }
 
   const position = await adjustMenge(zeileId, catalogItemId, delta);
-  revalidatePath(verzehrPath(veranstaltungId));
   return { ok: true, menge: position?.menge };
+}
+
+// Erfasst einen Strich (Delta ±1) auf einer (Zeile, Katalogartikel)-Position (F5, ADR-025 D6).
+// `veranstaltungId` ist ein serverseitig gebundenes Argument (route-neutral, ADR-025 D5) – der
+// Client liefert es nicht. Nur Veranstalter (requireRole). Gibt die autoritative neue Menge
+// zurück (ADR-025 D3): schlägt die Action fehl, bleibt der alte, server-gerenderte Wert stehen
+// und der Fehler wird sichtbar (FS3).
+export async function adjustVerzehrAction(
+  veranstaltungId: string,
+  _prevState: VerzehrActionState | undefined,
+  formData: FormData,
+): Promise<VerzehrActionState> {
+  await requireRole("veranstalter");
+
+  const ziel = await getVeranstaltung(veranstaltungId);
+  if (!ziel) return { error: NOT_FOUND };
+
+  const result = await applyVerzehrAdjust(ziel, formData);
+  if (result.ok) revalidatePath(verzehrPath(veranstaltungId));
+  return result;
+}
+
+// Token-scoped Selbstbedienungs-Erfassung ohne Login (F7, #54, ADR-034 D3): der gültige Token
+// einer OFFENEN Veranstaltung IST die Autorisierung – bewusst KEIN requireRole (capability-based).
+// Die `veranstaltungId` wird aus dem Token abgeleitet (self-scoping); die IDOR-Bindung in
+// `applyVerzehrAdjust` erzwingt, dass Schreibvorgänge diese Veranstaltung nicht verlassen. Ein
+// unbekannter Token liefert einen neutralen Fehler (keine Preisgabe fremder Veranstaltungen).
+export async function adjustVerzehrByTokenAction(
+  token: string,
+  _prevState: VerzehrActionState | undefined,
+  formData: FormData,
+): Promise<VerzehrActionState> {
+  const ziel = await getVeranstaltungByToken(token);
+  if (!ziel) return { error: NOT_FOUND };
+
+  const result = await applyVerzehrAdjust(ziel, formData);
+  if (result.ok) revalidatePath(thekePath(token));
+  return result;
 }
 
 // Idempotent (ADR-023 D3) – die DB-Idempotenz garantiert der Partial-Unique-Index.

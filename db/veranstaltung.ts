@@ -40,6 +40,19 @@ export async function getVeranstaltung(id: string): Promise<Veranstaltung | unde
   return row;
 }
 
+// Lädt eine Veranstaltung über ihren öffentlichen Zugangs-Token (F7, #54, ADR-034 D2).
+// Indizierte `unique`-Selektion; Miss ⇒ `undefined` (die öffentliche Route antwortet dann
+// neutral mit `notFound()`). Bewusst KEINE constant-time-Sonderbehandlung: anders als beim
+// Login (User-Enumeration, lib/credentials) ist ein 256-bit-Zufallstoken kein Enumerationsvektor.
+export async function getVeranstaltungByToken(token: string): Promise<Veranstaltung | undefined> {
+  const [row] = await db
+    .select()
+    .from(veranstaltung)
+    .where(eq(veranstaltung.token, token))
+    .limit(1);
+  return row;
+}
+
 export async function getThekeForKasse(kasse: Kasse): Promise<Veranstaltung | undefined> {
   const [row] = await db
     .select()
