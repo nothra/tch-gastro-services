@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -79,6 +79,20 @@ Hinweis: Der visuelle Beweis (Screenshots 1/2) erfordert eine seed-befüllte Ver
 Token und genug Teilnehmern zum Scrollen – nicht als lokaler Browser-Check ausgeführt; das
 Scroll-Verhalten ist in jsdom nicht layoutbar und wird deterministisch über den rAF-/Klassen-Test
 abgesichert.
+
+## Refactoring
+
+`/refactor` (kein neues Verhalten – 608 grün vor und nach, Verhalten identisch):
+- Wichtiges Review-Finding behoben: `scroll-mt-16` aus der route-neutralen `ZeileKarte` entfernt
+  (war an `collapsible` gekoppelt = leaky abstraction). `ZeileKarte` bekommt stattdessen eine
+  optionale `className`-Prop, die auf das Wurzel-`<li>` gemergt wird; das F7-Offset gibt jetzt der
+  Konsument `FokusListe` vor (`className="scroll-mt-16"` mit Rationale-Kommentar).
+- `collapsible` bedeutet damit wieder ausschließlich „einklappbar", nicht „liegt unter einer
+  sticky Leiste". Import-Richtung/Route-Neutralität (Codify #52) gestärkt.
+- Tests nachgezogen: die zwei ZeileKarte-Unit-Tests prüfen nun den `className`-Vertrag
+  (`should_mergeClassNameOntoRoot_when_classNameProvided` / `should_keepBaseClassesOnly_when_noClassName`);
+  der FokusListe-Integrationstest (`…ClearingChipBar…`) bleibt unverändert grün und sichert das
+  reale App-Verhalten (Karte in F7 trägt weiterhin `scroll-mt-16`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

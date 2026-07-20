@@ -102,6 +102,11 @@ export function FokusListe({
             action={action}
             editable={editable}
             collapsible
+            // scroll-margin-top in Höhe der sticky Chip-Leiste oben (`sticky top-0 … py-2`):
+            // hält beim scrollIntoView den Kartenkopf (Name) frei, sonst verdeckt die Leiste ihn
+            // (#188, Screenshot 1). Das Offset gehört zu diesem Layout, daher hier – nicht in der
+            // route-neutralen ZeileKarte.
+            className="scroll-mt-16"
             open={openId === zeile.id}
             onToggle={() => toggle(zeile.id)}
           />

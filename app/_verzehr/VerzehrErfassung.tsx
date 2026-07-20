@@ -67,6 +67,9 @@ export function VerzehrErfassung({
 // die F5-Seite unberührt. `collapsible` macht den Kopf zu einem Aufklapp-Button; bei `open=false`
 // entfällt nur der Erfassungs-Körper (Kategorien + MengeControl), Kopf + Summen bleiben sichtbar
 // (volle Transparenz, spec-54 AC B). `ref` (React-19-Prop) zeigt auf das `<li>` – für scrollIntoView.
+// `className` wird auf das Wurzel-`<li>` gelegt: so steuert der Konsument layoutseitige Belange
+// seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky Chip-Leiste vor), ohne dass die
+// route-neutrale Karte diese Fremd-Layouts kennen muss.
 export function ZeileKarte({
   zeile,
   artikel,
@@ -76,6 +79,7 @@ export function ZeileKarte({
   collapsible = false,
   open = true,
   onToggle,
+  className,
   ref,
 }: {
   zeile: VerzehrZeile;
@@ -86,6 +90,7 @@ export function ZeileKarte({
   collapsible?: boolean;
   open?: boolean;
   onToggle?: () => void;
+  className?: string;
   ref?: Ref<HTMLLIElement>;
 }) {
   const mengeJeArtikel = new Map(
@@ -110,14 +115,11 @@ export function ZeileKarte({
     </div>
   );
 
-  // scroll-mt nur im Akkordeon-Modus (F7): die Karte wird per scrollIntoView unter die sticky
-  // Chip-Leiste der FokusListe (`sticky top-0 … py-2`) geholt – das scroll-margin-top hält den
-  // Kartenkopf (Name) frei, sonst verdeckt die Leiste ihn (#188). F5 (flach) bleibt ohne Margin.
   return (
     <li
       ref={ref}
       className={`flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800${
-        collapsible ? " scroll-mt-16" : ""
+        className ? ` ${className}` : ""
       }`}
     >
       {collapsible ? (

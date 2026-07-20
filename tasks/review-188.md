@@ -10,9 +10,10 @@ im Diff (Codify #161 geprüft). Bug-Fix zu #188 (Kartenfokus/Scroll).
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [app/_verzehr/VerzehrErfassung.tsx:118] Die route-neutrale `ZeileKarte` (`app/_verzehr/`)
-  hardcodet mit `scroll-mt-16` eine Offset-Höhe, die fachlich zur **F7-Chip-Leiste** in
-  `FokusListe` gehört, und knüpft sie an den `collapsible`-Modus. Kein Import-Verstoß gegen
+- [x] **Behoben in `/refactor`** (`className`-Prop an `ZeileKarte`, `scroll-mt-16` wird jetzt von
+  `FokusListe` vorgegeben). [app/_verzehr/VerzehrErfassung.tsx:118] Die route-neutrale `ZeileKarte`
+  (`app/_verzehr/`) hardcodete mit `scroll-mt-16` eine Offset-Höhe, die fachlich zur
+  **F7-Chip-Leiste** in `FokusListe` gehört, und knüpfte sie an den `collapsible`-Modus. Kein Import-Verstoß gegen
   Codify #52 (nur ein Tailwind-Class-Literal, kein `app/theke`-Import), aber eine **leaky
   abstraction**: `collapsible` bedeutet „einklappbar", nicht „liegt unter einer ~3rem sticky
   Leiste". Zusätzlich gleicht **kein** Test den Offset (`scroll-mt-16`) gegen die tatsächliche

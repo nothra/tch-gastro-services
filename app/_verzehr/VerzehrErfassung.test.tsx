@@ -519,16 +519,16 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it("should_reserveScrollMarginTop_when_collapsible", () => {
-    // Bug #188: die F7-Akkordeon-Karte wird unter die sticky Chip-Leiste gescrollt →
-    // scroll-margin-top hält den Kartenkopf frei.
-    const { container } = renderKarte({ collapsible: true, open: false });
+  it("should_mergeClassNameOntoRoot_when_classNameProvided", () => {
+    // Der Konsument steuert Layout-Klassen des Kontexts über `className` (z. B. F7 ein
+    // scroll-margin für die sticky Chip-Leiste, #188) – die Karte kennt das Fremd-Layout nicht.
+    const { container } = renderKarte({ className: "scroll-mt-16" });
 
     expect(container.querySelector("li")).toHaveClass("scroll-mt-16");
   });
 
-  it("should_notReserveScrollMargin_when_notCollapsible", () => {
-    // F5 (flach, ohne sticky Chip-Leiste) braucht kein scroll-margin – bleibt unverändert (#188 Scope).
+  it("should_keepBaseClassesOnly_when_noClassName", () => {
+    // Ohne `className` bleibt das Wurzel-<li> bei seinen Basis-Klassen (F5-Pfad unverändert).
     const { container } = renderKarte();
 
     expect(container.querySelector("li")).not.toHaveClass("scroll-mt-16");
