@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -133,6 +133,33 @@ Gate-Verifikation [2026-07-20] – alle grün:
 - `bash scripts/checks/pre-commit.sh`: Lint ✓ (keine Debug-Statements / Merge-Konflikte / Secrets).
 
 Implementierung damit vollständig (alle AC + Fehlerszenarien getestet). Nächster Pipeline-Schritt: `/review`.
+
+## /review-Ergebnis (2026-07-20)
+
+`tasks/review-185.md`: **APPROVED**, keine kritischen Findings. Ein wichtiges Finding
+(Route-Mapping-Lambdas in `bericht/route.ts` nur mit leeren Arrays getestet) explizit für `/test`
+vorgemerkt; vier Nitpicks optional.
+
+## /test-Ergebnis (2026-07-20)
+
+- Wichtiges Review-Finding behoben: `route.test.ts` hat jetzt
+  `should_mapDbRowsIntoBerichtModell_when_zeilenPositionenAndAuslagenPresent` – prüft das an
+  `berichtXlsx`/`berichtPdf` übergebene Modell mit je einer befüllten Zeile/Position/Auslage
+  (deckt AC4/AC7 zusätzlich auf Handler-Ebene ab).
+- Zusätzliche Branch-Coverage-Lücken geschlossen: `berichtModell.test.ts` (Teilnehmer ohne jede
+  Position, Artikel-Sortierung bei gleicher Kategorie+Name via Größe), `berichtXlsx.test.ts`
+  (geteilter Artikel über zwei Teilnehmer, unterschiedliche Artikel je Teilnehmer,
+  `erhaltenCents === null`), `berichtPdf.test.ts` (Teilnehmer ohne Positionen + `null` Erhalten).
+- Verbleibende ungetestete Branches sind echte Dead-Branches in Produktionscode (kein
+  Produktionscode-Fix in diesem Schritt, Review-Nitpicks): `berichtDateiname.ts:23`
+  (`?? char`-Fallback nach `/[äöüß]/g` ist unerreichbar) und `berichtXlsx.ts:89`
+  (`spalte !== undefined` ist immer wahr, da `spalteJeArtikel` aus denselben Positionen gebaut
+  wird, die die Schleife durchläuft) – beide nur durch eine Produktionscode-Änderung (Fallback
+  entfernen bzw. Guard entfernen) auf 100 % Branch-Coverage zu heben; Kandidat für `/refactor`.
+- Finaler Lauf: `pnpm test:coverage` → **604 passed / 59 skipped** (0 Failures), Statements
+  88.86 %, Branches 93.93 %, Funktionen 76.99 %, Lines 88.89 % (deutlich über der 80 %-Schwelle;
+  die 0 %-Werte unter `db/**` sind vorbestehende Integrationstests ohne lokale DB, unabhängig
+  von dieser Task). `bash scripts/checks/pre-push.sh` erneut grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

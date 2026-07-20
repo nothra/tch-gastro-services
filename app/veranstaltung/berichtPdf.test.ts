@@ -52,4 +52,19 @@ describe("berichtPdf", () => {
 
     expect(isPdf(buffer)).toBe(true);
   });
+
+  it("should_produceValidPdf_when_teilnehmerHasNoPositionsAndNullErhalten", async () => {
+    // Deckt zwei Zweige ab, die der Haupt-Smoke-Test nicht erreicht: "Erhalten"-Anzeige bei
+    // `null` (noch nicht kassiert) und ein Teilnehmer ohne Artikeltabelle (nichts konsumiert).
+    const chris = berichtModell({
+      veranstaltung,
+      zeilen: [{ id: "z-2", anzeigename: "Chris", erhaltenCents: null }],
+      positionen: [],
+      auslagen: [],
+    });
+
+    const buffer = await berichtPdf(chris);
+
+    expect(isPdf(buffer)).toBe(true);
+  });
 });

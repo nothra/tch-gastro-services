@@ -49,4 +49,92 @@ describe("berichtXlsx", () => {
     expect(buffer[0]).toBe(0x50);
     expect(buffer[1]).toBe(0x4b);
   });
+
+  it("should_produceValidXlsx_when_twoTeilnehmerOrderTheSameArticle", async () => {
+    // Deckt den Dedup-Zweig in `sammleArtikel` ab: ein Artikel, der von mehreren Teilnehmern
+    // bestellt wurde, darf nur EINE Matrix-Spalte erhalten (sonst doppelte Spalten im Bericht).
+    const geteilterArtikel = berichtModell({
+      veranstaltung,
+      zeilen: [
+        { id: "z1", anzeigename: "Anna", erhaltenCents: 500 },
+        { id: "z2", anzeigename: "Ben", erhaltenCents: 500 },
+      ],
+      positionen: [
+        {
+          zeileId: "z1",
+          name: "Bier",
+          size: "0,5l",
+          menge: 1,
+          priceCents: 250,
+          category: "getraenk",
+        },
+        {
+          zeileId: "z2",
+          name: "Bier",
+          size: "0,5l",
+          menge: 3,
+          priceCents: 250,
+          category: "getraenk",
+        },
+      ],
+      auslagen: [],
+    });
+
+    const buffer = await berichtXlsx(geteilterArtikel);
+
+    expect(buffer[0]).toBe(0x50);
+    expect(buffer[1]).toBe(0x4b);
+  });
+
+  it("should_produceValidXlsx_when_teilnehmerOrderDifferentArticles", async () => {
+    // Deckt den `?? null`-Zweig ab: Anna bestellt nur Bier, Ben nur Wein – in Annas Zeile bleibt
+    // die Wein-Spalte leer (und umgekehrt), da nicht jeder Teilnehmer jeden Artikel bestellt.
+    const unterschiedlicheArtikel = berichtModell({
+      veranstaltung,
+      zeilen: [
+        { id: "z1", anzeigename: "Anna", erhaltenCents: 500 },
+        { id: "z2", anzeigename: "Ben", erhaltenCents: 500 },
+      ],
+      positionen: [
+        {
+          zeileId: "z1",
+          name: "Bier",
+          size: "0,5l",
+          menge: 1,
+          priceCents: 250,
+          category: "getraenk",
+        },
+        {
+          zeileId: "z2",
+          name: "Wein",
+          size: "0,2l",
+          menge: 1,
+          priceCents: 400,
+          category: "getraenk",
+        },
+      ],
+      auslagen: [],
+    });
+
+    const buffer = await berichtXlsx(unterschiedlicheArtikel);
+
+    expect(buffer[0]).toBe(0x50);
+    expect(buffer[1]).toBe(0x4b);
+  });
+
+  it("should_produceValidXlsx_when_teilnehmerHasNullErhalten", async () => {
+    // Deckt den Zweig ab, der die "Erhalten"-Zelle bei `null` (noch nicht kassiert)
+    // bewusst NICHT befüllt.
+    const chris = berichtModell({
+      veranstaltung,
+      zeilen: [{ id: "z-2", anzeigename: "Chris", erhaltenCents: null }],
+      positionen: [],
+      auslagen: [],
+    });
+
+    const buffer = await berichtXlsx(chris);
+
+    expect(buffer[0]).toBe(0x50);
+    expect(buffer[1]).toBe(0x4b);
+  });
 });

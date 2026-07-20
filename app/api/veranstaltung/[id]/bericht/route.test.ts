@@ -147,4 +147,65 @@ describe("GET /api/veranstaltung/[id]/bericht", () => {
     expect(berichtPdfMock).toHaveBeenCalledOnce();
     expect(berichtXlsxMock).not.toHaveBeenCalled();
   });
+
+  it("should_mapDbRowsIntoBerichtModell_when_zeilenPositionenAndAuslagenPresent", async () => {
+    // Deckt die inline-Mapping-Zeilen (DB-Zeilenform → `berichtModell`-Input) ab: ein
+    // Feldname-Tippfehler hier würde von keinem der reinen `berichtModell`-Tests erkannt, weil
+    // die dort direkt mit dem korrekten Input-Shape aufgerufen wird.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(abgeschlossen);
+    listZeilenMock.mockResolvedValue([
+      {
+        id: "z-1",
+        veranstaltungId: "v-1",
+        teilnehmerId: "t-1",
+        anzeigename: "Anna",
+        erhaltenCents: 1500,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    listPositionenMock.mockResolvedValue([
+      {
+        zeileId: "z-1",
+        catalogItemId: "c-1",
+        menge: 2,
+        name: "Bier",
+        size: "0,5l",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
+    ]);
+    listAuslagenMock.mockResolvedValue([
+      {
+        id: "a-1",
+        teilnehmerId: "t-1",
+        anzeigename: "Anna",
+        kategorie: "getraenke",
+        betragCents: 300,
+        zweck: null,
+        status: "erstattet",
+      },
+    ]);
+
+    await callGET("xlsx");
+
+    const modell = berichtXlsxMock.mock.calls[0][0];
+    expect(modell.teilnehmer).toHaveLength(1);
+    expect(modell.teilnehmer[0].anzeigename).toBe("Anna");
+    expect(modell.teilnehmer[0].positionen).toEqual([
+      {
+        name: "Bier",
+        size: "0,5l",
+        category: "getraenk",
+        menge: 2,
+        einzelpreisCents: 250,
+        zeilenbetragCents: 500,
+      },
+    ]);
+    expect(modell.auslagen).toEqual([
+      { anzeigename: "Anna", kategorie: "Getränke", betragCents: 300, status: "erstattet" },
+    ]);
+  });
 });

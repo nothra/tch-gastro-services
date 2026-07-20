@@ -99,6 +99,54 @@ describe("berichtModell – Teilnehmerzeilen mit Pro-Artikel-Strichen (AC4/AC5)"
     expect(modell.teilnehmer[0].positionen).toHaveLength(0);
   });
 
+  it("should_handleTeilnehmerWithoutAnyPositions_when_nothingConsumedYet", () => {
+    // Anders als "should_dropZeroMengeArticles": hier existiert für die Zeile GAR KEINE
+    // Position (nicht nur menge=0) – ein Teilnehmer, der der Kasse zugeordnet ist, aber noch
+    // nichts konsumiert hat. Deckt den `?? []`-Fallback ab, wenn die Zeile keinen Eintrag in
+    // der Positionen-Gruppierung hat.
+    const modell = berichtModell({
+      veranstaltung,
+      zeilen: [{ id: "z1", anzeigename: "Chris", erhaltenCents: 0 }],
+      positionen: [],
+      auslagen: [],
+    });
+
+    const chris = modell.teilnehmer[0];
+    expect(chris.positionen).toEqual([]);
+    expect(chris.getraenkeCents).toBe(0);
+    expect(chris.sonstigeCents).toBe(0);
+    expect(chris.verzehrGesamtCents).toBe(0);
+  });
+
+  it("should_sortArticlesBySize_when_categoryAndNameMatch", () => {
+    const modell = berichtModell({
+      veranstaltung,
+      zeilen: [{ id: "z1", anzeigename: "Anna", erhaltenCents: null }],
+      positionen: [
+        {
+          zeileId: "z1",
+          name: "Bier",
+          size: "0,5l",
+          menge: 1,
+          priceCents: 250,
+          category: "getraenk",
+        },
+        {
+          zeileId: "z1",
+          name: "Bier",
+          size: "0,3l",
+          menge: 1,
+          priceCents: 200,
+          category: "getraenk",
+        },
+      ],
+      auslagen: [],
+    });
+
+    // Gleiche Kategorie + gleicher Name → Tie-Break über die Größe (localeCompare).
+    expect(modell.teilnehmer[0].positionen.map((p) => p.size)).toEqual(["0,3l", "0,5l"]);
+  });
+
   it("should_sortArticlesByCategoryThenName_when_built", () => {
     const modell = berichtModell({
       veranstaltung,
