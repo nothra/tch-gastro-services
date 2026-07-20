@@ -28,6 +28,8 @@ mit #54/ADR-034 gelegten Fundament. Kanonische Spec: [`docs/specs/spec-183-erfas
 ### Zweistufiger Einstieg
 - [ ] GIVEN erstmaliges Öffnen (offene Veranstaltung, kein Erfasser gemerkt) WHEN die Seite lädt THEN erscheint zuerst „Wer bist du?"; Erfassbereiche noch nicht bearbeitbar.
 - [ ] GIVEN „Wer bist du?" WHEN ein Erfasser gewählt wird THEN wird er clientseitig pro Token gemerkt UND direkt „Für wen möchtest du einen Verzehr erfassen?" abgefragt.
+- [ ] GIVEN die Ziel-Frage nach gewähltem Erfasser WHEN sie angezeigt wird THEN ist die erste Antwortmöglichkeit „Für mich" (der Erfasser), darunter die übrigen Teilnehmer.
+- [ ] GIVEN die Ziel-Frage WHEN „Für mich" gewählt wird THEN wird der Erfasser als Ziel-Teilnehmer übernommen (ohne erneute Namenssuche), gemerkt und dessen Erfassbereich aufgeklappt.
 - [ ] GIVEN „Für wen?" WHEN ein Ziel-Teilnehmer gewählt wird THEN wird die Auswahl gemerkt, dessen Erfassbereich aufgeklappt (andere zu) und die Bearbeitung freigeschaltet.
 
 ### Wiederkehr / Persistenz

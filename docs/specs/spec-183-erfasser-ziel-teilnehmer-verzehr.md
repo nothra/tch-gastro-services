@@ -37,6 +37,9 @@ Diese Überarbeitung verschiebt den Fokus auf den **Ziel-Teilnehmer** und trennt
 - **Zweistufiger Einstieg mit verpflichtender Ziel-Auswahl:** Nach „Wer bist du?" wird direkt
   „Für wen möchtest du einen Verzehr erfassen?" abgefragt; erst danach erscheint der (aufgeklappte)
   Erfassbereich.
+- **Schnellauswahl „Für mich":** In der Ziel-Frage ist die **erste** Antwortmöglichkeit
+  „Für mich" (der zuvor gewählte Erfasser). Sie übernimmt den Erfasser als Ziel-Teilnehmer –
+  der häufigste Fall (man erfasst für sich selbst) und spart die Suche in der Liste.
 
 ## Scope
 
@@ -44,7 +47,9 @@ Diese Überarbeitung verschiebt den Fokus auf den **Ziel-Teilnehmer** und trennt
 - Zweistufiger Einstieg beim **erstmaligen** Öffnen (offene Veranstaltung, nichts gemerkt):
   1. „Wer bist du?" → legt den **Erfasser** fest (Auswahl aus der Teilnehmerliste), wird gemerkt.
   2. „Für wen möchtest du einen Verzehr erfassen?" → legt den **Ziel-Teilnehmer** fest, wird
-     gemerkt, und navigiert zu dessen aufgeklapptem Erfassbereich.
+     gemerkt, und navigiert zu dessen aufgeklapptem Erfassbereich. **Erste** Antwortmöglichkeit:
+     **„Für mich"** – übernimmt den Erfasser aus Schritt 1 als Ziel-Teilnehmer; darunter die
+     übrigen Teilnehmer zur Auswahl.
 - **Akkordeon**: nur der Erfassbereich des Ziel-Teilnehmers ist aufgeklappt, alle anderen
   eingeklappt. Ein eingeklappter Bereich zeigt weiterhin **Name + laufende Summen** (Getränke /
   Essen / Kaffee) – volle Transparenz bleibt (spec-54 AC B).
@@ -75,6 +80,11 @@ Diese Überarbeitung verschiebt den Fokus auf den **Ziel-Teilnehmer** und trennt
       die Erfassbereiche sind noch nicht bearbeitbar.
 - [ ] GIVEN „Wer bist du?" WHEN ein Erfasser gewählt wird THEN wird er clientseitig pro Token
       gemerkt UND direkt „Für wen möchtest du einen Verzehr erfassen?" abgefragt.
+- [ ] GIVEN die Ziel-Frage nach gewähltem Erfasser WHEN sie angezeigt wird THEN ist die **erste**
+      Antwortmöglichkeit „Für mich" (der Erfasser), darunter die übrigen Teilnehmer.
+- [ ] GIVEN die Ziel-Frage WHEN „Für mich" gewählt wird THEN wird der Erfasser aus Schritt 1 als
+      Ziel-Teilnehmer übernommen (ohne erneute Namenssuche), gemerkt und dessen Erfassbereich
+      aufgeklappt.
 - [ ] GIVEN „Für wen?" WHEN ein Ziel-Teilnehmer gewählt wird THEN wird die Auswahl gemerkt, dessen
       Erfassbereich aufgeklappt (alle anderen eingeklappt) und die Bearbeitung ist freigeschaltet.
 
