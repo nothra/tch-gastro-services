@@ -15,8 +15,8 @@ export async function ZugangTeilen({ token }: { token: string }) {
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold">Zugang teilen</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Teilnehmer öffnen diesen Link (oder scannen den QR-Code) und erfassen ihren Verzehr
-          selbst – ohne Anmeldung.
+          Teilnehmer öffnen diesen Link (oder scannen den QR-Code) und erfassen ihren Verzehr selbst
+          – ohne Anmeldung.
         </p>
       </div>
 
