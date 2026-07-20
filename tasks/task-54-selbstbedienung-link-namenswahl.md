@@ -30,28 +30,28 @@ solange offen. Theke-QR-Aushang ausgegründet nach **#181**.
 <!-- Kanonische Quelle: spec-54; hier gespiegelt für den Fortschritt -->
 
 **A) Zugang teilen (Veranstalter)**
-- [ ] Offene Veranstaltung → Veranstalter sieht auf `veranstaltung/[id]` Link **und** QR-Code auf `theke/[token]` dieser Veranstaltung.
+- [x] Offene Veranstaltung → Veranstalter sieht auf `veranstaltung/[id]` Link **und** QR-Code auf `theke/[token]` dieser Veranstaltung.
 
 **B) Öffnen & Namenswahl (ohne Login)**
-- [ ] Gültiger Link → Veranstaltung, Teilnehmerliste und laufende Summen ohne Login sichtbar.
-- [ ] Namenswahl aus der Liste → Erfassen für die ganze Liste (volle Transparenz), Summen aktualisieren sich (F5).
-- [ ] Name wird je Gerät gemerkt; „Person wechseln" jederzeit möglich.
-- [ ] Neuen Teilnehmer anlegen ist über den Link **nicht** verfügbar (nur Auswahl).
+- [x] Gültiger Link → Veranstaltung, Teilnehmerliste und laufende Summen ohne Login sichtbar.
+- [x] Namenswahl aus der Liste → Erfassen für die ganze Liste (volle Transparenz), Summen aktualisieren sich (F5).
+- [x] Name wird je Gerät gemerkt; „Person wechseln" jederzeit möglich.
+- [x] Neuen Teilnehmer anlegen ist über den Link **nicht** verfügbar (nur Auswahl).
 
 **C) Status offen vs. abgeschlossen**
-- [ ] Abgeschlossene Veranstaltung → Read-only-Ansicht (Liste + Summen), keine Erfassungs-Controls.
-- [ ] Erfassung bei inzwischen abgeschlossener Veranstaltung → serverseitig abgelehnt (Action prüft `offen`).
+- [x] Abgeschlossene Veranstaltung → Read-only-Ansicht (Liste + Summen), keine Erfassungs-Controls.
+- [x] Erfassung bei inzwischen abgeschlossener Veranstaltung → serverseitig abgelehnt (Action prüft `offen`).
 
 **D) Token & Fehler**
-- [ ] Ungültiges/unbekanntes Token → neutraler 404, keine Preisgabe anderer Veranstaltungen.
-- [ ] Token bleibt gültig, solange die Veranstaltung offen ist (keine Rotation/kein Ablauf).
+- [x] Ungültiges/unbekanntes Token → neutraler 404, keine Preisgabe anderer Veranstaltungen.
+- [x] Token bleibt gültig, solange die Veranstaltung offen ist (keine Rotation/kein Ablauf).
 
 **E) Gemeinsame Route & geteiltes Gerät**
-- [ ] Theke-Token über `theke/[token]` → dieselbe Selbstbedienung wie datierte Veranstaltung (Essen eingeblendet).
-- [ ] Geteiltes Theken-Gerät → mehrere Teilnehmer nacheinander, Wechsel via „Person wechseln".
+- [x] Theke-Token über `theke/[token]` → dieselbe Selbstbedienung wie datierte Veranstaltung (Essen eingeblendet).
+- [x] Geteiltes Theken-Gerät → mehrere Teilnehmer nacheinander, Wechsel via „Person wechseln".
 
 **F) Serverseitige Autorisierung (token-scoped)**
-- [ ] Schreibzugriff nur über gültigen Token einer offenen Veranstaltung; adressierte `zeile`/`teilnehmer` muss zu dieser Veranstaltung gehören (kein IDOR, Codify #51).
+- [x] Schreibzugriff nur über gültigen Token einer offenen Veranstaltung; adressierte `zeile`/`teilnehmer` muss zu dieser Veranstaltung gehören (kein IDOR, Codify #51).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt -->
@@ -102,6 +102,29 @@ Datenmodell-Änderung/Migration** – F7 ist reine Präsentations-/Action-Schich
 Gegen `pnpm dev`: `/theke/<gültiger-token>` → Namens-Picker → wählen → +1 erhöht Menge & Summe;
 ungültiger Token → 404; abgeschlossene Veranstaltung → Read-only ohne +/−; Detailseite zeigt
 Link + QR.
+
+### Implementierungs-Notiz [2026-07-20]
+Alle sechs AC-Gruppen (A–F) sind implementiert und durch Unit-/Component-Tests abgedeckt:
+- **Data-Layer:** `getVeranstaltungByToken` (`db/veranstaltung.ts`, Integrationstest Treffer/Miss).
+- **Action:** `applyVerzehrAdjust`-Kern extrahiert (F5-Tests unverändert grün) + capability-basierte
+  `adjustVerzehrByTokenAction` (`app/veranstaltung/actions.ts`): kein `requireRole`, neutraler Fehler
+  bei ungültigem Token, Status-Gate `offen`, IDOR-Bindung über `getZeile(zeileId, ziel.id)`.
+- **Route:** `app/theke/[token]/page.tsx` (`notFound()` bei Miss, `editable = status==="offen"`).
+- **Gate:** `IdentityGate.tsx` (localStorage `tch:sb:name:<token>` via `useSyncExternalStore` –
+  kein set-state-in-effect; Stale-Fallback, „Person wechseln", kein Gate im Read-only).
+- **Zugang teilen:** `ZugangTeilen.tsx` (server-seitiger QR-SVG via `qrcode`, absolute URL via
+  `lib/base-url.ts`), nur für offene Veranstaltungen eingebunden.
+- **Pflichten:** `docs/routes.md` gepflegt (`/theke/[token]` öffentlich, proxy-exempt); `proxy.ts`
+  nimmt `theke/` bereits aus (nur verifiziert, keine Änderung nötig); `qrcode`/`@types/qrcode`
+  ergänzt.
+
+**Gates grün** (`scripts/checks/pre-push.sh`): Tests 528 passed / 59 skipped, Typecheck, Format,
+Routen-Doku-Drift, Branch-Name. Die 59 Skips sind DB-Integrationstests (`skipIf(!hasDb)`) – laufen
+in CI mit DB.
+
+**Offen (Stage 2):** Interaktive Browser-/E2E-Verifikation gegen `pnpm dev` erfordert lokale DB
+(`pnpm db:up` + `.env.local`); nicht in dieser Session ausgeführt. Nachweis erfolgt über
+`/post-merge-verify` bzw. eine E2E-Spec, falls in `/test` ergänzt.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
