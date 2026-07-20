@@ -24,6 +24,7 @@
 |------|-----|----------|---------|
 | `/` | Seite | Startseite / Landing | angemeldet |
 | `/login` | Seite | Anmeldung (Credentials) | öffentlich |
+| `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (proxy-exempt, Token) |
 | `/veranstaltung` | Seite | Veranstaltungs-Liste | `veranstalter` |
 | `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail) | `veranstalter` |
 | `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Getränke, Essen, Kaffee) | `veranstalter` |

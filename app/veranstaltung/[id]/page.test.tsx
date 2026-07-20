@@ -32,6 +32,9 @@ vi.mock("next/link", () => ({
 vi.mock("../AddTeilnehmerForm", () => ({ AddTeilnehmerForm: () => null }));
 vi.mock("../WalkInForm", () => ({ WalkInForm: () => null }));
 vi.mock("../StatusToggle", () => ({ StatusToggle: () => null }));
+vi.mock("./ZugangTeilen", () => ({
+  ZugangTeilen: ({ token }: { token: string }) => <div data-testid="zugang-teilen">{token}</div>,
+}));
 vi.mock("../ZeileRow", () => ({
   ZeileRow: ({ zeile }: { zeile: { anzeigename: string } }) => <li>{zeile.anzeigename}</li>,
 }));
@@ -126,6 +129,29 @@ describe("VeranstaltungDetailPage", () => {
 
     const link = screen.getByRole("link", { name: /Kassieren/ });
     expect(link).toHaveAttribute("href", "/veranstaltung/v-1/kassieren");
+  });
+
+  it("should_showZugangTeilen_when_veranstaltungOffen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    // Der Selbstbedienungs-Zugang (Link + QR) wird mit dem Veranstaltungs-Token gespeist (F7).
+    expect(screen.getByTestId("zugang-teilen")).toHaveTextContent("abc123");
+  });
+
+  it("should_hideZugangTeilen_when_veranstaltungAbgeschlossen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.queryByTestId("zugang-teilen")).not.toBeInTheDocument();
   });
 
   it("should_renderZeileRow_when_zeilenPresent", async () => {

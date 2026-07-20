@@ -977,6 +977,26 @@ erst wenn ein späteres Review es bemerkt. Faustregel vor dem Schließen eines F
 Terminologie-Sweep (#144): der Auslöser ist eine **Verhaltens-/Architektur-Änderung**, nicht nur ein
 Term-Rename.
 
+### Schreib-Gate darf die Lese-Ansicht nicht mitverstecken – vorhandenes `editable`-Flag nutzen (aus #54, Review-Runde-1-Finding)
+
+`IdentityGate` (Namenswahl vor Verzehr-Erfassung ohne Login, F7) zeigte im ersten Entwurf **vor**
+der Namenswahl nur den Namens-Picker – Teilnehmerliste und laufende Summen blieben verborgen,
+obwohl spec-54 AC B1 „Gültiger Link → Veranstaltung, Teilnehmerliste und laufende Summen ohne
+Login sichtbar" deren Sichtbarkeit **unabhängig** von der Namenswahl forderte. Der Reflex beim
+Bauen eines client-seitigen Gates vor einer bestehenden, route-neutralen Anzeige-Komponente
+(hier `VerzehrErfassung`, die aus F5 bereits ein `editable`-Flag für ihren Read-only-Modus
+mitbrachte) ist, das Gate als binäres Alles-oder-Nichts zu entwerfen (Picker **oder**
+Komponente) – statt die vorhandene Read-only-Fähigkeit der Komponente zu verwenden.
+
+**Regel:** Ein Gate, das nur eine **Schreib**-Fähigkeit an eine Bedingung knüpft (Login,
+Namenswahl, Rolle), darf die zugehörige **Lese**-Ansicht nicht mitblockieren, wenn die Spec deren
+Sichtbarkeit unabhängig davon fordert. Bringt die dahinterliegende Anzeige-Komponente bereits ein
+`editable`-Flag mit, das Gate darauf abbilden (`editable={gateBedingungErfüllt &&
+komponenteneigenesEditable}`) statt eine eigene, separate Verzweigung (Picker vs. Komponente) zu
+bauen. Pflicht-Begleitung: ein Test, der den Zustand **vor** Erfüllung der Gate-Bedingung gegen
+die tatsächlich sichtbaren Daten prüft (Liste, Summen) – nicht nur, dass „irgendetwas" gerendert
+wird.
+
 ---
 
 ## Offene Architektur-Fragen

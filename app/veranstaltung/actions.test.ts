@@ -20,6 +20,7 @@ vi.mock("@/db/veranstaltung", () => ({
   abschliessenVeranstaltung: vi.fn(),
   wiedereroeffnenVeranstaltung: vi.fn(),
   getVeranstaltung: vi.fn(),
+  getVeranstaltungByToken: vi.fn(),
   getZeile: vi.fn(),
   getZeileByTeilnehmer: vi.fn(),
   listZeilen: vi.fn(),
@@ -50,6 +51,7 @@ import {
   createVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
+  getVeranstaltungByToken,
   getZeile,
   getZeileByTeilnehmer,
   listZeilen,
@@ -61,6 +63,7 @@ import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@
 import {
   addZeileAction,
   adjustVerzehrAction,
+  adjustVerzehrByTokenAction,
   createAuslageAction,
   createVeranstaltungAction,
   createWalkInAction,
@@ -81,6 +84,7 @@ const setErhaltenMock = vi.mocked(setErhalten);
 const abschliessenMock = vi.mocked(abschliessenVeranstaltung);
 const wiedereroeffnenMock = vi.mocked(wiedereroeffnenVeranstaltung);
 const getVeranstaltungMock = vi.mocked(getVeranstaltung);
+const getVeranstaltungByTokenMock = vi.mocked(getVeranstaltungByToken);
 const getZeileMock = vi.mocked(getZeile);
 const getZeileByTeilnehmerMock = vi.mocked(getZeileByTeilnehmer);
 const listZeilenMock = vi.mocked(listZeilen);
@@ -182,6 +186,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
   getVeranstaltungMock.mockResolvedValue(offeneVeranstaltung);
+  getVeranstaltungByTokenMock.mockResolvedValue(offeneVeranstaltung);
   getZeileMock.mockResolvedValue(zeile);
   getZeileByTeilnehmerMock.mockResolvedValue(zeile);
   listZeilenMock.mockResolvedValue([]);
@@ -770,6 +775,66 @@ describe("adjustVerzehrAction", () => {
     await boundAction({ ...validAdjust, delta: "-1" });
 
     expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", -1);
+  });
+});
+
+describe("adjustVerzehrByTokenAction", () => {
+  const boundAction = (fields: Record<string, string>) =>
+    adjustVerzehrByTokenAction("tok", undefined, form(fields));
+  const validAdjust = { zeileId: "z1", catalogItemId: "c1", delta: "1" };
+
+  it("should_adjustAndReturnAuthoritativeMenge_when_tokenValidAndOpen", async () => {
+    const result = await boundAction(validAdjust);
+
+    expect(result).toEqual({ ok: true, menge: 1 });
+    expect(getVeranstaltungByTokenMock).toHaveBeenCalledWith("tok");
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+  });
+
+  it("should_authorizeWithoutRole_when_tokenValid", async () => {
+    // Kein requireRole (capability-based, ADR-034 D3): auch ohne jede Rolle erfolgreich.
+    authMock.mockResolvedValue(null as never);
+    const result = await boundAction(validAdjust);
+
+    expect(result).toEqual({ ok: true, menge: 1 });
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+  });
+
+  it("should_returnNeutralErrorAndNotPersist_when_tokenUnknown", async () => {
+    getVeranstaltungByTokenMock.mockResolvedValue(undefined);
+    const result = await boundAction(validAdjust);
+
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectAndNotPersist_when_veranstaltungClosed", async () => {
+    getVeranstaltungByTokenMock.mockResolvedValue({
+      ...offeneVeranstaltung,
+      status: "abgeschlossen",
+    });
+    const result = await boundAction(validAdjust);
+
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectAndNotPersist_when_zeileBelongsToAnotherVeranstaltung", async () => {
+    // IDOR (Codify #51): eine fremde zeileId wird über die veranstaltungId-Bindung (aus dem
+    // Token abgeleitet) nicht gefunden → ZEILE_NOT_FOUND, kein Schreibzugriff auf die fremde Zeile.
+    getZeileMock.mockResolvedValue(undefined);
+    const result = await boundAction(validAdjust);
+
+    expect(result.error).toBeDefined();
+    expect(getZeileMock).toHaveBeenCalledWith("z1", "v1");
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_deltaOutOfRange", async () => {
+    const result = await boundAction({ ...validAdjust, delta: "2" });
+
+    expect(result.error).toBeDefined();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
   });
 });
 
