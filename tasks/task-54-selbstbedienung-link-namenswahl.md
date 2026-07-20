@@ -180,6 +180,8 @@ Lese-Ansicht nicht mitverstecken – vorhandenes `editable`-Flag nutzen", aus Re
 an `IdentityGate`). Details: [`tasks/codify-54.md`](codify-54.md). Folge-Issues #181/#182 bereits
 vorhanden, keine neuen angelegt.
 
+PR-Shepherd [2026-07-20]: Merge freigegeben – alle Gates grün.
+
 ---
 Branch: `feature/54-selbstbedienung-link-namenswahl`
 Erstellt: 2026-07-20 07:22
