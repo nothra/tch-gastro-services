@@ -70,6 +70,18 @@ const cola: CatalogItem = {
   updatedAt: new Date(),
 };
 
+const kuchen: CatalogItem = {
+  id: "c-2",
+  name: "Kuchen",
+  size: "",
+  category: "essen",
+  priceCents: 150,
+  sortOrder: 1,
+  active: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 function params(token: string) {
   return Promise.resolve({ token });
 }
@@ -125,5 +137,30 @@ describe("ThekePage", () => {
     // Read-only: kein Namens-Gate, direkt Liste + Summen, keine editierbaren Controls.
     expect(screen.queryByText("Wer bist du?")).not.toBeInTheDocument();
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+  });
+
+  it("should_workSameWayIncludingEssen_when_veranstaltungTypIsTheke", async () => {
+    // AC E1 (spec-54): dieselbe Route bedient die stehende Theke identisch wie eine datierte
+    // Veranstaltung – die Seite verzweigt nirgends auf `typ`, Essen bleibt eingeblendet.
+    getByTokenMock.mockResolvedValue({ ...aVeranstaltung, typ: "theke", datum: null });
+    listActiveCatalogMock.mockResolvedValue([cola, kuchen]);
+
+    render(await ThekePage({ params: params("tok-1") }));
+
+    expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
+    expect(screen.getByText(/Cola/)).toBeInTheDocument();
+    expect(screen.getByText(/Kuchen/)).toBeInTheDocument();
+  });
+
+  it("should_notOfferNewParticipant_when_openAndNoStoredName", async () => {
+    // AC B4 (spec-54): Selbstbedienung kann keinen neuen Teilnehmer anlegen – nur Auswahl.
+    getByTokenMock.mockResolvedValue(aVeranstaltung);
+
+    render(await ThekePage({ params: params("tok-1") }));
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /anlegen|hinzufügen|neu/i }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -125,6 +125,14 @@ in CI mit DB.
 **Offen (Stage 2):** Interaktive Browser-/E2E-Verifikation gegen `pnpm dev` erfordert lokale DB
 (`pnpm db:up` + `.env.local`); nicht in dieser Session ausgeführt. Nachweis erfolgt über
 `/post-merge-verify` bzw. eine E2E-Spec, falls in `/test` ergänzt.
+
+### Test-Vervollständigung [2026-07-20, /test]
+AC-Vollständigkeitsprüfung gegen spec-54 (A–F + Fehlerszenarien) durchgeführt; zwei Lücken
+identifiziert und geschlossen (AC E1 „Theke-Typ arbeitet identisch inkl. Essen", AC B4 „kein
+Anlegen neuer Teilnehmer über den Link") – zwei neue Tests in `app/theke/[token]/page.test.tsx`.
+Alle Tests grün: 531 passed / 59 skipped. Details, AC-Tabelle und bewusst offene Punkte (u. a.
+DB-Integrationstests ohne lokale DB, `IdentityGate`-SSR-Fallback-Funktionscoverage, Out-of-Scope-
+Funde) in [`tasks/coverage-54.md`](coverage-54.md).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

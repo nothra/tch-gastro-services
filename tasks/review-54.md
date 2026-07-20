@@ -5,59 +5,40 @@ Betrachtet: `db/veranstaltung.ts`, `app/veranstaltung/actions.ts`, `app/theke/[t
 `app/veranstaltung/[id]/ZugangTeilen.tsx` + `page.tsx`, `lib/base-url.ts`, `vitest.setup.ts`,
 `docs/routes.md`, `docs/adr/034`, `docs/specs/spec-54` und die zugehörigen Tests.
 
+**Runde 2** (nach Rework von Runde 1). Drei Personas: Backend/Logik, Code-Qualität,
+Architektur/Patterns. Fokus-Verifikation der F7-Testdateien grün: 5 Dateien / 118 Tests passed.
+
 ## Kritische Findings (müssen behoben werden)
 - [ ] Keine.
 
 ## Wichtige Findings (sollten behoben werden)
-- [x] **Behoben [2026-07-20, /implement-Rework]:** `IdentityGate` rendert jetzt die
-      route-neutrale `VerzehrErfassung` selbst mit `editable = offen && nameGewählt`. Teilnehmerliste
-      und laufende Summen sind damit **sofort beim Öffnen** sichtbar (read-only), die
-      Erfassungs-Controls (±) bleiben hinter dem Namens-Gate. Deckt spec-54 AC B1 („…sieht die
-      Teilnehmerliste und die laufenden Summen") ohne Spec-Nachzug. Neue Tests:
-      `should_showPickerAndReadOnlyList_when_noStoredName` (+ Stale-/Read-only-Varianten),
-      Page-Test `should_showPickerAndReadOnlyList_when_openAndNoStoredName`. Nebenbei: leere Liste
-      zeigt jetzt den neutralen öffentlichen Hinweis (Nitpick 4 unten) statt der F5-Meldung.
-- [ ] ~~`app/theke/[token]/IdentityGate.tsx:66-68`~~ — **Laufende Summen bei offenem Link erst nach
-      Namenswahl sichtbar, entgegen AC B (Spec-Bullet 1).** spec-54 B) verlangt: „WHEN ein
-      Teilnehmer den gültigen Link öffnet THEN sieht er – ohne Login – die Veranstaltung, die
-      **Teilnehmerliste** und die **laufenden Summen**." Ist noch kein Name gewählt (`!bekannt`),
-      rendert das Gate ausschließlich den `NamensPicker` (Namensbuttons); die `children`
-      (`VerzehrErfassung` mit Liste + Summen) werden **gar nicht** gerendert. Der Teilnehmer sieht
-      beim ersten Öffnen also nur den Header + eine Namensliste, **nicht** die laufenden Summen.
-      Erst nach Namenswahl erscheinen Liste/Summen. Das ist eine konkrete Abweichung von einem
-      explizit abgehakten Akzeptanzkriterium (AC B in der Task-Datei). Entweder Liste + Summen
-      read-only bereits neben/über dem Picker zeigen (Erfassungs-Controls weiter hinter dem Gate),
-      **oder** die Spec/AC bewusst nachziehen, falls „Name zuerst" die gewollte Entscheidung ist.
-      So oder so sollte Code ↔ Spec vor dem Merge konsistent sein (analog Codify #55 „ADR/Spec bei
-      Rework auf Drift prüfen").
+- [ ] Keine.
+- [x] **Behoben & verifiziert [Runde 1 → Rework]:** AC-B1-Abweichung (laufende Summen erst nach
+      Namenswahl sichtbar). `IdentityGate` rendert jetzt die route-neutrale `VerzehrErfassung` selbst
+      mit `editable = editable && bekannt`: Teilnehmerliste **und** laufende Summen sind sofort beim
+      Öffnen sichtbar (read-only, `data-editable="false"`), die ±-Controls bleiben hinter dem
+      Namens-Gate. Getestet in `IdentityGate.test.tsx`
+      (`should_showPickerAndReadOnlyList_when_noStoredName` + Stale-Variante) und `page.test.tsx`
+      (`should_showPickerAndReadOnlyList_when_openAndNoStoredName`). Code an kanonische Spec
+      angeglichen, kein Spec-Nachzug nötig (Codify #55).
 
 ## Nitpicks (optional)
-- [x] **Behoben [2026-07-20]:** `lib/base-url.ts:23` — Testfall
-      `should_defaultToHttp_when_hostIsLoopbackIpAndNoForwardedProto` (Host `127.0.0.1:3000`)
-      ergänzt; der `127.0.0.1`-Zweig ist jetzt eigenständig gedeckt (Branch-Coverage base-url 100 %).
-- [x] **Behoben [2026-07-20]:** `app/_verzehr/VerzehrErfassung.tsx:41` — der Selbstbedienungs-Pfad
-      zeigt bei leerer Liste über `IdentityGate` nun „…bitte an den Veranstalter wenden" statt der
-      F5-Meldung „…zuerst Teilnehmer hinzufügen"; die F5-Meldung bleibt für den Veranstalter-Kontext.
-- [ ] `app/theke/[token]/IdentityGate.tsx:64` — Der gemerkte Name wird über den **Anzeigenamen**
-      (String-Gleichheit) statt über die `zeile.id` abgeglichen. Bei zwei Teilnehmern mit gleichem
-      Anzeigenamen ist die Wiedererkennung mehrdeutig. Da die Auswahl rein clientseitig zur
-      Wiedererkennung dient (nichts wird serverseitig gebunden, die Erfassung bleibt anonym), ist
-      das harmlos; ADR-034 D4 begründet die Wahl (Stale-Fallback per Name). Nur als bewusste
-      Design-Notiz festgehalten.
-- [ ] `lib/base-url.ts:23` — `host.startsWith("127.0.0.1")` wird durch die Tests nie als
-      entscheidender Operand ausgewertet (der `localhost`-Test kurzschließt das `||`, der
-      Remote-Test trifft `false`). Der Branch-Ausgang (http) ist über den localhost-Test gedeckt,
-      der `127.0.0.1`-Zweig selbst aber nicht separat. Ein zusätzlicher Testfall mit Host
-      `127.0.0.1:3000` schließt die Lücke; funktional korrekt.
-- [ ] `app/theke/[token]/IdentityGate.tsx:24-25` — Der `storage`-Event-Listener (Wiedergabe aus
-      anderen Tabs) wird registriert, aber in keinem Test durch ein `storage`-Event ausgelöst
-      (nur der eigene `NAME_CHANGED_EVENT`-Pfad via `waehlen`/`wechseln`). Optionaler Test für den
-      Cross-Tab-Pfad.
-- [ ] `app/_verzehr/VerzehrErfassung.tsx:41` (bestehend, nicht in diesem Diff geändert) — Im
-      Read-only-Fall einer **abgeschlossenen** Veranstaltung ohne Zeilen zeigt die geteilte UI
-      „…zuerst Teilnehmer hinzufügen." – für den öffentlichen Selbstbedienungs-Betrachter leicht
-      irreführend. Extremer Randfall (abgeschlossen + 0 Zeilen); nur zur Kenntnis, da geteilte
-      F5-UI außerhalb des #54-Scopes.
+- [ ] `lib/base-url.ts:23` — Host-Header-Vertrauen: `absoluteUrl` bildet die geteilte URL aus dem
+      `host`-Request-Header. Auf einer authentifizierten Veranstalter-Seite und hinter Vercels
+      Host-Validierung praktisch unkritisch (ADR-034 D6 bewusst so gewählt) – zur Kenntnis für
+      /security-review, wo ohnehin die Missbrauchsbremse/Rate-Limit (ADR-034 D7) offen ist.
+- [ ] `app/theke/[token]/IdentityGate.tsx:95` — Der gemerkte Name wird über den **Anzeigenamen**
+      (String-Gleichheit) statt über `zeile.id` abgeglichen; bei zwei gleichen Anzeigenamen ist die
+      Wiedererkennung mehrdeutig. Funktional folgenlos (Auswahl ist rein clientseitig, Erfassung
+      bleibt anonym; ADR-034 D4). Bewusste Design-Notiz.
+- [ ] `app/theke/[token]/IdentityGate.tsx:34` — Der `storage`-Event-Listener (Cross-Tab-Wiedergabe)
+      wird registriert, aber in keinem Test durch ein echtes `storage`-Event ausgelöst (nur der
+      Same-Tab-`NAME_CHANGED_EVENT`-Pfad). Registrierung ist zeilengedeckt (100 % Branch/Line auf
+      `IdentityGate`); optionaler Cross-Tab-Test.
+- [ ] `app/_verzehr/VerzehrErfassung.tsx:41` (bestehend, nicht in diesem Diff geändert) — Bei einer
+      **abgeschlossenen** Veranstaltung ohne Zeilen zeigt die geteilte F5-UI „…zuerst Teilnehmer
+      hinzufügen" (für den öffentlichen Betrachter leicht irreführend). Extremer Randfall
+      (abgeschlossen + 0 Zeilen, kein Gate); außerhalb #54-Scope.
 
 ## Positives
 - Saubere, testgetriebene DRY-Extraktion: `applyVerzehrAdjust` als gemeinsamer Kern; beide Actions
@@ -65,19 +46,22 @@ Betrachtet: `db/veranstaltung.ts`, `app/veranstaltung/actions.ts`, `app/theke/[t
 - **Capability-basierte Autorisierung** korrekt und getestet: `adjustVerzehrByTokenAction` ruft
   bewusst **kein** `requireRole` (Test `should_authorizeWithoutRole_when_tokenValid` mit
   `auth()=null`), leitet `veranstaltungId` aus dem Token ab und erzwingt die **IDOR-Bindung** über
-  `getZeile(zeileId, ziel.id)` (Test `…zeileBelongsToAnotherVeranstaltung`, Codify #51 sauber
-  angewandt).
+  `getZeile(zeileId, ziel.id)` (Test `…zeileBelongsToAnotherVeranstaltung`, Codify #51). Jeder
+  Guard-Branch (unbekannter Token, abgeschlossen, IDOR, delta-out-of-range) hat einen eigenen Test.
 - **Neutraler 404** bei unbekanntem Token (Route `notFound()` + Action `NOT_FOUND`), keine
-  Preisgabe; `getVeranstaltungByToken` bewusst ohne Constant-Time-Sonderbehandlung dokumentiert
+  Preisgabe; `getVeranstaltungByToken` ohne Constant-Time-Sonderbehandlung sauber dokumentiert
   (256-bit-Token kein Enumerationsvektor).
 - **Server-seitiger QR** (`qrcode` nur in `ZugangTeilen.tsx` importiert) → null Client-Bundle,
-  druckbar; nur für offene Veranstaltungen eingebunden (Aufrufstelle in `[id]/page.tsx`).
+  druckbar; nur für offene Veranstaltungen eingebunden (`{offen && <ZugangTeilen …/>}`).
+  `dangerouslySetInnerHTML` nur auf dem vertrauenswürdigen `qrcode`-SVG (URL wird nicht als Markup
+  eingebettet, sondern als QR-Module kodiert) – kein XSS-Vektor.
 - `IdentityGate` nutzt `useSyncExternalStore` statt set-state-in-effect (Codify-konform), inkl.
-  eigenem Event für Same-Tab-Re-Render und Stale-Fallback; jede Verzweigung
-  (Picker/gemerkt/stale/wechseln/read-only/leer) hat einen eigenen Test.
+  eigenem Event für Same-Tab-Re-Render und Stale-Fallback; alle Verzweigungen
+  (Picker/gemerkt/stale/wechseln/read-only/leer) getestet.
 - Pflichten erfüllt: `docs/routes.md` gepflegt (`/theke/[token]` öffentlich, proxy-exempt);
   `proxy.ts`-Matcher verifiziert (theke/ bereits im Negativ-Lookahead, keine Änderung nötig);
-  `absoluteUrl`-Fallback-Kette (Header → env → relativ) vollständig getestet.
+  `vitest.setup.ts`-localStorage-Polyfill defensiv (nur wenn kein funktionierender Storage) und
+  dokumentiert.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
