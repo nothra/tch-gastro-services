@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -160,6 +160,22 @@ vorgemerkt; vier Nitpicks optional.
   88.86 %, Branches 93.93 %, Funktionen 76.99 %, Lines 88.89 % (deutlich über der 80 %-Schwelle;
   die 0 %-Werte unter `db/**` sind vorbestehende Integrationstests ohne lokale DB, unabhängig
   von dieser Task). `bash scripts/checks/pre-push.sh` erneut grün.
+
+## /refactor-Ergebnis (2026-07-20)
+
+Der automatisierte `/refactor`-Schritt lief 3× ins Turn-Limit (20 Turns) ohne Commit – bei
+Wiederholungsversuchen (frische Session, kein Gedächtnis) griff jeder Versuch auf den
+halb bearbeiteten Stand des vorigen zu, ohne dessen Absicht zu kennen. Menschlich
+fertiggestellt, gleicher Scope wie von den Versuchen selbst vorgezeichnet:
+- `artikelBezeichnung`/`gesamtabrechnungsZeilen` aus `berichtModell.ts` exportiert und in
+  `berichtXlsx.ts` + `berichtPdf.ts` genutzt statt dupliziert (DRY, kein zweiter Wahrheitspfad).
+- Toten `?? char`-Fallback in `berichtDateiname.ts:23` entfernt (Record-Lookup ohne
+  `noUncheckedIndexedAccess` ist bereits `string`, nie `undefined`).
+- Tote `spalte !== undefined`-Guard in `berichtXlsx.ts` entfernt (`spalteJeArtikel` wird aus
+  denselben Positionen aufgebaut, die durchlaufen werden – Lookup kann nie fehlschlagen).
+- Alle drei Dateien danach 100 % Branch-Coverage (waren die einzigen Uncovered-Lines aus dem
+  `/test`-Schritt). Gates grün: 604 Tests, Typecheck, Format, Lint, Routen-Doku-Drift.
+  Committet + gepusht via `factory-commit.sh` (`f39769a`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
