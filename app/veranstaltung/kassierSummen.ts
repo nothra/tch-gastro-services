@@ -18,7 +18,9 @@ export type KassierZeileInput = {
 
 export type KassierZeile = {
   getraenkeCents: number;
-  sonstigeCents: number; // Essen + Kaffee (Anzeige)
+  essenCents: number; // getrennt für den Abschlussbericht-Verzehr je Kategorie (ADR-036 D7)
+  kaffeeCents: number; // getrennt für den Abschlussbericht-Verzehr je Kategorie (ADR-036 D7)
+  sonstigeCents: number; // Essen + Kaffee (Kassier-Anzeige)
   verzehrGesamtCents: number;
   erhaltenCents: number | null;
   bezahlt: boolean;
@@ -35,6 +37,8 @@ export function kassierZeile(input: KassierZeileInput): KassierZeile {
   const erhalten = input.erhaltenCents ?? 0;
   return {
     getraenkeCents: input.getraenkeCents,
+    essenCents: input.essenCents,
+    kaffeeCents: input.kaffeeCents,
     sonstigeCents,
     verzehrGesamtCents,
     erhaltenCents: input.erhaltenCents,
@@ -76,6 +80,8 @@ export function kassierZeilen(
 
 export type KassierTagessummen = {
   getraenkeCents: number;
+  essenCents: number; // getrennter Tages-Verzehr-Umsatz je Kategorie (ADR-036 D7)
+  kaffeeCents: number; // getrennter Tages-Verzehr-Umsatz je Kategorie (ADR-036 D7)
   sonstigeCents: number;
   verzehrGesamtCents: number;
   erhaltenCents: number;
@@ -88,6 +94,8 @@ export type KassierTagessummen = {
 export function kassierTagessummen(zeilen: readonly KassierZeile[]): KassierTagessummen {
   const summen: KassierTagessummen = {
     getraenkeCents: 0,
+    essenCents: 0,
+    kaffeeCents: 0,
     sonstigeCents: 0,
     verzehrGesamtCents: 0,
     erhaltenCents: 0,
@@ -96,6 +104,8 @@ export function kassierTagessummen(zeilen: readonly KassierZeile[]): KassierTage
   };
   for (const zeile of zeilen) {
     summen.getraenkeCents += zeile.getraenkeCents;
+    summen.essenCents += zeile.essenCents;
+    summen.kaffeeCents += zeile.kaffeeCents;
     summen.sonstigeCents += zeile.sonstigeCents;
     summen.verzehrGesamtCents += zeile.verzehrGesamtCents;
     summen.erhaltenCents += zeile.erhaltenCents ?? 0;

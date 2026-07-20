@@ -37,6 +37,7 @@
 
 | Pfad | Typ | Funktion | Zugriff |
 |------|-----|----------|---------|
+| `/api/veranstaltung/[id]/bericht` | API | Abschlussbericht-Download (`?format=xlsx\|pdf`) | `veranstalter` |
 | `/api/auth/[...nextauth]` | API | Auth.js-Handler (Login/Session/Callback) | öffentlich (proxy-exempt) |
 | `/api/health` | API | Healthcheck (Liveness/Readiness) | öffentlich (proxy-exempt) |
 | `/api/version` | API | Versions-/Build-Info | öffentlich (proxy-exempt) |

@@ -1041,6 +1041,29 @@ Falle – prüfen, ob die Aufrufe reine Berechnungen sind oder Seiteneffekte aus
 der bestehenden Regel zu `useActionState`+Inline-Toggle (aus #49): beide behandeln, wo
 Seiteneffekte bei State-Übergängen hingehören (Event-Handler, nie Render-/Updater-Phase).
 
+### `/refactor` Turn-Limit-Exhaustion: Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185)
+
+Der automatisierte `/refactor`-Schritt lief 3× ins Turn-Limit (`get_max_turns`,
+`token-efficiency.md` §6) ohne Commit. Jeder Wiederholungsversuch startete in einer **frischen
+Session ohne Gedächtnis** der vorherigen Läufe – fand im Arbeitsbaum aber den **halbfertigen**
+Zwischenstand des vorigen Versuchs vor (Datei teilweise umgebaut, Imports teilweise angepasst)
+und musste dessen Absicht erst rekonstruieren, statt auf einem klaren Ausgangspunkt aufzusetzen.
+Fertiggestellt wurde am Ende menschlich, im selben Scope, den die Versuche selbst schon
+vorgezeichnet hatten (Duplikat-Extraktion aus `berichtModell.ts` in `berichtXlsx.ts`/
+`berichtPdf.ts` + zwei tote Branches entfernen, siehe oben „Keine Fallbacks für vom Typsystem
+bereits ausgeschlossene Fälle").
+
+**Regel:** Bricht ein automatisierter Skill-Schritt wiederholt am Turn-Limit ohne Commit ab,
+vor dem nächsten Retry **den Arbeitsbaum auf unstaged/uncommitted Diff prüfen** (`git status`/
+`git diff`) – ein halbfertiger Fremd-Stand ist kein sauberer Ausgangspunkt für eine
+gedächtnislose Session. Optionen statt „einfach nochmal starten": (1) den Diff verwerfen und mit
+vollem Turn-Budget neu beginnen (`git checkout -- <dateien>`, nur wenn der Zwischenstand
+erkennbar nutzlos ist), oder (2) den noch offenen Scope **explizit** in der Task-Datei
+festhalten (was genau noch zu tun ist), damit die nächste Session nicht rät. Reißt derselbe
+Skill wiederholt das Turn-Limit: prüfen, ob der Änderungsumfang (hier: 3 neue Module + Tests
+für ein Renderer-Feature) für einen einzelnen automatisierten `/refactor`-Lauf zu groß ist,
+statt endlos zu wiederholen.
+
 ---
 
 ## Offene Architektur-Fragen

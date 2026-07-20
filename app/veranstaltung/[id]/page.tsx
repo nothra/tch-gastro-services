@@ -60,6 +60,26 @@ export default async function VeranstaltungDetailPage({
 
       <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
 
+      {!offen && (
+        <section className="flex flex-col gap-2">
+          <h2 className="font-semibold">Abschlussbericht</h2>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`/api/veranstaltung/${veranstaltung.id}/bericht?format=xlsx`}
+              className="inline-flex w-fit items-center rounded border border-cyan-700 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950"
+            >
+              Excel (.xlsx) herunterladen
+            </a>
+            <a
+              href={`/api/veranstaltung/${veranstaltung.id}/bericht?format=pdf`}
+              className="inline-flex w-fit items-center rounded border border-cyan-700 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950"
+            >
+              PDF herunterladen
+            </a>
+          </div>
+        </section>
+      )}
+
       <div className="flex flex-wrap gap-3">
         <Link
           href={`/veranstaltung/${veranstaltung.id}/verzehr`}

@@ -154,6 +154,37 @@ describe("VeranstaltungDetailPage", () => {
     expect(screen.queryByTestId("zugang-teilen")).not.toBeInTheDocument();
   });
 
+  it("should_showBerichtDownloads_when_veranstaltungAbgeschlossen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    // AC1: Excel- UND PDF-Download aus der Detailansicht einer abgeschlossenen Veranstaltung.
+    expect(screen.getByRole("link", { name: /Excel .* herunterladen/ })).toHaveAttribute(
+      "href",
+      "/api/veranstaltung/v-1/bericht?format=xlsx",
+    );
+    expect(screen.getByRole("link", { name: /PDF herunterladen/ })).toHaveAttribute(
+      "href",
+      "/api/veranstaltung/v-1/bericht?format=pdf",
+    );
+  });
+
+  it("should_hideBerichtDownloads_when_veranstaltungOffen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung); // status: "offen"
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    // AC2 (UI-Seite): kein Bericht für offene Veranstaltungen anbieten.
+    expect(screen.queryByRole("link", { name: /herunterladen/ })).not.toBeInTheDocument();
+  });
+
   it("should_renderZeileRow_when_zeilenPresent", async () => {
     const aZeile: VeranstaltungZeile = {
       id: "z-1",
