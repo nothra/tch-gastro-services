@@ -4,10 +4,10 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -173,6 +173,12 @@ Typecheck, Format, Routen-Doku-Drift, Branch-Name).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Review APPROVED / Security PASSED, keine offenen kritischen/wichtigen Findings. Eine neue
+projektspezifische Regel ergänzt (`docs/factory/PROJECT-CONTEXT.md` → „Schreib-Gate darf die
+Lese-Ansicht nicht mitverstecken – vorhandenes `editable`-Flag nutzen", aus Review-Runde-1-Finding
+an `IdentityGate`). Details: [`tasks/codify-54.md`](codify-54.md). Folge-Issues #181/#182 bereits
+vorhanden, keine neuen angelegt.
 
 ---
 Branch: `feature/54-selbstbedienung-link-namenswahl`
