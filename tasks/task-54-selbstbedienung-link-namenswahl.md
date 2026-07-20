@@ -54,17 +54,61 @@ solange offen. Theke-QR-Aushang ausgegründet nach **#181**.
 - [ ] Schreibzugriff nur über gültigen Token einer offenen Veranstaltung; adressierte `zeile`/`teilnehmer` muss zu dieser Veranstaltung gehören (kein IDOR, Codify #51).
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+<!-- Von /architecture befüllt -->
 
-Nächster Schritt: **/architecture 54** – offene Punkte aus spec-54: Read-only-Pfad,
-localStorage-Schlüssel & Verhalten bei entferntem Teilnehmer, QR-Erzeugung (Lib/Server vs. Client,
-PWA-Bündelgröße). Sicherheit (Rate-Limit) → /security-review.
+Architektur-Entscheidung: **[ADR-034](../docs/adr/034-selbstbedienung-token-zugang.md)**
+(öffentliche Token-Route, capability-basierte Verzehr-Action, QR server-seitig). **Keine
+Datenmodell-Änderung/Migration** – F7 ist reine Präsentations-/Action-Schicht auf dem #51-Fundament
+(`veranstaltung.token`, rollen-neutrale `db/verzehr.ts`, `proxy.ts`-Seam für `theke/`,
+`app/_verzehr/`).
+
+### Neue Abhängigkeit (Dependency-Schritt zuerst)
+- `pnpm add qrcode` + `pnpm add -D @types/qrcode` (server-only, ADR-034 D5). **Nur** server-seitig
+  importieren (Detailseite), nie im Client-Bundle.
+
+### Betroffene Dateien / TDD-Reihenfolge (Red → Green → Refactor)
+1. **`db/veranstaltung.ts`** – `getVeranstaltungByToken(token): Promise<Veranstaltung | undefined>`
+   (indizierte `unique`-Selektion). *Test:* Treffer / Miss → `undefined` (`db/veranstaltung.test.ts`).
+2. **`app/veranstaltung/actions.ts`** – privaten Kern `applyVerzehrAdjust(veranstaltung, formData)`
+   aus `adjustVerzehrAction` extrahieren (Verhalten unverändert – bestehende Tests bleiben grün),
+   dann `adjustVerzehrByTokenAction(token, prev, formData)`: `getVeranstaltungByToken` → `undefined`
+   ⇒ neutraler Fehler; **kein** `requireRole`; danach `applyVerzehrAdjust`. `revalidatePath` auf
+   `\`/theke/${token}\``. *Tests (je Guard einer, Codify #51):* ungültiger Token, abgeschlossen →
+   abgelehnt, **IDOR** (fremde `zeileId` einer anderen Veranstaltung → `ZEILE_NOT_FOUND`, fremde
+   Zeile unverändert), Happy-Path liefert `menge`.
+3. **`app/theke/[token]/page.tsx`** (Server Component) – `getVeranstaltungByToken` → `notFound()`
+   bei Miss; lädt `listZeilen`/`listActiveCatalog`/`listPositionen`; `editable = status==="offen"`;
+   Action via `adjustVerzehrByTokenAction.bind(null, token)`; rendert `IdentityGate` mit
+   `VerzehrErfassung` als Children.
+4. **`app/theke/[token]/IdentityGate.tsx`** (`"use client"`) – localStorage `tch:sb:name:<token>`,
+   Namens-Picker aus `zeilen`, „Person wechseln", **stale-Fallback** (gemerkter Name nicht in
+   `zeilen` → Picker), bei `!editable` **kein** Gate (Children direkt). *Tests:* Picker bei leerem
+   Storage; gemerkt → direkt Erfassung; stale → Picker; „Person wechseln" leert; read-only ohne Gate.
+5. **`app/veranstaltung/[id]/page.tsx`** – Abschnitt „Zugang teilen": absolute URL aus `headers()`
+   (`host` + `x-forwarded-proto`, env-Fallback `AUTH_URL`/`NEXTAUTH_URL`), Link zum Kopieren +
+   QR-SVG (`QRCode.toString(url,{type:"svg"})`, server-seitig). *Test:* Link/QR nur wenn sinnvoll;
+   URL enthält `/theke/<token>`.
+
+### Pflichten / Gates
+- **`docs/routes.md` mitpflegen** (CLAUDE.md-Guardrail + Drift-Check): neue öffentliche Seite
+  `/theke/[token]` – Funktion „Selbstbedienung (Namenswahl + Verzehr erfassen)", Zugriff **öffentlich
+  (proxy-exempt, Token)**.
+- **`proxy.ts`** braucht **keine** Änderung (`theke/` ist bereits ausgenommen) – nur verifizieren.
+- Zod: kein neues Integer-/Text-Feld ohne Grenze (bestehendes `verzehrAdjustSchema` wird
+  wiederverwendet).
+- 100 % Coverage auf neuem Code; jeder Guard-Branch ein eigener Test (Codify #51).
+
+### Verifikation (Oberflächentest, /implement)
+Gegen `pnpm dev`: `/theke/<gültiger-token>` → Namens-Picker → wählen → +1 erhöht Menge & Summe;
+ungültiger Token → 404; abgeschlossene Veranstaltung → Read-only ohne +/−; Detailseite zeigt
+Link + QR.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 
-Alle Requirements-Fragen sind entschieden (siehe spec-54 → „Gesetzte Entscheidungen").
-Verbleibende Punkte sind Architektur-/Security-Fragen (spec-54 → „Offene Fragen").
+Alle Requirements-Fragen sind entschieden (spec-54 → „Gesetzte Entscheidungen"); die
+Architektur-Fragen sind in **ADR-034** entschieden. **Verbleibend nur für /security-review:**
+Rate-Limit/Missbrauchsbremse der token-scoped öffentlichen Action (ADR-034 D7).
 
 **Doku-Folgeaufgabe (außerhalb #54):** spec-51 B) an „Essen an der Theke bleibt eingeblendet"
 angleichen. **Ausgegründet:** #181 (Theke-QR/Link anzeigen & drucken).

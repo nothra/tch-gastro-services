@@ -141,11 +141,17 @@ ab („stehende Theke nur Getränke + Kaffee"). → spec-51 ist entsprechend anz
 - **Abgeschlossene Veranstaltung** → **Read-only-Ansicht** (Liste + Summen, keine Erfassung).
 - **Token stabil, gültig solange offen** – keine Rotation, kein Zeitablauf.
 
-## Offene Fragen (für /architecture & /security-review)
-- [ ] **Rate-Limit / Missbrauchsbremse** trotz fehlendem Passwort (der Theke-Token ist dauerhaft
-      gültig, höheres Risiko als der per-Termin-Link)? → /security-review.
-- [ ] **Read-only-Ansicht:** derselbe Read-Path wie „offen", nur ohne Erfassungs-Controls, oder
-      eine eigene schlanke Ansicht? → /architecture.
-- [ ] **localStorage-Schlüssel** der Namens-Persistenz: pro Token/Veranstaltung vs. global – und
-      Verhalten, wenn der gemerkte Teilnehmer nicht mehr in der Liste ist. → /architecture.
-- [ ] **QR-Erzeugung:** Bibliothek/Server- vs. Client-Rendering, Bündelgröße (PWA). → /architecture.
+## Offene Fragen
+
+**Durch [ADR-034](../adr/034-selbstbedienung-token-zugang.md) entschieden:**
+- ~~Read-only-Ansicht~~ → derselbe Read-Path, `VerzehrErfassung` mit `editable={false}` (D1).
+- ~~localStorage-Schlüssel / stale-Teilnehmer~~ → Schlüssel **pro Token**, stale-Fallback auf den
+  Namens-Picker (D4).
+- ~~QR-Erzeugung~~ → Server-seitig `qrcode` als SVG-String, null Client-Bundle (D5).
+- ~~Absolute Basis-URL~~ → aus `headers()` mit env-Fallback (D6).
+
+**Verbleibend für /security-review:**
+- [ ] **Rate-Limit / Missbrauchsbremse** der token-scoped öffentlichen Erfassungs-Action (der
+      Theke-Token ist dauerhaft gültig, höheres Risiko als der per-Termin-Link). Bewusst **nicht**
+      in #54 (ADR-034 D7); fail-closed-Grundlagen (unratbarer Token, Status-Gate, IDOR, neutrale
+      Fehler) sind vorhanden.
