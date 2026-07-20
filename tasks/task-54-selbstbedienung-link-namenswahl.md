@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -162,6 +162,14 @@ angleichen. **Ausgegründet:** #181 (Theke-QR/Link anzeigen & drucken).
   (Registrierung ist zeilengedeckt, 100 % Branch/Line auf `IdentityGate`).
 - **Gates grün** (`scripts/checks/pre-push.sh`): 529 passed / 59 skipped, Typecheck, Format,
   Routen-Doku-Drift, Branch-Name.
+
+### Refactoring [2026-07-20, /refactor]
+Duplicate-Code-Fund (Checkliste „Struktur"): `app/theke/[token]/page.tsx` duplizierte die
+Zeilen-/Artikel-Mapping-Logik von `app/veranstaltung/[id]/verzehr/page.tsx` (F5) byte-identisch.
+Extrahiert nach `app/_verzehr/verzehr-props.ts` (`toVerzehrZeilen`, `toVerzehrArtikelListe`) –
+route-neutral, DB-Row-Typen nur als `import type`. Beide Seiten rufen jetzt den gemeinsamen
+Adapter statt inline `.map()`. Kein neues Verhalten – Gates grün (531 passed / 59 skipped,
+Typecheck, Format, Routen-Doku-Drift, Branch-Name).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

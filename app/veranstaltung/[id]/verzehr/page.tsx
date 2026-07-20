@@ -7,6 +7,7 @@ import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { VerzehrErfassung } from "@/app/_verzehr/VerzehrErfassung";
+import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 
@@ -60,14 +61,8 @@ export default async function VerzehrPage({ params }: { params: Promise<{ id: st
       </div>
 
       <VerzehrErfassung
-        zeilen={zeilen.map((zeile) => ({ id: zeile.id, anzeigename: zeile.anzeigename }))}
-        artikel={artikel.map((item) => ({
-          id: item.id,
-          name: item.name,
-          size: item.size,
-          priceCents: item.priceCents,
-          category: item.category,
-        }))}
+        zeilen={toVerzehrZeilen(zeilen)}
+        artikel={toVerzehrArtikelListe(artikel)}
         positionen={positionen}
         action={action}
         editable={offen}

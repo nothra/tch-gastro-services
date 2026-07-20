@@ -5,6 +5,7 @@ import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { adjustVerzehrByTokenAction } from "@/app/veranstaltung/actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "@/app/veranstaltung/labels";
+import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
 import { IdentityGate } from "./IdentityGate";
 
 // Öffentliche, login-freie Selbstbedienungs-Route (F7, #54, ADR-034 D1): lädt die Veranstaltung
@@ -43,14 +44,8 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
 
       <IdentityGate
         token={token}
-        zeilen={zeilen.map((zeile) => ({ id: zeile.id, anzeigename: zeile.anzeigename }))}
-        artikel={artikel.map((item) => ({
-          id: item.id,
-          name: item.name,
-          size: item.size,
-          priceCents: item.priceCents,
-          category: item.category,
-        }))}
+        zeilen={toVerzehrZeilen(zeilen)}
+        artikel={toVerzehrArtikelListe(artikel)}
         positionen={positionen}
         action={action}
         editable={editable}
