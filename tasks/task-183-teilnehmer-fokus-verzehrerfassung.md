@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -192,6 +192,25 @@ zusätzlichen Lücken beim Abgleich gefunden.
 
 **Gates:** `pnpm test:coverage` grün, `bash scripts/checks/pre-push.sh` grün (Tests, Typecheck,
 Format, Routen-Doku-Drift).
+
+## Refactor-Notizen (/refactor, 2026-07-20)
+
+Clean-Code-Pass gegen `git diff origin/main...HEAD` (Codify #161: Diff-Scope gegen
+`origin/main`, nicht lokales `main`). Ein Fund, ein kleiner Schritt:
+
+- **`IdentityGate.tsx`:** `zeilen.find((zeile) => zeile.id === erfasserId)` wurde in zwei
+  getrennten Branches (Schritt-2-„Für wen?" und der finalen Fokus-Ansicht) identisch berechnet,
+  obwohl `erfasserId` ab dem vorausgehenden Guard (`erfasserId === null` → return) in beiden
+  Branches bereits nicht-`null` ist. Einmal direkt nach dem Guard aufgelöst und in beiden
+  Branches wiederverwendet – kein doppelter Array-Scan, kein neues Verhalten.
+
+Sonst keine weiteren Funde: benannte Konstanten (Storage-Keys, `CATEGORY_ORDER`), kleine
+guarded Helfer (`erfasser-ziel-storage.ts`), Early-Returns/Guard-Clauses bereits durchgängig
+genutzt, keine Duplikation in `FokusListe.tsx`/`VerzehrErfassung.tsx`. Bereits zwei Review-Runden
+(APPROVED) vorher.
+
+**Gates (unverändert grün nach dem Schritt):** `bash scripts/checks/pre-push.sh` – 559 Tests
+grün, Typecheck, Format, Routen-Doku-Drift.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

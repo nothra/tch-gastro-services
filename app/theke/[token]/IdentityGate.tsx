@@ -125,9 +125,11 @@ export function IdentityGate({
     );
   }
 
+  // Ab hier ist erfasserId gesetzt (obiger Guard) – einmal auflösen, in beiden Folge-Branches genutzt.
+  const erfasser = zeilen.find((zeile) => zeile.id === erfasserId);
+
   // Schritt 2 – Erfasser gesetzt, Ziel fehlt: „Für wen …?" mit „Für mich" als erster Option.
   if (zielId === null) {
-    const erfasser = zeilen.find((zeile) => zeile.id === erfasserId);
     return (
       <div className="flex flex-col gap-4">
         <ZielPicker
@@ -142,7 +144,6 @@ export function IdentityGate({
   }
 
   // Beide gesetzt: Fokus-Ansicht. „Erfasser wechseln" verwirft beide Werte → Zweischritt erneut.
-  const erfasser = zeilen.find((zeile) => zeile.id === erfasserId);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3 rounded border border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
