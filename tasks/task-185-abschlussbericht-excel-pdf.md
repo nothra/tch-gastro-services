@@ -43,17 +43,48 @@ Vollständige Spezifikation: [spec-185](../docs/specs/spec-185-abschlussbericht-
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
-Offene Architektur-Fragen (→ `/architecture`): Bibliothekswahl xlsx/PDF (ADR-Kandidat),
-Erzeugungs-Mechanismus (Route Handler vs. Server Action; Proxy-Matcher-Schutz, Routen-Doku),
-Dateibenennung, Pro-Artikel-Layout je Format (Matrix vs. Unterliste), gemeinsames DB-freies
-Bericht-Modell als Single Source. Details in spec-185 „Offene Fragen".
+Architektur entschieden: **[ADR-036](../docs/adr/036-abschlussbericht-erzeugung-excel-pdf.md)**
+(Architektur-Session 2026-07-20). Kernpunkte für `/implement`:
+
+- **Route Handler** (GET) `app/api/veranstaltung/[id]/bericht/route.ts`, `?format=xlsx|pdf`
+  (Whitelist, fail-closed → 400). `Content-Disposition: attachment`. `export const runtime = "nodejs"`.
+  Reihenfolge: `auth`/Rolle → `getVeranstaltung` (404) → Status ≠ `abgeschlossen` → 409 → Modell → Render.
+- **RBAC serverseitig** im Handler: `hasRole(session?.user?.roles, "veranstalter")`, sonst 403.
+  Route bleibt **proxy-geschützt** – **keine** `proxy.ts`-Ausnahme (Codify #63). Test auf Rollen-403.
+- **Libs:** `exceljs` (.xlsx) + `pdfmake` (PDF) – Node-nativ, kein Headless-Browser (ADR-036 D5).
+  Nur server-seitig → kein Client-Bundle-Impact. Nach `pnpm install` → `pnpm audit`; Overrides via
+  `pnpm-workspace.yaml` (Codify #167).
+- **Single Source:** DB-freies `berichtModell(...)` (analog `kassierSummen.ts`) baut das
+  format-neutrale Modell aus `getVeranstaltung`/`listZeilen`/`listPositionen`/`listAuslagen`.
+  Beide Renderer (`berichtXlsx.ts`, `berichtPdf.ts`) konsumieren **nur** das Modell ⇒ AC10.
+  Modell 100 % unit-testbar; Renderer smoke-getestet (Magic Bytes: xlsx `PK`/`50 4B`, pdf `%PDF`).
+- **Nutzt bestehende reine Summen** (`zeileSummen`, `kassierZeilen`, `kassierTagessummen`,
+  `gesamtabrechnung`, `auslagenSummen`) – kein zweiter Wahrheitspfad. `listPositionen` liefert je
+  Position bereits `menge`, `name`, `size`, `priceCents` (eingefroren via COALESCE, ADR-033 D2),
+  `category` → Pro-Artikel-Striche ohne neue Query.
+- **Verzehr-Umsatz je Kategorie** getrennt Getränke/Essen/Kaffee (AC8): bevorzugt kleine
+  Erweiterung von `kassierSummen` statt Parallel-Aggregation (ADR-036 D7). AC9-Konsistenz
+  (`Σ Getr + Σ Essen + Σ Kaffee + Σ Spende = Σ Erhalten`) gilt per Konstruktion (jede Zeile bezahlt).
+- **Layout je Format** (ADR-036 D8): Excel = breite Artikel-Matrix; PDF = Unterliste je Teilnehmer.
+  Beträge de-DE, 2 Nachkommastellen (konsistent zu `formatCents`; Excel via `numFmt`, echte Zahlen).
+- **Dateiname:** `abschlussbericht-<YYYY-MM-DD>-<slug>.{xlsx,pdf}`, Slug aus Bezeichnung
+  (transliteriert, `[a-z0-9-]`, gekürzt) – eigene reine, getestete Funktion (ADR-036 D9).
+- **Auslagen orphan-sicher** via `listAuslagen` (LEFT JOIN + COALESCE-Fallbackname, Codify #53).
+- **UI:** Detailseite (`app/veranstaltung/[id]/page.tsx`) zeigt beide Download-Links **nur** bei
+  Status `abgeschlossen`.
+- **Routen-Doku:** neue Zeile in `docs/routes.md` (authentifiziert, `veranstalter`, nicht
+  proxy-exempt) – Drift-Check erzwingt es fail-closed.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-Fachlich geklärt (Requirements-Session 2026-07-20): Detailgrad = Pro-Artikel-Striche;
-Einnahmen = Verzehr-Umsatz je Kategorie + Σ Spende; Auslagen als separate Einzelliste; Zugriff
-nur Veranstalter; beide Formate in dieser Task; kein Protokoll-Abschnitt. Verbleibende Fragen
-sind rein technisch → `/architecture` (siehe Technische Notizen / spec-185).
+Alle Fragen geklärt (Requirements 2026-07-20 + Architektur ADR-036 2026-07-20):
+
+- Fachlich: Detailgrad = Pro-Artikel-Striche; Einnahmen = Verzehr-Umsatz je Kategorie + Σ Spende;
+  Auslagen als separate Einzelliste; Zugriff nur Veranstalter; beide Formate; kein Protokoll.
+- Technisch (ADR-036): Route Handler + `?format=`, Node-Runtime, exceljs + pdfmake, DB-freies
+  Bericht-Modell als Single Source, Layout je Format (Excel Matrix / PDF Unterliste), Dateiname-Slug.
+
+Keine offenen Punkte mehr → bereit für `/implement 185`.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
