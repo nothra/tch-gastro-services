@@ -123,6 +123,29 @@ export type BerichtModell = {
   gesamtabrechnung: BerichtGesamtabrechnung;
 };
 
+// Anzeigename eines Artikels/einer Position (Name + Größe, falls vorhanden) – von beiden
+// Format-Renderern (Excel/PDF) genutzt, damit die Bezeichnung nicht zweifach gepflegt wird.
+export function artikelBezeichnung(artikel: { name: string; size: string }): string {
+  return artikel.size ? `${artikel.name} (${artikel.size})` : artikel.name;
+}
+
+// Die zehn Zeilen der Gesamtabrechnung (AC8) als Label/Betrag-Paare – von beiden Format-Renderern
+// genutzt, damit Reihenfolge und Beschriftung nicht zweifach gepflegt werden.
+export function gesamtabrechnungsZeilen(g: BerichtGesamtabrechnung): [string, number][] {
+  return [
+    ["Verzehr-Umsatz Getränke", g.verzehrGetraenkeCents],
+    ["Verzehr-Umsatz Essen", g.verzehrEssenCents],
+    ["Verzehr-Umsatz Kaffee", g.verzehrKaffeeCents],
+    ["Spende", g.spendeCents],
+    ["Einnahmen (Σ Erhalten)", g.einnahmenCents],
+    ["Auslagenerstattung Getränke", g.auslagenErstattung.getraenkeCents],
+    ["Auslagenerstattung Essen", g.auslagenErstattung.essenCents],
+    ["Auslagenerstattung Sonstiges", g.auslagenErstattung.sonstigesCents],
+    ["Auslagenerstattung gesamt", g.auslagenErstattung.gesamtCents],
+    ["Kassenveränderung", g.kassenveraenderungCents],
+  ];
+}
+
 function gruppiereNachZeile(
   positionen: readonly BerichtPositionInput[],
 ): Map<string, BerichtPositionInput[]> {

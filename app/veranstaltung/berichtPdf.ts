@@ -1,11 +1,13 @@
 import pdfMake from "pdfmake";
 import type { Content, TableCell, TDocumentDefinitions } from "pdfmake/interfaces";
 import { formatCents } from "@/lib/money";
-import type {
-  BerichtAuslage,
-  BerichtModell,
-  BerichtPosition,
-  BerichtTeilnehmer,
+import {
+  artikelBezeichnung,
+  gesamtabrechnungsZeilen,
+  type BerichtAuslage,
+  type BerichtModell,
+  type BerichtPosition,
+  type BerichtTeilnehmer,
 } from "./berichtModell";
 
 // PDF-Renderer des Abschlussberichts (F9, #185, ADR-036 D5/D8). Konsumiert AUSSCHLIESSLICH das reine
@@ -36,10 +38,6 @@ pdfMake.setUrlAccessPolicy(() => false);
 pdfMake.setLocalAccessPolicy((path) => ERLAUBTE_FONT_DATEIEN.has(path));
 
 const EUR = (cents: number): string => formatCents(cents);
-
-function artikelBezeichnung(position: BerichtPosition): string {
-  return position.size ? `${position.name} (${position.size})` : position.name;
-}
 
 function kopf(modell: BerichtModell): Content {
   return {
@@ -163,19 +161,7 @@ function auslagenAbschnitt(auslagen: BerichtAuslage[]): Content {
 // Gesamtabrechnung (AC8): Verzehr-Umsatz je Kategorie, Σ Spende separat, Auslagenerstattung je
 // Kategorie + gesamt, Kassenveränderung (je zugeordneter Kasse).
 function gesamtabrechnung(modell: BerichtModell): Content {
-  const g = modell.gesamtabrechnung;
-  const zeilen: [string, number][] = [
-    ["Verzehr-Umsatz Getränke", g.verzehrGetraenkeCents],
-    ["Verzehr-Umsatz Essen", g.verzehrEssenCents],
-    ["Verzehr-Umsatz Kaffee", g.verzehrKaffeeCents],
-    ["Spende", g.spendeCents],
-    ["Einnahmen (Σ Erhalten)", g.einnahmenCents],
-    ["Auslagenerstattung Getränke", g.auslagenErstattung.getraenkeCents],
-    ["Auslagenerstattung Essen", g.auslagenErstattung.essenCents],
-    ["Auslagenerstattung Sonstiges", g.auslagenErstattung.sonstigesCents],
-    ["Auslagenerstattung gesamt", g.auslagenErstattung.gesamtCents],
-    ["Kassenveränderung", g.kassenveraenderungCents],
-  ];
+  const zeilen = gesamtabrechnungsZeilen(modell.gesamtabrechnung);
   return {
     stack: [
       { text: `Gesamtabrechnung (Kasse: ${modell.kopf.kasse})`, style: "abschnitt" },

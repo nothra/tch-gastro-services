@@ -20,7 +20,7 @@ const UMLAUT_TRANSLIT: Record<string, string> = {
 export function berichtSlug(bezeichnung: string): string {
   return bezeichnung
     .toLowerCase()
-    .replace(/[äöüß]/g, (char) => UMLAUT_TRANSLIT[char] ?? char)
+    .replace(/[äöüß]/g, (char) => UMLAUT_TRANSLIT[char])
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, SLUG_MAX_LENGTH)
