@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -238,6 +238,12 @@ Vollständiger Report: `tasks/codify-183.md`. Kurzfassung:
 - Coverage-Lücke (`FokusListe.tsx:95`), das kleine Refactor-Dedup und die verbleibenden Nitpicks
   brauchen keine neue Regel – bereits durch bestehende Guidelines/Prozesse abgedeckt.
 - Security-Review PASSED, keine Learnings.
+
+## PR-Shepherd-Notizen
+
+PR-Shepherd [2026-07-20]: Merge freigegeben – alle Gates grün (CI: Analyze, CodeQL, factory-self-test,
+issue-sync, lint, test, Vercel Preview alle `pass`; keine offenen Review-Kommentare; kein Rebase
+nötig, `mergeStateStatus: CLEAN`; keine Approval-Pflicht). Draft → ready for review überführt.
 
 ---
 Branch: `feature/183-teilnehmer-fokus-verzehrerfassung`
