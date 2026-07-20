@@ -58,16 +58,48 @@ mit #54/ADR-034 gelegten Fundament. Kanonische Spec: [`docs/specs/spec-183-erfas
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
-Betroffen v. a.: `app/theke/[token]/IdentityGate.tsx` (Zweischritt + Erfasser/Ziel-Persistenz),
-`app/_verzehr/VerzehrErfassung.tsx` (Akkordeon/Fokus – möglichst über optionales Prop, ohne die
-F5-Seite `app/veranstaltung/[id]/verzehr` zu verändern), ggf. neue Sticky-Auswahl-Komponente.
-Persistenz clientseitig (localStorage pro Token). Details klärt `/architecture`.
+Architektur festgelegt in [ADR-035](../docs/adr/035-selbstbedienung-erfasser-ziel-fokus.md).
+**Reine Präsentations-/Client-Schicht** – kein Datenmodell, keine Migration, keine neue
+Dependency, kein neuer Auth-Pfad, keine `docs/routes.md`-Änderung.
+
+**Betroffene Dateien:**
+- `app/_verzehr/VerzehrErfassung.tsx` – interne `ZeileKarte` **exportieren** und um **optionale**
+  Akkordeon-Props erweitern (`collapsible?`, `open?`, `onToggle?`). Ohne diese Props **unverändertes**
+  Verhalten (flach, aufgeklappt). Eingeklappt: nur Kopf (Name + Summen) rendern, Körper (Kategorien +
+  `MengeControl`) weglassen. (ADR-035 D2)
+- `app/veranstaltung/[id]/verzehr/page.tsx` (F5) – **nicht anfassen** (nutzt die Karte weiter flach).
+- `app/theke/[token]/FokusListe.tsx` – **NEU**, `"use client"`: sticky Chip-Leiste (D3) + Akkordeon
+  (genau eine offen = Ziel), rendert die wiederverwendete Karte collapsible; `scrollIntoView` beim
+  Wechsel **guarded** (`ref.current?.scrollIntoView?.({ block: "start" })`).
+- `app/theke/[token]/IdentityGate.tsx` – **umbauen** zur Zustandsmaschine (Erfasser → Ziel), Zweischritt
+  „Wer bist du?" → „Für wen?" mit **„Für mich"** als erster Option; rendert bei beiden gesetzt die
+  `FokusListe`, sonst die passende Frage. „Erfasser wechseln" unauffällig. (ADR-035 D1)
+- Kleiner **guarded localStorage-Helfer** (fail-open, try/catch) – IDs statt Namen; Schlüssel
+  `tch:sb:erfasser:<token>` / `tch:sb:ziel:<token>`; Legacy-Adoption von `tch:sb:name:<token>` (D4/D6).
+
+**TDD-Reihenfolge & Pflicht-Testfälle (je AC ein Test, Codify #117/#116):**
+1. Guarded-Storage-Helfer: read/write/clear, **Storage-nicht-verfügbar → fail-open** (kein Throw),
+   Stale-ID → null. **Legacy-Keep-Test:** Alt-Key `tch:sb:name` mit passendem Namen → als Erfasser-ID
+   adoptiert + Alt-Key entfernt; ohne Match → ignoriert.
+2. Karte collapsible: `open=false` rendert **Kopf + Summen**, aber **keine** `MengeControl`;
+   `open=true` rendert Körper. Ohne die Props (F5-Pfad): unverändert voll aufgeklappt (Regressions-Test).
+3. `FokusListe`: genau **eine** Karte offen; Chip-Tipp/Karten-Tipp öffnet Ziel + schließt andere +
+   merkt Ziel; aktiver Chip `aria-current`. Read-only (`editable=false`): alle zu, keine Controls.
+4. `IdentityGate`-Zweischritt: kein Erfasser → „Wer bist du?"; Erfasser gewählt → „Für wen?" mit
+   **erster** Option „Für mich"; „Für mich" → Ziel = Erfasser (kein zweiter Suchschritt);
+   anderer Teilnehmer → Ziel gesetzt, Karte offen. Wiederkehr (beide gemerkt) → direkt Fokus-Ansicht.
+   Stale Erfasser → „Wer bist du?"; Stale Ziel (Erfasser bekannt) → „Für wen?". Erfasser-Wechsel.
+5. Leere Liste → bestehender neutraler Hinweis (kein Gate). Read-only → kein Gate.
+
+**Achtung Codify-Altlasten:** `set-state-in-effect` vermeiden (Auswahl über Event/`useSyncExternalStore`
+wie im bisherigen Gate, kein `useEffect`+`setState`); `afterEach(cleanup)` bleibt; `MengeControl` in
+Tests wie gehabt stubben.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- [ ] UI-Form der Sticky-Auswahl (Chips vs. Dropdown) + Verhalten bei sehr langer Liste → /architecture
-- [ ] Persistenz-Schema + Umgang mit Alt-Schlüssel `tch:sb:name:<token>` aus #54 → /architecture
-- [ ] Akkordeon-/Fokus-Mechanismus ohne Umbau der F5-Seite (optionales Prop?) → /architecture
+_Durch /architecture (ADR-035) geklärt: Sticky-Auswahl = Chip-Leiste (D3); Persistenz = IDs, zwei
+Schlüssel + Legacy-Adoption (D1/D6); Akkordeon = wiederverwendete Karte + neue F7-`FokusListe`,
+F5 unberührt (D2)._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
