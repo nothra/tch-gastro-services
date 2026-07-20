@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -207,6 +207,14 @@ Voller Report: [`tasks/codify-185.md`](codify-185.md). Zusammenfassung:
 - Security-Review-Hinweise (uuid-Advisory, Formula-Injection-Härtung, fehlende
   Eigentümerbindung) brauchten keine neue Regel – nicht ausnutzbar bzw. konsistent mit
   bestehender Baseline, kein Wiederholungsmuster.
+
+## PR-Shepherd-Ergebnis (2026-07-20)
+
+PR-Shepherd [2026-07-20]: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare
+(nur der automatische Vercel-Bot-Kommentar), Branch bereits auf `origin/main` (kein Rebase
+nötig), alle required Checks grün (`lint`, `test`, `issue-sync`, `factory-self-test`,
+`pr-closes-issue`), `reviewDecision` leer (0 Approvals erforderlich, ADR-029), Draft aus PR #186
+geholt, `mergeStateStatus: CLEAN`.
 
 ---
 Branch: `feature/185-abschlussbericht-excel-pdf`
