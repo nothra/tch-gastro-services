@@ -1,7 +1,7 @@
 # Task 188: karte-scroll-fokus-fix
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -31,10 +31,10 @@ Betrifft die in #183 eingeführte `FokusListe` (ADR-035), Route-neutrale `ZeileK
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AC1: Die Zielkarte reserviert ein `scroll-margin-top` in Höhe der sticky Chip-Leiste, damit
+- [x] AC1: Die Zielkarte reserviert ein `scroll-margin-top` in Höhe der sticky Chip-Leiste, damit
       der Karten-Kopf (Name) beim `scrollIntoView` nicht hinter der Leiste verschwindet
       (Screenshot 1). Nur im collapsible/F7-Modus – die flache F5-Karte bleibt unverändert.
-- [ ] AC2: Der Scroll zur Zielkarte erfolgt erst **nach** dem Layout-Update (via
+- [x] AC2: Der Scroll zur Zielkarte erfolgt erst **nach** dem Layout-Update (via
       `requestAnimationFrame`), nicht synchron im selben Tick wie `setOpenId` (Screenshot 2).
 
 ## Technische Notizen
@@ -51,8 +51,36 @@ Betrifft die in #183 eingeführte `FokusListe` (ADR-035), Route-neutrale `ZeileK
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+## Root Cause & Fix
+
+Root Cause [2026-07-21]: Zwei gekoppelte Ursachen in der #183-Fokusliste –
+1. `FokusListe.tsx:45` – `scrollIntoView({block:"start"})` richtet den Kartenkopf an der
+   Viewport-Oberkante aus; die sticky Chip-Leiste (`FokusListe.tsx:60-64`, `top-0`) verdeckt ihn,
+   weil kein `scroll-margin-top` reserviert ist (Screenshot 1).
+2. `FokusListe.tsx:41-48` – `setOpenId(id)` und `scrollIntoView` liefen im selben Tick; gescrollt
+   wurde gegen das noch eingeklappte Layout. Nach dem Reflow (andere Karte klappt zu, Ziel klappt
+   auf) rutschte das Ziel aus dem Sichtbereich, nur der untere Rand blieb (Screenshot 2).
+
+Fix:
+- `app/_verzehr/VerzehrErfassung.tsx:113-121` – `<li>` der `ZeileKarte` erhält `scroll-mt-16`
+  **nur** im `collapsible`-Modus (F7). F5 (flach) bleibt ohne Margin.
+- `app/theke/[token]/FokusListe.tsx:41-51` – `scrollIntoView` in `requestAnimationFrame`
+  verlagert, läuft also erst nach dem durch `setOpenId` ausgelösten Reflow.
+
+Verifikation: 3 Reproduktionstests (RED→GREEN) + 1 Scope-Guard; volle Suite 608 grün.
+Hinweis: Der visuelle Beweis (Screenshots 1/2) erfordert eine seed-befüllte Veranstaltung mit
+Token und genug Teilnehmern zum Scrollen – nicht als lokaler Browser-Check ausgeführt; das
+Scroll-Verhalten ist in jsdom nicht layoutbar und wird deterministisch über den rAF-/Klassen-Test
+abgesichert.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Muster, das den Bug verursachte: `scrollIntoView` (oder generell layout-abhängige Messungen)
+unmittelbar nach einem `setState`, das das Layout ändert, im selben Event-Tick aufgerufen – läuft
+gegen das alte Layout. Fix-Muster: layout-abhängige Aktion in `requestAnimationFrame` (nach dem
+Reflow). Zweitmuster: `scrollIntoView` unter einem sticky/fixed Header ohne `scroll-margin-top`
+am Ziel (bzw. `scroll-padding-top` am Scroll-Container) verdeckt das Ziel.
 
 ---
 Branch: `fix/188-karte-scroll-fokus-fix`

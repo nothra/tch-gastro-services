@@ -110,10 +110,15 @@ export function ZeileKarte({
     </div>
   );
 
+  // scroll-mt nur im Akkordeon-Modus (F7): die Karte wird per scrollIntoView unter die sticky
+  // Chip-Leiste der FokusListe (`sticky top-0 … py-2`) geholt – das scroll-margin-top hält den
+  // Kartenkopf (Name) frei, sonst verdeckt die Leiste ihn (#188). F5 (flach) bleibt ohne Margin.
   return (
     <li
       ref={ref}
-      className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
+      className={`flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800${
+        collapsible ? " scroll-mt-16" : ""
+      }`}
     >
       {collapsible ? (
         <button
