@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -177,8 +177,36 @@ fertiggestellt, gleicher Scope wie von den Versuchen selbst vorgezeichnet:
   `/test`-Schritt). Gates grün: 604 Tests, Typecheck, Format, Lint, Routen-Doku-Drift.
   Committet + gepusht via `factory-commit.sh` (`f39769a`).
 
+## /security-review-Ergebnis (2026-07-20)
+
+`tasks/security-185.md`: **PASSED** – keine kritischen oder wichtigen Findings. Der explizit
+geprüfte Angriffsvektor (Content-Disposition-Header-Injection/CRLF/Path-Traversal über die
+nutzerkontrollierte `bezeichnung`) ist konstruktionsbedingt ausgeschlossen (Slug reduziert auf
+`[a-z0-9-]`). RBAC-Reihenfolge (403→400→404→409→Render), Proxy-Schutz ohne neue Ausnahme
+(Codify #63), pdfmake URL-/Local-Access fail-closed (kein SSRF/LFI), parametrisierte
+Drizzle-Queries, `runtime = "nodejs"` – alles korrekt. Drei optionale Hinweise (kein Blocker):
+- **[Dependency]** `uuid <11.1.1` (moderate, GHSA-w5hq-g745-h8pq) transitiv über `exceljs>uuid` –
+  im Bericht-Kontext nicht ausnutzbar (exceljs ruft `uuidv4()` ohne `buf`-Argument, nur im
+  ungenutzten Conditional-Formatting-Pfad). Optional per konditionalem Override in
+  `pnpm-workspace.yaml` schließbar (Dependabot-/Audit-Ruhe).
+- **[Injection]** Excel-Formula-Injection durch xlsx-String-Zelltyp mitigiert; optionale
+  Defense-in-Depth: führende `= + - @` in Nutzer-Strings mit `'` neutralisieren.
+- **[AuthZ/IDOR]** Zugriff nur per Rolle `veranstalter`, keine Pro-Nutzer-Eigentümerbindung –
+  konsistent mit der bestehenden Baseline (Detailseite/Actions), kein Regress dieser Task.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Voller Report: [`tasks/codify-185.md`](codify-185.md). Zusammenfassung:
+- `clean-code.md`: Regel gegen tote Fallbacks für vom Typsystem bereits ausgeschlossene Fälle
+  (aus den beiden im `/refactor`-Schritt entfernten toten Branches).
+- `PROJECT-CONTEXT.md`: Stolperstein „`/refactor` Turn-Limit-Exhaustion" (drei Retries ohne
+  Commit, gedächtnisloser Restart auf halbfertigem Zwischenstand).
+- `testing-standards.md`: neue Regel „Mock-Default mit leerem Array verdeckt Mapping-Code"
+  (verallgemeinert das wichtige Review-Finding zu den ungetesteten Route-Mapping-Lambdas).
+- Security-Review-Hinweise (uuid-Advisory, Formula-Injection-Härtung, fehlende
+  Eigentümerbindung) brauchten keine neue Regel – nicht ausnutzbar bzw. konsistent mit
+  bestehender Baseline, kein Wiederholungsmuster.
 
 ---
 Branch: `feature/185-abschlussbericht-excel-pdf`
