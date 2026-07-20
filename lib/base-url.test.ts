@@ -32,6 +32,12 @@ describe("absoluteUrl", () => {
     expect(await absoluteUrl("/theke/tok-1")).toBe("http://localhost:3000/theke/tok-1");
   });
 
+  it("should_defaultToHttp_when_hostIsLoopbackIpAndNoForwardedProto", async () => {
+    headersMock.mockResolvedValue(requestHeaders({ host: "127.0.0.1:3000" }));
+
+    expect(await absoluteUrl("/theke/tok-1")).toBe("http://127.0.0.1:3000/theke/tok-1");
+  });
+
   it("should_defaultToHttps_when_remoteHostAndNoForwardedProto", async () => {
     headersMock.mockResolvedValue(requestHeaders({ host: "gastro.example.org" }));
 

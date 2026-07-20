@@ -139,6 +139,22 @@ angleichen. **Ausgegründet:** #181 (Theke-QR/Link anzeigen & drucken).
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Review-Runde 1 (`tasks/review-54.md`): NEEDS_REWORK – behoben [2026-07-20, /implement]:**
+- **W1 (AC-B1-Abweichung):** `IdentityGate` zeigte vor der Namenswahl **nur** den Namens-Picker,
+  nicht die laufenden Summen – Verstoß gegen spec-54 AC B1. **Fix:** `IdentityGate` rendert jetzt die
+  route-neutrale `VerzehrErfassung` selbst mit `editable = offen && nameGewählt`. Liste + Summen sind
+  sofort read-only sichtbar; die ±-Controls bleiben hinter dem Namens-Gate. `page.tsx` reicht dazu die
+  Daten-Props (statt `children`) an `IdentityGate`; `VerzehrErfassung` wird auf der Theke-Route
+  client-seitig gerendert (unverändert für F5). Kein Spec-Nachzug nötig (Code an kanonische Spec
+  angeglichen, Codify #55).
+- **Nitpicks behoben:** `lib/base-url.ts` `127.0.0.1`-Zweig eigenständig getestet (Branch-Coverage
+  100 %); leere Liste zeigt im Selbstbedienungs-Pfad den neutralen öffentlichen Hinweis.
+- **Bewusst offen (optionale Nitpicks):** Namens-Wiedererkennung über Anzeigenamen statt `zeile.id`
+  (ADR-034 D4, anonyme Erfassung – harmlos); Cross-Tab-`storage`-Event ohne eigenen Test
+  (Registrierung ist zeilengedeckt, 100 % Branch/Line auf `IdentityGate`).
+- **Gates grün** (`scripts/checks/pre-push.sh`): 529 passed / 59 skipped, Typecheck, Format,
+  Routen-Doku-Drift, Branch-Name.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

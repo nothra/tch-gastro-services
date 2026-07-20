@@ -91,7 +91,7 @@ describe("ThekePage", () => {
     expect(listZeilenMock).not.toHaveBeenCalled();
   });
 
-  it("should_loadByTokenAndShowPicker_when_openAndNoStoredName", async () => {
+  it("should_showPickerAndReadOnlyList_when_openAndNoStoredName", async () => {
     getByTokenMock.mockResolvedValue(aVeranstaltung);
 
     render(await ThekePage({ params: params("tok-1") }));
@@ -99,9 +99,12 @@ describe("ThekePage", () => {
     expect(getByTokenMock).toHaveBeenCalledWith("tok-1");
     expect(listZeilenMock).toHaveBeenCalledWith("v-1");
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
-    // Kein gemerkter Name → Namens-Picker vor der Erfassung.
+    // Kein gemerkter Name → Namens-Picker UND bereits Liste + Summen sichtbar (spec-54 AC B1),
+    // aber die Erfassungs-Controls bleiben read-only, bis ein Name gewählt wurde.
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Anna" })).toBeInTheDocument();
+    expect(screen.getByText(/Cola/)).toBeInTheDocument();
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
 
   it("should_showEditableErfassung_when_openAndNameStored", async () => {

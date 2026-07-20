@@ -3,7 +3,6 @@ import type { Kasse } from "@/db/schema";
 import { getVeranstaltungByToken, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
-import { VerzehrErfassung } from "@/app/_verzehr/VerzehrErfassung";
 import { adjustVerzehrByTokenAction } from "@/app/veranstaltung/actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "@/app/veranstaltung/labels";
 import { IdentityGate } from "./IdentityGate";
@@ -45,22 +44,17 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
       <IdentityGate
         token={token}
         zeilen={zeilen.map((zeile) => ({ id: zeile.id, anzeigename: zeile.anzeigename }))}
+        artikel={artikel.map((item) => ({
+          id: item.id,
+          name: item.name,
+          size: item.size,
+          priceCents: item.priceCents,
+          category: item.category,
+        }))}
+        positionen={positionen}
+        action={action}
         editable={editable}
-      >
-        <VerzehrErfassung
-          zeilen={zeilen.map((zeile) => ({ id: zeile.id, anzeigename: zeile.anzeigename }))}
-          artikel={artikel.map((item) => ({
-            id: item.id,
-            name: item.name,
-            size: item.size,
-            priceCents: item.priceCents,
-            category: item.category,
-          }))}
-          positionen={positionen}
-          action={action}
-          editable={editable}
-        />
-      </IdentityGate>
+      />
     </main>
   );
 }
