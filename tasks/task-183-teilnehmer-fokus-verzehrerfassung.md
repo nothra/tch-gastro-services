@@ -1,7 +1,7 @@
 # Task 183: teilnehmer-fokus-verzehrerfassung
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -26,34 +26,34 @@ mit #54/ADR-034 gelegten Fundament. Kanonische Spec: [`docs/specs/spec-183-erfas
 <!-- Von /requirements befüllt oder manuell eingeben -->
 
 ### Zweistufiger Einstieg
-- [ ] GIVEN erstmaliges Öffnen (offene Veranstaltung, kein Erfasser gemerkt) WHEN die Seite lädt THEN erscheint zuerst „Wer bist du?"; Erfassbereiche noch nicht bearbeitbar.
-- [ ] GIVEN „Wer bist du?" WHEN ein Erfasser gewählt wird THEN wird er clientseitig pro Token gemerkt UND direkt „Für wen möchtest du einen Verzehr erfassen?" abgefragt.
-- [ ] GIVEN die Ziel-Frage nach gewähltem Erfasser WHEN sie angezeigt wird THEN ist die erste Antwortmöglichkeit „Für mich" (der Erfasser), darunter die übrigen Teilnehmer.
-- [ ] GIVEN die Ziel-Frage WHEN „Für mich" gewählt wird THEN wird der Erfasser als Ziel-Teilnehmer übernommen (ohne erneute Namenssuche), gemerkt und dessen Erfassbereich aufgeklappt.
-- [ ] GIVEN „Für wen?" WHEN ein Ziel-Teilnehmer gewählt wird THEN wird die Auswahl gemerkt, dessen Erfassbereich aufgeklappt (andere zu) und die Bearbeitung freigeschaltet.
+- [x] GIVEN erstmaliges Öffnen (offene Veranstaltung, kein Erfasser gemerkt) WHEN die Seite lädt THEN erscheint zuerst „Wer bist du?"; Erfassbereiche noch nicht bearbeitbar.
+- [x] GIVEN „Wer bist du?" WHEN ein Erfasser gewählt wird THEN wird er clientseitig pro Token gemerkt UND direkt „Für wen möchtest du einen Verzehr erfassen?" abgefragt.
+- [x] GIVEN die Ziel-Frage nach gewähltem Erfasser WHEN sie angezeigt wird THEN ist die erste Antwortmöglichkeit „Für mich" (der Erfasser), darunter die übrigen Teilnehmer.
+- [x] GIVEN die Ziel-Frage WHEN „Für mich" gewählt wird THEN wird der Erfasser als Ziel-Teilnehmer übernommen (ohne erneute Namenssuche), gemerkt und dessen Erfassbereich aufgeklappt.
+- [x] GIVEN „Für wen?" WHEN ein Ziel-Teilnehmer gewählt wird THEN wird die Auswahl gemerkt, dessen Erfassbereich aufgeklappt (andere zu) und die Bearbeitung freigeschaltet.
 
 ### Wiederkehr / Persistenz
-- [ ] GIVEN gemerkter Erfasser UND Ziel-Teilnehmer WHEN der Link erneut geöffnet wird THEN werden beide Fragen übersprungen und der zuletzt gewählte Erfassbereich ist direkt aufgeklappt.
+- [x] GIVEN gemerkter Erfasser UND Ziel-Teilnehmer WHEN der Link erneut geöffnet wird THEN werden beide Fragen übersprungen und der zuletzt gewählte Erfassbereich ist direkt aufgeklappt.
 
 ### Akkordeon & Transparenz
-- [ ] GIVEN mehrere Teilnehmer WHEN einer aufgeklappt ist THEN sind die übrigen eingeklappt.
-- [ ] GIVEN ein eingeklappter Erfassbereich WHEN er dargestellt wird THEN zeigt er weiterhin Name + laufende Summen (Getränke/Essen/Kaffee).
-- [ ] GIVEN ein eingeklappter Teilnehmer WHEN darauf getippt wird THEN klappt er auf und der zuvor offene zu (höchstens einer offen).
+- [x] GIVEN mehrere Teilnehmer WHEN einer aufgeklappt ist THEN sind die übrigen eingeklappt.
+- [x] GIVEN ein eingeklappter Erfassbereich WHEN er dargestellt wird THEN zeigt er weiterhin Name + laufende Summen (Getränke/Essen/Kaffee).
+- [x] GIVEN ein eingeklappter Teilnehmer WHEN darauf getippt wird THEN klappt er auf und der zuvor offene zu (höchstens einer offen).
 
 ### Schnelle Navigation
-- [ ] GIVEN die Erfassungsansicht auf Handy/Tablet WHEN gescrollt wird THEN bleibt oben eine dauerhaft erreichbare Teilnehmer-Auswahl (Chips/Dropdown) sichtbar.
-- [ ] GIVEN die Sticky-Auswahl WHEN ein Teilnehmer angetippt wird THEN wird er Ziel-Teilnehmer, sein Bereich klappt auf (andere zu), kommt in den Sichtbereich und wird gemerkt.
+- [x] GIVEN die Erfassungsansicht auf Handy/Tablet WHEN gescrollt wird THEN bleibt oben eine dauerhaft erreichbare Teilnehmer-Auswahl (Chips/Dropdown) sichtbar.
+- [x] GIVEN die Sticky-Auswahl WHEN ein Teilnehmer angetippt wird THEN wird er Ziel-Teilnehmer, sein Bereich klappt auf (andere zu), kommt in den Sichtbereich und wird gemerkt.
 
 ### Erfasser-Wechsel (untergeordnet)
-- [ ] GIVEN eine laufende Erfassung WHEN der Erfasser gewechselt werden soll THEN ist das über eine unauffällige, aber erreichbare Aktion möglich; neuer Erfasser wird gemerkt.
+- [x] GIVEN eine laufende Erfassung WHEN der Erfasser gewechselt werden soll THEN ist das über eine unauffällige, aber erreichbare Aktion möglich; neuer Erfasser wird gemerkt.
 
 ### Read-only
-- [ ] GIVEN eine abgeschlossene Veranstaltung WHEN der Link geöffnet wird THEN kein Erfasser-/Ziel-Flow; Liste im selben Akkordeon-Layout, aber nicht bearbeitbar.
+- [x] GIVEN eine abgeschlossene Veranstaltung WHEN der Link geöffnet wird THEN kein Erfasser-/Ziel-Flow; Liste im selben Akkordeon-Layout, aber nicht bearbeitbar.
 
 ### Fehlerszenarien
-- [ ] GIVEN gemerkter Erfasser/Ziel nicht (mehr) in der Liste WHEN die Seite lädt THEN wird die betreffende Frage erneut gestellt (Stale-Fallback).
-- [ ] GIVEN localStorage nicht verfügbar WHEN die Seite öffnet THEN funktioniert der Ablauf weiter (bei jedem Laden erneut fragen), kein Absturz.
-- [ ] GIVEN leere Teilnehmerliste WHEN der Link geöffnet wird THEN bestehender neutraler Hinweis, kein Gate.
+- [x] GIVEN gemerkter Erfasser/Ziel nicht (mehr) in der Liste WHEN die Seite lädt THEN wird die betreffende Frage erneut gestellt (Stale-Fallback).
+- [x] GIVEN localStorage nicht verfügbar WHEN die Seite öffnet THEN funktioniert der Ablauf weiter (bei jedem Laden erneut fragen), kein Absturz.
+- [x] GIVEN leere Teilnehmerliste WHEN der Link geöffnet wird THEN bestehender neutraler Hinweis, kein Gate.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -100,6 +100,44 @@ Tests wie gehabt stubben.
 _Durch /architecture (ADR-035) geklärt: Sticky-Auswahl = Chip-Leiste (D3); Persistenz = IDs, zwei
 Schlüssel + Legacy-Adoption (D1/D6); Akkordeon = wiederverwendete Karte + neue F7-`FokusListe`,
 F5 unberührt (D2)._
+
+## Implementierungs-Notizen (/implement, 2026-07-20)
+
+**ADR-Trigger-Check (Schritt 0):** Kein Trigger. Die Architektur ist in ADR-035 bereits
+entschieden; die Umsetzung ist reine Präsentations-/Client-Schicht – keine Technologiewahl, kein
+neues Architekturmuster, kein Schnittstellen-Vertrag, keine irreversible Konsequenz (kein
+Datenmodell, keine Migration, keine neue Dependency, kein neuer Auth-Pfad, keine `docs/routes.md`-
+Änderung).
+
+**Umgesetzt (TDD, Red→Green je AC):**
+1. `app/theke/[token]/erfasser-ziel-storage.ts` (**NEU**) – geräte-lokale Persistenz von Erfasser-
+   und Ziel-**Zeilen-ID** je Token (`tch:sb:erfasser:` / `tch:sb:ziel:`), fail-open (try/catch),
+   Stale-Auflösung gegen `zeilen`, einmalige Legacy-Adoption von `tch:sb:name:` (D6). 11 Unit-Tests.
+2. `app/_verzehr/VerzehrErfassung.tsx` – interne `ZeileKarte` **exportiert** + optionale Akkordeon-
+   Props (`collapsible`/`open`/`onToggle`/`ref`). Ohne Props unverändert (F5-Regressions-Test);
+   `open=false` rendert nur Kopf (Name + Summen), kein Körper. 6 neue Tests.
+3. `app/theke/[token]/FokusListe.tsx` (**NEU**, `"use client"`) – sticky Chip-Leiste (D3) +
+   Akkordeon (genau eine Karte offen), `scrollIntoView` guarded; merkt Ziel nur bei `editable`. 6 Tests.
+4. `app/theke/[token]/IdentityGate.tsx` – **umgebaut** zur Zustandsmaschine (Erfasser → Ziel) mit
+   „Für mich" als erster Ziel-Option, Wiederkehr, Stale-Fallbacks, „Erfasser wechseln", Read-only
+   ohne Gate; liest via `useSyncExternalStore` (kein set-state-in-effect), Legacy-Adoption im
+   Mount-Effekt (nur localStorage-Write + Event, kein setState). 12 Tests.
+5. `app/theke/[token]/page.test.tsx` – zwei Tests an das neue Zweischritt-/Akkordeon-Verhalten
+   angepasst (Wiederkehr mit beiden IDs; Read-only = Akkordeon zu, Chip klappt read-only auf).
+
+**Design-Notiz:** Während der Picker-Schritte („Wer bist du?"/„Für wen?") bleibt die bestehende
+flache `VerzehrErfassung` **read-only** sichtbar (Namen + Summen + Artikelzeilen, nicht bearbeitbar,
+Codify #54). Die neue `FokusListe` (Akkordeon) wird erst bei vollständigem Flow bzw. im Read-only-
+Fall (abgeschlossen) gemountet – so entfällt Doppel-State/`key`-Remount-Logik.
+
+**Gates:** `pnpm lint` grün, `pnpm typecheck` grün, `pnpm format:check` grün, Routen-Doku synchron,
+Test-Suite grün (558 passed / 59 skipped; 35 neue Tests für #183).
+
+**Offener Nachtest (UI/Dev-Server):** Interaktive Verifikation gegen `pnpm dev` (Zweischritt,
+Chip-Wechsel, Sticky-Verhalten auf Handy/Tablet) steht aus – erfordert lokale DB (`pnpm db:up`) +
+gültigen Veranstaltungs-Token. Kein neuer Server-/Proxy-Pfad (nur Client-Präsentation auf der
+bestehenden `theke/[token]`-Route), daher geringes Unit-≠-UI-Risiko; keine e2e-Seeding-Infra für die
+Token-Route vorhanden (auch #54 hatte keine). Nachweis später via `/verify` bzw. `/post-merge-verify`.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import type { CatalogItem, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 
 vi.mock("@/db/veranstaltung", () => ({
@@ -89,6 +89,7 @@ function params(token: string) {
 beforeEach(() => {
   vi.resetAllMocks();
   window.localStorage.clear();
+  Element.prototype.scrollIntoView = vi.fn();
   listZeilenMock.mockResolvedValue([aZeile]);
   listActiveCatalogMock.mockResolvedValue([cola]);
   listPositionenMock.mockResolvedValue([]);
@@ -119,8 +120,11 @@ describe("ThekePage", () => {
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
 
-  it("should_showEditableErfassung_when_openAndNameStored", async () => {
-    window.localStorage.setItem("tch:sb:name:tok-1", "Anna");
+  it("should_showEditableFocus_when_openAndErfasserAndZielStored", async () => {
+    // Zweischritt übersprungen (Wiederkehr, #183): Erfasser + Ziel als Zeilen-IDs gemerkt →
+    // Fokus-Ansicht mit offener, bearbeitbarer Ziel-Karte.
+    window.localStorage.setItem("tch:sb:erfasser:tok-1", "z-1");
+    window.localStorage.setItem("tch:sb:ziel:tok-1", "z-1");
     getByTokenMock.mockResolvedValue(aVeranstaltung);
 
     render(await ThekePage({ params: params("tok-1") }));
@@ -129,13 +133,16 @@ describe("ThekePage", () => {
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "true");
   });
 
-  it("should_renderReadOnlyWithoutGate_when_abgeschlossen", async () => {
+  it("should_renderReadOnlyAccordionWithoutGate_when_abgeschlossen", async () => {
     getByTokenMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
 
     render(await ThekePage({ params: params("tok-1") }));
 
-    // Read-only: kein Namens-Gate, direkt Liste + Summen, keine editierbaren Controls.
+    // Read-only (#183/ADR-035 D5): kein Namens-Gate, Akkordeon mit allen Karten zu.
     expect(screen.queryByText("Wer bist du?")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+    // Chip zum Aufklappen → read-only-Erfassung wird sichtbar, aber nicht bearbeitbar.
+    fireEvent.click(screen.getByRole("button", { name: "Anna" }));
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
 
