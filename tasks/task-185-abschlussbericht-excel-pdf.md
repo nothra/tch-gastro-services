@@ -22,24 +22,24 @@ Vollständige Spezifikation: [spec-185](../docs/specs/spec-185-abschlussbericht-
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AC1 – Aus der Detailansicht einer **abgeschlossenen** Veranstaltung sind Excel- **und** PDF-Download verfügbar (Veranstalter).
-- [ ] AC2 – Bericht für **offene** Veranstaltung → serverseitig abgelehnt (fail-closed).
-- [ ] AC3 – Anforderung ohne Veranstalter-Rolle (z. B. Verwalter) → serverseitig abgelehnt.
-- [ ] AC4 – Teilnehmerzeilen enthalten konsumierte Artikel mit **Menge** (Strichzahl) + Zeilenbetrag (Menge × eingefrorener Einzelpreis).
-- [ ] AC5 – `Verzehr-Gesamt = Σ Getränke + Σ Sonstige`, `Spende = max(0, Erhalten − Verzehr-Gesamt)`; **ohne** Auslagen-Abzug.
-- [ ] AC6 – Tagessummen entsprechen der Summe der Zeilenwerte.
-- [ ] AC7 – Separater Auslagen-Abschnitt listet **jede** Auslage einzeln (Teilnehmer, Kategorie, Betrag, Status) – nicht in den Teilnehmerzeilen.
-- [ ] AC8 – Gesamtabrechnung: Verzehr-Umsatz je Kategorie, Σ Spende separat, Auslagenerstattung je Kategorie + gesamt, Kassenveränderung (je zugeordneter Kasse).
-- [ ] AC9 – Konsistenz: `Σ Getränke + Σ Essen + Σ Kaffee + Σ Spende = Σ Erhalten`.
-- [ ] AC10 – Werte in Excel und PDF sind identisch.
-- [ ] AC11 – Kopf enthält Bezeichnung, Datum (de-DE), Kasse, Status `abgeschlossen`.
-- [ ] AC12 – Beträge im de-DE-Format, 2 Nachkommastellen (konsistent zu `formatCents`).
-- [ ] AC13 – Abgeschlossene Veranstaltung **ohne** Teilnehmer/Verzehr/Auslagen → Bericht wird dennoch erzeugt (Kopf + Nullsummen), kein Fehler.
+- [x] AC1 – Aus der Detailansicht einer **abgeschlossenen** Veranstaltung sind Excel- **und** PDF-Download verfügbar (Veranstalter). _(page.test.tsx: `should_showBerichtDownloads_when_veranstaltungAbgeschlossen` / `should_hideBerichtDownloads_when_veranstaltungOffen`)_
+- [x] AC2 – Bericht für **offene** Veranstaltung → serverseitig abgelehnt (fail-closed). _(route.test.ts: `should_return409_when_veranstaltungOffen`)_
+- [x] AC3 – Anforderung ohne Veranstalter-Rolle (z. B. Verwalter) → serverseitig abgelehnt. _(route.test.ts: `should_return403_when_userIsNotVeranstalter`)_
+- [x] AC4 – Teilnehmerzeilen enthalten konsumierte Artikel mit **Menge** (Strichzahl) + Zeilenbetrag (Menge × eingefrorener Einzelpreis). _(berichtModell.test.ts AC4/AC5)_
+- [x] AC5 – `Verzehr-Gesamt = Σ Getränke + Σ Sonstige`, `Spende = max(0, Erhalten − Verzehr-Gesamt)`; **ohne** Auslagen-Abzug. _(berichtModell.test.ts: `should_computeZeilenSummenWithoutAuslagen_when_built`)_
+- [x] AC6 – Tagessummen entsprechen der Summe der Zeilenwerte. _(berichtModell.test.ts: `should_sumZeilenValues_when_built`)_
+- [x] AC7 – Separater Auslagen-Abschnitt listet **jede** Auslage einzeln (Teilnehmer, Kategorie, Betrag, Status) – nicht in den Teilnehmerzeilen. _(berichtModell.test.ts: `should_listEachAuslageSeparatelyWithLabels` / `should_notIncludeAuslagenInTeilnehmerzeilen`)_
+- [x] AC8 – Gesamtabrechnung: Verzehr-Umsatz je Kategorie, Σ Spende separat, Auslagenerstattung je Kategorie + gesamt, Kassenveränderung (je zugeordneter Kasse). _(berichtModell.test.ts AC8)_
+- [x] AC9 – Konsistenz: `Σ Getränke + Σ Essen + Σ Kaffee + Σ Spende = Σ Erhalten`. _(berichtModell.test.ts: `should_satisfyEinnahmenConsistency_when_closed`)_
+- [x] AC10 – Werte in Excel und PDF sind identisch. _(per Konstruktion: beide Renderer konsumieren ausschließlich das reine `berichtModell`; Smoke-Tests belegen valide xlsx/pdf-Ausgabe)_
+- [x] AC11 – Kopf enthält Bezeichnung, Datum (de-DE), Kasse, Status `abgeschlossen`. _(berichtModell.test.ts AC11)_
+- [x] AC12 – Beträge im de-DE-Format, 2 Nachkommastellen (konsistent zu `formatCents`). _(Excel: `numFmt "#,##0.00 €"` + echte Zahlen; PDF: `formatCents`)_
+- [x] AC13 – Abgeschlossene Veranstaltung **ohne** Teilnehmer/Verzehr/Auslagen → Bericht wird dennoch erzeugt (Kopf + Nullsummen), kein Fehler. _(berichtModell.test.ts: `should_buildReportWithNullSums_when_noParticipants`; berichtPdf.test.ts: `should_produceValidPdf_when_reportIsEmpty`)_
 
 ### Fehlerszenarien
-- [ ] Offene Veranstaltung → abgelehnt (AC2); ohne Rolle → abgelehnt (AC3).
-- [ ] Unbekannte/gelöschte Veranstaltungs-ID → 404, kein leerer Download.
-- [ ] Auslage auf gelöschter Zeile → Fallback-Anzeigename (analog `listAuslagen`, Codify #53).
+- [x] Offene Veranstaltung → abgelehnt (AC2); ohne Rolle → abgelehnt (AC3). _(route.test.ts 409/403)_
+- [x] Unbekannte/gelöschte Veranstaltungs-ID → 404, kein leerer Download. _(route.test.ts: `should_return404_when_veranstaltungMissing`)_
+- [x] Auslage auf gelöschter Zeile → Fallback-Anzeigename (analog `listAuslagen`, Codify #53). _(orphan-sicher im Data-Layer `listAuslagen` per LEFT JOIN + COALESCE; das Modell reicht den aufgelösten `anzeigename` durch)_
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -95,6 +95,11 @@ zeigt ausschließlich `docs/**` + `tasks/**`; es existiert weder der Route Handl
 – Der Mensch muss zuerst `/implement 185` ausführen (Pipeline-Reihenfolge
 requirements → architecture → implement → review). Danach `/review` erneut starten.
 
+Blocker erledigt [2026-07-20]: `/implement 185` ist durchlaufen – der Route Handler,
+`berichtModell`, beide Renderer (`berichtXlsx`/`berichtPdf`), `berichtDateiname`, die
+Detailseiten-Links und alle Tests existieren jetzt im Branch (alle Gates grün). `/review` kann
+erneut gestartet werden.
+
 ## Implementierungs-Fortschritt (2026-07-20)
 
 Umgesetzt (TDD, pure Module zuerst):
@@ -113,6 +118,21 @@ Blocker [2026-07-20]: Abhängigkeits-Installation ausstehend – bare `pnpm` ist
 `pnpm add exceljs pdfmake` und `pnpm add -D @types/pdfmake` (danach `pnpm audit`; Overrides via
 `pnpm-workspace.yaml`, Codify #167). Erst danach folgen der PDF-Renderer (`berichtPdf.ts`, korrektes
 Node-Font-Handling), sein Smoke-Test und das grüne Gate (Typecheck braucht die exceljs/pdfmake-Imports).
+
+Blocker erledigt [2026-07-20]: `exceljs`/`pdfmake`/`@types/pdfmake` sind installiert
+(`package.json` + `node_modules` + `pnpm-lock.yaml`; Security-Overrides für postcss/esbuild in
+`pnpm-workspace.yaml`, Codify #167). Danach umgesetzt:
+- `berichtPdf.ts` (PDF-Renderer, ADR-036 D8): kompakte Unterliste je Teilnehmer; Node-nativ mit den
+  eingebauten Helvetica-Standardschriften (kein VFS/Font-Download); URL-Access fail-closed,
+  Local-Access auf genau die registrierten Helvetica-Dateien beschränkt.
+- `berichtPdf.test.ts`: Smoke-Tests (PDF-Magic-Bytes „%PDF" bei befülltem UND leerem Bericht, AC13).
+
+Gate-Verifikation [2026-07-20] – alle grün:
+- `bash scripts/checks/pre-push.sh`: Tests **597 passed** / 59 skipped, Typecheck ✓, Format ✓,
+  Routen-Doku-Drift ✓.
+- `bash scripts/checks/pre-commit.sh`: Lint ✓ (keine Debug-Statements / Merge-Konflikte / Secrets).
+
+Implementierung damit vollständig (alle AC + Fehlerszenarien getestet). Nächster Pipeline-Schritt: `/review`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

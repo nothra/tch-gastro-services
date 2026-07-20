@@ -24,8 +24,18 @@ const positionen: BerichtPositionInput[] = [
 ];
 
 const auslagen = [
-  { anzeigename: "Anna", kategorie: "getraenke" as const, betragCents: 300, status: "erstattet" as const },
-  { anzeigename: "Bert", kategorie: "sonstiges" as const, betragCents: 100, status: "offen" as const },
+  {
+    anzeigename: "Anna",
+    kategorie: "getraenke" as const,
+    betragCents: 300,
+    status: "erstattet" as const,
+  },
+  {
+    anzeigename: "Bert",
+    kategorie: "sonstiges" as const,
+    betragCents: 100,
+    status: "offen" as const,
+  },
 ];
 
 describe("berichtModell – Kopf (AC11)", () => {
@@ -74,7 +84,14 @@ describe("berichtModell – Teilnehmerzeilen mit Pro-Artikel-Strichen (AC4/AC5)"
       veranstaltung,
       zeilen: [{ id: "z1", anzeigename: "Anna", erhaltenCents: null }],
       positionen: [
-        { zeileId: "z1", name: "Bier", size: "0,5l", menge: 0, priceCents: 250, category: "getraenk" },
+        {
+          zeileId: "z1",
+          name: "Bier",
+          size: "0,5l",
+          menge: 0,
+          priceCents: 250,
+          category: "getraenk",
+        },
       ],
       auslagen: [],
     });
@@ -88,7 +105,14 @@ describe("berichtModell – Teilnehmerzeilen mit Pro-Artikel-Strichen (AC4/AC5)"
       zeilen: [{ id: "z1", anzeigename: "Anna", erhaltenCents: null }],
       positionen: [
         { zeileId: "z1", name: "Kaffee", size: "", menge: 1, priceCents: 150, category: "kaffee" },
-        { zeileId: "z1", name: "Wasser", size: "", menge: 1, priceCents: 100, category: "getraenk" },
+        {
+          zeileId: "z1",
+          name: "Wasser",
+          size: "",
+          menge: 1,
+          priceCents: 100,
+          category: "getraenk",
+        },
         { zeileId: "z1", name: "Cola", size: "", menge: 1, priceCents: 200, category: "getraenk" },
         { zeileId: "z1", name: "Suppe", size: "", menge: 1, priceCents: 300, category: "essen" },
       ],
@@ -181,9 +205,9 @@ describe("berichtModell – Gesamtabrechnung (AC8/AC9)", () => {
 
     // AC9: Σ Getränke + Σ Essen + Σ Kaffee + Σ Spende = Σ Erhalten.
     const g = modell.gesamtabrechnung;
-    expect(g.verzehrGetraenkeCents + g.verzehrEssenCents + g.verzehrKaffeeCents + g.spendeCents).toBe(
-      g.einnahmenCents,
-    );
+    expect(
+      g.verzehrGetraenkeCents + g.verzehrEssenCents + g.verzehrKaffeeCents + g.spendeCents,
+    ).toBe(g.einnahmenCents);
   });
 });
 
