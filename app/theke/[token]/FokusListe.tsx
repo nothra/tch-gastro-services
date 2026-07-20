@@ -48,16 +48,11 @@ export function FokusListe({
   );
 
   // Kopf-Tipp: offene Karte zuklappen, sonst als Ziel öffnen (höchstens eine offen).
+  // Delegiert an `waehleZiel`, damit Seiteneffekte (writeZielId/scrollIntoView) außerhalb der
+  // setState-Updater-Funktion laufen – Updater müssen rein sein (React-Reinheit, StrictMode).
   const toggle = useCallback(
-    (id: string) => {
-      setOpenId((current) => {
-        if (current === id) return null;
-        if (editable) writeZielId(token, id);
-        kartenRefs.current.get(id)?.scrollIntoView?.({ block: "start" });
-        return id;
-      });
-    },
-    [editable, token],
+    (id: string) => (openId === id ? setOpenId(null) : waehleZiel(id)),
+    [openId, waehleZiel],
   );
 
   return (

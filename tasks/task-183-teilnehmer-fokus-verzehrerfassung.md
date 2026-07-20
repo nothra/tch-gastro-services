@@ -142,6 +142,23 @@ Token-Route vorhanden (auch #54 hatte keine). Nachweis später via `/verify` bzw
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Review-Runde 1 (siehe `tasks/review-183.md`): NEEDS_REWORK, 0 kritisch, 1 wichtig, 3 Nitpicks.**
+
+Behoben (/implement, 2026-07-20):
+- **Wichtig – `FokusListe.tsx` `toggle` (React-Reinheit):** Seiteneffekte (`writeZielId`,
+  `scrollIntoView`) lagen in der `setOpenId`-Updater-Funktion → doppelte Ausführung unter
+  StrictMode/Concurrent-Rendering + Cross-Component-State-Update während des Renders. `toggle`
+  delegiert jetzt an das bereits korrekte `waehleZiel`
+  (`openId === id ? setOpenId(null) : waehleZiel(id)`); Updater rein. Gates grün.
+
+Nitpicks (optional, bewusst nicht umgesetzt – YAGNI/Scope):
+- `IdentityGate.tsx:136` `erfasser?.anzeigename ?? ""` – bewusst defensiver, nicht schädlicher
+  Fallback (ID ist bereits gegen `zeilen` validiert); belassen.
+- `VerzehrErfassung.tsx` Disclosure-`aria-controls` – Ergänzung berührt die geteilte F5-Karte;
+  `aria-expanded` genügt für einfache AT. Als optionale A11y-Verbesserung offen.
+- `FokusListe.test.tsx` Chip-Test – die offene Ziel-Karte ist über den Kopf-Tipp-Test bereits
+  indirekt belegt; keine funktionale Lücke.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
