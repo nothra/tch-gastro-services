@@ -1,7 +1,7 @@
 # Task 185: abschlussbericht-excel-pdf
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -88,6 +88,31 @@ Keine offenen Punkte mehr → bereit für `/implement 185`.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Blocker [2026-07-20]: `/review` abgebrochen – der Branch enthält nur Dokumentation
+(ADR-036, spec-185, Task-Datei), keinen Implementierungs-Code. `git diff origin/main...HEAD`
+zeigt ausschließlich `docs/**` + `tasks/**`; es existiert weder der Route Handler
+(`app/api/veranstaltung/[id]/bericht/route.ts`) noch `berichtModell`/Renderer/Tests.
+– Der Mensch muss zuerst `/implement 185` ausführen (Pipeline-Reihenfolge
+requirements → architecture → implement → review). Danach `/review` erneut starten.
+
+## Implementierungs-Fortschritt (2026-07-20)
+
+Umgesetzt (TDD, pure Module zuerst):
+- `kassierSummen.ts` um getrennte `essenCents`/`kaffeeCents` erweitert (ADR-036 D7) + Tests.
+- `berichtModell.ts` (reine Single Source, ADR-036 D6) + umfassende Tests (AC4–AC9, AC11, AC13).
+- `berichtDateiname.ts` (Slug + Dateiname, ADR-036 D9) + Tests.
+- `berichtXlsx.ts` (Excel-Renderer, ADR-036 D8) + Smoke-Test (Magic Bytes „PK").
+- Route Handler `app/api/veranstaltung/[id]/bericht/route.ts` (ADR-036 D1–D4) + Test
+  (403/400/404/409/200 xlsx+pdf, Content-Disposition) – Renderer gemockt, läuft ohne die Pakete.
+- Detailseite: Excel-/PDF-Download-Links nur bei Status `abgeschlossen` (AC1) + Tests.
+- `docs/routes.md`: neue Route ergänzt (authentifiziert, `veranstalter`, nicht proxy-exempt).
+
+Blocker [2026-07-20]: Abhängigkeits-Installation ausstehend – bare `pnpm` ist policy-geblockt
+(nur `bash scripts/*` allow-gelistet, Codify pnpm-gates-via-scripts). ADR-036 D5 verlangt
+`exceljs` + `pdfmake` (+ `@types/pdfmake`). – Der Mensch muss einmalig ausführen (oder freigeben):
+`pnpm add exceljs pdfmake` und `pnpm add -D @types/pdfmake` (danach `pnpm audit`; Overrides via
+`pnpm-workspace.yaml`, Codify #167). Erst danach folgen der PDF-Renderer (`berichtPdf.ts`, korrektes
+Node-Font-Handling), sein Smoke-Test und das grüne Gate (Typecheck braucht die exceljs/pdfmake-Imports).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

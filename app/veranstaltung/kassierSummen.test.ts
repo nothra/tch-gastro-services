@@ -23,6 +23,21 @@ describe("kassierZeile", () => {
     expect(zeile.sonstigeCents).toBe(450); // essen + kaffee, ohne Getränke
   });
 
+  it("should_keepEssenAndKaffeeSeparate_when_computed", () => {
+    // Der Abschlussbericht (F9, #185, ADR-036 D7) weist den Verzehr-Umsatz getrennt nach
+    // Getränke/Essen/Kaffee aus – deshalb bleiben Essen und Kaffee zusätzlich zur
+    // „Sonstige"-Zusammenfassung einzeln erhalten (single source, keine Parallel-Aggregation).
+    const zeile = kassierZeile({
+      getraenkeCents: 500,
+      essenCents: 300,
+      kaffeeCents: 150,
+      erhaltenCents: null,
+    });
+
+    expect(zeile.essenCents).toBe(300);
+    expect(zeile.kaffeeCents).toBe(150);
+  });
+
   it("should_sumVerzehrGesamtWithoutAuslagen_when_computed", () => {
     // Auslagen sind KEIN Input dieser Funktion (eigener Vorgang, F6) → Verzehr-Gesamt ist brutto.
     const zeile = kassierZeile({
@@ -113,6 +128,15 @@ describe("kassierTagessummen", () => {
     expect(summen.verzehrGesamtCents).toBe(1800);
     expect(summen.erhaltenCents).toBe(1400); // 1000 + 400 + 0 (NULL → 0)
     expect(summen.spendeCents).toBe(200);
+  });
+
+  it("should_sumEssenAndKaffeeSeparately_when_multipleZeilen", () => {
+    // Getrennte Tages-Verzehr-Umsätze je Kategorie für die Abschlussbericht-Gesamtabrechnung
+    // (ADR-036 D7). `paid` = 300 Essen; kein Kaffee erfasst.
+    const summen = kassierTagessummen([paid, open, zeroPaid]);
+
+    expect(summen.essenCents).toBe(300);
+    expect(summen.kaffeeCents).toBe(0);
   });
 
   it("should_countOnlyOpenLines_when_someUnpaid", () => {
