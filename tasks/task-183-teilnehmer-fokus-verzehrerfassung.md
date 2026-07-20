@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -212,8 +212,32 @@ genutzt, keine Duplikation in `FokusListe.tsx`/`VerzehrErfassung.tsx`. Bereits z
 **Gates (unverändert grün nach dem Schritt):** `bash scripts/checks/pre-push.sh` – 559 Tests
 grün, Typecheck, Format, Routen-Doku-Drift.
 
+## Security-Notizen (/security-review, 2026-07-20)
+
+**Ergebnis: PASSED** (siehe `tasks/security-183.md`) – 0 kritisch, 0 wichtig, 6 Hinweise
+(alle Bestätigungen, kein Handlungsbedarf). Scope gegen `origin/main...HEAD` (Codify #161).
+
+Kernbewertung: reine Client-/Präsentationsschicht, keine neue Dependency/Migration/Schema-Änderung
+(verifiziert). Entscheidende Frage – weicht der Client-Gate-Refactor eine Server-Grenze auf? –
+klar **nein**: `editable` ist rein clientseitige Ableitung aus `status === "offen"`; serverseitig
+erzwingt `applyVerzehrAdjust` unabhängig `status !== "offen" → NOT_OFFEN` **und** die IDOR-Bindung
+`getZeile(zeileId, ziel.id)` gegen die aus dem Token aufgelöste Veranstaltung. Kein XSS (nur
+JSX-Textinterpolation, kein `dangerouslySetInnerHTML`; Token nie im DOM). Kein IDOR über gemerkte
+IDs (`readValidId` resolved nur gegen token-scoped `zeilen`, Stale → null). localStorage fail-open
+korrekt; Legacy-`tch:sb:name:`-Adoption ist Netto-Verbesserung (Name → opake ID). Route-Neutralität
+`app/_verzehr/` eingehalten. Kein Out-of-Scope-Härtungsbedarf → kein neues Issue.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vollständiger Report: `tasks/codify-183.md`. Kurzfassung:
+
+- **Neue Regel** in `docs/factory/PROJECT-CONTEXT.md` (Bekannte Stolpersteine): `setState`-
+  Updater-Funktionen müssen rein bleiben – keine Seiteneffekte darin (Review-Runde-1-Fund in
+  `FokusListe.toggle`, behoben in Commit `50f85e3`).
+- Coverage-Lücke (`FokusListe.tsx:95`), das kleine Refactor-Dedup und die verbleibenden Nitpicks
+  brauchen keine neue Regel – bereits durch bestehende Guidelines/Prozesse abgedeckt.
+- Security-Review PASSED, keine Learnings.
 
 ---
 Branch: `feature/183-teilnehmer-fokus-verzehrerfassung`
