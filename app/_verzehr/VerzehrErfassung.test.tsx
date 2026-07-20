@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { VerzehrErfassung } from "./VerzehrErfassung";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { VerzehrErfassung, ZeileKarte } from "./VerzehrErfassung";
 import type { VerzehrFormAction } from "./types";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 
@@ -460,5 +460,62 @@ describe("VerzehrErfassung", () => {
 
     expect(screen.getByText("Radler · 2,80 €")).toBeInTheDocument();
     expect(screen.queryByText(/ohne Größe/)).not.toBeInTheDocument();
+  });
+});
+
+describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
+  function renderKarte(overrides: Partial<Parameters<typeof ZeileKarte>[0]> = {}) {
+    return render(
+      <ul>
+        <ZeileKarte
+          zeile={aZeile}
+          artikel={[cola]}
+          positionen={[pos({ menge: 3, priceCents: 250, category: "getraenk" })]}
+          action={noopAction}
+          editable
+          {...overrides}
+        />
+      </ul>,
+    );
+  }
+
+  it("should_renderFullBody_when_noAccordionProps", () => {
+    // F5-Pfad (ohne collapsible/open): unverändert voll aufgeklappt (Regressions-Test).
+    renderKarte();
+
+    expect(screen.getByText("Anna")).toBeInTheDocument();
+    expect(screen.getByTestId("menge")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Anna/ })).not.toBeInTheDocument();
+  });
+
+  it("should_showHeadWithSumsButNoBody_when_collapsibleAndClosed", () => {
+    // Eingeklappt: Kopf (Name + laufende Summen) bleibt, Körper (MengeControl) entfällt.
+    renderKarte({ collapsible: true, open: false });
+
+    expect(screen.getByText("Anna")).toBeInTheDocument();
+    expect(screen.getByText(/Getränke\s*7,50\s*€/)).toBeInTheDocument();
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+  });
+
+  it("should_showBody_when_collapsibleAndOpen", () => {
+    renderKarte({ collapsible: true, open: true });
+
+    expect(screen.getByTestId("menge")).toBeInTheDocument();
+  });
+
+  it("should_markHeadAsExpandableButton_when_collapsible", () => {
+    renderKarte({ collapsible: true, open: false });
+
+    const kopf = screen.getByRole("button", { name: /Anna/ });
+    expect(kopf).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("should_callOnToggle_when_headClicked", () => {
+    const onToggle = vi.fn();
+    renderKarte({ collapsible: true, open: false, onToggle });
+
+    fireEvent.click(screen.getByRole("button", { name: /Anna/ }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });

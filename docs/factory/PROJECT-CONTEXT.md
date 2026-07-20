@@ -997,6 +997,50 @@ bauen. Pflicht-Begleitung: ein Test, der den Zustand **vor** Erfüllung der Gate
 die tatsächlich sichtbaren Daten prüft (Liste, Summen) – nicht nur, dass „irgendetwas" gerendert
 wird.
 
+### `setState`-Updater-Funktionen müssen rein bleiben – keine Seiteneffekte darin (aus #183, Review-Runde-1-Finding)
+
+`FokusListe.toggle` rief `setOpenId((current) => { if (current === id) return null; if (editable)
+writeZielId(token, id); kartenRefs.current.get(id)?.scrollIntoView?.(...); return id; })` auf. Die
+Updater-Funktion berechnete nicht nur den nächsten State, sondern löste **Seiteneffekte** aus
+(`writeZielId` schreibt localStorage + feuert ein Event, `scrollIntoView` mutiert das DOM). React
+darf Updater-Funktionen unter StrictMode/Concurrent-Rendering **mehrfach** aufrufen (Render-Phase,
+nicht Commit-Phase) – die Effekte liefen dadurch potenziell doppelt, und `writeZielId`s Event löste
+ein Update in einer **anderen** Komponente während der Render-Phase der ersten aus. Der Reflex,
+einen zusammengesetzten Zustandsübergang (State + Persistenz + Scroll) in einer einzigen
+`setX((prev) => …)`-Closure zu bündeln, wirkt kompakt, verletzt aber die React-Reinheitsgarantie
+für Updater.
+
+**Regel:** Ein `setState`-Updater (`setX((prev) => ...)`) berechnet **ausschließlich** den nächsten
+State-Wert – keine I/O, kein `scrollIntoView`, kein Event-Dispatch, kein Aufruf von Funktionen mit
+Seiteneffekten. Braucht ein Zustandsübergang begleitende Effekte, diese in eine benannte Funktion
+auslagern, die die Effekte **im Event-Handler** ausführt und danach `setState` mit einem reinen
+Wert aufruft:
+```ts
+// Falsch: Seiteneffekte im Updater
+setOpenId((current) => {
+  if (current === id) return null;
+  writeZielId(token, id); // Seiteneffekt im Updater
+  return id;
+});
+
+// Richtig: Effekte im Handler, Updater bleibt rein
+const waehleZiel = useCallback((id: string) => {
+  if (editable) writeZielId(token, id);
+  kartenRefs.current.get(id)?.scrollIntoView?.({ block: "start" });
+  setOpenId(id);
+}, [editable, token]);
+
+const toggle = useCallback(
+  (id: string) => (openId === id ? setOpenId(null) : waehleZiel(id)),
+  [openId, waehleZiel],
+);
+```
+**Review-Smell:** Enthält eine `setX((prev) => ...)`-Updater-Funktion mehr als eine
+Return-Anweisung mit begleitenden Funktionsaufrufen dazwischen, ist das ein Kandidat für diese
+Falle – prüfen, ob die Aufrufe reine Berechnungen sind oder Seiteneffekte auslösen. Verwandt mit
+der bestehenden Regel zu `useActionState`+Inline-Toggle (aus #49): beide behandeln, wo
+Seiteneffekte bei State-Übergängen hingehören (Event-Handler, nie Render-/Updater-Phase).
+
 ---
 
 ## Offene Architektur-Fragen
