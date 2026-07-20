@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -68,6 +68,20 @@ File-Tracing (@vercel/nft) zieht die `.afm`-Dateien an ihren echten Pfad.
 
 > Deployment-Nachweis: lokal ist der 500 im gebündelten `pnpm start`-Output reproduzierbar; der
 > echte Vercel-Beweis folgt über `/post-merge-verify` (INT/PROD-Smoke) nach dem Merge.
+
+## Test-Vollständigkeit (/test)
+- Coverage (`pnpm test:coverage`) über der 80%-Schwelle: Branches 94.16 %, Lines 88.86 %.
+  Betroffene Feature-Dateien: `berichtPdf.ts` 100 % Branch/Lines, `app/api/veranstaltung/[id]`
+  100 % Branch/Lines.
+- `next.config.ts` erscheint nicht in der Coverage-Tabelle (Root-Config-Datei, v8-Artefakt); die
+  Änderung ist ein statisches Array-Literal ohne Branches/Funktionen und wird durch den Guard
+  `next.config.test.ts` gelesen.
+- AC1 (PDF-Download, kein 500) unit-seitig durch `route.test.ts`
+  (`should_return200PdfWithAttachment_when_formatPdf`) + `berichtPdf.test.ts` (%PDF-Smoke)
+  abgedeckt; Bundling-Korrektheit durch den Guard + Build-Nachweis; deployte Laufzeit via
+  `/post-merge-verify`. AC2 (Regressions-Guard RED→GREEN) durch `next.config.test.ts`.
+- Keine sinnvollen fehlenden Tests: ein `.next/server`-Bundle-Test wäre in der vitest-Suite nicht
+  hermetisch; weitere Config-Assertions wären Gold-Plating. Kein Produktionscode geändert.
 
 ## Offene Fragen
 _Keine._
