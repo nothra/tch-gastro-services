@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FokusListe } from "./FokusListe";
 import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
@@ -26,11 +26,29 @@ const artikel: VerzehrArtikel[] = [
 ];
 const positionen: VerzehrPositionRow[] = [];
 
+// requestAnimationFrame wird capture-only gestubbt (jsdom-Default liefe erst nach ~16ms Timer):
+// so lässt sich prüfen, dass der Scroll ERST im rAF-Callback läuft (nach dem Layout-Update, #188).
+let rafCallbacks: FrameRequestCallback[] = [];
+function flushRaf() {
+  const pending = rafCallbacks;
+  rafCallbacks = [];
+  pending.forEach((cb) => cb(0));
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   // jsdom implementiert scrollIntoView nicht; die Komponente ruft es guarded auf – hier stubben,
   // falls es als werfende Methode vorhanden ist.
   Element.prototype.scrollIntoView = vi.fn();
+  rafCallbacks = [];
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+    rafCallbacks.push(cb);
+    return rafCallbacks.length;
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 function renderListe(overrides: Partial<Parameters<typeof FokusListe>[0]> = {}) {
@@ -131,6 +149,34 @@ describe("FokusListe (#183/ADR-035)", () => {
 
     fireEvent.click(cardHead("Bernd"));
     expect(screen.getByTestId("menge")).toHaveTextContent("5");
+  });
+
+  it("should_reserveScrollMarginTopClearingChipBar_when_collapsibleCard", () => {
+    // Bug #188 (Screenshot 1): scrollIntoView({block:"start"}) richtet den Kartenkopf an der
+    // Viewport-Oberkante aus – die sticky Chip-Leiste (top-0) verdeckt ihn. Die Zielkarte braucht
+    // ein scroll-margin-top in Höhe der Chip-Leiste, damit der Kopf (Name) sichtbar bleibt.
+    renderListe({ initialOpenId: "z1" });
+
+    const karte = cardHead("Anna").closest("li");
+    expect(karte).toHaveClass("scroll-mt-16");
+  });
+
+  it("should_deferScrollUntilAfterLayoutExpansion_when_zielSelected", () => {
+    // Bug #188 (Screenshot 2): setOpenId + scrollIntoView im selben Tick scrollt gegen das NOCH
+    // eingeklappte Layout; nach dem Reflow (andere Karte klappt zu, Ziel klappt auf) ist nur noch
+    // der untere Rand sichtbar. Der Scroll muss NACH dem Layout-Update laufen (requestAnimationFrame).
+    renderListe({ initialOpenId: "z1" });
+    const scrollSpy = Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>;
+    scrollSpy.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bernd" }));
+
+    // Nicht synchron im Klick-Tick (Layout noch nicht expandiert) …
+    expect(scrollSpy).not.toHaveBeenCalled();
+
+    // … sondern erst im requestAnimationFrame-Callback nach dem Reflow.
+    flushRaf();
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
   });
 
   it("should_collapseAllAndNotPersist_when_readOnly", () => {

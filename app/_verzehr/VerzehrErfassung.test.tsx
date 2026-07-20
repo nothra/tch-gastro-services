@@ -518,4 +518,19 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
+
+  it("should_reserveScrollMarginTop_when_collapsible", () => {
+    // Bug #188: die F7-Akkordeon-Karte wird unter die sticky Chip-Leiste gescrollt →
+    // scroll-margin-top hält den Kartenkopf frei.
+    const { container } = renderKarte({ collapsible: true, open: false });
+
+    expect(container.querySelector("li")).toHaveClass("scroll-mt-16");
+  });
+
+  it("should_notReserveScrollMargin_when_notCollapsible", () => {
+    // F5 (flach, ohne sticky Chip-Leiste) braucht kein scroll-margin – bleibt unverändert (#188 Scope).
+    const { container } = renderKarte();
+
+    expect(container.querySelector("li")).not.toHaveClass("scroll-mt-16");
+  });
 });
