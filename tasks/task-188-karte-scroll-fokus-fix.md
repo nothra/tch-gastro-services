@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -50,6 +50,13 @@ Betrifft die in #183 eingeführte `FokusListe` (ADR-035), Route-neutrale `ZeileK
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+Multi-Persona-Review (Runde 1) → **APPROVED**, keine kritischen Findings. Details in
+`tasks/review-188.md`.
+- Wichtig (nicht blockierend): `scroll-mt-16` in der route-neutralen `ZeileKarte` koppelt an die
+  F7-Chip-Leisten-Höhe (leaky abstraction) – Kandidat für `/refactor` (kein Verhaltens-Change).
+- Nitpicks: ADR-035 D3 zitiert den scrollIntoView-Aufruf inline ohne rAF; rAF-Callback ohne
+  Cancel-on-Unmount (nachweislich harmlos).
 
 ## Root Cause & Fix
 
