@@ -31,31 +31,25 @@
 # einen validierten höheren Deckel angehoben, um Spielraum zum Erkennen
 # "kein echter Rückstand" zu geben.
 #
-# ── Knopf: model_tiers.light / skills.implement.tier (Task 135, 2026-07-17) ──
-# Test: implement auf Sonnet 5 statt Opus 4.8 laufen lassen, da Task 135 ein
-# eng spezifizierter, klein geschnittener Fix ist (ADR-026 abgeschlossen, 3
-# Dateien, keine Migration) – kein Fall, der Opus-Tiefe an Reasoning braucht.
-# Zugleich wird model_tiers.light von "claude-sonnet-4-6" (veraltete
-# Modell-ID) auf "claude-sonnet-5" (aktuelle Sonnet-Generation) aktualisiert.
-# review/security-review bleiben unverändert auf tier: heavy (Opus 4.8) –
-# adversarielles Gegenlesen soll bei der schwersten Reasoning-Stufe bleiben.
-# @tradeoff: Ergebnis dieses Laufs beobachten (Review-Iterationen, Kosten) und
-# danach entscheiden, ob die implement-Umstellung projektweit bleibt oder
-# dieser Override wieder entfernt wird.
+# ── Knopf: model_tiers.light (Modell-ID-Pflege) ──────────────────────────────
+# model_tiers.light von "claude-sonnet-4-6" (veraltete Modell-ID) auf
+# "claude-sonnet-5" (aktuelle Sonnet-Generation) aktualisiert.
 #
-# ── Ergebnis (Task 53, 2026-07-18): implement auf light/Sonnet 5 ist 3x in
-# Folge an max_turns=40 gescheitert (größerer Scope: neue Tabelle, Data-Layer,
-# Actions, Summen-Modul, UI-Route – kein kleiner Fix wie Task 135). implement
-# für diese Task zurück auf tier: heavy (Opus 4.8) gestellt. max_turns auf
-# 50 angehoben – das Gate-Policy-Maximum (ADR-009 §6, MAX_TURNS_CEILING), ein
-# erster Versuch mit 80 wurde vom config-validation-check hart abgelehnt.
-# model_tiers.light bleibt auf claude-sonnet-5 für andere Skills; die
-# implement-Tier-Frage bleibt offen (@tradeoff oben weiter gültig, jetzt mit
-# Gegenbeispiel: Sonnet 5 reicht nicht für jeden Task-Zuschnitt).
+# ── Knopf: skills.implement (Tier-Frage GEKLÄRT, #197 / ADR-038) ─────────────
+# Die früher hier offene implement-Tier-Frage (Task 135: Sonnet 5 reichte für
+# einen kleinen Fix; Task 53: Sonnet 5 riss 3x bei größerem Scope) ist jetzt
+# ENTSCHIEDEN – nicht mehr pauschal pro Skill, sondern GRÖSSENABHÄNGIG
+# (factory.defaults.yml → skills.implement.tier_by_size, ADR-038): kleiner Lauf
+# (Proxy < Schwelle) → light, großer → heavy; statisches tier: heavy bleibt als
+# Fail-Safe. Der frühere provisorische `implement: { tier: heavy }`-Override ist
+# damit aufgelöst (AK12) – hier steht nur noch der bewusste max_turns-Deckel.
+# @reason (max_turns=50): großer implement-Lauf braucht Spielraum; 50 ist das
+#   Gate-Policy-Maximum (ADR-009 §6, MAX_TURNS_CEILING; ein Versuch mit 80 wurde
+#   vom config-validation-check hart abgelehnt).
 model_tiers:
   light: claude-sonnet-5
 skills:
-  implement: { tier: heavy, max_turns: 50 }
+  implement: { max_turns: 50 }
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 16 }
   test: { max_turns: 40 }
