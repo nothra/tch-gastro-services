@@ -28,7 +28,7 @@ Entscheidungen (aus /requirements):
 - [x] AC2 – @import-Reduktion messbar & im PR dokumentiert (vorher 2.068 Zeilen)
 - [x] AC3 – Alle 45 Learnings verlustfrei erhalten (Volltext in lessons/ + Index-Zeile), Count 45→45
 - [x] AC4 – 4 Kern-Kurzregeln inline, je mit Verweis auf ihre Lesson-Datei
-- [~] AC5 – `/codify` schreibt künftig in lessons/ + Index (via `tasks/patch-196.diff`, Human-Apply – s. Blocker)
+- [x] AC5 – `/codify` schreibt künftig in lessons/ + Index (Patch angewendet, s. Blocker erledigt)
 - [x] AC6 – Querverweise/kanonische Quellen konsistent, keine toten Verweise
 
 ## Technische Notizen
@@ -83,12 +83,11 @@ unverändert (dokumentieren den damaligen Zustand). Prettier `format:check` grü
 
 ## Blocker / Patch
 
-- **Blocker [2026-07-21]: AC5 – `/codify`-Skill liegt in `.claude/commands/codify.md` (agent-hard-denied).**
-  Änderung als Patch `tasks/patch-196.diff` geliefert (difflib/UTF-8 erzeugt). **Mensch muss anwenden:**
-  `git apply tasks/patch-196.diff`, dann committen. Verifiziert: `git apply --check` grün + Grep-
-  Assertions gegen Temp-Kopie (verweist auf `lessons/` + ADR-037, kein alter „Bekannte Stolpersteine"-
-  Ziel-Verweis mehr). Nach dem Anwenden (per `git diff main...HEAD` an `codify.md` sichtbar): AC5 auf
-  `[x]`, diesen Blocker als erledigt markieren, `tasks/patch-196.diff` entfernen – vor `/pr-shepherd` (#145).
+- **Blocker [2026-07-21] – erledigt [2026-07-21]: AC5 – `/codify`-Skill liegt in
+  `.claude/commands/codify.md` (agent-hard-denied).** Änderung als Patch `tasks/patch-196.diff`
+  geliefert (difflib/UTF-8 erzeugt); vom Menschen mit `git apply` angewendet. Der applizierte Diff
+  verweist auf `lessons/<thema>.md` + Index + ADR-037, kein alter „Bekannte Stolpersteine"-Ziel-
+  Verweis mehr. Cleanup vollzogen (#145): AC5 auf `[x]`, stale `tasks/patch-196.diff` entfernt.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
