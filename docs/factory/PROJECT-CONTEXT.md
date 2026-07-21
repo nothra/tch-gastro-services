@@ -1064,6 +1064,45 @@ Skill wiederholt das Turn-Limit: prüfen, ob der Änderungsumfang (hier: 3 neue 
 für ein Renderer-Feature) für einen einzelnen automatisierten `/refactor`-Lauf zu groß ist,
 statt endlos zu wiederholen.
 
+### Layout-abhängige DOM-Aktion nach layout-änderndem `setState` erst im nächsten Frame; sticky Header braucht `scroll-margin-top` am Ziel (aus #188)
+
+Der in #183 eingeführte `waehleZiel` rief `setOpenId(id)` und `scrollIntoView({block:"start"})` im
+**selben Event-Tick** auf. React committet den DOM zwar synchron, aber der Reflex, die scroll-
+Aktion direkt danebenzuschreiben, scrollt gegen das **noch nicht reflowte** Layout: die andere
+Akkordeon-Karte klappt zu, die Zielkarte auf – gemessen wurde gegen den Vorzustand, also landete
+das Ziel außerhalb des Sichtbereichs (nur unterer Rand sichtbar). Zweite, unabhängige Ursache:
+`scrollIntoView({block:"start"})` richtet die Zielkante an der Viewport-Oberkante aus – eine
+**sticky/fixed** Leiste (`sticky top-0`) darüber verdeckt dann den Kartenkopf.
+
+**Regel:** Eine layout-abhängige DOM-Aktion (`scrollIntoView`, `getBoundingClientRect`-Messung,
+manuelles `scrollTo`), die auf ein durch `setState` **geändertes** Layout zielt, erst **nach dem
+Reflow** ausführen – in `requestAnimationFrame(() => …)` (nicht synchron im Handler direkt nach
+`setState`). Und: Wird per `scrollIntoView` unter einen **sticky/fixed Header** gescrollt, braucht
+das Ziel ein `scroll-margin-top` in Höhe des Headers (bzw. `scroll-padding-top` am Scroll-Container,
+falls einer existiert; beim Fenster-Scroll wäre das global → daher `scroll-margin` am Ziel).
+Tailwind-`scroll-mt-*` ist rem-basiert und skaliert mit einem rem-basierten Header mit. Testbar in
+jsdom (ohne echtes Layout): rAF capture-only stubben und prüfen, dass `scrollIntoView` **nicht**
+synchron, sondern erst nach dem rAF-Flush läuft; die Offset-Klasse per `toHaveClass` belegen.
+
+### Route-neutrale Komponente: Fremd-Layout-Offset vom Konsumenten via `className` steuern, nicht hardcoden/an fremd-semantischen Prop koppeln (aus #188, Review-Finding)
+
+Der #188-Fix legte das `scroll-margin` (für die F7-Chip-Leiste) zunächst **in** die route-neutrale
+`ZeileKarte` (`app/_verzehr/`) und knüpfte es an deren `collapsible`-Prop (`collapsible ? " scroll-mt-16"
+: ""`). Kein Import-Verstoß (Codify #52 betrifft Imports), aber eine **leaky abstraction**: die
+neutrale Karte kodierte eine Layout-Dimension (~3rem sticky Leiste), die es allein im F7-Kontext gibt,
+und `collapsible` („einklappbar") wurde zweckentfremdet als „liegt unter einer sticky Leiste". Zudem
+gleicht kein Test den Offset gegen die tatsächliche Leistenhöhe ab → stiller Drift bei späterer
+Änderung der Leiste. Erst `/refactor` verschob das Wissen zum Konsumenten.
+
+**Regel:** Ein layoutseitiger Belang, der zum **Kontext des Konsumenten** gehört (Offset für einen
+sticky Header, Ränder, Grid-Placement), gehört nicht hardcoded in die route-neutrale/geteilte
+Komponente und **nicht** an einen semantisch anderen Prop gekoppelt. Die Komponente nimmt eine
+optionale `className`-Prop, die auf ihr Wurzel-Element gemergt wird; der Konsument gibt den konkreten
+Wert vor (hier `FokusListe` → `className="scroll-mt-16"` mit Rationale-Kommentar). So bleibt der
+gemeinsame Baustein frei von Fremd-Layout-Wissen (stärkt #52), und die Prop-Semantik bleibt sauber.
+Unit-Test der Komponente prüft den `className`-Durchreich-Vertrag; das reale Verhalten sichert ein
+Integrationstest am Konsumenten.
+
 ---
 
 ## Offene Architektur-Fragen
