@@ -1,7 +1,7 @@
 # Task 196: import-kontext-verschlanken
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -24,12 +24,12 @@ Entscheidungen (aus /requirements):
 - lessons/-Split-Granularität: wird in `/architecture` festgelegt.
 
 ## Akzeptanzkriterien
-- [ ] AC1 – Stolperstein-Volltext nicht mehr im @import-Pfad, sondern in `docs/factory/lessons/`
-- [ ] AC2 – @import-Reduktion messbar & im PR dokumentiert (vorher 2.068 Zeilen)
-- [ ] AC3 – Alle 45 Learnings verlustfrei erhalten (Volltext in lessons/ + Index-Zeile), Count 45→45
-- [ ] AC4 – ~3–5 Kern-Kurzregeln inline, je mit Verweis auf ihre Lesson-Datei
-- [ ] AC5 – `/codify` schreibt künftig in lessons/ + Index (via `tasks/patch-196.diff`, Human-Apply)
-- [ ] AC6 – Querverweise/kanonische Quellen konsistent, keine toten Verweise
+- [x] AC1 – Stolperstein-Volltext nicht mehr im @import-Pfad, sondern in `docs/factory/lessons/`
+- [x] AC2 – @import-Reduktion messbar & im PR dokumentiert (vorher 2.068 Zeilen)
+- [x] AC3 – Alle 45 Learnings verlustfrei erhalten (Volltext in lessons/ + Index-Zeile), Count 45→45
+- [x] AC4 – 4 Kern-Kurzregeln inline, je mit Verweis auf ihre Lesson-Datei
+- [~] AC5 – `/codify` schreibt künftig in lessons/ + Index (via `tasks/patch-196.diff`, Human-Apply – s. Blocker)
+- [x] AC6 – Querverweise/kanonische Quellen konsistent, keine toten Verweise
 
 ## Technische Notizen
 
@@ -56,6 +56,39 @@ Entscheidungen (aus /requirements):
 
 **Verweis-Konsistenz:** `token-efficiency.md`-Note in CLAUDE.md und der `/codify`-Text müssen nach
 `lessons/` + ADR-037 zeigen, nicht mehr auf „Bekannte Stolpersteine".
+
+## Umsetzungs-Notizen (/implement)
+
+**@import-Reduktion (AC2):**
+- `PROJECT-CONTEXT.md`: **1.148 → 262 Zeilen** (−886; Stolperstein-Volltext ~978 Z. → Index + 4 Kernregeln).
+- CLAUDE.md: 176 → 180 (+4, Verweis-Note auf `lessons/`).
+- @import-Gesamt: **2.068 → 1.186 Zeilen (−882, −42,7 %)**; die 5 Guidelines (744 Z.) unverändert.
+- Ausgelagert (nicht @import): `docs/factory/lessons/*.md` = 1.020 Zeilen Volltext.
+
+**Verlustfreiheit (AC3):** Split skript-basiert; Reconstruction aus den 7 Lessons == Original-Sektion
+(Byte-genau, nur die 2 relativen ADR-Links `../adr/` → `../../adr/` für die tiefere Ablage angepasst).
+Count 45 Einträge → 45 Lessons + 45 Index-Zeilen (verifiziert).
+
+**Split (AC1) – 7 Dateien, Eintragszahl je Datei:** frontend-react 8, next-auth 4, db-drizzle 7,
+testing 4, build-tooling 4, code-style 2, factory-workflow 16 (= 45).
+
+**Kern-Kurzregeln inline (AC4):** Drizzle `.returning()`→`T|undefined`; IDOR Parent-Key im WHERE;
+Soft-Delete `active`-Prüfung nach Laden by ID; Zod-Obergrenze `int4`/`text` – je verlinkt auf
+`lessons/db-drizzle.md`.
+
+**Verweis-Konsistenz (AC6):** `token-efficiency.md` §"Was hier (noch) nicht steht", `OPERATING.md`
+§5.1 und der CLAUDE.md-Kontext-Hinweis zeigen jetzt auf `lessons/` + ADR-037 statt „Bekannte
+Stolpersteine". Historische Task-/Codify-Records (task-44/144/145/161, codify-127/155) bleiben
+unverändert (dokumentieren den damaligen Zustand). Prettier `format:check` grün.
+
+## Blocker / Patch
+
+- **Blocker [2026-07-21]: AC5 – `/codify`-Skill liegt in `.claude/commands/codify.md` (agent-hard-denied).**
+  Änderung als Patch `tasks/patch-196.diff` geliefert (difflib/UTF-8 erzeugt). **Mensch muss anwenden:**
+  `git apply tasks/patch-196.diff`, dann committen. Verifiziert: `git apply --check` grün + Grep-
+  Assertions gegen Temp-Kopie (verweist auf `lessons/` + ADR-037, kein alter „Bekannte Stolpersteine"-
+  Ziel-Verweis mehr). Nach dem Anwenden (per `git diff main...HEAD` an `codify.md` sichtbar): AC5 auf
+  `[x]`, diesen Blocker als erledigt markieren, `tasks/patch-196.diff` entfernen – vor `/pr-shepherd` (#145).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
