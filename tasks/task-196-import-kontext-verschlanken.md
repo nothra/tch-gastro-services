@@ -106,15 +106,13 @@ Lesson braucht. Nachgezogen (Ziel: Lessons wirklich nur bei Bedarf laden):
   verweist auf `lessons/<thema>.md` + Index + ADR-037, kein alter „Bekannte Stolpersteine"-Ziel-
   Verweis mehr. Cleanup vollzogen (#145): AC5 auf `[x]`, stale `tasks/patch-196.diff` entfernt.
 
-- **Blocker [2026-07-21]: Trigger-Refinement für `/codify` (`.claude/commands/codify.md`,
-  agent-hard-denied).** Der Skill muss beim Anlegen der Index-Zeile künftig einen „Laden bei"-Trigger
-  (Skill + Situation) mitschreiben. Änderung als **neuer** Patch `tasks/patch-196.diff` geliefert
-  (difflib/UTF-8; `git apply --check` grün + Grep-Assertion gegen Temp-Kopie: „Laden bei"-Instruktion
-  vorhanden). **Mensch muss anwenden:** `git apply tasks/patch-196.diff`, dann committen. Bis dahin
-  besteht ein bewusster, kleiner Drift: `codify.md` auf Platte nennt den Trigger noch nicht, während
-  `PROJECT-CONTEXT.md`/ADR-037 ihn bereits beschreiben. Nach dem Anwenden (per `git diff origin/main...HEAD`
-  an `codify.md` sichtbar): diesen Blocker als erledigt markieren und `tasks/patch-196.diff` entfernen
-  (#145) – vor `/pr-shepherd`.
+- **Blocker [2026-07-21] – erledigt [2026-07-22]: Trigger-Refinement für `/codify`
+  (`.claude/commands/codify.md`, agent-hard-denied).** Der Skill schreibt beim Anlegen der
+  Index-Zeile künftig einen „Laden bei"-Trigger (Skill + Situation) mit. Als **neuer** Patch
+  `tasks/patch-196.diff` geliefert (difflib/UTF-8), vom Menschen mit `git apply` angewendet. Der
+  applizierte Diff nennt den Trigger in „Regeln ableiten" **und** in „Änderungen vornehmen"; Drift
+  zwischen `codify.md` und `PROJECT-CONTEXT.md`/ADR-037 damit aufgelöst. Cleanup vollzogen (#145):
+  stale `tasks/patch-196.diff` entfernt.
 
 ## Refactor-Notizen (/refactor)
 
