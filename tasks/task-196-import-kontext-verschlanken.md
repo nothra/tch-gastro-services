@@ -32,7 +32,30 @@ Entscheidungen (aus /requirements):
 - [ ] AC6 – Querverweise/kanonische Quellen konsistent, keine toten Verweise
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+
+**ADR:** `docs/adr/037-lessons-auslagern-aus-import-kontext.md` (Accepted)
+
+**Lessons-Split (7 Dateien unter `docs/factory/lessons/`, NICHT @import):**
+`frontend-react.md`, `next-auth.md`, `db-drizzle.md`, `testing.md`, `build-tooling.md`,
+`code-style.md`, `factory-workflow.md`. Zuordnungstabelle je Learning in ADR-037.
+
+**Inline verbleibend in `PROJECT-CONTEXT.md` (@import):**
+- Einleitung + Verweis auf `docs/factory/lessons/`
+- Schlanker Index: 1 Zeile pro Learning (Titel + #Issue + Ziel-Datei), gruppiert nach 7 Dateien
+- 4 Kern-Kurzregeln (Einzeiler, je mit Verweis auf Lesson): Drizzle `.returning()`→`T|undefined`;
+  IDOR Parent-Key im WHERE; Soft-Delete `active`-Prüfung nach Laden by ID; Zod-Obergrenze int4/text
+
+**Vorgehen /implement:**
+1. `docs/factory/lessons/`-Dateien anlegen, Volltext der 45 Einträge **verlustfrei** verschieben
+   (inhaltlich unverändert; `[[…]]`- und ADR-/#NN-Verweise nachziehen).
+2. „Bekannte Stolpersteine"-Volltext in `PROJECT-CONTEXT.md` durch Index + 4 Kernregeln ersetzen.
+3. Count-Assertion: 45 Einträge rein → 45 Lessons + 45 Index-Zeilen raus.
+4. Reduktion messen (`wc -l` @import vorher/nachher) und im PR dokumentieren.
+5. `/codify`-Anpassung als **Patch** `tasks/patch-196.diff` (`.claude/commands/codify.md` hard-denied,
+   programmatisch via difflib erzeugen, UTF-8, `git apply --check` + Grep-Assertion gegen Temp-Kopie).
+
+**Verweis-Konsistenz:** `token-efficiency.md`-Note in CLAUDE.md und der `/codify`-Text müssen nach
+`lessons/` + ADR-037 zeigen, nicht mehr auf „Bekannte Stolpersteine".
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
