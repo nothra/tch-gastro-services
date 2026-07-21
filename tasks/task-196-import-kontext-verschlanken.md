@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Immer geladener `@import`-Kontext (2.068 Zeilen) verschlanken: Der Stolperstein-Volltext
@@ -97,6 +97,13 @@ Lesson braucht. Nachgezogen (Ziel: Lessons wirklich nur bei Bedarf laden):
   kriterium fürs bedarfsgesteuerte Laden).
 - **`/codify`** muss den Trigger künftig mitschreiben → **neuer Patch** `tasks/patch-196.diff`
   (s. Blocker unten). Byte-Losslessness der 45 Original-Learnings weiterhin verifiziert (True).
+
+## PR-Shepherd
+
+PR-Shepherd [2026-07-22]: Merge freigegeben – alle Gates grün. PR #199, Branch nicht hinter
+`origin/main` (kein Rebase nötig), keine offenen Review-Threads (lokales Review APPROVED),
+required Checks grün (`lint`/`test`/`issue-sync`/`factory-self-test`/`pr-closes-issue`),
+0 Approvals required (ADR-029). Draft aufgelöst, Squash-Auto-Merge aktiviert.
 
 ## Blocker / Patch
 
