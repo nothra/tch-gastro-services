@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -93,6 +93,13 @@ abgesichert.
   (`should_mergeClassNameOntoRoot_when_classNameProvided` / `should_keepBaseClassesOnly_when_noClassName`);
   der FokusListe-Integrationstest (`…ClearingChipBar…`) bleibt unverändert grün und sichert das
   reale App-Verhalten (Karte in F7 trägt weiterhin `scroll-mt-16`).
+
+## PR-Shepherd
+
+PR-Shepherd [2026-07-21]: Merge freigegeben – alle Gates grün. Merge-Konflikt in
+`docs/factory/PROJECT-CONTEXT.md` (fremder PR #193 vs. #188-Codify) durch Merge von
+`origin/main` gelöst (beide Codify-Einträge behalten, kein Force-Push). CI grün, 0 Approvals
+nötig (ADR-029), Draft aufgelöst. PR #190.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
