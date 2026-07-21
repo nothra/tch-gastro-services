@@ -1064,6 +1064,36 @@ Skill wiederholt das Turn-Limit: prüfen, ob der Änderungsumfang (hier: 3 neue 
 für ein Renderer-Feature) für einen einzelnen automatisierten `/refactor`-Lauf zu groß ist,
 statt endlos zu wiederholen.
 
+### Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)
+
+Der PDF-Abschlussbericht warf auf Vercel HTTP 500 (Safari: leere Seite), während Excel und der
+lokale vitest-Lauf grün blieben. Ursache: `pdfmake` → `pdfkit` lädt seine Standard-Font-Metriken
+zur **Laufzeit** über `fs.readFileSync(__dirname + "/data/Helvetica.afm")`. Bündelt Turbopack
+pdfkit in den Route-Chunk (Default-Verhalten für node_modules ohne Ausnahme), ersetzt es
+`__dirname` durch den Build-Sentinel `/ROOT/…` – einen absoluten Pfad, der zur Laufzeit **nicht
+existiert** → ENOENT beim ersten Font-Zugriff → 500. vitest lädt die Renderer-Quelle direkt
+(echtes `__dirname`), darum grün; der Fehler existiert **nur** im gebündelten Serverless-Output.
+Excel (`exceljs`) funktioniert, weil es keine `__dirname`-basierten Datei-Reads zur Laufzeit macht.
+
+Zwei tückische Punkte: (1) Die naheliegende Hypothese „die `.afm`-Dateien fehlen im File-Tracing"
+war **falsch** – der `nft.json`-Trace **enthielt** sie bereits; das Problem war der **falsche
+Pfad** (`/ROOT/…`) im gebündelten Code, nicht eine fehlende Datei. `outputFileTracingIncludes`
+allein hätte den Bug daher **nicht** behoben (liefert die Datei aus, korrigiert aber nicht den
+Pfad). (2) Der Fehler ist ein reiner **Bundling-Defekt**: kein Quell-Unit-Test unterscheidet
+Vorher/Nachher, weil die Quelle unverändert grün ist.
+
+**Regel:** Ein Node-Paket, das Datendateien zur **Laufzeit** über `fs.readFileSync(__dirname + …)`
+(oder gleichwertig) lädt – Font-Metriken (pdfkit), Templates, WASM, ICU-/Locale-Daten –, gehört in
+`next.config.ts` unter **`serverExternalPackages`**. Dann bleibt es in `node_modules` mit korrektem
+Laufzeit-`__dirname`, und das File-Tracing (@vercel/nft) zieht die Datendateien an ihren echten
+Pfad. **Verifikation immer am gebauten `.next/server`-Chunk, nicht nur an vitest** (fail-closed):
+`grep -o '/ROOT/node_modules[^"]*' .next/server/chunks/*.js` muss nach dem Fix **0** tote
+Sentinel-Pfade liefern, und die Paket-JS müssen im Route-`nft.json` erscheinen (extern). Ein
+vitest-Config-Guard (`next.config.test.ts`: `serverExternalPackages` enthält das Paket) hält die
+Externalisierung fest; das echte Laufzeitverhalten deckt `/post-merge-verify` ab. Direkte Anwendung
+der #164-Lehre: nicht der gemeldeten Ursache glauben, sondern am realen Artefakt (Build-Output,
+Response-Header) messen.
+
 ### Layout-abhängige DOM-Aktion nach layout-änderndem `setState` erst im nächsten Frame; sticky Header braucht `scroll-margin-top` am Ziel (aus #188)
 
 Der in #183 eingeführte `waehleZiel` rief `setOpenId(id)` und `scrollIntoView({block:"start"})` im
