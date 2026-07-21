@@ -364,7 +364,6 @@ Skill wiederholt das Turn-Limit: prüfen, ob der Änderungsumfang (hier: 3 neue 
 für ein Renderer-Feature) für einen einzelnen automatisierten `/refactor`-Lauf zu groß ist,
 statt endlos zu wiederholen.
 
-
 ### Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196)
 
 Task #196 verschob 45 `/codify`-Learnings (~978 Zeilen) aus dem @import-Pfad in 7 thematische

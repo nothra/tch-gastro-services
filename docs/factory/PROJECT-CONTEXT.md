@@ -166,6 +166,13 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 > getrennt unter [`docs/factory/lessons/`](lessons/) und sind **nicht** mehr `@import`-
 > geladen – bei Bedarf die passende Datei gezielt lesen. `/codify` schreibt neue Learnings
 > dorthin (Volltext) **plus** eine Index-Zeile hier, nicht mehr in diesen Abschnitt.
+>
+> **Bedarfsgesteuertes Laden:** Der Index (unten) trägt je Eintrag/Gruppe einen
+> **„Laden bei"-Trigger** (Skill + Situation). Beim Start eines Skills nur die Lessons öffnen,
+> deren Trigger zum **laufenden Skill** und zur **Domäne der Task** passt – nicht alle
+> `lessons/` vorsorglich lesen. Beispiel: `/pr-shepherd` lädt nur die `/pr-shepherd`-Zeilen aus
+> `factory-workflow.md`; eine `/implement`-Task an einer Server Action lädt `db-drizzle.md`
+> (+ ggf. `frontend-react.md`), aber nicht `next-auth.md`, wenn kein Auth/Routen betroffen ist.
 
 ### Kern-Kurzregeln (immer geladen)
 
@@ -179,9 +186,12 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 
 ### Index der ausgelagerten Learnings
 
-> Eine Zeile je Learning (Titel + Herkunfts-Issue), gruppiert nach Ziel-Lesson-Datei.
+> Eine Zeile je Learning (Titel + Herkunfts-Issue), gruppiert nach Ziel-Lesson-Datei. Jede Gruppe
+> nennt einen **„Laden bei"-Trigger** (Skill + Situation); wo eine Datei gemischte Auslöser hat
+> (`factory-workflow.md`), steht der Trigger `→ …` je Zeile. Danach entscheiden, welche Lesson der
+> aktuelle Skill wirklich braucht.
 
-**[`lessons/frontend-react.md`](lessons/frontend-react.md)** – React/UI, Client Components, route-neutrale UI-Bausteine
+**[`lessons/frontend-react.md`](lessons/frontend-react.md)** – React/UI, Client Components, route-neutrale UI-Bausteine · **Laden bei:** `/implement`, `/review` bei React/UI-Komponenten
 
 - `useActionState` + Inline-Toggle: ESLint `react-hooks/set-state-in-effect` (aus #49)
 - Route-neutrale Module: keine Feature-Imports beim Implementieren prüfen (aus #52, Review-Finding)
@@ -192,14 +202,14 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Layout-abhängige DOM-Aktion nach layout-änderndem `setState` erst im nächsten Frame; sticky Header braucht `scroll-margin-top` am Ziel (aus #188)
 - Route-neutrale Komponente: Fremd-Layout-Offset vom Konsumenten via `className` steuern, nicht hardcoden/an fremd-semantischen Prop koppeln (aus #188, Review-Finding)
 
-**[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen
+**[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
 
 - Next.js 16: Middleware heißt `proxy.ts` (aus #48)
 - NextAuth v5: Custom-Session-/JWT-Claims typisieren (aus #48)
 - Öffentliche API-Routen aus dem Auth-Proxy ausnehmen (aus #63)
 - Auto-Prefetch geschützter Routen belebt die Session nach dem Abmelden wieder (aus #164)
 
-**[`lessons/db-drizzle.md`](lessons/db-drizzle.md)** – Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen
+**[`lessons/db-drizzle.md`](lessons/db-drizzle.md)** – Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen · **Laden bei:** `/implement`, `/review`, `/test` bei Data-Layer (Drizzle)
 
 - Drizzle-Migration bei Enum-Wert-Wechsel / Spalte→Array (aus #48)
 - Drizzle UPDATE/DELETE: `.returning()` liefert `T | undefined`, nicht `T` (aus #50, Refactoring-Finding)
@@ -209,44 +219,44 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Orphan-sichere Joins: Snapshot-Referenz kann verschwinden, auch wenn die Business-Entity bleibt (aus #53, Review-Finding K1)
 - Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
 
-**[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests
+**[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test` beim Testschreiben/Coverage
 
 - Vitest + Testing Library ohne `globals: true` (aus #48)
 - Guard-Clause-Branches in Server Actions brauchen dedizierte Tests (aus #51, Review-Finding)
 - AC mit Direktive + Begründung: je separierbaren Teil eine eigene Assertion (aus #117, /test-Selbstfund)
 - Zod-Fehlermeldung: Ablehnungs-Test ≠ Meldungs-Test (aus #116, Review-Runde-1-Finding)
 
-**[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte
+**[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
 - Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67)
 - Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
 - pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
 - Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)
 
-**[`lessons/code-style.md`](lessons/code-style.md)** – Clean-Code-Muster (Naming, Kommentar-Ort)
+**[`lessons/code-style.md`](lessons/code-style.md)** – Clean-Code-Muster (Naming, Kommentar-Ort) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
 
 - WHAT-Kommentar am Modul-Level (aus #67, Refactoring-Finding)
 - Neue `lib/`-Module domänenspezifisch benennen, kein generisches `utils` (aus #105, Review-Finding)
 
-**[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker
+**[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
 
-- Agenten-Blockerverhalten (aus Task 002 / K-01, K-02)
-- Kanonische Quellen immer referenzieren (aus Task 002 / W-02, W-03)
-- Fast-Forward-Pushes aus CI brauchen vollen Verlauf (aus Task 42, bei Live-Verifikation #40)
-- Branch-Typ und Label korrigieren wenn Scope über die initiale Annahme hinauswächst (aus #120)
-- Branch-Protection required Checks: nur `pull_request`-getriggerte Jobs (aus #155)
-- Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding)
-- `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91)
-- Notiz-vor-Merge bei Squash-Strategie (aus #114)
-- Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung (aus #114, Implement-Selbstfund)
-- App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145)
-- Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144)
-- Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158)
-- Doku über „die Gates": required CI-Checks ≠ lokale pre-push-Gates nicht vermischen (aus #160)
-- Review-Diff-Scope: `git diff main...HEAD` zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (aus #161)
-- ADR nach Review-Rework auf Drift prüfen – nicht nur `docs/routes.md` (aus #55, Review-Runde-2-Finding)
-- `/refactor` Turn-Limit-Exhaustion: Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185)
-- Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196)
+- Agenten-Blockerverhalten (aus Task 002 / K-01, K-02) → jeder Skill – beim Blockieren/Abbruch
+- Kanonische Quellen immer referenzieren (aus Task 002 / W-02, W-03) → `/codify`, `/implement` – bei Regel-Listen
+- Fast-Forward-Pushes aus CI brauchen vollen Verlauf (aus Task 42, bei Live-Verifikation #40) → CI-/Deploy-Gate-Arbeit
+- Branch-Typ und Label korrigieren wenn Scope über die initiale Annahme hinauswächst (aus #120) → `/architecture`→`/implement` – Branch/Label
+- Branch-Protection required Checks: nur `pull_request`-getriggerte Jobs (aus #155) → CI-/Ruleset-Arbeit
+- Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding) → `/pipeline` (run-pipeline.sh)
+- `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91) → `/implement`, `/codify` – bei `.claude/**`-Änderung
+- Notiz-vor-Merge bei Squash-Strategie (aus #114) → `/pr-shepherd` – Merge mit Notiz
+- Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung (aus #114, Implement-Selbstfund) → Skill-Doc-Guards/Self-Tests
+- App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145) → `/implement` – bei Routen/`docs/routes.md`
+- Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144) → Doku-/Rename-Sweeps
+- Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158) → `/pr-shepherd` – Merge-Freigabe
+- Doku über „die Gates": required CI-Checks ≠ lokale pre-push-Gates nicht vermischen (aus #160) → Doku über CI/Gates
+- Review-Diff-Scope: `git diff main...HEAD` zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (aus #161) → `/review`, `/security-review`, `/refactor` – Diff-Scope
+- ADR nach Review-Rework auf Drift prüfen – nicht nur `docs/routes.md` (aus #55, Review-Runde-2-Finding) → `/review`, `/implement` – bei ADR-Änderung
+- `/refactor` Turn-Limit-Exhaustion: Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185) → `/pipeline`, `/refactor` – bei Turn-Limit
+- Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196) → `/implement` – bei Doku-Migration/Split
 
 ---
 

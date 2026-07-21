@@ -81,6 +81,23 @@ Soft-Delete `active`-Prüfung nach Laden by ID; Zod-Obergrenze `int4`/`text` –
 Stolpersteine". Historische Task-/Codify-Records (task-44/144/145/161, codify-127/155) bleiben
 unverändert (dokumentieren den damaligen Zustand). Prettier `format:check` grün.
 
+## Nachtrag – „wann reinschauen"-Trigger (bedarfsgesteuertes Laden, 2026-07-21)
+
+Spec Zeile 36 verlangte pro Index-Zeile „Titel + Herkunfts-Issue + **wann reinschauen**"; ADR-037
+hatte das „wann reinschauen" versehentlich durch „Ziel-Lesson-Datei" ersetzt, die erste Umsetzung
+folgte dem ADR → der Index routete nur nach Domänen-Datei, nicht danach, **welcher Skill** eine
+Lesson braucht. Nachgezogen (Ziel: Lessons wirklich nur bei Bedarf laden):
+
+- **Index mit „Laden bei"-Trigger (Skill + Situation):** homogene Domänen-Dateien am Gruppen-Header
+  (z. B. `db-drizzle` → „/implement, /review, /test bei Data-Layer"), `factory-workflow.md`
+  (gemischte Auslöser) je Zeile als `→ <Trigger>` (z. B. `→ /pr-shepherd – Merge-Freigabe`).
+- **Mechanismus** in der Sektions-Einleitung von `PROJECT-CONTEXT.md` beschrieben: beim Skill-Start
+  nur die Lessons öffnen, deren Trigger zu laufendem Skill **und** Task-Domäne passt.
+- **ADR-037** angeglichen (Index-Format = Titel + Issue + „Laden bei"-Trigger; Trigger = Auswahl-
+  kriterium fürs bedarfsgesteuerte Laden).
+- **`/codify`** muss den Trigger künftig mitschreiben → **neuer Patch** `tasks/patch-196.diff`
+  (s. Blocker unten). Byte-Losslessness der 45 Original-Learnings weiterhin verifiziert (True).
+
 ## Blocker / Patch
 
 - **Blocker [2026-07-21] – erledigt [2026-07-21]: AC5 – `/codify`-Skill liegt in
@@ -88,6 +105,16 @@ unverändert (dokumentieren den damaligen Zustand). Prettier `format:check` grü
   geliefert (difflib/UTF-8 erzeugt); vom Menschen mit `git apply` angewendet. Der applizierte Diff
   verweist auf `lessons/<thema>.md` + Index + ADR-037, kein alter „Bekannte Stolpersteine"-Ziel-
   Verweis mehr. Cleanup vollzogen (#145): AC5 auf `[x]`, stale `tasks/patch-196.diff` entfernt.
+
+- **Blocker [2026-07-21]: Trigger-Refinement für `/codify` (`.claude/commands/codify.md`,
+  agent-hard-denied).** Der Skill muss beim Anlegen der Index-Zeile künftig einen „Laden bei"-Trigger
+  (Skill + Situation) mitschreiben. Änderung als **neuer** Patch `tasks/patch-196.diff` geliefert
+  (difflib/UTF-8; `git apply --check` grün + Grep-Assertion gegen Temp-Kopie: „Laden bei"-Instruktion
+  vorhanden). **Mensch muss anwenden:** `git apply tasks/patch-196.diff`, dann committen. Bis dahin
+  besteht ein bewusster, kleiner Drift: `codify.md` auf Platte nennt den Trigger noch nicht, während
+  `PROJECT-CONTEXT.md`/ADR-037 ihn bereits beschreiben. Nach dem Anwenden (per `git diff origin/main...HEAD`
+  an `codify.md` sichtbar): diesen Blocker als erledigt markieren und `tasks/patch-196.diff` entfernen
+  (#145) – vor `/pr-shepherd`.
 
 ## Refactor-Notizen (/refactor)
 

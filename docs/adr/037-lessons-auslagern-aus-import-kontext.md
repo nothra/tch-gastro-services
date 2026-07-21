@@ -40,8 +40,12 @@ und `bash-gotchas.md`. Spec: `docs/specs/spec-196-import-kontext-verschlanken.md
 
 2. **`PROJECT-CONTEXT.md` behält (im @import) statt des Volltexts:**
    - eine kurze Einleitung + Verweis auf `docs/factory/lessons/`,
-   - einen **schlanken Index**: pro Learning **eine Zeile** (Titel + Herkunfts-Issue +
-     Ziel-Lesson-Datei), gruppiert nach den 7 Dateien,
+   - einen **schlanken Index**: pro Learning **eine Zeile** (Titel + Herkunfts-Issue),
+     gruppiert nach den 7 Dateien, **je Gruppe/Zeile mit einem „Laden bei"-Trigger** (Skill +
+     Situation) – das „wann reinschauen" aus der Spec. Der Trigger ist das Auswahlkriterium für
+     das bedarfsgesteuerte Laden: Ein Skill öffnet nur die Lessons, deren Trigger zum laufenden
+     Skill **und** zur Domäne der Task passt (nicht alle `lessons/` vorsorglich). Homogene Domänen-
+     Dateien tragen den Trigger am Gruppen-Header; `factory-workflow.md` (gemischte Auslöser) je Zeile,
    - **4 Kern-Kurzregeln** als Einzeiler (die praktisch jede Feature-Task betreffen), jeweils
      mit Verweis auf ihre Lesson als kanonische Quelle:
      1. Drizzle `.returning()` bei UPDATE/DELETE → Rückgabetyp `T | undefined` (nicht `T`).
@@ -51,9 +55,9 @@ und `bash-gotchas.md`. Spec: `docs/specs/spec-196-import-kontext-verschlanken.md
 
 3. **`/codify`-Skill (`.claude/commands/codify.md`) wird angepasst:** neue Learnings werden in
    die thematisch passende `docs/factory/lessons/<thema>.md` (Volltext) **plus** eine
-   Index-Zeile in `PROJECT-CONTEXT.md` geschrieben — **nicht mehr** in den @import-Volltext.
-   Da `.claude/**` agent-hard-denied ist, erfolgt die Änderung über den **Patch-Workflow**
-   (`tasks/patch-196.diff`, Human-Apply).
+   Index-Zeile **mit „Laden bei"-Trigger** (Skill + Situation) in `PROJECT-CONTEXT.md`
+   geschrieben — **nicht mehr** in den @import-Volltext. Da `.claude/**` agent-hard-denied ist,
+   erfolgt die Änderung über den **Patch-Workflow** (`tasks/patch-196.diff`, Human-Apply).
 
 ## Alternativen
 
