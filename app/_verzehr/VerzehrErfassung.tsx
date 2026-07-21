@@ -67,6 +67,9 @@ export function VerzehrErfassung({
 // die F5-Seite unberührt. `collapsible` macht den Kopf zu einem Aufklapp-Button; bei `open=false`
 // entfällt nur der Erfassungs-Körper (Kategorien + MengeControl), Kopf + Summen bleiben sichtbar
 // (volle Transparenz, spec-54 AC B). `ref` (React-19-Prop) zeigt auf das `<li>` – für scrollIntoView.
+// `className` wird auf das Wurzel-`<li>` gelegt: so steuert der Konsument layoutseitige Belange
+// seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky Chip-Leiste vor), ohne dass die
+// route-neutrale Karte diese Fremd-Layouts kennen muss.
 export function ZeileKarte({
   zeile,
   artikel,
@@ -76,6 +79,7 @@ export function ZeileKarte({
   collapsible = false,
   open = true,
   onToggle,
+  className,
   ref,
 }: {
   zeile: VerzehrZeile;
@@ -86,6 +90,7 @@ export function ZeileKarte({
   collapsible?: boolean;
   open?: boolean;
   onToggle?: () => void;
+  className?: string;
   ref?: Ref<HTMLLIElement>;
 }) {
   const mengeJeArtikel = new Map(
@@ -113,7 +118,9 @@ export function ZeileKarte({
   return (
     <li
       ref={ref}
-      className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
+      className={`flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800${
+        className ? ` ${className}` : ""
+      }`}
     >
       {collapsible ? (
         <button

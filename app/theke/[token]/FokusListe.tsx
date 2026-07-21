@@ -38,11 +38,17 @@ export function FokusListe({
 
   // Ziel wählen: Karte öffnen (andere zu), geräte-lokal merken (nur editable) und in den
   // Sichtbereich holen. Vom Chip UND vom Aufklappen einer eingeklappten Karte genutzt.
+  // scrollIntoView erst im nächsten Frame (requestAnimationFrame), NACHDEM setOpenId den Reflow
+  // ausgelöst hat (andere Karte zu, Ziel auf) – sonst scrollt es gegen das alte Layout und die
+  // Karte landet außerhalb des Sichtbereichs (#188, Screenshot 2). Das scroll-margin-top der
+  // Karte (ZeileKarte, collapsible) hält den Kopf frei von der sticky Chip-Leiste (Screenshot 1).
   const waehleZiel = useCallback(
     (id: string) => {
       setOpenId(id);
       if (editable) writeZielId(token, id);
-      kartenRefs.current.get(id)?.scrollIntoView?.({ block: "start" });
+      requestAnimationFrame(() => {
+        kartenRefs.current.get(id)?.scrollIntoView?.({ block: "start" });
+      });
     },
     [editable, token],
   );
@@ -96,6 +102,11 @@ export function FokusListe({
             action={action}
             editable={editable}
             collapsible
+            // scroll-margin-top in Höhe der sticky Chip-Leiste oben (`sticky top-0 … py-2`):
+            // hält beim scrollIntoView den Kartenkopf (Name) frei, sonst verdeckt die Leiste ihn
+            // (#188, Screenshot 1). Das Offset gehört zu diesem Layout, daher hier – nicht in der
+            // route-neutralen ZeileKarte.
+            className="scroll-mt-16"
             open={openId === zeile.id}
             onToggle={() => toggle(zeile.id)}
           />
