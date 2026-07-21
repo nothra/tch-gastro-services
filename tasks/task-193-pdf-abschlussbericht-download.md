@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Bug (#193): PDF-Download des Abschlussberichts einer abgeschlossenen Veranstaltung
@@ -89,6 +89,12 @@ Kein Code-Refactoring nötig: geänderter Produktionscode ist ein statisches Con
 deterministisch und WHY-kommentiert – keine Naming-/SRP-/Duplikations-/Magic-Value-Verstöße.
 Kein neues Verhalten. Miterledigt: Review-Nitpick #1 (Root-Cause-Block als sauberer Absatz statt
 zeilenweiser Backticks) – reine Doku-Kosmetik, kein Code.
+
+## PR-Shepherd
+PR-Shepherd [2026-07-21]: Merge freigegeben – alle Gates grün (lint, test, typecheck via pre-push,
+issue-sync, factory-self-test, pr-closes-issue, CodeQL, Vercel). Keine offenen Review-Kommentare,
+keine Approvals erforderlich (Ruleset 0 Approvals, ADR-029). PR #195, Squash-Merge in `main`.
+Deployment-Nachweis des PDF-Downloads folgt über `/post-merge-verify` (push→main).
 
 ## Offene Fragen
 _Keine._
