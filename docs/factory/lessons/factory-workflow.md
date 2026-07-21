@@ -364,3 +364,27 @@ Skill wiederholt das Turn-Limit: prüfen, ob der Änderungsumfang (hier: 3 neue 
 für ein Renderer-Feature) für einen einzelnen automatisierten `/refactor`-Lauf zu groß ist,
 statt endlos zu wiederholen.
 
+
+### Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196)
+
+Task #196 verschob 45 `/codify`-Learnings (~978 Zeilen) aus dem @import-Pfad in 7 thematische
+`lessons/`-Dateien. Ein „von Hand" verschobener Block dieser Größe lädt zu stillen Verlusten/
+Vertippern ein – und das AC „verlustfrei" ist dann nur behauptet, nicht belegt.
+
+**Regel:** Große Doku-Migrationen/Splits **skriptbasiert** durchführen und die Verlustfreiheit
+**beweisen**, nicht behaupten:
+1. Quelle an stabilen Marken splitten (hier `### `-Header), Einträge über eine explizite
+   Reihenfolge-Map auf Zieldateien verteilen (kein Fuzzy-Matching auf Titeltext).
+2. **Byte-Reconstruction-Assertion:** die Zielstücke wieder zusammensetzen und gegen den
+   kanonischen Ausgangszustand (`git show origin/main:<datei>`) auf **Byte-Gleichheit** prüfen.
+   Diese Assertion ist der „Test" des Verlustfrei-AC – sie fällt bei jedem verlorenen/veränderten
+   Zeichen. Zusätzlich Count-Assertion (N rein → N raus) und Header-Set-Gleichheit (Index-Zeilen
+   ≡ Original-Header, fängt Dublette **und** Lücke).
+3. **Relative Links re-basen:** Wandern Dateien eine Verzeichnisebene tiefer, brechen relative
+   Markdown-Links. Vor/nach dem Move `git grep -n '](\.\./'` (analog `](./`, `](docs/`) und die
+   Tiefe anpassen (hier `](../adr/` → `](../../adr/`); beide Zielpfade auf Existenz prüfen).
+4. Formatierung am Ende gegen das Projekt-Gate prüfen (`prettier --check`), nicht raten.
+
+Verwandt mit dem #144-Terminologie-Sweep (zweifach verifizieren), aber der Auslöser ist hier eine
+**Verschiebung** großer Blöcke – der entscheidende Beleg ist die Byte-Reconstruction gegen
+`origin/main`, nicht ein Grep-Zähler allein.

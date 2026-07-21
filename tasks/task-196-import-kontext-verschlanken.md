@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -103,7 +103,11 @@ byte-lossless unverändert (45 Einträge), Prettier + Suite (609) grün.
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [codify-196.md](codify-196.md). Ein Learning → `lessons/factory-workflow.md` (Volltext) +
+Index-Zeile in `PROJECT-CONTEXT.md`: „Verlustfreie Doku-Migration/Split: skriptbasiert +
+Byte-Reconstruction-Assertion". Erster `/codify`-Lauf unter der neuen ADR-037-Konvention (Volltext
+nach `lessons/`, nicht in den @import-Pfad) – validiert AC5 end-to-end.
 
 ---
 Branch: `improvement/196-import-kontext-verschlanken`
