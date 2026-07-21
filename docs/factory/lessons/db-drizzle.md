@@ -1,8 +1,8 @@
 # Lessons: Datenbank & Drizzle
 
-> Ausgelagerte `/codify`-Learnings (Volltext) zu **Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen**. **Nicht** `@import`-
-> geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je Regel ist der
-> jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
+> Ausgelagerte `/codify`-Learnings (Volltext) zu **Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen**.
+> **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
+> Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen hierher (nicht in den @import-Pfad) – siehe `/codify` + ADR-037.
 
 ### Drizzle-Migration bei Enum-Wert-Wechsel / Spalte→Array (aus #48)

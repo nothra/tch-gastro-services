@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -88,6 +88,13 @@ unverändert (dokumentieren den damaligen Zustand). Prettier `format:check` grü
   geliefert (difflib/UTF-8 erzeugt); vom Menschen mit `git apply` angewendet. Der applizierte Diff
   verweist auf `lessons/<thema>.md` + Index + ADR-037, kein alter „Bekannte Stolpersteine"-Ziel-
   Verweis mehr. Cleanup vollzogen (#145): AC5 auf `[x]`, stale `tasks/patch-196.diff` entfernt.
+
+## Refactor-Notizen (/refactor)
+
+Kein Produktionscode im Scope → keine Code-Refactorings (Naming/SRP/Magic-Numbers n/a). Einzige
+in-scope Clean-up: Review-Nitpick behoben – Intro-Blockquote der 7 `lessons/`-Dateien umgestellt,
+sodass `@import`-geladen nicht mehr am Zeilenende getrennt wird. Kein neues Verhalten; Entry-Bodies
+byte-lossless unverändert (45 Einträge), Prettier + Suite (609) grün.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

@@ -1,8 +1,8 @@
 # Lessons: Build & Tooling
 
-> Ausgelagerte `/codify`-Learnings (Volltext) zu **pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte**. **Nicht** `@import`-
-> geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je Regel ist der
-> jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
+> Ausgelagerte `/codify`-Learnings (Volltext) zu **pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte**.
+> **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
+> Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen hierher (nicht in den @import-Pfad) – siehe `/codify` + ADR-037.
 
 ### Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67)

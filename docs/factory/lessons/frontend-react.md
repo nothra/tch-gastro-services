@@ -1,8 +1,8 @@
 # Lessons: Frontend & React
 
-> Ausgelagerte `/codify`-Learnings (Volltext) zu **React/UI, Client Components, route-neutrale UI-Bausteine**. **Nicht** `@import`-
-> geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je Regel ist der
-> jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
+> Ausgelagerte `/codify`-Learnings (Volltext) zu **React/UI, Client Components, route-neutrale UI-Bausteine**.
+> **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
+> Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen hierher (nicht in den @import-Pfad) – siehe `/codify` + ADR-037.
 
 ### `useActionState` + Inline-Toggle: ESLint `react-hooks/set-state-in-effect` (aus #49)

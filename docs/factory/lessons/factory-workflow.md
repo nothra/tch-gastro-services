@@ -1,8 +1,8 @@
 # Lessons: Factory-Workflow (Git/CI, Pipeline, Patch)
 
-> Ausgelagerte `/codify`-Learnings (Volltext) zu **Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker**. **Nicht** `@import`-
-> geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je Regel ist der
-> jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
+> Ausgelagerte `/codify`-Learnings (Volltext) zu **Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker**.
+> **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
+> Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen hierher (nicht in den @import-Pfad) – siehe `/codify` + ADR-037.
 
 ### Agenten-Blockerverhalten (aus Task 002 / K-01, K-02)

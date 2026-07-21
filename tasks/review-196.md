@@ -13,10 +13,11 @@ _Keine._
 
 ## Nitpicks (optional)
 
-- [ ] `docs/factory/lessons/*.md:3` (alle 7 Dateien) – Die erste Zeile des Intro-Blockquotes ist
+- [x] `docs/factory/lessons/*.md:3` (alle 7 Dateien) – Die erste Zeile des Intro-Blockquotes ist
   lang und bricht mit `@import`- am Zeilenende (Bindestrich-Umbruch vor „geladen"). Prettier-konform
   und inhaltlich korrekt, aber ein Term (`@import`) wird über den Zeilenumbruch getrennt. Rein
   kosmetisch; ließe sich durch Umstellen des Satzes vermeiden.
+  → **Behoben in `/refactor`:** Satz umgestellt, `@import`-geladen bleibt jetzt ungetrennt.
 
 ## Positives
 

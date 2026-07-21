@@ -1,8 +1,8 @@
 # Lessons: Code-Stil
 
-> Ausgelagerte `/codify`-Learnings (Volltext) zu **Clean-Code-Muster (Naming, Kommentar-Ort)**. **Nicht** `@import`-
-> geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je Regel ist der
-> jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
+> Ausgelagerte `/codify`-Learnings (Volltext) zu **Clean-Code-Muster (Naming, Kommentar-Ort)**.
+> **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
+> Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen hierher (nicht in den @import-Pfad) – siehe `/codify` + ADR-037.
 
 ### WHAT-Kommentar am Modul-Level (aus #67, Refactoring-Finding)
