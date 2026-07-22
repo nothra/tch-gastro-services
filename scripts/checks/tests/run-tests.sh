@@ -2223,9 +2223,31 @@ if [ "$HAS_YQ" = 1 ]; then
   bash "$GATE" "$DEFAULTS" "$G4/sig.yml" >/dev/null 2>&1; rc=$?
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "#197 F3: ungültiges tier_by_size.signal → fail-closed"
   rm -rf "$G4"
+
+  # AK7: übrige Skills + default bleiben light UND tragen KEIN tier_by_size (keine Tier-Änderung).
+  ak7_ok=0
+  for s in test refactor codify pr-shepherd requirements architecture release-notes; do
+    [ "$(yq ".skills.\"$s\".tier" "$DEFAULTS")" = "light" ] || ak7_ok=1
+    [ "$(yq ".skills.\"$s\" | has(\"tier_by_size\")" "$DEFAULTS")" = "false" ] || ak7_ok=1
+  done
+  [ "$(yq '.default.tier' "$DEFAULTS")" = "light" ] || ak7_ok=1
+  assert_true "$ak7_ok" "#197 AK7: test/refactor/codify/pr-shepherd/requirements/architecture/release-notes + default = light ohne tier_by_size"
+
+  # AK12: der provisorische implement-Tier-Override ist aufgelöst (kein .skills.implement.tier mehr).
+  if [ -f "$FACTORY_ROOT/factory.config.yml" ]; then
+    [ "$(yq '.skills.implement | has("tier")' "$FACTORY_ROOT/factory.config.yml")" = "false" ]
+    assert_true "$?" "#197 AK12: factory.config.yml führt kein statisches implement.tier mehr (Override aufgelöst)"
+  fi
 else
-  skip_yq "#197 End-to-End (run-pipeline get_model) + Config-Gate Regel 4c"
+  skip_yq "#197 End-to-End (run-pipeline get_model) + Config-Gate Regel 4c + AK7/AK12"
 fi
+
+# AK11 (yq-frei): token-efficiency.md §6 verweist auf die reale SSOT, nicht auf eine README-Tabelle.
+TOKEFF="$FACTORY_ROOT/docs/factory/guidelines/token-efficiency.md"
+grep -q 'factory.defaults.yml' "$TOKEFF"
+assert_true "$?" "#197 AK11: token-efficiency.md verweist auf die reale SSOT (factory.defaults.yml)"
+grep -q 'README.md (Tier-Tabelle)' "$TOKEFF"
+assert_true "$([ $? -ne 0 ]; echo $?)" "#197 AK11: veralteter README-Tier-Tabellen-Verweis ist entfernt"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
