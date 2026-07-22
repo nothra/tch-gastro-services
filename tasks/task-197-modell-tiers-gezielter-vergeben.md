@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -121,6 +121,12 @@ Behoben in Runde 2:
 - E2E-Symmetrie: „großer Diff → review heavy" (AK2) ergänzt.
 Bewusst belassen: `find|head -1` (eine Spec je ID); E2E kopiert nur Defaults (reales light-Modell
 separat via yq-Merge verifiziert). Danach 389 grün / 0 rot.
+
+## Refactoring-Notizen (/refactor)
+Kein Struktur-Refactoring nötig – Review (Runde 2) bestätigte Naming, Funktionsgröße,
+Magic-Number-Vermeidung und Duplikationsfreiheit als sauber. Einzige Änderung: Header-Docstring
+von `select_tier` an die im Rework ergänzte symmetrische `threshold`-Guard angepasst (reine
+Doku-Korrektur, kein Verhalten). Suite vor/nach identisch 393 grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

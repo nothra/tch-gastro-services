@@ -6,7 +6,8 @@
 #
 #   select_tier <size> <threshold> <fallback_tier>
 #     → druckt "heavy"/"light" bzw. den Fallback-Tier auf stdout:
-#         - size leer/nicht-numerisch → fallback_tier (Fail-Safe, F1/F2: kein stilles Downgrade)
+#         - size ODER threshold leer/nicht-numerisch → fallback_tier
+#                                       (Fail-Safe, F1/F2: kein stilles Downgrade)
 #         - size >= threshold          → heavy
 #         - size <  threshold          → light
 #
