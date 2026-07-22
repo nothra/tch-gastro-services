@@ -27,9 +27,14 @@
 # Reine Entscheidung: size + threshold → Tier, mit Fail-Safe auf den statischen Tier.
 select_tier() {
   local size="$1" threshold="$2" fallback_tier="$3"
-  # Fail-Safe: Größe nicht bestimmbar (leer) oder nicht-numerisch → statischer Tier.
-  # Deckt F1/F2 ab, ohne dass der Aufrufer den Nicht-Bestimmbarkeits-Fall kennen muss.
+  # Fail-Safe: Größe ODER Schwelle nicht bestimmbar (leer/nicht-numerisch) → statischer Tier.
+  # Deckt F1/F2 ab, ohne dass der Aufrufer den Nicht-Bestimmbarkeits-Fall kennen muss. Die
+  # Schwelle wird symmetrisch abgesichert, damit ein nicht-numerischer threshold NICHT still
+  # auf light kippt (`[ -ge ]` würde sonst falsy → light) – kein stilles Downgrade.
   case "$size" in
+    ''|*[!0-9]*) printf '%s' "$fallback_tier"; return 0 ;;
+  esac
+  case "$threshold" in
     ''|*[!0-9]*) printf '%s' "$fallback_tier"; return 0 ;;
   esac
   if [ "$size" -ge "$threshold" ]; then

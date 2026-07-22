@@ -2098,6 +2098,7 @@ assert_true "$([[ "$(tsel 6 6 heavy)"   = "heavy" ]]; echo $?)" "#197 AK5: selec
 assert_true "$([[ "$(tsel '' 150 heavy)" = "heavy" ]]; echo $?)" "#197 F1/F2: leere Größe → Fail-Safe auf Fallback-Tier (heavy)"
 assert_true "$([[ "$(tsel abc 150 heavy)" = "heavy" ]]; echo $?)" "#197 F1/F2: nicht-numerische Größe → Fail-Safe (heavy)"
 assert_true "$([[ "$(tsel '' 150 light)" = "light" ]]; echo $?)" "#197: Fail-Safe respektiert den übergebenen Fallback-Tier"
+assert_true "$([[ "$(tsel 200 abc heavy)" = "heavy" ]]; echo $?)" "#197: nicht-numerische Schwelle → Fail-Safe (kein stilles Downgrade auf light)"
 
 # measure_size proxy: AK-Checkboxen im Abschnitt zählen; fehlende Spec/fehlender Abschnitt → leer.
 PXR="$(mktemp -d)"; mkdir -p "$PXR/docs/specs"
@@ -2129,6 +2130,10 @@ seq 1 100 >> "$DFR/work2/f.txt"
 git -C "$DFR/work2" add .; git -C "$DFR/work2" -c user.email=t@t -c user.name=t commit -q -m fremd
 git -C "$DFR/work2" push -q origin main 2>/dev/null
 assert_true "$([[ "$(msize diff '' "$DFR/work")" = "3" ]]; echo $?)" "#197 AK3: Fremd-Commit auf origin/main bläht die Diff-Größe nicht auf (weiter 3)"
+# O4: Binärdatei (numstat "-") wird übersprungen → zählt nicht zur Größe (weiter 3, nicht mehr).
+printf '\x00\x01\x02\xff\x00\x10' > "$DFR/work/bin.dat"
+git -C "$DFR/work" add .; git -C "$DFR/work" -c user.email=t@t -c user.name=t commit -q -m binary
+assert_true "$([[ "$(msize diff '' "$DFR/work")" = "3" ]]; echo $?)" "#197 O4: Binärdatei wird bei der Diff-Größe übersprungen (weiter 3)"
 # F1: kein origin-Remote → git-Fehler → leer (Fail-Safe heavy).
 git init -q "$DFR/noremote"
 printf 'x\n' > "$DFR/noremote/f.txt"
@@ -2173,6 +2178,13 @@ if [ "$HAS_YQ" = 1 ]; then
   rv_ovr=$(CLAUDE_MODEL=my-forced-model bash "$RVW/scripts/run-pipeline.sh" 3 --dry-run 2>&1 || true)
   printf '%s' "$rv_ovr" | grep -q '/review 3 (model: my-forced-model'
   assert_true "$?" "#197 AK10 (E2E): CLAUDE_MODEL-Override sticht die größenabhängige Wahl"
+  # AK2 (E2E, Symmetrie zum proxy-Signal): großer Diff (>= 150) → /review auf heavy.
+  seq 1 200 >> "$RVW/tasks/task-3-review-tier.md"
+  git -C "$RVW" add .
+  git -C "$RVW" -c user.email=t@t -c user.name=t commit -q -m big
+  rv_big=$(bash "$RVW/scripts/run-pipeline.sh" 3 --dry-run 2>&1 || true)
+  printf '%s' "$rv_big" | grep -q '/review 3 (model: claude-opus-4-8, max 14 turns)'
+  assert_true "$?" "#197 AK2 (E2E): großer Diff (>= 150) → /review auf heavy"
   rm -rf "$RVO" "$RVW"
 
   # E2E-2: implement-Proxy klein (<6) → light, groß (>=6) → heavy.

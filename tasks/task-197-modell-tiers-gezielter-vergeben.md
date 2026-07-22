@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -112,7 +112,15 @@ Nicht anfassen: `model_tiers`-IDs; Tiers der übrigen Skills; kein dritter Tier.
   für diesen großen Lauf). F4 (yq fehlt) ist unverändertes Bestandsverhalten von `load_config`.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Multi-Persona-Review (Logik / Code-Qualität / Architektur), Details in `tasks/review-197.md`.
+Keine kritischen Findings. Runde 1: NEEDS_REWORK → Runde 2 nach Rework: **APPROVED**.
+Behoben in Runde 2:
+- ADR-038-Status `Proposed` → `Accepted (2026-07-22)` (WICHTIG).
+- Binärdatei-Ausschluss in `measure_size diff` durch Test belegt (WICHTIG, O4).
+- `select_tier`: symmetrische Guard-Klausel für `threshold` (kein stilles Downgrade) + Test.
+- E2E-Symmetrie: „großer Diff → review heavy" (AK2) ergänzt.
+Bewusst belassen: `find|head -1` (eine Spec je ID); E2E kopiert nur Defaults (reales light-Modell
+separat via yq-Merge verifiziert). Danach 389 grün / 0 rot.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

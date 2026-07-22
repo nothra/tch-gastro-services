@@ -1,7 +1,7 @@
 # ADR 038: Größenabhängige Modell-Tier-Wahl (dynamisches Tiering)
 
 ## Status
-Proposed
+Accepted (2026-07-22)
 
 ## Kontext
 
