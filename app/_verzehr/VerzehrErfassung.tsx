@@ -24,6 +24,11 @@ export type { VerzehrArtikel };
 // Getränke, Essen, Kaffee – Anzeigereihenfolge der Zusammenfassung und der Erfassungs-Abschnitte.
 const CATEGORY_ORDER: readonly CatalogCategory[] = ["getraenk", "essen", "kaffee"];
 
+// Geteilt mit app/veranstaltung/[id]/verzehr/page.tsx (#187, Review-Nitpick): gleicher Weg
+// (Veranstalter ohne Teilnehmer), gleicher Text – eine Quelle statt Wortlaut-Duplikat.
+export const KEIN_TEILNEHMER_HINWEIS =
+  "Noch keine Teilnehmer erfasst – zuerst Teilnehmer hinzufügen.";
+
 export function VerzehrErfassung({
   zeilen,
   artikel,
@@ -38,11 +43,7 @@ export function VerzehrErfassung({
   editable: boolean;
 }) {
   if (zeilen.length === 0) {
-    return (
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Noch keine Teilnehmer erfasst – zuerst Teilnehmer hinzufügen.
-      </p>
-    );
+    return <p className="text-sm text-zinc-600 dark:text-zinc-400">{KEIN_TEILNEHMER_HINWEIS}</p>;
   }
 
   return (

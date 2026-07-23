@@ -7,6 +7,7 @@ import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { FokusListe } from "@/app/_verzehr/FokusListe";
+import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrErfassung";
 import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
@@ -64,9 +65,7 @@ export default async function VerzehrPage({ params }: { params: Promise<{ id: st
       {verzehrZeilen.length === 0 ? (
         // FokusListe setzt ≥1 Zeile voraus (ADR-039 D4); der leere Fall bleibt hier beim
         // Konsumenten, weil die Meldung wegabhängig ist (F5 verweist auf das Anlegen von Teilnehmern).
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Noch keine Teilnehmer erfasst – zuerst Teilnehmer hinzufügen.
-        </p>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{KEIN_TEILNEHMER_HINWEIS}</p>
       ) : (
         // Fokus-Akkordeon wie im Link-Weg (ADR-039 D3): keine Karte offen initial, kein
         // onFokusWechsel (F5 merkt sich kein Ziel geräte-lokal). editable an den Status gebunden.

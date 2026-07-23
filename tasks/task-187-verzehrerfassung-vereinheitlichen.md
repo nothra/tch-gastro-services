@@ -3,9 +3,9 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -112,6 +112,36 @@ nicht duplizieren (#194); `setState`-Updater rein halten (#183).
   (`FokusListe.tsx` token-gekoppelt, `FokusListe.test.tsx`, `raf-stub.ts` – Byte-Duplikat von
   `app/_verzehr/raf-stub.ts`, verletzt #194) werden per `git rm` entfernt (der route-neutrale
   Ersatz liegt vollständig in `app/_verzehr/`; `IdentityGate` importiert bereits von dort).
+
+## Test-Notizen
+- Coverage-Analyse (`pnpm vitest run --coverage`): `app/_verzehr/**` (FokusListe, MengeControl,
+  VerzehrErfassung, …) bei 100 % Stmts/Branch/Funcs/Lines. Einzige nicht-triviale Lücke:
+  `IdentityGate.tsx:169` (`onFokusWechsel={(id) => writeZielId(token, id)}`) war **nie aufgerufen**
+  – die AC „F7 merkt Ziel weiterhin geräte-lokal" war bislang nur durch Codelesen belegt (Review-
+  Positives), nicht durch einen Testaufruf.
+- **Ergänzt:** `IdentityGate.test.tsx` →
+  `should_persistNewZiel_when_chipTappedInFocusView` – tippt in der Fokus-Ansicht (beide IDs bereits
+  gemerkt) auf den Chip eines anderen Teilnehmers und prüft, dass `localStorage[ZIEL_KEY]` auf die
+  neue Zeilen-ID wechselt. Deckt die Verdrahtung jetzt per Aufruf ab (Zeile 169 grün), nicht nur
+  strukturell.
+- `IdentityGate.tsx:50,55` (die beiden `useSyncExternalStore`-Server-Snapshots `() => null`) bleiben
+  ungetestet – **pre-existing**, unverändert seit vor #187 (verifiziert per `git show main:…`), somit
+  außerhalb des Scopes dieser Task.
+- `page.tsx` (F5) zeigt in der v8-Textzusammenfassung 93.33 %/75 % (Stmts/Funcs) ohne eine einzige
+  markierte Uncovered-Zeile im HTML-Report (`grep` auf `cstat-no`/`fstat-no`/`cline-no` leer) – ein
+  bekannter v8-Coverage-Artefakt bei async Server Components, kein realer Gap.
+- Volle Suite danach: 618 passed / 59 skipped (davor 617/59) – `pnpm lint` ✓, `tsc --noEmit` ✓.
+
+## Refactor-Notizen
+- Review-Nitpick behoben (`tasks/review-187.md`, Runde 4): Empty-State-Text „Noch keine
+  Teilnehmer erfasst – zuerst Teilnehmer hinzufügen." war wortgleich in `VerzehrErfassung.tsx`
+  und `page.tsx` (F5) dupliziert. Als `KEIN_TEILNEHMER_HINWEIS` in `VerzehrErfassung.tsx`
+  exportiert, F5-Seite importiert die Konstante statt den String erneut zu tippen – eine Quelle
+  für beide Vorkommen desselben Wegs (Veranstalter ohne Teilnehmer). Kein neues Verhalten.
+- `pnpm format:check` fing eine zu lange Zeile bei der Konstanten-Deklaration ab (>100 Zeichen,
+  `.prettierrc.json` `printWidth: 100`) – auf zwei Zeilen umgebrochen.
+- Gates danach grün: `pnpm lint` ✓, `pnpm format:check` ✓, volle Suite (618 passed / 59
+  skipped, unverändert) ✓, `tsc --noEmit` ✓.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

@@ -252,6 +252,21 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
     expect(window.localStorage.getItem(ZIEL_KEY)).toBeNull();
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
   });
+
+  it("should_persistNewZiel_when_chipTappedInFocusView", () => {
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+    window.localStorage.setItem(ZIEL_KEY, "z2");
+
+    renderGate();
+    // Chip trägt exakt den Anzeigenamen als Namen, der Karten-Kopf zusätzlich die Summen-Zeile
+    // (siehe cardHead-Unterscheidung in FokusListe.test.tsx) – exaktes "Anna" trifft nur den Chip.
+    fireEvent.click(screen.getByRole("button", { name: "Anna" }));
+
+    // ADR-039 D1: FokusListe kennt kein Storage, IdentityGate hängt die Ziel-Merkung über
+    // onFokusWechsel an (IdentityGate.tsx:169) – dieser Test belegt die Verdrahtung durch Aufruf,
+    // nicht nur durch Codelesen.
+    expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
+  });
 });
 
 describe("IdentityGate – Legacy-Adoption (#54, D6)", () => {
