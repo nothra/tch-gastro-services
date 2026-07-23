@@ -115,7 +115,9 @@ describe("ThekePage", () => {
     // Kein gemerkter Name → Namens-Picker UND bereits Liste + Summen sichtbar (spec-54 AC B1),
     // aber die Erfassungs-Controls bleiben read-only, bis ein Name gewählt wurde.
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Anna" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Wer bist du?" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Cola/)).toBeInTheDocument();
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
