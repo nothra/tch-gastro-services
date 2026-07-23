@@ -27,6 +27,17 @@ Positionsbetrag), gefiltert auf `menge > 0` und deterministisch sortiert
 (Kategorie → Name → Größe). Die Positionsdaten (`listPositionen`, inkl. aufgelöstem
 Name/Größe/Preis via COALESCE) werden auf der Kassier-Seite bereits geladen.
 
+Zusätzlich zeigt die Kassier-Seite den Verzehr je Teilnehmer und in den Tagessummen heute nur
+zwei Kategorie-Töpfe: **Getränke** und **Sonstige** (= Essen + Kaffee zusammengefasst,
+`kassier.sonstigeCents` / `tagessummen.sonstigeCents`). Der Katalog kennt jedoch drei
+Kategorien (`getraenk` / `essen` / `kaffee`, ADR-023 §D4). Auf der **Verzehr-Erfassen**-Seite
+ist die Sammel-Kategorie „Sonstige" bereits in **Essen** und **Kaffee** aufgelöst
+([spec-138](spec-138-verzehr-kategorien-aufloesen.md)); die Kassier-Seite wurde dort bewusst
+ausgeklammert und zieht diese Auflösung nun nach. Die getrennten Beträge liegen bereits vor:
+`KassierZeile` und `KassierTagessummen` führen `essenCents` und `kaffeeCents` je einzeln
+([app/veranstaltung/kassierSummen.ts](../../app/veranstaltung/kassierSummen.ts)) – reine
+Anzeige-Änderung, keine Berechnung betroffen.
+
 ## Scope
 
 **Inbegriffen:**
@@ -40,6 +51,16 @@ Name/Größe/Preis via COALESCE) werden auf der Kassier-Seite bereits geladen.
   **abgeschlossen** (Lese-Ansicht) – konsistent zur Summen-Anzeige, die ebenfalls in beiden
   Zuständen erscheint.
 - Beträge in Cent gerechnet, Anzeige de-DE mit 2 Nachkommastellen (`formatCents`).
+
+**Kategorie-Auflösung „Sonstige" → „Essen" + „Kaffee" (analog spec-138):**
+- Sowohl in der **Teilnehmer-Zusammenfassung** je Zeile als auch in den **Tagessummen** wird die
+  Sammel-Kategorie „Sonstige" durch **zwei getrennte Beträge „Essen" und „Kaffee"** ersetzt.
+- Reihenfolge der Kategorie-Beträge: **Getränke · Essen · Kaffee** (konsistent zur
+  Erfassen-Seite / `CATEGORY_ORDER`).
+- **Alle drei Kategorien werden immer angezeigt**, auch bei `0,00 €` (vorhersehbare, konsistente
+  Darstellung – wie spec-138 AC-5).
+- Das **Verzehr-Gesamt** (`Getränke + Essen + Kaffee`) wird weiterhin angezeigt und **visuell
+  hervorgehoben** (abgesetzt von den Einzelkategorien).
 
 **Nicht inbegriffen:**
 - Änderung an Preis-, Mengen-, Summen-, Spende- oder Status-Logik (rein präsentational; die
@@ -73,6 +94,20 @@ Name/Größe/Preis via COALESCE) werden auf der Kassier-Seite bereits geladen.
 - [ ] GIVEN eine **abgeschlossene** Veranstaltung (Lese-Ansicht) WHEN die Kassier-Seite
       gerendert wird THEN ist die Verzehr-Aufschlüsselung je Teilnehmer weiterhin verfügbar
       (aufklappbar), mit denselben Positionsangaben wie im offenen Zustand.
+
+### Kategorie-Auflösung „Sonstige" → „Essen" + „Kaffee"
+
+- [ ] GIVEN eine Teilnehmerzeile mit Verzehr WHEN ihre Zusammenfassung gerendert wird THEN
+      zeigt sie die Kategorie-Beträge **Getränke**, **Essen** und **Kaffee** getrennt (kein
+      Sammelbetrag „Sonstige") in der Reihenfolge Getränke · Essen · Kaffee.
+- [ ] GIVEN die Tagessummen WHEN sie gerendert werden THEN weisen sie **Getränke**, **Essen**
+      und **Kaffee** je als eigene Summenzeile aus (kein Sammelbetrag „Sonstige"), in der
+      Reihenfolge Getränke · Essen · Kaffee.
+- [ ] GIVEN eine Zeile mit ausschließlich Getränke-Positionen WHEN die Zusammenfassung gerendert
+      wird THEN werden dennoch **alle drei** Kategorien angezeigt; Essen und Kaffee mit `0,00 €`.
+- [ ] GIVEN die Kategorie-Beträge einer Zeile bzw. der Tagessummen WHEN das Verzehr-Gesamt
+      angezeigt wird THEN gilt weiterhin `Verzehr-Gesamt = Getränke + Essen + Kaffee` und der
+      Verzehr-Gesamt-Betrag ist **visuell hervorgehoben** (abgesetzt von den Einzelkategorien).
 
 ## Fehlerszenarien
 

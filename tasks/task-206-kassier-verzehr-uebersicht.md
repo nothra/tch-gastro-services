@@ -11,10 +11,13 @@
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
-Beim Kassieren je Teilnehmer eine **aufklappbare** Aufschlüsselung des erfassten Verzehrs
-anzeigen (Positionen mit Menge, Bezeichnung inkl. Größe, Einzelpreis, Positionsbetrag), damit
-der Thekenwart den Betrag nachvollziehbar machen kann. Rein präsentational – keine Änderung an
-Preis-/Mengen-/Summen-/Status-Logik. Spec: [spec-206](../docs/specs/spec-206-kassier-verzehr-uebersicht.md).
+Zwei präsentationale Verfeinerungen auf der Kassier-Seite (rein Anzeige, keine Änderung an
+Preis-/Mengen-/Summen-/Status-Logik). Spec: [spec-206](../docs/specs/spec-206-kassier-verzehr-uebersicht.md).
+1. Je Teilnehmer eine **aufklappbare** Aufschlüsselung des erfassten Verzehrs (Positionen mit
+   Menge, Bezeichnung inkl. Größe, Einzelpreis, Positionsbetrag), damit der Thekenwart den
+   Betrag nachvollziehbar machen kann.
+2. Kategorie **„Sonstige" → „Essen" + „Kaffee"** auflösen (Teilnehmer-Zusammenfassung UND
+   Tagessummen, analog spec-138); Verzehr-Gesamt bleibt und wird **hervorgehoben**.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
@@ -26,6 +29,10 @@ Preis-/Mengen-/Summen-/Status-Logik. Spec: [spec-206](../docs/specs/spec-206-kas
 - [ ] GIVEN aufgeklappte Aufschlüsselung WHEN Positionsbeträge summiert THEN Summe = angezeigtes Verzehr-Gesamt der Zeile.
 - [ ] GIVEN abgeschlossene Veranstaltung (Lese-Ansicht) WHEN Seite gerendert THEN Aufschlüsselung weiterhin je Teilnehmer aufklappbar, gleiche Angaben.
 - [ ] GIVEN Position mit soft-gelöschtem Katalogartikel WHEN angezeigt THEN Position erscheint dennoch (COALESCE-Name/-Preis), Summe bleibt konsistent.
+- [ ] GIVEN Teilnehmer-Zusammenfassung WHEN gerendert THEN Getränke · Essen · Kaffee getrennt (kein „Sonstige").
+- [ ] GIVEN Tagessummen WHEN gerendert THEN Getränke · Essen · Kaffee je eigene Summenzeile (kein „Sonstige").
+- [ ] GIVEN nur Getränke-Positionen WHEN Zusammenfassung gerendert THEN alle drei Kategorien sichtbar, Essen/Kaffee mit 0,00 €.
+- [ ] GIVEN Kategorie-Beträge WHEN Verzehr-Gesamt angezeigt THEN `Getränke + Essen + Kaffee`, Betrag visuell hervorgehoben.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -33,6 +40,10 @@ Preis-/Mengen-/Summen-/Status-Logik. Spec: [spec-206](../docs/specs/spec-206-kas
   `app/veranstaltung/berichtModell.ts` liefert bereits die itemisierten Positionen je Zeile
   (Bezeichnung, Größe, Kategorie, Menge, Einzelpreis, Positionsbetrag; `menge > 0`; sortiert).
 - Daten (`listPositionen`) werden auf der Kassier-Seite bereits geladen.
+- Kategorie-Auflösung ist reine Anzeige: `KassierZeile`/`KassierTagessummen` führen `essenCents`
+  und `kaffeeCents` bereits getrennt (`kassierSummen.ts`). `sonstigeCents` wird für die Anzeige
+  nicht mehr gebraucht – ob das Feld entfernt wird, entscheidet /implement bzw. /refactor
+  (weitere Konsumenten prüfen: `berichtModell.ts` nutzt `sonstigeCents` weiter).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
