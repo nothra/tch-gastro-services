@@ -14,6 +14,8 @@ export type ZeileSummen = {
   getraenkeCents: number;
   essenCents: number;
   kaffeeCents: number;
+  // Verzehr-Gesamt = Getränke + Essen + Kaffee (PROJECT-CONTEXT), exakt in Cent (ADR-021).
+  gesamtCents: number;
 };
 
 // Beträge sind ganzzahlige Cent (ADR-021) → Σ menge × priceCents ist exakt ganzzahlig,
@@ -37,5 +39,10 @@ export function zeileSummen(positionen: readonly VerzehrPositionSum[]): ZeileSum
       throw new Error(`Unbekannte Kategorie: ${String(_exhaustive)}`);
     }
   }
-  return { getraenkeCents, essenCents, kaffeeCents };
+  return {
+    getraenkeCents,
+    essenCents,
+    kaffeeCents,
+    gesamtCents: getraenkeCents + essenCents + kaffeeCents,
+  };
 }

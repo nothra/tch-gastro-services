@@ -111,7 +111,10 @@ export function ZeileKarte({
       <span className="font-semibold">{zeile.anzeigename}</span>
       <span className="text-sm text-zinc-600 dark:text-zinc-400">
         Getränke {formatCents(summen.getraenkeCents)} · Essen {formatCents(summen.essenCents)} ·
-        Kaffee {formatCents(summen.kaffeeCents)}
+        Kaffee {formatCents(summen.kaffeeCents)} ·{" "}
+        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+          Gesamt {formatCents(summen.gesamtCents)}
+        </span>
       </span>
     </div>
   );
