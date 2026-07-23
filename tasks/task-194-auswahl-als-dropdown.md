@@ -76,8 +76,11 @@ Alle 614 Tests weiterhin grün, Lint/Typecheck/Format grün, Coverage unverände
 ### Codify-Report
 Learning erfasst: [`docs/factory/lessons/testing.md`](../docs/factory/lessons/testing.md) –
 Layout-Timing-Test-Stub (rAF) vor dem Neuschreiben im Verzeichnis suchen. Details:
-[tasks/codify-194.md](codify-194.md). Pipeline (Phasen 1-6) abgeschlossen; PR #202 (Draft) offen
-für menschliches Review/Merge – `/pr-shepherd` wurde nicht angefordert (`PR_SHEPHERD` nicht gesetzt).
+[tasks/codify-194.md](codify-194.md). Pipeline (Phasen 1-6) abgeschlossen.
+
+PR-Shepherd 2026-07-23: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare,
+Branch bereits auf aktuellem `main` (`mergeStateStatus: CLEAN`), CI vollständig grün, keine
+Approval-Pflicht (ADR-029, 0 Approvals by design), Draft → ready for review.
 
 ---
 Branch: `feature/194-auswahl-als-dropdown`
