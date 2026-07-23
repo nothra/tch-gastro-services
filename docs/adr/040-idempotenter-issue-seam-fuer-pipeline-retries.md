@@ -1,7 +1,7 @@
 # ADR 040: Idempotenter Issue-Seam für Pipeline-Retries
 
 ## Status
-Proposed
+Accepted
 
 ## Datum
 2026-07-23
