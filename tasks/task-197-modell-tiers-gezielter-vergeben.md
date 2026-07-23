@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Modell-Tiers der Pipeline gezielter vergeben, statt pauschal pro Skill. `review`,
@@ -136,6 +136,12 @@ Details in `tasks/codify-197.md`. 3 neue Lessons (ADR-037):
 - code-style: Fail-Safe/Guard symmetrisch auf alle Vergleichs-Inputs (#197 Review-Finding).
 Je Lesson eine Index-Zeile mit „Laden bei"-Trigger in PROJECT-CONTEXT.md. Kein neuer Check
 (Urteilsregeln, nicht mechanisch prüfbar), keine CLAUDE.md-/Guideline-Änderung, kein Folge-Issue.
+
+## PR-Shepherd
+PR-Shepherd 2026-07-23: Merge freigegeben – alle Gates grün (Review APPROVED, Security PASSED,
+Tests 393 grün, CI grün: lint/test/factory-self-test/issue-sync/pr-closes-issue/CodeQL/Vercel).
+Branch aktuell auf `origin/main` (kein Rebase nötig), keine Approvals ausstehend (ADR-029).
+Nebenbefund als eigenes Issue ausgelagert: #201 (inerte Phase-1-Modell-Config), außerhalb Scope.
 
 ---
 Branch: `improvement/197-modell-tiers-gezielter-vergeben`
