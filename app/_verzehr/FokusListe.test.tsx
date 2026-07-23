@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FokusListe } from "./FokusListe";
 import { stubRequestAnimationFrame } from "./raf-stub";
-import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
+import type { VerzehrArtikel, VerzehrZeile } from "./VerzehrErfassung";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 
 // MengeControl (Client, useActionState) durch ein Stub ersetzt, das die editable-Prop spiegelt –
@@ -14,9 +14,6 @@ vi.mock("@/app/_verzehr/MengeControl", () => ({
     </span>
   ),
 }));
-
-const TOKEN = "tok-1";
-const ZIEL_KEY = `tch:sb:ziel:${TOKEN}`;
 
 const zeilen: VerzehrZeile[] = [
   { id: "z1", anzeigename: "Anna" },
@@ -30,7 +27,6 @@ const positionen: VerzehrPositionRow[] = [];
 let raf: ReturnType<typeof stubRequestAnimationFrame>;
 
 beforeEach(() => {
-  window.localStorage.clear();
   // jsdom implementiert scrollIntoView nicht; die Komponente ruft es guarded auf – hier stubben,
   // falls es als werfende Methode vorhanden ist.
   Element.prototype.scrollIntoView = vi.fn();
@@ -44,7 +40,6 @@ afterEach(() => {
 function renderListe(overrides: Partial<Parameters<typeof FokusListe>[0]> = {}) {
   return render(
     <FokusListe
-      token={TOKEN}
       zeilen={zeilen}
       artikel={artikel}
       positionen={positionen}
@@ -65,47 +60,67 @@ function cardHead(name: string) {
   return head;
 }
 
-describe("FokusListe (#183/ADR-035)", () => {
+describe("FokusListe (#183/ADR-035, route-neutral #187/ADR-039)", () => {
   it("should_openExactlyOneCard_when_initialOpenIdSet", () => {
     renderListe({ initialOpenId: "z1" });
 
-    // Genau die Ziel-Karte ist offen → genau eine MengeControl (ein Artikel, eine offene Karte).
+    // Genau die fokussierte Karte ist offen → genau eine MengeControl (ein Artikel, eine offene Karte).
     expect(screen.getAllByTestId("menge")).toHaveLength(1);
   });
 
-  it("should_switchZielCloseOthersAndPersist_when_chipTapped", () => {
-    renderListe({ initialOpenId: "z1" });
+  it("should_openNoCard_when_initialOpenIdNull", () => {
+    renderListe({ initialOpenId: null });
+
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+  });
+
+  it("should_switchFocusCloseOthersAndNotifyConsumer_when_chipTapped", () => {
+    const onFokusWechsel = vi.fn();
+    renderListe({ initialOpenId: "z1", onFokusWechsel });
 
     fireEvent.click(screen.getByRole("button", { name: "Bernd" }));
 
     expect(screen.getAllByTestId("menge")).toHaveLength(1);
-    expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z2");
+    expect(onFokusWechsel).toHaveBeenCalledWith("z2");
   });
 
-  it("should_setAriaCurrentOnActiveChip_when_zielSelected", () => {
+  it("should_setAriaCurrentOnActiveChip_when_focusSelected", () => {
     renderListe({ initialOpenId: "z1" });
 
     expect(screen.getByRole("button", { name: "Anna" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("button", { name: "Bernd" })).not.toHaveAttribute("aria-current");
   });
 
-  it("should_openCollapsedCardAndCloseOther_when_cardHeadTapped", () => {
-    renderListe({ initialOpenId: "z1" });
+  it("should_openCollapsedCardCloseOtherAndNotifyConsumer_when_cardHeadTapped", () => {
+    const onFokusWechsel = vi.fn();
+    renderListe({ initialOpenId: "z1", onFokusWechsel });
 
     fireEvent.click(cardHead("Bernd"));
 
     expect(cardHead("Bernd")).toHaveAttribute("aria-expanded", "true");
     expect(cardHead("Anna")).toHaveAttribute("aria-expanded", "false");
-    expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z2");
+    expect(onFokusWechsel).toHaveBeenCalledWith("z2");
   });
 
-  it("should_collapseCard_when_openCardHeadTapped", () => {
-    renderListe({ initialOpenId: "z1" });
+  it("should_collapseCardAndNotNotifyConsumer_when_openCardHeadTapped", () => {
+    const onFokusWechsel = vi.fn();
+    renderListe({ initialOpenId: "z1", onFokusWechsel });
 
     fireEvent.click(cardHead("Anna"));
 
     expect(cardHead("Anna")).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+    // Zuklappen ist kein Fokuswechsel – der Konsument wird dabei nicht benachrichtigt.
+    expect(onFokusWechsel).not.toHaveBeenCalled();
+  });
+
+  it("should_workWithoutCallback_when_onFokusWechselOmitted", () => {
+    // F5 reicht keinen Callback herein: Chip klappt trotzdem lokal auf, kein Absturz.
+    renderListe({ initialOpenId: null });
+
+    fireEvent.click(screen.getByRole("button", { name: "Anna" }));
+
+    expect(cardHead("Anna")).toHaveAttribute("aria-expanded", "true");
   });
 
   it("should_showOnlyOwnPositions_when_multipleZeilenHavePositions", () => {
@@ -151,7 +166,7 @@ describe("FokusListe (#183/ADR-035)", () => {
     expect(karte).toHaveClass("scroll-mt-16");
   });
 
-  it("should_deferScrollUntilAfterLayoutExpansion_when_zielSelected", () => {
+  it("should_deferScrollUntilAfterLayoutExpansion_when_focusSelected", () => {
     // Bug #188 (Screenshot 2): setOpenId + scrollIntoView im selben Tick scrollt gegen das NOCH
     // eingeklappte Layout; nach dem Reflow (andere Karte klappt zu, Ziel klappt auf) ist nur noch
     // der untere Rand sichtbar. Der Scroll muss NACH dem Layout-Update laufen (requestAnimationFrame).
@@ -169,15 +184,14 @@ describe("FokusListe (#183/ADR-035)", () => {
     expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
   });
 
-  it("should_collapseAllAndNotPersist_when_readOnly", () => {
-    // Read-only (D5): alle Karten zu, kein Ziel-Flow. Chip klappt lokal auf, merkt aber nichts.
+  it("should_collapseAllAndRenderDisabled_when_readOnly", () => {
+    // Read-only (D5): alle Karten zu, kein Callback (der Konsument merkt sich bei read-only nichts).
+    // Chip klappt lokal auf, die aufgeklappte Karte ist nicht bearbeitbar.
     renderListe({ editable: false, initialOpenId: null });
     expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Anna" }));
 
-    const menge = screen.getByTestId("menge");
-    expect(menge).toHaveAttribute("data-editable", "false");
-    expect(window.localStorage.getItem(ZIEL_KEY)).toBeNull();
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
 });

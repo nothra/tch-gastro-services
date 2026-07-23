@@ -6,7 +6,8 @@ import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
-import { VerzehrErfassung } from "@/app/_verzehr/VerzehrErfassung";
+import { FokusListe } from "@/app/_verzehr/FokusListe";
+import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrErfassung";
 import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
@@ -37,6 +38,7 @@ export default async function VerzehrPage({ params }: { params: Promise<{ id: st
     listPositionen(id),
   ]);
   const offen = veranstaltung.status === "offen";
+  const verzehrZeilen = toVerzehrZeilen(zeilen);
 
   // Die veranstaltungId ist ein serverseitig gebundenes, vertrauenswürdiges Argument der Action
   // (route-neutral, ADR-025 D5/D6) – der Client liefert sie nicht.
@@ -60,13 +62,22 @@ export default async function VerzehrPage({ params }: { params: Promise<{ id: st
         </p>
       </div>
 
-      <VerzehrErfassung
-        zeilen={toVerzehrZeilen(zeilen)}
-        artikel={toVerzehrArtikelListe(artikel)}
-        positionen={positionen}
-        action={action}
-        editable={offen}
-      />
+      {verzehrZeilen.length === 0 ? (
+        // FokusListe setzt ≥1 Zeile voraus (ADR-039 D4); der leere Fall bleibt hier beim
+        // Konsumenten, weil die Meldung wegabhängig ist (F5 verweist auf das Anlegen von Teilnehmern).
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{KEIN_TEILNEHMER_HINWEIS}</p>
+      ) : (
+        // Fokus-Akkordeon wie im Link-Weg (ADR-039 D3): keine Karte offen initial, kein
+        // onFokusWechsel (F5 merkt sich kein Ziel geräte-lokal). editable an den Status gebunden.
+        <FokusListe
+          zeilen={verzehrZeilen}
+          artikel={toVerzehrArtikelListe(artikel)}
+          positionen={positionen}
+          action={action}
+          editable={offen}
+          initialOpenId={null}
+        />
+      )}
     </main>
   );
 }

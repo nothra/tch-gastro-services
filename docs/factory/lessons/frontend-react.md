@@ -192,3 +192,32 @@ gemeinsame Baustein frei von Fremd-Layout-Wissen (stärkt #52), und die Prop-Sem
 Unit-Test der Komponente prüft den `className`-Durchreich-Vertrag; das reale Verhalten sichert ein
 Integrationstest am Konsumenten.
 
+> **Nachtrag (aus #187, Review-Nitpick):** Dieselbe Kopplungsart tauchte erneut auf – diesmal beim
+> Rand-Bleed der Chip-Leiste (`-mx-6 … px-6`, setzt ein Eltern-`p-6` voraus), nicht beim
+> `scroll-mt-*`-Offset. Als Nitpick eingestuft (beide aktuellen Konsumenten nutzen `p-6`, keine
+> Regression), aber noch **nicht** auf `className` umgestellt – siehe Folge-Issue (aus `/codify`
+> #187 angelegt) für den Nachzieher.
+
+### Verschieben eines route-neutralen Moduls: alte Datei löschen ist Teil des Moves, nicht optional (aus #187, Review-Eskalation Runde 1–3)
+
+Die Task-Datei verlangte „`FokusListe` nach `app/_verzehr/` verschieben". `/implement` legte die
+neue, route-neutrale Datei in `app/_verzehr/FokusListe.tsx` an, verkabelte `IdentityGate` korrekt
+auf den neuen Import – ließ aber die alte `app/theke/[token]/FokusListe.tsx` (samt
+`FokusListe.test.tsx` und einem `raf-stub.ts`, byte-identisch zum bereits bestehenden
+`app/_verzehr/raf-stub.ts` – exakt die in #194 gewarnte Stub-Duplikation) unverändert im Baum
+stehen. Nichts referenzierte die alten Dateien mehr, sie liefen aber weiter grün mit (toter,
+aber lauffähiger Code) – **drei** Review-Runden lang unbemerkt, bis der Fund in Runde 1 eskaliert
+und erst in Runde 4 (Commit `f5c5ca6`, `git rm`) tatsächlich behoben wurde. Der Reflex bei einem
+"verschieben"-Auftrag ist, die neue Datei zu schreiben und `git status` nur auf die **neuen**
+Pfade zu prüfen – nicht zu verifizieren, dass die alte Datei tatsächlich **weg** ist.
+
+**Smell:** „Ich habe gerade eine Datei ‚verschoben' – zeigt `git status`/`git diff --stat` die
+alte Datei als **gelöscht** (`D`), oder existiert sie einfach unverändert neben der neuen weiter?"
+
+**Regel:** Bei jedem Auftrag „X nach Y verschieben" den Move nach dem Schreiben von Y sofort mit
+`git status`/`git diff --stat` gegenprüfen – die alte Datei muss als `D` (deleted) erscheinen,
+nicht nur ungenannt bleiben. Wo möglich `git mv alter-pfad neuer-pfad` **zuerst** ausführen und
+danach den Inhalt anpassen, statt eine komplett neue Datei zu schreiben und die alte separat zu
+löschen – so trackt Git die Lösch-Absicht von Anfang an und ein vergessenes `git rm` fällt sofort
+in `git status` auf, statt erst im Review.
+

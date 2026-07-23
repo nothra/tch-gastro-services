@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
 import type { CatalogItem, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 
@@ -95,8 +96,24 @@ function params(id: string) {
   return Promise.resolve({ id });
 }
 
+// Chip der sticky Auswahl-Leiste (kein aria-expanded; der Karten-Kopf trägt aria-expanded).
+function chip(name: string) {
+  const button = screen
+    .getAllByRole("button", { name: new RegExp(name) })
+    .find((candidate) => !candidate.hasAttribute("aria-expanded"));
+  if (!button) throw new Error(`Kein Chip für ${name}`);
+  return button;
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
+  // jsdom implementiert scrollIntoView nicht; FokusListe ruft es guarded im rAF-Callback auf.
+  Element.prototype.scrollIntoView = vi.fn();
+  stubRequestAnimationFrame();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("VerzehrPage", () => {
@@ -125,7 +142,7 @@ describe("VerzehrPage", () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it("should_renderTeilnehmerAndArtikel_when_veranstalterAndOpen", async () => {
+  it("should_renderCollapsedAccordionWithChipBar_when_veranstalterAndOpen", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -134,14 +151,15 @@ describe("VerzehrPage", () => {
 
     render(await VerzehrPage({ params: params("v-1") }));
 
-    expect(screen.getByText("Anna")).toBeInTheDocument();
-    expect(screen.getByText(/Cola/)).toBeInTheDocument();
-    // Offen → editierbar: das Stub spiegelt die editable-Prop wider.
-    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "true");
+    // Sticky Chip-Leiste wie im Link-Weg, Teilnehmer als Chip sichtbar …
+    expect(screen.getByRole("group", { name: "Teilnehmer auswählen" })).toBeInTheDocument();
+    expect(chip("Anna")).toBeInTheDocument();
+    // … aber initial keine Karte offen → keine MengeControl gerendert.
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
   });
 
-  it("should_passSizeToArtikel_when_catalogItemHasSize", async () => {
+  it("should_openCardEditable_when_chipTappedOnOpenVeranstaltung", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -149,7 +167,10 @@ describe("VerzehrPage", () => {
     listPositionenMock.mockResolvedValue([]);
 
     render(await VerzehrPage({ params: params("v-1") }));
+    fireEvent.click(chip("Anna"));
 
+    // Offen → editierbar: das Stub spiegelt die editable-Prop wider.
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "true");
     expect(screen.getByText("Cola · 0,5l · 2,50 €")).toBeInTheDocument();
   });
 
@@ -161,6 +182,9 @@ describe("VerzehrPage", () => {
     listPositionenMock.mockResolvedValue([]);
 
     render(await VerzehrPage({ params: params("v-1") }));
+    // Read-only: ebenfalls Akkordeon, initial eingeklappt.
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+    fireEvent.click(chip("Anna"));
 
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
@@ -183,7 +207,22 @@ describe("VerzehrPage", () => {
     listPositionenMock.mockResolvedValue([position]);
 
     render(await VerzehrPage({ params: params("v-1") }));
+    fireEvent.click(chip("Anna"));
 
     expect(screen.getByTestId("menge")).toHaveTextContent("3");
+  });
+
+  it("should_showEmptyHint_when_noZeilen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveCatalogMock.mockResolvedValue([cola]);
+    listPositionenMock.mockResolvedValue([]);
+
+    render(await VerzehrPage({ params: params("v-1") }));
+
+    expect(screen.getByText(/Noch keine Teilnehmer erfasst/)).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Teilnehmer auswählen" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
   });
 });
