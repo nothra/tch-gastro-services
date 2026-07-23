@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die beiden Auswahl-Widgets des Identitäts-Gates der Selbstbedienung
@@ -72,6 +72,12 @@ Beide „Wichtig"-Funde aus dem Review behoben:
 - `app/theke/[token]/raf-stub.ts` (neu): gemeinsamer `requestAnimationFrame`-Test-Stub, jetzt von
   `IdentityGate.test.tsx` UND `FokusListe.test.tsx` genutzt statt zweimal unabhängig gepflegt.
 Alle 614 Tests weiterhin grün, Lint/Typecheck/Format grün, Coverage unverändert vollständig.
+
+### Codify-Report
+Learning erfasst: [`docs/factory/lessons/testing.md`](../docs/factory/lessons/testing.md) –
+Layout-Timing-Test-Stub (rAF) vor dem Neuschreiben im Verzeichnis suchen. Details:
+[tasks/codify-194.md](codify-194.md). Pipeline (Phasen 1-6) abgeschlossen; PR #202 (Draft) offen
+für menschliches Review/Merge – `/pr-shepherd` wurde nicht angefordert (`PR_SHEPHERD` nicht gesetzt).
 
 ---
 Branch: `feature/194-auswahl-als-dropdown`
