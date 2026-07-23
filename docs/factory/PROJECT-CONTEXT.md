@@ -226,6 +226,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - AC mit Direktive + Begründung: je separierbaren Teil eine eigene Assertion (aus #117, /test-Selbstfund)
 - Zod-Fehlermeldung: Ablehnungs-Test ≠ Meldungs-Test (aus #116, Review-Runde-1-Finding)
 - Neue gesourcte Lib in run-pipeline.sh → alle Temp-Repo-Scaffoldings in run-tests.sh mitkopieren (aus #197)
+- Layout-Timing-Test-Stub (rAF) vor dem Neuschreiben im selben Verzeichnis suchen, nicht duplizieren (aus #194, Review-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
