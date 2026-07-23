@@ -273,6 +273,20 @@ describe("KassierenPage", () => {
     expect(summeCents).toBe(800);
   });
 
+  it("should_showKeinVerzehr_when_zeileHasNoPositions", async () => {
+    arrangeHappyPath();
+    // Nur z-1 hat Positionen; z-2 (Bernd) hat gar keinen erfassten Verzehr → auf Seitenebene
+    // greift der undefined→[]-Fallback (kein Map-Eintrag) und die Aufschlüsselung zeigt den Hinweis.
+    listPositionenMock.mockResolvedValue([
+      pos({ zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk", name: "Cola" }),
+    ]);
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    const berndLi = screen.getByText("Bernd Beispiel").closest("li")!;
+    expect(within(berndLi).getByText("Kein Verzehr erfasst")).toBeInTheDocument();
+  });
+
   it("should_showSoftDeletedArticleInBreakdown_when_articleInactive", async () => {
     arrangeHappyPath();
     listPositionenMock.mockResolvedValue([
