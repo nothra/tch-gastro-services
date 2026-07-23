@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # create-issue.sh – sourcebare Bibliothek: zentraler Seam für die Issue-Anlage (ADR-018).
 #
-# Diese Datei wird per `source`/`.` eingebunden und stellt EINE Funktion bereit:
+# Diese Datei wird per `source`/`.` eingebunden und stellt ZWEI öffentliche Funktionen bereit:
 #
 #   create_issue <title> <body> <art-label> [aspekt-csv]
 #     → legt ein GitHub-Issue an, setzt Art-Label + optionale Aspekt-Labels
@@ -9,6 +9,13 @@
 #     → alle Warnungen/Diagnostik gehen auf stderr, damit `num=$(create_issue …)`
 #       ausschließlich die reine Nummer erhält (stdout-Hygiene, ADR-018 §2)
 #     → Exit ≠ 0 nur, wenn gar kein Issue entsteht (fail-closed auf die Anlage)
+#
+#   create_issue_idempotent <title> <body> <art-label> [aspekt-csv]   (ADR-040, #207)
+#     → opt-in-Idempotenz-Variante NUR für die autonomen Pipeline-Aufrufer (`/codify`,
+#       `/review`, `/security-review`): findet ein OFFENES Issue mit exakt gleichem Titel →
+#       dessen Nummer auf stdout (keine Anlage), sonst DELEGATION an das unveränderte
+#       `create_issue`. Gleiche Signatur + gleicher stdout/stderr-Kontrakt. Verhindert
+#       Duplikat-Issues, wenn ein gedächtnisloser Retry denselben Fund erneut anlegen würde.
 #
 # Label-Degradation (fail-open aufs Label, ADR-018 §3) – das verpflichtende Art-Label
 # wird nie durch ein fehlendes Aspekt-Label mitgerissen:
@@ -165,6 +172,10 @@ _cri_find_open_issue_by_title() {
   local -a repo_args=()
   [ -n "$repo" ] && repo_args=(--repo "$repo")
 
+  # --limit 100: die `in:title`-Suche verengt bereits stark; sollten >100 offene Issues denselben
+  # Titel-Teilstring tragen, ist ein übersehener älterer Treffer unkritisch (fail-open-Richtung:
+  # höchstens ein Duplikat, nie ein verlorener Fund) – der frisch angelegte Retry-Kandidat ist
+  # ohnehin der neueste und damit stets in der Menge.
   local raw
   raw=$(gh issue list ${repo_args[@]+"${repo_args[@]}"} \
           --state open --search "in:title $title" --limit 100 \

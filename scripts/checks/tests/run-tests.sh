@@ -766,7 +766,9 @@ TMP_IDEM="$(mktemp -d)"; mkdir -p "$TMP_IDEM/bin"
 # gh-Stub: 'issue list' liefert die in FAKE_OPEN vorkonfigurierten OFFENEN Kandidaten
 # (Format exakt wie `-q '.[] | .number, .title'`: je Issue eine Nummer-Zeile, dann eine
 # Titel-Zeile) und protokolliert seine Argumente nach LIST_LOG. FAKE_LIST_FAIL=1 simuliert
-# einen Lookup-Fehler (gh-Exit ≠ 0). 'issue create' verhält sich wie im Seam-Stub.
+# einen Lookup-Fehler (gh-Exit ≠ 0). 'issue create' verhält sich wie im Seam-Stub: loggt nach
+# GH_LOG, liefert FAKE_NUM; FAKE_BAD_LABEL lässt eine Anlage mit diesem --label-Wert scheitern
+# (simuliert „Label existiert im Repo nicht" → prüft die Label-Degradation hinter dem Wrapper).
 cat > "$TMP_IDEM/bin/gh" <<'GHEOF'
 #!/bin/sh
 if [ "$1 $2" = "issue list" ]; then
@@ -777,6 +779,9 @@ if [ "$1 $2" = "issue list" ]; then
 fi
 if [ "$1 $2" = "issue create" ]; then
   [ -n "${GH_LOG:-}" ] && printf '%s\n' "$*" >> "$GH_LOG"
+  if [ -n "${FAKE_BAD_LABEL:-}" ]; then
+    for w in "$@"; do [ "$w" = "$FAKE_BAD_LABEL" ] && exit 1; done
+  fi
   echo "https://github.com/test/repo/issues/${FAKE_NUM:-123}"
   exit 0
 fi
@@ -825,7 +830,9 @@ grep -q -- 'issue create' "$CLOG"; assert_true "$?" "AC5: Teilstring → regulä
 # Umkehrung: Zieltitel enthält den Kandidaten als Teilstring – ebenfalls kein Treffer
 CLOG="$TMP_IDEM/ac5b.create"; : > "$CLOG"
 open_short=$(printf '51\nFix the\n')
-out=$(FAKE_OPEN="$open_short" GH_LOG="$CLOG" idem "Fix the whole thing" "B" "enhancement" 2>/dev/null)
+out=$(FAKE_OPEN="$open_short" GH_LOG="$CLOG" idem "Fix the whole thing" "B" "enhancement" 2>/dev/null); rc=$?
+assert_exit 0 "$rc" "AC5: Umkehr-Teilstring → exit 0"
+assert_true "$([[ "$out" = "123" ]]; echo $?)" "AC5: Umkehr-Teilstring (Kandidat ⊂ Ziel) → neue Nummer (kein Treffer)"
 grep -q -- 'issue create' "$CLOG"; assert_true "$?" "AC5: Umkehr-Teilstring (Kandidat ⊂ Ziel) → ebenfalls Neuanlage"
 
 # AC5 (Schärfe) – mehrere exakte Treffer: niedrigste (älteste) Nummer gewinnt
@@ -833,6 +840,17 @@ CLOG="$TMP_IDEM/ac5c.create"; : > "$CLOG"
 open_multi=$(printf '308\nDoppelter Titel\n204\nDoppelter Titel\n')
 out=$(FAKE_OPEN="$open_multi" GH_LOG="$CLOG" idem "Doppelter Titel" "B" "enhancement" 2>/dev/null)
 assert_true "$([[ "$out" = "204" ]]; echo $?)" "AC5: mehrere exakte Treffer → niedrigste Nummer (204, nicht 308)"
+
+# Defensiv-Guard (create-issue.sh: `''|*[!0-9]*)`): eine nicht-numerische „Nummer"-Zeile bei
+# titelgleichem Kandidaten wird übersprungen (schützt das `-lt` vor nicht-numerischem Input),
+# der echte numerische Treffer wird trotzdem gefunden. Erzwingt den sonst nie erreichten
+# Guard-Zweig (testing-standards.md: Exhaustiveness-Guards brauchen einen eigenen Test).
+CLOG="$TMP_IDEM/guard.create"; : > "$CLOG"
+open_bad_num=$(printf 'x\nRefactor foo bar\n204\nRefactor foo bar\n')
+out=$(FAKE_OPEN="$open_bad_num" GH_LOG="$CLOG" idem "Refactor foo bar" "B" "enhancement" 2>/dev/null); rc=$?
+assert_exit 0 "$rc" "Guard: nicht-numerische Nummer-Zeile → exit 0 (kein -lt-Absturz)"
+assert_true "$([[ "$out" = "204" ]]; echo $?)" "Guard: nicht-numerische Nummer übersprungen, echter Treffer (204) gefunden"
+assert_true "$([[ ! -s "$CLOG" ]]; echo $?)" "Guard: Treffer trotz Müll-Zeile → keine Anlage"
 
 # F1 – Lookup nicht durchführbar (gh-Fehler) → fail-open: regulär anlegen + stderr-Warnung
 CLOG="$TMP_IDEM/f1.create"; : > "$CLOG"; ERR="$TMP_IDEM/f1.err"
@@ -872,11 +890,32 @@ out=$(PATH="$TMP_IDEM/bin:$PATH" FACTORY_REPO="test/repo" GH_LOG="$CLOG" \
   bash -c 'source "$0"; create_issue "$@"' "$SEAM_LIB" "T" "B" "enhancement" 2>/dev/null)
 assert_true "$([[ "$out" = "123" ]]; echo $?)" "Bestandspfad: create_issue weiterhin direkt nutzbar (unverändert)"
 
-# Regression: Treffer-Pfad des Wrappers läuft auch als bloßer Aufruf unter set -euo pipefail durch
+# W3: Alle drei Pfade laufen als bloßer Aufruf unter `set -euo pipefail` durch – nicht nur der
+# Treffer-Pfad, sondern gerade die errexit-EMPFINDLICHEN No-Match- (while-read-Heredoc-Schleife)
+# und Fail-open-Pfade (`raw=$(…) || return 2`, `existing=$(…) || rc=$?`). Ein künftiger
+# errexit-Bruch dort würde stumm zum Retry-Duplikat führen – genau der #207-Fehlerfall.
 rc=$(PATH="$TMP_IDEM/bin:$PATH" FACTORY_REPO="test/repo" FAKE_OPEN="$open_204" \
   bash -c 'set -euo pipefail; source "$0"; create_issue_idempotent "Refactor foo bar" "B" "enhancement" >/dev/null; echo "$?"' \
   "$SEAM_LIB" 2>/dev/null)
-assert_true "$([[ "$rc" = "0" ]]; echo $?)" "Idempotenz-Wrapper: Treffer-Pfad läuft unter set -euo pipefail durch (rc=0)"
+assert_true "$([[ "$rc" = "0" ]]; echo $?)" "W3: Treffer-Pfad läuft unter set -euo pipefail durch (rc=0)"
+rc=$(PATH="$TMP_IDEM/bin:$PATH" FACTORY_REPO="test/repo" FAKE_OPEN="" GH_LOG=/dev/null \
+  bash -c 'set -euo pipefail; source "$0"; create_issue_idempotent "Frischer Fund" "B" "enhancement" >/dev/null; echo "$?"' \
+  "$SEAM_LIB" 2>/dev/null)
+assert_true "$([[ "$rc" = "0" ]]; echo $?)" "W3: No-Match-Pfad läuft unter set -euo pipefail durch (rc=0)"
+rc=$(PATH="$TMP_IDEM/bin:$PATH" FACTORY_REPO="test/repo" FAKE_LIST_FAIL=1 GH_LOG=/dev/null \
+  bash -c 'set -euo pipefail; source "$0"; create_issue_idempotent "Frischer Fund" "B" "enhancement" >/dev/null; echo "$?"' \
+  "$SEAM_LIB" 2>/dev/null)
+assert_true "$([[ "$rc" = "0" ]]; echo $?)" "W3: Fail-open-Pfad läuft unter set -euo pipefail durch (rc=0)"
+
+# W4: F2 (Label-Degradation + fail-closed-Anlage) bleibt hinter dem Wrapper erhalten. No-Match →
+# Delegation an create_issue; ein abgelehntes Aspekt-Label degradiert auf nur-Art, das Issue
+# entsteht trotzdem (exit 0), stdout bleibt reine Nummer.
+CLOG="$TMP_IDEM/w4.create"; : > "$CLOG"; ERR="$TMP_IDEM/w4.err"
+out=$(FAKE_OPEN="" FAKE_BAD_LABEL="tech-debt" GH_LOG="$CLOG" idem "Frischer Fund" "B" "enhancement" "tech-debt" 2>"$ERR"); rc=$?
+assert_exit 0 "$rc" "W4: abgelehntes Aspekt-Label über Wrapper → Issue trotzdem (exit 0, Degradation)"
+assert_true "$([[ "$out" = "123" ]]; echo $?)" "W4: Degradation über Wrapper → stdout bleibt reine Nummer"
+tail -n1 "$CLOG" | grep -q -- '--label enhancement'; assert_true "$?" "W4: Fallback-Anlage trägt das Art-Label (enhancement)"
+assert_true "$(! tail -n1 "$CLOG" | grep -q -- 'tech-debt'; echo $?)" "W4: Fallback-Anlage trägt das abgelehnte Aspekt-Label NICHT mehr"
 
 rm -rf "$TMP_IDEM"
 

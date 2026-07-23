@@ -89,7 +89,20 @@ Entscheidung: [ADR-040](../docs/adr/040-idempotenter-issue-seam-fuer-pipeline-re
   wurde entfernt (Lesson #145).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+**Runde 1 (Review, 2026-07-23):** NEEDS_REWORK – keine KRITISCH, 4 WICHTIG. Report:
+[`tasks/review-207.md`](review-207.md). **Alle behoben (Rework-Iteration 1, 2026-07-23):**
+- [x] W1 – Datei-Header `create-issue.sh` sagte „stellt EINE Funktion bereit" → beide Funktionen
+  dokumentiert (inkl. `create_issue_idempotent` + ADR-040-Verweis).
+- [x] W2 – Numerik-Guard `''|*[!0-9]*)` war ungetestet → Test „Guard: nicht-numerische Nummer-Zeile"
+  erzwingt den Zweig (titelgleicher Kandidat mit nicht-numerischer Nummer wird übersprungen).
+- [x] W3 – `set -euo pipefail` nur für Treffer-Pfad getestet → zusätzlich No-Match- und
+  Fail-open-Pfad unter strict mode verriegelt.
+- [x] W4 – F2 (Label-Degradation) über den neuen Einstiegspunkt ungetestet → Test mit ablehnendem
+  `issue create`-Stub durch `create_issue_idempotent` (Degradation auf nur-Art, exit 0, stdout=Nummer).
+- [x] N1 – AC5b erfasste `out` ungeprüft → jetzt `out`+`rc` asserted (Symmetrie zu AC5a).
+- [x] N2 – `--limit 100` → Kommentar ergänzt, warum das für den Dedup-Zweck genügt.
+- Bewusst **nicht** behoben (Nitpicks, kosmetisch/vertretbar): Heredoc statt `<<<`, repo_args-Dup
+  (Bash-3.2-nameref-Grenze), Flag-Name `expect_num`, AC3-Stub-Grenze. Kein Gold-Plating.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
