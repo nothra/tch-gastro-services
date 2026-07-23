@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -67,7 +67,9 @@ Preis-/Mengen-/Summen-/Status-Logik). Spec: [spec-206](../docs/specs/spec-206-ka
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
-Details in [review-206](../tasks/review-206.md) (Runde 2, Empfehlung `NEEDS_REWORK`).
+Details in [review-206](../tasks/review-206.md) (Runde 3, Empfehlung `APPROVED`; der einzige
+Rework-Grund aus Runde 2 – React-Key-Kollision – ist behoben, keine offenen kritischen/wichtigen
+Findings).
 
 ## Refactoring-Notizen
 - **React-Key-Kollision behoben** (einziger Rework-Grund aus Review Runde 2):
