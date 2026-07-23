@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -85,6 +85,10 @@ Details in [review-206](../tasks/review-206.md) (Runde 2, Empfehlung `NEEDS_REWO
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Neue Lesson `docs/factory/lessons/frontend-react.md` („`.map`-Key aus Anzeigefeldern statt
+stabilem Identifier ist eine latente Kollisionsquelle", aus #206) + Index-Zeile in
+`docs/factory/PROJECT-CONTEXT.md`. Details: [codify-206](../tasks/codify-206.md). Security-Review
+und übrige Nitpicks lieferten kein neues, wiederkehrendes Muster.
 
 ---
 Branch: `feature/206-kassier-verzehr-uebersicht`
