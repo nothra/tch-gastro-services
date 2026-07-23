@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Im Karten-Kopf der Verzehr-Erfassung soll je Teilnehmer zusätzlich zu den drei Kategorie-Summen
@@ -56,7 +56,13 @@ Spec: `docs/specs/spec-209-verzehr-gesamt-summe-anzeigen.md`
 - Lint (`pre-commit.sh`) und alle 46 betroffenen Tests grün, unverändert vor/nach diesem Pass.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-209.md` – keine neuen Regeln, keine Änderungen nötig. Feature war klein,
+additiv und gut abgegrenzt; bestehende Regeln (Kern-Kurzregeln, ADR-021, testing-standards
+§AAA) haben ausgereicht. Review-Nitpick (Naming) bewusst nicht übernommen, kein wiederkehrendes
+Muster. Security-Review (`tasks/security-209.md`) PASSED, keine Findings.
+
+PR-Shepherd 2026-07-23: Merge freigegeben – alle Gates grün (CI, keine offenen Review-
+Kommentare, `mergeStateStatus: CLEAN`).
 
 ---
 Branch: `feature/209-verzehr-gesamt-summe-anzeigen`
