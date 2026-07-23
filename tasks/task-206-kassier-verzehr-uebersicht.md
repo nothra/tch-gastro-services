@@ -92,6 +92,11 @@ stabilem Identifier ist eine latente Kollisionsquelle", aus #206) + Index-Zeile 
 `docs/factory/PROJECT-CONTEXT.md`. Details: [codify-206](../tasks/codify-206.md). Security-Review
 und übrige Nitpicks lieferten kein neues, wiederkehrendes Muster.
 
+## PR-Shepherd-Notiz
+PR-Shepherd 2026-07-23: Merge freigegeben – alle Gates grün (CI vollständig grün, keine
+offenen Review-Kommentare, kein Rebase nötig – `mergeStateStatus: CLEAN`, kein Approval
+erforderlich gemäß ADR-029).
+
 ---
 Branch: `feature/206-kassier-verzehr-uebersicht`
 Erstellt: 2026-07-23 16:30
