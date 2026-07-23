@@ -1,7 +1,7 @@
 # Task 211: review-verdict-empfehlungszeile
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -22,18 +22,18 @@ Volle Spezifikation: [`docs/specs/spec-211-review-verdict-empfehlungszeile.md`](
 
 ## Akzeptanzkriterien
 
-- [ ] AK1 – Verdict wird aus der ersten nicht-leeren Zeile unter `## Empfehlung` gelesen (`report_verdict review`)
-- [ ] AK2 – Fließtext-Erwähnung an anderer Stelle wird ignoriert (Reihenfolge im Dokument irrelevant)
-- [ ] AK3 – Leerzeilen zwischen Überschrift und Verdict werden übersprungen
-- [ ] AK4 – Security-Review-Anker `## Ergebnis` → `PASSED | NEEDS_FIXES` analog
-- [ ] AK5 – Phase-2-Review-Loop nutzt die Anker-Logik (kein Volltext-`grep -q "APPROVED"`)
-- [ ] AK6 – Security-Gate nutzt die Anker-Logik (kein Volltext-`grep -q "NEEDS_FIXES"`)
-- [ ] AK7 – Verdict-Logik nur an einem Ort (`report_verdict`), beide run-pipeline-Stellen rufen sie auf
-- [ ] AK8 – Shell-Test-Suite grün; Mock-Fixtures tragen den Anker; „letztes Vorkommen"-Test durch Anker-Test ersetzt
-- [ ] F1 – Fehlender Anker → leeres Verdict (fail-closed, kein Volltext-Fallback)
-- [ ] F2 – Anker-Zeile ohne gültiges Token → leeres Verdict
-- [ ] F3 – Fehlende Report-Datei → leerer stdout, Exit 0
-- [ ] F4 – Anker-Zeile mit beiden Tokens (z. B. Template kopiert) → leeres Verdict (fail-closed)
+- [x] AK1 – Verdict wird aus der ersten nicht-leeren Zeile unter `## Empfehlung` gelesen (`report_verdict review`)
+- [x] AK2 – Fließtext-Erwähnung an anderer Stelle wird ignoriert (Reihenfolge im Dokument irrelevant)
+- [x] AK3 – Leerzeilen zwischen Überschrift und Verdict werden übersprungen
+- [x] AK4 – Security-Review-Anker `## Ergebnis` → `PASSED | NEEDS_FIXES` analog
+- [x] AK5 – Phase-2-Review-Loop nutzt die Anker-Logik (kein Volltext-`grep -q "APPROVED"`)
+- [x] AK6 – Security-Gate nutzt die Anker-Logik (kein Volltext-`grep -q "NEEDS_FIXES"`)
+- [x] AK7 – Verdict-Logik nur an einem Ort (`report_verdict`), beide run-pipeline-Stellen rufen sie auf
+- [x] AK8 – Shell-Test-Suite grün; Mock-Fixtures tragen den Anker; „letztes Vorkommen"-Test durch Anker-Test ersetzt
+- [x] F1 – Fehlender Anker → leeres Verdict (fail-closed, kein Volltext-Fallback)
+- [x] F2 – Anker-Zeile ohne gültiges Token → leeres Verdict
+- [x] F3 – Fehlende Report-Datei → leerer stdout, Exit 0
+- [x] F4 – Anker-Zeile mit beiden Tokens (z. B. Template kopiert) → leeres Verdict (fail-closed)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -47,6 +47,23 @@ Skill-spezifische Anker: review → `## Empfehlung` (`APPROVED|NEEDS_REWORK`),
 security-review → `## Ergebnis` (`PASSED|NEEDS_FIXES`). Nur POSIX-Regex / portables `awk`
 (clean-code.md „Portabilität in Gate-Skripten"). Kein ADR-Trigger erkennbar (Bugfix innerhalb
 der bestehenden ADR-019-§4-Absicht) → `/architecture` voraussichtlich nicht nötig.
+
+### Umsetzung (/implement, 2026-07-23)
+
+- `report_verdict()` liest nun anker-basiert per `awk`: erste nicht-leere Zeile nach der
+  verbindlichen Überschrift; genau **ein** gültiges Token → Verdict, sonst leer (fail-closed).
+  Ersetzt den alten `grep -oE … | tail -1` („letztes Vorkommen gewinnt"). `index()` +
+  `[[:space:]]` sind BSD/GNU-awk-portabel.
+- `run-pipeline.sh`: Phase-2-Review-Loop (vormals `grep -q "APPROVED"`) und Security-Gate
+  (vormals `grep -q "NEEDS_FIXES"`) rufen jetzt `report_verdict review|security-review` auf.
+  Die nur noch dort genutzten Hilfsvariablen `REVIEW_FILE`/`SECURITY_FILE` sind entfallen.
+- Tests (`run-tests.sh`): #91-Verdict-Block auf den Anker-Contract migriert (AK1–AK4, F1–F4),
+  „letztes Vorkommen"-Test durch F2/F4-Fail-closed-Tests ersetzt; falsche Review-Fixtures
+  (`## Ergebnis` statt `## Empfehlung`, anker-lose Mocks) korrigiert; zwei `--dry-run`-Mocks
+  (`VERDICT: APPROVED` → `## Empfehlung\nAPPROVED`) angepasst; AK5/AK6-Wiring-Guards ergänzt
+  (Volltext-Greps sind aus `run-pipeline.sh` verschwunden). Suite: 399 grün, 0 rot.
+- ADR-Trigger-Check: keine der vier Kategorien greift (Bugfix in bestehender ADR-019-§4-Absicht)
+  → kein `/architecture`.
 
 ## Offene Fragen
 
