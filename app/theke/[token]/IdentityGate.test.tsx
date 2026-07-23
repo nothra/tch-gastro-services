@@ -73,7 +73,7 @@ describe("IdentityGate – Schritt 1: Erfasser", () => {
     // Keine Teilnehmer-Buttons mehr (AC: natives Dropdown statt Button-Liste).
     expect(screen.queryByRole("button", { name: "Anna" })).not.toBeInTheDocument();
     // Platzhalter ist vorausgewählt.
-    expect(within(select).getByRole("option", { name: "Bitte wählen…" }).selected).toBe(true);
+    expect(select).toHaveValue("");
     // Erfassbereiche sichtbar, aber nicht bearbeitbar (spec-54 AC B, Codify #54).
     const menge = screen.getAllByTestId("menge");
     expect(menge.length).toBeGreaterThan(0);

@@ -177,7 +177,10 @@ const selectClass =
 // Auto-Weiter + Platzhalter (spec-194): der Platzhalter feuert bewusst kein `onWaehle`, damit die
 // Wahl jeder echten Option ein change-Ereignis auslöst – auch wenn dieselbe Option erneut gewählt
 // wird, wäre sie ohne Platzhalter bereits vorausgewählt und würde kein Ereignis feuern.
-function handleAuswahl(event: React.ChangeEvent<HTMLSelectElement>, onWaehle: (id: string) => void) {
+function handleAuswahl(
+  event: React.ChangeEvent<HTMLSelectElement>,
+  onWaehle: (id: string) => void,
+) {
   const id = event.target.value;
   if (id) onWaehle(id);
 }
