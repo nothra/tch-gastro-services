@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -83,6 +83,10 @@ Token-Liste bewusst verworfen (Spec schließt neue Tokens aus → YAGNI). Suite:
 
 _Keine – fehlender Anker = fail-closed; erste nicht-leere Zeile nach der Überschrift zählt
 (mit Entwickler geklärt, 2026-07-23)._
+
+PR-Shepherd 2026-07-23: Merge freigegeben – alle Gates grün (CI: lint/test/analyze/CodeQL/
+factory-self-test/issue-sync/pr-closes-issue pass), Branch level mit main (kein Rebase nötig),
+keine offenen Review-Kommentare, Ruleset verlangt 0 Approvals (ADR-029). PR #213.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
