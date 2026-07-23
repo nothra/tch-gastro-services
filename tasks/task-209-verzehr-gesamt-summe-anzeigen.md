@@ -3,9 +3,9 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -44,6 +44,16 @@ Spec: `docs/specs/spec-209-verzehr-gesamt-summe-anzeigen.md`
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+## Refactoring-Notizen
+- **Keine Änderungen nötig.** Diff-Scope geprüft gegen `origin/main` (lokales `main` in diesem
+  Worktree lag hinter dem Remote – bekannter Stolperstein, siehe `lessons/factory-workflow.md`).
+  Betroffene Dateien (`summen.ts`, `summen.test.ts`, `VerzehrErfassung.tsx`, deren Test) sind
+  bereits minimal: keine Duplikation, keine Magic Numbers, Exhaustiveness-Guard unberührt.
+- Review (`review-209.md`, APPROVED) hatte nur einen Nitpick (`gesamtCents` vs.
+  `verzehrGesamtCents`-Naming), bewusst mit Begründung nicht übernommen – erneutes Aufgreifen
+  hier hätte nur Churn ohne Verhaltensänderung erzeugt.
+- Lint (`pre-commit.sh`) und alle 46 betroffenen Tests grün, unverändert vor/nach diesem Pass.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
