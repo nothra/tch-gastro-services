@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -129,7 +129,13 @@ von `select_tier` an die im Rework ergänzte symmetrische `threshold`-Guard ange
 Doku-Korrektur, kein Verhalten). Suite vor/nach identisch 393 grün.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Details in `tasks/codify-197.md`. 3 neue Lessons (ADR-037):
+- factory-workflow: ADR-Status beim Umsetzen auf `Accepted` flippen (#197 Review-Finding).
+- testing: neue gesourcte Lib in run-pipeline.sh → alle Temp-Repo-Scaffoldings in run-tests.sh
+  mitkopieren (#197 Selbstfund, 2 rote Fremd-Tests).
+- code-style: Fail-Safe/Guard symmetrisch auf alle Vergleichs-Inputs (#197 Review-Finding).
+Je Lesson eine Index-Zeile mit „Laden bei"-Trigger in PROJECT-CONTEXT.md. Kein neuer Check
+(Urteilsregeln, nicht mechanisch prüfbar), keine CLAUDE.md-/Guideline-Änderung, kein Folge-Issue.
 
 ---
 Branch: `improvement/197-modell-tiers-gezielter-vergeben`
