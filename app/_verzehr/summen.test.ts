@@ -19,17 +19,32 @@ describe("zeileSummen", () => {
 
   it("should_sumGetraenkeAsMengeTimesPreis_when_getraenkPositions", () => {
     const result = zeileSummen([pos({ menge: 3, priceCents: 150, category: "getraenk" })]);
-    expect(result).toEqual({ getraenkeCents: 450, essenCents: 0, kaffeeCents: 0, gesamtCents: 450 });
+    expect(result).toEqual({
+      getraenkeCents: 450,
+      essenCents: 0,
+      kaffeeCents: 0,
+      gesamtCents: 450,
+    });
   });
 
   it("should_sumEssenAsMengeTimesPreis_when_essenPositions", () => {
     const result = zeileSummen([pos({ menge: 2, priceCents: 350, category: "essen" })]);
-    expect(result).toEqual({ getraenkeCents: 0, essenCents: 700, kaffeeCents: 0, gesamtCents: 700 });
+    expect(result).toEqual({
+      getraenkeCents: 0,
+      essenCents: 700,
+      kaffeeCents: 0,
+      gesamtCents: 700,
+    });
   });
 
   it("should_sumKaffeeAsMengeTimesPreis_when_kaffeePositions", () => {
     const result = zeileSummen([pos({ menge: 4, priceCents: 80, category: "kaffee" })]);
-    expect(result).toEqual({ getraenkeCents: 0, essenCents: 0, kaffeeCents: 320, gesamtCents: 320 });
+    expect(result).toEqual({
+      getraenkeCents: 0,
+      essenCents: 0,
+      kaffeeCents: 320,
+      gesamtCents: 320,
+    });
   });
 
   it("should_splitByCategory_when_mixedPositions", () => {
