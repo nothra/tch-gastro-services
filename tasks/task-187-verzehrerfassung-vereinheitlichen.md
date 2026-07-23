@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die Verzehrerfassung sieht auf dem Veranstalter-Weg (F5, `/veranstaltung/[id]/verzehr`) und dem
@@ -158,6 +158,12 @@ Zwei neue Regeln extrahiert (Details + Volltext: `tasks/codify-187.md`,
 - Callback-Prop nur durch Codelesen belegt ist keine Testabdeckung – Coverage-Report gegen jedes
   Review-Positiv gegenprüfen.
 Security-Review (PASSED, keine Findings) lieferte kein neues Learning. Folge-Issue #205 angelegt.
+
+## PR-Shepherd
+PR-Shepherd 2026-07-23: Merge freigegeben – alle Gates grün (Lint, Tests, Typecheck, Format,
+Routen-Doku-Drift, Security). Branch aktuell zu `main`, kein Rebase nötig. Keine offenen
+Review-Kommentare (nur automatischer Vercel-Preview-Kommentar). Kein Approval-Gate
+erforderlich (ADR-029: 0 Approvals). Draft → ready, Auto-Merge (Squash) freigegeben.
 
 ---
 Branch: `feature/187-verzehrerfassung-vereinheitlichen`
