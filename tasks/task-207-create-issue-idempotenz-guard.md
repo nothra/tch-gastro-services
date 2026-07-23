@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -113,7 +113,10 @@ Leichter Clean-Code-Pass (kein neues Verhalten, 439 grün vor + nach):
   kommentierter lokaler Toggle). Code war nach zwei Review-Runden bereits sauber.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+2 neue Lessons (Volltext + Index-Zeile in PROJECT-CONTEXT.md), Report: [`tasks/codify-207.md`](codify-207.md):
+- testing.md – Strict-mode-/Umgebungs-Kontrakt-Tests auf die Fehler-/No-Match-Zweige (aus W3).
+- code-style.md – Zähl-nennender Modul-Header beim Hinzufügen einer Einheit mitpflegen (aus W1).
+- W2/W4 bereits durch bestehende Lessons abgedeckt (testing.md #51/#187, code-style.md #197) – kein Duplikat.
 
 ---
 Branch: `fix/207-create-issue-idempotenz-guard`
