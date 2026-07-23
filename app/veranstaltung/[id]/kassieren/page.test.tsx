@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Veranstaltung, VeranstaltungEreignis, VeranstaltungZeile } from "@/db/schema";
 import type { AuslageRow } from "@/db/auslage";
 import type { VerzehrPositionRow } from "@/db/verzehr";
@@ -108,9 +108,16 @@ function pos(overrides: Partial<VerzehrPositionRow>): VerzehrPositionRow {
 }
 
 const positionen: VerzehrPositionRow[] = [
-  pos({ zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk" }),
-  pos({ zeileId: "z-1", menge: 1, priceCents: 300, category: "essen" }),
-  pos({ zeileId: "z-2", menge: 1, priceCents: 250, category: "getraenk" }),
+  pos({ zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk", name: "Cola", size: "" }),
+  pos({
+    zeileId: "z-1",
+    menge: 1,
+    priceCents: 300,
+    category: "essen",
+    name: "Schnitzel",
+    size: "",
+  }),
+  pos({ zeileId: "z-2", menge: 1, priceCents: 250, category: "getraenk", name: "Cola", size: "" }),
 ];
 
 // Auslagen: 5,50 € Sonstiges erstattet (kassenwirksam) + 2,00 € Getränke offen (nicht kassenwirksam).
@@ -148,6 +155,12 @@ const ereignisse: VeranstaltungEreignis[] = [
 
 function params(id: string) {
   return Promise.resolve({ id });
+}
+
+// "8,00 €" → 800 (nur für die Testdaten; keine Tausendertrenner nötig).
+function centsFromEuroText(text: string): number {
+  const [euro, cent] = text.replace(/\s*€/, "").split(",");
+  return Number(euro) * 100 + Number(cent);
 }
 
 function arrangeHappyPath() {
@@ -195,18 +208,105 @@ describe("KassierenPage", () => {
     );
   });
 
-  it("should_renderZeileVerzehrGesamt_when_positionsPresent", async () => {
+  it("should_renderResolvedCategoriesPerZeile_when_positionsPresent", async () => {
     arrangeHappyPath();
 
     render(await KassierenPage({ params: params("v-1") }));
 
     expect(screen.getByText("Anna Beispiel")).toBeInTheDocument();
     expect(screen.getByText("Bernd Beispiel")).toBeInTheDocument();
-    // Verzehr-Gesamt der z-1 (ohne Auslagen-Abzug) = 500 + 300 = 8,00 € (eindeutig). z-2 (250)
-    // fließt in die Tagessumme 10,50 € ein (unten geprüft) und erscheint als Getränke+Verzehr
-    // doppelt als 2,50 € – der Zeilenwert selbst ist in kassierSummen unit-getestet.
-    expect(screen.getByText("8,00 €")).toBeInTheDocument();
-    expect(screen.getAllByText("2,50 €").length).toBe(2);
+    // Kategorie „Sonstige" ist überall in Essen + Kaffee aufgelöst.
+    expect(screen.queryByText("Sonstige")).not.toBeInTheDocument();
+
+    const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
+    // Alle drei Kategorien getrennt sichtbar; Verzehr-Gesamt der z-1 = 500 + 300 = 8,00 € (eindeutig).
+    expect(within(annaLi).getByText("Getränke")).toBeInTheDocument();
+    expect(within(annaLi).getByText("Essen")).toBeInTheDocument();
+    expect(within(annaLi).getByText("Kaffee")).toBeInTheDocument();
+    expect(within(annaLi).getByText("Verzehr-Gesamt")).toBeInTheDocument();
+    expect(within(annaLi).getByText("8,00 €")).toBeInTheDocument();
+  });
+
+  it("should_showAllThreeCategoriesWithZero_when_onlyGetraenke", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    // Bernd hat nur ein Getränk (2,50 €) → Essen und Kaffee dennoch sichtbar mit 0,00 €.
+    const berndLi = screen.getByText("Bernd Beispiel").closest("li")!;
+    const essen = within(berndLi).getByText("Essen").closest("div")!;
+    const kaffee = within(berndLi).getByText("Kaffee").closest("div")!;
+    expect(within(essen).getByText("0,00 €")).toBeInTheDocument();
+    expect(within(kaffee).getByText("0,00 €")).toBeInTheDocument();
+  });
+
+  it("should_renderCollapsedVerzehrBreakdownPerZeile_when_rendered", async () => {
+    arrangeHappyPath();
+
+    const { container } = render(await KassierenPage({ params: params("v-1") }));
+
+    const disclosures = container.querySelectorAll("details");
+    expect(disclosures.length).toBe(2);
+    disclosures.forEach((details) => expect(details).not.toHaveAttribute("open"));
+    expect(screen.getAllByText("Verzehr anzeigen").length).toBe(2);
+
+    // z-1 listet ihre konsumierten Artikel (inkl. aufgelöstem Namen).
+    const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
+    expect(within(annaLi).getByText("Cola")).toBeInTheDocument();
+    expect(within(annaLi).getByText("Schnitzel")).toBeInTheDocument();
+  });
+
+  it("should_matchBreakdownSumToVerzehrGesamt_when_expanded", async () => {
+    arrangeHappyPath();
+
+    const { container } = render(await KassierenPage({ params: params("v-1") }));
+
+    // Positionsbeträge der z-1 aufsummiert = Verzehr-Gesamt (800): Cola 2×250 + Schnitzel 1×300.
+    const annaDetails = container.querySelector("li details")!;
+    const summeCents = within(annaDetails as HTMLElement)
+      .getAllByRole("row")
+      .filter((row) => row.querySelector("td"))
+      .reduce((sum, row) => {
+        const cells = within(row).getAllByRole("cell");
+        return sum + centsFromEuroText(cells[cells.length - 1].textContent ?? "");
+      }, 0);
+    expect(summeCents).toBe(800);
+  });
+
+  it("should_showKeinVerzehr_when_zeileHasNoPositions", async () => {
+    arrangeHappyPath();
+    // Nur z-1 hat Positionen; z-2 (Bernd) hat gar keinen erfassten Verzehr → auf Seitenebene
+    // greift der undefined→[]-Fallback (kein Map-Eintrag) und die Aufschlüsselung zeigt den Hinweis.
+    listPositionenMock.mockResolvedValue([
+      pos({ zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk", name: "Cola" }),
+    ]);
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    const berndLi = screen.getByText("Bernd Beispiel").closest("li")!;
+    expect(within(berndLi).getByText("Kein Verzehr erfasst")).toBeInTheDocument();
+  });
+
+  it("should_showSoftDeletedArticleInBreakdown_when_articleInactive", async () => {
+    arrangeHappyPath();
+    listPositionenMock.mockResolvedValue([
+      pos({
+        zeileId: "z-1",
+        menge: 1,
+        priceCents: 400,
+        category: "essen",
+        name: "Altes Gericht",
+        size: "",
+        active: false,
+      }),
+      pos({ zeileId: "z-2", menge: 1, priceCents: 250, category: "getraenk", name: "Cola" }),
+    ]);
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    // Soft-gelöschter Artikel (COALESCE-Name/-Preis) bleibt in der Aufschlüsselung sichtbar.
+    const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
+    expect(within(annaLi).getByText("Altes Gericht")).toBeInTheDocument();
   });
 
   it("should_markPaidLineAsBezahlt_when_erhaltenCoversVerzehr", async () => {
@@ -236,6 +336,22 @@ describe("KassierenPage", () => {
     expect(screen.getByText("10,50 €")).toBeInTheDocument();
     expect(screen.getByText("Offene Zeilen:")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
+
+    // Kategorie „Sonstige" ist in Getränke · Essen · Kaffee aufgelöst; die Reihenfolge der
+    // Summenzeilen bleibt fix (Verzehr-Gesamt hervorgehoben zwischen Kategorien und Erhalten).
+    const tagessummen = screen.getByText("Tagessummen").closest("section")!;
+    const zeilenLabels = within(tagessummen)
+      .getAllByRole("row")
+      .map((row) => within(row).getAllByRole("cell")[0]?.textContent);
+    expect(zeilenLabels).toEqual([
+      "Getränke",
+      "Essen",
+      "Kaffee",
+      "Verzehr-Gesamt",
+      "Erhalten",
+      "Spende",
+    ]);
+    expect(within(tagessummen).queryByText("Sonstige")).not.toBeInTheDocument();
   });
 
   it("should_showGesamtabrechnungForAssignedKasse_when_rendered", async () => {
@@ -294,6 +410,8 @@ describe("KassierenPage", () => {
     // Schreibgeschützt: kein Erfassungsformular, stattdessen der erhaltene Betrag als Text.
     expect(screen.queryByTestId("kassiere-form")).not.toBeInTheDocument();
     expect(screen.getAllByText(/Erhalten:/).length).toBeGreaterThan(0);
+    // Aufschlüsselung bleibt in der Lese-Ansicht je Teilnehmer verfügbar (AC7).
+    expect(screen.getAllByText("Verzehr anzeigen").length).toBe(2);
   });
 
   it("should_showEmptyState_when_noZeilen", async () => {

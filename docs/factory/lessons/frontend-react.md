@@ -221,3 +221,31 @@ danach den Inhalt anpassen, statt eine komplett neue Datei zu schreiben und die 
 löschen – so trackt Git die Lösch-Absicht von Anfang an und ein vergessenes `git rm` fällt sofort
 in `git status` auf, statt erst im Review.
 
+### `.map`-Key aus Anzeigefeldern statt stabilem Identifier ist eine latente Kollisionsquelle (aus #206, Review-Runde-2-Finding, zwei Personas)
+
+`VerzehrAufschluesselung.tsx` rendert `positionen.map(p => …)` mit
+`key={`${p.category}-${p.name}-${p.size}`}` – zusammengesetzt aus reinen Anzeigefeldern, weil
+`VerzehrPositionDetail` (aus der route-neutralen `verzehrPositionen`-Extraktion, #206) keinen
+stabilen Identifier (`catalogItemId`) trägt. Zwei distinkte Katalog-Artikel mit identischer
+Kategorie+Name+Größe auf derselben Zeile (realer Fall: soft-gelöschter + neu angelegter Zwilling
+gleichen Namens mit eingefrorenem COALESCE-Namen, ADR-033 D2) erzeugen denselben Key. Der Reflex
+beim Rendern einer abgeleiteten/aggregierten Liste (kein DB-Entity direkt, sondern ein Value-Objekt
+aus einer reinen Transformationsfunktion) ist, den Key aus den vorhandenen Anzeigefeldern
+zusammenzusetzen, weil „die sehen doch eindeutig aus" – ohne zu prüfen, ob zwei Elemente dieselbe
+Feldkombination erzeugen können.
+
+**Smell:** Ein `.map`-Key ist aus mehreren **Anzeigefeldern** zusammengesetzt (String-Interpolation
+`${a}-${b}-${c}`), nicht aus einem einzelnen, vom Domain-Model garantiert eindeutigen Identifier
+(Primärschlüssel, UUID). Frage: „Können zwei unterschiedliche Elemente der Liste dieselbe
+Feldkombination haben?" – bei abgeleiteten/aggregierten Werten (Katalog-Snapshots, Berichts-Zeilen)
+oft ja, auch wenn es im Testdatensatz nicht auffällt.
+
+**Regel:** Trägt das gerenderte Element keinen stabilen Identifier, **entweder** (a) den
+Identifier bis zum Konsumenten durchreichen (hier: `catalogItemId` durch `VerzehrPositionDetail`)
+– vorzuziehen, wenn die Liste sich zur Laufzeit umordnen/filtern kann – **oder** (b), wenn die
+Liste nachweislich **deterministisch sortiert und nie umgeordnet** wird (statisches
+Server-Rendering, kein Client-State), den Array-**Index** als Key nutzen. (b) ist der lokale,
+billige Fix und in diesem Fall (native `<details>`, kein Client-JS) korrekt – bei jeder Liste mit
+Reordering/Filtering/State ist (a) Pflicht, sonst verschiebt React beim Umsortieren den falschen
+DOM-Knoten-State.
+

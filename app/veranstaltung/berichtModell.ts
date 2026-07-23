@@ -1,11 +1,11 @@
-import type {
-  AuslageKategorie,
-  AuslageStatus,
-  CatalogCategory,
-  Kasse,
-  VeranstaltungStatus,
-} from "@/db/schema";
-import { zeileSummen, type VerzehrPositionSum } from "@/app/_verzehr/summen";
+import type { AuslageKategorie, AuslageStatus, Kasse, VeranstaltungStatus } from "@/db/schema";
+import { zeileSummen } from "@/app/_verzehr/summen";
+import {
+  gruppierePositionenNachZeile,
+  verzehrPositionen,
+  type VerzehrPositionDetail,
+  type VerzehrPositionDetailInput,
+} from "@/app/_verzehr/positionen";
 import { gesamtabrechnung, kassierTagessummen, kassierZeile } from "./kassierSummen";
 import { auslagenSummen } from "./auslagenSummen";
 import {
@@ -20,12 +20,14 @@ import {
 // Format-Renderer (Excel/PDF). Bewusst ohne Drizzle/DOM, damit es zu 100 % unit-testbar ist und
 // die Werte in beiden Formaten per Konstruktion identisch sind (AC10). Es nutzt ausschließlich die
 // bestehenden reinen Summen-Funktionen (`zeileSummen`, `kassierZeile`, `kassierTagessummen`,
-// `gesamtabrechnung`, `auslagenSummen`) – kein zweiter Wahrheitspfad. Beträge sind ganzzahlige
-// Cent (ADR-021); die Renderer formatieren (de-DE, 2 Nachkommastellen).
+// `gesamtabrechnung`, `auslagenSummen`) und die Pro-Artikel-Aufbereitung (`verzehrPositionen`) –
+// kein zweiter Wahrheitspfad. Beträge sind ganzzahlige Cent (ADR-021); die Renderer formatieren
+// (de-DE, 2 Nachkommastellen).
 
-// Anzeigereihenfolge der Verzehr-Kategorien im Bericht (getrennt von der Auslagen-Ordnung, die eine
-// andere Wertmenge hat). Eine Quelle für die Sortierung der Pro-Artikel-Striche.
-const CATEGORY_ORDER: Record<CatalogCategory, number> = { getraenk: 0, essen: 1, kaffee: 2 };
+// `artikelBezeichnung` (Name + Größe) lebt route-neutral in `_verzehr/positionen` (SINGLE SOURCE
+// mit der Kassier-Aufschlüsselung, #206) – hier als Fassade re-exportiert, weil beide Renderer
+// (Excel/PDF) es aus dem Bericht-Modell beziehen.
+export { artikelBezeichnung } from "@/app/_verzehr/positionen";
 
 export type BerichtVeranstaltungInput = {
   bezeichnung: string;
@@ -41,12 +43,8 @@ export type BerichtZeileInput = {
 };
 
 // Eine erfasste Position mit aufgelöstem Katalog-Namen/-Preis (aus `listPositionen`, F5, Preis
-// via COALESCE eingefroren, ADR-033 D2). `VerzehrPositionSum` liefert menge/priceCents/category.
-export type BerichtPositionInput = VerzehrPositionSum & {
-  zeileId: string;
-  name: string;
-  size: string;
-};
+// via COALESCE eingefroren, ADR-033 D2) plus ihrer Zeilen-Zuordnung.
+export type BerichtPositionInput = VerzehrPositionDetailInput & { zeileId: string };
 
 // Eine Auslage mit bereits aufgelöstem Anzeigenamen (aus `listAuslagen`, LEFT JOIN + COALESCE-
 // Fallback, Codify #53) – bleibt sichtbar, auch wenn die Teilnehmerzeile gelöscht wurde.
@@ -64,16 +62,9 @@ export type BerichtKopf = {
   status: string; // Anzeige-Label, z. B. "abgeschlossen"
 };
 
-// Ein konsumierter Artikel einer Teilnehmerzeile mit Menge (Strichzahl) und Zeilenbetrag
-// (Menge × eingefrorener Einzelpreis) – der Kern der Pro-Artikel-Striche (AC4).
-export type BerichtPosition = {
-  name: string;
-  size: string;
-  category: CatalogCategory;
-  menge: number;
-  einzelpreisCents: number;
-  zeilenbetragCents: number;
-};
+// Ein konsumierter Artikel einer Teilnehmerzeile (AC4). Alias auf die route-neutrale SINGLE
+// SOURCE `VerzehrPositionDetail`; als Bericht-Name beibehalten, weil beide Renderer ihn nutzen.
+export type BerichtPosition = VerzehrPositionDetail;
 
 export type BerichtTeilnehmer = {
   anzeigename: string;
@@ -123,12 +114,6 @@ export type BerichtModell = {
   gesamtabrechnung: BerichtGesamtabrechnung;
 };
 
-// Anzeigename eines Artikels/einer Position (Name + Größe, falls vorhanden) – von beiden
-// Format-Renderern (Excel/PDF) genutzt, damit die Bezeichnung nicht zweifach gepflegt wird.
-export function artikelBezeichnung(artikel: { name: string; size: string }): string {
-  return artikel.size ? `${artikel.name} (${artikel.size})` : artikel.name;
-}
-
 // Die zehn Zeilen der Gesamtabrechnung (AC8) als Label/Betrag-Paare – von beiden Format-Renderern
 // genutzt, damit Reihenfolge und Beschriftung nicht zweifach gepflegt werden.
 export function gesamtabrechnungsZeilen(g: BerichtGesamtabrechnung): [string, number][] {
@@ -146,39 +131,6 @@ export function gesamtabrechnungsZeilen(g: BerichtGesamtabrechnung): [string, nu
   ];
 }
 
-function gruppiereNachZeile(
-  positionen: readonly BerichtPositionInput[],
-): Map<string, BerichtPositionInput[]> {
-  const map = new Map<string, BerichtPositionInput[]>();
-  for (const position of positionen) {
-    const liste = map.get(position.zeileId) ?? [];
-    liste.push(position);
-    map.set(position.zeileId, liste);
-  }
-  return map;
-}
-
-// Sichtbare Pro-Artikel-Striche einer Zeile: nur tatsächlich konsumierte Artikel (menge > 0,
-// AC4 „konsumierten Artikel"), deterministisch sortiert nach Kategorie → Name → Größe.
-function berichtPositionen(positionen: readonly BerichtPositionInput[]): BerichtPosition[] {
-  return positionen
-    .filter((position) => position.menge > 0)
-    .map((position) => ({
-      name: position.name,
-      size: position.size,
-      category: position.category,
-      menge: position.menge,
-      einzelpreisCents: position.priceCents,
-      zeilenbetragCents: position.menge * position.priceCents,
-    }))
-    .sort(
-      (a, b) =>
-        CATEGORY_ORDER[a.category] - CATEGORY_ORDER[b.category] ||
-        a.name.localeCompare(b.name, "de-DE") ||
-        a.size.localeCompare(b.size, "de-DE"),
-    );
-}
-
 export function berichtModell(input: {
   veranstaltung: BerichtVeranstaltungInput;
   zeilen: readonly BerichtZeileInput[];
@@ -186,7 +138,7 @@ export function berichtModell(input: {
   auslagen: readonly BerichtAuslageInput[];
 }): BerichtModell {
   const { veranstaltung, zeilen, positionen, auslagen } = input;
-  const positionenJeZeile = gruppiereNachZeile(positionen);
+  const positionenJeZeile = gruppierePositionenNachZeile(positionen);
 
   // Eine Zeile → eine `kassierZeile` (single source der Zeilenberechnung). `zeileSummen` liefert die
   // Kategorie-Summen; `kassierZeile` leitet Sonstige/Verzehr-Gesamt/Spende ab (Auslagen mindern
@@ -205,7 +157,7 @@ export function berichtModell(input: {
     const kassier = kassierZeilen[index];
     return {
       anzeigename: zeile.anzeigename,
-      positionen: berichtPositionen(positionenJeZeile.get(zeile.id) ?? []),
+      positionen: verzehrPositionen(positionenJeZeile.get(zeile.id) ?? []),
       getraenkeCents: kassier.getraenkeCents,
       sonstigeCents: kassier.sonstigeCents,
       verzehrGesamtCents: kassier.verzehrGesamtCents,

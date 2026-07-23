@@ -8,11 +8,13 @@ import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listPositionen } from "@/db/verzehr";
 import { listAuslagen } from "@/db/auslage";
 import { listEreignisse } from "@/db/veranstaltung-ereignis";
+import { gruppierePositionenNachZeile, verzehrPositionen } from "@/app/_verzehr/positionen";
 import { kassiereZeileAction } from "../../actions";
 import { gesamtabrechnung, kassierTagessummen, kassierZeilen } from "../../kassierSummen";
 import { auslagenSummen } from "../../auslagenSummen";
 import { StatusToggle } from "../../StatusToggle";
 import { KassiereZeileForm } from "../../KassiereZeileForm";
+import { VerzehrAufschluesselung } from "../../VerzehrAufschluesselung";
 import {
   AUSLAGE_KATEGORIE_LABEL,
   AUSLAGE_KATEGORIE_ORDER,
@@ -56,7 +58,15 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
   // SINGLE SOURCE (ADR-033 D5): dieselbe Berechnung speist Zeilenanzeige, Tagessummen und (in der
   // Action) das Abschluss-Gate. Die Reihenfolge entspricht `zeilen` (map-stabil) → per Index zippen.
   const kassierRows = kassierZeilen(zeilen, positionen);
-  const zeilenMitKassier = zeilen.map((zeile, index) => ({ zeile, kassier: kassierRows[index] }));
+  // Dieselben Positionen speisen die Zeilensummen (`kassierZeilen`) und die Aufschlüsselung
+  // (`verzehrPositionen`) – so ist die Summe der Positionsbeträge per Konstruktion das
+  // Verzehr-Gesamt der Zeile (kein zweiter Wahrheitspfad).
+  const positionenJeZeile = gruppierePositionenNachZeile(positionen);
+  const zeilenMitKassier = zeilen.map((zeile, index) => ({
+    zeile,
+    kassier: kassierRows[index],
+    positionen: verzehrPositionen(positionenJeZeile.get(zeile.id) ?? []),
+  }));
   const tagessummen = kassierTagessummen(kassierRows);
   const ausgaben = auslagenSummen(auslagen);
   const abrechnung = gesamtabrechnung(tagessummen.erhaltenCents, ausgaben.gesamt.erstattetCents);
@@ -91,7 +101,7 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {zeilenMitKassier.map(({ zeile, kassier }) => (
+            {zeilenMitKassier.map(({ zeile, kassier, positionen: zeilenPositionen }) => (
               <li
                 key={zeile.id}
                 className="flex flex-col gap-2 rounded border border-zinc-200 p-4 dark:border-zinc-800"
@@ -114,8 +124,12 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
                     <dd className="tabular-nums">{formatCents(kassier.getraenkeCents)}</dd>
                   </div>
                   <div className="flex gap-2">
-                    <dt>Sonstige</dt>
-                    <dd className="tabular-nums">{formatCents(kassier.sonstigeCents)}</dd>
+                    <dt>Essen</dt>
+                    <dd className="tabular-nums">{formatCents(kassier.essenCents)}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt>Kaffee</dt>
+                    <dd className="tabular-nums">{formatCents(kassier.kaffeeCents)}</dd>
                   </div>
                   <div className="flex gap-2">
                     <dt className="font-medium text-zinc-900 dark:text-zinc-100">Verzehr-Gesamt</dt>
@@ -128,6 +142,7 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
                     <dd className="tabular-nums">{formatCents(kassier.spendeCents)}</dd>
                   </div>
                 </dl>
+                <VerzehrAufschluesselung positionen={zeilenPositionen} />
                 {offen ? (
                   <KassiereZeileForm
                     action={kassiereAction}
@@ -155,8 +170,9 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
         <table className="w-full text-sm">
           <tbody>
             <SummenZeile label="Getränke" cents={tagessummen.getraenkeCents} />
-            <SummenZeile label="Sonstige" cents={tagessummen.sonstigeCents} />
-            <SummenZeile label="Verzehr-Gesamt" cents={tagessummen.verzehrGesamtCents} />
+            <SummenZeile label="Essen" cents={tagessummen.essenCents} />
+            <SummenZeile label="Kaffee" cents={tagessummen.kaffeeCents} />
+            <SummenZeile label="Verzehr-Gesamt" cents={tagessummen.verzehrGesamtCents} bold />
             <SummenZeile label="Erhalten" cents={tagessummen.erhaltenCents} />
             <SummenZeile label="Spende" cents={tagessummen.spendeCents} bold />
           </tbody>
