@@ -33,8 +33,8 @@ liegende WICHTIG-Findings führen zu einer Rework-Runde.
   und prüft, dass deren Anker-Überschriften mit den Parser-Konstanten übereinstimmen. Benennt
   jemand die Überschrift um, liefert `report_verdict` still ein leeres Verdict (fail-closed →
   Dauer-Rework), ohne dass ein Test rot wird. Dieselbe Lücke besteht bereits für
-  `count_section_items` – dieser PR vertieft sie nur. Kandidat für ein eigenes `enhancement`-/
-  `test`-Issue.
+  `count_section_items` – dieser PR vertieft sie nur. → autonom als Issue **#214** angelegt
+  (`enhancement` + `test`/`tech-debt`).
 
 ## Positives
 - Wurzelfix statt Symptom: Verdict kommt aus der strukturierten Anker-Zeile; Fließtext-

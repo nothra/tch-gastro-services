@@ -1469,6 +1469,14 @@ assert_true "$([ -z "$(rv security-review 6)" ]; echo $?)" "F3: fehlender Report
 printf '## Empfehlung\nAPPROVED | NEEDS_REWORK\n' > "$TMP_RV/tasks/review-13.md"
 assert_true "$([ -z "$(rv review 13)" ]; echo $?)" "F4: mehrdeutige Anker-Zeile → leeres Verdict (fail-closed)"
 
+# Robustheit – EXAKTER Anker (Kernannahme des Fixes): weder eine Präfix-/Superset-Überschrift
+# ('## Empfehlungen') noch ein Verdict auf der Überschriftszeile selbst ('## Empfehlung: APPROVED')
+# dürfen matchen. Nur die erste Nicht-Leerzeile UNTER der exakten Anker-Zeile zählt → sonst leer.
+printf '## Empfehlungen\nAPPROVED\n' > "$TMP_RV/tasks/review-15.md"
+assert_true "$([ -z "$(rv review 15)" ]; echo $?)" "Robust: Superset-Überschrift '## Empfehlungen' ist kein Anker → leer"
+printf '## Empfehlung: APPROVED\n' > "$TMP_RV/tasks/review-16.md"
+assert_true "$([ -z "$(rv review 16)" ]; echo $?)" "Robust: Verdict auf der Überschriftszeile → leer (nur Folgezeile zählt)"
+
 # Nicht-Report-Skill → immer leer (Verhalten unverändert, auch bei vorhandener Datei mit Anker).
 printf '## Empfehlung\nAPPROVED\n' > "$TMP_RV/tasks/review-7.md"
 assert_true "$([ -z "$(rv implement 7)" ]; echo $?)" "Nicht-Report-Skill → kein Verdict (Verhalten unverändert)"
