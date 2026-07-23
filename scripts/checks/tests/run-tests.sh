@@ -841,6 +841,14 @@ open_multi=$(printf '308\nDoppelter Titel\n204\nDoppelter Titel\n')
 out=$(FAKE_OPEN="$open_multi" GH_LOG="$CLOG" idem "Doppelter Titel" "B" "enhancement" 2>/dev/null)
 assert_true "$([[ "$out" = "204" ]]; echo $?)" "AC5: mehrere exakte Treffer → niedrigste Nummer (204, nicht 308)"
 
+# AC5 (Schärfe) – Tiebreak reihenfolge-unabhängig: niedrigste gewinnt auch bei umgekehrter
+# Kandidaten-Reihenfolge. Deckt den `-lt`-false-Zweig ab (ein späterer HÖHERER Treffer ersetzt
+# den bestehenden `best` NICHT).
+CLOG="$TMP_IDEM/ac5d.create"; : > "$CLOG"
+open_multi2=$(printf '204\nDoppelter Titel\n308\nDoppelter Titel\n')
+out=$(FAKE_OPEN="$open_multi2" GH_LOG="$CLOG" idem "Doppelter Titel" "B" "enhancement" 2>/dev/null)
+assert_true "$([[ "$out" = "204" ]]; echo $?)" "AC5: niedrigste Nummer gewinnt auch bei umgekehrter Reihenfolge (204 vor 308)"
+
 # Defensiv-Guard (create-issue.sh: `''|*[!0-9]*)`): eine nicht-numerische „Nummer"-Zeile bei
 # titelgleichem Kandidaten wird übersprungen (schützt das `-lt` vor nicht-numerischem Input),
 # der echte numerische Treffer wird trotzdem gefunden. Erzwingt den sonst nie erreichten
@@ -889,6 +897,15 @@ CLOG="$TMP_IDEM/plain.create"; : > "$CLOG"
 out=$(PATH="$TMP_IDEM/bin:$PATH" FACTORY_REPO="test/repo" GH_LOG="$CLOG" \
   bash -c 'source "$0"; create_issue "$@"' "$SEAM_LIB" "T" "B" "enhancement" 2>/dev/null)
 assert_true "$([[ "$out" = "123" ]]; echo $?)" "Bestandspfad: create_issue weiterhin direkt nutzbar (unverändert)"
+
+# Lookup ohne FACTORY_REPO/REPO: der no-repo-Zweig der repo_args-Ableitung → kein --repo an
+# `gh issue list` (gh-Auto-Erkennung), der Treffer wird trotzdem gefunden.
+LLOG="$TMP_IDEM/norepo.list"; : > "$LLOG"
+out=$(PATH="$TMP_IDEM/bin:$PATH" FAKE_OPEN="$open_204" LIST_LOG="$LLOG" \
+  bash -c 'unset FACTORY_REPO REPO GITHUB_REPOSITORY; source "$0"; create_issue_idempotent "Refactor foo bar" "B" "enhancement"' \
+  "$SEAM_LIB" 2>/dev/null)
+assert_true "$([[ "$out" = "204" ]]; echo $?)" "Lookup: ohne FACTORY_REPO/REPO findet Treffer (gh-Auto, no-repo-Zweig)"
+assert_true "$(! grep -q -- '--repo' "$LLOG"; echo $?)" "Lookup: ohne Repo-Slug kein --repo an 'gh issue list'"
 
 # W3: Alle drei Pfade laufen als bloßer Aufruf unter `set -euo pipefail` durch – nicht nur der
 # Treffer-Pfad, sondern gerade die errexit-EMPFINDLICHEN No-Match- (while-read-Heredoc-Schleife)
