@@ -69,9 +69,8 @@ describe("zeileSummen", () => {
       pos({ menge: 1, priceCents: 500, category: "essen" }),
       pos({ menge: 3, priceCents: 100, category: "kaffee" }),
     ]);
-    expect(result.gesamtCents).toBe(
-      result.getraenkeCents + result.essenCents + result.kaffeeCents,
-    );
+    // 400 (Getränke) + 500 (Essen) + 300 (Kaffee) = 1200, unabhängig erwartet (kein Rücklesen
+    // aus dem Ergebnis-Objekt, testing-standards §Arrange-Act-Assert).
     expect(result.gesamtCents).toBe(1200);
   });
 
