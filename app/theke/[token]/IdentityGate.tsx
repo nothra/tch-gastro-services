@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useId, useRef, useSyncExternalStore } from "react";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 import {
   VerzehrErfassung,
@@ -171,8 +171,56 @@ export function IdentityGate({
   );
 }
 
+const selectClass =
+  "w-full rounded border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+
+const PLATZHALTER_LABEL = "Bitte wählen…";
+
+// Auto-Weiter + Platzhalter (spec-194): der Platzhalter feuert bewusst kein `onWaehle`, damit die
+// Wahl jeder echten Option ein change-Ereignis auslöst – auch wenn dieselbe Option erneut gewählt
+// wird, wäre sie ohne Platzhalter bereits vorausgewählt und würde kein Ereignis feuern.
+function handleAuswahl(
+  event: React.ChangeEvent<HTMLSelectElement>,
+  onWaehle: (id: string) => void,
+) {
+  const id = event.target.value;
+  if (id) onWaehle(id);
+}
+
+// Select-Hülle beider Auswahl-Schritte (spec-194): Platzhalter + Auto-Weiter-`onChange`, dahinter
+// die schrittspezifischen `<option>`-Einträge als Children. Geteilt zwischen `ErfasserPicker` und
+// `ZielPicker`, die sich zuvor nur in den Optionen selbst unterschieden (Review-Finding #194).
+function PlatzhalterSelect({
+  headingId,
+  onWaehle,
+  selectRef,
+  children,
+}: {
+  headingId: string;
+  onWaehle: (id: string) => void;
+  selectRef?: React.Ref<HTMLSelectElement>;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      ref={selectRef}
+      aria-labelledby={headingId}
+      defaultValue=""
+      onChange={(event) => handleAuswahl(event, onWaehle)}
+      className={selectClass}
+    >
+      <option value="" disabled>
+        {PLATZHALTER_LABEL}
+      </option>
+      {children}
+    </select>
+  );
+}
+
 // „Wer bist du?" – Auswahl des Erfassers aus der Teilnehmerliste (ADR-035 D1). Bewusst KEIN Anlegen
 // neuer Teilnehmer über den Link (spec-54 B4) – nur Auswahl. Leere Liste fängt der Aufrufer ab.
+// Natives Dropdown statt Button-Liste (spec-194): kompakter bei vielen Teilnehmern, von Haus aus
+// per Tastatur/Screenreader bedienbar.
 function ErfasserPicker({
   zeilen,
   onWaehle,
@@ -180,28 +228,26 @@ function ErfasserPicker({
   zeilen: readonly VerzehrZeile[];
   onWaehle: (id: string) => void;
 }) {
+  const headingId = useId();
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">Wer bist du?</h2>
-      <ul className="flex flex-col gap-2">
+      <h2 id={headingId} className="font-semibold">
+        Wer bist du?
+      </h2>
+      <PlatzhalterSelect headingId={headingId} onWaehle={onWaehle}>
         {zeilen.map((zeile) => (
-          <li key={zeile.id}>
-            <button
-              type="button"
-              onClick={() => onWaehle(zeile.id)}
-              className="w-full rounded border border-zinc-300 px-4 py-2 text-left text-sm hover:bg-cyan-50 dark:border-zinc-700 dark:hover:bg-cyan-950"
-            >
-              {zeile.anzeigename}
-            </button>
-          </li>
+          <option key={zeile.id} value={zeile.id}>
+            {zeile.anzeigename}
+          </option>
         ))}
-      </ul>
+      </PlatzhalterSelect>
     </section>
   );
 }
 
-// „Für wen möchtest du einen Verzehr erfassen?" (ADR-035 D1). Erste Option „Für mich" übernimmt den
-// Erfasser als Ziel (häufigster Fall, ohne erneute Suche); darunter die übrigen Teilnehmer.
+// „Für wen möchtest du einen Verzehr erfassen?" (ADR-035 D1). Erste echte Option „Für mich"
+// übernimmt den Erfasser als Ziel (häufigster Fall, ohne erneute Suche); darunter die übrigen
+// Teilnehmer. Natives Dropdown statt Button-Liste (spec-194).
 function ZielPicker({
   zeilen,
   erfasserId,
@@ -213,32 +259,31 @@ function ZielPicker({
   erfasserName: string;
   onWaehle: (id: string) => void;
 }) {
+  const headingId = useId();
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  // Fokus erst im nächsten Frame (requestAnimationFrame), NACHDEM der Wechsel vom Erfasser- zum
+  // Ziel-Schritt den Reflow ausgelöst hat – sonst zielt der Fokus noch auf das alte Layout (#188).
+  // So kommt der Ziel-Schritt ohne manuelles Scrollen in den Sichtbereich (spec-194).
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => selectRef.current?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   const uebrige = zeilen.filter((zeile) => zeile.id !== erfasserId);
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">Für wen möchtest du einen Verzehr erfassen?</h2>
-      <ul className="flex flex-col gap-2">
-        <li>
-          <button
-            type="button"
-            onClick={() => onWaehle(erfasserId)}
-            className="w-full rounded border border-cyan-600 px-4 py-2 text-left text-sm font-medium hover:bg-cyan-50 dark:border-cyan-500 dark:hover:bg-cyan-950"
-          >
-            Für mich{erfasserName ? ` (${erfasserName})` : ""}
-          </button>
-        </li>
+      <h2 id={headingId} className="font-semibold">
+        Für wen möchtest du einen Verzehr erfassen?
+      </h2>
+      <PlatzhalterSelect headingId={headingId} onWaehle={onWaehle} selectRef={selectRef}>
+        <option value={erfasserId}>Für mich{erfasserName ? ` (${erfasserName})` : ""}</option>
         {uebrige.map((zeile) => (
-          <li key={zeile.id}>
-            <button
-              type="button"
-              onClick={() => onWaehle(zeile.id)}
-              className="w-full rounded border border-zinc-300 px-4 py-2 text-left text-sm hover:bg-cyan-50 dark:border-zinc-700 dark:hover:bg-cyan-950"
-            >
-              {zeile.anzeigename}
-            </button>
-          </li>
+          <option key={zeile.id} value={zeile.id}>
+            {zeile.anzeigename}
+          </option>
         ))}
-      </ul>
+      </PlatzhalterSelect>
     </section>
   );
 }

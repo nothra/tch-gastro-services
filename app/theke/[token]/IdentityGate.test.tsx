@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import { IdentityGate } from "./IdentityGate";
+import { stubRequestAnimationFrame } from "./raf-stub";
 import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
 
 // MengeControl (Client, useActionState) durch ein Stub ersetzt, das die editable-Prop spiegelt –
@@ -40,30 +41,55 @@ function renderGate(overrides: Partial<Parameters<typeof IdentityGate>[0]> = {})
   );
 }
 
+let raf: ReturnType<typeof stubRequestAnimationFrame>;
+
 beforeEach(() => {
   window.localStorage.clear();
   Element.prototype.scrollIntoView = vi.fn();
+  raf = stubRequestAnimationFrame();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("IdentityGate – Schritt 1: Erfasser", () => {
-  it("should_showErfasserPickerAndReadOnlyList_when_nothingStored", () => {
+  it("should_showErfasserSelectAndReadOnlyList_when_nothingStored", () => {
     renderGate();
 
-    expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Anna" })).toBeInTheDocument();
+    const select = screen.getByRole("combobox", { name: "Wer bist du?" });
+    expect(select).toBeInTheDocument();
+    expect(within(select).getByRole("option", { name: "Anna" })).toBeInTheDocument();
+    // Keine Teilnehmer-Buttons mehr (AC: natives Dropdown statt Button-Liste).
+    expect(screen.queryByRole("button", { name: "Anna" })).not.toBeInTheDocument();
+    // Platzhalter ist vorausgewählt.
+    expect(select).toHaveValue("");
     // Erfassbereiche sichtbar, aber nicht bearbeitbar (spec-54 AC B, Codify #54).
     const menge = screen.getAllByTestId("menge");
     expect(menge.length).toBeGreaterThan(0);
     menge.forEach((control) => expect(control).toHaveAttribute("data-editable", "false"));
   });
 
-  it("should_storeErfasserAndAskZiel_when_erfasserPicked", () => {
+  it("should_storeErfasserAndAskZiel_when_erfasserSelected", () => {
     renderGate();
 
-    fireEvent.click(screen.getByRole("button", { name: "Anna" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Wer bist du?" }), {
+      target: { value: "z1" },
+    });
 
     expect(window.localStorage.getItem(ERFASSER_KEY)).toBe("z1");
     expect(screen.getByText("Für wen möchtest du einen Verzehr erfassen?")).toBeInTheDocument();
+  });
+
+  it("should_doNothing_when_erfasserPlaceholderSelected", () => {
+    renderGate();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Wer bist du?" }), {
+      target: { value: "" },
+    });
+
+    expect(window.localStorage.getItem(ERFASSER_KEY)).toBeNull();
+    expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
   });
 
   it("should_reAskErfasser_when_erfasserStale", () => {
@@ -82,20 +108,26 @@ describe("IdentityGate – Schritt 2: Ziel-Teilnehmer", () => {
 
     renderGate();
 
-    const fuerMich = screen.getByRole("button", { name: /Für mich/ });
-    expect(fuerMich).toHaveTextContent("Für mich (Anna)");
-    // „Für mich" steht vor den übrigen Teilnehmern.
-    const bernd = screen.getByRole("button", { name: "Bernd" });
-    expect(fuerMich.compareDocumentPosition(bernd) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const select = screen.getByRole("combobox", {
+      name: "Für wen möchtest du einen Verzehr erfassen?",
+    });
+    const optionLabels = within(select)
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    // Platzhalter, dann „Für mich" vor den übrigen Teilnehmern.
+    expect(optionLabels).toEqual(["Bitte wählen…", "Für mich (Anna)", "Bernd"]);
     // Der Erfasser (Anna) taucht nicht zusätzlich als „übriger" Teilnehmer auf.
-    expect(screen.queryByRole("button", { name: "Anna" })).not.toBeInTheDocument();
+    expect(within(select).queryByRole("option", { name: "Anna" })).not.toBeInTheDocument();
   });
 
   it("should_adoptErfasserAsZielAndShowFocus_when_fuerMichChosen", () => {
     window.localStorage.setItem(ERFASSER_KEY, "z1");
 
     renderGate();
-    fireEvent.click(screen.getByRole("button", { name: /Für mich/ }));
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Für wen möchtest du einen Verzehr erfassen?" }),
+      { target: { value: "z1" } },
+    );
 
     expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
     expect(screen.getByText(/Erfassung durch/)).toBeInTheDocument();
@@ -110,10 +142,26 @@ describe("IdentityGate – Schritt 2: Ziel-Teilnehmer", () => {
     window.localStorage.setItem(ERFASSER_KEY, "z1");
 
     renderGate();
-    fireEvent.click(screen.getByRole("button", { name: "Bernd" }));
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Für wen möchtest du einen Verzehr erfassen?" }),
+      { target: { value: "z2" } },
+    );
 
     expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z2");
     expect(screen.getByText(/Erfassung durch/)).toBeInTheDocument();
+  });
+
+  it("should_doNothing_when_zielPlaceholderSelected", () => {
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+
+    renderGate();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Für wen möchtest du einen Verzehr erfassen?" }),
+      { target: { value: "" } },
+    );
+
+    expect(window.localStorage.getItem(ZIEL_KEY)).toBeNull();
+    expect(screen.getByText("Für wen möchtest du einen Verzehr erfassen?")).toBeInTheDocument();
   });
 
   it("should_reAskZiel_when_zielStaleButErfasserKnown", () => {
@@ -123,6 +171,58 @@ describe("IdentityGate – Schritt 2: Ziel-Teilnehmer", () => {
     renderGate();
 
     expect(screen.getByText("Für wen möchtest du einen Verzehr erfassen?")).toBeInTheDocument();
+  });
+
+  it("should_offerOnlyFuerMich_when_onlyOneTeilnehmer", () => {
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+
+    renderGate({ zeilen: [zeilen[0]] });
+
+    const select = screen.getByRole("combobox", {
+      name: "Für wen möchtest du einen Verzehr erfassen?",
+    });
+    const optionLabels = within(select)
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    expect(optionLabels).toEqual(["Bitte wählen…", "Für mich (Anna)"]);
+
+    fireEvent.change(select, { target: { value: "z1" } });
+
+    expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
+    expect(screen.getByText(/Erfassung durch/)).toBeInTheDocument();
+  });
+});
+
+describe("IdentityGate – Fokus", () => {
+  it("should_focusZielSelect_when_erfasserChosen", () => {
+    renderGate();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Wer bist du?" }), {
+      target: { value: "z1" },
+    });
+    const zielSelect = screen.getByRole("combobox", {
+      name: "Für wen möchtest du einen Verzehr erfassen?",
+    });
+    // Fokus landet erst im nächsten Frame (Codify #188), nicht synchron beim State-Wechsel.
+    expect(zielSelect).not.toHaveFocus();
+
+    raf.flush();
+
+    expect(zielSelect).toHaveFocus();
+  });
+
+  it("should_cancelPendingFocusFrame_when_zielPickerUnmountsBeforeNextFrame", () => {
+    const cancelSpy = vi.spyOn(window, "cancelAnimationFrame");
+    const { unmount } = renderGate();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Wer bist du?" }), {
+      target: { value: "z1" },
+    });
+    expect(raf.pendingCount()).toBe(1);
+
+    unmount();
+
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
   });
 });
 

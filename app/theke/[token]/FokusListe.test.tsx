@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FokusListe } from "./FokusListe";
+import { stubRequestAnimationFrame } from "./raf-stub";
 import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 
@@ -26,25 +27,14 @@ const artikel: VerzehrArtikel[] = [
 ];
 const positionen: VerzehrPositionRow[] = [];
 
-// requestAnimationFrame wird capture-only gestubbt (jsdom-Default liefe erst nach ~16ms Timer):
-// so lässt sich prüfen, dass der Scroll ERST im rAF-Callback läuft (nach dem Layout-Update, #188).
-let rafCallbacks: FrameRequestCallback[] = [];
-function flushRaf() {
-  const pending = rafCallbacks;
-  rafCallbacks = [];
-  pending.forEach((cb) => cb(0));
-}
+let raf: ReturnType<typeof stubRequestAnimationFrame>;
 
 beforeEach(() => {
   window.localStorage.clear();
   // jsdom implementiert scrollIntoView nicht; die Komponente ruft es guarded auf – hier stubben,
   // falls es als werfende Methode vorhanden ist.
   Element.prototype.scrollIntoView = vi.fn();
-  rafCallbacks = [];
-  vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-    rafCallbacks.push(cb);
-    return rafCallbacks.length;
-  });
+  raf = stubRequestAnimationFrame();
 });
 
 afterEach(() => {
@@ -175,7 +165,7 @@ describe("FokusListe (#183/ADR-035)", () => {
     expect(scrollSpy).not.toHaveBeenCalled();
 
     // … sondern erst im requestAnimationFrame-Callback nach dem Reflow.
-    flushRaf();
+    raf.flush();
     expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
   });
 
