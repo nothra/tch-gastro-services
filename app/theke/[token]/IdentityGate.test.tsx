@@ -220,6 +220,20 @@ describe("IdentityGate – Fokus", () => {
 
     expect(zielSelect).toHaveFocus();
   });
+
+  it("should_cancelPendingFocusFrame_when_zielPickerUnmountsBeforeNextFrame", () => {
+    const cancelSpy = vi.spyOn(window, "cancelAnimationFrame");
+    const { unmount } = renderGate();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Wer bist du?" }), {
+      target: { value: "z1" },
+    });
+    expect(rafCallbacks).toHaveLength(1);
+
+    unmount();
+
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
