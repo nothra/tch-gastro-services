@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import { IdentityGate } from "./IdentityGate";
-import { stubRequestAnimationFrame } from "./raf-stub";
+import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
 import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
 
 // MengeControl (Client, useActionState) durch ein Stub ersetzt, das die editable-Prop spiegelt –

@@ -8,7 +8,7 @@ import {
   type VerzehrZeile,
 } from "@/app/_verzehr/VerzehrErfassung";
 import type { VerzehrFormAction } from "@/app/_verzehr/types";
-import { FokusListe } from "./FokusListe";
+import { FokusListe } from "@/app/_verzehr/FokusListe";
 import {
   IDENTITAET_CHANGED_EVENT,
   adoptLegacyErfasser,
@@ -92,7 +92,6 @@ export function IdentityGate({
   if (!editable) {
     return (
       <FokusListe
-        token={token}
         zeilen={zeilen}
         artikel={artikel}
         positionen={positionen}
@@ -159,13 +158,15 @@ export function IdentityGate({
         </button>
       </div>
       <FokusListe
-        token={token}
         zeilen={zeilen}
         artikel={artikel}
         positionen={positionen}
         action={action}
         editable
         initialOpenId={zielId}
+        // Geräte-lokale Ziel-Merkung (ADR-035 D1) lebt jetzt im route-gebundenen Konsumenten
+        // (ADR-039 D1): FokusListe kennt weder Token noch Storage-Schema.
+        onFokusWechsel={(id) => writeZielId(token, id)}
       />
     </div>
   );

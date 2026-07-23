@@ -1,7 +1,7 @@
 # Task 187: verzehrerfassung-vereinheitlichen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -30,33 +30,33 @@ Spec: [`docs/specs/spec-187-verzehrerfassung-vereinheitlichen.md`](../docs/specs
 > Kanonisch in der Spec; hier gespiegelt für den Fortschritt.
 
 Optische Vereinheitlichung (F5):
-- [ ] Offene Veranstaltung + ≥1 Teilnehmer → identische Fokus-/Akkordeon-Darstellung wie F7 (Chip-Leiste + Karten).
-- [ ] Initial keine Karte aufgeklappt.
-- [ ] Chip-Tipp: genau dessen Karte auf, andere zu, scrollIntoView – wie F7.
-- [ ] Kopf-Tipp auf offene Karte → klappt zu.
-- [ ] Chip-Leiste sticky + horizontal scrollbar (identisch F7).
+- [x] Offene Veranstaltung + ≥1 Teilnehmer → identische Fokus-/Akkordeon-Darstellung wie F7 (Chip-Leiste + Karten). (page.test: `should_renderCollapsedAccordionWithChipBar_when_veranstalterAndOpen`)
+- [x] Initial keine Karte aufgeklappt. (FokusListe.test: `should_openNoCard_when_initialOpenIdNull`; page.test: Chip-Bar sichtbar, keine MengeControl)
+- [x] Chip-Tipp: genau dessen Karte auf, andere zu, scrollIntoView – wie F7. (FokusListe.test: `should_switchFocusCloseOthersAndNotifyConsumer_when_chipTapped`, `should_deferScrollUntilAfterLayoutExpansion_when_focusSelected`)
+- [x] Kopf-Tipp auf offene Karte → klappt zu. (FokusListe.test: `should_collapseCardAndNotNotifyConsumer_when_openCardHeadTapped`)
+- [x] Chip-Leiste sticky + horizontal scrollbar (identisch F7 – dieselbe Komponente, `sticky top-0 … overflow-x-auto`).
 
 Erfassung unverändert:
-- [ ] Mengenänderung via `MengeControl` wirkt wie bisher (`adjustVerzehrAction`); Größen-Gruppen + „Nicht mehr im Katalog" unverändert.
+- [x] Mengenänderung via `MengeControl` wirkt wie bisher (`adjustVerzehrAction`); Größen-Gruppen + „Nicht mehr im Katalog" unverändert. (page.test: `should_openCardEditable_when_chipTappedOnOpenVeranstaltung`, `should_showPositionMenge_when_positionExists`; ZeileKarte unverändert)
 
 Identity-Gate F7-only:
-- [ ] F5 zeigt kein Gate / keine „Erfasser wechseln"-Leiste.
-- [ ] F7-Gate (Erfasser→Ziel) bleibt unverändert, öffnet Ziel-Karte.
+- [x] F5 zeigt kein Gate / keine „Erfasser wechseln"-Leiste. (F5-Seite rendert `FokusListe` direkt, kein `IdentityGate`)
+- [x] F7-Gate (Erfasser→Ziel) bleibt unverändert, öffnet Ziel-Karte. (IdentityGate.test: alle Gate-Tests grün, `initialOpenId={zielId}`)
 
 Read-only konsistent:
-- [ ] Abgeschlossene Veranstaltung auf F5 → gleiche Akkordeon-Darstellung, nicht bearbeitbar, eingeklappt.
-- [ ] F7-Read-only unverändert.
+- [x] Abgeschlossene Veranstaltung auf F5 → gleiche Akkordeon-Darstellung, nicht bearbeitbar, eingeklappt. (page.test: `should_renderReadOnly_when_veranstaltungAbgeschlossen`)
+- [x] F7-Read-only unverändert. (IdentityGate.test: `should_renderReadOnlyAccordionWithoutGate_when_notEditable`)
 
 Route-Neutralität / Clean:
-- [ ] Kein Feature-Import aus `app/theke/` in den F5-Weg; geteilte Fokus-Darstellung in `app/_verzehr/`, token-frei.
-- [ ] F7 merkt Ziel weiterhin geräte-lokal (Persistenz injiziert, nicht hardcodiert).
+- [x] Kein Feature-Import aus `app/theke/` in den F5-Weg; geteilte Fokus-Darstellung in `app/_verzehr/`, token-frei. (`FokusListe` nach `app/_verzehr/` verschoben, `token`/`erfasser-ziel-storage`-Kopplung entfernt)
+- [x] F7 merkt Ziel weiterhin geräte-lokal (Persistenz injiziert, nicht hardcodiert). (IdentityGate: `onFokusWechsel={(id) => writeZielId(token, id)}` nur im editierbaren Zweig)
 
 Empty-State:
-- [ ] F5 ohne Teilnehmer → Hinweis wie bisher (statt leerer Fokusliste).
+- [x] F5 ohne Teilnehmer → Hinweis wie bisher (statt leerer Fokusliste). (page.test: `should_showEmptyHint_when_noZeilen`)
 
 Fehlerszenarien:
-- [ ] F7 `localStorage` nicht verfügbar → fail-open, unverändert.
-- [ ] scrollIntoView bleibt guarded (jsdom ohne Implementierung).
+- [x] F7 `localStorage` nicht verfügbar → fail-open, unverändert. (Persistenz in `erfasser-ziel-storage` unverändert, IdentityGate.test grün)
+- [x] scrollIntoView bleibt guarded (jsdom ohne Implementierung). (FokusListe: `?.scrollIntoView?.(...)`; Tests laufen in jsdom grün)
 
 ## Technische Notizen
 > Entschieden in [ADR-039](../docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md).
@@ -104,7 +104,14 @@ nicht duplizieren (#194); `setState`-Updater rein halten (#183).
 - [x] ADR nötig: **ja** → [ADR-039](../docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md), ändert ADR-035 D2.
 - [x] Benennung: **`FokusListe` beibehalten** (ADR-039 D2).
 - [x] Empty-State: **beim Konsumenten** (F5-Seite + `IdentityGate`), wegabhängige Meldung (ADR-039 D4).
-- [ ] `docs/routes.md`: F5-Funktionsbeschreibung im Implement-PR präzisieren.
+- [x] `docs/routes.md`: F5-Funktionsbeschreibung im Implement-PR präzisiert („Fokus-Akkordeon + Chip-Leiste"; keine Struktur-/Zugriffsänderung).
+
+## Implement-Notizen
+- Gates grün: `pnpm lint` ✓, volle Test-Suite (626 passed / 59 skipped) ✓, `tsc --noEmit` ✓.
+- **Move der `FokusListe` abgeschlossen:** die alten, nun toten Dateien in `app/theke/[token]/`
+  (`FokusListe.tsx` token-gekoppelt, `FokusListe.test.tsx`, `raf-stub.ts` – Byte-Duplikat von
+  `app/_verzehr/raf-stub.ts`, verletzt #194) werden per `git rm` entfernt (der route-neutrale
+  Ersatz liegt vollständig in `app/_verzehr/`; `IdentityGate` importiert bereits von dort).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

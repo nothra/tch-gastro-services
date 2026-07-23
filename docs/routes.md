@@ -27,7 +27,7 @@
 | `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (proxy-exempt, Token) |
 | `/veranstaltung` | Seite | Veranstaltungs-Liste | `veranstalter` |
 | `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail) | `veranstalter` |
-| `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Getränke, Essen, Kaffee) | `veranstalter` |
+| `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Fokus-Akkordeon + Chip-Leiste; Getränke, Essen, Kaffee) | `veranstalter` |
 | `/veranstaltung/[id]/auslagen` | Seite | Auslagenerstattung | `veranstalter` |
 | `/veranstaltung/[id]/kassieren` | Seite | Kassieren & Abschluss | `veranstalter` |
 | `/verwaltung/katalog` | Seite | Katalog/Preise pflegen | `verwalter` |

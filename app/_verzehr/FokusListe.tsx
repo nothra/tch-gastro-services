@@ -2,42 +2,41 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { VerzehrPositionRow } from "@/db/verzehr";
-import {
-  ZeileKarte,
-  type VerzehrArtikel,
-  type VerzehrZeile,
-} from "@/app/_verzehr/VerzehrErfassung";
-import type { VerzehrFormAction } from "@/app/_verzehr/types";
-import { writeZielId } from "./erfasser-ziel-storage";
+import { ZeileKarte, type VerzehrArtikel, type VerzehrZeile } from "./VerzehrErfassung";
+import type { VerzehrFormAction } from "./types";
 
-// Fokus-Akkordeon der Selbstbedienung (F7, #183, ADR-035 D2/D3): rendert dieselbe route-neutrale
-// `ZeileKarte` collapsible und hält den Akkordeon-Zustand – genau EINE Karte offen (= Ziel-
-// Teilnehmer) oder keine. Oben eine sticky, horizontal scrollbare Chip-Leiste zum schnellen
-// Wechsel auf Handy/Tablet. Ein Wechsel merkt das Ziel geräte-lokal (nur wenn `editable`, D5) und
-// bringt die Karte per scrollIntoView in den Sichtbereich (guarded – jsdom hat keine
-// Implementierung). Import-Richtung app/theke → app/_verzehr ist regelkonform (Codify #52).
+// Route-neutrales Fokus-Akkordeon der Verzehrerfassung (#183/#187, ADR-035 D2/D3, ADR-039):
+// rendert dieselbe route-neutrale `ZeileKarte` collapsible und hält den Akkordeon-Zustand – genau
+// EINE Karte offen oder keine. Oben eine sticky, horizontal scrollbare Chip-Leiste zum schnellen
+// Wechsel auf Handy/Tablet. Beide Zugangswege nutzen sie: F7 (Link/Selbstbedienung) und F5
+// (Veranstalter). Sie kennt weder Token noch localStorage noch die Erfasser/Ziel-Semantik
+// (ADR-025 D5, ADR-039 D1): wird eine Karte zur fokussierten (Chip ODER Aufklappen), ruft sie den
+// optionalen `onFokusWechsel`-Callback – F7 hängt daran seine geräte-lokale Ziel-Merkung, F5 lässt
+// ihn weg. Die Karte kommt per scrollIntoView in den Sichtbereich (guarded – jsdom hat keine
+// Implementierung). Import-Richtung app/theke bzw. app/veranstaltung → app/_verzehr ist regelkonform
+// (Codify #52).
 export function FokusListe({
-  token,
   zeilen,
   artikel,
   positionen,
   action,
   editable,
   initialOpenId,
+  onFokusWechsel,
 }: {
-  token: string;
   zeilen: readonly VerzehrZeile[];
   artikel: readonly VerzehrArtikel[];
   positionen: readonly VerzehrPositionRow[];
   action: VerzehrFormAction;
   editable: boolean;
   initialOpenId: string | null;
+  onFokusWechsel?: (zeileId: string) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(initialOpenId);
   const kartenRefs = useRef(new Map<string, HTMLLIElement>());
 
-  // Ziel wählen: Karte öffnen (andere zu), geräte-lokal merken (nur editable) und in den
-  // Sichtbereich holen. Vom Chip UND vom Aufklappen einer eingeklappten Karte genutzt.
+  // Fokus wählen: Karte öffnen (andere zu), den Konsumenten benachrichtigen (onFokusWechsel) und in
+  // den Sichtbereich holen. Vom Chip UND vom Aufklappen einer eingeklappten Karte genutzt.
   // scrollIntoView erst im nächsten Frame (requestAnimationFrame), NACHDEM setOpenId den Reflow
   // ausgelöst hat (andere Karte zu, Ziel auf) – sonst scrollt es gegen das alte Layout und die
   // Karte landet außerhalb des Sichtbereichs (#188, Screenshot 2). Das scroll-margin-top der
@@ -45,16 +44,16 @@ export function FokusListe({
   const waehleZiel = useCallback(
     (id: string) => {
       setOpenId(id);
-      if (editable) writeZielId(token, id);
+      onFokusWechsel?.(id);
       requestAnimationFrame(() => {
         kartenRefs.current.get(id)?.scrollIntoView?.({ block: "start" });
       });
     },
-    [editable, token],
+    [onFokusWechsel],
   );
 
-  // Kopf-Tipp: offene Karte zuklappen, sonst als Ziel öffnen (höchstens eine offen).
-  // Delegiert an `waehleZiel`, damit Seiteneffekte (writeZielId/scrollIntoView) außerhalb der
+  // Kopf-Tipp: offene Karte zuklappen, sonst als Fokus öffnen (höchstens eine offen).
+  // Delegiert an `waehleZiel`, damit Seiteneffekte (onFokusWechsel/scrollIntoView) außerhalb der
   // setState-Updater-Funktion laufen – Updater müssen rein sein (React-Reinheit, StrictMode).
   const toggle = useCallback(
     (id: string) => (openId === id ? setOpenId(null) : waehleZiel(id)),
