@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Idempotenz-Guard gegen Duplikat-Issues bei Pipeline-Retries. `run_skill()` startet Skills
@@ -111,6 +111,14 @@ Leichter Clean-Code-Pass (kein neues Verhalten, 439 grün vor + nach):
 - **Bewusst nicht refactored** (Trade-off, kein Gold-Plating): repo_args-Duplikat (array-rückgebender
   Bash-Helfer bräuchte 4.3-nameref, das Projekt läuft auch auf Bash 3.2), `expect_num`-Flag (gut
   kommentierter lokaler Toggle). Code war nach zwei Review-Runden bereits sauber.
+
+## PR-Shepherd
+PR-Shepherd [2026-07-23]: Merge freigegeben (PR #215). Alle Gates grün: Review APPROVED (Runde 2),
+Tests 448 grün, Security PASSED, Refactoring ohne Verhaltensänderung, Codify erledigt. Kein
+menschlicher Review-Kommentar offen; keine erforderlichen Approvals (Ruleset = 0, ADR-029).
+Branch mit `origin/main` (#213) gemerged, additive `/codify`-Index-Konflikte in
+`PROJECT-CONTEXT.md` + `lessons/testing.md` durch Behalten **beider** Einträge aufgelöst (kein
+Force-Push). Auto-Merge (Squash) scharfgeschaltet.
 
 ## Codify-Notizen
 2 neue Lessons (Volltext + Index-Zeile in PROJECT-CONTEXT.md), Report: [`tasks/codify-207.md`](codify-207.md):
