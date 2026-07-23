@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -63,6 +63,15 @@ Zwei „Wichtig"-Funde (Duplikation Select-Hülle, doppelter rAF-Test-Helper) f�
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+### Refactor-Notiz (/refactor, ohne Verhaltensänderung)
+Beide „Wichtig"-Funde aus dem Review behoben:
+- `IdentityGate.tsx`: gemeinsame `PlatzhalterSelect`-Komponente extrahiert (Select-Hülle,
+  Platzhalter-Option, Auto-Weiter-`onChange`) – `ErfasserPicker`/`ZielPicker` liefern nur noch
+  ihre schrittspezifischen `<option>`-Kinder.
+- `app/theke/[token]/raf-stub.ts` (neu): gemeinsamer `requestAnimationFrame`-Test-Stub, jetzt von
+  `IdentityGate.test.tsx` UND `FokusListe.test.tsx` genutzt statt zweimal unabhängig gepflegt.
+Alle 614 Tests weiterhin grün, Lint/Typecheck/Format grün, Coverage unverändert vollständig.
 
 ---
 Branch: `feature/194-auswahl-als-dropdown`

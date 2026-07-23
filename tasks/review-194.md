@@ -6,16 +6,18 @@ _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [app/theke/[token]/IdentityGate.tsx:205-219 vs. 255-271] `ErfasserPicker` und `ZielPicker`
+- [x] [app/theke/[token]/IdentityGate.tsx:205-219 vs. 255-271] `ErfasserPicker` und `ZielPicker`
       duplizieren die komplette Select-Hülle (`aria-labelledby`, `defaultValue=""`, `onChange`,
       `className`, Platzhalter-`<option value="" disabled>Bitte wählen…</option>`). Bei nur zwei
       Aufrufstellen kein Muss, aber eine kleine gemeinsame Komponente würde die identischen Zeilen
       einmalig halten. (Code-Qualität-Review)
-- [ ] [app/theke/[token]/IdentityGate.test.tsx:45-50] Der rAF-Stub-Helper (`rafCallbacks` +
+      → Behoben in `/refactor`: gemeinsame `PlatzhalterSelect`-Komponente extrahiert.
+- [x] [app/theke/[token]/IdentityGate.test.tsx:45-50] Der rAF-Stub-Helper (`rafCallbacks` +
       `flushRaf`) ist nahezu Byte-für-Byte identisch mit dem bereits bestehenden Helper in
       `FokusListe.test.tsx:31-36`. Zwei Testdateien pflegen denselben Test-Helper parallel –
       Drift-Risiko bei künftigen Änderungen. Kandidat für eine gemeinsame Test-Utility.
       (Code-Qualität-Review)
+      → Behoben in `/refactor`: gemeinsamer Helper `app/theke/[token]/raf-stub.ts` extrahiert.
 
 ## Nitpicks (optional)
 

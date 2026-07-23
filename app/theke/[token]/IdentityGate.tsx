@@ -174,6 +174,8 @@ export function IdentityGate({
 const selectClass =
   "w-full rounded border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
 
+const PLATZHALTER_LABEL = "Bitte wählen…";
+
 // Auto-Weiter + Platzhalter (spec-194): der Platzhalter feuert bewusst kein `onWaehle`, damit die
 // Wahl jeder echten Option ein change-Ereignis auslöst – auch wenn dieselbe Option erneut gewählt
 // wird, wäre sie ohne Platzhalter bereits vorausgewählt und würde kein Ereignis feuern.
@@ -183,6 +185,36 @@ function handleAuswahl(
 ) {
   const id = event.target.value;
   if (id) onWaehle(id);
+}
+
+// Select-Hülle beider Auswahl-Schritte (spec-194): Platzhalter + Auto-Weiter-`onChange`, dahinter
+// die schrittspezifischen `<option>`-Einträge als Children. Geteilt zwischen `ErfasserPicker` und
+// `ZielPicker`, die sich zuvor nur in den Optionen selbst unterschieden (Review-Finding #194).
+function PlatzhalterSelect({
+  headingId,
+  onWaehle,
+  selectRef,
+  children,
+}: {
+  headingId: string;
+  onWaehle: (id: string) => void;
+  selectRef?: React.Ref<HTMLSelectElement>;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      ref={selectRef}
+      aria-labelledby={headingId}
+      defaultValue=""
+      onChange={(event) => handleAuswahl(event, onWaehle)}
+      className={selectClass}
+    >
+      <option value="" disabled>
+        {PLATZHALTER_LABEL}
+      </option>
+      {children}
+    </select>
+  );
 }
 
 // „Wer bist du?" – Auswahl des Erfassers aus der Teilnehmerliste (ADR-035 D1). Bewusst KEIN Anlegen
@@ -202,21 +234,13 @@ function ErfasserPicker({
       <h2 id={headingId} className="font-semibold">
         Wer bist du?
       </h2>
-      <select
-        aria-labelledby={headingId}
-        defaultValue=""
-        onChange={(event) => handleAuswahl(event, onWaehle)}
-        className={selectClass}
-      >
-        <option value="" disabled>
-          Bitte wählen…
-        </option>
+      <PlatzhalterSelect headingId={headingId} onWaehle={onWaehle}>
         {zeilen.map((zeile) => (
           <option key={zeile.id} value={zeile.id}>
             {zeile.anzeigename}
           </option>
         ))}
-      </select>
+      </PlatzhalterSelect>
     </section>
   );
 }
@@ -252,23 +276,14 @@ function ZielPicker({
       <h2 id={headingId} className="font-semibold">
         Für wen möchtest du einen Verzehr erfassen?
       </h2>
-      <select
-        ref={selectRef}
-        aria-labelledby={headingId}
-        defaultValue=""
-        onChange={(event) => handleAuswahl(event, onWaehle)}
-        className={selectClass}
-      >
-        <option value="" disabled>
-          Bitte wählen…
-        </option>
+      <PlatzhalterSelect headingId={headingId} onWaehle={onWaehle} selectRef={selectRef}>
         <option value={erfasserId}>Für mich{erfasserName ? ` (${erfasserName})` : ""}</option>
         {uebrige.map((zeile) => (
           <option key={zeile.id} value={zeile.id}>
             {zeile.anzeigename}
           </option>
         ))}
-      </select>
+      </PlatzhalterSelect>
     </section>
   );
 }

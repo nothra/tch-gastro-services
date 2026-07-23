@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import { IdentityGate } from "./IdentityGate";
+import { stubRequestAnimationFrame } from "./raf-stub";
 import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
 
 // MengeControl (Client, useActionState) durch ein Stub ersetzt, das die editable-Prop spiegelt –
@@ -40,23 +41,12 @@ function renderGate(overrides: Partial<Parameters<typeof IdentityGate>[0]> = {})
   );
 }
 
-// requestAnimationFrame wird capture-only gestubbt (jsdom-Default liefe erst nach ~16ms Timer):
-// so lässt sich prüfen, dass der Fokus ERST im rAF-Callback landet (nächster Frame, Codify #188).
-let rafCallbacks: FrameRequestCallback[] = [];
-function flushRaf() {
-  const pending = rafCallbacks;
-  rafCallbacks = [];
-  pending.forEach((cb) => cb(0));
-}
+let raf: ReturnType<typeof stubRequestAnimationFrame>;
 
 beforeEach(() => {
   window.localStorage.clear();
   Element.prototype.scrollIntoView = vi.fn();
-  rafCallbacks = [];
-  vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-    rafCallbacks.push(cb);
-    return rafCallbacks.length;
-  });
+  raf = stubRequestAnimationFrame();
 });
 
 afterEach(() => {
@@ -216,7 +206,7 @@ describe("IdentityGate – Fokus", () => {
     // Fokus landet erst im nächsten Frame (Codify #188), nicht synchron beim State-Wechsel.
     expect(zielSelect).not.toHaveFocus();
 
-    flushRaf();
+    raf.flush();
 
     expect(zielSelect).toHaveFocus();
   });
@@ -228,7 +218,7 @@ describe("IdentityGate – Fokus", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Wer bist du?" }), {
       target: { value: "z1" },
     });
-    expect(rafCallbacks).toHaveLength(1);
+    expect(raf.pendingCount()).toBe(1);
 
     unmount();
 
