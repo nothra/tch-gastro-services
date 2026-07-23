@@ -2,11 +2,11 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -144,10 +144,20 @@ nicht duplizieren (#194); `setState`-Updater rein halten (#183).
   skipped, unverändert) ✓, `tsc --noEmit` ✓.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Review-Runde 4 (nach Circuit-Breaker-Eskalation Runde 1–3): **APPROVED**, keine kritischen oder
+wichtigen Findings. Der eskalierte Move-Fund (alte `theke/[token]`-Dateien nicht gelöscht) wurde
+in Commit `f5c5ca6` behoben und verifiziert. Ein Nitpick (Empty-State-Text-Duplikat) im
+`/refactor`-Pass behoben; ein weiterer Nitpick (Chip-Leiste-Rand-Bleed hardcoded statt
+`className`-gesteuert) als pre-existing/Nachzieher eingestuft → Folge-Issue
+[#205](https://github.com/nothra/tch-gastro-services/issues/205). Details: `tasks/review-187.md`.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Zwei neue Regeln extrahiert (Details + Volltext: `tasks/codify-187.md`,
+`docs/factory/lessons/frontend-react.md`, `docs/factory/lessons/testing.md`):
+- Verschieben eines route-neutralen Moduls: alte Datei löschen ist Teil des Moves, nicht optional.
+- Callback-Prop nur durch Codelesen belegt ist keine Testabdeckung – Coverage-Report gegen jedes
+  Review-Positiv gegenprüfen.
+Security-Review (PASSED, keine Findings) lieferte kein neues Learning. Folge-Issue #205 angelegt.
 
 ---
 Branch: `feature/187-verzehrerfassung-vereinheitlichen`
