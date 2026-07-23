@@ -72,11 +72,17 @@ begrenzt, keine neue jq-Abhängigkeit, ADR-Status/-Querverweise gepflegt.
 - **Scope-Begrenzung negativ mitgetestet** (AC6: Bestands-Aufrufer nutzen den Wrapper NICHT); die
   bestehende #82-Skill-Doku-Assertion bleibt gültig. Keine Routen-Änderung → `docs/routes.md` unberührt.
 
+## Re-Review (Runde 2, 2026-07-23)
+
+Rework-Iteration 1 geprüft (inkrementeller Diff `a021a2c..6ee640a`): alle vier WICHTIG-Findings und die
+beiden übernommenen Nitpicks (N1, N2) sind behoben. W1 (Header nennt beide Funktionen), W2 (Guard-Zweig
+`''|*[!0-9]*)` durch einen Test erzwungen), W3 (No-Match- **und** Fail-open-Pfad unter `set -euo pipefail`
+verriegelt), W4 (Label-Degradation über `create_issue_idempotent` abgedeckt). Keine neuen Findings, keine
+Regression: `create_issue_idempotent`-Logik unverändert (nur Kommentare + Tests ergänzt), Bash-Suite
+436 grün, kein `.claude/**`-/Routen-Impact. Die bewusst offen gelassenen Nitpicks (Heredoc statt `<<<`,
+repo_args-Duplikat wegen Bash-3.2-nameref-Grenze, Flag-Name `expect_num`, AC3-Stub-Grenze) bleiben als
+vertretbare Trade-offs akzeptiert.
+
 ## Empfehlung
 
-**NEEDS_REWORK** – keine KRITISCH-Findings, aber vier WICHTIG-Punkte. Zwei davon verletzen direkt
-codifizierte Projektstandards: der veraltete Datei-Header (clean-code.md, Kommentar-Korrektheit) und der
-ungetestete Numerik-Guard (testing-standards.md, Exhaustiveness-Guard + 100 % neue-Code-Coverage). Die
-beiden Test-Coverage-Lücken (strict-mode auf No-Match/Fail-open, F2 über den neuen Einstiegspunkt) sind
-billig zu schließen und sichern genau die Pfade ab, deren stiller Regressionsbruch das Duplikat-Verhalten
-reaktivieren würde. Alle Fixes sind in-scope und im `scripts/*`-Bereich (kein `.claude/**`-Patch nötig).
+APPROVED
