@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -64,6 +64,20 @@ der bestehenden ADR-019-§4-Absicht) → `/architecture` voraussichtlich nicht n
   (Volltext-Greps sind aus `run-pipeline.sh` verschwunden). Suite: 399 grün, 0 rot.
 - ADR-Trigger-Check: keine der vier Kategorien greift (Bugfix in bestehender ADR-019-§4-Absicht)
   → kein `/architecture`.
+
+### Review (/review, 2026-07-23)
+
+APPROVED nach einer Rework-Runde. Zwei WICHTIG-Findings in-scope behoben: ADR-019-§4-Drift
+(Mechanik-Beschreibung auf Anker-Logik aktualisiert) und Testlücke AK6 (Spiegel-Assertion
+`security-14` ergänzt). Out-of-Scope-Fund (Contract-Drift-Guard) autonom als Issue **#214**
+angelegt. Details: [`review-211.md`](review-211.md).
+
+### Refactoring (/refactor, 2026-07-23)
+
+Kein neues Verhalten. Einzige Änderung: `token_a`/`token_b` → `pass_token`/`fail_token`
+(awk `a`/`b`/`hasA`/`hasB` → `pass`/`fail`/`hasPass`/`hasFail`) – benennt die reale
+Pass/Fail-Semantik der zwei Verdict-Tokens (Review-Nitpick). Generalisierung auf eine
+Token-Liste bewusst verworfen (Spec schließt neue Tokens aus → YAGNI). Suite: 402 grün.
 
 ## Offene Fragen
 

@@ -28,22 +28,23 @@
 
 report_verdict() {
   local skill="$1" task_id="$2" tasks_dir="${3:-${FACTORY_DIR:-.}/tasks}"
-  local file header token_a token_b
+  # pass_token = bestandener Verdict, fail_token = Rework/Fixes-Verdict (je Skill genau diese zwei).
+  local file header pass_token fail_token
   case "$skill" in
-    review)          file="$tasks_dir/review-${task_id}.md";   header='## Empfehlung'; token_a='APPROVED'; token_b='NEEDS_REWORK' ;;
-    security-review) file="$tasks_dir/security-${task_id}.md"; header='## Ergebnis';   token_a='PASSED';   token_b='NEEDS_FIXES' ;;
+    review)          file="$tasks_dir/review-${task_id}.md";   header='## Empfehlung'; pass_token='APPROVED'; fail_token='NEEDS_REWORK' ;;
+    security-review) file="$tasks_dir/security-${task_id}.md"; header='## Ergebnis';   pass_token='PASSED';   fail_token='NEEDS_FIXES' ;;
     *) return 0 ;;
   esac
   [ -f "$file" ] || return 0
-  awk -v header="$header" -v a="$token_a" -v b="$token_b" '
+  awk -v header="$header" -v pass="$pass_token" -v fail="$fail_token" '
     # Anker-Überschrift exakt (umgebender Whitespace erlaubt); erstes Vorkommen zählt.
     !found && $0 ~ ("^[[:space:]]*" header "[[:space:]]*$") { found = 1; next }
     found {
       if ($0 ~ /^[[:space:]]*$/) next            # Leerzeilen bis zum Verdict überspringen
-      hasA = index($0, a) > 0
-      hasB = index($0, b) > 0
-      if (hasA && !hasB) print a                 # genau ein gültiges Token → Verdict
-      else if (hasB && !hasA) print b
+      hasPass = index($0, pass) > 0
+      hasFail = index($0, fail) > 0
+      if (hasPass && !hasFail) print pass        # genau ein gültiges Token → Verdict
+      else if (hasFail && !hasPass) print fail
       exit                                       # nur die erste nicht-leere Zeile zählt
     }
   ' "$file" 2>/dev/null || true
