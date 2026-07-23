@@ -506,7 +506,9 @@ else
       "Realen Endzustand herstellen (Commits pushen / PR aus Draft holen / Merge freigeben), dann Pipeline erneut starten"
     exit 1
   fi
-  echo -e "${GREEN}✓${NC} Endzustand verifiziert (sauber, gepusht$([ "${PR_SHEPHERD:-false}" = "true" ] && printf ', PR merge-ready/gemergt'))"
+  VERIFY_SCOPE="sauber, gepusht"
+  [ "${PR_SHEPHERD:-false}" = "true" ] && VERIFY_SCOPE="$VERIFY_SCOPE, PR merge-ready/gemergt"
+  echo -e "${GREEN}✓${NC} Endzustand verifiziert (${VERIFY_SCOPE})"
 fi
 
 echo -e "${GREEN}╔═══════════════════════════════════════╗${NC}"

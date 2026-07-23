@@ -89,7 +89,11 @@ verify_final_state() {
   fi
 
   # Ungepushte Commits: origin/<branch> muss existieren, sonst fail-closed (F2).
-  if git -C "$repo_dir" rev-parse --verify --quiet "origin/${branch}^{commit}" >/dev/null 2>&1; then
+  # Leerer Branch (git-Fehler beim Aufrufer) oder "HEAD" (detached HEAD) → kein verwertbares
+  # Upstream → fail-closed, statt gegen origin/HEAD (den Default-Branch) aufzulösen.
+  if [ -z "$branch" ] || [ "$branch" = "HEAD" ]; then
+    unpushed="NO_UPSTREAM"
+  elif git -C "$repo_dir" rev-parse --verify --quiet "origin/${branch}^{commit}" >/dev/null 2>&1; then
     unpushed="$(git -C "$repo_dir" rev-list --count "origin/${branch}..HEAD" 2>/dev/null)"
     [ -n "$unpushed" ] || unpushed="ERROR"   # git-Fehler → nicht-numerisch → fail-closed (F1)
   else
@@ -101,6 +105,9 @@ verify_final_state() {
     local gh_line auto_flag
     # Ein atomarer gh-Aufruf, TSV über gh-eigenes -q (kein externes jq nötig).
     # Fehlgeschlagener Aufruf → leere Zeile → pr_state bleibt leer → fail-closed (F1).
+    # HINWEIS (Test-Coverage): Der gh-Stub im Test-Harness bildet diese TSV fest nach; die
+    # -q-Filterausdruck-Semantik (Feldreihenfolge, --json-Feldnamen, @tsv) läuft mangels echtem
+    # gh NICHT im Harness und ist nur durch Codelesen gegen die gh-CLI-Doku abgesichert.
     gh_line="$( ( cd "$repo_dir" 2>/dev/null && \
       gh pr view --json isDraft,state,autoMergeRequest \
         -q '[.isDraft, .state, (.autoMergeRequest != null)] | @tsv' ) 2>/dev/null )" || gh_line=""

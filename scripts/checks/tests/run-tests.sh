@@ -2352,6 +2352,10 @@ VFS_BR="$(git -C "$VFS_REPO" rev-parse --abbrev-ref HEAD)"
 git -C "$VFS_REPO" push -q origin "$VFS_BR"
 
 # Fakten neu erzeugen: schreibt einen gh-Stub, der genau eine TSV-Zeile ausgibt (isDraft state auto).
+# HINWEIS (Coverage-Loch, bewusst): Der Stub ignoriert die gh-Argumente und bildet die TSV fest
+# nach → der `-q '[.isDraft,.state,(.autoMergeRequest!=null)]|@tsv'`-Ausdruck in verify-final-state.sh
+# wird NICHT ausgeführt (kein echtes gh im Harness). Getestet ist nur das IFS-read-Mapping; die
+# gh-Filter-Semantik ist durch Codelesen abgesichert (siehe Kommentar an der Lib-Zeile).
 mkgh() { printf '#!/bin/sh\nprintf "%%s\\t%%s\\t%%s\\n" "%s" "%s" "%s"\n' "$1" "$2" "$3" > "$VFS_REPO/bin/gh"; chmod +x "$VFS_REPO/bin/gh"; }
 # gh-Stub, der scheitert (simuliert nicht verwertbaren Aufruf → F1)
 failgh() { printf '#!/bin/sh\nexit 1\n' > "$VFS_REPO/bin/gh"; chmod +x "$VFS_REPO/bin/gh"; }
@@ -2440,9 +2444,66 @@ CLEOF
   assert_true "$([[ "$int_rc" -ne 0 ]]; echo $?)" "#212 AK8: Interrupt-Sentinel → Non-Zero-Exit"
   printf '%s' "$int_out" | grep -q 'Pipeline erfolgreich abgeschlossen'
   assert_true "$([ $? -ne 0 ]; echo $?)" "#212 AK8: Erfolgs-Ausgabe wird bei Interrupt NICHT erreicht"
+  grep -q 'PUSH_GATE_BLOCKED' "$TMP_INT/tasks/interrupt-log.jsonl" 2>/dev/null
+  assert_true "$?" "#212 AK8: Stopp-Grund (PUSH_GATE_BLOCKED) ist im interrupt-log protokolliert"
   rm -rf "$TMP_INT"
 else
   skip_yq "#212 AK8: Interrupt-Sentinel stoppt Pipeline"
+fi
+
+echo ""
+echo "#212 WICHTIG-3: Verifikations-Interrupt end-to-end (Kern-Symptomatik #212):"
+# Der neue Pfad „Endzustand verletzt → raise-interrupt INCOMPLETE_OUTCOME → exit 1" wird echt
+# ausgeführt (nicht nur grep-verifiziert): mock claude (no-op) durchläuft alle Phasen, kein
+# Sentinel, aber am Ende liegt ein ungepushter Commit → Verifikation blockiert den Erfolg.
+if [ "$HAS_YQ" = 1 ]; then
+  TMP_E2E="$(mktemp -d)"; TMP_E2E_ORIGIN="$(mktemp -d)"
+  mkdir -p "$TMP_E2E/scripts/checks" "$TMP_E2E/scripts/lib" "$TMP_E2E/tasks" \
+           "$TMP_E2E/docs/factory" "$TMP_E2E/.claude/commands" "$TMP_E2E/bin"
+  cp "$PIPELINE" "$TMP_E2E/scripts/"
+  cp "$CHECKS_DIR/config-validation-check.sh" "$CHECKS_DIR/interrupt-check.sh" "$TMP_E2E/scripts/checks/"
+  cp "$SCRIPTS_DIR/raise-interrupt.sh" "$TMP_E2E/scripts/"
+  cp "$SCRIPTS_DIR/lib/report-verdict.sh" "$SCRIPTS_DIR/lib/tier-select.sh" \
+     "$SCRIPTS_DIR/lib/verify-final-state.sh" "$TMP_E2E/scripts/lib/"
+  cp "$DEFAULTS_YML" "$TMP_E2E/"
+  echo "# ctx" > "$TMP_E2E/docs/factory/PROJECT-CONTEXT.md"
+  for s in implement review test refactor security-review codify; do
+    echo "# $s mock" > "$TMP_E2E/.claude/commands/$s.md"
+  done
+  echo "# Task 78: e2e" > "$TMP_E2E/tasks/task-78-e2e.md"
+  printf '## Empfehlung\nAPPROVED\n' > "$TMP_E2E/tasks/review-78.md"   # Review-Loop sofort grün
+  printf '#!/bin/sh\nexit 0\n' > "$TMP_E2E/bin/claude"; chmod +x "$TMP_E2E/bin/claude"   # no-op-Skills
+  git init --bare -q "$TMP_E2E_ORIGIN"
+  git -C "$TMP_E2E" init -q
+  git -C "$TMP_E2E" symbolic-ref HEAD refs/heads/feature/e2e 2>/dev/null
+  git -C "$TMP_E2E" config user.email t@t; git -C "$TMP_E2E" config user.name t
+  git -C "$TMP_E2E" add .; git -C "$TMP_E2E" commit -q -m init
+  git -C "$TMP_E2E" remote add origin "$TMP_E2E_ORIGIN"
+  E2E_BR="$(git -C "$TMP_E2E" rev-parse --abbrev-ref HEAD)"
+  git -C "$TMP_E2E" push -q origin "$E2E_BR"
+  # Unvollständiger Endzustand: ein ungepushter Commit (Working Tree bleibt sauber → Preflight ok)
+  echo "extra" > "$TMP_E2E/extra.txt"; git -C "$TMP_E2E" add .; git -C "$TMP_E2E" commit -q -m unpushed
+  e2e_out=$(cd "$TMP_E2E" && PATH="$TMP_E2E/bin:$PATH" \
+    FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_rc=$?
+  assert_true "$([[ "$e2e_rc" -ne 0 ]]; echo $?)" "#212 W3: unverifizierter Endzustand → Non-Zero-Exit (E2E)"
+  printf '%s' "$e2e_out" | grep -q 'Pipeline erfolgreich abgeschlossen'
+  assert_true "$([ $? -ne 0 ]; echo $?)" "#212 W3: kein Erfolgs-Banner bei unverifiziertem Endzustand (E2E)"
+  printf '%s' "$e2e_out" | grep -q 'Endzustand nicht verifiziert'
+  assert_true "$?" "#212 W3: meldet den realen Zustand (Endzustand nicht verifiziert)"
+  grep -q '"type":"INCOMPLETE_OUTCOME"' "$TMP_E2E/tasks/interrupt-log.jsonl" 2>/dev/null
+  assert_true "$?" "#212 W3: INCOMPLETE_OUTCOME wird ins interrupt-log geschrieben (ADR-006)"
+  # Positiv-Gegenprobe: sauber+gepusht → Erfolgs-Banner erreicht (kein Fehlalarm)
+  git -C "$TMP_E2E" push -q origin "$E2E_BR"
+  e2e_ok=$(cd "$TMP_E2E" && PATH="$TMP_E2E/bin:$PATH" \
+    FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_ok_rc=$?
+  assert_exit 0 "$e2e_ok_rc" "#212 W3: sauber+gepushter Endzustand → Erfolg (exit 0, Gegenprobe)"
+  printf '%s' "$e2e_ok" | grep -q 'Pipeline erfolgreich abgeschlossen'
+  assert_true "$?" "#212 W3: Erfolgs-Banner erscheint bei verifiziertem Endzustand"
+  rm -rf "$TMP_E2E" "$TMP_E2E_ORIGIN"
+else
+  skip_yq "#212 W3: Verifikations-Interrupt end-to-end"
 fi
 
 echo ""
@@ -2464,27 +2525,17 @@ grep -qF '.coverage-tmp' "$FACTORY_ROOT/docs/factory/guidelines/testing-standard
 assert_true "$?" "#212 AK10: testing-standards.md dokumentiert den ignorierten Coverage-Temp-Präfix"
 
 echo ""
-echo "#212 AK7: pr-shepherd eskaliert unter Stage 3 (Patch auf Temp-Kopie, .claude/** hard-denied):"
-PATCH_212="$FACTORY_ROOT/tasks/patch-212.diff"
-assert_true "$([[ -f "$PATCH_212" ]]; echo $?)" "#212 AK7: tasks/patch-212.diff vorhanden"
-# Patch read-only gegen die Live-Datei prüfbar (git apply --check)
-git -C "$FACTORY_ROOT" apply --check "$PATCH_212" >/dev/null 2>&1
-assert_true "$?" "#212 AK7: patch-212.diff wendet sauber auf pr-shepherd.md an (git apply --check)"
-# Auf eine Temp-Kopie anwenden und die AK-Assertions dort belegen (Lesson #91: 'green nach apply')
-TMP_SH="$(mktemp -d)"; mkdir -p "$TMP_SH/.claude/commands"
-cp "$SHEPHERD" "$TMP_SH/.claude/commands/pr-shepherd.md"
-git -C "$TMP_SH" init -q; git -C "$TMP_SH" add .
-git -C "$TMP_SH" -c user.email=t@t -c user.name=t commit -q -m init
-git -C "$TMP_SH" apply "$PATCH_212" >/dev/null 2>&1
-assert_exit 0 "$?" "#212 AK7: Patch lässt sich auf die Temp-Kopie anwenden"
-SHP="$TMP_SH/.claude/commands/pr-shepherd.md"
-{ grep -qF 'FACTORY_STAGE=3' "$SHP" && grep -qF 'niemals eine interaktive Freigabe' "$SHP"; }
+echo "#212 AK7: pr-shepherd eskaliert unter Stage 3 (Endzustand der committeten Live-Datei):"
+# `.claude/**` ist für den Agenten hard-denied → die Änderung kam via tasks/patch-212.diff (vom
+# Menschen angewandt + committet, Patch danach entfernt – Lesson #145). Der Test prüft daher den
+# ENDZUSTAND der committeten Live-Datei $SHEPHERD direkt, nicht das transiente Patch-Artefakt
+# (Kopplung an patch-212.diff wäre im auslieferbaren Zustand zwangsläufig rot – Review #212).
+{ grep -qF 'FACTORY_STAGE=3' "$SHEPHERD" && grep -qF 'niemals eine interaktive Freigabe' "$SHEPHERD"; }
 assert_true "$?" "#212 AK7: Stage-3-Blocker → raise-interrupt statt interaktiver Freigabefrage"
-grep -qF 'kein autonomes `git rm --cached`' "$SHP"
+grep -qF 'kein autonomes `git rm --cached`' "$SHEPHERD"
 assert_true "$?" "#212 AK7: verbietet autonomes 'git rm --cached'"
-grep -qF 'PUSH_GATE_BLOCKED' "$SHP"
+grep -qF 'PUSH_GATE_BLOCKED' "$SHEPHERD"
 assert_true "$?" "#212 AK7: benennt Interrupt-Typ PUSH_GATE_BLOCKED für blockierendes Artefakt"
-rm -rf "$TMP_SH"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

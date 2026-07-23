@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -107,11 +107,16 @@ Kernstellen:
   (Lesson #197). Suite grün: 446/446.
 
 Blocker 2026-07-23: `.claude/commands/pr-shepherd.md` (AK7) ist für den Agenten hard-denied
-(`Write(.claude/**)`) – als **Patch** `tasks/patch-212.diff` geliefert (programmatisch erzeugt,
-`git apply --check` grün). **Aktion Mensch:** `git apply tasks/patch-212.diff` anwenden und
-committen (der AK7-Test in `run-tests.sh` belegt „green nach apply" bereits gegen eine
-Temp-Kopie). Nach dem Anwenden diese Blocker-Zeile als erledigt markieren und `patch-212.diff`
-entfernen (Lesson #91/#145), bevor `/pr-shepherd`/Merge läuft.
+(`Write(.claude/**)`) – als **Patch** `tasks/patch-212.diff` geliefert (programmatisch erzeugt).
+**Erledigt 2026-07-23:** Mensch hat `git apply tasks/patch-212.diff` angewandt; die Änderung ist
+committet, `tasks/patch-212.diff` entfernt (Lesson #145). Der AK7-Test in `run-tests.sh` prüft
+jetzt den **Endzustand** der committeten Live-`pr-shepherd.md` direkt (nicht mehr das transiente
+Patch-Artefakt) – das war ein Review-Finding (#212, Runde 1/3, siehe `tasks/review-212.md`).
+
+**Review-Rework 2026-07-23 (nach Runde 1):** AK7-Test entkoppelt vom Patch-Artefakt; E2E-Test des
+Verifikations-Interrupt-Pfads ergänzt (`INCOMPLETE_OUTCOME`); `OPERATING.md`-Interrupt-Tabelle um
+`INCOMPLETE_OUTCOME`+`PUSH_GATE_BLOCKED` ergänzt; gh-TSV-Contract-Kommentar; AK8-Typ-Assertion;
+detached-HEAD-Guard. Suite: 450 grün.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
