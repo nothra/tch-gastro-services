@@ -195,9 +195,7 @@ _cri_find_open_issue_by_title() {
       ''|*[!0-9]*) : ;;                          # keine reine Nummer → überspringen
       *) if [ -z "$best" ] || [ "$num" -lt "$best" ]; then best="$num"; fi ;;
     esac
-  done <<EOF
-$raw
-EOF
+  done <<<"$raw"
 
   [ -n "$best" ] || return 1
   printf '%s\n' "$best"

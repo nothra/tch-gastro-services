@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -103,6 +103,14 @@ Entscheidung: [ADR-040](../docs/adr/040-idempotenter-issue-seam-fuer-pipeline-re
 - [x] N2 – `--limit 100` → Kommentar ergänzt, warum das für den Dedup-Zweck genügt.
 - Bewusst **nicht** behoben (Nitpicks, kosmetisch/vertretbar): Heredoc statt `<<<`, repo_args-Dup
   (Bash-3.2-nameref-Grenze), Flag-Name `expect_num`, AC3-Stub-Grenze. Kein Gold-Plating.
+
+## Refactoring-Notizen (2026-07-23)
+Leichter Clean-Code-Pass (kein neues Verhalten, 439 grün vor + nach):
+- `_cri_find_open_issue_by_title`: umständliches `<<EOF … EOF`-Heredoc durch das idiomatische
+  Herestring `<<<"$raw"` ersetzt (identisches Verhalten inkl. Leer-Fall).
+- **Bewusst nicht refactored** (Trade-off, kein Gold-Plating): repo_args-Duplikat (array-rückgebender
+  Bash-Helfer bräuchte 4.3-nameref, das Projekt läuft auch auf Bash 3.2), `expect_num`-Flag (gut
+  kommentierter lokaler Toggle). Code war nach zwei Review-Runden bereits sauber.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
