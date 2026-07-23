@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -58,6 +58,8 @@ _Keine._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+APPROVED (3 Perspektiven, keine kritischen Findings). Details: [tasks/review-194.md](review-194.md).
+Zwei „Wichtig"-Funde (Duplikation Select-Hülle, doppelter rAF-Test-Helper) für `/refactor` vorgesehen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
