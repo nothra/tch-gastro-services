@@ -1,7 +1,7 @@
 # Task 212: pipeline-offene-freigabe-blockiert
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -33,20 +33,20 @@ Verwandt: #211 (gleiche Symptomfamilie „Erfolg trotz Draft-PR"), ADR-004 (Inte
 
 ## Akzeptanzkriterien
 <!-- Quelle: docs/specs/spec-212-pipeline-endzustand-verifizieren.md -->
-- [ ] AK1 – Ungepushte Commits am Ende → kein Erfolg, Non-Zero-Exit
-- [ ] AK2 – Sauber + gepusht (PR_SHEPHERD=false) → Erfolg (Exit 0)
-- [ ] AK3 – Draft-PR (PR_SHEPHERD=true) → kein Erfolg, Non-Zero-Exit
-- [ ] AK4 – Weder gemergt noch Auto-Merge scharf (PR_SHEPHERD=true) → kein Erfolg
-- [ ] AK5 – Merge-ready / Auto-Merge scharf (PR_SHEPHERD=true) → Erfolg (Exit 0)
-- [ ] AK6 – PR bereits MERGED (PR_SHEPHERD=true) → Erfolg (Exit 0)
-- [ ] AK7 – pr-shepherd eskaliert per raise-interrupt.sh statt interaktiver Frage (Stage 3)
-- [ ] AK8 – Interrupt-Sentinel stoppt Pipeline vor der Erfolgs-Ausgabe (Regressions-Guard)
-- [ ] AK9 – `.gitignore` deckt `.coverage-tmp<id>/` generisch ab (mit Test)
-- [ ] AK10 – Kein Factory-Pfad schreibt Coverage in einen getrackten Ort
-- [ ] F1 – `gh`/`git`-Verifikation schlägt fehl → fail-closed (kein Erfolg)
-- [ ] F2 – Kein Upstream/Tracking → fail-closed „nicht gepusht"
-- [ ] F3 – Uncommittete Änderungen am Ende → kein Erfolg
-- [ ] F4 – `--dry-run` bleibt grün (Verifikation übersprungen/markiert)
+- [x] AK1 – Ungepushte Commits am Ende → kein Erfolg, Non-Zero-Exit
+- [x] AK2 – Sauber + gepusht (PR_SHEPHERD=false) → Erfolg (Exit 0)
+- [x] AK3 – Draft-PR (PR_SHEPHERD=true) → kein Erfolg, Non-Zero-Exit
+- [x] AK4 – Weder gemergt noch Auto-Merge scharf (PR_SHEPHERD=true) → kein Erfolg
+- [x] AK5 – Merge-ready / Auto-Merge scharf (PR_SHEPHERD=true) → Erfolg (Exit 0)
+- [x] AK6 – PR bereits MERGED (PR_SHEPHERD=true) → Erfolg (Exit 0)
+- [x] AK7 – pr-shepherd eskaliert per raise-interrupt.sh statt interaktiver Frage (Stage 3) — via `tasks/patch-212.diff` (`.claude/**` hard-denied), Test gegen Temp-Kopie belegt „green nach apply"
+- [x] AK8 – Interrupt-Sentinel stoppt Pipeline vor der Erfolgs-Ausgabe (Regressions-Guard)
+- [x] AK9 – `.gitignore` deckt `.coverage-tmp<id>/` generisch ab (mit Test)
+- [x] AK10 – Kein Factory-Pfad schreibt Coverage in einen getrackten Ort (Konvention in `testing-standards.md`)
+- [x] F1 – `gh`/`git`-Verifikation schlägt fehl → fail-closed (kein Erfolg)
+- [x] F2 – Kein Upstream/Tracking → fail-closed „nicht gepusht"
+- [x] F3 – Uncommittete Änderungen am Ende → kein Erfolg
+- [x] F4 – `--dry-run` bleibt grün (Verifikation übersprungen/markiert)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt: ADR-040 -->
@@ -84,6 +84,34 @@ Kernstellen:
 
 **Latenter Nebenfund (nicht Teil des Fixes, ggf. eigenes Issue):** `pipeline_summary()` liest
 `task-${id}.md` ohne `-<name>`-Suffix (:322) → findet reale Task-Datei nicht (Anzeigefehler).
+
+## Implementierungs-Notizen (/implement, 2026-07-23)
+
+- **Neue sourcebare Lib `scripts/lib/verify-final-state.sh`** (ADR-040 §5, Muster
+  `tier-select.sh`): `evaluate_final_state` (reine Entscheidung über erhobene Fakten) +
+  `verify_final_state` (I/O-Wrapper, erhebt Fakten via `git`/`gh`). Trennung macht die
+  Entscheidungslogik ohne echtes Repo/GitHub testbar; `git` über `-C`, `gh` über einen
+  atomaren `gh pr view --json … -q '…|@tsv'`-Aufruf (kein externes `jq`).
+- **`scripts/run-pipeline.sh`:** sourct die Lib (bei den anderen `source`-Zeilen) und ruft
+  die Verifikation **unmittelbar vor** dem Erfolgs-Banner auf (nach `pipeline_summary`).
+  Verletzung → `raise-interrupt.sh 212 INCOMPLETE_OUTCOME "<realer Zustand>"` + `exit 1`
+  (fail-closed, ehrliche Autonomie-Rate ADR-006). `--dry-run` überspringt die Verifikation.
+- **AK9/AK10:** `.gitignore`-Muster `.coverage-tmp*/` war bereits vorhanden (aus #210) →
+  nur Regressionstest (`git check-ignore`) ergänzt. Kein Factory-Pfad schreibt Coverage in
+  einen getrackten Ort (Vitest-Default `coverage/`, ignoriert); die Konvention ist jetzt in
+  `docs/factory/guidelines/testing-standards.md` dokumentiert.
+- **Tests:** 42 neue Fälle in `scripts/checks/tests/run-tests.sh` (evaluate_final_state
+  rein, verify_final_state I/O mit echtem Temp-Repo + gestubbtem `gh`, Pipeline-Wiring inkl.
+  Reihenfolge-Guard, AK8-Verhaltenstest mit Mock-`claude`+Sentinel, AK9/AK10, AK7 gegen
+  Temp-Kopie). `verify-final-state.sh` in **allen 5** run-pipeline-Scaffoldings mitkopiert
+  (Lesson #197). Suite grün: 446/446.
+
+Blocker 2026-07-23: `.claude/commands/pr-shepherd.md` (AK7) ist für den Agenten hard-denied
+(`Write(.claude/**)`) – als **Patch** `tasks/patch-212.diff` geliefert (programmatisch erzeugt,
+`git apply --check` grün). **Aktion Mensch:** `git apply tasks/patch-212.diff` anwenden und
+committen (der AK7-Test in `run-tests.sh` belegt „green nach apply" bereits gegen eine
+Temp-Kopie). Nach dem Anwenden diese Blocker-Zeile als erledigt markieren und `patch-212.diff`
+entfernen (Lesson #91/#145), bevor `/pr-shepherd`/Merge läuft.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
