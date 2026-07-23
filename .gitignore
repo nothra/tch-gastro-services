@@ -33,6 +33,7 @@ tasks/metrics-*.md
 
 # testing / coverage
 /coverage
+.coverage-tmp*/
 
 # next.js
 /.next/

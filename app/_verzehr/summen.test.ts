@@ -9,22 +9,42 @@ function pos(overrides: Partial<VerzehrPositionSum> = {}): VerzehrPositionSum {
 
 describe("zeileSummen", () => {
   it("should_returnZero_when_noPositions", () => {
-    expect(zeileSummen([])).toEqual({ getraenkeCents: 0, essenCents: 0, kaffeeCents: 0 });
+    expect(zeileSummen([])).toEqual({
+      getraenkeCents: 0,
+      essenCents: 0,
+      kaffeeCents: 0,
+      gesamtCents: 0,
+    });
   });
 
   it("should_sumGetraenkeAsMengeTimesPreis_when_getraenkPositions", () => {
     const result = zeileSummen([pos({ menge: 3, priceCents: 150, category: "getraenk" })]);
-    expect(result).toEqual({ getraenkeCents: 450, essenCents: 0, kaffeeCents: 0 });
+    expect(result).toEqual({
+      getraenkeCents: 450,
+      essenCents: 0,
+      kaffeeCents: 0,
+      gesamtCents: 450,
+    });
   });
 
   it("should_sumEssenAsMengeTimesPreis_when_essenPositions", () => {
     const result = zeileSummen([pos({ menge: 2, priceCents: 350, category: "essen" })]);
-    expect(result).toEqual({ getraenkeCents: 0, essenCents: 700, kaffeeCents: 0 });
+    expect(result).toEqual({
+      getraenkeCents: 0,
+      essenCents: 700,
+      kaffeeCents: 0,
+      gesamtCents: 700,
+    });
   });
 
   it("should_sumKaffeeAsMengeTimesPreis_when_kaffeePositions", () => {
     const result = zeileSummen([pos({ menge: 4, priceCents: 80, category: "kaffee" })]);
-    expect(result).toEqual({ getraenkeCents: 0, essenCents: 0, kaffeeCents: 320 });
+    expect(result).toEqual({
+      getraenkeCents: 0,
+      essenCents: 0,
+      kaffeeCents: 320,
+      gesamtCents: 320,
+    });
   });
 
   it("should_splitByCategory_when_mixedPositions", () => {
@@ -33,12 +53,40 @@ describe("zeileSummen", () => {
       pos({ menge: 1, priceCents: 500, category: "essen" }),
       pos({ menge: 3, priceCents: 100, category: "kaffee" }),
     ]);
-    expect(result).toEqual({ getraenkeCents: 400, essenCents: 500, kaffeeCents: 300 });
+    expect(result).toEqual({
+      getraenkeCents: 400,
+      essenCents: 500,
+      kaffeeCents: 300,
+      gesamtCents: 1200,
+    });
   });
 
   it("should_ignorePositionsWithZeroMenge_when_present", () => {
     const result = zeileSummen([pos({ menge: 0, priceCents: 999, category: "getraenk" })]);
-    expect(result).toEqual({ getraenkeCents: 0, essenCents: 0, kaffeeCents: 0 });
+    expect(result).toEqual({ getraenkeCents: 0, essenCents: 0, kaffeeCents: 0, gesamtCents: 0 });
+  });
+
+  it("should_returnZeroGesamt_when_noPositions", () => {
+    // AC (spec-209): 0 Positionen → Gesamt = 0.
+    expect(zeileSummen([]).gesamtCents).toBe(0);
+  });
+
+  it("should_returnCategorySumAsGesamt_when_onlyOneCategory", () => {
+    // AC (spec-209): nur eine Kategorie → Gesamt entspricht deren Summe.
+    const result = zeileSummen([pos({ menge: 2, priceCents: 350, category: "essen" })]);
+    expect(result.gesamtCents).toBe(700);
+  });
+
+  it("should_sumAllThreeCategories_when_allCategoriesPresent", () => {
+    // AC (spec-209): gesamtCents = getraenkeCents + essenCents + kaffeeCents (exakt, ADR-021).
+    const result = zeileSummen([
+      pos({ menge: 2, priceCents: 200, category: "getraenk" }),
+      pos({ menge: 1, priceCents: 500, category: "essen" }),
+      pos({ menge: 3, priceCents: 100, category: "kaffee" }),
+    ]);
+    // 400 (Getränke) + 500 (Essen) + 300 (Kaffee) = 1200, unabhängig erwartet (kein Rücklesen
+    // aus dem Ergebnis-Objekt, testing-standards §Arrange-Act-Assert).
+    expect(result.gesamtCents).toBe(1200);
   });
 
   it("should_throw_when_categoryIsUnknown", () => {

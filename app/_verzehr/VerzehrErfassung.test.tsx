@@ -90,7 +90,7 @@ describe("VerzehrErfassung", () => {
       />,
     );
 
-    expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/Getränke\s*5,00\s*€/)).toBeInTheDocument();
   });
 
   it("should_showEssenFormatted_when_essenPositionExists", () => {
@@ -145,6 +145,75 @@ describe("VerzehrErfassung", () => {
     expect(
       screen.getByText(/Getränke\s*5,00\s*€\s*·\s*Essen\s*8,90\s*€\s*·\s*Kaffee\s*3,00\s*€/),
     ).toBeInTheDocument();
+  });
+
+  it("should_showHighlightedGesamt_when_mixedPositions", () => {
+    // spec-209 AC: neben den Kategorie-Summen erscheint eine optisch hervorgehobene Gesamt-Summe.
+    // Getränke 5,00 € + Essen 8,90 € + Kaffee 3,00 € = 16,90 €.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[cola, schnitzel, kaffee]}
+        positionen={[
+          pos({ menge: 2, priceCents: 250, catalogItemId: "c-1", category: "getraenk" }),
+          pos({ menge: 1, priceCents: 890, catalogItemId: "c-2", category: "essen" }),
+          pos({ menge: 3, priceCents: 100, catalogItemId: "c-3", category: "kaffee" }),
+        ]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    const gesamt = screen.getByText(/Gesamt\s*16,90\s*€/);
+    expect(gesamt).toBeInTheDocument();
+    expect(gesamt).toHaveClass("font-semibold");
+  });
+
+  it("should_showGesamtAsZero_when_noPositions", () => {
+    // spec-209 AC: 0 Positionen → Gesamt = 0,00 €.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[cola]}
+        positionen={[]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText(/Gesamt\s*0,00\s*€/)).toBeInTheDocument();
+  });
+
+  it("should_showGesamtEqualToCategory_when_onlyOneCategory", () => {
+    // spec-209 AC: nur eine Kategorie → Gesamt entspricht deren Kategorie-Summe.
+    // Essen 2 × 890 = 17,80 €.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[schnitzel]}
+        positionen={[pos({ menge: 2, priceCents: 890, catalogItemId: "c-2", category: "essen" })]}
+        action={noopAction}
+        editable
+      />,
+    );
+
+    expect(screen.getByText(/Gesamt\s*17,80\s*€/)).toBeInTheDocument();
+  });
+
+  it("should_showGesamt_when_notEditable", () => {
+    // spec-209 AC: abgeschlossene Veranstaltung (Lesesicht) zeigt die Gesamt-Summe ebenso.
+    // Getränke 2 × 250 = 5,00 €.
+    render(
+      <VerzehrErfassung
+        zeilen={[aZeile]}
+        artikel={[cola]}
+        positionen={[pos({ menge: 2, priceCents: 250, category: "getraenk" })]}
+        action={noopAction}
+        editable={false}
+      />,
+    );
+
+    expect(screen.getByText(/Gesamt\s*5,00\s*€/)).toBeInTheDocument();
   });
 
   it("should_showEssenAndKaffeeAsZero_when_onlyGetraenkPositionExists", () => {
@@ -286,7 +355,7 @@ describe("VerzehrErfassung", () => {
       />,
     );
 
-    expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/Getränke\s*5,00\s*€/)).toBeInTheDocument();
   });
 
   it("should_notRenderInactivePosition_when_mengeIsZero", () => {
