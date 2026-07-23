@@ -30,8 +30,8 @@ export function VerzehrAufschluesselung({
             </tr>
           </thead>
           <tbody>
-            {positionen.map((position) => (
-              <tr key={`${position.category}-${position.name}-${position.size}`}>
+            {positionen.map((position, index) => (
+              <tr key={index}>
                 <td className="py-0.5 pr-3 tabular-nums whitespace-nowrap">{position.menge} ×</td>
                 <td className="py-0.5 pr-3">{artikelBezeichnung(position)}</td>
                 <td className="py-0.5 pr-3 text-right tabular-nums">

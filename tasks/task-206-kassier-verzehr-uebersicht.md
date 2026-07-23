@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -67,6 +67,21 @@ Preis-/Mengen-/Summen-/Status-Logik). Spec: [spec-206](../docs/specs/spec-206-ka
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Details in [review-206](../tasks/review-206.md) (Runde 2, Empfehlung `NEEDS_REWORK`).
+
+## Refactoring-Notizen
+- **React-Key-Kollision behoben** (einziger Rework-Grund aus Review Runde 2):
+  `VerzehrAufschluesselung.tsx` nutzte `${category}-${name}-${size}` als `key` – zwei
+  Katalog-Artikel mit identischem Namen/Größe (z. B. soft-gelöschter + neu angelegter Zwilling,
+  ADR-033 D2) hätten denselben Key erzeugt. Fix: Index-basierter Key auf dem deterministisch
+  sortierten, nie umgeordneten `positionen`-Array – lokal, kein neues Verhalten.
+- **Nitpick behoben:** `CATEGORY_ORDER` in `app/_verzehr/positionen.ts` nicht mehr `export`iert
+  (kein externer Konsument – nur intern in `verzehrPositionen` genutzt, per Grep verifiziert).
+- Verbleibende Nitpicks aus review-206 (Order-Duplikat mit `VerzehrErfassung.tsx`,
+  ADR-Kommentar-Referenz, `scope="col"` auf `sr-only`-Kopfzeile, Test-Redundanzhinweis) bewusst
+  nicht angefasst – außerhalb des Scopes bzw. Gold-Plating.
+- Gates nach dem Fix: Lint grün, Typecheck grün, Format grün, Routen-Doku synchron,
+  633/633 Tests grün (692 inkl. 59 skipped) – identisch grün vor und nach dem Refactoring.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

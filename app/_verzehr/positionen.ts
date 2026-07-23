@@ -10,7 +10,7 @@ import type { VerzehrPositionSum } from "./summen";
 
 // Anzeigereihenfolge der Verzehr-Kategorien (getrennt von der Auslagen-Ordnung, die eine andere
 // Wertmenge hat). Eine Quelle für die Sortierung der Pro-Artikel-Striche.
-export const CATEGORY_ORDER: Record<CatalogCategory, number> = { getraenk: 0, essen: 1, kaffee: 2 };
+const CATEGORY_ORDER: Record<CatalogCategory, number> = { getraenk: 0, essen: 1, kaffee: 2 };
 
 // Eine erfasste Position mit aufgelöstem Katalog-Namen/-Größe/-Preis (aus `listPositionen`, F5,
 // Preis via COALESCE eingefroren, ADR-033 D2). `VerzehrPositionSum` liefert menge/priceCents/category.
