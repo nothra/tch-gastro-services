@@ -59,15 +59,52 @@ Fehlerszenarien:
 - [ ] scrollIntoView bleibt guarded (jsdom ohne Implementierung).
 
 ## Technische Notizen
-<!-- Von /architecture befüllt -->
-- `FokusListe` token-frei: Ziel-Persistenz via injiziertem Callback (F7 bindet `writeZielId(token,…)`, F5 lässt ihn weg) vs. generischem `persistKey` – in `/architecture` entscheiden.
-- Ggf. ADR (Erweiterung ADR-025 D5 / ADR-035), da `FokusListe` aus route-spezifischer Position in einen geteilten Baustein wandert.
+> Entschieden in [ADR-039](../docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md).
+
+**Kern:** `FokusListe` wird route-neutral (token-/persistenzfrei), wandert nach `app/_verzehr/`,
+F5 rendert sie direkt. Persistenz (F7-Ziel-Merkung) wird injiziert. Rein präsentations-/
+clientseitig – keine Migration, keine neue Dependency, keine Action-/DB-/Summen-Änderung.
+
+**Betroffene Dateien:**
+- `app/_verzehr/FokusListe.tsx` **(neu, verschoben aus `app/theke/[token]/`)**: Props `token` +
+  direkter `writeZielId`-Aufruf entfernt; stattdessen optionaler Callback
+  `onFokusWechsel?: (zeileId: string) => void`, aufgerufen in `waehleZiel` (Chip **und**
+  Aufklappen). `initialOpenId` bleibt. Import von `erfasser-ziel-storage` fällt weg.
+- `app/_verzehr/FokusListe.test.tsx` **(verschoben)** + `app/_verzehr/raf-stub.ts` **(verschoben)**.
+- `app/theke/[token]/IdentityGate.tsx`: Import `./FokusListe` → `@/app/_verzehr/FokusListe`;
+  in beiden `FokusListe`-Einsätzen `token`-Prop raus; im editierbaren Zweig
+  `onFokusWechsel={(id) => writeZielId(token, id)}` ergänzen (read-only-Zweig: kein Callback).
+- `app/theke/[token]/IdentityGate.test.tsx`: `raf-stub`-Import → `@/app/_verzehr/raf-stub`.
+- `app/veranstaltung/[id]/verzehr/page.tsx`: `VerzehrErfassung` → `FokusListe`
+  (`initialOpenId={null}`, **kein** `onFokusWechsel`); Empty-Guard (≥1 Zeile) mit der bisherigen
+  F5-Meldung („Noch keine Teilnehmer erfasst – zuerst Teilnehmer hinzufügen.") ergänzen, da
+  `FokusListe` ≥1 Zeile voraussetzt.
+- `app/veranstaltung/[id]/verzehr/page.test.tsx`: Erwartungen auf Akkordeon/Chip-Leiste/Empty
+  anpassen.
+- `docs/routes.md`: F5-Funktionsbeschreibung ggf. präzisieren (keine Struktur-/Zugriffsänderung).
+- `erfasser-ziel-storage.ts` + `VerzehrErfassung.tsx` **bleiben** (Storage F7-only; `VerzehrErfassung`
+  weiter als read-only-Liste im `IdentityGate`-Flow, spec-54 AC B).
+
+**TDD-Reihenfolge (Red→Green→Refactor):**
+1. `FokusListe` verschieben + `onFokusWechsel` einführen; bestehende Tests anpassen (Callback statt
+   `writeZielId`-Kopplung), scrollIntoView-Guard + rAF-Timing-Test erhalten (#188/#194).
+2. `IdentityGate`: Callback-Injektion (editierbar) / kein Callback (read-only) – Test: F7 merkt Ziel
+   weiterhin (writeZielId aufgerufen), read-only nicht.
+3. F5-Seite auf `FokusListe` umstellen: Tests für Chip-Leiste sichtbar, initial keine Karte offen,
+   Chip-Klick öffnet genau eine Karte, Kopf-Tipp klappt zu, read-only eingeklappt + disabled,
+   Empty-State-Meldung.
+4. Regressionstest: `MengeControl`/`adjustVerzehrAction`-Verdrahtung unverändert (mit befülltem
+   Positionen-Array prüfen, Mock-Mapping-Lesson).
+
+**Guardrails:** keine Feature-Importe `app/theke/` → `app/veranstaltung/` (Codify #52); rAF-Stub
+nicht duplizieren (#194); `setState`-Updater rein halten (#183).
 
 ## Offene Fragen
-- [ ] Persistenz-Entkopplung: Callback vs. `persistKey`? ADR nötig?
-- [ ] Benennung der Komponente in `app/_verzehr/` (`FokusListe` behalten?).
-- [ ] Ort des F5-Empty-States (Seite vs. geteilte Komponente).
-- [ ] `docs/routes.md`: F5-Funktionsbeschreibung ggf. anpassen (Drift-Check).
+- [x] Persistenz-Entkopplung: **injizierter Callback `onFokusWechsel`** (ADR-039 D1), nicht `persistKey`.
+- [x] ADR nötig: **ja** → [ADR-039](../docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md), ändert ADR-035 D2.
+- [x] Benennung: **`FokusListe` beibehalten** (ADR-039 D2).
+- [x] Empty-State: **beim Konsumenten** (F5-Seite + `IdentityGate`), wegabhängige Meldung (ADR-039 D4).
+- [ ] `docs/routes.md`: F5-Funktionsbeschreibung im Implement-PR präzisieren.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
