@@ -36,11 +36,31 @@ Vollständige Spec: [`docs/specs/spec-207-create-issue-idempotenz-guard.md`](../
 - [ ] F3 – stdout-Hygiene: nur reine Issue-Nummer auf stdout
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+Entscheidung: [ADR-040](../docs/adr/040-idempotenter-issue-seam-fuer-pipeline-retries.md) (erweitert ADR-018).
+
+- **Neue Funktion** `create_issue_idempotent <title> <body> <art> [aspekt-csv]` in
+  `scripts/lib/create-issue.sh` – gleiche Signatur wie `create_issue`. Sucht ein **offenes**
+  Issue mit **exakt** gleichem Titel; Treffer → dessen Nummer auf stdout (Exit 0), sonst
+  **delegiert** an das unveränderte `create_issue`. `create_issue` bleibt byte-identisch.
+- **Exakter Match:** `gh issue list --state open --search "in:title …" --json number,title -q …`
+  verengt nur; danach **clientseitig exakter Stringvergleich** je Kandidat. Keine externe
+  `jq`-Abhängigkeit (gh-eingebettetes `-q`). Mehrere exakte Treffer → **niedrigste** Nummer.
+- **Fail-open (F1):** Lookup nicht durchführbar (gh-Fehler/Auth/Netz/kein gh/unparsebar) →
+  regulär via `create_issue` anlegen + stderr-Warnung. Anlage bleibt fail-closed (F2).
+- **stdout-Hygiene (F3):** nur reine Nummer auf stdout, alles andere stderr.
+- **Aufrufer umstellen** (nur diese drei, `.claude/**` → **Patch-Workflow** aus #91):
+  `.claude/commands/{codify,review,security-review}.md` → Snippet ruft
+  `create_issue_idempotent` statt `create_issue`. `start-work.sh`/`sync-issues.sh` **nicht**
+  anfassen (AC6).
+- **Tests** in `scripts/checks/tests/run-tests.sh` mit gh-Stub: offener Treffer (AC1),
+  kein Treffer (AC2), geschlossen ignoriert (AC3), Teilstring ≠ Treffer (AC5), Lookup-Fehler
+  fail-open (F1), stdout=nur Nummer (F3). Vgl. bestehende Seam-Test-Sektion (#82).
+- **ADR-Status:** beim Implementieren `Proposed` → `Accepted` flippen (Lesson aus #197).
+  Querverweis in ADR-018 auf ADR-040 ergänzen.
 
 ## Offene Fragen
-- [ ] Mechanismus, um den Guard auf **nur** die 3 Aufrufer zu begrenzen (Seam-Opt-in-Flag/Env vs. Wrapper) → `/architecture`
-- [ ] Robuster exakter Titel-Match trotz Teilstring-Suche von `gh issue list --search` → `/architecture`/`/implement`
+- [x] Mechanismus der Scope-Begrenzung → **separate Wrapper-Funktion** (ADR-040 §2), nicht Flag/Default.
+- [x] Robuster exakter Titel-Match → **Suche verengt, clientseitiger exakter Vergleich** (ADR-040 §3).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
