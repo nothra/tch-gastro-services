@@ -1446,6 +1446,9 @@ printf '## Empfehlung\nNEEDS_REWORK\n\nAlle Personas empfahlen für sich APPROVE
 assert_true "$([ "$(rv review 9)" = "NEEDS_REWORK" ]; echo $?)" "AK2: Fließtext-APPROVED nach Verdict-Zeile ignoriert"
 printf '## Ergebnis\nNEEDS_FIXES\nBasis PASSED, aber ein kritisches Finding offen.\n' > "$TMP_RV/tasks/security-10.md"
 assert_true "$([ "$(rv security-review 10)" = "NEEDS_FIXES" ]; echo $?)" "AK4: Fließtext-PASSED nach Verdict-Zeile ignoriert"
+# AK6 – Spiegel-Richtung: PASSED-Verdict + Fließtext-NEEDS_FIXES → PASSED (Gate blockiert NICHT).
+printf '## Ergebnis\nPASSED\nHinweis: ohne den Anker hätte grep hier NEEDS_FIXES gematcht.\n' > "$TMP_RV/tasks/security-14.md"
+assert_true "$([ "$(rv security-review 14)" = "PASSED" ]; echo $?)" "AK6: Fließtext-NEEDS_FIXES nach PASSED-Zeile ignoriert (Gate blockiert nicht)"
 
 # AK3 – Leerzeilen zwischen Überschrift und Verdict-Zeile werden übersprungen.
 printf '## Empfehlung\n\n\nNEEDS_REWORK\n' > "$TMP_RV/tasks/review-11.md"
