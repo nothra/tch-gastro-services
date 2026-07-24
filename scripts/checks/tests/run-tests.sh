@@ -1766,8 +1766,8 @@ drift_guard() {
   fi
 
   # count_section_items: Teilstring/unankert wie das awk-Muster (/pattern/) – alle drei
-  # Findings-Sektionen liegen in review.md. Extraktion leer → fail-closed.
-  local sections sec found_any=0
+  # Findings-Sektionen liegen in review.md. Leere Extraktion → fail-closed (Parser-Format geändert).
+  local sections sec
   sections="$(extract_section_headers "$pipeline")"
   if [ -z "$sections" ]; then
     echo "DRIFT: count_section_items-Sektionen nicht aus $pipeline extrahierbar (Parser-Format geändert?)"
@@ -1775,14 +1775,12 @@ drift_guard() {
   fi
   while IFS= read -r sec; do
     [ -n "$sec" ] || continue
-    found_any=1
     if ! grep -Eq "$sec" "$review_md"; then
       echo "DRIFT: count_section_items erwartet Sektion '${sec}' in $review_md"; rc=1
     fi
   done <<SECEOF
 $sections
 SECEOF
-  [ "$found_any" -eq 1 ] || { echo "DRIFT: keine count_section_items-Sektion geprüft"; return 1; }
 
   return "$rc"
 }

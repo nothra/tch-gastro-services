@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -60,6 +60,16 @@ Multi-Persona-Review (3 Personas) → NEEDS_REWORK (Iteration 1): 0 kritisch, 2 
 Kern-Finding (W1, von 2 Personas unabhängig): F2-Test war grün aus dem falschen Grund (fehlende
 Sektionen trugen das Exit-1 statt der Verdict-Exaktverankerung). Alle 6 Findings in derselben
 Session behoben; Re-Review APPROVED. Details in `tasks/review-214.md`.
+
+## Refactoring-Notizen (/refactor)
+- Toter Code entfernt: `found_any`-Wächter in `drift_guard`. Nach der vorgelagerten
+  `[ -z "$sections" ]`-Prüfung (fail-closed, per /test-Fall abgedeckt) konnte er nie greifen, da
+  `extract_section_headers` ausschließlich nicht-leere `## …`-Zeilen liefert (clean-code.md „Keine
+  Fallbacks für bereits ausgeschlossene Fälle"). Kein Verhalten geändert: Suite vor/nach identisch
+  524 grün / 0 rot.
+- Bewusst NICHT extrahiert: die zweifache Verdict-Prüfung (review/security) bleibt flache
+  Wiederholung – entspricht dem Assertion-Stil der Datei; ein Helfer + `unset` wäre mehr Maschinerie
+  als die zwei kurzen Blöcke rechtfertigen (kein Gold-Plating).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
