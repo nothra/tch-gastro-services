@@ -1,7 +1,7 @@
 # Task 221: bedienungsanleitung-veranstalter
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -28,15 +28,15 @@ Entscheidungen aus /requirements:
 
 ## Akzeptanzkriterien
 
-- [ ] AC1 – Alle sieben Schritte in richtiger Reihenfolge (Anmelden → anlegen → führen → Verzehr → Auslagen → Kassieren/Abschluss → Abschlussbericht).
-- [ ] AC2 – Zu jedem wesentlichen Schritt mindestens ein aktueller echter App-Screenshot.
-- [ ] AC3 – Laienverständliche Sprache; jeder Schritt nummeriert, „Was tue ich? → Was passiert?".
-- [ ] AC4 – Druckbares PDF + reproduzierbar dokumentierter Erzeugungsweg; Ablageort festgelegt.
-- [ ] AC5 – Glossar der Fachbegriffe (Veranstaltung, Teilnehmer, Verzehr, Auslage, Kasse, Spende).
-- [ ] AC6 – Kurzer Selbstbedienungs-Hinweis (Link/QR, `/theke/[token]`) im Verzehr-Schritt.
-- [ ] AC7 – Große, lesbare Darstellung (Ausdruck/PDF).
-- [ ] F1 – Fehlerhinweis „falsche Rolle" (Liste erscheint nicht → an Verwalter wenden).
-- [ ] F2 – Screenshot-Aktualität/Stand-Hinweis in der Quelle.
+- [x] AC1 – Alle sieben Schritte in richtiger Reihenfolge (Anmelden → anlegen → führen → Verzehr → Auslagen → Kassieren/Abschluss → Abschlussbericht).
+- [x] AC2 – Zu jedem wesentlichen Schritt mindestens ein aktueller echter App-Screenshot (12 Bilder, `bilder/01`–`12`).
+- [x] AC3 – Laienverständliche Sprache; jeder Schritt nummeriert, „Was tue ich? → Was passiert?".
+- [x] AC4 – Druckbares PDF (`anleitung.pdf`) + reproduzierbar dokumentierter Browser-Druck-Weg; Ablageort `docs/anleitung/veranstalter/`.
+- [x] AC5 – Glossar der Fachbegriffe (Veranstaltung, Teilnehmer, Verzehr, Auslage, Kasse, Spende).
+- [x] AC6 – Kurzer Selbstbedienungs-Hinweis (Link/QR, `/theke/[token]`) im Verzehr-Schritt.
+- [x] AC7 – Große, lesbare Darstellung (PDF: A4, 12,5 pt Fließtext, gerahmte Screenshots, Skalier-Hinweis).
+- [x] F1 – Fehlerhinweis „falsche Rolle" (Kachel/Liste erscheint nicht → an Verwalter wenden).
+- [x] F2 – Screenshot-Aktualität/Stand-Hinweis (24.07.2026) + Regenerierungs-Anleitung in der Quelle.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -44,6 +44,26 @@ Entscheidungen aus /requirements:
 - Keine ADR nötig (reine Doku-Task, kein Architektur-Trigger).
 - Screenshots brauchen laufenden Dev-Server + Testdaten (Login als `veranstalter`, mind. eine
   offene Veranstaltung mit Teilnehmern/Verzehr für aussagekräftige Screenshots).
+
+### Umsetzungsnotizen (Implementierung)
+
+- **Screenshots reproduzierbar via Playwright-Spec** (`e2e/anleitung-veranstalter.spec.ts`): fährt
+  den kompletten Veranstalter-Workflow durch, legt die Demo-Daten (Katalog, Teilnehmer,
+  Veranstaltung, Verzehr, Auslage inkl. „als erstattet", Kassieren, Abschluss) **live über die UI**
+  an (Seed-Admin trägt beide Rollen) und speichert 12 PNGs nach `bilder/`. Doppelt nutzbar als
+  E2E-Smoke des Flows. Nur mit `CAPTURE_ANLEITUNG=1` aktiv – im normalen `pnpm test:e2e`
+  übersprungen (schreibt Bilder/Daten). Viewport mobil (414×896 @2×), Locale `de-DE`.
+- **Voraussetzung frische DB:** Die Spec erwartet einen frisch geseedeten DEV-Stand (legt Daten
+  ohne „existiert schon"-Sprung an). Regenerierung dokumentiert in `anleitung.md` → „Bilder
+  aktualisieren".
+- **PDF:** einmalig aus der Markdown-Quelle per Chromium-Druck-Engine erzeugt (entspricht dem in
+  der Quelle dokumentierten manuellen Browser-Druck; kein neues Repo-Tooling). Der Generator lag im
+  Scratchpad und ist nicht Teil des Repos.
+- **Kein App-Code geändert** (reine Doku-Task): nur `docs/anleitung/veranstalter/**` + die
+  Capture-Spec. Keine Routen berührt → `docs/routes.md` unverändert.
+- Learning aus der Umsetzung (Kandidat für `/codify`): Anlege-Formulare mit `key`-Remount + stehen-
+  bleibender Toast-Erfolgsmeldung → Erfolg über die wachsende Listen-Zählung asserten und vor dem
+  nächsten Befüllen auf leeres Formular (`toHaveValue("")`) warten, nicht auf die Toast-Meldung.
 
 ## Offene Fragen
 
