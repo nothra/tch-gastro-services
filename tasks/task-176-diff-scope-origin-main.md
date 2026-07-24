@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -72,6 +72,13 @@ Ergebnis: **APPROVED** (Details: [`tasks/review-176.md`](review-176.md)). Keine 
   Live-Dateien** (nicht das Patch-Artefakt, Lesson #212): 0 Treffer `main...HEAD` ohne `origin/`,
   genau 5 Treffer `origin/main...HEAD` – beide PASS [2026-07-24].
 - Bestehende Suite unberührt grün (640 passed beim letzten `factory-commit.sh`-Push-Gate).
+
+## Refactoring-Notizen (/refactor)
+- Kein Refactoring durchgeführt: PR-Scope ist reine Instruktions-Markdown (kein Code – keine Namen,
+  Funktionen, Kontrollfluss). Clean-Code-Checkliste nur auf den Markdown-Text anwendbar:
+  Duplikation der fetch/diff-Phrase über drei Command-Dateien ist beabsichtigt (jede Datei wird
+  unabhängig gelesen; DRY über eigenständige Docs wäre falsch); Code-Block-Kommentar erklärt WHY.
+- Kein neues Verhalten eingeführt; bestehende Suite unverändert grün (640 passed).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
