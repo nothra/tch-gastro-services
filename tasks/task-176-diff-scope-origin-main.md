@@ -20,17 +20,14 @@ Gate. Lieferung via Patch-Workflow (`tasks/patch-176.diff`), da `.claude/**` age
 
 Spec: [`docs/specs/spec-176-diff-scope-origin-main.md`](../docs/specs/spec-176-diff-scope-origin-main.md)
 
-> Legende: `[~]` = im Patch `tasks/patch-176.diff` umgesetzt und gegen eine Temp-Anwendung
-> grün verifiziert; wird nach `git apply` (Mensch) am Endzustand der Live-Datei bestätigt.
-
 ## Akzeptanzkriterien
-- [~] `/review`: `git diff origin/main...HEAD` – zeigt nur eigene Branch-Änderungen, keine Fremd-PRs (review.md:12)
-- [~] `/security-review`: `git diff origin/main...HEAD` (security-review.md:9)
-- [~] `/refactor`: `git diff origin/main...HEAD` (refactor.md:11)
-- [~] `/pr-shepherd`: `git log origin/main...HEAD --oneline` an beiden Stellen (pr-shepherd.md:12 + :21)
-- [~] Jede Fundstelle hat ein vorangestelltes `git fetch origin` (Aktualisierung des origin/main-Refs)
-- [~] Kein `main...HEAD` ohne `origin/`-Präfix mehr in den vier Command-Dateien (grep-verifiziert)
-- [~] Fehlerfall: `git fetch origin` ist best-effort formuliert (kein harter Abbruch bei Offline)
+- [x] `/review`: `git diff origin/main...HEAD` – zeigt nur eigene Branch-Änderungen, keine Fremd-PRs (review.md:12)
+- [x] `/security-review`: `git diff origin/main...HEAD` (security-review.md:9)
+- [x] `/refactor`: `git diff origin/main...HEAD` (refactor.md:11)
+- [x] `/pr-shepherd`: `git log origin/main...HEAD --oneline` an beiden Stellen (pr-shepherd.md:12 + :22)
+- [x] Jede Fundstelle hat ein vorangestelltes `git fetch origin` (Aktualisierung des origin/main-Refs)
+- [x] Kein `main...HEAD` ohne `origin/`-Präfix mehr in den vier Command-Dateien (grep-verifiziert)
+- [x] Fehlerfall: `git fetch origin` ist best-effort formuliert (kein harter Abbruch bei Offline)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -44,6 +41,9 @@ Spec: [`docs/specs/spec-176-diff-scope-origin-main.md`](../docs/specs/spec-176-d
       `git diff main...HEAD`) nachziehen? Vorschlag: im `/codify`-Schritt, nicht hier.
 
 ## Blocker
+- Erledigt [2026-07-24]: Patch vom Menschen per `git apply tasks/patch-176.diff` angewendet;
+  AC am Endzustand der Live-Dateien grün verifiziert, `[~]`→`[x]`, stale `tasks/patch-176.diff`
+  entfernt. (Historie unten belassen.)
 - Blocker [2026-07-24]: `.claude/commands/{review,security-review,refactor,pr-shepherd}.md` sind
   für den Agenten hard-denied (Edit/Write `.claude/**`). Die Umstellung liegt programmatisch
   erzeugt als `tasks/patch-176.diff` vor (difflib, UTF-8; `git apply --check` grün; Akzeptanz-Grep
