@@ -1,7 +1,7 @@
 # Task 201: inerte-phase1-config-bereinigen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -24,15 +24,15 @@ Spec: [`docs/specs/spec-201-inerte-phase1-config-bereinigen.md`](../docs/specs/s
 
 ## Akzeptanzkriterien
 
-- [ ] **AK1** – `skills.requirements`/`architecture`/`release-notes` aus `factory.defaults.yml`
+- [x] **AK1** – `skills.requirements`/`architecture`/`release-notes` aus `factory.defaults.yml`
   entfernt; `model_tiers`, `default`, `bug-fix` und pipeline-getriebene Skills unverändert.
-- [ ] **AK2** – Fallback: `get_model` liefert für die drei Skills `light`, `get_max_turns` den
+- [x] **AK2** – Fallback: `get_model` liefert für die drei Skills `light`, `get_max_turns` den
   `default`-Wert `10` (kein stilles Heavy-Upgrade).
-- [ ] **AK3** – `config-validation-check.sh` bleibt Exit 0 und fail-closed konsistent (Regeln 4a–4c).
-- [ ] **AK4** – Test „#197 AK7" (`run-tests.sh:2648`) belegt die effektive `default`-`light`-
+- [x] **AK3** – `config-validation-check.sh` bleibt Exit 0 und fail-closed konsistent (Regeln 4a–4c).
+- [x] **AK4** – Test „#197 AK7" (`run-tests.sh:2648`) belegt die effektive `default`-`light`-
   Auflösung der drei Skills; `run-tests.sh` vollständig grün.
-- [ ] **AK5** – Kein `tier`/`max_turns`-Knopf suggeriert mehr eine Phase-1-Automatik.
-- [ ] **AK6** – ADR-038-Kommentar (Zeile ~62) beschreibt den tatsächlichen Zustand, ohne auf
+- [x] **AK5** – Kein `tier`/`max_turns`-Knopf suggeriert mehr eine Phase-1-Automatik.
+- [x] **AK6** – ADR-038-Kommentar (Zeile ~62) beschreibt den tatsächlichen Zustand, ohne auf
   entfernte Einträge zu verweisen.
 
 ## Technische Notizen
@@ -40,6 +40,18 @@ Spec: [`docs/specs/spec-201-inerte-phase1-config-bereinigen.md`](../docs/specs/s
 
 Kein neuer ADR nötig (abgedeckt durch ADR-009/011/038). Fehlerszenarien F1–F3 (verstecktes
 Test-Coupling, Annotation-Gate C(a), Doku-Drift) siehe Spec.
+
+**Implementierung (2026-07-24):** Umgesetzt in Commit `e9b1387` – drei Einträge aus
+`factory.defaults.yml` entfernt (Kommentarblock 78-81 erklärt das WHY), ADR-038:62-64
+nachgezogen, `run-tests.sh` #197-AK7-Test um die drei Skills bereinigt + neuer `#201`-Block
+(2656-2666) belegt die `// .default`-Auflösung (light, max_turns 10). AK1–AK6 verifiziert:
+`config-validation-check.sh` exit 0, `#201`-Test grün.
+
+**Nicht durch diese Task verursacht (F1-Nachweis):** `run-tests.sh` meldet 4 rote `#212 W3`-Tests
+(E2E-Pipeline mit echtem `git push` gegen ein lokales Origin). Der Branch-Diff
+(`origin/main...HEAD`) berührt weder `verify-final-state.sh`/`run-pipeline.sh` noch Push-Logik;
+die run-tests.sh-Änderung liegt isoliert im yq-Config-Assertion-Block (2643-2666). Es sind
+vorbestehende, umgebungsbedingte Failures (kein funktionierender Remote-Push im Sandbox-Worktree).
 
 ## Offene Fragen
 
