@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -56,7 +56,10 @@ Keine – Scope bestätigt (alle 3 Parser, ein-direktional, mit verpflichtendem 
   `sed -E`/`grep -oE` (kein `\s`/`\d`, kein `grep -P`).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Multi-Persona-Review (3 Personas) → NEEDS_REWORK (Iteration 1): 0 kritisch, 2 wichtig, 4 Nitpicks.
+Kern-Finding (W1, von 2 Personas unabhängig): F2-Test war grün aus dem falschen Grund (fehlende
+Sektionen trugen das Exit-1 statt der Verdict-Exaktverankerung). Alle 6 Findings in derselben
+Session behoben; Re-Review APPROVED. Details in `tasks/review-214.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
