@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Zwei UI-Verbesserungen am Kassiervorgang (`/veranstaltung/[id]/kassieren`):
@@ -79,6 +79,12 @@ Spec: `docs/specs/spec-223-kassieren-gesamtsumme-sortierung.md`.
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 Kein neues Fehler-Muster: Review APPROVED, Security-Review PASSED, keine kritischen/wichtigen
 Findings. Volltext siehe `tasks/codify-223.md`.
+
+### PR-Shepherd-Notizen (2026-07-24)
+PR-Shepherd 2026-07-24: Merge freigegeben – alle Gates grün (Review/Security-Review/Codify
+nachträglich committet + gepusht), keine offenen Review-Kommentare, Branch bereits auf
+aktuellem `main`, keine Approval-Pflicht. CI lief bei Freigabe noch (`pending`), daher
+`gh pr merge --auto --squash` (Auto-Merge aktiviert, wartet auf grüne Checks).
 
 ---
 Branch: `feature/223-kassieren-gesamtsumme-sortierung`
