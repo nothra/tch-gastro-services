@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -52,6 +52,15 @@ nachgezogen, `run-tests.sh` #197-AK7-Test um die drei Skills bereinigt + neuer `
 (`origin/main...HEAD`) berührt weder `verify-final-state.sh`/`run-pipeline.sh` noch Push-Logik;
 die run-tests.sh-Änderung liegt isoliert im yq-Config-Assertion-Block (2643-2666). Es sind
 vorbestehende, umgebungsbedingte Failures (kein funktionierender Remote-Push im Sandbox-Worktree).
+
+**`/test`-Verifikation (2026-07-24):** `bash scripts/checks/tests/run-tests.sh` → 521 grün, 4 rot
+(bestätigt vorbestehend, s. o.; `git diff --stat origin/main...HEAD` zeigt nur
+`factory.defaults.yml`, `run-tests.sh`, ADR-038, Spec/Task-Datei – keine Berührung von
+Push-/PR-Verifikationslogik). `config-validation-check.sh factory.defaults.yml` → Exit 0 (AK3).
+Repo-weiter Grep nach `skills.requirements|architecture|release-notes` (F1) findet nur noch
+Spec-Prosa, keinen Code/Skript-Bezug. Annotation-Gate C(a)/C(b) (F2) grün. Keine fehlenden Tests
+identifiziert – der bestehende `#201`-Block deckt AK1/AK2/AK5 vollständig ab; kein
+Produktionscode geändert.
 
 ## Offene Fragen
 
