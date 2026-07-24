@@ -78,7 +78,11 @@ Keine offen (siehe Spec).
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Details in [`codify-201.md`](codify-201.md). Keine neuen Regeln – Review (APPROVED) und
+Security-Review (PASSED) ohne kritische/wichtige Findings; der einzige Nitpick (4 rote,
+vorbestehende `#212 W3`-E2E-Tests) ist als out-of-scope belegt. Bestätigt zwei bestehende
+Lessons als wirksam (symmetrische Test-Assertions aus #211, ADR-Drift-Check nach Rework),
+keine Anpassung an CLAUDE.md/Guidelines/`docs/factory/lessons/`/`scripts/checks/` nötig.
 
 ---
 Branch: `chore/201-inerte-phase1-config-bereinigen`
