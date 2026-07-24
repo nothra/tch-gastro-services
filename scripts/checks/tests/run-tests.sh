@@ -1856,6 +1856,37 @@ assert_true "$?" "F2 (#214): Guard nennt report_verdict(review) (nicht durch feh
 printf '%s' "$out214" | grep -q 'count_section_items'
 assert_true "$([ $? -ne 0 ]; echo $?)" "F2 (#214): Findings-Sektionen bleiben intakt (rot NUR wegen Verdict-Anker)"
 
+# ── AC6 (Parser-Seite): Konstante NUR im Parser umbenannt (Command unverändert) → rot ──
+# Zweite Drift-Richtung: AC4 mutiert die Command-Seite; AC6 verlangt Erkennung auch, wenn die
+# PARSER-Konstante driftet. Fake-report-verdict.sh mit umbenanntem review-Anker → Guard rot.
+printf "  review)          header='## Fazit' ;;\n  security-review) header='## Ergebnis' ;;\n" \
+  > "$TMP214/rv-verdict-drift.sh"
+out214=$(drift_guard "$REVIEW_MD214" "$SECURITY_MD214" "$TMP214/rv-verdict-drift.sh" "$PIPELINE214"); rc214=$?
+assert_exit 1 "$rc214" "AC6: Parser-seitig umbenannter Verdict-Anker (nur report-verdict.sh) → Guard rot"
+printf '%s' "$out214" | grep -q 'report_verdict(review)'
+assert_true "$?" "AC6: Guard nennt report_verdict(review) bei Parser-seitigem Drift"
+
+# ── AC6 (Parser-Seite): count_section_items-Sektion nur im Parser umbenannt → rot ──
+printf 'count_section_items "$f" "## Geändert" "## Wichtige Findings"\ncount_section_items "$f" "## Wichtige Findings" "## Nitpicks"\n' \
+  > "$TMP214/pipeline-section-drift.sh"
+out214=$(drift_guard "$REVIEW_MD214" "$SECURITY_MD214" "$RV_LIB214" "$TMP214/pipeline-section-drift.sh"); rc214=$?
+assert_exit 1 "$rc214" "AC6: Parser-seitig umbenannte Sektion (nur run-pipeline.sh) → Guard rot"
+printf '%s' "$out214" | grep -q 'count_section_items'
+assert_true "$?" "AC6: Guard nennt count_section_items bei Parser-seitigem Drift"
+
+# ── Fail-closed: Parser-Format ganz verändert (keine Konstante extrahierbar) → rot, nicht grün ──
+printf '# report-verdict.sh ohne case-Zweige (Format geändert)\n' > "$TMP214/rv-empty.sh"
+out214=$(drift_guard "$REVIEW_MD214" "$SECURITY_MD214" "$TMP214/rv-empty.sh" "$PIPELINE214"); rc214=$?
+assert_exit 1 "$rc214" "Fail-closed (#214): Verdict-Anker nicht extrahierbar → Guard rot"
+printf '%s' "$out214" | grep -q 'report_verdict-Anker nicht aus'
+assert_true "$?" "Fail-closed (#214): meldet nicht-extrahierbaren Verdict-Anker (kein stilles Grün)"
+
+printf '# run-pipeline.sh ohne count_section_items-Aufrufe (Format geändert)\n' > "$TMP214/pipeline-empty.sh"
+out214=$(drift_guard "$REVIEW_MD214" "$SECURITY_MD214" "$RV_LIB214" "$TMP214/pipeline-empty.sh"); rc214=$?
+assert_exit 1 "$rc214" "Fail-closed (#214): Sektionen nicht extrahierbar → Guard rot"
+printf '%s' "$out214" | grep -q 'count_section_items-Sektionen nicht'
+assert_true "$?" "Fail-closed (#214): meldet nicht-extrahierbare Sektionen (kein stilles Grün)"
+
 rm -rf "$TMP214"
 unset -f drift_guard extract_verdict_header extract_section_headers
 
