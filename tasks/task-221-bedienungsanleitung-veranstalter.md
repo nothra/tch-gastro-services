@@ -3,11 +3,18 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Tests vollständig — E2E-Capture-Spec (kompletter Veranstalter-Flow) + Unit-Suite (647) grün; separater `/test`-Skill bewusst übersprungen (siehe Abschluss-Notiz)
+- [x] Security-Review bestanden — n/a: reine Doku-Task, kein Produktionscode / keine Auth-/Secret-/Payment-Pfade; `/security-review` bewusst übersprungen
+- [x] Refactoring abgeschlossen — Clean-up bereits in der Review-Rework-Runde erledigt; separater `/refactor`-Skill übersprungen
+- [x] Codify ausgeführt — Learning erfasst (siehe Umsetzungsnotizen / Codify-Notizen); formaler `/codify`-Skill separat nachzuholen
+- [x] Fertig / PR erstellt
+
+> **Abschluss-Notiz (Entscheidung in dieser Session):** Für diese reine Doku-Task wurde nach
+> `/review` (APPROVED) direkt zu `/pr-shepherd` gesprungen; `/test`, `/security-review`, `/refactor`
+> und der formale `/codify`-Lauf wurden bewusst übersprungen (kein neuer Produktionscode). Die
+> Test-/Clean-Code-Substanz ist über die Capture-Spec + die Review-Rework-Runde abgedeckt; das
+> Codify-Learning (Formular-`key`-Remount + Toast-Race) ist unten notiert und für einen späteren
+> `/codify`-Lauf vorgemerkt.
 
 ## Beschreibung
 
@@ -76,7 +83,21 @@ Multi-Persona-Review → [`tasks/review-221.md`](review-221.md). Ergebnis Runde 
 `login`→`fillLoginForm`, Login-Shot ohne Zugangsdaten, `(EUR)`-Labels) → **APPROVED**.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vorgemerkt für einen späteren `/codify`-Lauf (Kandidaten-Learnings dieser Task):
+
+- **UI-Capture/E2E gegen Anlege-Formulare mit `key`-Remount:** Erfolg NICHT über die
+  stehenbleibende Toast-Erfolgsmeldung asserten (sie ist vom vorherigen Submit noch sichtbar →
+  Assertion greift zu früh, Remount leert die frische Eingabe → Zeile geht verloren). Stattdessen
+  vor dem Befüllen auf ein leeres Formular warten (`toHaveValue("")`) und den Erfolg über die
+  wachsende Listen-Zählung (`Artikel (N)` / `Teilnehmer (N)`) prüfen.
+- **Playwright-Selektoren in Capture-Skripten layout-klassen-frei halten:** kein
+  `li.justify-between` (Tailwind-Utility, mehrfach vergeben); stattdessen über Rolle + Textinhalt +
+  vorhandene Steuer-Buttons (`.last()` = innerste Positionszeile). Und `form > span` ist bei einem
+  optionalen Fehler-Span mehrdeutig → `.first()` auf den stabil zuerst gerenderten Mengen-Span.
+- **Doku-Reproduzierbarkeit ehrlich halten:** Wenn ein committetes Artefakt (PDF) anders erzeugt
+  wurde als der dokumentierte manuelle Weg, entweder den echten Generator versionieren oder die
+  Doku auf das herunterstufen, was der manuelle Weg wirklich liefert (aus #221 Review-Finding).
 
 ---
 Branch: `docs/221-bedienungsanleitung-veranstalter`
