@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -72,7 +72,11 @@ Session behoben; Re-Review APPROVED. Details in `tasks/review-214.md`.
   als die zwei kurzen Blöcke rechtfertigen (kein Gold-Plating).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Zwei Testing-Learnings extrahiert (Volltext in `docs/factory/lessons/testing.md`, Index in
+`PROJECT-CONTEXT.md`): (1) Negativ-Test mit mehreren Fail-Pfaden auf den Ziel-Pfad isolieren
+(Review-W1); (2) Kopplungs-Guard je gekoppelter Seite negativ testen (/test-Selbstfund AC6).
+Gemeinsames Muster: grüner Test, der das behauptete Verhalten nicht ausübt. Report:
+`tasks/codify-214.md`.
 
 ---
 Branch: `test/214-contract-drift-guard-report-anker`
