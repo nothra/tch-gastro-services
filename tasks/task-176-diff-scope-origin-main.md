@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -82,10 +82,12 @@ Ergebnis: **APPROVED** (Details: [`tasks/review-176.md`](review-176.md)). Keine 
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
-- **TODO /codify (aus Review #176):** `docs/factory/lessons/factory-workflow.md:305-325` nachziehen –
-  Präsens-Aussage (307-308) auf Vergangenheit/„vormals" umstellen, Follow-up-Satz (323-325) als
-  erledigt markieren; historischen #161-Vorfall (314-317) belassen. Ergänzend prüfen:
-  PROJECT-CONTEXT.md:266 (Index-Titel), factory-workflow.md:136 (generischer Branch-Diff-Kontext).
+- **Erledigt (Report: [`tasks/codify-176.md`](codify-176.md)):** TODO abgearbeitet – Präsens-Aussage
+  (307-308) auf „vormals … seit #176" umgestellt, Follow-up-Satz (323-325) als erledigt markiert,
+  #161-Vorfall (314-317) belassen; PROJECT-CONTEXT.md:266 + factory-workflow.md:136 mitgezogen.
+- **Neues Learning:** Lesson „Auch Lesson-/Kontext-Doku im selben PR nachziehen (Präsens-Mechanik +
+  benannter Follow-up (#N) werden stale)" – erweitert #211 über ADRs hinaus (Volltext in
+  `factory-workflow.md`, Index-Zeile mit Trigger in `PROJECT-CONTEXT.md`).
 
 ---
 Branch: `feature/176-diff-scope-origin-main`
