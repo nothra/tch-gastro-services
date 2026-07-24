@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -117,6 +117,24 @@ Patch-Artefakt) – das war ein Review-Finding (#212, Runde 1/3, siehe `tasks/re
 Verifikations-Interrupt-Pfads ergänzt (`INCOMPLETE_OUTCOME`); `OPERATING.md`-Interrupt-Tabelle um
 `INCOMPLETE_OUTCOME`+`PUSH_GATE_BLOCKED` ergänzt; gh-TSV-Contract-Kommentar; AK8-Typ-Assertion;
 detached-HEAD-Guard. Suite: 450 grün.
+
+## Refactoring (/refactor, 2026-07-24)
+
+**Ergebnis: kein Refactoring nötig** (kein neues Verhalten; bewusste Entscheidung, kein No-Op-Zwang).
+Der geänderte Code wurde in drei Review-Runden als sauber bestätigt. Geprüfte Kandidaten:
+- **Funktionslänge** `evaluate_final_state` (45) / `verify_final_state` (40): über der ~20-Zeilen-
+  Orientierung, aber beide sind **lineare Guard-Clause-Sequenzen ohne Verschachtelung**, großteils
+  WHY-Kommentare. Ein Split (z. B. `_evaluate_pr_state`) würde eine kohärente Checklisten-Logik
+  fragmentieren und Indirektion ohne Komplexitätsgewinn schaffen → bewusst unterlassen
+  (clean-code.md „Kein Over-Engineering").
+- **Domänen-Token** (`clean`/`dirty`, `NO_UPSTREAM`, `set`/`none`, `MERGED`): klein, lokal, per
+  Kommentar selbsterklärend – keine Magic-String-Extraktion nötig.
+- **Test-Scaffolding-Duplikation** (TMP_INT/AK8 ↔ TMP_E2E/W3): realer, aber die beiden Aufbauten
+  unterscheiden sich substanziell (Sentinel-`claude` + nur implement.md vs. no-op-`claude` + alle 6
+  Command-Dateien + origin-Remote). Eine gemeinsame Hilfsfunktion brächte mehr Kopplung als Nutzen;
+  konsistent mit den bestehenden Einzel-Scaffoldings der Suite. Belassen.
+
+Tests vor == nach: `run-tests.sh` **454 grün / 0 rot** (kein Code-Change in dieser Phase).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
