@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -58,6 +58,16 @@ Spec: `docs/specs/spec-223-kassieren-gesamtsumme-sortierung.md`.
 - Jedes AC aus `spec-223` hat einen zugeordneten Test (siehe Akzeptanzkriterien-Liste oben);
   keine fehlenden Test-Fälle identifiziert. Kein Produktionscode geändert.
 - Vollständige Suite grün: `pnpm test` (647 passed, 59 skipped), `pnpm lint`, `pnpm format:check`.
+
+### Refactoring-Notizen (/refactor, 2026-07-24)
+- Review (`tasks/review-223.md`) bereits APPROVED, keine kritischen/wichtigen Findings – nur
+  zwei bewusst akzeptierte Nitpicks (implizite `listZeilen`-Sortiervertrag; DOM-Reihenfolge-
+  gekoppelter Test-Helper), beide explizit als „kein Blocker"/„vertretbar" bewertet.
+- Checkliste (Naming, Funktionslänge, Verschachtelung, Duplikation, Magic Numbers, Kommentare)
+  gegen den Diff (`page.tsx`, `page.test.tsx`) geprüft: keine Verstöße gefunden. Der WHY-
+  Kommentar zur Sortierung erklärt Index-Kopplungsrisiko + Stabilitätsgarantie, kein WHAT.
+- Keine Code-Änderung nötig – Diff ist bereits clean. `pnpm lint`, `pnpm test` (647 passed),
+  `pnpm format:check` grün (Baseline vor/nach identisch, da keine Produktionscode-Änderung).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
