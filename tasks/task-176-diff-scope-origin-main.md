@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -63,6 +63,15 @@ Ergebnis: **APPROVED** (Details: [`tasks/review-176.md`](review-176.md)). Keine 
   (siehe Codify-Notizen). Bewusst kein NEEDS_REWORK (Spec-Scope).
 - Nitpicks: PROJECT-CONTEXT.md:266 (Index-Titel), factory-workflow.md:136 (anderer Kontext),
   Phrasierungs-Asymmetrie pr-shepherd:12 – im Codify-Sweep mitbewerten.
+
+## Test-Notizen (/test)
+- PR-Scope enthält **keinen** Runtime-Code/kein Skript (nur `.claude/commands/*.md` + Doku),
+  daher keine Vitest-/Playwright-Tests hinzuzufügen – bewusste YAGNI-Entscheidung der Spec
+  („kein automatisiertes Gate/Test"). Kein Produktionscode → nichts, dessen Coverage sinken könnte.
+- Deterministische Verifikation dieses Schritts = kanonische Spec-Greps gegen die **committeten
+  Live-Dateien** (nicht das Patch-Artefakt, Lesson #212): 0 Treffer `main...HEAD` ohne `origin/`,
+  genau 5 Treffer `origin/main...HEAD` – beide PASS [2026-07-24].
+- Bestehende Suite unberührt grün (640 passed beim letzten `factory-commit.sh`-Push-Gate).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
