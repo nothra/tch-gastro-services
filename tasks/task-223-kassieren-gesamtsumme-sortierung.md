@@ -2,11 +2,11 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -77,6 +77,8 @@ Spec: `docs/specs/spec-223-kassieren-gesamtsumme-sortierung.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Kein neues Fehler-Muster: Review APPROVED, Security-Review PASSED, keine kritischen/wichtigen
+Findings. Volltext siehe `tasks/codify-223.md`.
 
 ---
 Branch: `feature/223-kassieren-gesamtsumme-sortierung`
