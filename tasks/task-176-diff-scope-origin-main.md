@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -57,10 +57,19 @@ Spec: [`docs/specs/spec-176-diff-scope-origin-main.md`](../docs/specs/spec-176-d
   `factory-commit.sh` committen (Lesson aus #91/#145).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Ergebnis: **APPROVED** (Details: [`tasks/review-176.md`](review-176.md)). Keine kritischen Findings.
+- Wichtig: Lesson-Prosa `docs/factory/lessons/factory-workflow.md:307-308,:323-325` ist nach diesem
+  PR stale (Präsens-Aussage + „Follow-up #176") → **im `/codify`-Schritt dieses PRs** nachziehen
+  (siehe Codify-Notizen). Bewusst kein NEEDS_REWORK (Spec-Scope).
+- Nitpicks: PROJECT-CONTEXT.md:266 (Index-Titel), factory-workflow.md:136 (anderer Kontext),
+  Phrasierungs-Asymmetrie pr-shepherd:12 – im Codify-Sweep mitbewerten.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- **TODO /codify (aus Review #176):** `docs/factory/lessons/factory-workflow.md:305-325` nachziehen –
+  Präsens-Aussage (307-308) auf Vergangenheit/„vormals" umstellen, Follow-up-Satz (323-325) als
+  erledigt markieren; historischen #161-Vorfall (314-317) belassen. Ergänzend prüfen:
+  PROJECT-CONTEXT.md:266 (Index-Titel), factory-workflow.md:136 (generischer Branch-Diff-Kontext).
 
 ---
 Branch: `feature/176-diff-scope-origin-main`
