@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -83,6 +83,14 @@ Security-Review (PASSED) ohne kritische/wichtige Findings; der einzige Nitpick (
 vorbestehende `#212 W3`-E2E-Tests) ist als out-of-scope belegt. Bestätigt zwei bestehende
 Lessons als wirksam (symmetrische Test-Assertions aus #211, ADR-Drift-Check nach Rework),
 keine Anpassung an CLAUDE.md/Guidelines/`docs/factory/lessons/`/`scripts/checks/` nötig.
+
+## PR-Shepherd-Notiz
+
+PR-Shepherd 2026-07-24: Merge freigegeben – alle Gates grün. Branch war bereits auf aktuellem
+`main` (0 Commits dahinter), keine offenen Review-Kommentare, alle CI-Checks (lint, test,
+factory-self-test, issue-sync, pr-closes-issue, CodeQL, Vercel) grün, `reviewDecision` leer
+gemäß Projekt-Policy (0 Approvals für autonomen Auto-Merge). Draft → ready freigegeben,
+`mergeStateStatus: CLEAN`.
 
 ---
 Branch: `chore/201-inerte-phase1-config-bereinigen`
