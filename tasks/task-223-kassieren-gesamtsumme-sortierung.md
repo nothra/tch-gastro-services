@@ -1,7 +1,7 @@
 # Task 223: kassieren-gesamtsumme-sortierung
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -19,14 +19,14 @@ Zwei UI-Verbesserungen am Kassiervorgang (`/veranstaltung/[id]/kassieren`):
 Spec: `docs/specs/spec-223-kassieren-gesamtsumme-sortierung.md`.
 
 ## Akzeptanzkriterien
-- [ ] „Verzehr-Gesamt" ist mit `font-semibold` + voller Textfarbe hervorgehoben (wie „Gesamt" auf der Verzehr-erfassen-Seite).
-- [ ] Getränke/Essen/Kaffee/Spende bleiben in gedämpfter Sekundärfarbe, ohne hervorgehobenes Gewicht.
-- [ ] `tabular-nums` für den Betrag bleibt erhalten.
-- [ ] Offene (`bezahlt === false`) Teilnehmer stehen oberhalb der bereits kassierten.
-- [ ] Innerhalb beider Gruppen weiterhin alphabetisch nach Anzeigename (stabile Sortierung).
-- [ ] Null-Verzehr ohne Erhalten (abgeleitet `bezahlt`) sortiert nach unten (wie bezahlt).
-- [ ] Light- und Dark-Mode korrekt.
-- [ ] Leere Teilnehmerliste + Einzelgruppen-Fälle unverändert/fehlerfrei.
+- [x] „Verzehr-Gesamt" ist mit `font-semibold` + voller Textfarbe hervorgehoben (wie „Gesamt" auf der Verzehr-erfassen-Seite). → `should_emphasizeVerzehrGesamtWithSemibold_when_rendered`
+- [x] Getränke/Essen/Kaffee/Spende bleiben in gedämpfter Sekundärfarbe, ohne hervorgehobenes Gewicht. → `should_keepOtherCategoriesInMutedSecondary_when_rendered`
+- [x] `tabular-nums` für den Betrag bleibt erhalten. → dd-Assertion in `should_emphasizeVerzehrGesamtWithSemibold_when_rendered`
+- [x] Offene (`bezahlt === false`) Teilnehmer stehen oberhalb der bereits kassierten. → `should_listOffenParticipantsAboveBezahlt_when_rendered`
+- [x] Innerhalb beider Gruppen weiterhin alphabetisch nach Anzeigename (stabile Sortierung). → dito (Bernd<Dora, Anna<Carla)
+- [x] Null-Verzehr ohne Erhalten (abgeleitet `bezahlt`) sortiert nach unten (wie bezahlt). → `should_sortNullVerzehrParticipantIntoBezahltGroup_when_noConsumptionAndNoErhalten`
+- [x] Light- und Dark-Mode korrekt. → `dark:`-Klassen in den beiden Styling-Tests mitgeprüft.
+- [x] Leere Teilnehmerliste + Einzelgruppen-Fälle unverändert/fehlerfrei. → `should_showEmptyState_when_noZeilen`; Einzelgruppe durch stabile Sortierung (nur ein Sortierschlüssel) abgedeckt.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -36,6 +36,21 @@ Spec: `docs/specs/spec-223-kassieren-gesamtsumme-sortierung.md`.
   `zeile`/`kassier`/`positionen`. `Array.sort` ist stabil → Alphabetik je Gruppe bleibt.
 - Kein ADR-Trigger (kleine, reversible Präsentations-Änderung; Logik in `kassierSummen.ts`
   unverändert).
+
+### Umsetzungsnotizen (/implement, 2026-07-24)
+- Nicht-ADR 2026-07-24: reine Präsentations-/Sortier-Änderung in der Server Component,
+  keine der vier Trigger-Kategorien betroffen (kein Tech-/Muster-/Vertrags-/irreversibler Wechsel).
+- Sortierung als `.sort((a,b) => Number(a.kassier.bezahlt) - Number(b.kassier.bezahlt))` **nach**
+  dem Zippen; `kassierRows[index]` ist ohne `noUncheckedIndexedAccess` `KassierZeile` (nicht
+  `| undefined`) → kein defensiver Fallback nötig (Clean-Code-Regel).
+- Bestandstest `should_matchBreakdownSumToVerzehrGesamt_when_expanded` wählte implizit das erste
+  `li`; nach der Sortierung (offen zuerst) explizit auf Annas Zeile umgestellt. `…forEachZeile…`
+  erwartet nun `["z-2","z-1"]` (Bernd offen vor Anna bezahlt).
+- Gates grün: `pnpm lint`, `pnpm test` (647 passed), `pnpm format:check`.
+- **UI-Verifikation offen (Nachtest):** Kein lokaler DB-/Browser-Lauf in dieser Session; kein
+  bestehendes E2E für `/kassieren`. Verhalten ist über jsdom-Komponententests (Reihenfolge +
+  Klassen inkl. `dark:`) abgedeckt. Visuelle Light/Dark-Kontrolle im Browser bzw.
+  `/post-merge-verify` nachziehen.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

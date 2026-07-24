@@ -62,11 +62,17 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
   // (`verzehrPositionen`) – so ist die Summe der Positionsbeträge per Konstruktion das
   // Verzehr-Gesamt der Zeile (kein zweiter Wahrheitspfad).
   const positionenJeZeile = gruppierePositionenNachZeile(positionen);
-  const zeilenMitKassier = zeilen.map((zeile, index) => ({
-    zeile,
-    kassier: kassierRows[index],
-    positionen: verzehrPositionen(positionenJeZeile.get(zeile.id) ?? []),
-  }));
+  // Offene Kassiervorgänge zuerst (#223): erst NACH dem Zippen von zeile/kassier/positionen stabil
+  // nach dem abgeleiteten Offen-Status sortieren, damit die Index-Kopplung nicht bricht. `listZeilen`
+  // liefert bereits alphabetisch und `Array.prototype.sort` ist stabil → die Alphabetik bleibt je
+  // Gruppe erhalten; kein zweites Sortierkriterium nötig.
+  const zeilenMitKassier = zeilen
+    .map((zeile, index) => ({
+      zeile,
+      kassier: kassierRows[index],
+      positionen: verzehrPositionen(positionenJeZeile.get(zeile.id) ?? []),
+    }))
+    .sort((a, b) => Number(a.kassier.bezahlt) - Number(b.kassier.bezahlt));
   const tagessummen = kassierTagessummen(kassierRows);
   const ausgaben = auslagenSummen(auslagen);
   const abrechnung = gesamtabrechnung(tagessummen.erhaltenCents, ausgaben.gesamt.erstattetCents);
@@ -132,8 +138,10 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
                     <dd className="tabular-nums">{formatCents(kassier.kaffeeCents)}</dd>
                   </div>
                   <div className="flex gap-2">
-                    <dt className="font-medium text-zinc-900 dark:text-zinc-100">Verzehr-Gesamt</dt>
-                    <dd className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                    <dt className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      Verzehr-Gesamt
+                    </dt>
+                    <dd className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                       {formatCents(kassier.verzehrGesamtCents)}
                     </dd>
                   </div>
