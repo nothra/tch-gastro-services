@@ -16,6 +16,10 @@
 > Codify-Learning (Formular-`key`-Remount + Toast-Race) ist unten notiert und für einen späteren
 > `/codify`-Lauf vorgemerkt.
 
+> **PR-Shepherd 2026-07-24:** Merge freigegeben – alle Gates grün (Review APPROVED, keine offenen
+> Kommentare, Branch aktuell auf `main`, keine Approval-Pflicht). PR [#226](https://github.com/nothra/tch-gastro-services/pull/226),
+> Auto-Merge (Squash) aktiviert; GitHub merged nach grüner CI.
+
 ## Beschreibung
 
 Bebilderte, laienverständliche **Bedienungsanleitung für die Rolle `veranstalter`**, die den
