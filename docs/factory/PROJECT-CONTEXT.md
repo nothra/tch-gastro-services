@@ -233,6 +233,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Spiegel-/Symmetrie-Akzeptanzkriterien beide Richtungen explizit assertieren – Wiring-/Abwesenheits-Guard ersetzt die zweite Assertion nicht (aus #211, Review-Finding)
 - Strict-mode-/Umgebungs-Kontrakt-Tests auf die Fehler-/No-Match-Zweige legen, nicht den früh-returnenden Happy-Path (aus #207, Review-Finding W3)
 - Deterministisches Gate/Backstop im Orchestrator-Skript braucht E2E-Verhaltenstest, nicht nur Wiring-Grep (aus #212, Review-Finding)
+- ESLint-Ignore-Config verhaltensbasiert testen (`isPathIgnored`, nicht Config-Array) + Diskriminierungs-Kontrolle in der Gegenrichtung (bekanntes Nicht-Mitglied → `false`) (aus #172, /test-Selbstfund)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 

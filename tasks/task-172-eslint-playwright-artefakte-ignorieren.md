@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `pnpm lint` brach nach jedem `pnpm test:e2e`-Lauf mit tausenden Fehlern ab, weil ESLint die
@@ -47,7 +47,10 @@ Review (`tasks/review-172.md`): **APPROVED**, keine Findings.
   vor und nach dem Refactor identisch grün.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-172.md`. Ein Learning festgehalten: ESLint-Ignore-Config verhaltensbasiert
+testen (`isPathIgnored`) + Diskriminierungs-Kontrolle in der Gegenrichtung
+(`docs/factory/lessons/testing.md`, Index-Zeile in `PROJECT-CONTEXT.md`). Review/Security ohne
+Findings – keine weitere Regeländerung nötig.
 
 ---
 Branch: `chore/172-eslint-playwright-artefakte-ignorieren`
