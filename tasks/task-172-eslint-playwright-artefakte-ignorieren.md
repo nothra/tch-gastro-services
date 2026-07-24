@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -38,7 +38,13 @@ enthielt. Da `pnpm lint` im pre-commit-Hook läuft, blockierte das jeden Commit 
 _Keine._
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Review (`tasks/review-172.md`): **APPROVED**, keine Findings.
+
+## Refactoring
+- `eslint.config.test.ts`: dreifach dupliziertes `const eslint = new ESLint()` zu einer geteilten,
+  read-only Instanz auf describe-Ebene zusammengeführt (DRY; isolationssicher, da `isPathIgnored`
+  ein reiner Lesezugriff ist; Config-Resolution nur noch einmal). Kein Verhalten geändert – 3 Tests
+  vor und nach dem Refactor identisch grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
