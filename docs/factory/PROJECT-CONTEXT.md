@@ -231,6 +231,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Layout-Timing-Test-Stub (rAF) vor dem Neuschreiben im selben Verzeichnis suchen, nicht duplizieren (aus #194, Review-Finding)
 - Callback-Prop nur durch Codelesen belegt ist keine Testabdeckung – Coverage-Report gegen jedes Review-Positiv gegenprüfen (aus #187, /test-Selbstfund)
 - Spiegel-/Symmetrie-Akzeptanzkriterien beide Richtungen explizit assertieren – Wiring-/Abwesenheits-Guard ersetzt die zweite Assertion nicht (aus #211, Review-Finding)
+- Deterministisches Gate/Backstop im Orchestrator-Skript braucht E2E-Verhaltenstest, nicht nur Wiring-Grep (aus #212, Review-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -266,6 +267,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196) → `/implement` – bei Doku-Migration/Split
 - ADR-Status beim Implementieren einer frisch erstellten ADR auf Accepted flippen (aus #197, Review-Finding) → `/implement`, `/review` – bei ADR-Umsetzung
 - PR ändert die von einer ADR namentlich beschriebene Mechanik → ADR-Beschreibung im selben PR mitpflegen (ergänzt #55; triggert auch ohne ADR-Datei-Änderung) (aus #211, Review-Finding) → `/implement`, `/review` – bei Code-Änderung, die eine ADR beschreibt
+- Test einer `.claude/**`-Patch-Lieferung prüft den Endzustand der committeten Live-Datei, nicht das transiente Patch-Artefakt (ergänzt #145) (aus #212, Review-Finding) → `/implement`, `/review`, `/test` – bei Test zu einer `.claude/**`-Patch-Änderung
+- Neuer Interrupt-Typ → OPERATING.md-Interrupt-Tabelle mitpflegen (kanonische Registry, kein Gate) (aus #212, Review-Finding) → `/implement`, `/review` – bei neuem `raise-interrupt.sh`-Typ
 
 ---
 
