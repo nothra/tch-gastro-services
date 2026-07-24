@@ -25,4 +25,15 @@ describe("eslint.config: Playwright-Artefakte ignorieren (#172)", () => {
 
     expect(ignored).toBe(true);
   });
+
+  // Positiv-Kontrolle: belegt, dass isPathIgnored diskriminiert. Ohne diese Assertion würden die
+  // beiden true-Erwartungen auch bei einer versehentlich zu breiten Ignore-Regel (z. B. "**")
+  // grün bleiben – dann als Fehlgrün. Eine normale Quelldatei MUSS gelintet (= nicht ignoriert) werden.
+  it("should_notIgnoreNormalSourceFile_toProveIgnoreListDiscriminates", async () => {
+    const eslint = new ESLint();
+
+    const ignored = await eslint.isPathIgnored("app/layout.tsx");
+
+    expect(ignored).toBe(false);
+  });
 });
