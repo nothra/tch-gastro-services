@@ -46,6 +46,12 @@ Review (`tasks/review-172.md`): **APPROVED**, keine Findings.
   ein reiner Lesezugriff ist; Config-Resolution nur noch einmal). Kein Verhalten geändert – 3 Tests
   vor und nach dem Refactor identisch grün.
 
+## PR-Shepherd
+PR-Shepherd 2026-07-24: Merge freigegeben – Review APPROVED, Security PASSED, keine
+Pflicht-Approvals (Ruleset 0). Branch war hinter `main`; Codify-Doku-Konflikt in
+`PROJECT-CONTEXT.md`/`testing.md` per Merge aufgelöst (beide Einträge behalten), volle Suite
+danach grün (643). Auto-Merge (squash) aktiviert; GitHub merged nach grünem required CI.
+
 ## Codify-Notizen
 Siehe `tasks/codify-172.md`. Ein Learning festgehalten: ESLint-Ignore-Config verhaltensbasiert
 testen (`isPathIgnored`) + Diskriminierungs-Kontrolle in der Gegenrichtung
