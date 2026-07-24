@@ -35,8 +35,9 @@ const STAMMTEILNEHMER = [
 
 const VERANSTALTUNG = { bezeichnung: "Montagsrunde", datum: "2026-07-27", kasse: "Montagsrunde" };
 
-async function login(page: Page) {
-  await page.goto("/login");
+// Füllt nur die Zugangsdaten (kein Klick) – der „Anmelden"-Klick erfolgt bewusst erst nach dem
+// Screenshot des leeren Formulars.
+async function fillLoginForm(page: Page) {
   await page.getByPlaceholder("E-Mail").fill(email);
   await page.getByPlaceholder("Passwort").fill(password);
 }
@@ -139,10 +140,18 @@ async function walkIn(page: Page, name: string) {
 }
 
 async function verzehrPlus(page: Page, artikel: string, anzahl: number) {
-  const row = page.locator("li.justify-between").filter({ hasText: artikel });
+  // Zeile des Artikels: das innerste Listenelement, das den Artikelnamen UND die Mengensteuerung
+  // enthält. Die aufgeklappte Karte matcht ebenfalls → `.last()` liefert die (tiefer liegende)
+  // Positionszeile. Bewusst ohne Layout-Klassen-Selektor, damit ein UI-Umbau den Test nicht ohne
+  // Verhaltensänderung bricht.
+  const row = page
+    .locator("li", { hasText: artikel })
+    .filter({ has: page.getByRole("button", { name: "Menge erhöhen" }) })
+    .last();
   for (let i = 1; i <= anzahl; i++) {
     await row.getByRole("button", { name: "Menge erhöhen" }).click();
-    await expect(row.locator("form > span")).toHaveText(String(i));
+    // Der Mengen-Span steht im DOM vor dem (nur im Fehlerfall gerenderten) Fehler-Span → `.first()`.
+    await expect(row.locator("form > span").first()).toHaveText(String(i));
   }
 }
 
@@ -155,7 +164,7 @@ async function oeffneKarte(page: Page, name: string) {
 }
 
 async function kassiere(page: Page, name: string, erhalten: string) {
-  const karte = page.locator("li").filter({ hasText: name }).first();
+  const karte = page.getByRole("listitem").filter({ hasText: name }).first();
   await karte.getByLabel("Erhalten (EUR)").fill(erhalten);
   await karte.getByRole("button", { name: "Kassieren" }).click();
   // Auf den server-autoritativen Neustand dieser Karte warten (Badge „bezahlt"), bevor die nächste
@@ -178,9 +187,10 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     test.setTimeout(180_000);
     mkdirSync(BILDER_DIR, { recursive: true });
 
-    // Schritt 1 – Anmelden
-    await login(page);
+    // Schritt 1 – Anmelden (Screenshot des leeren Formulars, dann ausfüllen – keine Zugangsdaten im Bild)
+    await page.goto("/login");
     await shot(page, "01-anmelden.png");
+    await fillLoginForm(page);
     await page.getByRole("button", { name: "Anmelden" }).click();
     await expect(page).not.toHaveURL(/\/login/);
     await shot(page, "02-startseite.png");

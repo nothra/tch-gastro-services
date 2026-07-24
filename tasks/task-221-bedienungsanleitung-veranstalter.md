@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -70,7 +70,10 @@ Entscheidungen aus /requirements:
 _Keine offenen Fragen – alle in /requirements geklärt (siehe Beschreibung / Spec)._
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Multi-Persona-Review → [`tasks/review-221.md`](review-221.md). Ergebnis Runde 1: NEEDS_REWORK
+(3 WICHTIG, keine KRITISCH). Rework umgesetzt (PDF-Doku Option B, robustere Selektoren,
+`login`→`fillLoginForm`, Login-Shot ohne Zugangsdaten, `(EUR)`-Labels) → **APPROVED**.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

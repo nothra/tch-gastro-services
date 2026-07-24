@@ -144,7 +144,7 @@ Hat jemand etwas **vorgestreckt** (z. B. Getränke gekauft), erfassen Sie das hi
 ein **eigener Vorgang** und werden **nicht** mit dem Verzehr verrechnet.
 
 **Was tue ich?** Tippen Sie auf **„Auslagen erstatten →"**. Wählen Sie den **Teilnehmer** und die
-**Kategorie** (Getränke, Essen oder Sonstiges), tragen Sie den **Betrag** ein (z. B. „15,00"),
+**Kategorie** (Getränke, Essen oder Sonstiges), tragen Sie den **Betrag (EUR)** ein (z. B. „15,00"),
 optional eine **Notiz**, und tippen Sie auf **„Auslage erfassen"**.
 
 **Was passiert?** Die Auslage erscheint in der Liste als **„offen zu erstatten"**.
@@ -160,8 +160,8 @@ verringert die Kassenveränderung.
 ## Schritt 6 – Kassieren & Abschluss
 
 **Was tue ich?** Tippen Sie auf **„Kassieren →"**. Jede Teilnehmer-Karte zeigt den
-**Verzehr-Gesamt**. Tragen Sie im Feld **„Erhalten"** ein, wie viel der Teilnehmer **bar bezahlt**
-hat, und tippen Sie auf **„Kassieren"**.
+**Verzehr-Gesamt**. Tragen Sie im Feld **„Erhalten (EUR)"** ein, wie viel der Teilnehmer **bar
+bezahlt** hat, und tippen Sie auf **„Kassieren"**.
 
 **Was passiert?** Der Status springt von **„offen"** (gelb) auf **„bezahlt"** (grün). Zahlt jemand
 mehr als seinen Verzehr, wird der Rest automatisch als **Spende** ausgewiesen.
@@ -231,17 +231,22 @@ Bildunterschriften in dieser Datei anpassen.
 ## PDF erzeugen (druckbare Fassung)
 
 Die druckbare Fassung `anleitung.pdf` entsteht per **Browser-Druck** aus dieser Markdown-Datei –
-kein zusätzliches Werkzeug nötig. Reproduzierbarer Weg:
+ohne zusätzliches Werkzeug. So wird sie reproduzierbar neu erzeugt:
 
 1. Diese Datei (`anleitung.md`) in **Visual Studio Code** öffnen und die Vorschau starten:
-   Befehl **„Markdown: Vorschau öffnen"** (oder das Vorschau-Symbol oben rechts).
-   *Alternativ* die Datei auf GitHub im Browser öffnen.
-2. In der Vorschau **rechtsklicken → „Drucken"** (bzw. im Browser `Strg`/`Cmd` + `P`).
-3. Als Ziel **„Als PDF speichern"** wählen. Empfohlene Einstellungen für gute Lesbarkeit:
-   - Papierformat **A4**, Ausrichtung **Hochformat**
-   - Ränder **Standard**
-   - **Hintergrundgrafiken** einschalten (damit Farben/Rahmen mitgedruckt werden)
+   Befehl **„Markdown: Vorschau öffnen"** (oder das Vorschau-Symbol oben rechts). Die Vorschau
+   rendert die eingebetteten Screenshots aus `bilder/` mit.
+2. In der Vorschau **rechtsklicken → „Drucken"** (bzw. `Strg`/`Cmd` + `P`).
+3. Als Ziel **„Als PDF speichern"** wählen; Papierformat **A4**, Ausrichtung **Hochformat**,
+   Ränder **Standard**, Option **Hintergrundgrafiken** aktivieren (damit die Screenshots und
+   Tabellen-Hinterlegungen mitgedruckt werden).
 4. Die Datei als `docs/anleitung/veranstalter/anleitung.pdf` speichern (vorhandene ersetzen).
+
+> **Hinweis zum Aussehen:** Schrift und Seitenumbrüche hängen vom druckenden Programm ab – die
+> committete `anleitung.pdf` kann daher geringfügig anders aussehen als ein frisch gedrucktes
+> Exemplar; **Inhalt und Screenshots sind identisch**. Auf **GitHub** lässt sich die Datei zwar
+> lesen, ein GitHub-Ausdruck enthält die lokalen Screenshots aber **nicht** – deshalb der Weg über
+> die VS-Code-Vorschau.
 
 > **Große, gut lesbare Darstellung:** Beim Drucken bei Bedarf die Skalierung leicht erhöhen
 > (z. B. 110–125 %), damit Text und Screenshots für sehschwächere Leser groß genug sind.
