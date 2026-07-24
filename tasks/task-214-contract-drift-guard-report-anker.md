@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Drift-Guard-Test, der die harte Kopplung zwischen den Anker-Überschriften der Report-Contracts
@@ -77,6 +77,13 @@ Zwei Testing-Learnings extrahiert (Volltext in `docs/factory/lessons/testing.md`
 (Review-W1); (2) Kopplungs-Guard je gekoppelter Seite negativ testen (/test-Selbstfund AC6).
 Gemeinsames Muster: grüner Test, der das behauptete Verhalten nicht ausübt. Report:
 `tasks/codify-214.md`.
+
+## PR-Shepherd
+PR-Shepherd 2026-07-24: Merge freigegeben – alle Gates grün (CI: lint/test/factory-self-test/
+CodeQL/issue-sync/pr-closes-issue grün; `post-merge-verify` skippt auf PR). PR #218. Branch war
+hinter `origin/main` (7b808c4 „diff scope origin main"); verifiziert, dass dieser Commit nur die
+Diff-Scope-Zeile der Command-Dateien ändert, **nicht** die vom Guard geprüften Anker/Konstanten →
+Drift-Guard bleibt gegen den main-Stand grün. `gh pr update-branch` + `--auto --squash`.
 
 ---
 Branch: `test/214-contract-drift-guard-report-anker`
