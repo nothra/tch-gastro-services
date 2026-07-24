@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die Skills `/review`, `/security-review`, `/refactor` und `/pr-shepherd` bestimmen ihren
@@ -39,6 +39,12 @@ Spec: [`docs/specs/spec-176-diff-scope-origin-main.md`](../docs/specs/spec-176-d
 ## Offene Fragen
 - [ ] Prosa in `docs/factory/lessons/factory-workflow.md:308` (beschreibt Skills noch mit
       `git diff main...HEAD`) nachziehen? Vorschlag: im `/codify`-Schritt, nicht hier.
+
+## PR-Shepherd
+PR-Shepherd [2026-07-24]: Merge freigegeben – alle Gates grün (CI: lint/test/CodeQL/factory-self-test/
+issue-sync/pr-closes-issue grün, post-merge-verify skipping=nur auf main). Keine offenen Review-
+Kommentare (nur Vercel-Bot), Branch aktuell auf `origin/main` (kein Rebase nötig), Ruleset verlangt
+0 Approvals, Draft aufgelöst. PR [#217](https://github.com/nothra/tch-gastro-services/pull/217).
 
 ## Blocker
 - Erledigt [2026-07-24]: Patch vom Menschen per `git apply tasks/patch-176.diff` angewendet;
