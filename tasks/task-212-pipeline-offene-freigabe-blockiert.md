@@ -136,6 +136,17 @@ Der geänderte Code wurde in drei Review-Runden als sauber bestätigt. Geprüfte
 
 Tests vor == nach: `run-tests.sh` **454 grün / 0 rot** (kein Code-Change in dieser Phase).
 
+## PR-Shepherd (2026-07-24)
+
+- PR **#216** (`https://github.com/nothra/tch-gastro-services/pull/216`), Base `main`.
+- Keine offenen GitHub-Review-Threads (das `/review` lief lokal über Sub-Agenten).
+- `origin/main` gemergt (Branch war 1 hinter): Konflikt in `docs/factory/PROJECT-CONTEXT.md`
+  (Index-Zeile) aufgelöst – **beide** angehängten Zeilen behalten (#207 + #212);
+  `lessons/testing.md` und `run-tests.sh` vom 3-Wege-Merge automatisch sauber zusammengeführt.
+  Volle Shell-Suite nach Merge grün: **500/500**.
+- Alle Gates grün; kein Approval erforderlich (Ruleset 0 Approvals, ADR-029).
+- Merge freigegeben – Draft→ready, dann `gh pr merge` nach `mergeStateStatus` (ADR-030).
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 
