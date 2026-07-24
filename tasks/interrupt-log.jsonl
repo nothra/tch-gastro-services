@@ -1,2 +1,3 @@
 {"ts":"2026-07-15T23:02:24","task_id":"120","type":"REVIEW_BLOCKER","message":"Review NEEDS_REWORK – 3 menschliche Aktionen nötig (nicht Agent-Iteration):\n1. [KRITISCH] git mv app/abrechnung/veranstaltung app/veranstaltung + gates (pre-push.sh, pnpm lint)\n2. [KRITISCH] Migration 0000→0007 gegen Wegwerf-DB verifizieren: pnpm db:up\n3. [WICHTIG] Branch docs/120-... → improvement/120-... umbenennen + Label documentation → enhancement anpassen\nDanach: /pr-shepherd erneut ausführen → Auto-Merge freigeben"}
 {"ts":"2026-07-24T15:55:04","task_id":"201","type":"INCOMPLETE_OUTCOME","message":"Working Tree nicht sauber (uncommittete Änderungen)"}
+{"ts":"2026-07-24T16:11:14","task_id":"201","type":"INCOMPLETE_OUTCOME","message":"PR noch Draft"}
