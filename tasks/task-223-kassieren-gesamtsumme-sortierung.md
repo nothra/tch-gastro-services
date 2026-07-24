@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -51,6 +51,13 @@ Spec: `docs/specs/spec-223-kassieren-gesamtsumme-sortierung.md`.
   bestehendes E2E für `/kassieren`. Verhalten ist über jsdom-Komponententests (Reihenfolge +
   Klassen inkl. `dark:`) abgedeckt. Visuelle Light/Dark-Kontrolle im Browser bzw.
   `/post-merge-verify` nachziehen.
+
+### Testnotizen (/test, 2026-07-24)
+- Coverage-Analyse gezielt auf `app/veranstaltung/[id]/kassieren/page.tsx` (`vitest run --coverage
+  --coverage.include`): 100 % Statements/Branches/Functions/Lines – keine Lücke.
+- Jedes AC aus `spec-223` hat einen zugeordneten Test (siehe Akzeptanzkriterien-Liste oben);
+  keine fehlenden Test-Fälle identifiziert. Kein Produktionscode geändert.
+- Vollständige Suite grün: `pnpm test` (647 passed, 59 skipped), `pnpm lint`, `pnpm format:check`.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
