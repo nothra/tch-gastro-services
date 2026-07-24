@@ -1,7 +1,7 @@
 # Task 214: contract-drift-guard-report-anker
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -21,12 +21,12 @@ Spec: `docs/specs/spec-214-contract-drift-guard-report-anker.md`
 Bezug: #211 (Out-of-Scope-Fund), Codify-Learning #55.
 
 ## Akzeptanzkriterien
-- [ ] AC1 – `## Empfehlung` (report_verdict review) ist als exakte Anker-Überschrift in `review.md` vorhanden
-- [ ] AC2 – `## Ergebnis` (report_verdict security) ist als exakte Anker-Überschrift in `security-review.md` vorhanden
-- [ ] AC3 – `## Kritische Findings` / `## Wichtige Findings` / `## Nitpicks` (count_section_items) sind in `review.md` auffindbar
-- [ ] AC4 – Negativ-Fall: bei simuliertem Drift (umbenannte Überschrift) wird der Guard rot (Exit ≠ 0) und nennt die betroffene Konstante
-- [ ] AC5 – Guard ist in `scripts/checks/tests/run-tests.sh` verdrahtet und läuft beim Suite-Lauf mit
-- [ ] AC6 – erwartete Konstanten werden aus den echten Parser-Skripten gelesen, nicht im Test dupliziert
+- [x] AC1 – `## Empfehlung` (report_verdict review) ist als exakte Anker-Überschrift in `review.md` vorhanden
+- [x] AC2 – `## Ergebnis` (report_verdict security) ist als exakte Anker-Überschrift in `security-review.md` vorhanden
+- [x] AC3 – `## Kritische Findings` / `## Wichtige Findings` / `## Nitpicks` (count_section_items) sind in `review.md` auffindbar
+- [x] AC4 – Negativ-Fall: bei simuliertem Drift (umbenannte Überschrift) wird der Guard rot (Exit ≠ 0) und nennt die betroffene Konstante
+- [x] AC5 – Guard ist in `scripts/checks/tests/run-tests.sh` verdrahtet und läuft beim Suite-Lauf mit
+- [x] AC6 – erwartete Konstanten werden aus den echten Parser-Skripten gelesen, nicht im Test dupliziert
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -38,6 +38,22 @@ Bezug: #211 (Out-of-Scope-Fund), Codify-Learning #55.
 
 ## Offene Fragen
 Keine – Scope bestätigt (alle 3 Parser, ein-direktional, mit verpflichtendem Negativ-Fall).
+
+## Implementierungs-Notizen (/implement)
+- Guard liegt in `scripts/checks/tests/run-tests.sh` als Block „#214 Contract-Drift-Guard" –
+  drei Helfer (`drift_guard`, `extract_verdict_header`, `extract_section_headers`), nach dem
+  Block per `unset -f` wieder entfernt (kein Namensleck in die restliche Suite).
+- AC6 umgesetzt ohne Literal-Duplikat: die erwarteten Anker werden zur Laufzeit aus
+  `report-verdict.sh` (`header='…'` je case-Zweig) bzw. aus den `count_section_items "…"`-Aufrufen
+  in `run-pipeline.sh` extrahiert. Ein konsistenter Rename auf **beiden** Seiten bleibt grün;
+  ein einseitiger Rename (nur Command **oder** nur Parser) wird rot.
+- Matching-Semantik je Parser gespiegelt: `report_verdict` exakt verankert
+  (`^[[:space:]]*<header>[[:space:]]*$`), `count_section_items` unankert/Teilstring (wie das
+  awk-`/pattern/`). Fail-closed bei fehlender/leerer Command-Datei und bei leerer Extraktion
+  (Parser-Format geändert) – kein stilles „bestanden".
+- TDD: RED über einen `drift_guard`-Stub (`return 0`) → 8 Negativ-Assertions rot; GREEN nach echter
+  Implementierung → 12/12 grün. Volle Suite: 512 grün, 0 rot. Nur POSIX-Regex / portables
+  `sed -E`/`grep -oE` (kein `\s`/`\d`, kein `grep -P`).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
