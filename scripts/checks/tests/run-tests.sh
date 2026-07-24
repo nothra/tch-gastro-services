@@ -2329,6 +2329,8 @@ assert_true "$?" "#212 AK3: meldet 'PR noch Draft'"
 efs clean 0 true OPEN false none; assert_exit 1 "$?" "#212 AK4: weder gemergt noch Auto-Merge scharf → nicht verifiziert"
 printf '%s' "$(efs_msg clean 0 true OPEN false none)" | grep -q 'weder gemergt noch Auto-Merge'
 assert_true "$?" "#212 AK4: meldet 'weder gemergt noch Auto-Merge scharfgeschaltet'"
+# AK4-Edge: geschlossener, NICHT gemergter PR (pr_state=CLOSED) → blockiert (kein Sonderfall)
+efs clean 0 true CLOSED false none; assert_exit 1 "$?" "#212 AK4-Edge: geschlossener (nicht gemergter) PR → nicht verifiziert"
 # AK5: PR_SHEPHERD, nicht Draft, Auto-Merge scharf → verifiziert (Erfolg)
 efs clean 0 true OPEN false set;  assert_exit 0 "$?" "#212 AK5: Auto-Merge scharf → verifiziert (exit 0)"
 # AK6: PR_SHEPHERD, PR bereits MERGED → verifiziert (Erfolg)
@@ -2378,6 +2380,12 @@ git -C "$VFS_REPO" checkout -q -b feature/no-upstream
 verify_final_state feature/no-upstream false "$VFS_REPO" >/dev/null 2>&1
 assert_exit 1 "$?" "#212 I/O F2: kein origin-Tracking → fail-closed (exit 1)"
 git -C "$VFS_REPO" checkout -q "$VFS_BR"
+# Detached HEAD (branch='HEAD') bzw. leerer Branch-Name → fail-closed, nie gegen origin/HEAD
+# (Default-Branch) auflösen (neuer Guard aus dem Review-Rework).
+verify_final_state HEAD false "$VFS_REPO" >/dev/null 2>&1
+assert_exit 1 "$?" "#212 I/O: detached HEAD (branch='HEAD') → fail-closed (exit 1)"
+verify_final_state "" false "$VFS_REPO" >/dev/null 2>&1
+assert_exit 1 "$?" "#212 I/O: leerer Branch-Name → fail-closed (exit 1)"
 # PR_SHEPHERD=true über gh-Stub (PATH im Subshell exportiert → (cd && gh) findet den Stub)
 mkgh false OPEN true
 ( export PATH="$VFS_REPO/bin:$PATH"; verify_final_state "$VFS_BR" true "$VFS_REPO" ) >/dev/null 2>&1
@@ -2385,6 +2393,9 @@ assert_exit 0 "$?" "#212 I/O AK5: nicht Draft + Auto-Merge scharf → verifizier
 mkgh false MERGED false
 ( export PATH="$VFS_REPO/bin:$PATH"; verify_final_state "$VFS_BR" true "$VFS_REPO" ) >/dev/null 2>&1
 assert_exit 0 "$?" "#212 I/O AK6: PR MERGED → verifiziert (exit 0)"
+mkgh false OPEN false
+( export PATH="$VFS_REPO/bin:$PATH"; verify_final_state "$VFS_BR" true "$VFS_REPO" ) >/dev/null 2>&1
+assert_exit 1 "$?" "#212 I/O AK4: nicht Draft, weder gemergt noch Auto-Merge → nicht verifiziert (exit 1)"
 mkgh true OPEN false
 ( export PATH="$VFS_REPO/bin:$PATH"; verify_final_state "$VFS_BR" true "$VFS_REPO" ) >/dev/null 2>&1
 assert_exit 1 "$?" "#212 I/O AK3: Draft-PR → nicht verifiziert (exit 1)"
