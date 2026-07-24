@@ -22,6 +22,9 @@ Entscheidungen aus /requirements:
 - Format: Markdown-Quelle + PDF-Export.
 - Screenshots: jetzt echt aus lokalem Dev-Server (`pnpm dev`) mit Testdaten erzeugen.
 - Selbstbedienung (`/theke/[token]`): nur kurzer Hinweis im Verzehr-Schritt, kein eigener Abschnitt.
+- Ablageort: `docs/anleitung/veranstalter/` (`anleitung.md`, `bilder/`, `anleitung.pdf`).
+- PDF-Weg: manueller Browser-Druck, in der Quelle dokumentiert (kein neues Tooling).
+- Screenshot-Markierungen: keine Pfeile/Rahmen – präzise Bildunterschriften genügen.
 
 ## Akzeptanzkriterien
 
@@ -44,9 +47,7 @@ Entscheidungen aus /requirements:
 
 ## Offene Fragen
 
-- [ ] Ablageort bestätigen (Vorschlag: `docs/anleitung/veranstalter/` mit `anleitung.md`, `bilder/`, `anleitung.pdf`).
-- [ ] PDF-Erzeugungsweg festlegen (Browser-Druck vs. CLI-Tool) – in /implement dokumentieren.
-- [ ] Screenshot-Markierungen (Pfeile/Rahmen) gewünscht oder Bildunterschriften ausreichend?
+_Keine offenen Fragen – alle in /requirements geklärt (siehe Beschreibung / Spec)._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

@@ -51,9 +51,10 @@ Ende führt.
 - [ ] **AC3 – Laienverständlichkeit:** GIVEN eine nicht-app-affine Person WHEN sie einen Schritt
       liest THEN ist jeder Schritt einzeln, nummeriert und nach dem Muster „Was tue ich? → Was
       passiert?" formuliert, ohne unerklärte Fachbegriffe.
-- [ ] **AC4 – Druckbares PDF + reproduzierbare Erzeugung:** GIVEN die Markdown-Quelle WHEN das
-      PDF erzeugt wird THEN liegt ein druckbares PDF im Repo und der Erzeugungsweg ist so
-      dokumentiert, dass er wiederholbar ist; der Ablageort beider Dateien ist festgelegt.
+- [ ] **AC4 – Druckbares PDF + reproduzierbare Erzeugung:** GIVEN die Markdown-Quelle
+      (`docs/anleitung/veranstalter/anleitung.md`) WHEN das PDF per **Browser-Druck** erzeugt
+      wird THEN liegt `docs/anleitung/veranstalter/anleitung.pdf` im Repo und der Browser-Druck-
+      Weg ist in der Quelle so dokumentiert, dass er wiederholbar ist.
 - [ ] **AC5 – Glossar:** GIVEN die Fachbegriffe Veranstaltung, Teilnehmer, Verzehr, Auslage,
       Kasse, Spende WHEN sie in der Anleitung erstmals vorkommen THEN werden sie kurz in
       Alltagssprache erklärt (oder es wird auf die Ubiquitous Language verwiesen).
@@ -72,14 +73,16 @@ Ende führt.
 - [ ] **Screenshot-Aktualität:** Die Anleitung/Quelle vermerkt, dass Screenshots bei UI-
       Änderungen mitzupflegen sind, und enthält einen Stand/Datum-Hinweis.
 
-## Offene Fragen
+## Entscheidungen (aus /requirements)
 
-- [ ] **Ablageort (Vorschlag):** `docs/anleitung/veranstalter/` mit `anleitung.md`,
-      Unterordner `bilder/` für die Screenshots und `anleitung.pdf` daneben. Bestätigen oder
-      abweichenden Ort festlegen.
-- [ ] **PDF-Erzeugungsweg:** Konkreter, reproduzierbarer Weg (z. B. Browser-Druck der
-      gerenderten Markdown-Ansicht nach PDF vs. ein CLI-Tool). Im `/implement` festlegen und in
-      der Quelle dokumentieren.
-- [ ] **Screenshot-Markierungen:** Sollen Tipp-Ziele mit Pfeilen/Rahmen hervorgehoben werden
-      (manuelle Nachbearbeitung) oder genügen präzise Bildunterschriften? (Issue: „nach
-      Möglichkeit").
+Die drei bei der Spec-Erstellung offenen Punkte sind geklärt:
+
+- **Ablageort:** `docs/anleitung/veranstalter/` mit `anleitung.md`, Unterordner `bilder/` für die
+  Screenshots und `anleitung.pdf` daneben. (Struktur erweiterbar um eine spätere Verwalter-
+  Anleitung unter `docs/anleitung/verwalter/`.)
+- **PDF-Erzeugung:** Manueller **Browser-Druck** der gerenderten Markdown-Ansicht nach PDF (kein
+  neues Tooling, keine Dev-Abhängigkeit). Der exakte Weg wird **in der Quelle dokumentiert**
+  (reproduzierbar), sodass das PDF bei Änderungen von Hand neu erzeugt werden kann.
+- **Screenshot-Markierungen:** **Bildunterschriften genügen** – Tipp-Ziele werden präzise im
+  Schritt-Text und in der Bildunterschrift beschrieben; keine eingezeichneten Pfeile/Rahmen
+  (Issue verlangt Markierungen nur „nach Möglichkeit"). Weniger Pflegeaufwand bei UI-Änderungen.
