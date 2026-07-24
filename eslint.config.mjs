@@ -17,6 +17,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Zusätzlich:
     "coverage/**",
+    // Von Playwright generierte Artefakte (analog .gitignore) – sonst bricht `pnpm lint`
+    // nach jedem `pnpm test:e2e`-Lauf am minifizierten Report-/Trace-JS ab (#172).
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 
