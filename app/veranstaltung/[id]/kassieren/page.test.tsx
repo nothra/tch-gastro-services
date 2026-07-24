@@ -157,6 +157,14 @@ function params(id: string) {
   return Promise.resolve({ id });
 }
 
+// Reihenfolge der Teilnehmer-Anzeigenamen in der Kassier-Liste (erster Span je <li> = Anzeigename).
+function teilnehmerNamesInOrder(): string[] {
+  const section = screen.getByRole("heading", { name: /^Teilnehmer/ }).closest("section")!;
+  return within(section)
+    .getAllByRole("listitem")
+    .map((li) => li.querySelector("span")?.textContent ?? "");
+}
+
 // "8,00 €" → 800 (nur für die Testdaten; keine Tausendertrenner nötig).
 function centsFromEuroText(text: string): number {
   const [euro, cent] = text.replace(/\s*€/, "").split(",");
@@ -259,10 +267,11 @@ describe("KassierenPage", () => {
   it("should_matchBreakdownSumToVerzehrGesamt_when_expanded", async () => {
     arrangeHappyPath();
 
-    const { container } = render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage({ params: params("v-1") }));
 
     // Positionsbeträge der z-1 aufsummiert = Verzehr-Gesamt (800): Cola 2×250 + Schnitzel 1×300.
-    const annaDetails = container.querySelector("li details")!;
+    // Annas Zeile explizit wählen – die Liste sortiert offene Vorgänge (Bernd) nach oben (#223).
+    const annaDetails = screen.getByText("Anna Beispiel").closest("li")!.querySelector("details")!;
     const summeCents = within(annaDetails as HTMLElement)
       .getAllByRole("row")
       .filter((row) => row.querySelector("td"))
@@ -323,7 +332,84 @@ describe("KassierenPage", () => {
     render(await KassierenPage({ params: params("v-1") }));
 
     const forms = screen.getAllByTestId("kassiere-form");
-    expect(forms.map((form) => form.textContent)).toEqual(["z-1", "z-2"]);
+    // Sortierung (Spec-223): offene Zeilen zuerst → Bernd (offen, z-2) vor Anna (bezahlt, z-1).
+    expect(forms.map((form) => form.textContent)).toEqual(["z-2", "z-1"]);
+  });
+
+  it("should_listOffenParticipantsAboveBezahlt_when_rendered", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listAuslagenMock.mockResolvedValue([]);
+    listEreignisseMock.mockResolvedValue([]);
+    // `listZeilen` liefert alphabetisch (DB `.orderBy(anzeigename)`); je 1 Getränk @250.
+    listZeilenMock.mockResolvedValue([
+      zeile({ id: "z-a", teilnehmerId: "t-a", anzeigename: "Anna", erhaltenCents: 250 }),
+      zeile({ id: "z-b", teilnehmerId: "t-b", anzeigename: "Bernd", erhaltenCents: null }),
+      zeile({ id: "z-c", teilnehmerId: "t-c", anzeigename: "Carla", erhaltenCents: 250 }),
+      zeile({ id: "z-d", teilnehmerId: "t-d", anzeigename: "Dora", erhaltenCents: null }),
+    ]);
+    listPositionenMock.mockResolvedValue([
+      pos({ zeileId: "z-a", menge: 1, priceCents: 250 }),
+      pos({ zeileId: "z-b", menge: 1, priceCents: 250 }),
+      pos({ zeileId: "z-c", menge: 1, priceCents: 250 }),
+      pos({ zeileId: "z-d", menge: 1, priceCents: 250 }),
+    ]);
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    // Offen-Gruppe (Bernd, Dora) oben – je Gruppe stabil alphabetisch; bezahlt (Anna, Carla) unten.
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+  });
+
+  it("should_sortNullVerzehrParticipantIntoBezahltGroup_when_noConsumptionAndNoErhalten", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listAuslagenMock.mockResolvedValue([]);
+    listEreignisseMock.mockResolvedValue([]);
+    // Aaron: kein Verzehr + kein Erhalten → abgeleitet bezahlt (0 ≥ 0). Berta: 2,50 € offen.
+    listZeilenMock.mockResolvedValue([
+      zeile({ id: "z-aa", teilnehmerId: "t-aa", anzeigename: "Aaron", erhaltenCents: null }),
+      zeile({ id: "z-be", teilnehmerId: "t-be", anzeigename: "Berta", erhaltenCents: null }),
+    ]);
+    listPositionenMock.mockResolvedValue([pos({ zeileId: "z-be", menge: 1, priceCents: 250 })]);
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    // Null-Verzehr sortiert nach unten (bezahlt) – trotz alphabetisch erstem Namen.
+    expect(teilnehmerNamesInOrder()).toEqual(["Berta", "Aaron"]);
+  });
+
+  it("should_emphasizeVerzehrGesamtWithSemibold_when_rendered", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
+    const dt = within(annaLi).getByText("Verzehr-Gesamt");
+    const dd = dt.closest("div")!.querySelector("dd")!;
+    // Wie „Gesamt" auf der Verzehr-erfassen-Seite: font-semibold + volle Textfarbe (Light+Dark).
+    expect(dt).toHaveClass("font-semibold", "text-zinc-900", "dark:text-zinc-100");
+    expect(dd).toHaveClass("font-semibold", "tabular-nums", "text-zinc-900", "dark:text-zinc-100");
+    expect(dt).not.toHaveClass("font-medium");
+    expect(dd).not.toHaveClass("font-medium");
+  });
+
+  it("should_keepOtherCategoriesInMutedSecondary_when_rendered", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage({ params: params("v-1") }));
+
+    const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
+    // Gedämpfte Sekundärfarbe auf dem umschließenden dl, in Light und Dark.
+    expect(within(annaLi).getByText("Getränke").closest("dl")!).toHaveClass(
+      "text-zinc-600",
+      "dark:text-zinc-400",
+    );
+    for (const label of ["Getränke", "Essen", "Kaffee", "Spende"]) {
+      const dt = within(annaLi).getByText(label);
+      expect(dt).not.toHaveClass("font-semibold");
+      expect(dt).not.toHaveClass("font-medium");
+    }
   });
 
   it("should_showTagessummen_when_rendered", async () => {
