@@ -165,6 +165,23 @@ describe("neutralisiereFormelPraefix", () => {
   });
 });
 
+// Zeilenlayout des Renderers (berichtXlsx.ts) bei genau einem Teilnehmer/einer Auslage:
+// 5 Kopfzeilen (Abschlussbericht/Bezeichnung/Datum/Kasse/Status) + 1 Leerzeile + Teilnehmer-
+// Header + Preiszeile = 8 Zeilen vor der ersten Teilnehmerzeile ⇒ Zeile 9. Danach Summe (10) +
+// Leerzeile (11) + „Auslagenerstattungen"-Titel (12) + Auslagen-Header (13) ⇒ erste Auslagenzeile 14.
+const BEZEICHNUNG_ZEILE = 2;
+const ERSTE_TEILNEHMER_ZEILE = 9;
+const ERSTE_AUSLAGE_ZEILE = 14;
+
+async function ladeGerenderetesWorkbook(buffer: Buffer): Promise<ExcelJS.Worksheet> {
+  const workbook = new ExcelJS.Workbook();
+  // Cast: exceljs' `.d.ts` referenziert `Buffer` über eine ältere, verschachtelte
+  // `@types/node`-Kopie (via fast-csv, eine exceljs-Dependency) – strukturell dieselbe
+  // Laufzeit-Klasse, aber ein generischer Typkonflikt mit unserer Projekt-`@types/node`.
+  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  return workbook.getWorksheet("Abschlussbericht")!;
+}
+
 describe("berichtXlsx – Formula-Injection-Neutralisierung", () => {
   it("should_neutralizeBezeichnungAnzeigenameAndAuslageAnzeigename_when_theyStartWithFormulaPrefix", async () => {
     const bericht = berichtModell({
@@ -177,16 +194,11 @@ describe("berichtXlsx – Formula-Injection-Neutralisierung", () => {
     });
 
     const buffer = await berichtXlsx(bericht);
-    const workbook = new ExcelJS.Workbook();
-    // Cast: exceljs' `.d.ts` referenziert `Buffer` über eine ältere, verschachtelte
-    // `@types/node`-Kopie (via fast-csv, eine exceljs-Dependency) – strukturell dieselbe
-    // Laufzeit-Klasse, aber ein generischer Typkonflikt mit unserer Projekt-`@types/node`.
-    await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
-    const sheet = workbook.getWorksheet("Abschlussbericht")!;
+    const sheet = await ladeGerenderetesWorkbook(buffer);
 
-    const bezeichnungZelle = sheet.getRow(2).getCell(2).value;
-    const anzeigenameZelle = sheet.getRow(9).getCell(1).value;
-    const auslageAnzeigenameZelle = sheet.getRow(14).getCell(1).value;
+    const bezeichnungZelle = sheet.getRow(BEZEICHNUNG_ZEILE).getCell(2).value;
+    const anzeigenameZelle = sheet.getRow(ERSTE_TEILNEHMER_ZEILE).getCell(1).value;
+    const auslageAnzeigenameZelle = sheet.getRow(ERSTE_AUSLAGE_ZEILE).getCell(1).value;
 
     expect(bezeichnungZelle).toBe("'=SUM(A1)");
     expect(anzeigenameZelle).toBe('\'=HYPERLINK("evil")');
@@ -195,11 +207,9 @@ describe("berichtXlsx – Formula-Injection-Neutralisierung", () => {
 
   it("should_leaveValuesUnchanged_when_theyHaveNoFormulaPrefix", async () => {
     const buffer = await berichtXlsx(modell);
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
-    const sheet = workbook.getWorksheet("Abschlussbericht")!;
+    const sheet = await ladeGerenderetesWorkbook(buffer);
 
-    expect(sheet.getRow(2).getCell(2).value).toBe("Montagsrunde Juli");
-    expect(sheet.getRow(9).getCell(1).value).toBe("Anna");
+    expect(sheet.getRow(BEZEICHNUNG_ZEILE).getCell(2).value).toBe("Montagsrunde Juli");
+    expect(sheet.getRow(ERSTE_TEILNEHMER_ZEILE).getCell(1).value).toBe("Anna");
   });
 });

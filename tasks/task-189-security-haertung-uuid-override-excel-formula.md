@@ -51,6 +51,11 @@ Runde 1 (2026-07-25): NEEDS_REWORK. Keine kritischen Findings; 2 wichtige Findin
 Testqualität (Magic-Number-Row-Indizes ohne WHY-Kommentar, duplizierter Buffer-Load-Cast).
 Volltext: [`tasks/review-189.md`](review-189.md).
 
+Runde 2 (2026-07-25, /implement): Beide wichtigen Findings behoben – benannte Zeilen-Konstanten
+mit WHY-Kommentar (`BEZEICHNUNG_ZEILE`/`ERSTE_TEILNEHMER_ZEILE`/`ERSTE_AUSLAGE_ZEILE`) und
+Helper `ladeGerenderetesWorkbook(buffer)` statt dupliziertem Workbook-Load. Alle 16 Tests +
+Typecheck weiterhin grün.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

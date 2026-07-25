@@ -6,7 +6,7 @@ _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [app/veranstaltung/berichtXlsx.test.ts:187-189, 202-203] Magic-Number-Kopplung an
+- [x] [app/veranstaltung/berichtXlsx.test.ts:187-189, 202-203] Magic-Number-Kopplung an
       Row-Indizes (`getRow(2)/getRow(9)/getRow(14)`) ohne Kommentar, warum genau diese Zeilen
       die Zielzellen sind (6 Kopfzeilen + Header + Preiszeile ⇒ Zeile 9 für den ersten
       Teilnehmer, unabhängig von der Artikel-Spaltenzahl; Zeile 14 für die erste Auslage). Das
@@ -15,11 +15,14 @@ _Keine._
       statt Testfehler) bei jeder Layout-Änderung am Renderer. Verstößt gegen die
       Clean-Code-Regel „Keine Magic Numbers" – zumindest ein kurzer WHY-Kommentar zur
       Herleitung der Zahlen fehlt.
-- [ ] [app/veranstaltung/berichtXlsx.test.ts:184, 199] Code-Duplikation: `new
+      **Behoben:** benannte Konstanten `BEZEICHNUNG_ZEILE`/`ERSTE_TEILNEHMER_ZEILE`/
+      `ERSTE_AUSLAGE_ZEILE` mit WHY-Kommentar zur Herleitung ergänzt.
+- [x] [app/veranstaltung/berichtXlsx.test.ts:184, 199] Code-Duplikation: `new
       ExcelJS.Workbook()` + identischer `as unknown as Parameters<typeof
       workbook.xlsx.load>[0]`-Cast + `workbook.xlsx.load(...)` sind zweimal wortgleich
       kopiert; nur die erste Stelle trägt den erklärenden Kommentar zum Typkonflikt. Sollte in
       einen kleinen Test-Helper (z. B. `ladeGerenderetesWorkbook(buffer)`) extrahiert werden.
+      **Behoben:** in `ladeGerenderetesWorkbook(buffer)` extrahiert, von beiden Tests genutzt.
 
 ## Nitpicks (optional)
 
@@ -57,4 +60,5 @@ _Keine._
   Dependency (`fast-csv`, via `exceljs`), keine Umgehung einer echten Typinkompatibilität.
 
 ## Empfehlung
-NEEDS_REWORK
+NEEDS_REWORK (Runde 1) → beide wichtigen Findings in Runde 2 (/implement) behoben, siehe
+Task-Datei „Review-Findings".
