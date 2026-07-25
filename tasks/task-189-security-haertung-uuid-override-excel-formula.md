@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -58,6 +58,12 @@ Typecheck weiterhin grün.
 
 Runde 2 (2026-07-25, /review): APPROVED. Beide Fixes verifiziert, keine neuen Findings.
 Volltext: [`tasks/review-189.md`](review-189.md).
+
+**Refactoring (2026-07-25, /refactor):** Checkliste (Naming, Funktionsgröße, Duplikation,
+Magic Numbers, Kommentare WHY/WHAT) durchgegangen – keine weiteren Änderungen nötig. Beide
+Review-Findings (Magic-Number-Zeilen, duplizierter Buffer-Load) wurden bereits in Review-Runde 2
+behoben; der restliche Code (`berichtXlsx.ts`, pnpm-Override) war bereits clean-code-konform.
+Kein Verhalten geändert, keine Code-Änderung in diesem Schritt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
