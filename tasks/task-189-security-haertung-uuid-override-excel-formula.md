@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -64,6 +64,13 @@ Magic Numbers, Kommentare WHY/WHAT) durchgegangen – keine weiteren Änderungen
 Review-Findings (Magic-Number-Zeilen, duplizierter Buffer-Load) wurden bereits in Review-Runde 2
 behoben; der restliche Code (`berichtXlsx.ts`, pnpm-Override) war bereits clean-code-konform.
 Kein Verhalten geändert, keine Code-Änderung in diesem Schritt.
+
+**Security-Review (2026-07-25, /security-review): PASSED.** Keine kritischen Findings. Formel-
+Präfix-Liste vollständig (OWASP-CSV-Standard), keine praktikable Umgehung gefunden; uuid-Override
+wirksam und ohne neues Risiko. Ein Out-of-Scope-Finding (vorbestehende kritische next-auth/
+@auth/core-Verwundbarkeiten, unabhängig von #189) als eigenes Issue ausgelagert:
+[#228](https://github.com/nothra/tch-gastro-services/issues/228). Volltext:
+[`tasks/security-189.md`](security-189.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
