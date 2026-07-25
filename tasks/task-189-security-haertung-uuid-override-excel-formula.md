@@ -1,9 +1,9 @@
 # Task 189: security-haertung-uuid-override-excel-formula
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -21,17 +21,25 @@ Details, Scope und Akzeptanzkriterien: [`docs/specs/spec-189-security-haertung-u
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN `pnpm-workspace.yaml` ohne uuid-Override WHEN der Override `"uuid@<11.1.1": ">=11.1.1"` ergänzt wird THEN meldet `pnpm audit` keine `uuid`-Verwundbarkeit mehr und `pnpm why uuid` zeigt eine Version `>=11.1.1`.
-- [ ] GIVEN `pnpm install` nach dem Override THEN bleiben `pnpm test`, `pnpm typecheck` und der Excel-Renderer unverändert funktionsfähig.
-- [ ] GIVEN ein Zell-Wert in `berichtXlsx.ts`, der mit `= + - @ \t \r` beginnt WHEN der Bericht gerendert wird THEN wird ein führendes `'` vorangestellt.
-- [ ] GIVEN ein Zell-Wert ohne dieses Präfix WHEN gerendert wird THEN bleibt er unverändert.
-- [ ] GIVEN `teilnehmer.anzeigename` bzw. `auslage.anzeigename` mit Formel-Präfix THEN wird auch dieser Wert neutralisiert (nicht nur `bezeichnung`).
-- [ ] GIVEN ein Wert, der bereits mit `'` beginnt oder leer ist THEN kein zusätzliches `'`, kein Sonderfall-Fehler.
+- [x] GIVEN `pnpm-workspace.yaml` ohne uuid-Override WHEN der Override `"uuid@<11.1.1": ">=11.1.1"` ergänzt wird THEN meldet `pnpm audit` keine `uuid`-Verwundbarkeit mehr und `pnpm why uuid` zeigt eine Version `>=11.1.1`.
+- [x] GIVEN `pnpm install` nach dem Override THEN bleiben `pnpm test`, `pnpm typecheck` und der Excel-Renderer unverändert funktionsfähig.
+- [x] GIVEN ein Zell-Wert in `berichtXlsx.ts`, der mit `= + - @ \t \r` beginnt WHEN der Bericht gerendert wird THEN wird ein führendes `'` vorangestellt.
+- [x] GIVEN ein Zell-Wert ohne dieses Präfix WHEN gerendert wird THEN bleibt er unverändert.
+- [x] GIVEN `teilnehmer.anzeigename` bzw. `auslage.anzeigename` mit Formel-Präfix THEN wird auch dieser Wert neutralisiert (nicht nur `bezeichnung`).
+- [x] GIVEN ein Wert, der bereits mit `'` beginnt oder leer ist THEN kein zusätzliches `'`, kein Sonderfall-Fehler.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 Kein `/architecture`-Schritt nötig (kein ADR-Trigger, reine Härtung ohne Architekturentscheidung).
 Siehe Spec-Datei „Technische Notizen" für Implementierungshinweise.
+
+**Implementierungsnotiz (/implement):** `berichtXlsx.test.ts` ruft erstmals `workbook.xlsx.load()`
+(zum Zurücklesen der Zellwerte) auf – dabei kollidiert exceljs' `Buffer`-Typreferenz mit einer
+verschachtelten, älteren `@types/node@14`-Kopie (Dependency von `fast-csv`, selbst Dependency von
+`exceljs`; vorbestehend, nicht durch den uuid-Override verursacht). `skipLibCheck: true` lässt die
+inkonsistente Typ-Merge durch, wodurch der generische `Buffer`-Typ an der Aufrufstelle nicht direkt
+zuweisbar ist. Workaround (nur im Test, keine Produktionscode-Änderung nötig): Cast über
+`Parameters<typeof workbook.xlsx.load>[0]` statt direkt über `Buffer`.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

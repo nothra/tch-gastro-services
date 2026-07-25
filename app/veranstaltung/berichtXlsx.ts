@@ -12,6 +12,17 @@ import { artikelBezeichnung, gesamtabrechnungsZeilen, type BerichtModell } from 
 
 const EUR_NUM_FMT = "#,##0.00 €"; // de-DE-Betragsformat, echte Zahl in der Zelle (ADR-036 D8)
 
+// OWASP-CSV-Cheatsheet-Präfixe, die Tabellenkalkulationen als Formel-/Kommando-Start lesen
+// könnten. Defense-in-Depth (#189): die Zellen sind bereits reine Strings (keine `formula`-
+// Werte), ein führendes `'` neutralisiert sie zusätzlich gegen künftige Formel-fähige Pfade
+// (z. B. CSV-Export, Copy&Paste in ein anderes Tool).
+const FORMEL_PRAEFIXE = ["=", "+", "-", "@", "\t", "\r"];
+
+export function neutralisiereFormelPraefix(wert: string): string {
+  if (wert === "" || wert.startsWith("'")) return wert;
+  return FORMEL_PRAEFIXE.some((praefix) => wert.startsWith(praefix)) ? `'${wert}` : wert;
+}
+
 type Artikel = { name: string; size: string; einzelpreisCents: number };
 
 // Schlüssel identifiziert einen Artikel als Matrix-Spalte. Name+Größe genügt: ein Katalogartikel
@@ -54,7 +65,7 @@ export async function berichtXlsx(modell: BerichtModell): Promise<Buffer> {
 
   // ── Kopf (AC11) ────────────────────────────────────────────────────────────
   sheet.addRow(["Abschlussbericht"]);
-  sheet.addRow(["Bezeichnung", modell.kopf.bezeichnung]);
+  sheet.addRow(["Bezeichnung", neutralisiereFormelPraefix(modell.kopf.bezeichnung)]);
   sheet.addRow(["Datum", modell.kopf.datum]);
   sheet.addRow(["Kasse", modell.kopf.kasse]);
   sheet.addRow(["Status", modell.kopf.status]);
@@ -88,7 +99,7 @@ export async function berichtXlsx(modell: BerichtModell): Promise<Buffer> {
       mengeJeSpalte.set(spalte, (mengeJeSpalte.get(spalte) ?? 0) + position.menge);
     }
     const row = sheet.addRow([
-      teilnehmer.anzeigename,
+      neutralisiereFormelPraefix(teilnehmer.anzeigename),
       ...artikel.map((_, index) => mengeJeSpalte.get(index) ?? null),
     ]);
     setzeBetrag(row.getCell(summenStart), teilnehmer.getraenkeCents);
@@ -113,7 +124,12 @@ export async function berichtXlsx(modell: BerichtModell): Promise<Buffer> {
   sheet.addRow(["Auslagenerstattungen"]);
   sheet.addRow(["Teilnehmer", "Kategorie", "Betrag", "Status"]);
   for (const auslage of modell.auslagen) {
-    const row = sheet.addRow([auslage.anzeigename, auslage.kategorie, null, auslage.status]);
+    const row = sheet.addRow([
+      neutralisiereFormelPraefix(auslage.anzeigename),
+      auslage.kategorie,
+      null,
+      auslage.status,
+    ]);
     setzeBetrag(row.getCell(3), auslage.betragCents);
   }
   sheet.addRow([]);
