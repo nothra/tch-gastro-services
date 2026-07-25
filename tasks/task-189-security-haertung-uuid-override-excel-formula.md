@@ -47,6 +47,9 @@ _Keine._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Runde 1 (2026-07-25): NEEDS_REWORK. Keine kritischen Findings; 2 wichtige Findings zu
+Testqualität (Magic-Number-Row-Indizes ohne WHY-Kommentar, duplizierter Buffer-Load-Cast).
+Volltext: [`tasks/review-189.md`](review-189.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
