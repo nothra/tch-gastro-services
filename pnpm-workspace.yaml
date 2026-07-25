@@ -12,6 +12,9 @@ allowBuilds:
 # ungehindert durch. Entfernen, sobald die Parents die Patches selbst mitbringen.
 # - postcss  <8.5.10: GHSA-qx2v-qp2m-jg93 (XSS im CSS-Stringify), via next (Build-Zeit)
 # - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev)
+# - uuid     <11.1.1: GHSA-w5hq-g745-h8pq (fehlende Buffer-Bounds-Prüfung bei v3/v5/v6 mit
+#            `buf`-Argument), via exceljs (Bericht-Renderer, #189)
 overrides:
   "postcss@<8.5.10": ">=8.5.10"
   "esbuild@<0.25.0": ">=0.25.0"
+  "uuid@<11.1.1": ">=11.1.1"
