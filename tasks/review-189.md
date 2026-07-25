@@ -59,6 +59,15 @@ _Keine._
   gut begründete Ausnahme für einen echten `@types/node`-Versionskonflikt über eine transitive
   Dependency (`fast-csv`, via `exceljs`), keine Umgehung einer echten Typinkompatibilität.
 
+## Runde 2 (2026-07-25) – erneutes Review nach Fixes
+
+Alle drei Perspektiven erneut durchlaufen (Logik/Korrektheit, Code-Qualität, Architektur):
+- Beide Runde-1-Findings sind verifiziert korrekt behoben (Zeilen-Konstanten-Herleitung gegen
+  `berichtXlsx.ts` nachgerechnet, Helper an beiden Stellen genutzt, kein Testverhalten
+  verändert – 16/16 Tests weiterhin grün).
+- Keine neuen Findings (kritisch/wichtig/nitpick) durch den Fix-Commit eingeführt.
+- Architektur weiterhin unberührt (nur Testdatei geändert, `docs/routes.md` korrekt
+  unangetastet).
+
 ## Empfehlung
-NEEDS_REWORK (Runde 1) → beide wichtigen Findings in Runde 2 (/implement) behoben, siehe
-Task-Datei „Review-Findings".
+APPROVED

@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -55,6 +55,9 @@ Runde 2 (2026-07-25, /implement): Beide wichtigen Findings behoben – benannte 
 mit WHY-Kommentar (`BEZEICHNUNG_ZEILE`/`ERSTE_TEILNEHMER_ZEILE`/`ERSTE_AUSLAGE_ZEILE`) und
 Helper `ladeGerenderetesWorkbook(buffer)` statt dupliziertem Workbook-Load. Alle 16 Tests +
 Typecheck weiterhin grün.
+
+Runde 2 (2026-07-25, /review): APPROVED. Beide Fixes verifiziert, keine neuen Findings.
+Volltext: [`tasks/review-189.md`](review-189.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
