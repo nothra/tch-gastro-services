@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Optionale Security-Härtung aus dem Review von Task #185 (kein Blocker, PASSED):
@@ -80,6 +80,9 @@ Zwei neue Lessons ergänzt (Volltext + Index-Zeile, ADR-037-konform):
 - `lessons/testing.md`: Row/Cell-Index-Assertions gegen einen gerenderten Report sind Magic
   Numbers – Herleitung sofort mitschreiben, nicht erst im Review.
 Volltext: [`tasks/codify-189.md`](codify-189.md).
+
+PR-Shepherd 2026-07-25: Merge freigegeben – alle Gates grün (CI, keine offenen Review-
+Kommentare, kein Approval erforderlich, PR aus Draft geholt).
 
 ---
 Branch: `improvement/189-security-haertung-uuid-override-excel-formula`
