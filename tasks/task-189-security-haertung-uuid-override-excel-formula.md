@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -74,6 +74,12 @@ wirksam und ohne neues Risiko. Ein Out-of-Scope-Finding (vorbestehende kritische
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Zwei neue Lessons ergänzt (Volltext + Index-Zeile, ADR-037-konform):
+- `lessons/build-tooling.md`: verschachtelte alte `@types/node`-Kopie kollidiert mit generischem
+  `Buffer`-Typ bei TS≥5.7 – Cast über Ziel-Funktionssignatur, nicht `as unknown as Buffer`.
+- `lessons/testing.md`: Row/Cell-Index-Assertions gegen einen gerenderten Report sind Magic
+  Numbers – Herleitung sofort mitschreiben, nicht erst im Review.
+Volltext: [`tasks/codify-189.md`](codify-189.md).
 
 ---
 Branch: `improvement/189-security-haertung-uuid-override-excel-formula`
