@@ -148,12 +148,9 @@ describe("neutralisiereFormelPraefix", () => {
     ["@SUM(A1)", "'@SUM(A1)"],
     ["\tName", "'\tName"],
     ["\rName", "'\rName"],
-  ])(
-    "should_prependApostrophe_when_valueStartsWithFormulaPrefix(%s)",
-    (eingabe, erwartet) => {
-      expect(neutralisiereFormelPraefix(eingabe)).toBe(erwartet);
-    },
-  );
+  ])("should_prependApostrophe_when_valueStartsWithFormulaPrefix(%s)", (eingabe, erwartet) => {
+    expect(neutralisiereFormelPraefix(eingabe)).toBe(erwartet);
+  });
 
   it("should_returnUnchanged_when_valueHasNoFormulaPrefix", () => {
     expect(neutralisiereFormelPraefix("Anna")).toBe("Anna");
@@ -172,7 +169,7 @@ describe("berichtXlsx – Formula-Injection-Neutralisierung", () => {
   it("should_neutralizeBezeichnungAnzeigenameAndAuslageAnzeigename_when_theyStartWithFormulaPrefix", async () => {
     const bericht = berichtModell({
       veranstaltung: { ...veranstaltung, bezeichnung: "=SUM(A1)" },
-      zeilen: [{ id: "z1", anzeigename: "=HYPERLINK(\"evil\")", erhaltenCents: 500 }],
+      zeilen: [{ id: "z1", anzeigename: '=HYPERLINK("evil")', erhaltenCents: 500 }],
       positionen: [],
       auslagen: [
         { anzeigename: "+49123456", kategorie: "getraenke", betragCents: 300, status: "offen" },
