@@ -71,6 +71,10 @@ nicht (weder direkt noch transitiv referenziert von `run-pipeline.sh`,
 Ursache liegt also nicht in dieser Task. Nicht behoben (Scope), aber hier protokolliert, damit
 es nicht verloren geht; ggf. eigenes Issue via `/review`.
 
+Hinweis: `pnpm test`/`pnpm typecheck`/`pnpm format:check` (pre-push-Gate) sind unabhängig grün –
+die 4 roten Fälle stammen ausschließlich aus dem separaten Bash-Suite-Lauf
+(`scripts/checks/tests/run-tests.sh`).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
