@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -230,6 +230,8 @@ Edit-Freigabe auf Pipeline-Config in `factory-workflow.md`; (3) Verfügbarkeits-
 bereits Vorhandenes im selben File abgleichen in `code-style.md`. Keine CLAUDE.md-/Guideline-
 Änderung, kein neuer Check nötig (Begründung im Codify-Report). Beide Out-of-Scope-Issues
 (#240, #241) waren bereits aus `/review`/`/security-review` angelegt.
+
+PR-Shepherd [2026-07-26]: Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `fix/224-top-level-yaml-edit-allow`
