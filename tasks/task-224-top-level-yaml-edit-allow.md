@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -155,6 +155,24 @@ geändert:**
 - Voller Testlauf danach erneut grün: 542 grün, 0 rot.
 - Der dritte Punkt (Lesson-Codifizierung des Write-Funds) war kein Blocker für diesen PR und
   bleibt Aufgabe des `/codify`-Schritts.
+
+## Test-Vollständigkeit (`/test`, 2026-07-26)
+
+- **Coverage-Analyse:** `pnpm test:coverage` (Vitest) wurde bewusst **nicht** erneut ausgeführt –
+  diese Task ändert keine TypeScript/JS-Produktionsdateien (nur `.claude/settings.json`, Docs,
+  Task-Dateien und `scripts/checks/tests/run-tests.sh`, ein Bash-Skript ohne Vitest-Coverage-
+  Instrumentierung). Die Vitest-Coverage-Schwelle ist für diese Task nicht aussagekräftig; die
+  relevante Test-Suite ist `scripts/checks/tests/run-tests.sh` (voller Lauf: 545 grün, 0 rot).
+- **Lücke gefunden (AK7):** Die stale-Prosa-Korrektur in `docs/factory/lessons/factory-workflow.md`
+  hatte bislang **keine** Regressionsabsicherung – kein Test in `run-tests.sh` referenzierte diese
+  Datei überhaupt. Ergänzt: drei neue Assertions (alte Aussage entfernt, neue Aussage vorhanden,
+  Patch-Workflow-Regel #94 bleibt erhalten). Gegenprobe gegen `origin/main` (Vor-#224-Stand)
+  bestätigt: dort wäre die Negativ-Assertion rot und die Positiv-Assertion ebenfalls rot – kein
+  tautologischer Test.
+- Alle übrigen Akzeptanzkriterien (AK1–AK6, AK8) waren bereits aus `/implement` durch die
+  `#224`-jq-Assertions sowie die zwei `claude --print`-Verhaltensproben abgedeckt (Happy Path +
+  Negativfall `pnpm-lock.yaml`); keine weitere Lücke gefunden.
+- Voller Testlauf: 545 grün, 0 rot (zuvor 542, +3 neue AK7-Assertions).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

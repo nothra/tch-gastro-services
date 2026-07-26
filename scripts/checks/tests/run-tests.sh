@@ -2064,6 +2064,21 @@ else
   echo "  • #224: Permissions-Konsistenz (geparst) – übersprungen (jq fehlt)"
 fi
 
+# AK7: die stale Präsens-Aussage zu factory.defaults.yml ist korrigiert; die weiterhin gültige
+# Patch-Workflow-Regel (#94) bleibt erhalten. Bislang die einzige Regressionsabsicherung für
+# AK7 (/test-Selbstfund) – ohne diesen Test könnte ein künftiger Edit die Korrektur
+# stillschweigend zurückdrehen, ohne dass irgendein Test rot würde.
+WORKFLOW_LESSON="$FACTORY_ROOT/docs/factory/lessons/factory-workflow.md"
+
+assert_true "$(! grep -qF 'außerhalb von `scripts/*`/`pnpm`-Scope sind nicht' "$WORKFLOW_LESSON"; echo $?)" \
+  "#224: stale Präsens-Aussage zu factory.defaults.yml aus der Lesson entfernt (AK7)"
+
+grep -qF 'ist seit #224 über eine generische' "$WORKFLOW_LESSON"
+assert_true "$?" "#224: Lesson nennt die korrigierte Allow-Regel für Top-Level-YAML (AK7)"
+
+grep -qF 'Patch NICHT von Hand schreiben (aus #94)' "$WORKFLOW_LESSON"
+assert_true "$?" "#224: Patch-Workflow-Regel (#94) bleibt in der Lesson erhalten (AK7)"
+
 # ─── Task 101: Pipeline-Quality-Gates rufen echte Befehle (kein Platzhalter) ──
 echo ""
 echo "Task 101: Pipeline-Quality-Gates (echte Befehle statt Platzhalter):"
