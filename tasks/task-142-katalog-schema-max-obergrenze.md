@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `catalogItemSchema` (`app/verwaltung/katalog/schema.ts`) validiert `name` und `size`
@@ -62,6 +62,12 @@ bestehenden `priceCents`-Refine als auch im neuen `sortOrder`-Max. Beide durch
 und nach der Änderung identisch grün). Die `name`/`size`-Grenze (50 Zeichen) bleibt
 bewusst als Inline-Literal, da keine vergleichbare zentrale Konstante existiert und
 beide Grenzen semantisch unabhängig sind (eigene Fehlermeldungen je Feld).
+
+## PR-Shepherd-Notizen
+PR-Shepherd 2026-07-26: Merge freigegeben – alle Gates grün. Keine offenen
+Review-Kommentare, Branch bereits aktuell zu `main` (0 hinter, `mergeStateStatus:
+CLEAN`), CI komplett grün (lint, test, CodeQL, Analyze, issue-sync, pr-closes-issue),
+keine Approval-Anforderung ausstehend.
 
 ---
 Branch: `improvement/142-katalog-schema-max-obergrenze`
