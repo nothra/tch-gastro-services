@@ -143,6 +143,19 @@ unabhängig von allen drei Review-Perspektiven aufgegriffen. Out-of-Scope-Fund (
 `Write(...)`-Regeln) als GitHub-Issue [#240](https://github.com/nothra/tch-gastro-services/issues/240)
 ausgelagert.
 
+**Rework (2026-07-26), beide Wichtige Findings behoben – reiner Testcode, kein Verhalten
+geändert:**
+- `scripts/checks/tests/run-tests.sh`, alter `#91`-Deny-Check (jetzt „jq-unabhängiger
+  Fallback"): Kommentar ergänzt, der die Koexistenz mit dem neuen `#224`-AK4-Block explizit
+  begründet (der alte Check läuft immer, auch ohne `jq`; der neue wird ohne `jq` übersprungen),
+  und den fehlenden `Edit(.env*)`-Eintrag ergänzt, damit beide dieselbe Menge prüfen.
+- `scripts/checks/tests/run-tests.sh:2036`: dritte jq-Verfügbarkeitsprüfung durch
+  Wiederverwendung des bereits im File etablierten `$HAS_JQ` ersetzt (`if [ "$HAS_JQ" -eq 1 ]`
+  statt eigener `command -v jq`-Subshell).
+- Voller Testlauf danach erneut grün: 542 grün, 0 rot.
+- Der dritte Punkt (Lesson-Codifizierung des Write-Funds) war kein Blocker für diesen PR und
+  bleibt Aufgabe des `/codify`-Schritts.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

@@ -2014,10 +2014,13 @@ assert_true "$(line_before 'factory-commit.sh' 'gh pr merge --squash' "$SHEPHERD
 assert_true "$(! grep -qE 'Bash\(git \*\)|Bash\(gh \*\)' "$SETTINGS"; echo $?)" \
   "#91: kein pauschales Bash(git *)/Bash(gh *)"
 
-# deny unverändert: .claude/** und .env* bleiben gesperrt.
+# deny unverändert: .claude/** und .env* bleiben gesperrt. Bewusster jq-unabhängiger
+# Fallback (läuft IMMER, auch ohne jq) neben der geparsten #224-Gegenrichtungsprüfung unten
+# (AK4) – die dortige jq-Prüfung wird bei fehlendem jq übersprungen (Review-Finding #224).
 { grep -qF 'Write(.claude/**)' "$SETTINGS" && grep -qF 'Edit(.claude/**)' "$SETTINGS" \
-  && grep -qF 'Write(.env*)' "$SETTINGS" && grep -qF 'Read(.env*)' "$SETTINGS"; }
-assert_true "$?" "#91: deny behält .claude/** und .env* (fail-closed)"
+  && grep -qF 'Edit(.env*)' "$SETTINGS" && grep -qF 'Write(.env*)' "$SETTINGS" \
+  && grep -qF 'Read(.env*)' "$SETTINGS"; }
+assert_true "$?" "#91: deny behält .claude/** und .env* (fail-closed, jq-unabhängiger Fallback)"
 
 # Skill-Doku: Code-erzeugende Skills committen/pushen über den Seam, nicht rohes git.
 for sk in implement test refactor bug-fix; do
@@ -2033,7 +2036,7 @@ done
 echo ""
 echo "#224 Top-Level-YAML-Freigabe (.claude/settings.json):"
 
-if [ "$(command -v jq >/dev/null 2>&1; echo $?)" -eq 0 ]; then
+if [ "$HAS_JQ" -eq 1 ]; then
   # AK8: settings.json bleibt valides JSON mit unveränderter Grundstruktur.
   jq -e '.hooks and .permissions.allow and .permissions.deny' "$SETTINGS" >/dev/null 2>&1
   assert_true "$?" "#224: settings.json valides JSON mit hooks/permissions.allow/deny (AK8)"
