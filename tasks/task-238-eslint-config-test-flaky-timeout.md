@@ -2,11 +2,11 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -72,7 +72,12 @@ Keine – Architektur/Implementierung entscheiden die konkrete technische Lösun
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Neues Learning nach `docs/factory/lessons/testing.md` ausgelagert (+ Index-Zeile in
+`PROJECT-CONTEXT.md`): Flaky Timeout durch unamortisierten teuren Erst-Aufruf (hier
+`ESLint().isPathIgnored` unter Parallellast) – Fix-Vorlage: `beforeAll`-Aufwärmen mit eigenem,
+endlichem Timeout statt globaler Timeout-Erhöhung. Details: `tasks/codify-238.md`. Review und
+Security-Review meldeten keine kritischen/wichtigen Findings; der einzige Nitpick wurde bereits
+im `/refactor`-Schritt behoben.
 
 ---
 Branch: `fix/238-eslint-config-test-flaky-timeout`
