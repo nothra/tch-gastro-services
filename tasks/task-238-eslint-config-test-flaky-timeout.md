@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -55,6 +55,13 @@ geändert – der Fix betrifft ausschließlich den Testkörper selbst (kein neue
 Produktionscode-Pfad, daher kein zusätzlicher Coverage-Bedarf). Test-Qualität geprüft: AAA-
 Struktur, unabhängige/deterministische Tests, sprechende `should_..._when_...`-Namen, kein
 Mocking von internem Code.
+
+**`/refactor`-Nachlauf:** Nitpick aus `tasks/review-238.md` umgesetzt – der doppelt
+verwendete Pfad `"app/layout.tsx"` (Aufwärm-Aufruf in `beforeAll` und Positiv-Kontrolle) ist
+jetzt in der benannten Konstante `NORMALE_QUELLDATEI` gebündelt, um die Absicht (derselbe,
+nicht ignorierte Pfad) explizit zu machen und Drift zu verhindern. Kein neues Verhalten:
+`eslint.config.test.ts` isoliert erneut 3/3 grün, `pnpm test` (volle Suite) 665/665 grün,
+`bash scripts/checks/pre-commit.sh` bestanden.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
