@@ -61,6 +61,11 @@ einem Pipeline-Abbruch, der einen Menschen braucht.
       `git push` scheitert (z. B. kaputtes Remote, Netzwerkfehler, Gate-Ablehnung) WHEN
       `factory-commit.sh "<msg>"` läuft THEN beendet sich das Skript mit Exit ≠ 0 – der
       Fehlschlag wird weitergereicht, kein stiller „erfolgreich übersprungen"-Zustand.
+- [ ] GIVEN der Nachhol-Fall (ungepushte Commits vorhanden, kein neuer Commit in diesem Lauf)
+      WHEN der nachgeholte Push erfolgreich läuft THEN unterscheidet sich die stderr-Meldung
+      erkennbar von der Happy-Path-Meldung „committet und gepusht auf '<branch>'." – sie macht
+      im Log explizit sichtbar, dass kein neuer Commit entstanden ist, sondern nur ein
+      vorheriger Push nachgeholt wurde (Klärung während `/requirements`, 2026-07-26).
 
 ## Fehlerszenarien
 

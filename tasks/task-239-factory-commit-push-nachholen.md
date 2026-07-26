@@ -22,6 +22,7 @@ Push in dem Fall nach. Details siehe [spec-239](../docs/specs/spec-239-factory-c
 - [ ] GIVEN nichts zu committen UND Branch hat keinen Upstream WHEN `factory-commit.sh` läuft THEN Push mit `-u origin HEAD`, Exit 0
 - [ ] GIVEN nichts zu committen UND Branch ist deckungsgleich mit Upstream WHEN `factory-commit.sh` läuft THEN keine Aktion, unveränderte Meldung, Exit 0
 - [ ] GIVEN nichts zu committen UND ungepushte Commits vorhanden, nachgeholter Push scheitert WHEN `factory-commit.sh` läuft THEN Exit ≠ 0, Fehlschlag weitergereicht
+- [ ] GIVEN erfolgreicher Nachhol-Push WHEN das Skript sich beendet THEN unterscheidet sich die Meldung erkennbar vom Happy-Path-Text „committet und gepusht"
 - [ ] Bestehende Fail-closed-Guards (main/master, kein Repo, detached HEAD, Argumentanzahl) bleiben unverändert wirksam
 
 ## Technische Notizen
