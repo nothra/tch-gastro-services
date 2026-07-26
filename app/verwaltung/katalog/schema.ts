@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EURO_INPUT_RE, parseEuroToCents } from "@/lib/money";
+import { EURO_INPUT_RE, INT4_MAX, parseEuroToCents } from "@/lib/money";
 import { catalogCategory } from "@/db/schema";
 
 // Zod-Grenze für Katalog-Eingaben (Server Actions). Validiert die rohe Nutzer-Eingabe
@@ -7,10 +7,15 @@ import { catalogCategory } from "@/db/schema";
 // (ADR-021). `size` ist optional → "" (leer = "ohne Größe"). Alle Meldungen sind für
 // Konsumenten, nicht für Entwickler.
 export const catalogItemSchema = z.object({
-  name: z.string().trim().min(1, "Bezeichnung ist erforderlich."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Bezeichnung ist erforderlich.")
+    .max(50, "Bezeichnung ist zu lang."),
   size: z
     .string()
     .trim()
+    .max(50, "Größe ist zu lang.")
     .optional()
     .transform((value) => value ?? ""),
   priceCents: z
@@ -18,7 +23,7 @@ export const catalogItemSchema = z.object({
     .trim()
     .regex(EURO_INPUT_RE, "Preis muss ein Betrag ≥ 0 mit höchstens 2 Nachkommastellen sein.")
     .transform(parseEuroToCents)
-    .refine((cents) => cents <= 2_147_483_647, "Preis ist zu hoch."),
+    .refine((cents) => cents <= INT4_MAX, "Preis ist zu hoch."),
   category: z.enum(catalogCategory.enumValues, {
     error: "Kategorie muss Getränk, Kaffee oder Essen sein.",
   }),
@@ -26,6 +31,7 @@ export const catalogItemSchema = z.object({
     .number()
     .int("Sortierung muss eine ganze Zahl sein.")
     .min(0, "Sortierung darf nicht negativ sein.")
+    .max(INT4_MAX, "Sortierung ist zu hoch.")
     .default(0),
 });
 
