@@ -252,6 +252,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Neue `lib/`-Module domänenspezifisch benennen, kein generisches `utils` (aus #105, Review-Finding)
 - Fail-Safe/Guard symmetrisch auf alle Inputs einer Vergleichsoperation (aus #197, Review-Finding)
 - Zähl-/Aufzählungs-nennender Modul-Header („stellt EINE Funktion bereit") beim Hinzufügen einer Einheit mitpflegen (aus #207, Review-Finding W1)
+- Magic-Number-Konsistenz-Bewertung braucht projektweiten Grep, nicht nur Datei-/PR-lokalen Vergleich (aus #142, Review→Refactor-Diskrepanz)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
 

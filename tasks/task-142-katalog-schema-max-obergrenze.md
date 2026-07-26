@@ -6,7 +6,7 @@
 - [x] Tests vollständig (/test: Coverage schema.ts 100%, Whitespace-Grenzfall ergänzt)
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -43,6 +43,8 @@ Siehe `tasks/security-142.md`. Ergebnis: PASSED (keine Kritisch-/Wichtig-Finding
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-142.md`. Neue Lesson in `docs/factory/lessons/code-style.md`:
+Magic-Number-Konsistenz-Findings brauchen projektweiten Grep vor „kein Fix nötig".
 
 ## Implementierungs-Notizen
 Kein ADR-Trigger (reine Zod-`.max()`-Härtung, keine der vier Kategorien betroffen).
