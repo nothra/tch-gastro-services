@@ -2025,6 +2025,42 @@ for sk in implement test refactor bug-fix; do
   assert_true "$?" "#91: /$sk committet/pusht über scripts/factory-commit.sh"
 done
 
+# ─── #224: Top-Level-YAML-Freigabe + Write-Symmetrie (.claude/settings.json) ─
+# AK5: die GEPARSTE allow-/deny-Liste wird geprüft (jq-Array-Lookup), nicht ein bloßer
+# Text-Treffer irgendwo in der Datei – je Eintrag eine eigene Assertion, damit der Wegfall
+# genau eines Eintrags genau die zugehörige Assertion rot färbt (AK5). AK6: $SETTINGS zeigt auf
+# die committete Live-Datei im Arbeitsbaum, nicht auf tasks/patch-224.diff.
+echo ""
+echo "#224 Top-Level-YAML-Freigabe (.claude/settings.json):"
+
+if [ "$(command -v jq >/dev/null 2>&1; echo $?)" -eq 0 ]; then
+  # AK8: settings.json bleibt valides JSON mit unveränderter Grundstruktur.
+  jq -e '.hooks and .permissions.allow and .permissions.deny' "$SETTINGS" >/dev/null 2>&1
+  assert_true "$?" "#224: settings.json valides JSON mit hooks/permissions.allow/deny (AK8)"
+
+  # AK1/AK2: Top-Level-YAML per Edit freigegeben, Write symmetrisch zu allen Top-Level-Extensions.
+  for entry in 'Edit(*.yml)' 'Edit(*.yaml)' \
+    'Write(*.ts)' 'Write(*.tsx)' 'Write(*.mjs)' 'Write(*.json)' 'Write(*.md)' \
+    'Write(*.yml)' 'Write(*.yaml)'; do
+    jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
+    assert_true "$?" "#224: allow (geparst) enthält '$entry'"
+  done
+
+  # AK3 (Gegenrichtung): pnpm-lock.yaml bleibt trotz generischer YAML-Freigabe per deny gesperrt.
+  for entry in 'Edit(pnpm-lock.yaml)' 'Write(pnpm-lock.yaml)'; do
+    jq -e --arg v "$entry" '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
+    assert_true "$?" "#224: deny (geparst) enthält '$entry'"
+  done
+
+  # AK4 (Gegenrichtung): #88-Grenze unverändert – bestehende deny-Einträge bleiben erhalten.
+  for entry in 'Edit(.claude/**)' 'Write(.claude/**)' 'Edit(.env*)' 'Write(.env*)' 'Read(.env*)'; do
+    jq -e --arg v "$entry" '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
+    assert_true "$?" "#224: deny (geparst) behält '$entry' (#88-Grenze)"
+  done
+else
+  echo "  • #224: Permissions-Konsistenz (geparst) – übersprungen (jq fehlt)"
+fi
+
 # ─── Task 101: Pipeline-Quality-Gates rufen echte Befehle (kein Platzhalter) ──
 echo ""
 echo "Task 101: Pipeline-Quality-Gates (echte Befehle statt Platzhalter):"

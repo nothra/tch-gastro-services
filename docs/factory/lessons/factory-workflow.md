@@ -102,9 +102,11 @@ Branches mit bereits committetem Report manuell prüfen (ADR-019 §4 ergänzen).
 ### `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91)
 
 Änderungen an `.claude/settings.json` und `.claude/commands/*.md` sind für einen Agenten hard
-denied (`Edit(.claude/**)` / `Write(.claude/**)` – #88-Grenze). Auch `factory.defaults.yml`
-(root `*.yml`) und andere Konfigurationsdateien außerhalb von `scripts/*`/`pnpm`-Scope sind nicht
-in der Allow-Liste und lösen einen Interrupt aus.
+denied (`Edit(.claude/**)` / `Write(.claude/**)` – #88-Grenze). Top-Level-YAML wie
+`factory.defaults.yml` ist seit #224 über eine generische `Edit(*.yml)`/`Write(*.yml)`-Regel
+freigegeben (`pnpm-lock.yaml` bleibt als generiertes Lockfile explizit per `deny` gesperrt);
+andere Top-Level-Konfigurationsdateien ohne passende Extension (z. B. `LICENSE`,
+`.prettierignore`) haben weiterhin keine Allow-Regel und lösen einen Interrupt aus.
 
 **Regel:** Enthält eine Task solche Änderungen, liefert der Agent sie als **Patch-Datei**
 (`tasks/patch-<id>.diff`, erstellt via `git diff`) und protokolliert den Blocker explizit in der

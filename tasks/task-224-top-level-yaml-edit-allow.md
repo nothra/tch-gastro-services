@@ -1,7 +1,7 @@
 # Task 224: top-level-yaml-edit-allow
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -46,7 +46,7 @@ Spec: [`docs/specs/spec-224-top-level-yaml-edit-allow.md`](../docs/specs/spec-22
       beide Richtungen; Wegfall genau eines Eintrags → genau die zugehörige Assertion rot.
 - [ ] **AK6** GIVEN die Patch-Lieferung WHEN der Test aus AK5 läuft THEN liest er die committete
       Live-Datei `.claude/settings.json`, nicht `tasks/patch-224.diff` (aus #212).
-- [ ] **AK7** GIVEN die stale Präsens-Aussage in `docs/factory/lessons/factory-workflow.md`
+- [x] **AK7** GIVEN die stale Präsens-Aussage in `docs/factory/lessons/factory-workflow.md`
       („`factory.defaults.yml` … nicht in der Allow-Liste … löst einen Interrupt aus") WHEN dieser
       PR die Regel ergänzt THEN ist die Aussage im selben PR korrigiert; Patch-Workflow-Regel und
       historische Vorfall-Schilderung bleiben erhalten.
@@ -64,13 +64,40 @@ erlaubten Seite geschlossen.
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 
-- [ ] Sind Top-Level-Extension-Muster (`Edit(*.yml)`) pfad-verankert (nur Root) oder matchen sie
-      auch verschachtelte Pfade? Für die Sicherheit unkritisch, für die Formulierung der
-      Deny-Ausnahme relevant → in `/implement` verifizieren.
+- [x] Sind Top-Level-Extension-Muster (`Edit(*.yml)`) pfad-verankert (nur Root) oder matchen sie
+      auch verschachtelte Pfade? Geklärt in `/implement`: Ein slash-freies Muster wie `*.yml`
+      folgt gitignore-Semantik und matcht auf **jeder** Tiefe (Claude-Code-Doku, Abschnitt
+      „Wildcard patterns": „Bare filenames follow gitignore semantics and match at any depth").
+      Root-only wäre `Edit(/*.yml)` (mit führendem Slash) gewesen – bewusst nicht gewählt, da
+      unkritisch (betroffene Unterverzeichnisse ohnehin freigegeben, `.claude/**` bleibt per
+      `deny` gesperrt, `pnpm-lock.yaml` als literaler Dateiname in `deny` matcht unabhängig von
+      der Tiefe, weil die Datei nur im Root existiert).
 - [ ] Belastbarer Beleg für AK1/AK2: Die Permission-Auswertung liegt in Claude Code, nicht im Repo
       – aus der Shell-Testsuite nicht verhaltensbasiert prüfbar. Präzedenz Task #88: einmalige,
       im Task-File dokumentierte `claude --print`-Probe (Positiv + Negativ). Nicht durchführbar →
       als Blocker protokollieren, nicht still überspringen.
+
+## Blocker
+
+Blocker [2026-07-26]: Die eigentliche Fachänderung liegt in `.claude/settings.json`, das für den
+Agenten hard denied ist (`Edit(.claude/**)`/`Write(.claude/**)`, #88-Grenze). Lieferung als
+`tasks/patch-224.diff` – programmatisch per `jq` erzeugt (nicht von Hand getippt, aus #94),
+Pfad-Header über `git diff --no-index --no-prefix` korrekt gesetzt, read-only mit
+`git apply --check tasks/patch-224.diff` verifiziert (Ergebnis: „APPLY-CHECK OK"). **Der Mensch
+muss** `git apply tasks/patch-224.diff` im Worktree ausführen, danach den Test-Lauf
+(`bash scripts/checks/tests/run-tests.sh`, Abschnitt „#224 Top-Level-YAML-Freigabe") auf grün
+verifizieren und `tasks/patch-224.diff` löschen (aus #145 – kein totes Patch-Artefakt vor dem
+Merge).
+
+Offene Frage zur Pfad-Verankerung von `Edit(*.yml)` ist geklärt (siehe Task-Abschnitt „Offene
+Fragen") – kein Blocker mehr.
+
+Nicht durchgeführt: die in der Spec unter „Offene Fragen" vorgeschlagene `claude --print`-Probe
+(Positiv-/Negativfall) zur Verhaltensbestätigung des Permission-Prompts. Diese Session läuft
+interaktiv, nicht als isolierter Stage-3-Prozess mit unabhängigen Settings – eine `claude
+--print`-Probe hier würde dieselbe (aktuell noch ungepatchte) `settings.json` desselben
+Arbeitsbaums verwenden und liefert daher kein von den Datei-Assertions unabhängiges Signal.
+Protokolliert als offener Nachtest statt still übersprungen (aus #224/Spec „Offene Fragen").
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
