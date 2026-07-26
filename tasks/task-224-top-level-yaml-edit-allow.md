@@ -136,6 +136,13 @@ Entwickler abgestimmt) – als separates Issue vorgeschlagen (Follow-up-Chip).
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+Siehe [`tasks/review-224.md`](review-224.md) (Runde 1). Verdict: **NEEDS_REWORK** – keine
+kritischen Findings; zwei „Wichtige" Findings (Test-Duplikation `#91` vs. `#224` in
+`scripts/checks/tests/run-tests.sh`, uneinheitliche `jq`-Verfügbarkeitsprüfung) wurden
+unabhängig von allen drei Review-Perspektiven aufgegriffen. Out-of-Scope-Fund (wirkungslose
+`Write(...)`-Regeln) als GitHub-Issue [#240](https://github.com/nothra/tch-gastro-services/issues/240)
+ausgelagert.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
