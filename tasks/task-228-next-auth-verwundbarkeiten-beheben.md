@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 next-auth von `5.0.0-beta.31` auf `5.0.0-beta.32` anheben, um zwei kritische/hohe
@@ -68,6 +68,8 @@ Zwei Learnings dokumentiert: (1) neuer Worktree hat kein `.env.local` → irref�
 [#236](https://github.com/nothra/tch-gastro-services/issues/236)); (2) `pnpm audit`
 scheitert in dieser Sandbox an einem Gzip-Decoding-Bug, `curl`+`gunzip`-Workaround dokumentiert.
 Details: [codify-228](codify-228.md).
+
+PR-Shepherd [2026-07-26]: Merge freigegeben – alle Gates grün.
 
 ## Security-Review-Notizen
 `/security-review`: PASSED, keine kritischen/wichtigen Findings. Per direkter Abfrage der
