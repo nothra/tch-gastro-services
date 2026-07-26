@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -46,6 +46,15 @@ Verifikation gemäß Spec-Vorgabe: `pnpm vitest run eslint.config.test.ts` isoli
 zusätzlich `pnpm test` (volle Suite, 665 Tests) 7× hintereinander wiederholt ausgeführt –
 in jedem Durchlauf durchgehend grün, kein Timeout-Fehlschlag. `bash
 scripts/checks/pre-commit.sh` (Lint + Tests) bestanden.
+
+**`/test`-Nachlauf:** `eslint.config.test.ts` isoliert erneut 3/3 grün verifiziert. Zusätzlich
+`pnpm test` (volle Suite) 5× weitere Male ausgeführt (3 davon parallel gestartet, also unter
+zusätzlicher Nebenlast) – durchgehend 665/665 grün, kein Timeout. Damit insgesamt 12
+Volllauf-Wiederholungen ohne Fehlschlag. Kein Produktionscode und kein weiterer Testfall
+geändert – der Fix betrifft ausschließlich den Testkörper selbst (kein neuer
+Produktionscode-Pfad, daher kein zusätzlicher Coverage-Bedarf). Test-Qualität geprüft: AAA-
+Struktur, unabhängige/deterministische Tests, sprechende `should_..._when_...`-Namen, kein
+Mocking von internem Code.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
