@@ -1,7 +1,7 @@
 # Task 238: eslint-config-test-flaky-timeout
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -19,23 +19,33 @@ verhaltensbasierte Testaussage aus #172 zu verändern. Details: `docs/specs/spec
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN die volle Test-Suite (`pnpm test`) WHEN sie mehrfach hintereinander lokal
+- [x] GIVEN die volle Test-Suite (`pnpm test`) WHEN sie mehrfach hintereinander lokal
       ausgeführt wird (mind. 5–10 Wiederholungen) THEN schlägt `eslint.config.test.ts` in
       keinem Durchlauf mit einem Timeout fehl.
-- [ ] GIVEN `eslint.config.test.ts` isoliert ausgeführt wird WHEN alle drei bestehenden
+- [x] GIVEN `eslint.config.test.ts` isoliert ausgeführt wird WHEN alle drei bestehenden
       Testfälle laufen THEN bleiben alle drei Assertions inhaltlich unverändert grün
       (test-results ignoriert, playwright-report ignoriert, `app/layout.tsx` nicht ignoriert).
-- [ ] GIVEN der Fix WHEN der Testcode inspiziert wird THEN enthält er kein `sleep()` und
+- [x] GIVEN der Fix WHEN der Testcode inspiziert wird THEN enthält er kein `sleep()` und
       keine Test-Reihenfolge-Abhängigkeit.
-- [ ] GIVEN der Fix WHEN ein echter Hänger/Bug in der ESLint-Config-Resolution auftreten
+- [x] GIVEN der Fix WHEN ein echter Hänger/Bug in der ESLint-Config-Resolution auftreten
       würde THEN schlägt der Test weiterhin nach endlicher Frist fehl (kein unbegrenztes
       Timeout, das echte Fehler maskiert).
-- [ ] GIVEN die bestehende Regression-Guard-Dokumentation (#172) im Test WHEN der Fix
+- [x] GIVEN die bestehende Regression-Guard-Dokumentation (#172) im Test WHEN der Fix
       eingebracht wird THEN bleibt sie erhalten bzw. wird um die Stabilisierungs-Begründung
       ergänzt.
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+Lösung: `beforeAll(async () => { await eslint.isPathIgnored("app/layout.tsx"); }, 30_000)`
+vor den drei bestehenden Tests. Der erste `isPathIgnored`-Aufruf löst die teure
+Flat-Config-Resolution aus – durch das Aufwärmen in `beforeAll` läuft sie unter einem eigenen,
+großzügigeren (aber weiterhin endlichen) 30-s-Timeout statt unter dem 5000-ms-Default des
+ersten Testfalls. Die drei Testkörper selbst bleiben unverändert (Default-Timeout), da
+`isPathIgnored` danach bereits aufgelöst/gecacht ist.
+
+Verifikation gemäß Spec-Vorgabe: `pnpm vitest run eslint.config.test.ts` isoliert grün (3/3),
+zusätzlich `pnpm test` (volle Suite, 665 Tests) 7× hintereinander wiederholt ausgeführt –
+in jedem Durchlauf durchgehend grün, kein Timeout-Fehlschlag. `bash
+scripts/checks/pre-commit.sh` (Lint + Tests) bestanden.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
