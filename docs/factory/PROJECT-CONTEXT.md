@@ -245,6 +245,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
 - Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)
 - Verschachtelte alte `@types/node`-Kopie (transitive Dependency) kollidiert mit generischem `Buffer`-Typ bei TS≥5.7 – Cast über die Ziel-Funktionssignatur, nicht `as unknown as Buffer` (aus #189)
+- `pnpm audit` scheitert in dieser Sandbox an einem Gzip-Decoding-Bug – Registry-Endpoint direkt per `curl` + manuellem `gunzip` abfragen liefert echte Advisory-Daten statt nur des Lockfile-Ersatzkriteriums (aus #228, /security-review-Selbstfund)
 
 **[`lessons/code-style.md`](lessons/code-style.md)** – Clean-Code-Muster (Naming, Kommentar-Ort) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
 
@@ -278,6 +279,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Auch Lesson-/Kontext-Doku im Präsens beschreibt eine Mechanik / nennt einen offenen „Follow-up (#N)" – erledigt der PR die Mechanik/den Follow-up, dieselbe Prosa im selben PR nachziehen (erweitert #211 über ADRs hinaus; historische Vorfall-Narrative bleiben) (aus #176, Review-Finding) → `/codify`, `/review` – bei Doku, die die geänderte Mechanik/einen erledigten Follow-up beschreibt
 - Test einer `.claude/**`-Patch-Lieferung prüft den Endzustand der committeten Live-Datei, nicht das transiente Patch-Artefakt (ergänzt #145) (aus #212, Review-Finding) → `/implement`, `/review`, `/test` – bei Test zu einer `.claude/**`-Patch-Änderung
 - Neuer Interrupt-Typ → OPERATING.md-Interrupt-Tabelle mitpflegen (kanonische Registry, kein Gate) (aus #212, Review-Finding) → `/implement`, `/review` – bei neuem `raise-interrupt.sh`-Typ
+- Neuer Worktree hat kein `.env.local` → irreführender `CredentialsSignin`-E2E-Fehlschlag ist Umgebungsproblem, keine Regression (aus #228, /implement-Selbstfund; Root-Cause-Fix ausgelagert: #236) → `/implement` – bei erstem E2E-Lauf in neuem Worktree
 
 ---
 
