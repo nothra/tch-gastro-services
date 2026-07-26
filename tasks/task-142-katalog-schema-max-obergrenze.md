@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig (/test: Coverage schema.ts 100%, Whitespace-Grenzfall ergänzt)
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -47,6 +47,17 @@ Kein ADR-Trigger (reine Zod-`.max()`-Härtung, keine der vier Kategorien betroff
 `name`/`size` je `.max(50, ...)`, `sortOrder` `.max(2_147_483_647, "Sortierung ist zu
 hoch.")`. 6 neue Grenzwert-Tests (Positiv+Negativ je Feld) in `schema.test.ts`, TDD
 Red→Green verifiziert. Pre-Push-Gates grün (664 Tests, Typecheck, Format, Routen-Doku).
+
+## Refactor-Notizen
+`/refactor` fand beim erneuten Review-Nitpick "Magic Number 50/2_147_483_647
+dupliziert" einen tatsächlichen Bestand: `lib/money.ts` exportiert bereits `INT4_MAX`
+(genutzt in `app/veranstaltung/schema.ts`), das inline-Literal `2_147_483_647` in
+`app/verwaltung/katalog/schema.ts` war davon unabhängig dupliziert – sowohl im
+bestehenden `priceCents`-Refine als auch im neuen `sortOrder`-Max. Beide durch
+`INT4_MAX`-Import ersetzt (reines Refactoring, kein neues Verhalten – 665 Tests vor
+und nach der Änderung identisch grün). Die `name`/`size`-Grenze (50 Zeichen) bleibt
+bewusst als Inline-Literal, da keine vergleichbare zentrale Konstante existiert und
+beide Grenzen semantisch unabhängig sind (eigene Fehlermeldungen je Feld).
 
 ---
 Branch: `improvement/142-katalog-schema-max-obergrenze`
