@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -63,6 +63,11 @@ für dieses Projekt kaum relevant – kein Blocker). Details: [review-228](revie
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Zwei Learnings dokumentiert: (1) neuer Worktree hat kein `.env.local` → irreführender
+`CredentialsSignin`-E2E-Fehlschlag (Root-Cause-Fix ausgelagert:
+[#236](https://github.com/nothra/tch-gastro-services/issues/236)); (2) `pnpm audit`
+scheitert in dieser Sandbox an einem Gzip-Decoding-Bug, `curl`+`gunzip`-Workaround dokumentiert.
+Details: [codify-228](codify-228.md).
 
 ## Security-Review-Notizen
 `/security-review`: PASSED, keine kritischen/wichtigen Findings. Per direkter Abfrage der
