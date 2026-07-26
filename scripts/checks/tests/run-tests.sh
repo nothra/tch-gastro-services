@@ -2041,9 +2041,18 @@ if [ "$HAS_JQ" -eq 1 ]; then
   jq -e '.hooks and .permissions.allow and .permissions.deny' "$SETTINGS" >/dev/null 2>&1
   assert_true "$?" "#224: settings.json valides JSON mit hooks/permissions.allow/deny (AK8)"
 
-  # AK1/AK2: Top-Level-YAML per Edit freigegeben, Write symmetrisch zu allen Top-Level-Extensions.
-  for entry in 'Edit(*.yml)' 'Edit(*.yaml)' \
-    'Write(*.ts)' 'Write(*.tsx)' 'Write(*.mjs)' 'Write(*.json)' 'Write(*.md)' \
+  # AK1: Top-Level-YAML per Edit freigegeben.
+  for entry in 'Edit(*.yml)' 'Edit(*.yaml)'; do
+    jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
+    assert_true "$?" "#224: allow (geparst) enthält '$entry'"
+  done
+
+  # AK2: Write symmetrisch zu allen Top-Level-Extensions. Hinweis (Task-224-Blocker-Abschnitt,
+  # claude --print-Probe): die installierte Claude-Code-Version wertet Write(pfad)-Regeln nicht
+  # aus (nur Edit(pfad) deckt Edit+Write ab) – strukturell dennoch gefordert (mit dem
+  # Entwickler abgestimmter Scope), das eigentliche Verhalten liefert Edit(*.yml)/Edit(*.yaml)
+  # aus der Schleife oben. Cleanup-Kandidat ausgelagert: Issue #240.
+  for entry in 'Write(*.ts)' 'Write(*.tsx)' 'Write(*.mjs)' 'Write(*.json)' 'Write(*.md)' \
     'Write(*.yml)' 'Write(*.yaml)'; do
     jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#224: allow (geparst) enthält '$entry'"

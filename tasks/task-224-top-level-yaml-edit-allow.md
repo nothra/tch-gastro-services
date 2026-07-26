@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -173,6 +173,23 @@ geändert:**
   `#224`-jq-Assertions sowie die zwei `claude --print`-Verhaltensproben abgedeckt (Happy Path +
   Negativfall `pnpm-lock.yaml`); keine weitere Lücke gefunden.
 - Voller Testlauf: 545 grün, 0 rot (zuvor 542, +3 neue AK7-Assertions).
+
+## Refactor-Notizen (`/refactor`, 2026-07-26)
+
+Kein neues Verhalten. Zwei kleine Struktur-Verbesserungen in
+`scripts/checks/tests/run-tests.sh` (adressiert die verbliebenen Nitpicks aus
+`tasks/review-224.md`):
+- AK1 (Edit) und AK2 (Write) hatten eine gemeinsame `for`-Schleife unter einem
+  „AK1/AK2"-Sammelkommentar – jetzt zwei Schleifen mit je eigenem, spezifischem Kommentar
+  (1:1-Zuordnung Kommentar→Assertion).
+- Der Write-Loop referenziert jetzt direkt im Testkommentar den Nebenfund („Claude Code wertet
+  Write(pfad) nicht aus") samt Verweis auf Issue #240 – vorher nur im Task-File dokumentiert,
+  jetzt auch am Ort des Codes sichtbar.
+- Rest des Diffs (deklaratives JSON in `.claude/settings.json`, Prosa in Lesson/Spec/Task-Datei)
+  bietet keinen Refactoring-Ansatzpunkt im Sinne der Clean-Code-Checkliste (keine Funktionen,
+  keine Duplikation, keine Magic Numbers).
+- Verifiziert: `bash scripts/checks/tests/run-tests.sh` vor und nach dem Refactoring identisch
+  545 grün, 0 rot – exakt dieselben 20 `#224`-Assertions, nur anders gruppiert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
