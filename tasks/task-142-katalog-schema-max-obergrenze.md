@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig (/test: Coverage schema.ts 100%, Whitespace-Grenzfall ergänzt)
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -37,7 +37,9 @@ Keine – im Requirements-Gespräch geklärt.
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 Siehe `tasks/review-142.md`. Empfehlung: APPROVED (keine Kritisch-/Wichtig-Findings,
-4 optionale Nitpicks).
+4 optionale Nitpicks; 2 davon in /test bzw. /refactor behoben).
+
+Siehe `tasks/security-142.md`. Ergebnis: PASSED (keine Kritisch-/Wichtig-Findings).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
