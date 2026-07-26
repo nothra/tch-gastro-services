@@ -1,7 +1,7 @@
 # Task 228: next-auth-verwundbarkeiten-beheben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -19,16 +19,16 @@ Details: [spec-228](../docs/specs/spec-228-next-auth-verwundbarkeiten-beheben.md
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN `package.json` mit `next-auth@5.0.0-beta.31` WHEN das Update durchgeführt wird
+- [x] GIVEN `package.json` mit `next-auth@5.0.0-beta.31` WHEN das Update durchgeführt wird
       THEN steht `next-auth@5.0.0-beta.32` in `package.json`.
-- [ ] GIVEN das aktualisierte `package.json` WHEN `pnpm install` läuft THEN weist
+- [x] GIVEN das aktualisierte `package.json` WHEN `pnpm install` läuft THEN weist
       `pnpm-lock.yaml` `@auth/core >=0.41.3` aus.
-- [ ] GIVEN die aktualisierten Pakete WHEN `pnpm test` läuft THEN bleiben alle Tests grün
+- [x] GIVEN die aktualisierten Pakete WHEN `pnpm test` läuft THEN bleiben alle Tests grün
       (insb. `auth.config.test.ts`, `lib/authz.test.ts`).
-- [ ] GIVEN die aktualisierten Pakete WHEN `pnpm typecheck` läuft THEN keine neuen Typfehler.
-- [ ] GIVEN die aktualisierten Pakete WHEN `pnpm test:e2e` läuft THEN bleibt
+- [x] GIVEN die aktualisierten Pakete WHEN `pnpm typecheck` läuft THEN keine neuen Typfehler.
+- [x] GIVEN die aktualisierten Pakete WHEN `pnpm test:e2e` läuft THEN bleibt
       `e2e/auth.spec.ts` grün.
-- [ ] GIVEN die aktualisierten Pakete WHEN `pnpm audit` erreichbar ist THEN keine
+- [x] GIVEN die aktualisierten Pakete WHEN `pnpm audit` erreichbar ist THEN keine
       next-auth/@auth/core-Findings mehr (Ersatzkriterium: Lockfile-Check, falls
       Audit-Endpoint nicht erreichbar).
 
@@ -38,6 +38,17 @@ Details: [spec-228](../docs/specs/spec-228-next-auth-verwundbarkeiten-beheben.md
   `package.json`-Eintrag, kein Override in `pnpm-workspace.yaml` nötig.
 - Architektur-Entscheidung (ADR-014, Auth.js v5) bleibt unverändert; ADR-Trigger für
   `/architecture` daher voraussichtlich nicht nötig – reiner Dependency-Bump.
+- ADR-Trigger-Check (Schritt 0) durchgeführt: keine der vier Kategorien trifft zu
+  (reiner Patch-Bump einer bestehenden Abhängigkeit).
+- `pnpm install` ohne Peer-Dependency-Konflikt; Lockfile zeigt `next-auth@5.0.0-beta.32`
+  und `@auth/core@0.41.3`.
+- `pnpm test:e2e e2e/auth.spec.ts` schlug beim ersten Lauf mit `CredentialsSignin` fehl –
+  Ursache war ein **fehlendes Seed-Konto** in der lokalen DB (Docker-Container ohne
+  `pnpm db:seed`-Lauf für die kopierten `.env.local`-Zugangsdaten), keine Regression durch
+  den Bump. Nach `pnpm db:seed` liefen alle 5 Tests grün.
+- `pnpm audit` liefert in dieser Sandbox eine kaputte/nicht dekomprimierte Antwort vom
+  Registry-Endpoint (wie in der Spec vorhergesehen) – Ersatzkriterium Lockfile-Check
+  (`@auth/core@0.41.3`) gilt als Nachweis.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
