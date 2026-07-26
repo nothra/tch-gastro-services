@@ -74,14 +74,11 @@ git add -A
 # fehlgeschlagener Push darf dabei aber nicht liegen bleiben (#239): steht der Branch
 # vor seinem Upstream oder hat er noch keinen, wird der Push nachgeholt.
 if git diff --cached --quiet; then
-  if ! git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
-    err "nichts zu committen auf '$BRANCH' – kein Upstream, hole Push nach."
-    push_branch
-    exit 0
-  fi
-  if [ -n "$(git rev-list '@{u}..HEAD')" ]; then
+  if ! git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 ||
+    [ -n "$(git rev-list '@{u}..HEAD')" ]; then
     err "nichts zu committen auf '$BRANCH' – hole ausstehenden Push nach."
     push_branch
+    err "ausstehenden Push nachgeholt auf '$BRANCH'."
     exit 0
   fi
   err "nichts zu committen auf '$BRANCH' – übersprungen."

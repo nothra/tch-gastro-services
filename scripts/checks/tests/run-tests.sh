@@ -1633,6 +1633,8 @@ git -C "$WT" diff --quiet HEAD origin/feature/239-pushpending
 assert_true "$?" "factory-commit: holt ausstehenden Push nach (Remote-Ref = lokaler Stand)"
 printf '%s' "$fc_out" | grep -qF 'committet und gepusht'
 assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit: Nachhol-Meldung unterscheidet sich vom Happy-Path-Text"
+printf '%s' "$fc_out" | grep -qF 'ausstehenden Push nachgeholt'
+assert_true "$?" "factory-commit: Nachhol-Meldung bestätigt den nachgeholten Push positiv"
 
 # 10. Nichts zu committen, kein Upstream (frischer Branch mit lokalem Commit) →
 #     Push mit `-u origin HEAD` wird nachgeholt (exit 0), Tracking-Ref entsteht.
@@ -1665,8 +1667,10 @@ echo "lokal, push schlaegt fehl" > "$WT/change.txt"
 git -C "$WT" add -A
 git -C "$WT" commit -q -m "feat: lokaler commit, nachhol-push scheitert"
 git -C "$WT" remote set-url origin "$TMP_FC/does-not-exist.git"
-( cd "$WT" && bash "$FCOMMIT" "feat: nichts zu committen" ) >/dev/null 2>&1
-assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit: Nachhol-Push scheitert → exit ≠ 0"
+fc_out=$( cd "$WT" && bash "$FCOMMIT" "feat: nichts zu committen" 2>&1 ); fc_rc=$?
+assert_true "$([ $fc_rc -ne 0 ]; echo $?)" "factory-commit: Nachhol-Push scheitert → exit ≠ 0"
+printf '%s' "$fc_out" | grep -qF 'hole ausstehenden Push nach'
+assert_true "$?" "factory-commit: Fehlschlag stammt aus dem erreichten Push-Pfad (nicht aus einem anderen Grund)"
 
 rm -rf "$TMP_FC"
 

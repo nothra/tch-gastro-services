@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -83,6 +83,19 @@ verifiziert, dass `factory-commit.sh` von dessen kopiertem Datei-Satz nicht refe
 `pnpm test` (665 grün), `pnpm typecheck`, `pnpm format:check` und der Routen-Doku-Drift-Check
 (`scripts/checks/pre-push.sh`) laufen unabhängig grün. Keine Produktionscode-Änderung in diesem
 Schritt.
+
+**Refactoring (2026-07-26):** Alle drei umsetzbaren Review-Nitpicks behoben (kein neues
+Verhalten hinzugekommen, nur Klarheit/Symmetrie): (1) `factory-commit.sh` gibt nach einem
+erfolgreichen Nachhol-Push jetzt eine Bestätigungszeile aus („ausstehenden Push nachgeholt auf
+'$BRANCH'."), symmetrisch zum Commit-Pfad. (2) Die beiden vormals getrennten Bedingungen
+(kein Upstream / Upstream + `rev-list` nicht leer) sind zu einer Bedingung mit einheitlicher
+Meldung zusammengeführt – weniger Duplikation, gleiches Verhalten. (3) Testfall 9 und Fall 12
+assertieren jetzt zusätzlich positiv den Nachhol-Meldungstext, damit die Fälle nicht durch
+beliebigen anderen Output grün werden (Lesson #214). Nitpick 4 (doppelte Upstream-Prüfung in
+`push_branch`) bewusst unverändert belassen – im Review als „Preis für den DRY-Helper"
+akzeptiert. Bash-Suite weiterhin 551 grün / 4 rot (unverändert der vorbestehende, unabhängige
+`#212 W3`-Block); `pnpm test` (665 grün), `typecheck`, `format:check` und der Routen-Doku-Check
+laufen grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
