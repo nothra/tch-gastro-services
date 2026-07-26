@@ -26,6 +26,27 @@ Push in dem Fall nach. Details siehe [spec-239](../docs/specs/spec-239-factory-c
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+Kein neues ADR – Ergänzung zu [ADR-019](../docs/adr/019-stage3-commit-seam-report-guard.md)
+(Abschnitt „Nachtrag #239"), da keine neuen Alternativen abzuwägen sind: die Push-Mechanik
+existiert bereits im Skript, nur der leere Zweig erreicht sie zusätzlich.
+
+Implementierung in `scripts/factory-commit.sh`:
+- Im `git diff --cached --quiet`-Zweig (aktuell Zeile 63–66) zusätzlich prüfen:
+  - Hat der Branch einen Upstream (`git rev-parse --abbrev-ref --symbolic-full-name '@{u}'`)?
+    Wenn ja: `git rev-list @{u}..HEAD` leer? → wirklich nichts zu tun, unverändertes Exit-0-
+    Verhalten. Nicht leer → Push nachholen (`git push`).
+  - Kein Upstream → Push nachholen mit `git push -u origin HEAD` (legt Tracking-Ref an).
+- Die Push-Logik (Upstream-Erkennung + `git push`/`git push -u origin HEAD`) ist unten im
+  Skript (Zeile 73–77) für den Commit-Pfad bereits vorhanden – **in einen gemeinsamen Helper
+  extrahieren** statt zu duplizieren (DRY), von beiden Stellen aufgerufen.
+- Scheitert der nachgeholte Push, muss `set -e` den non-zero Exit unverändert weiterreichen
+  (kein eigenes Error-Handling, das den Fehler verschluckt).
+- Bestehende Guards (main/master, Argumentanzahl, kein Repo, detached HEAD) bleiben unverändert
+  vor `git add -A` – keine Interaktion mit der neuen Logik.
+
+Tests: `scripts/checks/tests/run-tests.sh`, Abschnitt „#91 factory-commit.sh", gleiches
+Fixture-Muster (`fc_repo`, echtes Bare-Remote+Klon) wie die bestehenden 8 Fälle – neue Fälle
+gemäß Spec „Hinweis für /test".
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
