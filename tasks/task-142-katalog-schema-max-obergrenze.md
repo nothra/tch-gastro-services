@@ -1,9 +1,9 @@
 # Task 142: katalog-schema-max-obergrenze
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -17,12 +17,12 @@ kein Nutzerfeedback. Siehe Spec: `docs/specs/spec-142-katalog-schema-max-obergre
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ein Katalogartikel-Formular WHEN `name` genau 50 Zeichen lang ist THEN wird die Eingabe akzeptiert
-- [ ] GIVEN ein Katalogartikel-Formular WHEN `name` 51 Zeichen oder mehr lang ist THEN schlägt die Validierung mit der Meldung "Bezeichnung ist zu lang." fehl
-- [ ] GIVEN ein Katalogartikel-Formular WHEN `size` genau 50 Zeichen lang ist THEN wird die Eingabe akzeptiert
-- [ ] GIVEN ein Katalogartikel-Formular WHEN `size` 51 Zeichen oder mehr lang ist THEN schlägt die Validierung mit der Meldung "Größe ist zu lang." fehl
-- [ ] GIVEN ein Katalogartikel-Formular WHEN `sortOrder` genau 2147483647 ist THEN wird die Eingabe akzeptiert
-- [ ] GIVEN ein Katalogartikel-Formular WHEN `sortOrder` größer als 2147483647 ist THEN schlägt die Validierung mit einer domänenspezifischen Meldung fehl
+- [x] GIVEN ein Katalogartikel-Formular WHEN `name` genau 50 Zeichen lang ist THEN wird die Eingabe akzeptiert
+- [x] GIVEN ein Katalogartikel-Formular WHEN `name` 51 Zeichen oder mehr lang ist THEN schlägt die Validierung mit der Meldung "Bezeichnung ist zu lang." fehl
+- [x] GIVEN ein Katalogartikel-Formular WHEN `size` genau 50 Zeichen lang ist THEN wird die Eingabe akzeptiert
+- [x] GIVEN ein Katalogartikel-Formular WHEN `size` 51 Zeichen oder mehr lang ist THEN schlägt die Validierung mit der Meldung "Größe ist zu lang." fehl
+- [x] GIVEN ein Katalogartikel-Formular WHEN `sortOrder` genau 2147483647 ist THEN wird die Eingabe akzeptiert
+- [x] GIVEN ein Katalogartikel-Formular WHEN `sortOrder` größer als 2147483647 ist THEN schlägt die Validierung mit einer domänenspezifischen Meldung fehl
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -39,6 +39,12 @@ Keine – im Requirements-Gespräch geklärt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+## Implementierungs-Notizen
+Kein ADR-Trigger (reine Zod-`.max()`-Härtung, keine der vier Kategorien betroffen).
+`name`/`size` je `.max(50, ...)`, `sortOrder` `.max(2_147_483_647, "Sortierung ist zu
+hoch.")`. 6 neue Grenzwert-Tests (Positiv+Negativ je Feld) in `schema.test.ts`, TDD
+Red→Green verifiziert. Pre-Push-Gates grün (664 Tests, Typecheck, Format, Routen-Doku).
 
 ---
 Branch: `improvement/142-katalog-schema-max-obergrenze`

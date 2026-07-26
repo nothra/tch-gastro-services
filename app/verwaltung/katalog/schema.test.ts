@@ -84,4 +84,44 @@ describe("catalogItemSchema", () => {
       );
     }
   });
+
+  it("should_acceptName_when_exactly50Chars", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, name: "A".repeat(50) });
+    expect(result.success).toBe(true);
+  });
+
+  it("should_rejectName_when_51CharsOrMore", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, name: "A".repeat(51) });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Bezeichnung ist zu lang.");
+    }
+  });
+
+  it("should_acceptSize_when_exactly50Chars", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, size: "A".repeat(50) });
+    expect(result.success).toBe(true);
+  });
+
+  it("should_rejectSize_when_51CharsOrMore", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, size: "A".repeat(51) });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Größe ist zu lang.");
+    }
+  });
+
+  it("should_acceptSortOrder_when_exactlyInt4Max", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, sortOrder: "2147483647" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.sortOrder).toBe(2_147_483_647);
+  });
+
+  it("should_rejectSortOrder_when_exceedingInt4Max", () => {
+    const result = catalogItemSchema.safeParse({ ...valid, sortOrder: "2147483648" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Sortierung ist zu hoch.");
+    }
+  });
 });

@@ -7,10 +7,15 @@ import { catalogCategory } from "@/db/schema";
 // (ADR-021). `size` ist optional → "" (leer = "ohne Größe"). Alle Meldungen sind für
 // Konsumenten, nicht für Entwickler.
 export const catalogItemSchema = z.object({
-  name: z.string().trim().min(1, "Bezeichnung ist erforderlich."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Bezeichnung ist erforderlich.")
+    .max(50, "Bezeichnung ist zu lang."),
   size: z
     .string()
     .trim()
+    .max(50, "Größe ist zu lang.")
     .optional()
     .transform((value) => value ?? ""),
   priceCents: z
@@ -26,6 +31,7 @@ export const catalogItemSchema = z.object({
     .number()
     .int("Sortierung muss eine ganze Zahl sein.")
     .min(0, "Sortierung darf nicht negativ sein.")
+    .max(2_147_483_647, "Sortierung ist zu hoch.")
     .default(0),
 });
 
