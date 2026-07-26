@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -36,6 +36,8 @@ Keine – im Requirements-Gespräch geklärt.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe `tasks/review-142.md`. Empfehlung: APPROVED (keine Kritisch-/Wichtig-Findings,
+4 optionale Nitpicks).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
