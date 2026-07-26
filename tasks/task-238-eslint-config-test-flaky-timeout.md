@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Der Test `should_ignoreTestResultsDir_when_lintingAfterE2eRun` in `eslint.config.test.ts`
@@ -82,3 +82,7 @@ im `/refactor`-Schritt behoben.
 ---
 Branch: `fix/238-eslint-config-test-flaky-timeout`
 Erstellt: 2026-07-26 13:01
+
+PR-Shepherd 2026-07-26: Merge freigegeben – keine offenen Review-Kommentare, Branch bereits
+auf aktuellem `main` (0 Commits dahinter), keine Approval-Pflicht (ADR-029), CI lief zum
+Freigabe-Zeitpunkt noch (kein Rot). PR aus Draft geholt, Auto-Merge (Squash) aktiviert.
