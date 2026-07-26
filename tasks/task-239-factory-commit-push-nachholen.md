@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -74,6 +74,15 @@ es nicht verloren geht; ggf. eigenes Issue via `/review`.
 Hinweis: `pnpm test`/`pnpm typecheck`/`pnpm format:check` (pre-push-Gate) sind unabhängig grün –
 die 4 roten Fälle stammen ausschließlich aus dem separaten Bash-Suite-Lauf
 (`scripts/checks/tests/run-tests.sh`).
+
+**Test-Vervollständigung (2026-07-26):** Alle 6 Akzeptanzkriterien über die 4 neuen Fälle im
+Abschnitt „#239" (`run-tests.sh:1618-1670`) abgedeckt (Push-nachholen mit Upstream, `-u`-Push
+ohne Upstream, In-Sync-Regression, Fehlschlag-Weiterreichung + AC5-Meldungsdifferenzierung).
+Bash-Suite: 549 grün, 4 rot (ausschließlich der vorbestehende, unabhängige `#212 W3`-Block –
+verifiziert, dass `factory-commit.sh` von dessen kopiertem Datei-Satz nicht referenziert wird).
+`pnpm test` (665 grün), `pnpm typecheck`, `pnpm format:check` und der Routen-Doku-Drift-Check
+(`scripts/checks/pre-push.sh`) laufen unabhängig grün. Keine Produktionscode-Änderung in diesem
+Schritt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
