@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -63,6 +63,15 @@ für dieses Projekt kaum relevant – kein Blocker). Details: [review-228](revie
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+## Security-Review-Notizen
+`/security-review`: PASSED, keine kritischen/wichtigen Findings. Per direkter Abfrage der
+npm-Advisory-Bulk-API (manuell dekomprimiert, da `pnpm audit` in dieser Sandbox an einem
+Gzip-Decoding-Bug scheitert) verifiziert: `next-auth@5.0.0-beta.32` + `@auth/core@0.41.3`
+haben **0** offene Advisories. Dabei aufgefallen: Es gab tatsächlich vier offene Advisories
+in den alten Versionen (nicht nur die zwei in der Spec genannten) – zusätzlich
+`GHSA-xmf8-cvqr-rfgj` (Bearer-Header-Crash) und `GHSA-x445-f3h2-j279` (OAuth-State/PKCE-
+Cookie-Bindung). Beide sind vom selben Bump mit abgedeckt. Details: [security-228](security-228.md).
 
 ## Refactoring-Notizen
 `/refactor` geprüft: Diff besteht ausschließlich aus `package.json`, `pnpm-lock.yaml` und
