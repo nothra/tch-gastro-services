@@ -1,5 +1,5 @@
 import { ESLint } from "eslint";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 // Regression-Guard für #172: `pnpm lint` brach nach jedem `pnpm test:e2e`-Lauf ab, weil ESLint
 // die von Playwright GENERIERTEN Verzeichnisse `test-results/` und `playwright-report/`
@@ -13,6 +13,20 @@ describe("eslint.config: Playwright-Artefakte ignorieren (#172)", () => {
   // Eine geteilte Instanz: isPathIgnored ist ein reiner Lesezugriff (kein mutierbarer State),
   // daher isolationssicher zwischen den Tests – und die teure Config-Resolution läuft nur einmal.
   const eslint = new ESLint();
+
+  // Dieselbe, nicht ignorierte Quelldatei wie in der Positiv-Kontrolle unten – das Aufwärmen
+  // muss denselben Cache befüllen, den der erste reguläre Testfall danach nutzt.
+  const NORMALE_QUELLDATEI = "app/layout.tsx";
+
+  // Stabilisierung (#238): Der ERSTE isPathIgnored-Aufruf löst die teure Flat-Config-Resolution
+  // aus; unter Parallellast (volle Suite, viele Worker) überschreitet allein diese Resolution
+  // gelegentlich das Vitest-Default-Timeout von 5000 ms des ersten Testfalls. Das Aufwärmen
+  // vorab in beforeAll verschiebt die Kosten in ein eigenes, großzügigeres – aber weiterhin
+  // endliches – Timeout, sodass ein echter Hänger in der Config-Resolution weiterhin nach
+  // endlicher Frist fehlschlägt, statt unbegrenzt zu warten oder die Testkörper zu verlangsamen.
+  beforeAll(async () => {
+    await eslint.isPathIgnored(NORMALE_QUELLDATEI);
+  }, 30_000);
 
   it("should_ignoreTestResultsDir_when_lintingAfterE2eRun", async () => {
     const ignored = await eslint.isPathIgnored("test-results/some-run/trace.js");
@@ -30,7 +44,7 @@ describe("eslint.config: Playwright-Artefakte ignorieren (#172)", () => {
   // beiden true-Erwartungen auch bei einer versehentlich zu breiten Ignore-Regel (z. B. "**")
   // grün bleiben – dann als Fehlgrün. Eine normale Quelldatei MUSS gelintet (= nicht ignoriert) werden.
   it("should_notIgnoreNormalSourceFile_toProveIgnoreListDiscriminates", async () => {
-    const ignored = await eslint.isPathIgnored("app/layout.tsx");
+    const ignored = await eslint.isPathIgnored(NORMALE_QUELLDATEI);
 
     expect(ignored).toBe(false);
   });

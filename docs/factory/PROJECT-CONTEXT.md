@@ -237,6 +237,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Kopplungs-/Drift-Guard (liest Quelle A, prüft gegen B): je Seite ein eigener Negativtest (A brechen / B brechen) + Fail-closed bei unlesbarer Quelle (aus #214, /test-Selbstfund)
 - ESLint-Ignore-Config verhaltensbasiert testen (`isPathIgnored`, nicht Config-Array) + Diskriminierungs-Kontrolle in der Gegenrichtung (bekanntes Nicht-Mitglied → `false`) (aus #172, /test-Selbstfund)
 - Row/Cell-Index-Assertions gegen einen gerenderten Report sind Magic Numbers – Herleitung sofort mitschreiben, nicht erst im Review (aus #189, Review-Runde-1-Finding)
+- Flaky Timeout durch unamortisierten teuren Erst-Aufruf: in `beforeAll` mit eigenem endlichem Timeout aufwärmen, nicht global das Timeout erhöhen (aus #238)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
