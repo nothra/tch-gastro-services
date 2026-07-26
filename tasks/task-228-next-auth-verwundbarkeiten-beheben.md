@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -57,6 +57,9 @@ Details: [spec-228](../docs/specs/spec-228-next-auth-verwundbarkeiten-beheben.md
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+3-Personen-Review (Logik, Code-Qualität, Architektur) abgeschlossen: APPROVED, keine
+kritischen/wichtigen Findings, ein Nitpick (Homoglyph-Normalisierung im Credentials-Pfad,
+für dieses Projekt kaum relevant – kein Blocker). Details: [review-228](review-228.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
