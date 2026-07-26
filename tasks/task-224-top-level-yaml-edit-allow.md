@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -143,7 +143,11 @@ geliefert (`.claude/settings.json` hard denied): Patch programmatisch per `jq` e
 `git diff --no-index --no-prefix` für korrekte Pfad-Header, `git apply --check` verifiziert
 („APPLY-CHECK OK"), als `tasks/patch-224.diff` abgelegt. RED zuerst bestätigt (4 Assertions rot
 gegen die alten, unverankerten Muster), dann Patch vom Menschen angewendet. Nach Anwendung:
-Regressionstest grün, Patch-Artefakt entfernt (vor dem Merge, aus #145).
+Regressionstest grün (545 grün, 0 rot), Patch-Artefakt entfernt (vor dem Merge, aus #145).
+Zusätzliche Behavioral-Regressionsprobe: `claude --print` gegen `factory.defaults.yml` (Positiv,
+AK1) lief nach dem Root-Anker-Fix weiterhin ohne Prompt durch (Zeile angehängt, MD5 vorher/nachher
+verglichen, danach `git checkout -- factory.defaults.yml` zurückgesetzt) – der Fix hat AK1 nicht
+versehentlich gebrochen.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
@@ -205,15 +209,16 @@ Kein neues Verhalten. Zwei kleine Struktur-Verbesserungen in
 
 ## Security-Notizen (/security-review, 2026-07-26)
 
-Siehe [`tasks/security-224.md`](security-224.md). Ergebnis: **NEEDS_FIXES** (kein Blocker).
-Zwei Wichtige Findings:
+Siehe [`tasks/security-224.md`](security-224.md). **Runde 1: NEEDS_FIXES.** Zwei Wichtige Findings:
 1. `Edit(*.yml)`/`Edit(*.yaml)` (+ `Write`-Pendants) matchen auf jeder Tiefe statt nur Root –
    Empfehlung: root-verankern (`Edit(/*.yml)` etc.), kostenlose Härtung ohne Funktionsverlust
-   für die vier realen Zieldateien. Noch nicht behoben (Security-Agent darf keinen Code
-   schreiben) – Entscheidung/Umsetzung offen.
+   für die vier realen Zieldateien. **Behoben** (siehe Blocker-Abschnitt, 2. Runde): Patch über
+   den etablierten Workflow geliefert und angewendet, Regressionstest + Behavioral-Probe grün.
 2. `config-validation-check.sh` erzwingt keine Mindest-Tier-Schwelle für `security-review`;
    seit #224 könnte ein Agent das autonom über `factory.config.yml` schwächen. Out-of-Scope für
    #224, ausgelagert als Issue [#241](https://github.com/nothra/tch-gastro-services/issues/241).
+
+**Runde 2 (nach Fix): PASSED.**
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

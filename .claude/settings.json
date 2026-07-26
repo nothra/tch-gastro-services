@@ -65,8 +65,8 @@
       "Edit(*.mjs)",
       "Edit(*.json)",
       "Edit(*.md)",
-      "Edit(*.yml)",
-      "Edit(*.yaml)",
+      "Edit(/*.yml)",
+      "Edit(/*.yaml)",
       "Write(app/**)",
       "Write(lib/**)",
       "Write(db/**)",
@@ -83,8 +83,8 @@
       "Write(*.mjs)",
       "Write(*.json)",
       "Write(*.md)",
-      "Write(*.yml)",
-      "Write(*.yaml)"
+      "Write(/*.yml)",
+      "Write(/*.yaml)"
     ],
     "deny": [
       "Edit(.claude/**)",

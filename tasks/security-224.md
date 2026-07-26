@@ -16,7 +16,7 @@ Keine.
 
 ## Wichtige Findings
 
-- [ ] **[Security Misconfiguration / Least Privilege]** `.claude/settings.json`:
+- [x] **BEHOBEN (2026-07-26, Runde 2)** — **[Security Misconfiguration / Least Privilege]** `.claude/settings.json`:
   `Edit(*.yml)`/`Edit(*.yaml)` (und die neuen `Write`-Pendants) sind slash-freie Muster und
   matchen laut Claude-Code-Dokumentation auf **jeder** Verzeichnistiefe (gitignore-Semantik),
   nicht nur im Repo-Root – bereits im Task-File (`tasks/task-224-top-level-yaml-edit-allow.md`,
@@ -36,9 +36,15 @@ Keine.
   `Write(/*.yml)`, `Write(/*.yaml)` – führender Slash). Liefert exakt dasselbe beabsichtigte
   Verhalten für alle vier realen Zieldateien (keine Regression), schließt aber die
   Least-Privilege-Lücke für die Zukunft. Da `.claude/settings.json` für den Agenten hard denied
-  ist, müsste die Korrektur erneut über den etablierten Patch-Workflow laufen. **Nicht selbst
-  behoben** (Security-Agent-Regel: kein Code schreiben, nur Findings dokumentieren) – Entscheidung
-  liegt beim Menschen.
+  ist, musste die Korrektur erneut über den etablierten Patch-Workflow laufen.
+
+  **Status: behoben.** Auf Wunsch des Menschen zurück in `/implement`-Modus: Regressionstest auf
+  die verankerten Muster umgestellt (RED bestätigt: 4 Assertions rot gegen die alten Muster),
+  Patch programmatisch per `jq` erzeugt, `git apply --check` verifiziert, vom Menschen angewendet.
+  Regressionstest danach grün (545/545). Zusätzliche Behavioral-Probe (`claude --print` gegen
+  `factory.defaults.yml`) bestätigt: AK1 funktioniert nach dem Root-Anker-Fix weiterhin ohne
+  Permission-Prompt (Details: `tasks/task-224-top-level-yaml-edit-allow.md`, Blocker-Abschnitt,
+  2. Runde).
 
 - [ ] **[Security Misconfiguration / Gate-Selbstschwächung, out of scope für diesen PR]**
   Diese Task macht `factory.config.yml`/`factory.defaults.yml` für einen Stage-3-Agenten
@@ -81,13 +87,13 @@ Keine.
 
 ## Ergebnis
 
-NEEDS_FIXES
+**PASSED** (Runde 2, nach Fix)
 
-**Begründung:** Kein Blocker. Das erste „Wichtige" Finding (Root-Anker für die neuen
-`*.yml`/`*.yaml`-Muster) ist eine kostenlose, regressionsfreie Härtung genau der Regel, die dieser
-PR einführt – aktuell nicht akut ausnutzbar (kein passendes Ziel-File existiert), aber leicht vor
-dem Merge zu schließen und sollte behoben werden, bevor die #88-Selbst-Eskalations-Grenze durch
-weitere Tasks in diesem Bereich weiterwächst. Das zweite Finding (Config-Gate-Tier-Floor) ist
-bewusst als separates Issue [#241](https://github.com/nothra/tch-gastro-services/issues/241)
-ausgelagert, da es eine eigenständige Änderung an `config-validation-check.sh` mit eigenen
-Akzeptanzkriterien erfordert und nicht Teil des #224-Scopes ist.
+**Begründung:** Kein Blocker in beiden Runden. Das erste „Wichtige" Finding (Root-Anker für die
+neuen `*.yml`/`*.yaml`-Muster) wurde behoben (siehe oben) und per Regressionstest + Behavioral-
+Probe verifiziert – Runde 1 hatte hierfür noch **NEEDS_FIXES** vergeben, da die Härtung vor dem
+Merge sinnvoll war und kostenlos verfügbar war. Das zweite Finding (Config-Gate-Tier-Floor für
+`security-review`) bleibt bewusst als separates Issue
+[#241](https://github.com/nothra/tch-gastro-services/issues/241) ausgelagert – eigenständige
+Änderung an `config-validation-check.sh` mit eigenen Akzeptanzkriterien, nicht Teil des
+#224-Scopes, kein Blocker für diesen Merge.
