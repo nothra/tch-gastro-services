@@ -191,6 +191,18 @@ Kein neues Verhalten. Zwei kleine Struktur-Verbesserungen in
 - Verifiziert: `bash scripts/checks/tests/run-tests.sh` vor und nach dem Refactoring identisch
   545 grün, 0 rot – exakt dieselben 20 `#224`-Assertions, nur anders gruppiert.
 
+## Security-Notizen (/security-review, 2026-07-26)
+
+Siehe [`tasks/security-224.md`](security-224.md). Ergebnis: **NEEDS_FIXES** (kein Blocker).
+Zwei Wichtige Findings:
+1. `Edit(*.yml)`/`Edit(*.yaml)` (+ `Write`-Pendants) matchen auf jeder Tiefe statt nur Root –
+   Empfehlung: root-verankern (`Edit(/*.yml)` etc.), kostenlose Härtung ohne Funktionsverlust
+   für die vier realen Zieldateien. Noch nicht behoben (Security-Agent darf keinen Code
+   schreiben) – Entscheidung/Umsetzung offen.
+2. `config-validation-check.sh` erzwingt keine Mindest-Tier-Schwelle für `security-review`;
+   seit #224 könnte ein Agent das autonom über `factory.config.yml` schwächen. Out-of-Scope für
+   #224, ausgelagert als Issue [#241](https://github.com/nothra/tch-gastro-services/issues/241).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
