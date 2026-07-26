@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `scripts/factory-commit.sh` (mandatierte Commit/Push-Seam, ADR-019) holt im „nichts zu
@@ -112,6 +112,12 @@ Kein neues Learning aus dem Codify-Schritt selbst – das einzige generalisierba
 Task (Beleg statt Behauptung bei vorbestehendem, scheinbar unabhängigem Testfehlschlag) wurde
 bereits während `/review` als Selbstfund extrahiert (`lessons/factory-workflow.md` + Index-Zeile
 in `PROJECT-CONTEXT.md`). Details in `tasks/codify-239.md`.
+
+PR-Shepherd 2026-07-26: Merge freigegeben – alle Gates grün (Review, Tests, Security-Review,
+Refactoring, Codify). Keine offenen Review-Kommentare (nur der Vercel-Deploy-Bot-Kommentar),
+keine ausstehenden Approvals (0 required laut ADR-029). CI zum Zeitpunkt der Freigabe teils
+noch `pending` (lint/pr-closes-issue/factory-self-test bereits grün) – `gh pr merge --auto`
+wartet server-seitig auf den grünen Zustand.
 
 ---
 Branch: `fix/239-factory-commit-push-nachholen`
