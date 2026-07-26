@@ -31,27 +31,39 @@ Spec: [`docs/specs/spec-224-top-level-yaml-edit-allow.md`](../docs/specs/spec-22
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] **AK1** GIVEN einen Stage-3-Agenten WHEN er eine getrackte Top-Level-YAML-Datei
+- [x] **AK1** GIVEN einen Stage-3-Agenten WHEN er eine getrackte Top-Level-YAML-Datei
       (`factory.defaults.yml`, `factory.config.yml`, `pnpm-workspace.yaml`, `docker-compose.yml`)
-      per `Edit` ändern will THEN kein Permission-Prompt, kein Interrupt.
-- [ ] **AK2** GIVEN denselben Agenten WHEN er per `Write` eine neue Root-Datei mit freigegebener
+      per `Edit` ändern will THEN kein Permission-Prompt, kein Interrupt. Behavioral belegt (siehe
+      Blocker-Abschnitt: `claude --print`-Positiv-Probe gegen `factory.defaults.yml`).
+- [x] **AK2** GIVEN denselben Agenten WHEN er per `Write` eine neue Root-Datei mit freigegebener
       Extension (`*.yml`, `*.yaml`, `*.ts`, `*.tsx`, `*.mjs`, `*.json`, `*.md`) anlegt THEN kein
-      Prompt – `Write` ist für Top-Level-Extensions symmetrisch zu `Edit`.
-- [ ] **AK3** GIVEN die generische YAML-Freigabe WHEN `pnpm-lock.yaml` per `Edit`/`Write` geändert
-      werden soll THEN abgelehnt (steht in `deny`; deny hat Vorrang vor allow).
-- [ ] **AK4** GIVEN die erweiterten Listen WHEN `.claude/**` oder `.env*` geschrieben werden soll
-      THEN weiterhin gesperrt – #88-Deny-Einträge unverändert vorhanden.
-- [ ] **AK5** GIVEN `bash scripts/checks/tests/run-tests.sh` WHEN die Permissions-Konsistenz-Tests
+      Prompt – `Write` ist für Top-Level-Extensions symmetrisch zu `Edit`. Einträge gesetzt wie
+      spezifiziert; **wichtiger Fund** beim Probe-Lauf: die aktuelle Claude-Code-Permission-Engine
+      wertet `Write(path)`-Regeln gar nicht aus (nur `Edit(path)` – deckt laut CLI-Warnung „alle
+      file-editing tools" ab, also Edit **und** Write). Die neuen `Write(*.yml)` etc. sind damit
+      funktional redundant zu `Edit(*.yml)` – aber genau wie alle **bereits vorhandenen**
+      `Write(app/**)`/`Write(*.ts)`/… Einträge (kein neues Problem, s. u.).
+- [x] **AK3** GIVEN die generische YAML-Freigabe WHEN `pnpm-lock.yaml` per `Edit`/`Write` geändert
+      werden soll THEN abgelehnt (steht in `deny`; deny hat Vorrang vor allow). Behavioral belegt
+      (Negativ-Probe: `pnpm-lock.yaml` nach dem Claude-Aufruf byteidentisch, MD5 unverändert).
+- [x] **AK4** GIVEN die erweiterten Listen WHEN `.claude/**` oder `.env*` geschrieben werden soll
+      THEN weiterhin gesperrt – #88-Deny-Einträge unverändert vorhanden (per Test + Datei-Diff
+      geprüft).
+- [x] **AK5** GIVEN `bash scripts/checks/tests/run-tests.sh` WHEN die Permissions-Konsistenz-Tests
       laufen THEN prüfen sie die **geparsten** `allow`/`deny`-Listen (kein bloßer Text-Treffer) in
-      beide Richtungen; Wegfall genau eines Eintrags → genau die zugehörige Assertion rot.
-- [ ] **AK6** GIVEN die Patch-Lieferung WHEN der Test aus AK5 läuft THEN liest er die committete
-      Live-Datei `.claude/settings.json`, nicht `tasks/patch-224.diff` (aus #212).
+      beide Richtungen; Wegfall genau eines Eintrags → genau die zugehörige Assertion rot. Neuer
+      Abschnitt „#224 Top-Level-YAML-Freigabe" in `run-tests.sh`, `jq`-basiert, RED vor dem Patch
+      (11 Assertions rot) → GREEN danach (542 grün, 0 rot, voller Lauf).
+- [x] **AK6** GIVEN die Patch-Lieferung WHEN der Test aus AK5 läuft THEN liest er die committete
+      Live-Datei `.claude/settings.json`, nicht `tasks/patch-224.diff` (aus #212). `$SETTINGS`
+      zeigt auf `$FACTORY_ROOT/.claude/settings.json`, das Patch-Artefakt wird nirgends gelesen.
 - [x] **AK7** GIVEN die stale Präsens-Aussage in `docs/factory/lessons/factory-workflow.md`
       („`factory.defaults.yml` … nicht in der Allow-Liste … löst einen Interrupt aus") WHEN dieser
       PR die Regel ergänzt THEN ist die Aussage im selben PR korrigiert; Patch-Workflow-Regel und
       historische Vorfall-Schilderung bleiben erhalten.
-- [ ] **AK8** GIVEN den angewendeten Patch WHEN `.claude/settings.json` geparst wird THEN valides
-      JSON mit unveränderter Struktur (`hooks`, `permissions.allow`, `permissions.deny`).
+- [x] **AK8** GIVEN den angewendeten Patch WHEN `.claude/settings.json` geparst wird THEN valides
+      JSON mit unveränderter Struktur (`hooks`, `permissions.allow`, `permissions.deny`). Per
+      `jq -e '.hooks and .permissions.allow and .permissions.deny'` verifiziert (Test + manuell).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -72,32 +84,54 @@ erlaubten Seite geschlossen.
       unkritisch (betroffene Unterverzeichnisse ohnehin freigegeben, `.claude/**` bleibt per
       `deny` gesperrt, `pnpm-lock.yaml` als literaler Dateiname in `deny` matcht unabhängig von
       der Tiefe, weil die Datei nur im Root existiert).
-- [ ] Belastbarer Beleg für AK1/AK2: Die Permission-Auswertung liegt in Claude Code, nicht im Repo
+- [x] Belastbarer Beleg für AK1/AK2: Die Permission-Auswertung liegt in Claude Code, nicht im Repo
       – aus der Shell-Testsuite nicht verhaltensbasiert prüfbar. Präzedenz Task #88: einmalige,
-      im Task-File dokumentierte `claude --print`-Probe (Positiv + Negativ). Nicht durchführbar →
-      als Blocker protokollieren, nicht still überspringen.
+      im Task-File dokumentierte `claude --print`-Probe (Positiv + Negativ). **Durchgeführt** nach
+      Anwenden des Patches (siehe Blocker-Abschnitt) – lieferte zugleich den wichtigen Fund zu
+      `Write(...)`-Regeln (siehe AK2).
 
 ## Blocker
 
-Blocker [2026-07-26]: Die eigentliche Fachänderung liegt in `.claude/settings.json`, das für den
-Agenten hard denied ist (`Edit(.claude/**)`/`Write(.claude/**)`, #88-Grenze). Lieferung als
-`tasks/patch-224.diff` – programmatisch per `jq` erzeugt (nicht von Hand getippt, aus #94),
-Pfad-Header über `git diff --no-index --no-prefix` korrekt gesetzt, read-only mit
-`git apply --check tasks/patch-224.diff` verifiziert (Ergebnis: „APPLY-CHECK OK"). **Der Mensch
-muss** `git apply tasks/patch-224.diff` im Worktree ausführen, danach den Test-Lauf
-(`bash scripts/checks/tests/run-tests.sh`, Abschnitt „#224 Top-Level-YAML-Freigabe") auf grün
-verifizieren und `tasks/patch-224.diff` löschen (aus #145 – kein totes Patch-Artefakt vor dem
-Merge).
+Blocker [2026-07-26] (**erledigt**): Die eigentliche Fachänderung lag in `.claude/settings.json`,
+das für den Agenten hard denied ist (`Edit(.claude/**)`/`Write(.claude/**)`, #88-Grenze).
+Lieferung als `tasks/patch-224.diff` – programmatisch per `jq` erzeugt (nicht von Hand getippt,
+aus #94), Pfad-Header über `git diff --no-index --no-prefix` korrekt gesetzt, read-only mit
+`git apply --check tasks/patch-224.diff` verifiziert (Ergebnis: „APPLY-CHECK OK"). Der Mensch hat
+`git apply tasks/patch-224.diff` im Worktree freigegeben/ausgeführt; `tasks/patch-224.diff` wird
+vor dem Merge entfernt (aus #145 – kein totes Patch-Artefakt).
 
 Offene Frage zur Pfad-Verankerung von `Edit(*.yml)` ist geklärt (siehe Task-Abschnitt „Offene
-Fragen") – kein Blocker mehr.
+Fragen").
 
-Nicht durchgeführt: die in der Spec unter „Offene Fragen" vorgeschlagene `claude --print`-Probe
-(Positiv-/Negativfall) zur Verhaltensbestätigung des Permission-Prompts. Diese Session läuft
-interaktiv, nicht als isolierter Stage-3-Prozess mit unabhängigen Settings – eine `claude
---print`-Probe hier würde dieselbe (aktuell noch ungepatchte) `settings.json` desselben
-Arbeitsbaums verwenden und liefert daher kein von den Datei-Assertions unabhängiges Signal.
-Protokolliert als offener Nachtest statt still übersprungen (aus #224/Spec „Offene Fragen").
+**`claude --print`-Verhaltensprobe (Positiv + Negativ), durchgeführt 2026-07-26 nach Anwenden des
+Patches**, analog Präzedenz #88:
+
+- *Positiv* (AK1): `FACTORY_STAGE=3 claude --print "… hänge an factory.defaults.yml … an …" --max-turns 3`
+  im Worktree. Ergebnis: Die Zeile `# probe-224-positive` wurde tatsächlich ans Dateiende
+  angehängt (MD5 vorher `3fac65e…`, nachher `ec3da9b…`) – **kein** Permission-Prompt, **kein**
+  Interrupt. Änderung danach mit `git checkout -- factory.defaults.yml` zurückgesetzt.
+- *Negativ* (AK3): derselbe Aufruf gegen `pnpm-lock.yaml`. Ergebnis: Datei nach dem Lauf
+  byteidentisch (MD5 unverändert `4319ec1…`) – die `deny`-Regel griff, keine Änderung durchgerutscht.
+- Beide Läufe endeten technisch mit `Error: Reached max turns (3)` (Edit war jeweils bereits
+  vor dem Turn-Limit erledigt/verweigert; das Turn-Limit selbst ist für die Probe irrelevant,
+  ausschlaggebend ist der Datei-Diff vorher/nachher).
+
+**Wichtiger Nebenfund (kein Blocker, aber dokumentationswürdig):** Beide `claude --print`-Aufrufe
+gaben je 21 Zeilen der Form
+`Permission allow/deny rule (.claude/settings.json): Write(<pfad>) is not matched by file
+permission checks — only Edit(path) rules are. Use Edit(<pfad>) instead (Edit rules cover all
+file-editing tools).` aus (stderr). D. h. die aktuell installierte Claude-Code-Version
+(2.1.218) wertet **keine** `Write(...)`-Permission-Regeln aus – weder in `allow` noch in `deny`;
+ein `Edit(pfad)`-Eintrag deckt bereits Edit **und** Write für diesen Pfad ab. Das betrifft nicht
+nur die in dieser Task neu ergänzten `Write(*.yml)` usw., sondern **alle bereits vor #224
+vorhandenen** `Write(app/**)`, `Write(*.ts)` usw. Einträge (vgl. #88) – ein vorbestehender
+Zustand, den diese Task nicht verursacht, aber durch die AK2-Symmetrie-Ergänzung um 9 weitere
+(harmlose, aber genauso wirkungslose) Einträge vergrößert. Funktional unkritisch (Edit-Regeln
+gewähren bereits das gewünschte Verhalten; AK1–AK3 sind alle behavioral bestätigt), aber jeder
+künftige Stage-3-Lauf bekommt dadurch mehr Warnzeilen auf stderr. Als Cleanup-Kandidat
+(„`Write(...)`-Regeln repo-weit entfernen, da wirkungslos") **absichtlich außerhalb des Scopes
+dieser Task** belassen (Spec-Scope: nur Top-Level-YAML + die AK2-Symmetrie wie mit dem
+Entwickler abgestimmt) – als separates Issue vorgeschlagen (Follow-up-Chip).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
