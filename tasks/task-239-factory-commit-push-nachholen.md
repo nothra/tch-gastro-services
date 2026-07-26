@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -97,8 +97,21 @@ akzeptiert. Bash-Suite weiterhin 551 grün / 4 rot (unverändert der vorbestehen
 `#212 W3`-Block); `pnpm test` (665 grün), `typecheck`, `format:check` und der Routen-Doku-Check
 laufen grün.
 
+**Security-Review (2026-07-26):** PASSED, keine kritischen/wichtigen Findings – Report in
+`tasks/security-239.md`. Threat Surface = das privilegierte Commit/Push-Seam selbst (ADR-019).
+Geprüft und unbedenklich: kein neuer externer Input (Commit-Message im leeren Zweig ungenutzt,
+`@{u}` ist ein Literal, `rev-list`-Ausgabe nur gequotet im `[ -n … ]`-Längentest → keine Command
+Injection); der Nachhol-Push sitzt hinter allen Fail-closed-Guards (main/master, detached HEAD,
+Argumentanzahl) → keine Guard-Umgehung; kein `--force`/destruktive Op; Push-Fehlschlag wird via
+`set -e` weitergereicht (kein stiller Erfolg); nur Branch-Name in stderr (kein Secret-Leak);
+keine neuen Dependencies.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Kein neues Learning aus dem Codify-Schritt selbst – das einzige generalisierbare Muster dieser
+Task (Beleg statt Behauptung bei vorbestehendem, scheinbar unabhängigem Testfehlschlag) wurde
+bereits während `/review` als Selbstfund extrahiert (`lessons/factory-workflow.md` + Index-Zeile
+in `PROJECT-CONTEXT.md`). Details in `tasks/codify-239.md`.
 
 ---
 Branch: `fix/239-factory-commit-push-nachholen`
