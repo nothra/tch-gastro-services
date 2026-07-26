@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -222,6 +222,14 @@ Siehe [`tasks/security-224.md`](security-224.md). **Runde 1: NEEDS_FIXES.** Zwei
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [`tasks/codify-224.md`](codify-224.md). Drei neue Lesson-Einträge (+ Index-Zeilen in
+`PROJECT-CONTEXT.md`): (1) `.claude/settings.json`-Permission-Semantik (Root-Anker,
+`Write`-Wirkungslosigkeit) in `factory-workflow.md`; (2) Selbstschwächungs-Check bei neuer
+Edit-Freigabe auf Pipeline-Config in `factory-workflow.md`; (3) Verfügbarkeits-Prüfungen gegen
+bereits Vorhandenes im selben File abgleichen in `code-style.md`. Keine CLAUDE.md-/Guideline-
+Änderung, kein neuer Check nötig (Begründung im Codify-Report). Beide Out-of-Scope-Issues
+(#240, #241) waren bereits aus `/review`/`/security-review` angelegt.
 
 ---
 Branch: `fix/224-top-level-yaml-edit-allow`
