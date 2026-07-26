@@ -90,6 +90,15 @@ describe("catalogItemSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("should_acceptName_when_50CharsAfterTrimmingSurroundingWhitespace", () => {
+    const result = catalogItemSchema.safeParse({
+      ...valid,
+      name: `  ${"A".repeat(50)}  `,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.name).toBe("A".repeat(50));
+  });
+
   it("should_rejectName_when_51CharsOrMore", () => {
     const result = catalogItemSchema.safeParse({ ...valid, name: "A".repeat(51) });
     expect(result.success).toBe(false);

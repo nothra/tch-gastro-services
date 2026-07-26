@@ -8,7 +8,7 @@
 
 ## Nitpicks (optional)
 - [ ] [app/verwaltung/katalog/schema.ts:15-20] Bestandsartikel mit `name`/`size` > 50 Zeichen (falls vor dieser Härtung über die UI angelegt) würden künftig bei jedem `updateCatalogItemAction`-Aufruf scheitern, auch bei unrelated Feldänderungen (z. B. nur Preis). Reales Risiko gering (Seed-Daten: längster Wert 21 Zeichen), ohne DB-Scan aber nicht ausgeschlossen.
-- [ ] [app/verwaltung/katalog/schema.test.ts] Kein expliziter Test für die Interaktion `.trim()` + `.max(50)` mit Whitespace über der Grenze (z. B. `" " + "A".repeat(50) + " "` → nach Trim exakt 50 → sollte akzeptiert werden). Verhalten ist durch die Kettenreihenfolge korrekt, aber nicht separat abgesichert.
+- [x] [app/verwaltung/katalog/schema.test.ts] Kein expliziter Test für die Interaktion `.trim()` + `.max(50)` mit Whitespace über der Grenze (z. B. `" " + "A".repeat(50) + " "` → nach Trim exakt 50 → sollte akzeptiert werden). **Behoben in `/test`:** Test `should_acceptName_when_50CharsAfterTrimmingSurroundingWhitespace` ergänzt.
 - [ ] [app/verwaltung/katalog/schema.ts:14,18] Literal `50` für `name` und `size` dupliziert. Keine gemeinsame Konstante zwingend (beide Grenzen sind semantisch unabhängig, eigene Fehlermeldungen) – Developer-Entscheidung.
 - [ ] [app/verwaltung/katalog/schema.test.ts:89,94,102,107] `"A".repeat(50)`/`"A".repeat(51)` viermal wiederholt. Bei nur 4 Vorkommen in einer Testdatei kein Helper geboten.
 

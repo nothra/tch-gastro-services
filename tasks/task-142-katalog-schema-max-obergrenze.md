@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [x] Tests vollständig
+- [x] Tests vollständig (/test: Coverage schema.ts 100%, Whitespace-Grenzfall ergänzt)
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
