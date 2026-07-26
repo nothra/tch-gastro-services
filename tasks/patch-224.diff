@@ -1,0 +1,26 @@
+diff --git a/.claude/settings.json b/.claude/settings.json
+index 1815402..f5e9160 100644
+--- a/.claude/settings.json
++++ b/.claude/settings.json
+@@ -65,8 +65,8 @@
+       "Edit(*.mjs)",
+       "Edit(*.json)",
+       "Edit(*.md)",
+-      "Edit(*.yml)",
+-      "Edit(*.yaml)",
++      "Edit(/*.yml)",
++      "Edit(/*.yaml)",
+       "Write(app/**)",
+       "Write(lib/**)",
+       "Write(db/**)",
+@@ -83,8 +83,8 @@
+       "Write(*.mjs)",
+       "Write(*.json)",
+       "Write(*.md)",
+-      "Write(*.yml)",
+-      "Write(*.yaml)"
++      "Write(/*.yml)",
++      "Write(/*.yaml)"
+     ],
+     "deny": [
+       "Edit(.claude/**)",

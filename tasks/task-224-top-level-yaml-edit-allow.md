@@ -133,6 +133,18 @@ künftige Stage-3-Lauf bekommt dadurch mehr Warnzeilen auf stderr. Als Cleanup-K
 dieser Task** belassen (Spec-Scope: nur Top-Level-YAML + die AK2-Symmetrie wie mit dem
 Entwickler abgestimmt) – als separates Issue vorgeschlagen (Follow-up-Chip).
 
+Blocker [2026-07-26] (**erledigt**, 2. Runde nach `/security-review`): Security-Review-Finding
+(`tasks/security-224.md`) – `Edit(*.yml)`/`Edit(*.yaml)`/`Write(*.yml)`/`Write(*.yaml)` waren
+slash-frei und matchen daher auf jeder Verzeichnistiefe statt nur Root (Least-Privilege-Lücke
+für künftige Dateien, aktuell nicht ausnutzbar). Fix: root-verankert auf `Edit(/*.yml)`,
+`Edit(/*.yaml)`, `Write(/*.yml)`, `Write(/*.yaml)` (führender Slash) – verliert nichts für die
+vier realen Zieldateien (alle im Root), schließt aber die Lücke. Erneut über den Patch-Workflow
+geliefert (`.claude/settings.json` hard denied): Patch programmatisch per `jq` erzeugt,
+`git diff --no-index --no-prefix` für korrekte Pfad-Header, `git apply --check` verifiziert
+(„APPLY-CHECK OK"), als `tasks/patch-224.diff` abgelegt. RED zuerst bestätigt (4 Assertions rot
+gegen die alten, unverankerten Muster), dann Patch vom Menschen angewendet. Nach Anwendung:
+Regressionstest grün, Patch-Artefakt entfernt (vor dem Merge, aus #145).
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 

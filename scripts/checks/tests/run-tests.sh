@@ -2041,8 +2041,12 @@ if [ "$HAS_JQ" -eq 1 ]; then
   jq -e '.hooks and .permissions.allow and .permissions.deny' "$SETTINGS" >/dev/null 2>&1
   assert_true "$?" "#224: settings.json valides JSON mit hooks/permissions.allow/deny (AK8)"
 
-  # AK1: Top-Level-YAML per Edit freigegeben.
-  for entry in 'Edit(*.yml)' 'Edit(*.yaml)'; do
+  # AK1: Top-Level-YAML per Edit freigegeben. Root-verankert (führender Slash) statt slash-frei
+  # (Security-Review-Finding: slash-freie Muster matchen laut Claude-Code-Doku auf jeder
+  # Verzeichnistiefe, gitignore-Semantik – die Spec adressiert aber ausdrücklich nur
+  # Top-Level-Dateien; alle vier realen Zieldateien liegen im Root, root-verankert verliert
+  # nichts, schließt aber die Least-Privilege-Lücke für künftige *.yml/*.yaml-Dateien).
+  for entry in 'Edit(/*.yml)' 'Edit(/*.yaml)'; do
     jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#224: allow (geparst) enthält '$entry'"
   done
@@ -2050,10 +2054,12 @@ if [ "$HAS_JQ" -eq 1 ]; then
   # AK2: Write symmetrisch zu allen Top-Level-Extensions. Hinweis (Task-224-Blocker-Abschnitt,
   # claude --print-Probe): die installierte Claude-Code-Version wertet Write(pfad)-Regeln nicht
   # aus (nur Edit(pfad) deckt Edit+Write ab) – strukturell dennoch gefordert (mit dem
-  # Entwickler abgestimmter Scope), das eigentliche Verhalten liefert Edit(*.yml)/Edit(*.yaml)
-  # aus der Schleife oben. Cleanup-Kandidat ausgelagert: Issue #240.
+  # Entwickler abgestimmter Scope), das eigentliche Verhalten liefert Edit(/*.yml)/Edit(/*.yaml)
+  # aus der Schleife oben. Cleanup-Kandidat ausgelagert: Issue #240. Die YAML-Pendants sind aus
+  # demselben Root-Anker-Grund wie AK1 verankert; die vorbestehenden #88-Extensions (*.ts/*.tsx/
+  # *.mjs/*.json/*.md) bleiben bewusst slash-frei – kein Teil dieses Findings/Scopes.
   for entry in 'Write(*.ts)' 'Write(*.tsx)' 'Write(*.mjs)' 'Write(*.json)' 'Write(*.md)' \
-    'Write(*.yml)' 'Write(*.yaml)'; do
+    'Write(/*.yml)' 'Write(/*.yaml)'; do
     jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#224: allow (geparst) enthält '$entry'"
   done
