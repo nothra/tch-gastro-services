@@ -2,12 +2,13 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Review bestanden (n/a – reine Doku-Änderung, kein Code; Entwickler hat nach `/implement`
+      direkt `/pr-shepherd` angewiesen statt `/review`/`/test`/`/refactor`/`/security-review`)
+- [x] Tests vollständig (n/a – kein Testcode geändert; bestehende Suite bleibt grün, siehe Belege)
+- [x] Security-Review bestanden (n/a – keine Code-/Auth-/Secret-Änderung)
+- [x] Refactoring abgeschlossen (n/a – kein Produktionscode geändert)
+- [x] Codify ausgeführt (Lesson-Eintrag wurde bereits während `/implement` geschrieben, siehe unten)
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Issue #244 klärt, ob der in Task #239 beobachtete Bash-Suite-Fehlschlag im Block
@@ -28,9 +29,9 @@ Siehe `docs/specs/spec-244-e2e-block-212-w3-isoliert-klaeren.md` für Kontext/Be
       ausgeführt wird THEN ist das Ergebnis 0 rot.
 - [x] GIVEN die CI-Läufe (`factory-ci.yml`) für #239, #238 und den eigenen Draft-PR
       WHEN ihre `conclusion` geprüft wird THEN zeigen alle `success`.
-- [ ] GIVEN die obigen Befunde WHEN sie als Kommentar auf Issue #244 gepostet werden
+- [x] GIVEN die obigen Befunde WHEN sie als Kommentar auf Issue #244 gepostet werden
       THEN referenziert der Kommentar konkret die drei Belege und schließt das Issue
-      ohne Code-Fix.
+      ohne Code-Fix. (Kommentar: [issuecomment-5149896565](https://github.com/nothra/tch-gastro-services/issues/244#issuecomment-5149896565), Issue geschlossen als "not planned".)
 - [x] GIVEN `docs/factory/lessons/factory-workflow.md` WHEN das Learning aus #244
       ergänzt wird THEN gibt es einen neuen Abschnitt (Smell + Regel) plus eine
       passende Index-Zeile in `docs/factory/PROJECT-CONTEXT.md`.
@@ -50,6 +51,13 @@ kein Code-Fix").
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Lesson-Eintrag „Real-vs-environmental-Einordnung eines gemeldeten Testfehlschlags durch
+Wiederholung statt Diff-Analyse belegen" in `docs/factory/lessons/factory-workflow.md`
++ Index-Zeile in `docs/factory/PROJECT-CONTEXT.md` ergänzt (bereits während `/implement`
+umgesetzt, siehe Commit `026b269`).
+
+PR-Shepherd 2026-08-01: Merge freigegeben – alle Gates grün (kein Review-Kommentar, kein
+Rebase nötig, CI vollständig grün, keine Approval-Pflicht, Draft → ready for review).
 
 ---
 Branch: `fix/244-e2e-block-212-w3-isoliert-klaeren`
