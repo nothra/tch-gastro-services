@@ -2162,23 +2162,18 @@ if [ "$HAS_JQ" -eq 1 ]; then
     assert_true "$?" "#224: allow (geparst) enthält '$entry'"
   done
 
-  # AK2 (historisch #224, seit #240 umgekehrt): Die Write(...)-Symmetrie-Einträge waren laut
-  # claude --print-Probe wirkungslos (nur Edit(pfad) deckt Edit+Write ab) und wurden in #240
-  # entfernt – das eigentliche Verhalten liefert weiterhin Edit(/*.yml)/Edit(/*.yaml) aus der
-  # Schleife oben. Test prüft jetzt die Abwesenheit statt des vormals geforderten Vorhandenseins.
-  for entry in 'Write(*.ts)' 'Write(*.tsx)' 'Write(*.mjs)' 'Write(*.json)' 'Write(*.md)' \
-    'Write(/*.yml)' 'Write(/*.yaml)'; do
-    jq -e --arg v "$entry" '.permissions.allow | index($v) == null' "$SETTINGS" >/dev/null 2>&1
-    assert_true "$?" "#240: allow (geparst) enthält NICHT mehr '$entry'"
-  done
-
-  # #240 AK1 (Verzeichnis-Globs aus #88): dieselbe Wirkungslosigkeit betraf auch die 11
-  # ursprünglichen Write(<verzeichnis>/**)-Einträge, nicht nur die #224-Extension-Symmetrie
-  # oben – je Eintrag eine eigene Assertion (nicht nur der pauschale Check weiter unten),
-  # damit ein versehentlich wieder eingeführter Einzeleintrag namentlich rot färbt.
+  # #240 AK1 (alle 18 vormals in allow vorhandenen Write(...)-Einträge): Die 11 ursprünglichen
+  # Write(<verzeichnis>/**)-Einträge (aus #88) und die 7 Write(<extension>)-Einträge (aus der
+  # #224-Symmetrie-Ergänzung) waren laut claude --print-Probe gleichermaßen wirkungslos (nur
+  # Edit(pfad) deckt Edit+Write ab – das eigentliche Verhalten liefert weiterhin Edit(/*.yml)/
+  # Edit(/*.yaml) aus der Schleife oben) und wurden in #240 entfernt. Je Eintrag eine eigene
+  # Assertion (nicht nur der pauschale Check weiter unten), damit ein versehentlich wieder
+  # eingeführter Einzeleintrag namentlich rot färbt.
   for entry in 'Write(app/**)' 'Write(lib/**)' 'Write(db/**)' 'Write(e2e/**)' \
     'Write(types/**)' 'Write(scripts/**)' 'Write(docs/**)' 'Write(tasks/**)' \
-    'Write(config/**)' 'Write(public/**)' 'Write(.github/workflows/**)'; do
+    'Write(config/**)' 'Write(public/**)' 'Write(.github/workflows/**)' \
+    'Write(*.ts)' 'Write(*.tsx)' 'Write(*.mjs)' 'Write(*.json)' 'Write(*.md)' \
+    'Write(/*.yml)' 'Write(/*.yaml)'; do
     jq -e --arg v "$entry" '.permissions.allow | index($v) == null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#240: allow (geparst) enthält NICHT mehr '$entry'"
   done
@@ -2187,10 +2182,6 @@ if [ "$HAS_JQ" -eq 1 ]; then
   jq -e --arg v 'Edit(pnpm-lock.yaml)' '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
   assert_true "$?" "#224: deny (geparst) enthält 'Edit(pnpm-lock.yaml)'"
 
-  # Write(pnpm-lock.yaml) war wirkungslos und ist seit #240 entfernt.
-  jq -e --arg v 'Write(pnpm-lock.yaml)' '.permissions.deny | index($v) == null' "$SETTINGS" >/dev/null 2>&1
-  assert_true "$?" "#240: deny (geparst) enthält NICHT mehr 'Write(pnpm-lock.yaml)'"
-
   # AK4 (Gegenrichtung): #88-Grenze unverändert – bestehende Edit(...)-Deny-Einträge bleiben
   # erhalten. Die Write(...)-Pendants waren wirkungslos und sind seit #240 entfernt (separat
   # unten geprüft).
@@ -2198,7 +2189,11 @@ if [ "$HAS_JQ" -eq 1 ]; then
     jq -e --arg v "$entry" '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#224: deny (geparst) behält '$entry' (#88-Grenze)"
   done
-  for entry in 'Write(.claude/**)' 'Write(.env*)'; do
+
+  # #240 AK2 (alle 3 vormals in deny vorhandenen Write(...)-Einträge): Write(pnpm-lock.yaml),
+  # Write(.claude/**) und Write(.env*) waren aus demselben Grund wie in allow wirkungslos und
+  # wurden in #240 entfernt.
+  for entry in 'Write(pnpm-lock.yaml)' 'Write(.claude/**)' 'Write(.env*)'; do
     jq -e --arg v "$entry" '.permissions.deny | index($v) == null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#240: deny (geparst) enthält NICHT mehr '$entry'"
   done
