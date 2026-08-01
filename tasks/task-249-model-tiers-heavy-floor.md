@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -103,6 +103,20 @@ nur, wenn eine ADR-Prosa-Zeile durch die Änderung faktisch falsch wird).
   (nicht nur ein abweichender Wert).
 - **Keine Änderung an `run-pipeline.sh` nötig** – das Gate wird dort bereits fail-closed vor jeder
   Nutzung aufgerufen (ADR-010, `load_config()`), die neue Regel wirkt automatisch mit.
+
+**Refactor-Zusammenfassung (2026-08-01, `/refactor`):** Zwei optionale Nitpicks aus `tasks/review-249.md`
+angewendet, kein neues Verhalten (589 grün/0 rot vor und nach dem Refactoring, Verhalten zusätzlich
+manuell an drei Fixtures gegengeprüft):
+- `scripts/checks/config-validation-check.sh`: die zuvor doppelt ausgeschriebene Guard-Bedingung
+  `[ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]` (Regel 1b/2-Block und Regel 6) in eine sprechend
+  benannte Helper-Funktion `override_present()` extrahiert, ohne die Ausführungsreihenfolge der
+  Regeln zu ändern (Regel 6 bleibt bewusst am Skriptende, wie von der Spec verlangt).
+- `scripts/checks/tests/run-tests.sh`: Kommentar bei AK2 ergänzt, der begründet, warum
+  `default_heavy` dynamisch aus den Defaults gelesen wird statt literal wie bei AK1 (Robustheit
+  gegen künftige Modell-ID-Änderungen, keine Tautologie – siehe Review-Finding).
+- Die übrigen beiden Nitpicks (Kommentar-Redundanz über drei Dateien, macOS-Prozesssubstitutions-
+  Stolperstein) waren rein redaktionell bzw. kein Code-Finding – bewusst nicht angefasst
+  (Scope-Grenze, kein Gold-Plating).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

@@ -1296,7 +1296,10 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   assert_true "$?" "Gate #249 AK1: Fehlermeldung nennt den Pfad + 'nicht override-bar' (Regel 6, nicht Regel 2)"
 
   # AK2 (Negativ): redundante Bestätigung des exakten Defaults-Werts wird ebenfalls
-  #   abgelehnt — der Pfad ist grundsätzlich gesperrt, nicht nur bei Abweichung.
+  #   abgelehnt — der Pfad ist grundsätzlich gesperrt, nicht nur bei Abweichung. Wert
+  #   bewusst dynamisch aus den Defaults gelesen (nicht wie AK1 literal), damit der
+  #   Test bei einer künftigen Modell-ID-Änderung in factory.defaults.yml weiterhin
+  #   exakt den Defaults-Wert trifft, statt gegen ein einfrierendes Literal zu altern.
   default_heavy="$(yq eval '.model_tiers.heavy' "$DEFAULTS")"
   printf 'model_tiers:\n  heavy: %s\n' "$default_heavy" > "$GTMP/heavy-same.yml"
   bash "$GATE" "$DEFAULTS" "$GTMP/heavy-same.yml" >/dev/null 2>&1; rc=$?

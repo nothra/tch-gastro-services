@@ -55,6 +55,10 @@ OVERRIDE="${2:-$REPO_ROOT/factory.config.yml}"
 
 fail() { echo "config-validation: $*" >&2; exit 1; }
 
+# Ob überhaupt ein Override-File existiert (einmal ausgewertet, von Regel 1b/2 UND
+# Regel 6 genutzt — beide brauchen denselben Guard, Regel 6 zusätzlich $override_paths).
+override_present() { [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; }
+
 command -v yq >/dev/null 2>&1 || fail "yq nicht gefunden (Factory-Prerequisite, ADR-009 §A)."
 [ -f "$DEFAULTS" ] || fail "Defaults-Datei fehlt: $DEFAULTS"
 
@@ -67,7 +71,7 @@ yq eval '.' "$DEFAULTS" >/dev/null 2>&1 || fail "Defaults sind kein gültiges YA
   || fail "schemaVersion in den Defaults ist kein Integer: $DEFAULTS"
 expected_sv="$(yq eval '.schemaVersion' "$DEFAULTS")"
 
-if [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; then
+if override_present; then
   # 1b. YAML-Parse des Overrides.
   yq eval '.' "$OVERRIDE" >/dev/null 2>&1 || fail "Override ist kein gültiges YAML: $OVERRIDE"
 
@@ -158,7 +162,7 @@ done
 #    'heavy' darf nicht durch ein Remapping auf ein schwächeres Modell unterlaufen werden).
 #    Operiert auf dem ROHEN Override (nicht der effektiven Config): der Pfad ist bereits
 #    verboten, sobald der Override ihn überhaupt setzt — unabhängig vom Wert (AK1/AK2).
-if [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; then
+if override_present; then
   grep -qxF -- "$LOCKED_MODEL_TIER_PATH" <<< "$override_paths" \
     && fail "'$LOCKED_MODEL_TIER_PATH' ist nicht override-bar (Gate-Policy, Task 249). Modell-ID-Pflege für 'heavy' läuft ausschließlich über factory.defaults.yml (Template-Update)."
 fi
