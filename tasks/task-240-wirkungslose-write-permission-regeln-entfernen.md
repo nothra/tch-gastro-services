@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -57,6 +57,19 @@ Lieferung zwingend über den Patch-Workflow (`.claude/**` ist hard denied für d
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+
+**Refactoring (`/refactor`):** Zwei echte Code-Duplikationen entfernt (kein neues Verhalten,
+Tests vor/nach identisch 570 grün/0 rot):
+- `run-tests.sh`: die 7 `#224`-Extension-Write-Assertions und die 11 in `/test` ergänzten
+  Verzeichnis-Glob-Write-Assertions (identischer Rumpf, nur unterschiedliche Eintragslisten)
+  zu einer Schleife über alle 18 `allow`-Einträge zusammengefasst.
+- `run-tests.sh`: die 3 deny-seitigen Write-Absence-Checks (vorher 1 Einzelaufruf für
+  `pnpm-lock.yaml` + 1 Zweier-Schleife für `.claude/**`/`.env*`) zu einer Dreier-Schleife
+  zusammengefasst.
+- `factory-workflow.md`: eine beim Review-Fix entstandene unformatierte Textwand-Zeile
+  (108 Zeichen Absatz in einer Zeile) sauber auf die übliche Zeilenlänge umgebrochen –
+  die testrelevante Phrase „ist seit #224 über eine generische" blieb dabei bewusst
+  ungebrochen (zweiter Anlauf, der erste Umbruchversuch hatte die Assertion rot gefärbt).
 
 ## Blocker
 
