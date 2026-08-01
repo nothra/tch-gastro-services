@@ -7,7 +7,13 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+**PR-Shepherd 2026-08-01:** Merge freigegeben – alle Gates grün. Keine offenen Review-
+Kommentare/Reviews, Branch bereits aktuell zu `origin/main` (`gh pr update-branch` meldete
+„already up-to-date"), alle CI-Checks grün (`post-merge-verify` erwartungsgemäß übersprungen,
+läuft nur auf `main`), keine Pflicht-Approvals ausstehend (ADR-029). PR #250 aus Draft geholt
+(`gh pr ready`). `mergeStateStatus: CLEAN` → direkter Squash-Merge (kein `--auto`, s. ADR-030).
 
 ## Beschreibung
 Härtung zu #241: `model_tiers.heavy` (der Blatt-Pfad in `factory.defaults.yml`, der das Modell
