@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Entferne alle wirkungslosen `Write(...)`-Permission-Regeln aus `permissions.allow` und
@@ -155,3 +155,8 @@ Bash-cwd vertrauen (`factory-workflow.md`).
 ---
 Branch: `chore/240-wirkungslose-write-permission-regeln-entfernen`
 Erstellt: 2026-08-01 14:55
+
+PR-Shepherd [2026-08-01]: Branch auf `origin/main` rebased (Ein-Zeilen-Konflikt in
+`docs/factory/PROJECT-CONTEXT.md` mit PR #247 – beide Index-Zeilen behalten, rein additiv),
+alle Gates nach Rebase erneut grün (580 grün/0 rot Bash-Suite, `pnpm test`/`typecheck`/
+`format:check`/Routen-Doku grün), Draft aufgelöst. Merge freigegeben – alle Gates grün.
