@@ -1356,8 +1356,12 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   assert_true "$?" "Gate #254 AK5: gültiger Override (Mapping-Root, ein Dokument) → exit 0 (Nicht-Regression)"
 
   # AK6 (Positiv): kein Override-File vorhanden → neue Root-Typ-/Mehrdokument-Checks
-  #   werden übersprungen (wie bei den bestehenden Override-only-Regeln).
-  bash "$GATE" "$DEFAULTS" >/dev/null 2>&1
+  #   werden übersprungen (wie bei den bestehenden Override-only-Regeln). Explizit ein
+  #   garantiert nicht existierender Pfad als $2 (statt kein $2), sonst defaultet das
+  #   Gate auf das reale $REPO_ROOT/factory.config.yml (Zeile "OVERRIDE=..."), das
+  #   selbst ein gültiger Override ist — der Skip-Pfad wäre dann nicht isoliert getestet
+  #   (Review-Finding, Task 254).
+  bash "$GATE" "$DEFAULTS" "$GTMP/does-not-exist.yml" >/dev/null 2>&1
   assert_true "$?" "Gate #254 AK6: kein Override-File vorhanden → neue Checks übersprungen, exit 0"
 
   rm -rf "$GTMP"
