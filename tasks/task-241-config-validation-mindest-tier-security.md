@@ -8,7 +8,7 @@
       Härtungsfinding als Issue #249 ausgelagert)
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `scripts/checks/config-validation-check.sh` erzwingt für sicherheitsrelevante Skills
@@ -144,6 +144,12 @@ eigenständiges Härtungs-Issue **#249** ausgelagert (kein Blocker für diesen P
 `tasks/codify-241.md`. Die beiden optionalen Review-Nitpicks (Ordering-Pin-Test,
 Stil-Inkonsistenz `for`/`while read`) brauchen keine neue Regel – bereits im Refactor-Schritt
 bewusst und begründet zurückgestellt.
+
+**PR-Shepherd (2026-08-01):** Merge freigegeben – alle Gates grün. Branch bereits auf aktuellem
+`main` (kein Rebase nötig), CI grün (alle Checks pass), kein Approval erforderlich (0 Approvals
+gemäß ADR-029), keine offenen Review-Kommentare (einziger PR-Kommentar war der automatische
+Vercel-Deploy-Bot). Draft-Status via `gh pr ready` aufgelöst. PR #247, `mergeStateStatus: CLEAN`
+→ Merge per `gh pr merge --squash`.
 
 ---
 Branch: `feature/241-config-validation-mindest-tier-security`
