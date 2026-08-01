@@ -1286,6 +1286,36 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   bash "$GATE" "$DEFAULTS" "$GTMP/sr-tier-heavy.yml" >/dev/null 2>&1
   assert_true "$?" "Gate #241 AK6: security-review.tier=heavy (redundant zum Default) → exit 0"
 
+  # ── model_tiers.heavy ist nicht override-bar (Task 249, Regel 6) ───────────
+  # AK1 (Negativ): abweichender Wert wird abgelehnt, unabhängig davon, dass er
+  #   strukturell gültig ist (passiert Regel 2/4a) — nur Regel 6 kann greifen.
+  printf 'model_tiers:\n  heavy: claude-sonnet-5\n' > "$GTMP/heavy-diff.yml"
+  out="$(bash "$GATE" "$DEFAULTS" "$GTMP/heavy-diff.yml" 2>&1)"; rc=$?
+  assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate #249 AK1: model_tiers.heavy-Override (abweichender Wert) → fail-closed"
+  printf '%s' "$out" | grep -q 'model_tiers.heavy' && printf '%s' "$out" | grep -q 'nicht override-bar'
+  assert_true "$?" "Gate #249 AK1: Fehlermeldung nennt den Pfad + 'nicht override-bar' (Regel 6, nicht Regel 2)"
+
+  # AK2 (Negativ): redundante Bestätigung des exakten Defaults-Werts wird ebenfalls
+  #   abgelehnt — der Pfad ist grundsätzlich gesperrt, nicht nur bei Abweichung.
+  default_heavy="$(yq eval '.model_tiers.heavy' "$DEFAULTS")"
+  printf 'model_tiers:\n  heavy: %s\n' "$default_heavy" > "$GTMP/heavy-same.yml"
+  bash "$GATE" "$DEFAULTS" "$GTMP/heavy-same.yml" >/dev/null 2>&1; rc=$?
+  assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate #249 AK2: model_tiers.heavy-Override (redundant zum Default) → fail-closed"
+
+  # AK3 (Positiv, Nicht-Regression): model_tiers.light bleibt frei override-bar.
+  printf 'model_tiers:\n  light: claude-sonnet-5\n' > "$GTMP/light-diff.yml"
+  bash "$GATE" "$DEFAULTS" "$GTMP/light-diff.yml" >/dev/null 2>&1
+  assert_true "$?" "Gate #249 AK3: model_tiers.light-Override bleibt erlaubt (Nicht-Regression)"
+
+  # AK4 (Positiv): reiner Default-Lauf ohne Override bleibt grün.
+  bash "$GATE" "$DEFAULTS" >/dev/null 2>&1
+  assert_true "$?" "Gate #249 AK4: reiner Default-Lauf (kein Override) → exit 0"
+
+  # AK5 (Positiv): das reale, produktive factory.config.yml (überschreibt nur .light)
+  #   bleibt gültig — die neue Regel darf den legitimen Ist-Zustand nicht brechen.
+  bash "$GATE" "$DEFAULTS" "$FACTORY_ROOT/factory.config.yml" >/dev/null 2>&1
+  assert_true "$?" "Gate #249 AK5: reales factory.config.yml (nur .light-Override) bleibt gültig"
+
   rm -rf "$GTMP"
 else
   skip_yq "Gate-Validierung (Positiv/Negativ-Fixtures)"

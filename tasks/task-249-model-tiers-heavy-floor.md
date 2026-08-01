@@ -1,7 +1,7 @@
 # Task 249: model-tiers-heavy-floor
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -22,14 +22,14 @@ Siehe Spec für vollständigen Kontext: `docs/specs/spec-249-model-tiers-heavy-f
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 – `model_tiers.heavy`-Override wird abgelehnt, unabhängig vom Wert
-- [ ] AK2 – Auch eine redundante Bestätigung des Default-Werts wird abgelehnt
-- [ ] AK3 – `model_tiers.light`-Override bleibt erlaubt (Nicht-Regression)
-- [ ] AK4 – Reiner Default-Lauf bleibt grün
-- [ ] AK5 – Das bestehende, produktive `factory.config.yml` bleibt gültig
-- [ ] AK6 – Die Sperre ist selbst nicht override-bar (Regel 2 fängt neue Steuer-Keys)
-- [ ] AK7 – Regressionstest deckt Positiv- und Negativfälle ab (yq-gated)
-- [ ] AK8 – `factory.config.yml.example` widerspricht der neuen Regel nicht
+- [x] AK1 – `model_tiers.heavy`-Override wird abgelehnt, unabhängig vom Wert
+- [x] AK2 – Auch eine redundante Bestätigung des Default-Werts wird abgelehnt
+- [x] AK3 – `model_tiers.light`-Override bleibt erlaubt (Nicht-Regression)
+- [x] AK4 – Reiner Default-Lauf bleibt grün
+- [x] AK5 – Das bestehende, produktive `factory.config.yml` bleibt gültig
+- [x] AK6 – Die Sperre ist selbst nicht override-bar (Regel 2 fängt neue Steuer-Keys)
+- [x] AK7 – Regressionstest deckt Positiv- und Negativfälle ab (yq-gated)
+- [x] AK8 – `factory.config.yml.example` widerspricht der neuen Regel nicht
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
