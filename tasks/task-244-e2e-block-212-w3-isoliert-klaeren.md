@@ -1,7 +1,7 @@
 # Task 244: e2e-block-212-w3-isoliert-klaeren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -31,7 +31,7 @@ Siehe `docs/specs/spec-244-e2e-block-212-w3-isoliert-klaeren.md` für Kontext/Be
 - [ ] GIVEN die obigen Befunde WHEN sie als Kommentar auf Issue #244 gepostet werden
       THEN referenziert der Kommentar konkret die drei Belege und schließt das Issue
       ohne Code-Fix.
-- [ ] GIVEN `docs/factory/lessons/factory-workflow.md` WHEN das Learning aus #244
+- [x] GIVEN `docs/factory/lessons/factory-workflow.md` WHEN das Learning aus #244
       ergänzt wird THEN gibt es einen neuen Abschnitt (Smell + Regel) plus eine
       passende Index-Zeile in `docs/factory/PROJECT-CONTEXT.md`.
 
