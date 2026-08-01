@@ -5,7 +5,7 @@
 - [x] Implementiert (Tests grün, 599/599)
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -122,6 +122,13 @@ Behobene Nitpicks aus `tasks/review-254.md`:
 - Nicht geändert (bewusst, laut Review als vertretbarer Trade-off eingestuft):
   Testredundanz Gate #254 AK5 vs. bestehendem "sauberer Override"-Test — dient der
   AK-Rückverfolgbarkeit, keine Produktionscode-Auswirkung.
+
+## Security-Review-Findings (/security-review)
+Siehe [tasks/security-254.md](security-254.md). Keine kritischen/wichtigen Findings.
+Zentrale Bypass-Analyse (können die neuen Guards Regel 5/241-Mindest-Tier oder
+6/249-`model_tiers.heavy`-Lock umgehen?) empirisch gegen echtes `yq` getestet
+(Mehrdokument-Angriff, YAML-Merge-Key-Smuggling) — kein Bypass gefunden, die neuen
+Guards laufen strikt VOR und zusätzlich zu den bestehenden Regeln. Ergebnis: PASSED.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
