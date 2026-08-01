@@ -1,7 +1,7 @@
 # Task 241: config-validation-mindest-tier-security
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -18,14 +18,14 @@ Gates nicht unbemerkt schwächen kann (weder über das statische `tier`-Feld noc
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 – `security-review.tier` unter `heavy` wird abgelehnt
-- [ ] AK2 – `review.tier` unter `heavy` wird abgelehnt
-- [ ] AK3 – `tier_by_size` bei `security-review` wird abgelehnt, auch mit gültigem Signal/Threshold
-- [ ] AK4 – `review.tier_by_size` bleibt erlaubt (Nicht-Regression zu ADR-038)
-- [ ] AK5 – Reiner Default-Lauf bleibt grün
-- [ ] AK6 – Explizite Bestätigung des Minimums (`tier: heavy`) bleibt gültig
-- [ ] AK7 – Die Mindest-Tier-Schwelle ist nicht override-bar (Policy-Konstante im Gate-Skript)
-- [ ] AK8 – Regressionstest deckt Positiv- und Negativfälle ab (yq-gated)
+- [x] AK1 – `security-review.tier` unter `heavy` wird abgelehnt
+- [x] AK2 – `review.tier` unter `heavy` wird abgelehnt
+- [x] AK3 – `tier_by_size` bei `security-review` wird abgelehnt, auch mit gültigem Signal/Threshold
+- [x] AK4 – `review.tier_by_size` bleibt erlaubt (Nicht-Regression zu ADR-038)
+- [x] AK5 – Reiner Default-Lauf bleibt grün
+- [x] AK6 – Explizite Bestätigung des Minimums (`tier: heavy`) bleibt gültig
+- [x] AK7 – Die Mindest-Tier-Schwelle ist nicht override-bar (Policy-Konstante im Gate-Skript)
+- [x] AK8 – Regressionstest deckt Positiv- und Negativfälle ab (yq-gated)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -75,6 +75,24 @@ dieser ADRs geändert wird (nur ergänzt).
   bestehenden Stil (`printf ... > "$GTMP/<name>.yml"`, `assert_true`).
 - **Keine Änderung** an `run-pipeline.sh` nötig – das Gate wird dort bereits fail-closed vor jeder
   Nutzung aufgerufen (ADR-010, `load_config()`), die neue Regel wirkt automatisch mit.
+
+**Implementierungs-Notiz (2026-08-01, /implement):**
+
+- Umgesetzt als **Regel 5** in `config-validation-check.sh` (nach 4a/4b/4c): Policy-Konstanten
+  `MIN_TIER_REQUIRED=heavy`, `MIN_TIER_SKILLS="security-review review"`,
+  `NO_TIER_BY_SIZE_SKILLS="security-review"` am Skriptkopf (analog `MAX_TURNS_CEILING`, nicht
+  merge-bar → AK7). 5a prüft das statische `tier` der effektiven Config gegen `MIN_TIER_REQUIRED`,
+  5b verbietet `tier_by_size` für `security-review`.
+- Tests: 10 Assertions `Gate #241 AK1…AK6` in `run-tests.sh` (yq-gated), inkl. Meldungs-Asserts,
+  die Regel 5 gegen Fremd-Pfade isolieren (AK3b: Custom-Defaults deklarieren den `tier_by_size`-Pfad,
+  damit nicht Regel 2 statt Regel 5 fällt – #214-Muster). Alle 10 grün.
+- **`#212 W3`-E2E-Fehlschläge in der Bash-Suite sind umgebungsbedingt, nicht durch diese Task
+  verursacht** (belegt, nicht behauptet): (a) `run-tests.sh`-Diff ist rein additiv (+53/−0), der
+  `#212 W3`-Testcode ist byte-identisch zu HEAD; (b) der E2E-Block speist nur `factory.defaults.yml`
+  ein (security-review=heavy, kein tier_by_size) → Regel 5 passiert sauber; (c) isolierter
+  Positiv-Probelauf mit dem geänderten Gate → Pipeline `exit 0`. Deckt sich mit #244/#245
+  (spec-244: „umgebungs-/sandboxbedingt, kein Code-Defekt", isoliert 5/5 grün, CI-Historie success).
+  Die 4 roten Assertions treten nur in der lokalen Sandbox auf; CI läuft die Suite non-sandboxed grün.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
