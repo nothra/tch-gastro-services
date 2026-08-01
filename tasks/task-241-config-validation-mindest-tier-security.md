@@ -2,11 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden (`tasks/review-241.md` – APPROVED, keine kritischen/wichtigen Findings)
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden (`tasks/security-241.md` – PASSED, kein Blocker; Out-of-Scope-
+      Härtungsfinding als Issue #249 ausgelagert)
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -133,6 +134,16 @@ Keine – Scope im Requirements-Gespräch geklärt (siehe Spec).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**Codify (2026-08-01):** Learning aus dem Security-Review-Finding extrahiert und als Volltext-
+Lesson unter `docs/factory/lessons/factory-workflow.md` („Ein Floor auf einen Lookup-Key ist
+kein Floor auf das, wofür er steht") + Index-Zeile in `PROJECT-CONTEXT.md` hinterlegt: Regel 5
+pinnt das Tier-*Label* `heavy`, nicht das dahinterliegende `model_tiers.heavy`-Modell – dieser
+zweite, nicht enumerierte Pfad blieb override-bar (PoC: Exit 0 trotz gepinntem Label). Als
+eigenständiges Härtungs-Issue **#249** ausgelagert (kein Blocker für diesen PR). Details:
+`tasks/codify-241.md`. Die beiden optionalen Review-Nitpicks (Ordering-Pin-Test,
+Stil-Inkonsistenz `for`/`while read`) brauchen keine neue Regel – bereits im Refactor-Schritt
+bewusst und begründet zurückgestellt.
 
 ---
 Branch: `feature/241-config-validation-mindest-tier-security`

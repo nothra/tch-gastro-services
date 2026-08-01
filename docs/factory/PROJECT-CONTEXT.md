@@ -286,6 +286,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Permission-Regeln in `.claude/settings.json`: slash-freie Muster matchen auf jeder Tiefe (Root-Anker = führender Slash), `Write(pfad)`-Regeln werden von Claude Code aktuell gar nicht ausgewertet (aus #224, claude --print-Verhaltensprobe) → `/implement`, `/security-review` – bei neuer `.claude/settings.json`-Permission-Regel
 - Neue Edit-Freigabe auf bislang gesperrter Config-Klasse: prüfen, ob sie Review-/Security-Review-Tier-Parameter steuert und ob deren Validierung einen Mindest-Floor erzwingt (aus #224, Security-Review-Finding, Issue #241) → `/security-review` – bei neuer Edit-Freigabe auf Pipeline-Config
 - Real-vs-environmental-Einordnung eines gemeldeten Testfehlschlags braucht Wiederholung (isoliert + volle Suite + CI-Historie), nicht nur Diff-Scope-Analyse (aus #244, /requirements-Selbstfund) → `/requirements`, `/review`, `/test` – bei Einordnung eines nicht mehr reproduzierbaren Testfehlschlags
+- Ein Floor auf einen Lookup-Key (Tier-Label, Rollen-Name, Environment-Name) ist kein Floor auf die Zielseite der Indirektion (`model_tiers` u. ä.) – Zielseite mitprüfen oder als eigenes Issue benennen (aus #241, Security-Review-Finding, Issue #249) → `/security-review`, `/implement` – bei Config-Gate mit Pin auf einen Lookup-Key
 
 ---
 
