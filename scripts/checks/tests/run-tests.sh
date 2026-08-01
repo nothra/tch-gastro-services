@@ -2172,6 +2172,17 @@ if [ "$HAS_JQ" -eq 1 ]; then
     assert_true "$?" "#240: allow (geparst) enthält NICHT mehr '$entry'"
   done
 
+  # #240 AK1 (Verzeichnis-Globs aus #88): dieselbe Wirkungslosigkeit betraf auch die 11
+  # ursprünglichen Write(<verzeichnis>/**)-Einträge, nicht nur die #224-Extension-Symmetrie
+  # oben – je Eintrag eine eigene Assertion (nicht nur der pauschale Check weiter unten),
+  # damit ein versehentlich wieder eingeführter Einzeleintrag namentlich rot färbt.
+  for entry in 'Write(app/**)' 'Write(lib/**)' 'Write(db/**)' 'Write(e2e/**)' \
+    'Write(types/**)' 'Write(scripts/**)' 'Write(docs/**)' 'Write(tasks/**)' \
+    'Write(config/**)' 'Write(public/**)' 'Write(.github/workflows/**)'; do
+    jq -e --arg v "$entry" '.permissions.allow | index($v) == null' "$SETTINGS" >/dev/null 2>&1
+    assert_true "$?" "#240: allow (geparst) enthält NICHT mehr '$entry'"
+  done
+
   # AK3 (Gegenrichtung): pnpm-lock.yaml bleibt trotz generischer YAML-Freigabe per deny gesperrt.
   jq -e --arg v 'Edit(pnpm-lock.yaml)' '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
   assert_true "$?" "#224: deny (geparst) enthält 'Edit(pnpm-lock.yaml)'"
