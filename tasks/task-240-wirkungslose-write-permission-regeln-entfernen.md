@@ -1,7 +1,7 @@
 # Task 240: wirkungslose-write-permission-regeln-entfernen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -23,27 +23,28 @@ Lieferung zwingend über den Patch-Workflow (`.claude/**` ist hard denied für d
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [~] AK1 – `Write(...)` ist aus `permissions.allow` entfernt (alle 18 Einträge) – als Patch
-      geliefert (`tasks/patch-240.diff`), Mensch wendet an
-- [~] AK2 – `Write(...)` ist aus `permissions.deny` entfernt (alle 3 Einträge) – als Patch
-      geliefert, Mensch wendet an
+- [x] AK1 – `Write(...)` ist aus `permissions.allow` entfernt (alle 18 Einträge) – Patch
+      angewendet, verifiziert
+- [x] AK2 – `Write(...)` ist aus `permissions.deny` entfernt (alle 3 Einträge) – Patch
+      angewendet, verifiziert
 - [x] AK3 – Kein Funktionsverlust: jeder entfernte `Write(pfad)`-Eintrag hat ein
       `Edit(pfad)`-Pendant in derselben Liste – 1:1-Abgleich vor Patch-Erzeugung verifiziert
       (keine fehlenden Pendants, siehe Blocker-Abschnitt)
-- [~] AK4 – `settings.json` bleibt valides JSON mit unveränderter Grundstruktur
-      (`hooks`/`permissions.allow`/`permissions.deny`) – im Patch-Ziel (`jq`-validiert),
-      finale Bestätigung nach dem Anwenden
+- [x] AK4 – `settings.json` bleibt valides JSON mit unveränderter Grundstruktur
+      (`hooks`/`permissions.allow`/`permissions.deny`) – nach Anwenden bestätigt
+      (`jq -e '.hooks and .permissions.allow and .permissions.deny'`, Regressionstest #224 AK8
+      läuft grün)
 - [x] AK5 – Verhaltensprobe (`claude --print`, `FACTORY_STAGE=3`) bestätigt vor der Entfernung
       dieselbe „Write(<pfad>) is not matched"-Warnung wie in #224 (CLI jetzt 2.1.220,
       21 Warnzeilen, siehe Blocker-Abschnitt)
-- [~] AK6 – Nach der Entfernung: kein neuer Permission-Prompt für zuvor per `Write(pfad)`
-      "erlaubte" Pfade (Edit-Regel deckt weiterhin ab) – erst nach Anwenden des Patches prüfbar
+- [x] AK6 – Nach der Entfernung: kein neuer Permission-Prompt für zuvor per `Write(pfad)`
+      "erlaubte" Pfade (Edit-Regel deckt weiterhin ab) – Positiv-Probe nach dem Patch
+      durchgeführt: `docs/routes.md` per `Edit` geändert (kein Prompt), 0 Warnzeilen statt
+      vorher 21
 - [x] AK7 – Regressionstest in `scripts/checks/tests/run-tests.sh` geändert (nicht nur ergänzt):
       prüft Abwesenheit von `Write(...)` (jq-geparst + Grep-Fallback), alte
-      "Vorhandensein"-Assertions aus #91/#224 entfernt/ersetzt. RED bestätigt (13 Assertions rot
-      gegen die noch nicht gepatchte Datei); GREEN-Logik gegen eine bereinigte Scratch-Kopie
-      standalone verifiziert (siehe Blocker-Abschnitt) – finaler GREEN-Lauf nach Anwenden des
-      Patches noch ausstehend.
+      "Vorhandensein"-Assertions aus #91/#224 entfernt/ersetzt. RED→GREEN belegt: 546 grün/13 rot
+      vor dem Patch, **559 grün/0 rot nach dem Patch** (voller Lauf)
 - [x] AK8 – Stale Prosa in `docs/factory/lessons/factory-workflow.md` (#224-Abschnitt)
       korrigiert: Präsens-Aussage zur "existierenden" Write-Liste + "Cleanup-Kandidat: Issue
       #240"-Verweis auf erledigt aktualisiert
@@ -61,9 +62,9 @@ Pfad-Header über `git diff --no-index --no-prefix` + Sed-Korrektur auf `a/.clau
 verifiziert (Ergebnis: „APPLY-CHECK OK", zweimal geprüft – gegen die Scratch-Kopie und erneut
 gegen die im Branch committete Patch-Datei).
 
-**Was der Mensch tun muss:** `git apply tasks/patch-240.diff` im Worktree ausführen (danach
-`tasks/patch-240.diff` entfernen und die `[~]`-Checkboxen oben auf `[x]` setzen, aus #145/#212 –
-kein totes Patch-Artefakt vor dem Merge).
+**Erledigt [2026-08-01]:** Der Mensch hat `git apply tasks/patch-240.diff` im Worktree
+ausgeführt. `tasks/patch-240.diff` wurde danach entfernt (aus #145/#212 – kein totes
+Patch-Artefakt vor dem Merge), alle Checkboxen oben auf `[x]` gesetzt.
 
 **1:1-Edit-Pendant-Abgleich (AK3), vor Patch-Erzeugung durchgeführt:** Für jeden der 18
 `Write(...)`-Einträge in `allow` und der 3 in `deny` wurde per `jq` verifiziert, dass ein
@@ -80,14 +81,19 @@ Das Log enthielt **21** Zeilen der Form „Write(<pfad>) is not matched by file 
 CLI 2.1.218, jetzt bestätigt auf CLI 2.1.220. Damit ist belegt: Die Entfernung der
 `Write(...)`-Einträge verändert das reale Permission-Verhalten **nicht**.
 
-**Regressionstest (AK7), RED→GREEN-Beleg ohne Zugriff auf die hard-denied Live-Datei:** Die
-angepassten Assertions in `run-tests.sh` wurden zweifach verifiziert: (1) voller Testlauf gegen
-die **unveränderte** `.claude/settings.json` → 546 grün, 13 rot – exakt die erwarteten neuen
+**Regressionstest (AK7), RED→GREEN belegt:** Die angepassten Assertions in `run-tests.sh` liefen
+(1) vor dem Patch gegen die unveränderte Datei → 546 grün, 13 rot – exakt die erwarteten neuen
 „Write(...) darf nicht mehr vorkommen"-Assertions (kein unerwarteter Kollateralschaden an den
-übrigen 546). (2) Dieselbe `jq`-/`grep`-Logik standalone gegen eine bereinigte Scratch-Kopie von
-`settings.json` (nicht die Live-Datei) ausgeführt → alle Prüfungen liefern das erwartete
-GREEN-Ergebnis. Der finale Lauf gegen die tatsächlich gepatchte Live-Datei steht nach dem
-`git apply` durch den Menschen noch aus (erwartet: 559 grün, 0 rot).
+übrigen 546); (2) standalone gegen eine bereinigte Scratch-Kopie (Vorab-Beleg der GREEN-Logik)
+und (3) **nach** dem `git apply` durch den Menschen gegen die tatsächliche Live-Datei → **559
+grün, 0 rot** (voller Lauf, keine Regression).
+
+**AK6-Verhaltensprobe nach dem Patch, durchgeführt 2026-08-01:** Dieselbe
+`claude --print`-Probe wie bei AK5, jetzt gegen die **gepatchte** `.claude/settings.json`.
+Ergebnis: `docs/routes.md` erneut per `Edit` geändert (MD5 vorher `8ac445a1…`, nachher
+`2d6c1e67…`, danach zurückgesetzt) – weiterhin **kein** Permission-Prompt. Das Log enthielt
+**0** „is not matched"-Warnzeilen (vorher 21) – die Entfernung hat sowohl die dead config
+beseitigt als auch das reale Edit/Write-Verhalten unverändert gelassen.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
