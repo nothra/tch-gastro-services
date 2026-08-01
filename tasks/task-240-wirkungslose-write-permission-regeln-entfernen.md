@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -130,6 +130,17 @@ Siehe [`tasks/review-240.md`](review-240.md). Verdict: **APPROVED**. Ein Wichtig
 (Commit `5445f0a`). Out-of-Scope-Fund (fehlender Regressionstest für die vorbestehenden
 `#88`-`Edit(...)`-Allow-Einträge) als Issue [#251](https://github.com/nothra/tch-gastro-services/issues/251)
 ausgelagert.
+
+## Security-Review
+
+Siehe [`tasks/security-240.md`](security-240.md). Ergebnis: **PASSED**, keine kritischen
+Findings. Ein Wichtiges (nicht blockierendes) Finding: die entfernten `Write(...)`-Deny-Einträge
+waren eine (selbst wirkungslose) Rückfallebene für den Fall eines künftigen
+Claude-Code-Verhaltenswechsels – deren Absicherung ist jetzt rein prozedural (Lesson-Reminder,
+kein technisches Gate). Kein eigenes Issue nötig: kein sinnvoll baubarer automatisierter Test
+dafür, bestehender Lesson-Reminder ist die angemessene Mitigation. Adversarial-Review
+(unabhängiger Agent) bestätigt: `Edit(...)`-Regeln (die tatsächliche Sicherheitsgrenze)
+zeichengleich unverändert, kein Injection-Vektor in den Testskript-Änderungen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
