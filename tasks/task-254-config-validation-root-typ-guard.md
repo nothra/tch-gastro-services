@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Implementiert (Tests grün, 599/599)
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -100,6 +100,14 @@ Siehe [tasks/review-254.md](review-254.md). Drei Perspektiven (Logik, Code-Quali
 Architektur), keine kritischen Findings. Eine Wichtig-Finding (Gate #254 AK6 testete
 den "kein Override"-Skip-Pfad nicht isoliert) direkt in dieser Session behoben.
 Verdict: APPROVED (mit optionalen Nitpicks für /refactor).
+
+## Test-Vollständigkeit (/test)
+Siehe [tasks/coverage-254.md](coverage-254.md). Alle 6 Akzeptanzkriterien 1:1 auf
+eigene Testfälle abgebildet (Gate #254 AK1–AK6), Happy-Path/Fehlerfälle/Boundary
+(Dokumentanzahl 1 vs. 2) abgedeckt, Tests unabhängig/deterministisch/Black-Box.
+Keine App-TS-Dateien betroffen → `pnpm test:coverage`-Schwelle nicht anwendbar für
+diesen Task. Keine neuen Tests nötig, keine Produktionscode-Änderung in diesem
+Schritt. Volle Gate-Suite: 599 grün, 0 rot.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
