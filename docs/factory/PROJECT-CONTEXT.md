@@ -238,6 +238,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - ESLint-Ignore-Config verhaltensbasiert testen (`isPathIgnored`, nicht Config-Array) + Diskriminierungs-Kontrolle in der Gegenrichtung (bekanntes Nicht-Mitglied → `false`) (aus #172, /test-Selbstfund)
 - Row/Cell-Index-Assertions gegen einen gerenderten Report sind Magic Numbers – Herleitung sofort mitschreiben, nicht erst im Review (aus #189, Review-Runde-1-Finding)
 - Flaky Timeout durch unamortisierten teuren Erst-Aufruf: in `beforeAll` mit eigenem endlichem Timeout aufwärmen, nicht global das Timeout erhöhen (aus #238)
+- Neue Regressions-Assertion-Schleife gegen bereits vorhandene Schleife mit identischem Rumpf abgleichen, bevor eine parallele Schleife angelegt wird (aus #240, /test→/refactor-Diskrepanz)
+- `grep -qF`-Fixed-String-Regressionstest gegen Markdown-Prosa: beim Umbrechen die Testphrase auf einer Zeile halten, sonst lautlos rot (aus #240, /review-Rework-Selbstfund)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -287,6 +289,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Neue Edit-Freigabe auf bislang gesperrter Config-Klasse: prüfen, ob sie Review-/Security-Review-Tier-Parameter steuert und ob deren Validierung einen Mindest-Floor erzwingt (aus #224, Security-Review-Finding, Issue #241) → `/security-review` – bei neuer Edit-Freigabe auf Pipeline-Config
 - Real-vs-environmental-Einordnung eines gemeldeten Testfehlschlags braucht Wiederholung (isoliert + volle Suite + CI-Historie), nicht nur Diff-Scope-Analyse (aus #244, /requirements-Selbstfund) → `/requirements`, `/review`, `/test` – bei Einordnung eines nicht mehr reproduzierbaren Testfehlschlags
 - Ein Floor auf einen Lookup-Key (Tier-Label, Rollen-Name, Environment-Name) ist kein Floor auf die Zielseite der Indirektion (`model_tiers` u. ä.) – Zielseite mitprüfen oder als eigenes Issue benennen (aus #241, Security-Review-Finding, Issue #249) → `/security-review`, `/implement` – bei Config-Gate mit Pin auf einen Lookup-Key
+- Write-Tool-Zielpfad im Worktree explizit gegen den Worktree-Suffix prüfen, nicht dem Bash-cwd vertrauen (der nach jedem Bash-Aufruf auf den Hauptbaum zurückspringt) (aus #240, /implement-Selbstfund) → jeder Skill – bei neuer Datei per `Write`-Tool in einer Worktree-Session
 
 ---
 
