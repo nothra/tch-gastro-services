@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -144,6 +144,13 @@ zeichengleich unverändert, kein Injection-Vektor in den Testskript-Änderungen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [`tasks/codify-240.md`](codify-240.md). Drei neue Lessons: (1) neue
+Regressions-Assertion-Schleife gegen bereits vorhandene mit identischem Rumpf abgleichen statt
+eine parallele Schleife anzulegen (`testing.md`), (2) `grep -qF`-Fixed-String-Regressionstest
+gegen Markdown-Prosa bricht lautlos bei einem Zeilenumbruch über die Testphrase (`testing.md`),
+(3) Write-Tool-Zielpfad im Worktree explizit gegen den Worktree-Suffix prüfen, nicht dem
+Bash-cwd vertrauen (`factory-workflow.md`).
 
 ---
 Branch: `chore/240-wirkungslose-write-permission-regeln-entfernen`
