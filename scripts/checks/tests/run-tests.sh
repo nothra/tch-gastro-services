@@ -1421,6 +1421,20 @@ else
   skip_yq "D: factory.config.yml.example hat keinen aktiven Override (yq-Tag → !!null)"
 fi
 
+# D (Task 249, AK8): model_tiers-Beispielblock widerspricht der Gate-Policy nicht mehr —
+# 'heavy' darf dort nicht länger als überschreibbares Beispiel auftauchen. Block isolieren
+# (von der "Knopf: model_tiers"-Überschrift bis zur nächsten "Knopf:"-Überschrift), analog
+# zur bestehenden skills_block-Extraktion oben (Schreibweise-/Positions-unabhängig).
+model_tiers_block=$(awk '/Knopf: model_tiers/{f=1} f&&/Knopf:/&&!/Knopf: model_tiers/{f=0} f' "$EXAMPLE" 2>/dev/null || true)
+printf '%s\n' "$model_tiers_block" | grep -qE '^#[[:space:]]*heavy:'
+assert_true "$([ $? -ne 0 ]; echo $?)" "D (Task 249 AK8): model_tiers-Beispielblock zeigt 'heavy' nicht mehr als Beispiel-Knopf"
+printf '%s\n' "$model_tiers_block" | grep -qi 'nicht override-bar'
+assert_true "$?" "D (Task 249 AK8): model_tiers-Beispielblock nennt 'heavy' explizit als nicht override-bar"
+# Negativ-Kontrolle (F1-analog): die Positiv-Regex matcht, wenn der verbotene Beispiel-Knopf
+# tatsächlich vorhanden wäre — belegt, dass der Test scharf ist und nicht zufällig grün läuft.
+printf '#   heavy: claude-opus-4-8\n' | grep -qE '^#[[:space:]]*heavy:'
+assert_true "$?" "D (Task 249 AK8): Positiv-Kontrolle — Regex erkennt einen vorhandenen 'heavy:'-Beispiel-Knopf"
+
 # ─── start-work.sh: Worktree-Isolation (Kern-Vorkehrung gegen Session-Kollisionen, #74) ──
 echo "start-work.sh (Worktree-Isolation, #74):"
 
