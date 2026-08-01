@@ -285,6 +285,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Neuer Worktree hat kein `.env.local` → irreführender `CredentialsSignin`-E2E-Fehlschlag ist Umgebungsproblem, keine Regression (aus #228, /implement-Selbstfund; Root-Cause-Fix ausgelagert: #236) → `/implement` – bei erstem E2E-Lauf in neuem Worktree
 - Permission-Regeln in `.claude/settings.json`: slash-freie Muster matchen auf jeder Tiefe (Root-Anker = führender Slash), `Write(pfad)`-Regeln werden von Claude Code aktuell gar nicht ausgewertet (aus #224, claude --print-Verhaltensprobe) → `/implement`, `/security-review` – bei neuer `.claude/settings.json`-Permission-Regel
 - Neue Edit-Freigabe auf bislang gesperrter Config-Klasse: prüfen, ob sie Review-/Security-Review-Tier-Parameter steuert und ob deren Validierung einen Mindest-Floor erzwingt (aus #224, Security-Review-Finding, Issue #241) → `/security-review` – bei neuer Edit-Freigabe auf Pipeline-Config
+- Real-vs-environmental-Einordnung eines gemeldeten Testfehlschlags braucht Wiederholung (isoliert + volle Suite + CI-Historie), nicht nur Diff-Scope-Analyse (aus #244, /requirements-Selbstfund) → `/requirements`, `/review`, `/test` – bei Einordnung eines nicht mehr reproduzierbaren Testfehlschlags
 
 ---
 
