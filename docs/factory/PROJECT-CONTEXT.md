@@ -240,6 +240,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Flaky Timeout durch unamortisierten teuren Erst-Aufruf: in `beforeAll` mit eigenem endlichem Timeout aufwärmen, nicht global das Timeout erhöhen (aus #238)
 - Neue Regressions-Assertion-Schleife gegen bereits vorhandene Schleife mit identischem Rumpf abgleichen, bevor eine parallele Schleife angelegt wird (aus #240, /test→/refactor-Diskrepanz)
 - `grep -qF`-Fixed-String-Regressionstest gegen Markdown-Prosa: beim Umbrechen die Testphrase auf einer Zeile halten, sonst lautlos rot – gilt in beide Richtungen (Prosa ändern UND neuen Test gegen bestehende Prosa schreiben) (aus #240/#249)
+- „Kein Argument übergeben"-Test simuliert nicht automatisch Abwesenheit, wenn das Skript einen `${N:-$REPO_ROOT/...}`-Default auf einen echten, existierenden Repo-Pfad hat – garantiert fehlenden Pfad explizit übergeben (aus #254, Review-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 

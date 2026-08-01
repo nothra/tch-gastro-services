@@ -7,7 +7,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -132,6 +132,11 @@ Guards laufen strikt VOR und zusätzlich zu den bestehenden Regeln. Ergebnis: PA
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [tasks/codify-254.md](codify-254.md). Neue Lesson in
+[`docs/factory/lessons/testing.md`](../docs/factory/lessons/testing.md) + Index-Zeile in
+`PROJECT-CONTEXT.md`: „Kein Argument übergeben"-Tests gegen Bash-Gates mit
+`${N:-$REPO_ROOT/...}`-Default können versehentlich den Default statt der Abwesenheit
+testen (Ursache der AK6-Review-Finding). Keine weiteren Regeln nötig.
 
 ---
 Branch: `feature/254-config-validation-root-typ-guard`
