@@ -11,6 +11,10 @@
 #
 # Regeln (alle fail-closed):
 #   1. YAML-Parsefehler (defaults oder override) → fail
+#      1a. Override: Mehrdokument-YAML (mehrere '---'-getrennte Dokumente) wird mit
+#          einer eigenen Meldung abgelehnt (Task 254).
+#      1c. Override: der Root muss ein YAML-Mapping sein (Skalar/Bool/Sequence → fail,
+#          Task 254) — sonst liefert leaf_paths() keine oder irreführende Pfade.
 #   2. Unbekannte Keys: jeder Override-Blatt-Pfad muss in den Defaults existieren
 #      (die Defaults SIND die erlaubte Oberfläche → keine zweite Schema-Liste, ADR-010)
 #   3. schemaVersion: Integer == Defaults-Wert; weicht der Override ab → fail + Upgrade-Hinweis
@@ -72,8 +76,29 @@ yq eval '.' "$DEFAULTS" >/dev/null 2>&1 || fail "Defaults sind kein gültiges YA
 expected_sv="$(yq eval '.schemaVersion' "$DEFAULTS")"
 
 if override_present; then
+  # 1a. Mehrdokument-Guard (Task 254): mehr als ein YAML-Dokument im Override wird
+  #     abgelehnt, auch wenn jedes Dokument für sich ein gültiges Mapping ist. Muss vor
+  #     dem Root-Typ-Vergleich (1c) laufen — sonst würde ein Multidoc-Mapping bereits
+  #     dort scheitern (yq eval 'tag' liefert je Dokument eine eigene Zeile), mit der
+  #     falschen "kein Mapping"-Meldung statt der Mehrdokument-Meldung.
+  override_doc_count="$(yq eval-all 'document_index' "$OVERRIDE" 2>/dev/null | sort -u | wc -l | tr -d '[:space:]')"
+  case "$override_doc_count" in
+    ''|*[!0-9]*) override_doc_count=0 ;;
+  esac
+  [ "$override_doc_count" -gt 1 ] \
+    && fail "Override enthält mehrere YAML-Dokumente (durch '---' getrennt) — nur ein Dokument ist erlaubt: $OVERRIDE"
+
   # 1b. YAML-Parse des Overrides.
   yq eval '.' "$OVERRIDE" >/dev/null 2>&1 || fail "Override ist kein gültiges YAML: $OVERRIDE"
+
+  # 1c. Root-Typ-Guard (Task 254): der Override-Root muss ein Mapping sein. Ein leerer
+  #     Override (Tag !!null, "kein Wert gesetzt") bleibt gültig — Regel 2 lässt ihn
+  #     bereits unverändert durch (leaf_paths liefert dann keine Pfade).
+  override_root_tag="$(yq eval 'tag' "$OVERRIDE" 2>/dev/null)"
+  case "$override_root_tag" in
+    '!!map'|'!!null') ;;
+    *) fail "Override ist kein YAML-Mapping (Root-Typ: $override_root_tag): $OVERRIDE" ;;
+  esac
 
   # 2. Unbekannte Keys: Override-Blatt-Pfade ⊆ Defaults-Blatt-Pfade.
   defaults_paths="$(leaf_paths "$DEFAULTS")"

@@ -2,6 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
+- [x] Implementiert (Tests grün, 599/599)
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -21,19 +22,19 @@ einen eigenständigen Mehrdokument-Guard für den Override. Details:
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN Skalar-Root im Override WHEN Gate läuft THEN exit ≠ 0 mit
+- [x] GIVEN Skalar-Root im Override WHEN Gate läuft THEN exit ≠ 0 mit
       expliziter "kein Mapping"-Meldung (nicht die irreführende
       max_turns-Meldung aus Regel 4b)
-- [ ] GIVEN Boolean-Root im Override WHEN Gate läuft THEN dieselbe explizite
+- [x] GIVEN Boolean-Root im Override WHEN Gate läuft THEN dieselbe explizite
       "kein Mapping"-Meldung
-- [ ] GIVEN Sequence-Root im Override WHEN Gate läuft THEN dieselbe explizite
+- [x] GIVEN Sequence-Root im Override WHEN Gate läuft THEN dieselbe explizite
       "kein Mapping"-Meldung
-- [ ] GIVEN Mehrdokument-YAML im Override (zwei gültige Mapping-Dokumente via
+- [x] GIVEN Mehrdokument-YAML im Override (zwei gültige Mapping-Dokumente via
       `---`) WHEN Gate läuft THEN eigene, unterscheidbare Meldung zur
       Mehrdokument-Struktur
-- [ ] GIVEN gültiger Override (ein Dokument, Mapping-Root) WHEN Gate läuft
+- [x] GIVEN gültiger Override (ein Dokument, Mapping-Root) WHEN Gate läuft
       THEN unverändertes Verhalten (keine Regression bei Regeln 1–6)
-- [ ] GIVEN kein Override-File vorhanden WHEN Gate läuft THEN neue Checks
+- [x] GIVEN kein Override-File vorhanden WHEN Gate läuft THEN neue Checks
       werden übersprungen (wie bei bestehenden Override-only-Regeln)
 
 ## Technische Notizen
@@ -77,6 +78,21 @@ einen eigenständigen Mehrdokument-Guard für den Override. Details:
 ## Offene Fragen
 Keine — geklärt: Guard nur für Override (nicht Defaults); Mehrdokument
 bekommt eigene Meldung.
+
+## Implementierungs-Notizen
+- Mehrdokument-Erkennung über `yq eval-all 'document_index' "$OVERRIDE" | sort -u | wc -l`
+  (> 1 → Mehrdokument). Ein leeres Override-File liefert dabei `0` (ein Dokument mit
+  Tag `!!null`), keine leere Ausgabe — deckt sich mit dem bestehenden "leerer Override
+  ist gültig"-Fall.
+- Root-Typ-Guard lässt `!!null` (leeres/kommentarloses Override) explizit zu, da dieser
+  Fall bereits vor Task 254 als gültig galt (Regel 2 lässt ihn unverändert durch).
+- Reihenfolge wie in den Implementierungs-Hinweisen vorgegeben: Mehrdokument-Guard vor
+  Root-Typ-Guard, beide vor Regel 1b (YAML-Parse) bzw. Root-Typ-Guard danach — ein
+  Multidoc-File liefert bei `yq eval 'tag'` sonst je Dokument eine eigene Zeile
+  ("!!map\n!!map") und würde am generischen Vergleich vorbeirutschen oder falsch
+  fehlschlagen; der Multidoc-Guard fängt das vorher ab.
+- Tests ergänzt in `scripts/checks/tests/run-tests.sh` im bestehenden `HAS_YQ`-Block
+  direkt nach den Gate-#249-Assertions (Gate #254 AK1–AK6). Volle Suite: 599 grün, 0 rot.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
