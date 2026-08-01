@@ -34,10 +34,80 @@ Siehe Spec für vollständigen Kontext: `docs/specs/spec-249-model-tiers-heavy-f
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
+**ADR-Trigger-Check (Spec-002/ADR-002), 2026-08-01 – keine Kategorie zutreffend:**
+
+| # | Kategorie | Zutreffend? | Begründung |
+|---|-----------|-------------|------------|
+| 1 | Technologiewahl | Nein | Keine neue Library/Framework/DB/externer Dienst – reines Bash/`yq` im bestehenden Gate-Skript, bereits Prerequisite (ADR-009 §A). |
+| 2 | Architekturmuster | Nein | Erweitert das **bereits entschiedene** Muster aus ADR-010 (Policy-Konstante im Gate-Skript, analog `MAX_TURNS_CEILING`, seit Task 241 auch für Tier-Label-Floors genutzt) um eine weitere Constraint-Klasse derselben Art – kein neuer Schichtungs-/Datenfluss-Ansatz. |
+| 3 | Schnittstellen-Vertrag | Nein | `config-validation-check.sh` ist internes Factory-Tooling ohne Außenwirkung auf Teams/Services; Aufruf-Signatur und Exit-Code-Semantik ändern sich nicht, nur eine zusätzliche interne Ablehnungsregel kommt hinzu. |
+| 4 | Irreversible Konsequenz | Nein | Reversibel durch Editieren des Gate-Skripts; keine Datenmigration, keine öffentliche API, keine Persistenz-Strategie betroffen. Sicherheitsrelevant (Label `security`), aber wie bei Task 241 kein Trigger für eine *architektonische* Konsequenz – die Änderung ist eine zusätzliche Werte-Constraint, kein neuer Sicherheits-*Mechanismus*. |
+
+**Nicht-ADR 2026-08-01:** Sperre von `model_tiers.heavy` gegen Team-Override im Config-Gate –
+bewusst kein neues ADR (Begründung: reine Erweiterung des in ADR-010 bereits etablierten Musters
+„Policy-Konstante im Gate-Skript, nicht Teil der merge-baren Config" um eine weitere
+Constraint-Klasse; keiner der vier Trigger aus Spec-002/ADR-002 greift, s. o.; identische
+Einordnung wie bei Task 241, s. `tasks/task-241-config-validation-mindest-tier-security.md`).
+Referenz bleibt ADR-009 §6 / ADR-010 – kein ADR-Nachtrag nötig.
+
+**ADR-010-Drift-Frage (aus der Spec) entschieden:** Kein Nachtrag an
+`docs/adr/010-config-validation-gate.md` nötig. Geprüft: der ADR-Text behauptet an keiner Stelle,
+dass `model_tiers.heavy` (oder ein anderer bestehender Blatt-Pfad) frei override-bar bleiben *muss*
+– §„Konsequenzen" beschreibt nur, dass *neue* Pfade (`model_tiers.medium`, neue Skill-Keys) über
+Regel 2 abgelehnt werden. Diese Aussage bleibt nach dem Fix unverändert wahr; die neue Regel 6
+ergänzt eine zusätzliche Ablehnung für einen *bestehenden* Pfad, widerspricht also keiner
+bestehenden ADR-Aussage (kein Drift-Fall im Sinne des Codify-Learnings zu #211/#176 – das greift
+nur, wenn eine ADR-Prosa-Zeile durch die Änderung faktisch falsch wird).
+
+**Implementierungs-Hinweise für `/implement`:**
+
+- **Ort:** `scripts/checks/config-validation-check.sh`, neue Regel **6**, physisch am Ende des
+  Skripts nach der bestehenden Regel 5b (Task 241) und vor `exit 0` — analog zur Konvention, dass
+  neue Task-Regeln sequenziell angehängt werden, nicht in eine bestehende Nummerierung
+  eingeschoben werden (vgl. Task 241 → Regel 5 nach 4a–4c).
+- **Operiert auf dem ROHEN `$OVERRIDE`, nicht auf `effective`:** Anders als Regel 4/5 braucht
+  Regel 6 keinen gemergten Wert — der Pfad ist laut Spec (AK1/AK2) bereits verboten, sobald der
+  Override ihn überhaupt *setzt*, unabhängig davon, ob der Wert vom Default abweicht. Guard wie
+  bei Regel 2/3: nur prüfen, wenn `[ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]`.
+- **Prüf-Logik (Wiederverwendung der vorhandenen `leaf_paths`-Funktion, kein neues yq-Idiom):**
+  ```bash
+  # 6. model_tiers.heavy ist nicht override-bar (Task 249 — Härtung zu Task 241: das Label
+  #    'heavy' darf nicht durch ein Remapping auf ein schwächeres Modell unterlaufen werden).
+  LOCKED_MODEL_TIER_PATH="model_tiers.heavy"
+  if [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; then
+    grep -qxF -- "$LOCKED_MODEL_TIER_PATH" <<< "$(leaf_paths "$OVERRIDE")" \
+      && fail "'$LOCKED_MODEL_TIER_PATH' ist nicht override-bar (Gate-Policy, Task 249). Modell-ID-Pflege für 'heavy' läuft ausschließlich über factory.defaults.yml (Template-Update)."
+  fi
+  ```
+  Die Override-Blatt-Pfade wurden für Regel 2 bereits berechnet — sofern dort in eine Variable
+  extrahiert wird (`override_paths="$(leaf_paths "$OVERRIDE")"`), diese hier wiederverwenden statt
+  `leaf_paths` ein zweites Mal aufzurufen (Performance/DRY, kein neues Verhalten).
+- **`LOCKED_MODEL_TIER_PATH` ist eine Policy-Konstante am Skriptkopf** (analog
+  `MIN_TIER_REQUIRED`), **nicht** Teil der merge-baren Config — sonst könnte ein Override die
+  Sperre selbst wieder aushebeln (AK6, bereits strukturell durch Regel 2 abgesichert, falls jemand
+  versucht, einen neuen Steuer-Key einzuführen).
+- **Header-Kommentar aktualisieren:** Die Regel-Liste am Skriptkopf (aktuell 1–5) um
+  „6. model_tiers.heavy ist nicht override-bar (Task 249)." ergänzen, konsistent mit dem
+  bestehenden Stil der Regel-5-Beschreibung.
+- **`factory.defaults.yml`:** Kommentar am `model_tiers`-Block (Zeilen ~30–39) um einen Hinweis
+  ergänzen, dass `heavy` seit Task 249 nicht mehr per Team-Override änderbar ist (nur `light`) –
+  Modell-ID-Pflege für `heavy` läuft künftig ausschließlich hier.
+- **`factory.config.yml.example`:** Beispielblock „Knopf: model_tiers" (Zeilen ~27–33) – die
+  `heavy:`-Beispielzeile entfernen (nur noch `light:` als Beispiel), Kommentar ergänzen, dass
+  `heavy` eine Gate-Policy-Konstante ist und nicht override-bar.
+- **Tests:** `scripts/checks/tests/run-tests.sh`, im bestehenden `HAS_YQ`-Block direkt nach den
+  vorhandenen Regel-5-Fixtures (Task 241) – je AK1–AK4 mindestens ein Fixture (Positiv **und**
+  Negativ je Regel), im bestehenden Stil (`printf ... > "$GTMP/<name>.yml"`, `assert_true`/
+  `assert_false`). AK2 (redundante Bestätigung des Default-Werts) braucht ein eigenes Fixture, das
+  `model_tiers.heavy` exakt auf den Defaults-Wert setzt, um zu zeigen, dass auch das abgelehnt wird
+  (nicht nur ein abweichender Wert).
+- **Keine Änderung an `run-pipeline.sh` nötig** – das Gate wird dort bereits fail-closed vor jeder
+  Nutzung aufgerufen (ADR-010, `load_config()`), die neue Regel wirkt automatisch mit.
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- [ ] ADR-010-Drift: `docs/adr/010-config-validation-gate.md` §„Konsequenzen" ggf. nachziehen –
-      Entscheidung liegt bei `/architecture`.
+- [x] ADR-010-Drift: `docs/adr/010-config-validation-gate.md` §„Konsequenzen" ggf. nachziehen –
+      **entschieden (2026-08-01, /architecture): kein Nachtrag nötig**, s. Technische Notizen oben.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
