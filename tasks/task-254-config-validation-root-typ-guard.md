@@ -39,6 +39,41 @@ einen eigenständigen Mehrdokument-Guard für den Override. Details:
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
+**ADR-Trigger-Prüfung (OPERATING.md §4.1, gegen alle vier Kategorien):**
+- Technologiewahl: keine — `yq` ist bereits Prerequisite (ADR-009 §A), keine
+  neue Library/Framework/DB/Dienst.
+- Architekturmuster: keine — keine neue Schicht, kein Query-Modell-Wechsel,
+  reine Ergänzung von zwei Guard-Zeilen in einem bestehenden Bash-Gate.
+- Schnittstellen-Vertrag: keiner — CLI-Signatur
+  (`config-validation-check.sh [<defaults>] [<override>]`) und Exit-Code-
+  Semantik (0 = gültig, ≠0 = ungültig) bleiben unverändert; es kommen nur
+  zwei neue, früher greifende Fail-Fälle mit klareren Meldungen hinzu, die
+  vorher ohnehin schon (nur verwirrend) fehlgeschlagen sind.
+- Langfristige/irreversible Konsequenz: keine — trivial rückbaubar (zwei
+  Guard-Blöcke entfernen), keine Daten-/Schema-Migration.
+
+→ **Kein ADR-Trigger aktiv. Kein ADR nötig.** Direkt weiter zu `/implement`.
+
+**Implementierungs-Hinweise für den Coding-Agenten:**
+- Reihenfolge im Skript: Mehrdokument-Guard **zuerst**, dann Root-Typ-Guard —
+  beide innerhalb des bestehenden `if override_present; then`-Blocks, **vor**
+  Regel 1b (YAML-Parse) bzw. direkt danach und in jedem Fall vor Regel 2
+  (`leaf_paths`/unbekannte Keys) und Regel 6 (`model_tiers.heavy`), da beide
+  einen Mapping-Root voraussetzen.
+- Multidoc-Erkennung zuerst, sonst würde ein Multidoc-Mapping (`!!map\n!!map`)
+  bereits am generischen Root-Typ-Vergleich (`= "!!map"`) scheitern und mit
+  der falschen ("kein Mapping") Meldung abbrechen, obwohl beide Dokumente
+  Mappings sind.
+- Bestehendes Muster für Zeilen-Vergleiche/Guards im Skript weiterverwenden
+  (`fail()`-Helper, `grep -qxF --`, `case`-Integer-Guards) — kein neuer Stil.
+- Nur POSIX-kompatibles Shell/`grep -E` (clean-code.md „Portabilität in
+  Gate-/Shell-Skripten") — Gate läuft auf macOS (lokal) und Alpine/GNU (CI).
+- Tests: bestehendes Muster in `scripts/checks/tests/run-tests.sh` im
+  `HAS_YQ`-Block direkt nach den „Gate #249"-Assertions (ca. Zeile 1320)
+  fortführen — Format `assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate #254
+  AKn: …"`, je AK mindestens ein Positiv- und ein Negativ-Fixture (analog zu
+  #241/#249). Kein neues Test-File — an derselben zentralen Stelle bleiben.
+
 ## Offene Fragen
 Keine — geklärt: Guard nur für Override (nicht Defaults); Mehrdokument
 bekommt eigene Meldung.
