@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -104,6 +104,13 @@ beseitigt als auch das reale Edit/Write-Verhalten unverändert gelassen.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+Siehe [`tasks/review-240.md`](review-240.md). Verdict: **APPROVED**. Ein Wichtiges Finding
+(stale `Write(...)`-Prosa im `#91`-Patch-Workflow-Abschnitt von `factory-workflow.md`,
+übereinstimmend in Runde 2 und 3 gefunden) wurde direkt während der Review-Runde behoben
+(Commit `5445f0a`). Out-of-Scope-Fund (fehlender Regressionstest für die vorbestehenden
+`#88`-`Edit(...)`-Allow-Einträge) als Issue [#251](https://github.com/nothra/tch-gastro-services/issues/251)
+ausgelagert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
