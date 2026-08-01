@@ -46,6 +46,16 @@
 # @reason (max_turns=50): großer implement-Lauf braucht Spielraum; 50 ist das
 #   Gate-Policy-Maximum (ADR-009 §6, MAX_TURNS_CEILING; ein Versuch mit 80 wurde
 #   vom config-validation-check hart abgelehnt).
+#
+# ── Knopf: skills.review (max_turns) ──────────────────────────────────────────
+# Learning aus Task 241 (Config-Validation Mindest-Tier, 2026-08-01): Mit dem
+# Default (14) ist /review dreimal mit "Reached max turns" abgebrochen, ohne
+# einen Report zu schreiben (Diff ~345 Zeilen → heavy via tier_by_size). Die
+# drei sequenziellen Runden (Backend/Logik, Code-Qualität, Architektur) plus
+# Kontext-Laden/Report-Schreiben passen bei diesem Diff-Umfang nicht in 14
+# Turns. Mit MAX_TURNS=30 (manueller Retry) lief der Skill durch und lieferte
+# einen vollständigen Report (APPROVED). Wert hier auf den validierten Wert
+# angehoben.
 model_tiers:
   light: claude-sonnet-5
 skills:
@@ -53,3 +63,4 @@ skills:
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 16 }
   test: { max_turns: 40 }
+  review: { max_turns: 30 }
