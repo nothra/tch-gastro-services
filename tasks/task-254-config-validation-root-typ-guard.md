@@ -8,7 +8,13 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd 2026-08-01: Merge freigegeben – alle Gates grün (CI: lint/test/CodeQL/
+factory-self-test/issue-sync grün, `post-merge-verify` erwartungsgemäß übersprungen
+[läuft nur auf `main`]), keine offenen Review-Threads, kein Approval-Backstop nötig
+(ADR-029: 0 Approvals-Ruleset), Branch bereits deckungsgleich mit `main` (0 behind).
+PR #256 aus Draft geholt (`gh pr ready`).
 
 ## Beschreibung
 `scripts/checks/config-validation-check.sh` setzt implizit voraus, dass der
