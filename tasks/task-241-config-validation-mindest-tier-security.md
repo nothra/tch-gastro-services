@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -93,6 +93,20 @@ dieser ADRs geändert wird (nur ergänzt).
   Positiv-Probelauf mit dem geänderten Gate → Pipeline `exit 0`. Deckt sich mit #244/#245
   (spec-244: „umgebungs-/sandboxbedingt, kein Code-Defekt", isoliert 5/5 grün, CI-Historie success).
   Die 4 roten Assertions treten nur in der lokalen Sandbox auf; CI läuft die Suite non-sandboxed grün.
+
+**Test-Verifikation (2026-08-01, `/test`):**
+
+- Vollständiger Lauf `bash scripts/checks/tests/run-tests.sh`: **565 grün, 0 rot** – kein
+  Restfehlschlag mehr, auch nicht die zuvor als umgebungsbedingt eingeordneten `#212 W3`-Fälle.
+  Kein Produktionscode geändert (nur Verifikation), Tests waren bereits vollständig aus
+  `/implement`.
+- AK1–AK8 sind alle über Gate-Fixtures/Policy-Konstanten abgedeckt (kein zusätzlicher Testbedarf):
+  AK1/AK2 (Mindest-Tier-Ablehnung je Skill inkl. Meldungs-Assert), AK3a/AK3b (`tier_by_size`-
+  Ablehnung gegen reale Defaults **und** isoliert gegen Regel 5), AK4 (Nicht-Regression
+  `review.tier_by_size`), AK5 (Default-Lauf), AK6 (redundante Bestätigung), AK7 (Policy-Konstanten
+  nicht Teil der merge-baren Config, strukturell), AK8 (dieser yq-gated Regressionsblock selbst).
+- Kein App-Code (TS/React) betroffen → `pnpm test`/Coverage-Schwelle aus `PROJECT-CONTEXT.md`
+  nicht einschlägig für diese Task (reines Bash-Gate-Tooling).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
