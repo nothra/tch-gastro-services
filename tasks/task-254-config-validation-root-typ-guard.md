@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Implementiert (Tests grün, 599/599)
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -96,6 +96,10 @@ bekommt eigene Meldung.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe [tasks/review-254.md](review-254.md). Drei Perspektiven (Logik, Code-Qualität,
+Architektur), keine kritischen Findings. Eine Wichtig-Finding (Gate #254 AK6 testete
+den "kein Override"-Skip-Pfad nicht isoliert) direkt in dieser Session behoben.
+Verdict: APPROVED (mit optionalen Nitpicks für /refactor).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
