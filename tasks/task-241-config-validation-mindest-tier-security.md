@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -107,6 +107,22 @@ dieser ADRs geändert wird (nur ergänzt).
   nicht Teil der merge-baren Config, strukturell), AK8 (dieser yq-gated Regressionsblock selbst).
 - Kein App-Code (TS/React) betroffen → `pnpm test`/Coverage-Schwelle aus `PROJECT-CONTEXT.md`
   nicht einschlägig für diese Task (reines Bash-Gate-Tooling).
+
+**Refactoring-Notiz (2026-08-01, `/refactor`):**
+
+- Clean-Code-Checkliste gegen `scripts/checks/config-validation-check.sh` (Regel 5a/5b)
+  geprüft: sprechende Namen, kurze fokussierte Blöcke (je eine Sache), keine Duplikation,
+  Kommentare erklären WHY (Policy-Begründung, Reihenfolge-Invariante zu 4a). **Keine
+  Code-Änderung nötig.**
+- Die beiden optionalen Review-Nitpicks (`tasks/review-241.md`) bewusst nicht umgesetzt:
+  - Fehlender Ordering-Pin-Test (`tier: medium` → 4a- statt 5-Meldung) ist eine
+    Testabdeckungs-Frage, kein Struktur-/Clean-Code-Thema – außerhalb des `/refactor`-Scopes.
+  - `for skill in $LISTE` vs. `while IFS= read -r … < <(yq …)`: bewusst **nicht** vereinheitlicht,
+    da Regel 5 über eine statische, whitespace-sichere Policy-Konstante iteriert, 4a–4c dagegen
+    über dynamischen yq-Output – die unterschiedlichen Idiome spiegeln unterschiedliche
+    Datenquellen, keine Inkonsistenz ohne Grund.
+- Regressionslauf nach Prüfung: `bash scripts/checks/tests/run-tests.sh` → **565 grün, 0 rot**
+  (unverändert).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
