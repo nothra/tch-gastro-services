@@ -6,7 +6,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -108,6 +108,20 @@ eigene Testfälle abgebildet (Gate #254 AK1–AK6), Happy-Path/Fehlerfälle/Boun
 Keine App-TS-Dateien betroffen → `pnpm test:coverage`-Schwelle nicht anwendbar für
 diesen Task. Keine neuen Tests nötig, keine Produktionscode-Änderung in diesem
 Schritt. Volle Gate-Suite: 599 grün, 0 rot.
+
+## Refactoring-Notizen (/refactor)
+Kein neues Verhalten, nur Struktur/Kommentare — Tests vor/nach identisch grün (599/599).
+Behobene Nitpicks aus `tasks/review-254.md`:
+- Header-Regelkatalog: `1b.` (YAML-Parse) ergänzt, Nummerierungslücke `1a→1c` geschlossen.
+- `sort -u` bei der Mehrdokument-Zählung entfernt (redundant, `document_index`-Werte
+  sind je Dokument bereits eindeutig) + Kommentar ergänzt, warum der Fallback bei
+  nicht-numerischem Output bewusst NICHT selbst `fail()`t (Regel 1b liefert die
+  treffendere Meldung).
+- Case-Statement-Polarität des Root-Typ-Guards (Allow-List statt Deny-List) mit
+  WHY-Kommentar versehen (YAML-Tags sind keine endliche "böse" Menge).
+- Nicht geändert (bewusst, laut Review als vertretbarer Trade-off eingestuft):
+  Testredundanz Gate #254 AK5 vs. bestehendem "sauberer Override"-Test — dient der
+  AK-Rückverfolgbarkeit, keine Produktionscode-Auswirkung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
