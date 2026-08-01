@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -24,12 +24,16 @@ Lieferung zwingend über den Patch-Workflow (`.claude/**` ist hard denied für d
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
 - [x] AK1 – `Write(...)` ist aus `permissions.allow` entfernt (alle 18 Einträge) – Patch
-      angewendet, verifiziert
+      angewendet, verifiziert; alle 18 (7 Extension- + 11 Verzeichnis-Glob-Einträge) jetzt
+      einzeln per Assertion abgedeckt (`/test`-Ergänzung), plus Blanket-Check + Grep-Fallback
 - [x] AK2 – `Write(...)` ist aus `permissions.deny` entfernt (alle 3 Einträge) – Patch
       angewendet, verifiziert
 - [x] AK3 – Kein Funktionsverlust: jeder entfernte `Write(pfad)`-Eintrag hat ein
       `Edit(pfad)`-Pendant in derselben Liste – 1:1-Abgleich vor Patch-Erzeugung verifiziert
-      (keine fehlenden Pendants, siehe Blocker-Abschnitt)
+      (keine fehlenden Pendants, siehe Blocker-Abschnitt). Automatisierte Regressionsabsicherung
+      für das Fortbestehen der zugehörigen (vorbestehenden #88-)`Edit(...)`-Einträge selbst als
+      Out-of-Scope-Fund in Issue [#251](https://github.com/nothra/tch-gastro-services/issues/251)
+      ausgelagert (`/review`)
 - [x] AK4 – `settings.json` bleibt valides JSON mit unveränderter Grundstruktur
       (`hooks`/`permissions.allow`/`permissions.deny`) – nach Anwenden bestätigt
       (`jq -e '.hooks and .permissions.allow and .permissions.deny'`, Regressionstest #224 AK8
@@ -44,7 +48,9 @@ Lieferung zwingend über den Patch-Workflow (`.claude/**` ist hard denied für d
 - [x] AK7 – Regressionstest in `scripts/checks/tests/run-tests.sh` geändert (nicht nur ergänzt):
       prüft Abwesenheit von `Write(...)` (jq-geparst + Grep-Fallback), alte
       "Vorhandensein"-Assertions aus #91/#224 entfernt/ersetzt. RED→GREEN belegt: 546 grün/13 rot
-      vor dem Patch, **559 grün/0 rot nach dem Patch** (voller Lauf)
+      vor dem Patch, 559 grün/0 rot nach dem Patch, **570 grün/0 rot** nach der `/test`-Ergänzung
+      um 11 Einzelassertionen für die Verzeichnis-Glob-Einträge (siehe
+      [`tasks/coverage-240.md`](coverage-240.md))
 - [x] AK8 – Stale Prosa in `docs/factory/lessons/factory-workflow.md` (#224-Abschnitt)
       korrigiert: Präsens-Aussage zur "existierenden" Write-Liste + "Cleanup-Kandidat: Issue
       #240"-Verweis auf erledigt aktualisiert
