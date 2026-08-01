@@ -4,6 +4,7 @@ import "./globals.css";
 import { STAGE, currentStage } from "@/lib/stage";
 import { StageBanner } from "@/app/components/StageBanner";
 import { AppHeader } from "@/app/components/AppHeader";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
         <StageBanner />
         <AppHeader />
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
