@@ -56,6 +56,13 @@
 # Turns. Mit MAX_TURNS=30 (manueller Retry) lief der Skill durch und lieferte
 # einen vollständigen Report (APPROVED). Wert hier auf den validierten Wert
 # angehoben.
+#
+# ── Knopf: skills.security-review (max_turns) ────────────────────────────────
+# Learning aus Task 241 (Config-Validation Mindest-Tier, 2026-08-01): Mit dem
+# Default (14) ist /security-review mit "Reached max turns" abgebrochen, ohne
+# einen Report zu schreiben (Diff ~345 Zeilen, tier fix heavy). Mit
+# MAX_TURNS=30 (manueller Retry) lief der Skill durch und lieferte einen
+# vollständigen Report (PASSED). Wert hier auf den validierten Wert angehoben.
 model_tiers:
   light: claude-sonnet-5
 skills:
@@ -64,3 +71,4 @@ skills:
   codify: { max_turns: 16 }
   test: { max_turns: 40 }
   review: { max_turns: 30 }
+  security-review: { max_turns: 30 }
