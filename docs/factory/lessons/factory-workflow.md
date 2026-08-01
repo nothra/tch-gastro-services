@@ -182,17 +182,18 @@ vor der Probe reine Annahmen im Task-File:
    ausgewertet** – weder in `allow` noch in `deny`. Jeder `claude --print`-Aufruf gibt dafür eine
    Warnung aus: „Write(<pfad>) is not matched by file permission checks — only Edit(path) rules
    are … (Edit rules cover all file-editing tools)". Ein `Edit(pfad)`-Eintrag deckt bereits **Edit
-   und Write** für diesen Pfad ab; eine separate `Write(...)`-Liste (wie sie seit #88 in diesem
-   Repo existiert) ist aktuell **komplett wirkungslos**, in beide Richtungen (Cleanup-Kandidat:
-   Issue #240).
+   und Write** für diesen Pfad ab; eine separate `Write(...)`-Liste existierte seit #88 in diesem
+   Repo und war **komplett wirkungslos**, in beide Richtungen – per erneuter
+   `claude --print`-Probe auf CLI 2.1.220 bestätigt und in **#240 entfernt** (`allow`/`deny`
+   enthalten seither keine `Write(...)`-Einträge mehr, nur noch `Edit(...)`).
 
 **Regel:** Vor jeder neuen `.claude/settings.json`-Permission-Änderung, die auf Datei-Pfad-Muster
 setzt (nicht auf Verzeichnis-Globs mit `**`):
 - Slash-freie `*.ext`-Muster nur für **absichtlich repo-weite** Freigaben verwenden; ist nur eine
   Root-Datei gemeint, `/*.ext` (führender Slash) schreiben.
 - **Keine neuen `Write(...)`-Einträge mehr hinzufügen** – ein `Edit(...)`-Eintrag reicht (deckt
-  beide Tools ab). Bestehende `Write(...)`-Einträge sind bekannter, bereits getrackter
-  Cleanup-Kandidat (Issue #240) – nicht als Vorbild für neue Einträge kopieren.
+  beide Tools ab). Die vormals bestehenden `Write(...)`-Einträge wurden in #240 entfernt – nicht
+  wieder einführen, auch nicht als Vorbild für neue Einträge.
 - Beide Verhaltensweisen sind Eigenschaften der Claude-Code-Version, nicht des Repos – bei einem
   größeren Claude-Code-Update (Changelog prüfen) erneut per `claude --print`-Probe verifizieren,
   ob sie noch gelten, bevor man sich weiter darauf verlässt.
