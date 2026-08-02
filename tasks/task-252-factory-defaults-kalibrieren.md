@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -115,6 +115,12 @@ Kein neuer Test geschrieben; bereits durch `/implement` angepasste Assertions ve
   (Mindest-Tier-Gate unverändert grün), `#249` (`model_tiers.heavy` weiterhin nicht override-bar,
   `light` weiterhin erlaubt – AK5/AK8-Nichtregression).
 - Kein Produktionscode in diesem Schritt geändert.
+
+## Refactor-Notizen (2026-08-02)
+Diff geprüft (`git diff origin/main...HEAD`): reine Werte-/Kommentar-Kalibrierung in
+`factory.defaults.yml`/`factory.config.yml`/`scripts/run-pipeline.sh` plus String-Literal-
+Anpassungen in `run-tests.sh`-Assertions – keine neue Funktion, kein neuer Kontrollfluss, keine
+Duplikation. Kein Refactoring-Bedarf; `config-validation-check.sh` weiterhin grün (exit 0).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
