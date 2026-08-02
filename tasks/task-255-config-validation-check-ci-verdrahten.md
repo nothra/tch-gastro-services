@@ -26,7 +26,7 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
 - [x] AK3: Job ruft das Gate explizit gegen die realen Repo-Dateien auf (keine Fixture)
 - [x] AK4: `model_tiers.heavy`-Override (Task-249-Regression) → Job schlägt fehl
 - [x] AK5: redundante AK5-Testzeile (Gate #249 AK5) in `run-tests.sh` entfernt, übrige AK5-Zeilen (Gate #241/#254) unangetastet
-- [ ] AK6: `config-validation` in `protect-main`-Ruleset als required Check (ADR-041 + ADR-029-Nachtrag + Ruleset live aktualisiert)
+- [x] AK6: `config-validation` in `protect-main`-Ruleset als required Check (ADR-041 + ADR-029-Nachtrag + Ruleset live aktualisiert)
 - [x] AK7: neuer Job ohne Node/pnpm-Setup (nur checkout + yq, analog `factory-self-test`)
 
 ## Technische Notizen
@@ -54,10 +54,12 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
 - Neue CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
   realen Pfaden – analog zum bestehenden `issue-sync`-Wiring-Test.
-- **AK6 (Ruleset-Update) noch offen:** `gh api -X PUT .../rulesets/19162920` ist eine
-  echte, live wirksame GitHub-Settings-Änderung an `protect-main` (ADR-029) – wird erst
-  nach expliziter Bestätigung durch den Menschen ausgeführt (siehe Task-Datei-Notiz
-  von /architecture). Doku-Seite (ADR-029-JSON) ist bereits committed.
+- **AK6 (Ruleset-Update) angewendet:** nach expliziter Bestätigung `gh api -X PUT
+  .../rulesets/19162920` mit dem in ADR-029 dokumentierten JSON (inkl.
+  `config-validation`) ausgeführt und per `gh api … --jq` verifiziert – Live-Checks
+  jetzt `lint, test, issue-sync, factory-self-test, pr-closes-issue, config-validation`,
+  `enforcement: active`, `strict: false`, `merge: squash`, `bypass: 0` (deckungsgleich
+  mit ADR-029).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
