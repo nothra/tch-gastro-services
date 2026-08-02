@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `scripts/checks/config-validation-check.sh` läuft in CI heute nur indirekt über
@@ -142,6 +142,11 @@ Siehe [tasks/review-255.md](review-255.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [tasks/codify-255.md](codify-255.md). Zwei neue Lessons: `awk`-Job-Block-Isolation muss
+auch am Job-Trennkommentar abbrechen (`factory-workflow.md`), YAML-Testfixture per `printf >>`
+an vorhandenen Top-Level-Key erzeugt ein Duplicate-Key-Dokument, das nur zufällig grün besteht
+(`testing.md`). ADR-Drift-nach-Rework-Muster war bereits durch bestehende Lessons (#55/#211)
+abgedeckt – keine neue Regel nötig.
 
 ---
 Branch: `chore/255-config-validation-check-ci-verdrahten`

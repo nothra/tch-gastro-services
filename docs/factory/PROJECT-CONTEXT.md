@@ -241,6 +241,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Neue Regressions-Assertion-Schleife gegen bereits vorhandene Schleife mit identischem Rumpf abgleichen, bevor eine parallele Schleife angelegt wird (aus #240, /test→/refactor-Diskrepanz)
 - `grep -qF`-Fixed-String-Regressionstest gegen Markdown-Prosa: beim Umbrechen die Testphrase auf einer Zeile halten, sonst lautlos rot – gilt in beide Richtungen (Prosa ändern UND neuen Test gegen bestehende Prosa schreiben) (aus #240/#249)
 - „Kein Argument übergeben"-Test simuliert nicht automatisch Abwesenheit, wenn das Skript einen `${N:-$REPO_ROOT/...}`-Default auf einen echten, existierenden Repo-Pfad hat – garantiert fehlenden Pfad explizit übergeben (aus #254, Review-Finding)
+- YAML-Testfixture per `printf >>` an eine Kopie mit bereits vorhandenem Top-Level-Key anhängen erzeugt ein Duplicate-Key-Dokument (yq „last-key-wins") – Test besteht nur zufällig; echten `yq -i eval`-Merge nutzen (aus #255, Review-Runde-3-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -292,6 +293,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Ein Floor auf einen Lookup-Key (Tier-Label, Rollen-Name, Environment-Name) ist kein Floor auf die Zielseite der Indirektion (`model_tiers` u. ä.) – Zielseite mitprüfen oder als eigenes Issue benennen (aus #241, Security-Review-Finding, Issue #249) → `/security-review`, `/implement` – bei Config-Gate mit Pin auf einen Lookup-Key
 - Write-Tool-Zielpfad im Worktree explizit gegen den Worktree-Suffix prüfen, nicht dem Bash-cwd vertrauen (der nach jedem Bash-Aufruf auf den Hauptbaum zurückspringt) (aus #240, /implement-Selbstfund) → jeder Skill – bei neuer Datei per `Write`-Tool in einer Worktree-Session
 - Divergiertes `origin/main` während laufender Pipeline: Rebase-Verantwortung bleibt bei `/pr-shepherd` (`gh pr update-branch`, kein Force-Push) – ein Zwischenschritt rebast nicht eigenständig gegen `main`, sonst erzwingt das einen Force-Push, den `factory-commit.sh` bewusst nicht anbietet (aus #249, /refactor-Selbstfund) → `/review`, `/test`, `/refactor`, `/security-review` – bei divergiertem `origin/main` auf bereits gepushtem Feature-Branch
+- `awk`-Job-Block-Isolation in CI-Wiring-Tests muss auch am Job-Trennkommentar (`# ───`) abbrechen, nicht nur am nächsten Job-Key – sonst bluten Kommentarzeilen des Folge-Jobs in den extrahierten Block hinein (aus #255, Review-Runde-1-Finding) → `/implement`, `/review` – bei neuem `awk`/`sed`-Block-Extraktor für einen CI-Job in `run-tests.sh`
 
 ---
 

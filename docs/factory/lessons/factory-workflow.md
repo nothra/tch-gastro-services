@@ -710,3 +710,29 @@ Rebase-plus-Force-Push mitten im Zyklus aufgelöst. Die „vor dem Push: pullen 
 aus `docs/factory/guidelines/git-workflow.md` gilt für die Branch-Erstellung (`start-work.sh`)
 und den finalen Merge (`/pr-shepherd`) – nicht für jeden Zwischen-Commit einer laufenden
 Pipeline auf einem bereits gepushten Branch.
+
+### `awk`-Job-Block-Isolation in CI-Wiring-Tests muss auch am Job-Trennkommentar abbrechen, nicht nur am nächsten Job-Key (aus #255, Review-Runde-1-Finding)
+
+Task 255 fügte einen `awk`-Einzeiler hinzu, der den YAML-Block eines einzelnen CI-Jobs aus
+`factory-ci.yml` isoliert extrahiert, um ihn gezielt auf Abwesenheit zu prüfen (hier: „kein
+Node/pnpm-Setup"). Der erste Entwurf brach nur am nächsten Job-Key ab:
+`awk '/^  config-validation:/{f=1; next} /^  [A-Za-z0-9_-]+:/{if (f) exit} f'`. In diesem Repo
+geht jedem Job aber ein mehrzeiliger Trennkommentar-Header voraus (`  # ─── <Titel> ───…`) –
+Kommentarzeilen matchen `/^  [A-Za-z0-9_-]+:/` nicht (drittes Zeichen ist `#`), also „bluteten"
+die Kommentarzeilen des **nächsten** Jobs mit in den extrahierten Block hinein. Im konkreten
+Fall folgenlos (der Nachbar-Kommentar erwähnte weder `pnpm` noch `setup-node`), aber die
+Isolation, auf der der Negativ-Test aufbaute, war strukturell brüchig – ein künftig
+umformulierter Nachbar-Kommentar hätte den Test aus dem falschen Grund grün oder rot gemacht.
+
+**Smell:** „Mein `awk`/`sed`-Konstrukt extrahiert einen YAML-Block bis zum nächsten
+`schlüssel:`-Muster – bricht es auch an Kommentarzeilen ab, die vor dem nächsten Block stehen
+und nicht selbst wie ein Key aussehen?"
+
+**Regel:** Ein Block-Extraktor für „bis zum nächsten Geschwister-Element" muss **alle**
+strukturellen Grenzmarker als Abbruchkriterium kennen, nicht nur den einen, den der aktuelle
+Anwendungsfall zufällig auslöst – in diesem Repo zusätzlich zum nächsten `wort:`-Key auch den
+Job-Trennkommentar `# ───`:
+`awk '/^  <job>:/{f=1; next} /^  ([A-Za-z0-9_-]+:|# ───)/{if (f) exit} f'`. Nach dem Schreiben
+den Extraktor **isoliert ausführen** und das Ergebnis auf Länge/Inhalt prüfen (`awk '...' datei
+| wc -l`, Volltext lesen) – nicht nur den nachgelagerten Negativ-Test grün laufen lassen, der
+bei zufällig unauffälligem Nachbarinhalt auch mit einer löchrigen Extraktion grün bleibt.
