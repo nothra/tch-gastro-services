@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -92,6 +92,16 @@ run-pipeline.sh <id> --dry-run` gegen ein isoliertes Temp-Repo) –
 Volle Suite: `bash scripts/checks/tests/run-tests.sh` → **790 grün, 0 rot** (vorher 782;
 +8 neue Assertions durch die beiden End-to-end-Blöcke). `pnpm test`/Typecheck/Format
 weiterhin unverändert grün (kein TS-Code betroffen).
+
+## Security-Review-Notizen (2026-08-02)
+Vollständiger Report: [tasks/security-261.md](security-261.md). Ergebnis: **PASSED**,
+keine kritischen/wichtigen Findings. Zwei informative Hinweise (kein Fix nötig, kein
+Issue angelegt): (1) `|| true` schluckt technisch jeden non-zero-Exit des gesamten
+Grep-Pipeline-Blocks, nicht nur den 0-Treffer-Fall – unkritisch, da rein informativer
+Konsolen-Output und `verify_final_state()` (ADR-040) unverändert als Backstop danach
+läuft; (2) `task_id` fließt ungeprüft in Pfade/Echo – vorbestehend, außerhalb des
+Diff-Scopes, kein Injection-Vektor (kein `eval`/`sh -c`, `$TASK_ID` bereits über
+`find`-Existenzprüfung validiert).
 
 ## Refactor-Notizen (2026-08-02)
 Kein neues Verhalten – nur die beiden verbliebenen Review-Nitpicks aus Durchlauf 2
