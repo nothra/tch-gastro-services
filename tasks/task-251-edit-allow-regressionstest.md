@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -85,7 +85,12 @@ Rechteausweitung (16 Array-Werte 1:1 gegen `.claude/settings.json` abgeglichen, 
 Ergänzung), keine neuen Dependencies.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [tasks/codify-251.md](codify-251.md). Zwei Lesson-Ergänzungen: (1) Rezidiv des
+#240-Duplikat-Schleife-Learnings trotz vorhandener Lesson, ausgelöst durch mehrdeutigen
+Spec-Wortlaut – `lessons/testing.md` geschärft. (2) Fix zwischen zwei `/review`-Runden muss
+sofort committet werden, sonst sieht eine spätere Runde einen veralteten Diff-Stand – neuer
+Eintrag in `lessons/factory-workflow.md`. Beide mit Index-Zeilen in `PROJECT-CONTEXT.md`
+verankert.
 
 ---
 Branch: `feature/251-edit-allow-regressionstest`
