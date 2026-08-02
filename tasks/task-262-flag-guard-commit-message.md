@@ -278,6 +278,12 @@ Circuit-Breaker-Entscheidung oben.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-262.md`: neue Bash-Gotchas §9/§10, neue Lesson zu
+`PR_SHEPHERD`/`FACTORY_STAGE`-Env-Leak in `factory-workflow.md` + Index.
+
+PR-Shepherd 2026-08-02: Merge freigegeben – alle Gates grün (Review/Tests/Security-Review/
+Refactoring/Codify abgeschlossen, CI-Checks laufen, kein Rebase-Bedarf, keine Approval-Pflicht
+laut ADR-029).
 
 ---
 Branch: `feature/262-flag-guard-commit-message`
