@@ -44,8 +44,12 @@ esac
 
 HOOKS_DIR="$GIT_COMMON_DIR/hooks"
 
+# Einzige Quelle für die drei Factory-Hook-Namen (Loop + Erfolgsmeldung teilen sich die
+# Liste) – ein künftig vierter Hook müsste sonst an zwei Stellen synchron gepflegt werden.
+FACTORY_HOOKS="pre-commit pre-push commit-msg"
+
 MISSING=""
-for hook in pre-commit pre-push commit-msg; do
+for hook in $FACTORY_HOOKS; do
   hook_file="$HOOKS_DIR/$hook"
   if [ ! -f "$hook_file" ] || [ ! -x "$hook_file" ]; then
     MISSING="$MISSING $hook"
@@ -58,5 +62,5 @@ if [ -n "$MISSING" ]; then
   exit 1
 fi
 
-echo -e "${GREEN}✓${NC} Alle Factory-Git-Hooks (pre-commit, pre-push, commit-msg) installiert und ausführbar"
+echo -e "${GREEN}✓${NC} Alle Factory-Git-Hooks ($FACTORY_HOOKS) installiert und ausführbar"
 exit 0

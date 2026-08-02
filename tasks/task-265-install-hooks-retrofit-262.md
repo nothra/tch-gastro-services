@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -104,6 +104,17 @@ behoben (RED→GREEN mit künstlich identitätsloser Umgebung verifiziert) → A
 Out-of-Scope-Finding zu `core.hooksPath` als Issue
 [#268](https://github.com/nothra/tch-gastro-services/issues/268) angelegt (bleibt offen,
 nicht Teil dieser Task).
+
+## /refactor-Notizen
+- `scripts/checks/hooks-installed-check.sh`: Review-Nitpick behoben – Hook-Liste
+  `pre-commit pre-push commit-msg` war an zwei Stellen (Schleife + Erfolgsmeldung) als
+  Literal dupliziert; jetzt einzige Quelle `FACTORY_HOOKS`, von beiden Stellen geteilt.
+  Kein neues Verhalten (Exit-Codes/Fehlerpfade unverändert; Erfolgsmeldung minimal
+  umformatiert von Komma- auf Leerzeichen-Trennung, konsistent zur bestehenden
+  Fehlermeldung). Suite weiterhin 777/777 grün, `pnpm lint`/`format:check` grün.
+  Check-Ordering in `pre-push.sh` (zweiter Review-Nitpick) bewusst unverändert gelassen –
+  Review stufte es als konsistent mit dem bestehenden Muster (`routes-doc-check.sh` auch
+  spät platziert) ein, kein Fix nötig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
