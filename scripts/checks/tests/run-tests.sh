@@ -2621,8 +2621,10 @@ if [ "$HAS_YQ" = 1 ]; then
   git -C "$TMP_G101" init -q; git -C "$TMP_G101" add .
   git -C "$TMP_G101" -c user.email="t@t.com" -c user.name="t" commit -q -m init
   MARKER_G101="$TMP_G101/lint-ran.marker"
-  # env -u: der Wegwerf-Lauf entscheidet aus seinem eigenen Setup, nicht aus der Env der
-  # aufrufenden Shell – ein exportiertes PR_SHEPHERD würde sonst Phase 7 auslösen (#264).
+  # env -u (#264): Konsistenz-Härtung, kein beobachteter Vektor an dieser Stelle – dieser Lauf
+  # bricht am Lint-Gate ab, bevor die PR_SHEPHERD-Verzweigung (Phase 7) erreichbar wäre.
+  # Grundsatz: kein Testblock entscheidet aus der Env der aufrufenden Shell, sondern aus
+  # seinem eigenen Setup. Real beobachtet wurde der Vektor im #212-W3-Block (siehe dort).
   g101_out=$(cd "$TMP_G101" && PATH="$TMP_G101/bin:$PATH" \
     FACTORY_LINT_COMMAND="touch '$MARKER_G101'; false" \
     env -u PR_SHEPHERD -u FACTORY_STAGE \
@@ -3395,8 +3397,10 @@ CLEOF
   chmod +x "$TMP_INT/bin/claude"
   git -C "$TMP_INT" init -q; git -C "$TMP_INT" add .
   git -C "$TMP_INT" -c user.email=t@t -c user.name=t commit -q -m init
-  # env -u: siehe #264 – exportiertes PR_SHEPHERD würde Phase 7 im Wegwerf-Repo starten und
-  # dort mangels .claude/commands/pr-shepherd.md abbrechen, bevor der geprüfte Pfad greift.
+  # env -u (#264): Konsistenz-Härtung, kein beobachteter Vektor an dieser Stelle – der Lauf
+  # stoppt bereits in Phase 1 am Interrupt-Sentinel (run_skill → interrupt-check.sh) und
+  # erreicht die PR_SHEPHERD-Verzweigung (Phase 7) nie. Steht trotzdem hier: kein Testblock
+  # hängt vom Env-Zustand der aufrufenden Shell ab. Realer Vektor: #212-W3-Block unten.
   int_out=$(cd "$TMP_INT" && PATH="$TMP_INT/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
     env -u PR_SHEPHERD -u FACTORY_STAGE \
@@ -3478,26 +3482,108 @@ if [ "$HAS_YQ" = 1 ]; then
   # Er lebt bewusst INNERHALB der Kommando-Substitutions-Subshell: so kann er weder in
   # nachfolgende Blöcke lecken noch dort einen künftig ungehärteten Aufruf maskieren
   # (ein `unset` danach würde eine vom Aufrufer geerbte Variable mit verschlucken).
-  e2e_env=$(cd "$TMP_E2E" && export PR_SHEPHERD=true FACTORY_STAGE=3 && \
+  # Dritter Lauf gegen dasselbe $TMP_E2E-Scaffold: nutzt bewusst den Endzustand der
+  # Gegenprobe weiter (sauber + gepusht) – idempotent, weil die Wegwerf-Läufe nur untrackte
+  # Artefakte erzeugen und verify_final_state ausschließlich getrackte Diffs bewertet.
+  e2e_dirty_env=$(cd "$TMP_E2E" && export PR_SHEPHERD=true FACTORY_STAGE=3 && \
     PATH="$TMP_E2E/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
     env -u PR_SHEPHERD -u FACTORY_STAGE \
-    bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_env_rc=$?
-  assert_exit 0 "$e2e_env_rc" "#264: exportiertes PR_SHEPHERD/FACTORY_STAGE ändert das Ergebnis nicht (exit 0)"
-  printf '%s' "$e2e_env" | grep -q 'Pipeline erfolgreich abgeschlossen'
+    bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_dirty_env_rc=$?
+  assert_exit 0 "$e2e_dirty_env_rc" "#264: exportiertes PR_SHEPHERD/FACTORY_STAGE ändert das Ergebnis nicht (exit 0)"
+  printf '%s' "$e2e_dirty_env" | grep -q 'Pipeline erfolgreich abgeschlossen'
   assert_true "$?" "#264: Erfolgs-Banner erscheint trotz exportiertem PR_SHEPHERD/FACTORY_STAGE"
-  # Pfadspezifisches Signal: Phase 7 lief nachweislich nicht, und die Verifikation blieb im
-  # git-Modus (ohne PR-Invarianten) – beides beweist, dass das Kind PR_SHEPHERD=false sah.
-  printf '%s' "$e2e_env" | grep -q 'Phase 7'
+  # Pfadspezifisches Negativ-Signal: 'Phase 7' erscheint ausschließlich im PR_SHEPHERD-Zweig.
+  printf '%s' "$e2e_dirty_env" | grep -q 'Phase 7'
   assert_true "$([ $? -ne 0 ]; echo $?)" "#264: Phase 7 (pr-shepherd) wird nicht ungewollt ausgelöst"
-  printf '%s' "$e2e_env" | grep -q 'Endzustand verifiziert (sauber, gepusht)'
-  assert_true "$?" "#264: Endzustands-Verifikation läuft ohne PR-Invarianten (Kind sah PR_SHEPHERD=false)"
+  # Zusätzlicher Positiv-Beleg (kein zweiter unabhängiger Beweis): die Verifikation meldet den
+  # git-Modus-Text; bei pr_shepherd=true lautete er '(sauber, gepusht, PR merge-ready/gemergt)'.
+  printf '%s' "$e2e_dirty_env" | grep -q 'Endzustand verifiziert (sauber, gepusht)'
+  assert_true "$?" "#264: Endzustands-Verifikation läuft im git-Modus (ohne PR-Invarianten)"
 
   rm -rf "$TMP_E2E" "$TMP_E2E_ORIGIN"
 else
   skip_yq "#212 W3: Verifikations-Interrupt end-to-end"
   skip_yq "#264: Env-Isolation gegen exportiertes PR_SHEPHERD/FACTORY_STAGE"
 fi
+
+# ─── #264 Drift-Guard: JEDE reale run-pipeline.sh-Aufrufstelle bleibt gehärtet ──────
+# Der Verhaltenstest oben hängt an genau EINER der fünf gehärteten Aufrufstellen. Entfernt
+# jemand `env -u` an einer der anderen (oder fügt eine neue ungehärtete hinzu), bliebe die
+# Suite grün – genau die stille Regressionsklasse, die zu #262/#264 geführt hat. Dieser
+# Guard schließt sie strukturell: er liest run-tests.sh selbst und verlangt für jeden
+# realen (non-`--dry-run`) Aufruf die Neutralisierung.
+#
+# Block- statt Fragment-Grep (Lesson #114/#255/#261/#265): Die Aufrufe sind
+# Multi-Zeilen-Konstrukte mit `\`-Fortsetzung – awk fügt die Fortsetzungszeilen erst zur
+# logischen Kommandozeile zusammen und bewertet dann. Ein zeilenweiser Grep würde die
+# `env -u`-Zeile und die `bash`-Zeile nie zusammen sehen.
+echo ""
+echo "#264 Drift-Guard: reale run-pipeline.sh-Aufrufe in run-tests.sh sind env-isoliert:"
+
+RUN_TESTS_SELF="$CHECKS_DIR/tests/run-tests.sh"
+
+# unhardened_pipeline_calls <datei> – gibt je realem Aufruf eine Zeile "<zeile>\t<OK|MISSING>"
+# aus. Exit 1, sobald mindestens ein MISSING dabei ist (fail-closed).
+unhardened_pipeline_calls() {
+  awk '
+    { line = $0; sub(/[ \t]+$/, "", line) }
+    line ~ /\\$/ { sub(/\\$/, "", line); buf = buf line; next }
+    {
+      cmd = buf line; buf = ""
+      if (cmd !~ /bash "[^"]*run-pipeline\.sh"/) next
+      if (cmd ~ /--dry-run/) next
+      if (cmd ~ /env -u PR_SHEPHERD -u FACTORY_STAGE/) { print NR "\tOK"; next }
+      print NR "\tMISSING"; found = 1
+    }
+    END { exit(found ? 1 : 0) }
+  ' "$1"
+}
+
+# Positiv-Kontrolle: ein realer Aufruf OHNE env -u wird erkannt (Guard nicht vacuously grün).
+# Der Pfad wird aus einer Variablen zusammengesetzt, damit die Fixture-Zeile in DIESER Datei
+# nicht selbst wie eine ungehärtete Aufrufstelle aussieht und den Guard unten falsch rot macht.
+RP_NAME='run-pipeline.sh'
+TMP_DG264="$(mktemp)"
+printf 'x=$(cd "$T" && PATH="$T/bin:$PATH" \\\n  bash "$T/scripts/%s" 1 2>&1)\n' "$RP_NAME" > "$TMP_DG264"
+unhardened_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 1 "$?" "#264 Guard: realer Aufruf ohne env -u wird erkannt (Positiv-Kontrolle)"
+
+# Negativ-Kontrolle A: derselbe Aufruf MIT env -u (mehrzeilig) → sauber.
+printf 'x=$(cd "$T" && PATH="$T/bin:$PATH" \\\n  env -u PR_SHEPHERD -u FACTORY_STAGE \\\n  bash "$T/scripts/%s" 1 2>&1)\n' "$RP_NAME" > "$TMP_DG264"
+unhardened_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 0 "$?" "#264 Guard: gehärteter Multi-Zeilen-Aufruf gilt als sauber (Negativ-Kontrolle)"
+
+# Negativ-Kontrolle B: --dry-run-Aufrufe sind nachweislich unbetroffen (run_skill kehrt vor
+# der PR_SHEPHERD-Verzweigung zurück) und dürfen den Guard nicht auslösen.
+printf 'x=$(bash "$T/scripts/%s" 1 --dry-run 2>&1 || true)\n' "$RP_NAME" > "$TMP_DG264"
+unhardened_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 0 "$?" "#264 Guard: --dry-run-Aufruf ohne env -u ist erlaubt (Negativ-Kontrolle)"
+rm -f "$TMP_DG264"
+
+# Nicht-Vakuität: der Guard findet die bekannten realen Aufrufstellen tatsächlich. Untergrenze
+# statt exakter Zahl – eine künftige (gehärtete) sechste Stelle soll den Guard nicht rot machen.
+dg264_calls="$(unhardened_pipeline_calls "$RUN_TESTS_SELF" || true)"
+dg264_total="$(printf '%s\n' "$dg264_calls" | grep -cE '(OK|MISSING)$' || true)"
+assert_true "$([ "$dg264_total" -ge 5 ]; echo $?)" \
+  "#264 Guard: findet die realen run-pipeline.sh-Aufrufstellen (>=5 erkannt, kein Leerlauf)"
+
+# Akzeptanzkriterium: keine davon ist ungehärtet.
+unhardened_pipeline_calls "$RUN_TESTS_SELF" >/dev/null 2>&1
+assert_exit 0 "$?" "#264 Guard: ALLE realen run-pipeline.sh-Aufrufe in run-tests.sh tragen env -u"
+
+# ─── #264 K1: Lesson/Index nennen die Härtung als erledigt, nicht als offenen Follow-up ──
+# Ohne diese Regressionsabsicherung könnte ein künftiger Edit die Präsens-Korrektur still
+# zurückdrehen (gleiches Muster wie #224 AK7 / #240 AK8 oben).
+assert_true "$(! grep -qF 'ist als eigenes Issue getrackt, nicht Teil der Task' "$WORKFLOW_LESSON"; echo $?)" \
+  "#264: stale 'Follow-up offen'-Aussage aus der PR_SHEPHERD-Lesson entfernt"
+grep -qF 'Die Härtung ist in #264 umgesetzt' "$WORKFLOW_LESSON"
+assert_true "$?" "#264: Lesson nennt den Erledigt-Stand der Härtung"
+PC264="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
+assert_true "$(! grep -qF 'Härtung ausgelagert: #264' "$PC264"; echo $?)" \
+  "#264: Index-Zeile in PROJECT-CONTEXT.md nennt die Härtung nicht mehr als ausgelagert"
+grep -qF 'Härtung umgesetzt in #264' "$PC264"
+assert_true "$?" "#264: Index-Zeile in PROJECT-CONTEXT.md nennt den Erledigt-Stand"
 
 echo ""
 echo "#212 AK9: .gitignore deckt Coverage-Temp generisch ab:"

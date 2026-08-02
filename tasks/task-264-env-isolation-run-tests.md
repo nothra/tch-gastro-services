@@ -123,13 +123,52 @@ Aufruf auf sie reagiert – also genau die Detektierbarkeit zerstört, deren Feh
 - Portabilität: `env -u` ist POSIX und lief hier real unter macOS/BSD; GNU-coreutils in CI
   unterstützt dasselbe Flag (Fehlerszenario der Spec damit adressiert).
 
-**Bewusst nicht umgesetzt (Scope):** Kein struktureller Drift-Guard, der künftige reale
-`run-pipeline.sh`-Aufrufe in `run-tests.sh` auf `env -u` prüft. Der Spec-Scope nennt vier
-Aufrufstellen + einen Verhaltenstest; ein solcher Guard wäre Gold-Plating. Falls gewünscht,
-gehört er in ein eigenes Issue.
+## Rework nach Review-Runde 1 (`/implement`, 2026-08-03)
+
+Alle Findings aus `tasks/review-264.md` abgearbeitet:
+
+- **K1 (Lesson-Drift):** `docs/factory/lessons/factory-workflow.md` – Überschrift von „Härtung
+  ausgelagert: #264" auf „Härtung umgesetzt in #264" umgestellt und den Schlusssatz („ist als
+  eigenes Issue getrackt, nicht Teil der Task") durch einen **Stand**-Absatz ersetzt: Härtung
+  umgesetzt, Diagnose-Regel gilt weiter für andere Skripte mit eigenen Env-Schaltern. Index-Zeile
+  in `docs/factory/PROJECT-CONTEXT.md` analog nachgezogen. Beide Korrekturen sind gegen ein
+  stilles Zurückdrehen abgesichert (Negativ- + Positiv-`grep -qF`, Muster wie #224 AK7 / #240 AK8;
+  Testphrasen bewusst je auf einer Zeile, Lesson #240/#249).
+- **W1 (falsche WHY-Kommentare):** Die Kommentare an `#101` und `#212 AK8` behaupteten einen
+  Phase-7-Abbruch, der dort nachweislich nie erreicht wird (`#101` stoppt am Lint-Gate, `#212 AK8`
+  in Phase 1 am Interrupt-Sentinel). Beide nennen jetzt den tatsächlichen Grund
+  (Konsistenz-Härtung/Prophylaxe) und verweisen für den real beobachteten Vektor auf den
+  `#212 W3`-Block. Die Kommentare an den beiden W3-Stellen bleiben unverändert – dort stimmt die
+  Kausalkette.
+- **W2 (Abdeckung nur einer von fünf Aufrufstellen):** Auflösung (a) aus dem Review – neuer
+  Drift-Guard-Abschnitt `#264 Drift-Guard` in `run-tests.sh`. Er liest `run-tests.sh` selbst,
+  fügt per `awk` zuerst die `\`-Fortsetzungszeilen zur logischen Kommandozeile zusammen
+  (Multi-Zeilen-Konstrukt → Blockextraktion statt Fragment-Grep, Lesson #114/#255/#261/#265) und
+  verlangt für jeden realen (non-`--dry-run`) `run-pipeline.sh`-Aufruf ein
+  `env -u PR_SHEPHERD -u FACTORY_STAGE`. Abgesichert durch Positiv-Kontrolle (ungehärteter
+  Aufruf → erkannt), zwei Negativ-Kontrollen (gehärteter Multi-Zeilen-Aufruf; `--dry-run`-Aufruf
+  ohne `env -u` bleibt erlaubt) und eine Nicht-Vakuitäts-Untergrenze (≥5 reale Aufrufstellen
+  gefunden). Untergrenze statt exakter Zahl, damit eine künftige **gehärtete** sechste Stelle den
+  Guard nicht rot macht. Kein neues Issue nötig – die Lücke ist geschlossen statt verschoben.
+- **N1–N3 (Nitpicks):** „beides beweist" auf „zusätzlicher Positiv-Beleg (kein zweiter
+  unabhängiger Beweis)" entschärft; die Idempotenz-Kopplung des dritten `$TMP_E2E`-Laufs an den
+  Endzustand der Gegenprobe im Kommentar explizit gemacht; `e2e_env`/`e2e_env_rc` →
+  `e2e_dirty_env`/`e2e_dirty_env_rc` umbenannt.
+
+**Verifikation dieser Runde:**
+- Volle Suite: `803 grün / 0 rot` (vorher 794 Assertionen; +9 aus Drift-Guard und
+  Lesson-Regressionsschutz).
+- Rot-Beleg für den Drift-Guard am **realen** Ziel (nicht nur gegen Fixtures): `env -u` an der
+  `#101`-Aufrufstelle entfernt → `802 grün / 1 rot`, genau die Guard-Assertion
+  „ALLE realen run-pipeline.sh-Aufrufe … tragen env -u". Danach zurückgebaut → wieder
+  `803 grün / 0 rot`. Damit ist belegt, dass der Guard die vom Verhaltenstest **nicht** gedeckten
+  vier Aufrufstellen tatsächlich absichert.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+**Runde 1 (`tasks/review-264.md`, NEEDS_REWORK):** 1 kritisches, 2 wichtige, 3 Nitpick-Findings –
+alle behoben, siehe „Rework nach Review-Runde 1".
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -824,7 +824,7 @@ Runden bündeln. Jede nachfolgende Runde, die ihren Kontext per `git diff origin
 irrtümlich erneut aufwerfen oder – schlimmer – bemerkt die Diskrepanz nicht und bewertet
 gegen einen Stand, der im Repo so nicht mehr existiert.
 
-### `PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell exportiert schlagen in jedes von der Testsuite erzeugte Wegwerf-Repo durch (aus #262, Task-Selbstfund; Härtung ausgelagert: #264)
+### `PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell exportiert schlagen in jedes von der Testsuite erzeugte Wegwerf-Repo durch (aus #262, Task-Selbstfund; Härtung umgesetzt in #264)
 
 `run-pipeline.sh` wurde für Task 262 als `PR_SHEPHERD=true bash scripts/run-pipeline.sh 262`
 gestartet – ein einzelner Kommando-Präfix, der die Variable nur für diesen einen Prozess setzt.
@@ -846,10 +846,15 @@ eine ähnliche Pipeline-Env-Var) exportiert?"
 **Regel:** Vor dem Einordnen eines solchen Fehlschlags als real: mit `unset PR_SHEPHERD
 FACTORY_STAGE` (bzw. `env -u`) gegenprüfen, ob er verschwindet. Verschwindet er, ist es ein
 Umgebungsproblem der aufrufenden Shell, keine Regression – dokumentieren (Diff-Scope, Vorher/
-Nachher-Vergleich, CI-Historie, Lesson #244), nicht blind nacharbeiten. Die eigentliche Härtung
-(der E2E-Block sollte `PR_SHEPHERD`/`FACTORY_STAGE` selbst neutralisieren statt sie aus der
-Umgebung zu erben) ist als eigenes Issue getrackt, nicht Teil der Task, die den Fehlschlag
-zuerst beobachtet.
+Nachher-Vergleich, CI-Historie, Lesson #244), nicht blind nacharbeiten.
+
+**Stand:** Die Härtung ist in #264 umgesetzt – jeder reale (non-`--dry-run`)
+`run-pipeline.sh`-Aufruf in `run-tests.sh` neutralisiert beide Variablen per
+`env -u PR_SHEPHERD -u FACTORY_STAGE` für den Kindprozess, abgesichert durch einen
+Verhaltenstest (Lauf unter exportierten Variablen) **und** einen Drift-Guard, der eine neue
+ungehärtete Aufrufstelle rot macht. Für `run-tests.sh` tritt das Symptom damit nicht mehr auf.
+Die Diagnose-Regel oben bleibt gültig: sie greift für **andere** Skripte mit eigenen
+Env-Schaltern und für jede Testsuite, die einen Kindprozess ohne solche Neutralisierung startet.
 
 ### Neuer pre-push.sh-Check, der lokalen Installationszustand voraussetzt, bricht bestehende Selbsttests in CI (aus #265, User-gemeldete CI-Regression)
 
