@@ -19,11 +19,18 @@ Das lokale Aufsetzen ist vollständig in [`README.md`](README.md) beschrieben (A
 
 ```bash
 pnpm install
+bash scripts/install-hooks.sh       # lokale Git-Hooks (einmalig pro Clone)
 cp .env.example .env.local          # NEXT_PUBLIC_STAGE=dev, lokale DATABASE_URL, AUTH_SECRET, SEED_ADMIN_*
 pnpm db:up                          # lokale Postgres via Docker Compose
 pnpm db:migrate && pnpm db:seed     # Schema anlegen + ersten Admin seeden
 pnpm dev                            # http://localhost:3000
 ```
+
+`bash scripts/install-hooks.sh` ist die kanonische Quelle der lokalen Hooks
+([ADR-042](docs/adr/042-hook-installation-single-source.md)): `pre-commit`, `pre-push` und der
+`commit-msg`-Hook (Flag-Guard gegen `--help`/`-h` als Commit-Message). Das Skript ist idempotent
+und auch nachträglich ausführbar; ohne diesen Schritt hat ein frischer Clone **keine** lokalen
+Gates.
 
 Voraussetzungen (Node ≥ 20, pnpm, Docker) und die Stages DEV/INT/PRD stehen ebenfalls in der
 `README.md`. Der Tech-Stack und die projektspezifischen Konventionen sind in

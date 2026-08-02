@@ -47,6 +47,7 @@ ein **stage-eingefärbtes Icon** (Homescreen/Tab) und ein `[DEV]`/`[INT]`-Titel-
 
 ```bash
 pnpm install
+bash scripts/install-hooks.sh       # lokale Git-Hooks: pre-commit, pre-push, commit-msg (einmalig pro Clone)
 cp .env.example .env.local          # NEXT_PUBLIC_STAGE=dev, lokale DATABASE_URL, AUTH_SECRET, SEED_ADMIN_*
 pnpm db:up                          # lokale Postgres 18 via Docker Compose v2 (docker-compose.yml)
 pnpm db:migrate                     # Schema anlegen (nutzt .env.local)
