@@ -55,6 +55,19 @@ Bei 0 Treffern liefert `grep` Exit 1; unter `pipefail` wird daraus der Exit-Code
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Vollständige Findings: [tasks/review-261.md](review-261.md) (Runde 1-3, Empfehlung
+NEEDS_REWORK).
+
+Rework [2026-08-02]: Das einzige Wichtig-Finding (Testguard
+`scripts/checks/tests/run-tests.sh:1105` war nicht an die konkrete Codify-Pipeline
+gebunden, sondern an ein datei-weites `done || true`-Fragment) behoben – der Guard
+extrahiert jetzt per `awk` gezielt den Block zwischen der Codify-Pipeline-Zeile und
+ihrem `done` (analog zur bereits etablierten Job-Block-Isolation aus #255) und prüft
+`|| true` nur innerhalb dieses Blocks. Zusätzlich ein Schärfe-Beweis ergänzt: ein
+unabhängiges `done || true` an anderer Stelle im Skript darf den Guard nicht täuschen.
+Die Kommentar-Nummerierung wurde dabei auf `(3)` korrigiert (Nitpick). Die übrigen
+Nitpicks (`ZERO2`-Naming, 0-Byte- vs. Header-only-Fixture) bewusst nicht angefasst –
+optional laut Review-Persona, kein funktionaler Unterschied.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -1101,9 +1101,25 @@ assert_exit 0 "$?" "Issue #261 RICHTIG-Idiom (|| true nach done) ist set-e-siche
 assert_true "$([ $? -ne 0 ]; echo $?)" "Gegenprobe: ohne || true bricht der grep|head|while-Block unter set -e ab (K-2)"
 rm -f "$ZERO2"
 
-# (2) run-pipeline.sh Codify-Regelzeilen-Block nutzt das set-e-sichere Idiom (|| true nach done) – Issue #261
-grep -qE 'done \|\| true' "$PIPELINE"
+# (3) run-pipeline.sh Codify-Regelzeilen-Block nutzt das set-e-sichere Idiom (|| true nach
+# done) – Issue #261. Block-isoliert statt Datei-weitem Fragment-Grep (Review-Finding
+# Runde 2/3, Lesson zu Reihenfolge-Guards aus #114/#265: Anker ist die exakte Aufruf-
+# Zeile, nie ein Kommando-Fragment) – awk extrahiert nur den Block zwischen der
+# Codify-Pipeline und ihrem "done", analog zur Job-Block-Isolation aus #255.
+codify_regelzeilen_block="$(awk '/grep "\^- " "\$codify_file" 2>\/dev\/null \| head -3 \| while/{f=1} f{print} f&&/done/{exit}' "$PIPELINE")"
+assert_true "$([[ -n "$codify_regelzeilen_block" ]]; echo $?)" "Codify-Regelzeilen-Block ist extrahierbar (Issue #261)"
+printf '%s' "$codify_regelzeilen_block" | grep -qE 'done \|\| true'
 assert_true "$?" "run-pipeline.sh Codify-Regelzeilen-Block ist set-e-sicher (|| true nach done, Issue #261)"
+
+# Schärfe-Beweis: ein unabhängiges "done || true" an anderer Stelle im Skript darf den
+# Guard nicht fälschlich grün machen, wenn der Codify-Block selbst ungesichert wäre.
+MUT_PIPELINE=$(mktemp)
+sed -e 's/    done || true/    done/' "$PIPELINE" > "$MUT_PIPELINE"
+printf '\ndone || true\n' >> "$MUT_PIPELINE"
+mut_block="$(awk '/grep "\^- " "\$codify_file" 2>\/dev\/null \| head -3 \| while/{f=1} f{print} f&&/done/{exit}' "$MUT_PIPELINE")"
+! printf '%s' "$mut_block" | grep -qE 'done \|\| true'
+assert_true "$?" "Schärfe-Beweis: unabhängiges 'done || true' anderswo täuscht den Block-Guard nicht (Issue #261)"
+rm -f "$MUT_PIPELINE"
 
 # ─── Stufe-2.5: Factory-Config Phase 1b – run-pipeline liest die Config (#25) ─
 echo ""
