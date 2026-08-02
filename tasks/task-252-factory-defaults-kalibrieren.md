@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -96,6 +96,25 @@ ADR-Drift-Fragen sind entschieden (s. Offene Fragen unten); Umsetzung für `/imp
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+## Test-Notizen (2026-08-02)
+Reine Config-Kalibrierung ohne TS-Produktionscode-Änderung – kein `pnpm test:coverage`-Lauf
+nötig, die relevante Test-Suite ist `scripts/checks/tests/run-tests.sh` (Bash, tabellengetrieben).
+Kein neuer Test geschrieben; bereits durch `/implement` angepasste Assertions verifiziert:
+
+- `bash scripts/checks/config-validation-check.sh` → exit 0 (AK9, keine Ausgabe = bestanden).
+- `bash scripts/checks/tests/run-tests.sh` → **637 grün, 4 rot**. Die 4 roten Tests
+  (`#212 W3`-E2E-Block, ~Zeile 3288ff.) liegen außerhalb jedes Hunks dieses Diffs
+  (`git diff origin/main...HEAD` bestätigt: kein Treffer in dem Bereich), sind seit `ba61638`
+  (#212, 2026-07-24) unverändert auf `main` und laut Implementierungs-Notizen bereits als
+  umgebungsbedingt (Sandbox-Restriktion, kein echter Git-Push möglich) eingeordnet – erneut per
+  vollem Lauf bestätigt (deterministisch dieselben 4, kein Zusammenhang mit AK1–AK11).
+- Alle AK-relevanten Assertions einzeln gegengeprüft und grün: `#91` (max 30 turns
+  review/security-review, Dry-Run + Default-Wert-Assert), `#197 AK1/AK2/AK4-AK7` (E2E
+  `claude-opus-5`/`claude-sonnet-5`-Literale in Dry-Run-Ausgaben, Zeilen 1128–3025), `#241`
+  (Mindest-Tier-Gate unverändert grün), `#249` (`model_tiers.heavy` weiterhin nicht override-bar,
+  `light` weiterhin erlaubt – AK5/AK8-Nichtregression).
+- Kein Produktionscode in diesem Schritt geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
