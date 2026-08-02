@@ -1090,6 +1090,21 @@ rm -f "$ZERO"
 grep -qE 'grep -c "\^- " "\$codify_file" 2>/dev/null \|\| true' "$PIPELINE"
 assert_true "$?" "run-pipeline.sh rule_count ist set-e-sicher (|| true, K-1)"
 
+# K-2 (Issue #261): Laufzeit-Beweis der set-e-Sicherheit für den grep|head|while-Block
+# (pipeline_summary's Codify-Regelzeilen-Ausgabe) gegen ein 0-Treffer-File unter set -e.
+ZERO2=$(mktemp); printf '# nur ein Header, keine Regel-Zeilen\n' > "$ZERO2"
+# Korrektes Idiom (|| true nach done) → kein Abbruch, rc=0:
+( set -euo pipefail; grep "^- " "$ZERO2" 2>/dev/null | head -3 | while IFS= read -r line; do echo "    ${line}"; done || true ) 2>/dev/null
+assert_exit 0 "$?" "Issue #261 RICHTIG-Idiom (|| true nach done) ist set-e-sicher bei 0 Treffern"
+# Gegenprobe: ohne || true bricht es unter set -e ab (beweist, dass der Test scharf ist):
+( set -euo pipefail; grep "^- " "$ZERO2" 2>/dev/null | head -3 | while IFS= read -r line; do echo "    ${line}"; done ) 2>/dev/null
+assert_true "$([ $? -ne 0 ]; echo $?)" "Gegenprobe: ohne || true bricht der grep|head|while-Block unter set -e ab (K-2)"
+rm -f "$ZERO2"
+
+# (2) run-pipeline.sh Codify-Regelzeilen-Block nutzt das set-e-sichere Idiom (|| true nach done) – Issue #261
+grep -qE 'done \|\| true' "$PIPELINE"
+assert_true "$?" "run-pipeline.sh Codify-Regelzeilen-Block ist set-e-sicher (|| true nach done, Issue #261)"
+
 # ─── Stufe-2.5: Factory-Config Phase 1b – run-pipeline liest die Config (#25) ─
 echo ""
 echo "Factory-Config Phase 1b (#25, ADR-009):"
