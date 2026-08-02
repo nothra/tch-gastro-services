@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -25,11 +25,12 @@ Spec: [docs/specs/spec-261-pipeline-summary-grep-abbruch.md](../docs/specs/spec-
       (inkl. `verify_final_state`) wird erreicht.
 - [x] GIVEN 1–3 Treffer WHEN `pipeline_summary()` läuft THEN alle Zeilen werden wie
       bisher ausgegeben (keine Verhaltensänderung im Treffer-Fall). — strukturell
-      garantiert: `|| true` greift nur, wenn die vorangehende Pipeline bereits fehlschlägt
-      (Exit ≠ 0); bei ≥1 Treffer ist der Exit-Code schon 0, `|| true` ändert nichts.
+      garantiert (`|| true` greift nur bei vorangehendem Fehlschlag) UND seit `/test`
+      empirisch belegt: End-to-end-Dry-Run-Test gegen den echten `pipeline_summary()`-
+      Pfad in `run-tests.sh` (#261 AC2-Block).
 - [x] GIVEN >3 Treffer WHEN `pipeline_summary()` läuft THEN erste 3 Zeilen +
-      `… (weitere in tasks/codify-<id>.md)` (unverändert). — gleiche Begründung wie oben,
-      der nachgelagerte `rule_count -gt 3`-Zweig ist vom Fix unberührt.
+      `… (weitere in tasks/codify-<id>.md)` (unverändert). — gleiche strukturelle
+      Begründung UND seit `/test` empirisch belegt (#261 AC3-Block, End-to-end-Dry-Run).
 - [x] GIVEN ein Regressionstest analog zu `run-tests.sh:1078-1091` (K-1) WHEN das
       korrigierte Idiom gegen ein 0-Treffer-File unter `set -euo pipefail` läuft THEN
       Exit 0 – UND die Gegenprobe ohne Fix bricht nachweislich ab. — K-2-Testblock in
@@ -70,6 +71,27 @@ unabhängiges `done || true` an anderer Stelle im Skript darf den Guard nicht t�
 Die Kommentar-Nummerierung wurde dabei auf `(3)` korrigiert (Nitpick). Die übrigen
 Nitpicks (`ZERO2`-Naming, 0-Byte- vs. Header-only-Fixture) bewusst nicht angefasst –
 optional laut Review-Persona, kein funktionaler Unterschied.
+
+## Test-Notizen (2026-08-02)
+Reine Bash-Skript-Änderung ohne TS-Produktionscode – kein `pnpm test:coverage`-Lauf
+nötig, die relevante Test-Suite ist `scripts/checks/tests/run-tests.sh` (Bash,
+tabellengetrieben).
+
+Lücke aus der Test-Vollständigkeitsprüfung geschlossen: AC2 (1–3 Treffer) und AC3
+(>3 Treffer) waren bisher nur strukturell begründet (`|| true` wirkt nur bei
+vorangehendem Fehlschlag), aber nicht durch einen Test belegt, der tatsächlich den
+echten `pipeline_summary()`-Pfad mit realen Regelzeilen durchläuft. Ergänzt: zwei
+End-to-end-Dry-Run-Tests (analog zum bestehenden #91-Scaffold, `bash
+run-pipeline.sh <id> --dry-run` gegen ein isoliertes Temp-Repo) –
+
+- AC2: `tasks/codify-3.md` mit 2 Regelzeilen → Summary zeigt beide Zeilen unverändert,
+  kein `… weitere`-Hinweis.
+- AC3: `tasks/codify-3.md` mit 5 Regelzeilen → Summary zeigt Regelzahl 5, aber nur die
+  ersten 3 Zeilen + den `… weitere`-Hinweis (vierte Zeile fehlt nachweislich).
+
+Volle Suite: `bash scripts/checks/tests/run-tests.sh` → **790 grün, 0 rot** (vorher 782;
++8 neue Assertions durch die beiden End-to-end-Blöcke). `pnpm test`/Typecheck/Format
+weiterhin unverändert grün (kein TS-Code betroffen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
