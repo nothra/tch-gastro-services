@@ -98,6 +98,10 @@ Siehe [tasks/review-255.md](review-255.md).
   Dokumentations-Drift (ADR-029-Decision-Prosa, ADR-041-Trade-off-Text,
   factory-workflow.md-Lesson listen die required-Checks ohne `config-validation`) –
   alle drei behoben (siehe Technische Notizen).
+- Runde 3 (finale Re-Review): NEEDS_REWORK – 1 Wichtig-Finding (AK4-Testfixture in
+  `run-tests.sh` nutzt Duplicate-YAML-Key statt sauberem Merge, besteht nur zufällig)
+  + 2 Nitpicks. **Circuit Breaker erreicht (3. Runde) → an den Menschen eskaliert**,
+  keine automatische 4. `/implement`-Iteration.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
