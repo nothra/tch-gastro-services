@@ -35,11 +35,22 @@ vi.mock("next/link", () => ({
 }));
 
 // Eingebettete Client-Komponenten sind Stubs (eigene Tests). Der KassiereZeileForm-Stub gibt die
-// zeileId aus, damit sich Vorhandensein (offen) und Fehlen (abgeschlossen) prüfen lassen.
+// zeileId als Textinhalt aus, damit sich Vorhandensein (offen) und Fehlen (abgeschlossen) prüfen
+// lassen, und `initialErhalten` als Attribut (nicht als Text, sonst bräche die Text-Assertion der
+// Formular-Reihenfolge). Ohne diesen Durchgriff bliebe unbelegt, dass eine an eingefrorener
+// Position stehende Zeile den **aktuellen** Erhalten-Betrag ins Formular bekommt (#253, AC5).
 vi.mock("../../StatusToggle", () => ({ StatusToggle: () => null }));
 vi.mock("../../KassiereZeileForm", () => ({
-  KassiereZeileForm: ({ zeileId }: { zeileId: string }) => (
-    <div data-testid="kassiere-form">{zeileId}</div>
+  KassiereZeileForm: ({
+    zeileId,
+    initialErhalten,
+  }: {
+    zeileId: string;
+    initialErhalten: string;
+  }) => (
+    <div data-testid="kassiere-form" data-initial-erhalten={initialErhalten}>
+      {zeileId}
+    </div>
   ),
 }));
 
@@ -178,6 +189,33 @@ function arrangeHappyPath() {
   listPositionenMock.mockResolvedValue(positionen);
   listAuslagenMock.mockResolvedValue(auslagen);
   listEreignisseMock.mockResolvedValue(ereignisse);
+}
+
+// Vier Zeilen mit je 1 Getränk @250 – `listZeilen` liefert sie alphabetisch (DB `.orderBy`).
+// Der Erhalten-Betrag je Zeile steuert den abgeleiteten Bezahlt-Status und damit die Sortierung:
+// 250 = bezahlt, null = offen. So lässt sich ein Kassiervorgang als erneuter Server-Render abbilden.
+function arrangeVierZeilen(erhalten: {
+  anna: number | null;
+  bernd: number | null;
+  carla: number | null;
+  dora: number | null;
+}) {
+  authMock.mockResolvedValue(session(["veranstalter"]));
+  getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+  listAuslagenMock.mockResolvedValue([]);
+  listEreignisseMock.mockResolvedValue([]);
+  listZeilenMock.mockResolvedValue([
+    zeile({ id: "z-a", teilnehmerId: "t-a", anzeigename: "Anna", erhaltenCents: erhalten.anna }),
+    zeile({ id: "z-b", teilnehmerId: "t-b", anzeigename: "Bernd", erhaltenCents: erhalten.bernd }),
+    zeile({ id: "z-c", teilnehmerId: "t-c", anzeigename: "Carla", erhaltenCents: erhalten.carla }),
+    zeile({ id: "z-d", teilnehmerId: "t-d", anzeigename: "Dora", erhaltenCents: erhalten.dora }),
+  ]);
+  listPositionenMock.mockResolvedValue([
+    pos({ zeileId: "z-a", menge: 1, priceCents: 250 }),
+    pos({ zeileId: "z-b", menge: 1, priceCents: 250 }),
+    pos({ zeileId: "z-c", menge: 1, priceCents: 250 }),
+    pos({ zeileId: "z-d", menge: 1, priceCents: 250 }),
+  ]);
 }
 
 beforeEach(() => {
@@ -337,28 +375,100 @@ describe("KassierenPage", () => {
   });
 
   it("should_listOffenParticipantsAboveBezahlt_when_rendered", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listAuslagenMock.mockResolvedValue([]);
-    listEreignisseMock.mockResolvedValue([]);
-    // `listZeilen` liefert alphabetisch (DB `.orderBy(anzeigename)`); je 1 Getränk @250.
-    listZeilenMock.mockResolvedValue([
-      zeile({ id: "z-a", teilnehmerId: "t-a", anzeigename: "Anna", erhaltenCents: 250 }),
-      zeile({ id: "z-b", teilnehmerId: "t-b", anzeigename: "Bernd", erhaltenCents: null }),
-      zeile({ id: "z-c", teilnehmerId: "t-c", anzeigename: "Carla", erhaltenCents: 250 }),
-      zeile({ id: "z-d", teilnehmerId: "t-d", anzeigename: "Dora", erhaltenCents: null }),
-    ]);
-    listPositionenMock.mockResolvedValue([
-      pos({ zeileId: "z-a", menge: 1, priceCents: 250 }),
-      pos({ zeileId: "z-b", menge: 1, priceCents: 250 }),
-      pos({ zeileId: "z-c", menge: 1, priceCents: 250 }),
-      pos({ zeileId: "z-d", menge: 1, priceCents: 250 }),
-    ]);
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
 
     render(await KassierenPage({ params: params("v-1") }));
 
     // Offen-Gruppe (Bernd, Dora) oben – je Gruppe stabil alphabetisch; bezahlt (Anna, Carla) unten.
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+  });
+
+  it("should_keepKassierteZeileAtItsPosition_when_serverReordersWithinSameSession", async () => {
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+
+    // Bernd wird kassiert: `revalidatePath` rendert die Server-Komponente neu, deren Sortierung ihn
+    // in die Bezahlt-Gruppe schöbe (Dora, Anna, Bernd, Carla) – die eingefrorene Position hält (#253).
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    rerender(await KassierenPage({ params: params("v-1") }));
+
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+    // Nur die Position ist eingefroren – das Badge folgt sofort den aktuellen Server-Daten.
+    const berndLi = screen.getByText("Bernd").closest("li")!;
+    expect(within(berndLi).getByText("bezahlt")).toBeInTheDocument();
+  });
+
+  it("should_keepEveryPosition_when_severalZeilenKassiertInSequence", async () => {
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    rerender(await KassierenPage({ params: params("v-1") }));
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: 250 });
+    rerender(await KassierenPage({ params: params("v-1") }));
+
+    // Kein kumulatives Nachrutschen: auch nach dem zweiten Kassieren steht jede Zeile unverändert.
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+  });
+
+  it("should_keepPositionAndEditableForm_when_erhaltenOfKassierteZeileIsCorrected", async () => {
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    rerender(await KassierenPage({ params: params("v-1") }));
+    expect(
+      within(screen.getByText("Bernd").closest("li")!).getByTestId("kassiere-form"),
+    ).toHaveAttribute("data-initial-erhalten", "2,50");
+
+    // Korrektur des Erhalten-Betrags derselben, bereits kassierten Zeile (2,50 € → 3,00 €).
+    arrangeVierZeilen({ anna: 250, bernd: 300, carla: 250, dora: null });
+    rerender(await KassierenPage({ params: params("v-1") }));
+
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+    // Das Formular bleibt editierbar – keine Umschaltung auf reine Anzeige nach dem Kassieren.
+    const berndLi = screen.getByText("Bernd").closest("li")!;
+    expect(within(berndLi).getByTestId("kassiere-form")).toHaveTextContent("z-b");
+    // …und zeigt den korrigierten Betrag: eingefroren ist nur die Position, nicht der Inhalt.
+    expect(within(berndLi).getByTestId("kassiere-form")).toHaveAttribute(
+      "data-initial-erhalten",
+      "3,00",
+    );
+  });
+
+  it("should_hideKassiereFormsAndLeaveOrderUntouched_when_veranstaltungIsAbgeschlossenViaStatusToggle", async () => {
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+
+    // Bernd kassieren – ab hier weicht die Server-Sortierung ([Dora, Anna, Bernd, Carla]) von der
+    // eingefrorenen ab. Ohne diesen Schritt wäre die Reihenfolge-Assertion unten vakuum.
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    rerender(await KassierenPage({ params: params("v-1") }));
+
+    // Abschluss über den StatusToggle lädt die Seite neu, ändert aber keinen Bezahlt-Status →
+    // unverändertes Sortierverhalten dieser Aktion (nicht Teil von #253); Formulare entfallen.
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    rerender(await KassierenPage({ params: params("v-1") }));
+
+    // Der Statuswechsel darf weder umsortieren noch den Freeze verlieren: ein statusabhängiger
+    // `key` an <EingefroreneZeilenListe> würde die Komponente remounten und Bernd nach unten
+    // springen lassen – diese Assertion färbt das rot (Server sortierte [Dora, Anna, Bernd, Carla]).
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+    expect(screen.queryAllByTestId("kassiere-form")).toHaveLength(0);
+  });
+
+  it("should_reapplyServerOrder_when_pageIsRenderedAgainAfterReload", async () => {
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { unmount } = render(await KassierenPage({ params: params("v-1") }));
+    unmount();
+
+    // Reload nach dem Kassieren von Bernd → neue Instanz, die Sortierung aus spec-223 gilt wieder.
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    render(await KassierenPage({ params: params("v-1") }));
+
+    expect(teilnehmerNamesInOrder()).toEqual(["Dora", "Anna", "Bernd", "Carla"]);
   });
 
   it("should_sortNullVerzehrParticipantIntoBezahltGroup_when_noConsumptionAndNoErhalten", async () => {
