@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -65,8 +65,18 @@ Spec: [docs/specs/spec-251-edit-allow-regressionstest.md](../docs/specs/spec-251
 ## Review-Findings
 Siehe [tasks/review-251.md](review-251.md) – Empfehlung: APPROVED. Ein Kritisch-Finding
 (rumpfidentische Duplikat-Schleife statt Merge in #224-AK1) wurde vor dem Review-Abschluss
-behoben; ein Nitpick (16-Werte-Liste zwischen jq- und Grep-Pfad dupliziert) bleibt optional
-offen, entspricht dem bestehenden Dateistil.
+behoben; ein Nitpick (16-Werte-Liste zwischen jq- und Grep-Pfad dupliziert) wurde im
+`/refactor`-Schritt behoben (siehe unten).
+
+## Refactor-Notizen
+- Review-Nitpick behoben: die 16-Werte-Liste (`Edit(app/**)` … `Edit(*.md)`) war wörtlich in
+  der gemergten jq-Schleife UND im Grep-Fallback dupliziert. Extrahiert in ein gemeinsames
+  Bash-Array `EDIT_ALLOW_88` (deklariert einmal vor dem `#224`-Testabschnitt, referenziert per
+  `"${EDIT_ALLOW_88[@]}"` in beiden Schleifen) – kein Literal-Duplikat mehr, Drift zwischen
+  jq-Pfad und Grep-Fallback strukturell ausgeschlossen.
+- Kein neues Verhalten: volle Suite vor und nach dem Refactor identisch grün (641/0); Negativ-
+  Test (`Edit(docs/**)` in Testkopie gestrichen) färbt weiterhin exakt dieselben 2 Assertionen
+  rot wie vor dem Refactor.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
