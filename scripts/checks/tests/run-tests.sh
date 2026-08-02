@@ -2317,22 +2317,18 @@ if [ "$HAS_JQ" -eq 1 ]; then
   # Verzeichnistiefe, gitignore-Semantik – die Spec adressiert aber ausdrücklich nur
   # Top-Level-Dateien; alle vier realen Zieldateien liegen im Root, root-verankert verliert
   # nichts, schließt aber die Least-Privilege-Lücke für künftige *.yml/*.yaml-Dateien).
-  for entry in 'Edit(/*.yml)' 'Edit(/*.yaml)'; do
-    jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
-    assert_true "$?" "#224: allow (geparst) enthält '$entry'"
-  done
-
-  # #251: Regressionstest für die 16 ursprünglichen #88-Edit(...)-Allow-Einträge. Bewusst
-  # eine eigene Schleife direkt neben der #224-AK1-Schleife oben (identischer Rumpf: jq-
-  # Array-Lookup je Eintrag), statt in dieselbe Werteliste gemischt – geprüft wird eine
-  # andere Eintragsgruppe (16 #88-Verzeichnis-/Extension-Einträge statt der 2 #224-YAML-
-  # Einträge), siehe Spec-251 AK4/Abgleich-Vorgabe.
-  for entry in 'Edit(app/**)' 'Edit(lib/**)' 'Edit(db/**)' 'Edit(e2e/**)' \
+  # #251 erweitert dieselbe Liste um die 16 ursprünglichen #88-Edit(...)-Allow-Einträge (statt
+  # einer zweiten, rumpfidentischen Schleife danebenzustellen – exakt das in
+  # lessons/testing.md ("Neue Regressions-Assertion-Schleife … abgleichen") kodifizierte
+  # #240-Learning; Präzedenzfall im selben File: die #240-AK1-Schleife unten vereint ebenso
+  # zwei unterschiedliche Eintragsgruppen in einer Liste statt zwei getrennten Schleifen).
+  for entry in 'Edit(/*.yml)' 'Edit(/*.yaml)' \
+    'Edit(app/**)' 'Edit(lib/**)' 'Edit(db/**)' 'Edit(e2e/**)' \
     'Edit(types/**)' 'Edit(scripts/**)' 'Edit(docs/**)' 'Edit(tasks/**)' \
     'Edit(config/**)' 'Edit(public/**)' 'Edit(.github/workflows/**)' \
     'Edit(*.ts)' 'Edit(*.tsx)' 'Edit(*.mjs)' 'Edit(*.json)' 'Edit(*.md)'; do
     jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
-    assert_true "$?" "#251: allow (geparst) enthält '$entry' (#88)"
+    assert_true "$?" "#224/#251: allow (geparst) enthält '$entry'"
   done
 
   # #240 AK1 (alle 18 vormals in allow vorhandenen Write(...)-Einträge): Die 11 ursprünglichen

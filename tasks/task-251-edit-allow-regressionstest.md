@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -30,15 +30,23 @@ Spec: [docs/specs/spec-251-edit-allow-regressionstest.md](../docs/specs/spec-251
       bestehende #224-AK1-Schleife abgeglichen (kein struktureller Duplikat-Rumpf).
 
 ## Technische Notizen
-- Neue Schleife direkt neben der bestehenden #224-AK1-Schleife platziert (gleicher jq-Array-
-  Lookup-Rumpf, andere Werteliste: 16 #88-Edit(...)-Einträge statt der 2 #224-YAML-Einträge) –
-  kein struktureller Duplikat-Rumpf ohne Grund (AK4).
-- Grep-Fallback bewusst außerhalb des `if [ "$HAS_JQ" -eq 1 ]`-Blocks platziert (läuft immer),
-  analog zum bestehenden #91/#240-Muster.
-- Verifikation:
+- **Review-Runde-1-Finding (behoben):** Erste Fassung legte eine eigene, rumpfidentische
+  Schleife neben die #224-AK1-Schleife (gleicher jq-Prüfausdruck, nur andere Werteliste) – exakt
+  das in `lessons/testing.md:343` kodifizierte #240-Learning ("Neue Regressions-Assertion-
+  Schleife gegen bereits vorhandene Schleife mit identischem Rumpf abgleichen, bevor eine
+  parallele Schleife angelegt wird"). Korrigiert: die 16 #88-Einträge sind jetzt in die
+  bestehende #224-AK1-Werteliste gemergt (kombinierter Assert-Präfix `#224/#251:`, Präzedenz:
+  `#91/#240:` bei der deny-Symmetrie-Assertion). Präzedenzfall im selben File: die #240-AK1-
+  Schleife vereint ebenfalls zwei unterschiedliche Eintragsgruppen (11 Verzeichnis- + 7
+  Extension-Einträge) in einer Liste statt zwei getrennten Schleifen.
+- Grep-Fallback bleibt eine eigenständige neue Schleife (kein Merge-Ziel vorhanden – einzige
+  weitere `for entry in ...`-Schleifen im File sind jq-basiert), bewusst außerhalb des
+  `if [ "$HAS_JQ" -eq 1 ]`-Blocks platziert (läuft immer), analog zum bestehenden #91/#240-Muster.
+- Verifikation (nach dem Merge-Fix erneut ausgeführt):
   - Positiv: volle Suite grün (641/0).
   - Negativ: `Edit(scripts/**)` in einer Testkopie von `.claude/settings.json` gestrichen →
-    genau die 2 zugehörigen Assertionen (jq + Grep) wurden rot, alle anderen 639 blieben grün.
+    genau die 2 zugehörigen Assertionen (`#224/#251:` jq + `#251:` Grep) wurden rot, alle
+    anderen 639 blieben grün.
   - jq-Fallback: temporäre Kopie von `run-tests.sh` mit `HAS_JQ=0` erzwungen (im selben
     Verzeichnis, sonst bricht die `BASH_SOURCE`-relative `FACTORY_ROOT`-Auflösung) → jq-Block
     zeigt „übersprungen (jq fehlt)“, alle 16 Grep-Fallback-Assertionen bleiben grün (594/0).
