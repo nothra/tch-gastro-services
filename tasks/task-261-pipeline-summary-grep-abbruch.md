@@ -1,7 +1,7 @@
 # Task 261: pipeline-summary-grep-abbruch
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,16 +20,20 @@ Spec: [docs/specs/spec-261-pipeline-summary-grep-abbruch.md](../docs/specs/spec-
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN `tasks/codify-<id>.md` mit 0 Treffern auf `^- ` WHEN `pipeline_summary()`
+- [x] GIVEN `tasks/codify-<id>.md` mit 0 Treffern auf `^- ` WHEN `pipeline_summary()`
       unter `set -euo pipefail` läuft THEN kein Abbruch (Exit 0), Rest des Skripts
       (inkl. `verify_final_state`) wird erreicht.
-- [ ] GIVEN 1–3 Treffer WHEN `pipeline_summary()` läuft THEN alle Zeilen werden wie
-      bisher ausgegeben (keine Verhaltensänderung im Treffer-Fall).
-- [ ] GIVEN >3 Treffer WHEN `pipeline_summary()` läuft THEN erste 3 Zeilen +
-      `… (weitere in tasks/codify-<id>.md)` (unverändert).
-- [ ] GIVEN ein Regressionstest analog zu `run-tests.sh:1078-1091` (K-1) WHEN das
+- [x] GIVEN 1–3 Treffer WHEN `pipeline_summary()` läuft THEN alle Zeilen werden wie
+      bisher ausgegeben (keine Verhaltensänderung im Treffer-Fall). — strukturell
+      garantiert: `|| true` greift nur, wenn die vorangehende Pipeline bereits fehlschlägt
+      (Exit ≠ 0); bei ≥1 Treffer ist der Exit-Code schon 0, `|| true` ändert nichts.
+- [x] GIVEN >3 Treffer WHEN `pipeline_summary()` läuft THEN erste 3 Zeilen +
+      `… (weitere in tasks/codify-<id>.md)` (unverändert). — gleiche Begründung wie oben,
+      der nachgelagerte `rule_count -gt 3`-Zweig ist vom Fix unberührt.
+- [x] GIVEN ein Regressionstest analog zu `run-tests.sh:1078-1091` (K-1) WHEN das
       korrigierte Idiom gegen ein 0-Treffer-File unter `set -euo pipefail` läuft THEN
-      Exit 0 – UND die Gegenprobe ohne Fix bricht nachweislich ab.
+      Exit 0 – UND die Gegenprobe ohne Fix bricht nachweislich ab. — K-2-Testblock in
+      `run-tests.sh` (nach K-1, vor Factory-Config Phase 1b).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -54,6 +58,13 @@ Bei 0 Treffern liefert `grep` Exit 1; unter `pipefail` wird daraus der Exit-Code
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Hinweis für /codify: Musterkandidat für `lessons/factory-workflow.md` oder
+`lessons/code-style.md` – jede `grep | head | while read`-Pipeline (oder allgemein jede
+Pipeline, deren letztes Glied bei 0 Treffern non-zero zurückgibt) braucht unter
+`set -euo pipefail` ein `|| true` **nach dem gesamten Pipeline-Ausdruck** (hier: nach
+`done`), nicht nur bei einfachen `grep -c`-Zuweisungen (bereits als Gotcha 2 codifiziert).
+Fix ist strukturell verhaltensneutral bei ≥1 Treffer, da `||` nur bei vorangehendem
+Fehlschlag greift.
 
 ---
 Branch: `fix/261-pipeline-summary-grep-abbruch`
