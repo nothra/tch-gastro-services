@@ -167,7 +167,8 @@ Kanonischer Stand des Rulesets (ID `19162920`, Repo `nothra/tch-gastro-services`
           { "context": "test" },
           { "context": "issue-sync" },
           { "context": "factory-self-test" },
-          { "context": "pr-closes-issue" }
+          { "context": "pr-closes-issue" },
+          { "context": "config-validation" }
         ]
       }
     },
@@ -213,3 +214,6 @@ gh api repos/nothra/tch-gastro-services/rulesets/19162920 --jq \
   `Closes #<id>`-Invariante durch.
 - **ADR-017** (Prod-Migration im Deploy-Gate): das `gate`/`production`-Promote bleibt
   unberührt – dieses Ruleset zielt nur auf `main` (`~DEFAULT_BRANCH`).
+- **ADR-041** (`config-validation` als eigener CI-Required-Check, Task 255): erweitert
+  `required_status_checks` um `config-validation` (s. o.) – Nachtrag gemäß der oben
+  dokumentierten Gegenmaßnahme „Änderungen am Ruleset laufen über einen neuen ADR".

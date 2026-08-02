@@ -62,9 +62,9 @@ validiert die realen Repo-Dateien direkt — unabhängig von Testfixtures.
       bleiben.
 - [ ] AK6: GIVEN der neue Job `config-validation` WHEN das
       Branch-Protection-Ruleset `protect-main` aktualisiert wird THEN enthält
-      `required_status_checks` zusätzlich `{ "context": "config-validation" }`,
-      das in ADR-029 dokumentierte JSON ist entsprechend aktualisiert, und die
-      Änderung ist live per `gh api -X PUT
+      `required_status_checks` zusätzlich `{ "context": "config-validation" }`
+      (dokumentiert in ADR-041, mit Nachtrag im JSON-Sollzustand von ADR-029),
+      und die Änderung ist live per `gh api -X PUT
       repos/nothra/tch-gastro-services/rulesets/19162920` angewendet (Ist-Zustand
       verifiziert über den in ADR-029 dokumentierten `gh api … --jq`-Befehl).
 - [ ] AK7: GIVEN der neue Job WHEN er läuft THEN benötigt er kein

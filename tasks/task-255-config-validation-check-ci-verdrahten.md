@@ -26,14 +26,22 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
 - [ ] AK3: Job ruft das Gate explizit gegen die realen Repo-Dateien auf (keine Fixture)
 - [ ] AK4: `model_tiers.heavy`-Override (Task-249-Regression) → Job schlägt fehl
 - [ ] AK5: redundante AK5-Testzeile (Gate #249 AK5) in `run-tests.sh` entfernt, übrige AK5-Zeilen (Gate #241/#254) unangetastet
-- [ ] AK6: `config-validation` in `protect-main`-Ruleset als required Check (ADR-029 + Ruleset live aktualisiert)
+- [ ] AK6: `config-validation` in `protect-main`-Ruleset als required Check (ADR-041 + ADR-029-Nachtrag + Ruleset live aktualisiert)
 - [ ] AK7: neuer Job ohne Node/pnpm-Setup (nur checkout + yq, analog `factory-self-test`)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 - Entscheidung aus /requirements: neuer eigener Job (nicht nur ein Step in `factory-self-test`).
-- ADR-029 beschreibt den Ruleset-Sollzustand namentlich → muss im selben PR mitgepflegt werden
-  (aus #211/#176-Lesson, `factory-workflow.md`).
+- **ADR-041 erstellt:** [docs/adr/041-config-validation-ci-required-check.md](../docs/adr/041-config-validation-ci-required-check.md)
+  – ADR-Trigger griff, weil ADR-029 für Ruleset-Änderungen explizit "einen neuen ADR"
+  vorschreibt (nicht nur eine stille Ruleset-Änderung).
+- **ADR-029 nachgezogen:** `required_status_checks`-JSON + Querverweis auf ADR-041
+  ergänzt (aus #211/#176-Lesson, `factory-workflow.md` – ADR-namentlich-beschriebene
+  Mechanik im selben PR mitpflegen).
+- Implementierung: neuer Job `config-validation` in `.github/workflows/factory-ci.yml`,
+  Struktur wie `issue-sync` (nur `actions/checkout` + yq-Bereitstellung, kein
+  pnpm/Node) + `bash scripts/checks/config-validation-check.sh` ohne Argumente
+  (Default-Pfade zeigen bereits auf Repo-Root, s. Script-Header).
 - Ruleset-Update per `gh api -X PUT .../rulesets/19162920` ist eine echte GitHub-Settings-
   Änderung — vor Ausführung nochmal explizit bestätigen lassen.
 
