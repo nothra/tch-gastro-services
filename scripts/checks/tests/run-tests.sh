@@ -3820,10 +3820,14 @@ assert_true "$([[ -x "$HI_CHECK" ]]; echo $?)" "#265: hooks-installed-check.sh a
 TMP_HI="$(mktemp -d)"
 
 # hi_repo <name> → Wegwerf-git-Repo (nur git init, kein Factory-Setup nötig – der Check
-# selbst hat keine Laufzeit-Abhängigkeiten außer git).
+# selbst hat keine Laufzeit-Abhängigkeiten außer git). Lokale Identität setzen (wie
+# ih_repo() im #262-Abschnitt) – ohne globale Git-Identität in der Ausführungsumgebung
+# schlägt der Worktree-Test-Commit sonst mit "empty ident name" fehl (Review-Finding #265).
 hi_repo() {
   local wt="$TMP_HI/$1"
   git init -q -b main "$wt" >/dev/null 2>&1
+  git -C "$wt" config user.email t@t
+  git -C "$wt" config user.name t
   printf '%s\n' "$wt"
 }
 
