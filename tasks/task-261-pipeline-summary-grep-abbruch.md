@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -55,8 +55,10 @@ Bei 0 Treffern liefert `grep` Exit 1; unter `pipefail` wird daraus der Exit-Code
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
-Vollständige Findings: [tasks/review-261.md](review-261.md) (Runde 1-3, Empfehlung
-NEEDS_REWORK).
+Vollständige Findings: [tasks/review-261.md](review-261.md). 1. Durchlauf: Runde 1-3,
+Empfehlung NEEDS_REWORK (1 Wichtig-Finding). 2. Durchlauf (nach Rework): Runde 1-3,
+Empfehlung **APPROVED** (nur noch 4 optionale Nitpicks, keine kritischen/wichtigen
+Findings).
 
 Rework [2026-08-02]: Das einzige Wichtig-Finding (Testguard
 `scripts/checks/tests/run-tests.sh:1105` war nicht an die konkrete Codify-Pipeline
