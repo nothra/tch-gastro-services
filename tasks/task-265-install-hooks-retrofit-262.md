@@ -1,7 +1,7 @@
 # Task 265: install-hooks-retrofit-262
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -23,39 +23,55 @@ Inhaltsvergleich gegen `install-hooks.sh` und ohne Sonderbehandlung von `core.ho
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN alle drei Factory-Hooks (`pre-commit`, `pre-push`, `commit-msg`) sind im
+- [x] GIVEN alle drei Factory-Hooks (`pre-commit`, `pre-push`, `commit-msg`) sind im
       gemeinsamen `.git/hooks`-Verzeichnis vorhanden und ausführbar WHEN
       `scripts/checks/pre-push.sh` läuft THEN meldet der neue Check Erfolg und blockiert
       den Push nicht (aus diesem Grund).
-- [ ] GIVEN mindestens einer der drei Hooks fehlt im gemeinsamen Git-Verzeichnis (z. B.
+- [x] GIVEN mindestens einer der drei Hooks fehlt im gemeinsamen Git-Verzeichnis (z. B.
       `commit-msg` wurde nie installiert) WHEN `scripts/checks/pre-push.sh` läuft THEN
       schlägt der Check fehl, der Push wird blockiert (Exit ≠ 0), und die Fehlermeldung
       nennt den fehlenden Hook-Namen sowie `bash scripts/install-hooks.sh` als
       Remediation-Befehl.
-- [ ] GIVEN einer der drei Hooks existiert als Datei, ist aber nicht ausführbar (z. B.
+- [x] GIVEN einer der drei Hooks existiert als Datei, ist aber nicht ausführbar (z. B.
       nach `chmod -x`) WHEN der Check läuft THEN wird er wie ein fehlender Hook behandelt
       (gleiche Fehlerbehandlung) – reine Existenzprüfung ohne Ausführbarkeits-Check reicht
       nicht.
-- [ ] GIVEN der Check läuft aus einem beliebigen Git-Worktree dieses Repos (nicht nur dem
+- [x] GIVEN der Check läuft aus einem beliebigen Git-Worktree dieses Repos (nicht nur dem
       Haupt-Arbeitsbaum) WHEN er das Hook-Verzeichnis bestimmt THEN verwendet er das
       **gemeinsame** Git-Verzeichnis (`git rev-parse --git-common-dir`), konsistent mit
       `install-hooks.sh` (ADR-042) – nicht ein worktree-lokales `.git`.
-- [ ] GIVEN mehrere Hooks fehlen gleichzeitig WHEN der Check läuft THEN werden alle
+- [x] GIVEN mehrere Hooks fehlen gleichzeitig WHEN der Check läuft THEN werden alle
       betroffenen Hook-Namen in der Fehlermeldung genannt (nicht nur der erste gefundene).
-- [ ] Fehlerszenario: `.git/hooks`-Verzeichnis existiert im gemeinsamen Git-Verzeichnis
+- [x] Fehlerszenario: `.git/hooks`-Verzeichnis existiert im gemeinsamen Git-Verzeichnis
       noch gar nicht (Retrofit nie durchgeführt) → alle drei Hooks gelten als fehlend,
       Push blockiert.
-- [ ] Fehlerszenario: `git rev-parse --git-common-dir` schlägt fehl (kein Git-Repository)
+- [x] Fehlerszenario: `git rev-parse --git-common-dir` schlägt fehl (kein Git-Repository)
       → Check verhält sich fail-closed (kein stiller Erfolg).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+- Neues Skript `scripts/checks/hooks-installed-check.sh` (Muster wie
+  `routes-doc-check.sh`): ermittelt `git rev-parse --git-common-dir` (relativ → gegen
+  `FACTORY_DIR`/Projektwurzel aufgelöst, analog `install-hooks.sh`), prüft je Hook
+  `-f && -x`, sammelt fehlende/nicht-ausführbare Hooks in einer Liste und meldet sie
+  gesammelt mit Remediation-Befehl `bash scripts/install-hooks.sh`. Kein Git-Repo →
+  Exit 1 (fail-closed), kein Inhaltsvergleich gegen `install-hooks.sh` (Spec-Scope).
+- In `scripts/checks/pre-push.sh` als neuer „Check 5" verdrahtet (Branch-Check zu
+  „Check 6" verschoben); Aufruf-Ausgabe über Kommandosubstitution eingefangen
+  (`if VAR="$(...)"; then` statt Umleitung in eine Datei) – unter `set -e` in
+  `pre-push.sh` darf eine reine Zuweisung mit fehlschlagender Subshell nicht
+  außerhalb einer `if`-Bedingung stehen, sonst bricht das Skript sofort ab.
+- Tests in `scripts/checks/tests/run-tests.sh` (#265-Abschnitt, 20 neue Assertions):
+  deckt alle sieben Akzeptanzkriterien inkl. Worktree-Fall (`git worktree add`) und
+  Diskriminierung (vorhandener Hook wird NICHT als fehlend gelistet) ab. Gesamte Suite:
+  772/772 grün. `pnpm lint` und `pnpm format:check` grün (keine TS/JS-Änderung).
 
 ## Offene Fragen
-- [ ] Implementierungsdetail (keine ADR nötig, in `/implement` zu entscheiden): neuer
+- [x] Implementierungsdetail (keine ADR nötig, in `/implement` zu entscheiden): neuer
       Check als Block direkt in `pre-push.sh` oder als eigenes Skript
       `scripts/checks/hooks-installed-check.sh` (Muster wie `routes-doc-check.sh`).
       Empfehlung: eigenes Skript – isoliert testbar, passt zum bestehenden Muster.
+      → Entschieden: eigenes Skript, wie empfohlen.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
