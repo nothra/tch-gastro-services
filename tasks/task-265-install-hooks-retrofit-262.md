@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -126,6 +126,12 @@ und per Kommentar eingeordnet, kein neues Issue nötig. Server-seitiger Schutz
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-265.md`. Drei Learnings extrahiert: (1) neuer `lessons/factory-workflow.md`-
+Eintrag zu lokal-zustandsabhängigen `pre-push.sh`-Checks vs. CI-Self-Tests (die #265-CI-
+Regression), (2) neuer `lessons/testing.md`-Eintrag zu Git-Identität in commit-erzeugenden
+Fixture-Helpern, (3) Nachtrag am bestehenden #114-Reihenfolge-Guard-Eintrag (Rezidiv in neuer
+Domäne, CI-YAML). `PROJECT-CONTEXT.md`-Index entsprechend ergänzt/erweitert. Keine
+CLAUDE.md-/Guideline-Änderung nötig (alle Learnings projektspezifisch).
 
 ---
 Branch: `improvement/265-install-hooks-retrofit-262`

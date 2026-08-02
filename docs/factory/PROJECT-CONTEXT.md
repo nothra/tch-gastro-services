@@ -243,6 +243,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - „Kein Argument übergeben"-Test simuliert nicht automatisch Abwesenheit, wenn das Skript einen `${N:-$REPO_ROOT/...}`-Default auf einen echten, existierenden Repo-Pfad hat – garantiert fehlenden Pfad explizit übergeben (aus #254, Review-Finding)
 - YAML-Testfixture per `printf >>` an eine Kopie mit bereits vorhandenem Top-Level-Key anhängen erzeugt ein Duplicate-Key-Dokument (yq „last-key-wins") – Test besteht nur zufällig; echten `yq -i eval`-Merge nutzen (aus #255, Review-Runde-3-Finding)
 - Rezidiv des #240-Duplikat-Schleife-Learnings trotz vorhandener Lesson: mehrdeutiger Spec-Wortlaut („Werteliste ergänzen **oder** neue Schleife daneben platzieren") bot die vom Lesson-Text bereits verbotene Alternative als scheinbar gleichwertige Option an – bei Widerspruch zwischen Spec und Lesson gilt der Lesson-Text (aus #251, Review-Runde-1-Finding)
+- Neuer git-Repo-Fixture-Helper, der committet, braucht lokale Git-Identität (`git config user.email`/`user.name`) – ohne sie läuft er nur zufällig, weil die lokale Entwicklungsumgebung meist einen Fallback liefert; in identitätsloser Umgebung schlägt der Commit fehl (aus #265, Review-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -272,7 +273,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding) → `/pipeline` (run-pipeline.sh)
 - `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91) → `/implement`, `/codify` – bei `.claude/**`-Änderung
 - Notiz-vor-Merge bei Squash-Strategie (aus #114) → `/pr-shepherd` – Merge mit Notiz
-- Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung (aus #114, Implement-Selbstfund) → Skill-Doc-Guards/Self-Tests
+- Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung – gilt für jeden Dokumenttyp (Skill-Markdown, CI-YAML, Shell), Anker ist die exakte Aufruf-Zeile, nie ein Kommando-Fragment (aus #114, Implement-Selbstfund; Rezidiv in neuer Domäne aus #265, Selbstfund) → Skill-Doc-Guards/Self-Tests, CI-Wiring-Tests
 - App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145) → `/implement` – bei Routen/`docs/routes.md`
 - Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144) → Doku-/Rename-Sweeps
 - Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158) → `/pr-shepherd` – Merge-Freigabe
@@ -297,6 +298,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - `awk`-Job-Block-Isolation in CI-Wiring-Tests muss auch am Job-Trennkommentar (`# ───`) abbrechen, nicht nur am nächsten Job-Key – sonst bluten Kommentarzeilen des Folge-Jobs in den extrahierten Block hinein (aus #255, Review-Runde-1-Finding) → `/implement`, `/review` – bei neuem `awk`/`sed`-Block-Extraktor für einen CI-Job in `run-tests.sh`
 - Fix zwischen zwei Runden einer laufenden Multi-Agenten-Kette sofort committen (nicht erst am Ende bündeln) – sonst sieht eine spätere Runde, die ihren Kontext per `git diff origin/main...HEAD` bezieht, einen veralteten Stand (aus #251, Review-Runde-3-Finding) → `/review`, `/security-review` – bei Fix zwischen zwei Runden einer laufenden Review-Kette
 - `PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell exportiert schlagen in jedes von der Testsuite erzeugte Wegwerf-Repo durch und lösen dort ungewollt Pipeline-Phasen aus – vor der Einordnung als Regression mit `unset` gegenprüfen (aus #262, Task-Selbstfund; Härtung ausgelagert: #264) → `/implement`, `/test`, `/review` – bei rotem, diff-unabhängigem E2E-Test während `PR_SHEPHERD`/`FACTORY_STAGE` exportiert sind
+- Neuer `pre-push.sh`-Check, der lokalen Installationszustand voraussetzt (nicht nur Repo-Inhalt): bestehende Self-Tests, die `pre-push.sh` echt gegen das reale `FACTORY_DIR` aufrufen (kein Fixture), brechen in CI, wenn dieser Zustand dort nie erfüllt ist – CI muss den Zustand vor der Self-Test-Suite herstellen, nicht den Check abschwächen (aus #265, User-gemeldete CI-Regression) → `/implement`, `/review` – bei neuem `pre-push.sh`/`pre-commit.sh`-Check mit Abhängigkeit von lokalem Umgebungszustand
 
 ---
 
