@@ -2322,6 +2322,19 @@ if [ "$HAS_JQ" -eq 1 ]; then
     assert_true "$?" "#224: allow (geparst) enthält '$entry'"
   done
 
+  # #251: Regressionstest für die 16 ursprünglichen #88-Edit(...)-Allow-Einträge. Bewusst
+  # eine eigene Schleife direkt neben der #224-AK1-Schleife oben (identischer Rumpf: jq-
+  # Array-Lookup je Eintrag), statt in dieselbe Werteliste gemischt – geprüft wird eine
+  # andere Eintragsgruppe (16 #88-Verzeichnis-/Extension-Einträge statt der 2 #224-YAML-
+  # Einträge), siehe Spec-251 AK4/Abgleich-Vorgabe.
+  for entry in 'Edit(app/**)' 'Edit(lib/**)' 'Edit(db/**)' 'Edit(e2e/**)' \
+    'Edit(types/**)' 'Edit(scripts/**)' 'Edit(docs/**)' 'Edit(tasks/**)' \
+    'Edit(config/**)' 'Edit(public/**)' 'Edit(.github/workflows/**)' \
+    'Edit(*.ts)' 'Edit(*.tsx)' 'Edit(*.mjs)' 'Edit(*.json)' 'Edit(*.md)'; do
+    jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
+    assert_true "$?" "#251: allow (geparst) enthält '$entry' (#88)"
+  done
+
   # #240 AK1 (alle 18 vormals in allow vorhandenen Write(...)-Einträge): Die 11 ursprünglichen
   # Write(<verzeichnis>/**)-Einträge (aus #88) und die 7 Write(<extension>)-Einträge (aus der
   # #224-Symmetrie-Ergänzung) waren laut claude --print-Probe gleichermaßen wirkungslos (nur
@@ -2372,6 +2385,18 @@ fi
 # mehr irgendwo in der Datei, unabhängig davon ob jq verfügbar ist.
 assert_true "$(! grep -qF '"Write(' "$SETTINGS"; echo $?)" \
   "#240: settings.json enthält keinen 'Write(...)'-Eintrag mehr (jq-unabhängiger Fallback)"
+
+# #251 (jq-unabhängiger Fallback, analog zum #91/#240-Muster): läuft IMMER, auch ohne jq,
+# damit die Regressionsabsicherung für die 16 ursprünglichen #88-Edit(...)-Allow-Einträge
+# nicht stillschweigend übersprungen wird, wenn jq in der Ausführungsumgebung fehlt (die
+# geparste #251-Schleife oben wird dann laut Zeile "übersprungen (jq fehlt)" nicht erreicht).
+for entry in 'Edit(app/**)' 'Edit(lib/**)' 'Edit(db/**)' 'Edit(e2e/**)' \
+  'Edit(types/**)' 'Edit(scripts/**)' 'Edit(docs/**)' 'Edit(tasks/**)' \
+  'Edit(config/**)' 'Edit(public/**)' 'Edit(.github/workflows/**)' \
+  'Edit(*.ts)' 'Edit(*.tsx)' 'Edit(*.mjs)' 'Edit(*.json)' 'Edit(*.md)'; do
+  grep -qF -- "$entry" "$SETTINGS"
+  assert_true "$?" "#251: settings.json enthält '$entry' (jq-unabhängiger Fallback)"
+done
 
 # AK7: die stale Präsens-Aussage zu factory.defaults.yml ist korrigiert; die weiterhin gültige
 # Patch-Workflow-Regel (#94) bleibt erhalten. Bislang die einzige Regressionsabsicherung für
