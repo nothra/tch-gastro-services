@@ -35,10 +35,6 @@
 # einen validierten höheren Deckel angehoben, um Spielraum zum Erkennen
 # "kein echter Rückstand" zu geben.
 #
-# ── Knopf: model_tiers.light (Modell-ID-Pflege) ──────────────────────────────
-# model_tiers.light von "claude-sonnet-4-6" (veraltete Modell-ID) auf
-# "claude-sonnet-5" (aktuelle Sonnet-Generation) aktualisiert.
-#
 # ── Knopf: skills.implement (Tier-Frage GEKLÄRT, #197 / ADR-038) ─────────────
 # Die früher hier offene implement-Tier-Frage (Task 135: Sonnet 5 reichte für
 # einen kleinen Fix; Task 53: Sonnet 5 riss 3x bei größerem Scope) ist jetzt
@@ -50,29 +46,8 @@
 # @reason (max_turns=50): großer implement-Lauf braucht Spielraum; 50 ist das
 #   Gate-Policy-Maximum (ADR-009 §6, MAX_TURNS_CEILING; ein Versuch mit 80 wurde
 #   vom config-validation-check hart abgelehnt).
-#
-# ── Knopf: skills.review (max_turns) ──────────────────────────────────────────
-# Learning aus Task 241 (Config-Validation Mindest-Tier, 2026-08-01): Mit dem
-# Default (14) ist /review dreimal mit "Reached max turns" abgebrochen, ohne
-# einen Report zu schreiben (Diff ~345 Zeilen → heavy via tier_by_size). Die
-# drei sequenziellen Runden (Backend/Logik, Code-Qualität, Architektur) plus
-# Kontext-Laden/Report-Schreiben passen bei diesem Diff-Umfang nicht in 14
-# Turns. Mit MAX_TURNS=30 (manueller Retry) lief der Skill durch und lieferte
-# einen vollständigen Report (APPROVED). Wert hier auf den validierten Wert
-# angehoben.
-#
-# ── Knopf: skills.security-review (max_turns) ────────────────────────────────
-# Learning aus Task 241 (Config-Validation Mindest-Tier, 2026-08-01): Mit dem
-# Default (14) ist /security-review mit "Reached max turns" abgebrochen, ohne
-# einen Report zu schreiben (Diff ~345 Zeilen, tier fix heavy). Mit
-# MAX_TURNS=30 (manueller Retry) lief der Skill durch und lieferte einen
-# vollständigen Report (PASSED). Wert hier auf den validierten Wert angehoben.
-model_tiers:
-  light: claude-sonnet-5
 skills:
   implement: { max_turns: 50 }
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 30 }
   test: { max_turns: 40 }
-  review: { max_turns: 30 }
-  security-review: { max_turns: 30 }
