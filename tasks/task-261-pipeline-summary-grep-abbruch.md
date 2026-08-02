@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -128,6 +128,18 @@ Pipeline, deren letztes Glied bei 0 Treffern non-zero zurückgibt) braucht unter
 `done`), nicht nur bei einfachen `grep -c`-Zuweisungen (bereits als Gotcha 2 codifiziert).
 Fix ist strukturell verhaltensneutral bei ≥1 Treffer, da `||` nur bei vorangehendem
 Fehlschlag greift.
+
+**Codify-Ergebnis [2026-08-02]:** Vollständiger Report: [tasks/codify-261.md](codify-261.md).
+Der obige Implementierungs-Hinweis war bereits durch die bestehende Gotcha-2-Lesson
+abgedeckt (kein neuer Eintrag nötig). Der tatsächlich neue, generalisierbare Lernfall kam
+aus dem Review-Zyklus: der 1. `/implement`-Durchlauf schrieb einen Test-Guard als
+datei-weites Kommando-Fragment (`grep -qE 'done \|\| true' "$PIPELINE"`) statt präzise
+an die Codify-Pipeline gebunden – **drittes Rezidiv** der bereits aus #114/#265
+dokumentierten „Anker ≠ Kommando-Fragment"-Lesson, diesmal als Präsenz-Guard auf ein
+Multi-Zeilen-Konstrukt statt als Reihenfolge-Guard. `docs/factory/lessons/
+factory-workflow.md` (Nachtrag 2 zum bestehenden Eintrag) + Index-Zeile in
+`PROJECT-CONTEXT.md` um die konkrete Technik ergänzt: bei Multi-Zeilen-Konstrukten
+`awk`-Block-Extraktion (Precedent #255) statt Fragment-Grep.
 
 ---
 Branch: `fix/261-pipeline-summary-grep-abbruch`
