@@ -100,7 +100,7 @@ describe("EingefroreneZeilenListe", () => {
     expect(namenInReihenfolge()).toEqual(["Anna", "Bernd", "Carla", "Dora"]);
   });
 
-  it("should_keepFrozenOrder_when_rerenderedWithUnchangedZeilen", () => {
+  it("should_keepZeileUnchanged_when_rerenderedWithUnchangedZeilen", () => {
     const { rerender } = render(
       <EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
     );
@@ -108,6 +108,10 @@ describe("EingefroreneZeilenListe", () => {
     // Fehlgeschlagenes Kassieren: der Server liefert unveränderte Daten.
     rerender(<EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />);
 
+    // Aussagekräftig ist hier die Statusstabilität: bei unveränderten Server-Daten sind
+    // Server-Reihenfolge und eingefrorene Reihenfolge zwangsläufig gleich, die Reihenfolge-
+    // Assertion kann den Freeze also nicht belegen (das tut
+    // `should_keepFrozenOrder_when_serverReordersOnRerender`) – sie ist reiner Regressions-Guard.
     expect(namenInReihenfolge()).toEqual(["Anna", "Bernd"]);
     expect(screen.getByTestId("status-z-2")).toHaveTextContent("offen");
   });

@@ -85,6 +85,37 @@ Keine offen (Klärungen bereits im Requirements-Gespräch erfolgt, siehe spec-25
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Runde 1 (`tasks/review-253.md`, NEEDS_REWORK):** keine kritischen Findings, zwei Wichtig-
+Findings – beide betrafen ausschließlich die Beweiskraft der Tests, kein Produktionscode.
+Behoben im Rework (`/implement`, 2026-08-02):
+
+- **W1 – AC5 nur zur Hälfte abgedeckt:** Der `KassiereZeileForm`-Stub gab nur `zeileId` aus,
+  `initialErhalten` wurde arrangiert, aber nie assertiert – die Zeile hätte an eingefrorener
+  Position einen veralteten Erhalten-Betrag zeigen können, ohne dass ein Test rot wird. Fix:
+  Stub reicht `initialErhalten` als `data-initial-erhalten`-Attribut durch (bewusst als
+  Attribut, nicht als Text – sonst bräche die Text-Assertion der Formular-Reihenfolge in
+  `should_renderKassiereForm_forEachZeile_when_offen`), und der AC5-Test prüft den Wert vor
+  (`2,50`) **und** nach der Korrektur (`3,00`).
+  *Diskriminierung belegt:* Mutation `initialErhalten={"MUTANT"}` in `page.tsx` macht genau
+  diesen Test rot (677 passed / 1 failed), alle übrigen bleiben grün.
+- **W2 – nicht diskriminierende Sortier-Assertion:** Bei `…_veranstaltungIsAbgeschlossenViaStatusToggle`
+  sind Server-Sortierung und eingefrorene Reihenfolge per Konstruktion identisch (die Aktion
+  lässt `kassier.bezahlt` unberührt), ein echt diskriminierender Test ist für diesen Pfad nicht
+  konstruierbar. Der Testname behauptete aber eine AC6-Absicherung, die er nicht leistet. Fix:
+  umbenannt auf `should_hideKassiereFormsAndLeaveOrderUntouched_when_…` + Kommentar, der die
+  Reihenfolge-Assertion explizit als Regressions-Guard (nicht als Freeze-Nachweis) ausweist und
+  auf den tragenden Test verweist. Analog kommentiert und umbenannt:
+  `EingefroreneZeilenListe.test.tsx` → `should_keepZeileUnchanged_when_rerenderedWithUnchangedZeilen`
+  (dort trägt die Statusstabilität den Test, nicht die Reihenfolge).
+
+Nitpicks bewusst nicht umgesetzt: Layout-Props/Umbenennung der Komponente, `children`-Variante,
+Extraktion von `KassierZeileInhalt` und `data-testid` für den Namens-Helfer sind Kandidaten für
+`/refactor` bzw. das offene Issue #205 – kein Produktionscode-Bedarf für #253.
+
+**Gates nach dem Rework:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
+Routen-Doku, Hooks, Branch-Guard); `page.tsx` bytegleich zum Vor-Rework-Stand
+(`git diff` leer nach der Mutationsprobe).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

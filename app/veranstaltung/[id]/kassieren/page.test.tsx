@@ -35,11 +35,22 @@ vi.mock("next/link", () => ({
 }));
 
 // Eingebettete Client-Komponenten sind Stubs (eigene Tests). Der KassiereZeileForm-Stub gibt die
-// zeileId aus, damit sich Vorhandensein (offen) und Fehlen (abgeschlossen) prüfen lassen.
+// zeileId als Textinhalt aus, damit sich Vorhandensein (offen) und Fehlen (abgeschlossen) prüfen
+// lassen, und `initialErhalten` als Attribut (nicht als Text, sonst bräche die Text-Assertion der
+// Formular-Reihenfolge). Ohne diesen Durchgriff bliebe unbelegt, dass eine an eingefrorener
+// Position stehende Zeile den **aktuellen** Erhalten-Betrag ins Formular bekommt (#253, AC5).
 vi.mock("../../StatusToggle", () => ({ StatusToggle: () => null }));
 vi.mock("../../KassiereZeileForm", () => ({
-  KassiereZeileForm: ({ zeileId }: { zeileId: string }) => (
-    <div data-testid="kassiere-form">{zeileId}</div>
+  KassiereZeileForm: ({
+    zeileId,
+    initialErhalten,
+  }: {
+    zeileId: string;
+    initialErhalten: string;
+  }) => (
+    <div data-testid="kassiere-form" data-initial-erhalten={initialErhalten}>
+      {zeileId}
+    </div>
   ),
 }));
 
@@ -407,6 +418,10 @@ describe("KassierenPage", () => {
 
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
     rerender(await KassierenPage({ params: params("v-1") }));
+    expect(
+      within(screen.getByText("Bernd").closest("li")!).getByTestId("kassiere-form"),
+    ).toHaveAttribute("data-initial-erhalten", "2,50");
+
     // Korrektur des Erhalten-Betrags derselben, bereits kassierten Zeile (2,50 € → 3,00 €).
     arrangeVierZeilen({ anna: 250, bernd: 300, carla: 250, dora: null });
     rerender(await KassierenPage({ params: params("v-1") }));
@@ -415,9 +430,14 @@ describe("KassierenPage", () => {
     // Das Formular bleibt editierbar – keine Umschaltung auf reine Anzeige nach dem Kassieren.
     const berndLi = screen.getByText("Bernd").closest("li")!;
     expect(within(berndLi).getByTestId("kassiere-form")).toHaveTextContent("z-b");
+    // …und zeigt den korrigierten Betrag: eingefroren ist nur die Position, nicht der Inhalt.
+    expect(within(berndLi).getByTestId("kassiere-form")).toHaveAttribute(
+      "data-initial-erhalten",
+      "3,00",
+    );
   });
 
-  it("should_keepExistingSortBehaviour_when_veranstaltungIsAbgeschlossenViaStatusToggle", async () => {
+  it("should_hideKassiereFormsAndLeaveOrderUntouched_when_veranstaltungIsAbgeschlossenViaStatusToggle", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
     const { rerender } = render(await KassierenPage({ params: params("v-1") }));
 
@@ -427,6 +447,11 @@ describe("KassierenPage", () => {
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
     rerender(await KassierenPage({ params: params("v-1") }));
 
+    // Achtung: Server-Sortierung und eingefrorene Reihenfolge sind hier per Konstruktion identisch
+    // (die Aktion lässt `kassier.bezahlt` unberührt) – die Reihenfolge-Assertion ist deshalb ein
+    // Regressions-Guard gegen ein Umsortieren, **kein** Nachweis des Freeze. Ein diskriminierender
+    // Test ist für diesen Pfad nicht konstruierbar; der Freeze ist in
+    // `should_keepKassierteZeileAtItsPosition_when_serverReordersWithinSameSession` belegt.
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
     expect(screen.queryAllByTestId("kassiere-form")).toHaveLength(0);
   });
