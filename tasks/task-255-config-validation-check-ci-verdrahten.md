@@ -1,7 +1,7 @@
 # Task 255: config-validation-check-ci-verdrahten
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -21,13 +21,13 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1: PR mit unbekanntem Key in `factory.config.yml` → Job `config-validation` rot
-- [ ] AK2: aktueller valider Config-Stand → Job `config-validation` grün
-- [ ] AK3: Job ruft das Gate explizit gegen die realen Repo-Dateien auf (keine Fixture)
-- [ ] AK4: `model_tiers.heavy`-Override (Task-249-Regression) → Job schlägt fehl
-- [ ] AK5: redundante AK5-Testzeile (Gate #249 AK5) in `run-tests.sh` entfernt, übrige AK5-Zeilen (Gate #241/#254) unangetastet
+- [x] AK1: PR mit unbekanntem Key in `factory.config.yml` → Job `config-validation` rot
+- [x] AK2: aktueller valider Config-Stand → Job `config-validation` grün
+- [x] AK3: Job ruft das Gate explizit gegen die realen Repo-Dateien auf (keine Fixture)
+- [x] AK4: `model_tiers.heavy`-Override (Task-249-Regression) → Job schlägt fehl
+- [x] AK5: redundante AK5-Testzeile (Gate #249 AK5) in `run-tests.sh` entfernt, übrige AK5-Zeilen (Gate #241/#254) unangetastet
 - [ ] AK6: `config-validation` in `protect-main`-Ruleset als required Check (ADR-041 + ADR-029-Nachtrag + Ruleset live aktualisiert)
-- [ ] AK7: neuer Job ohne Node/pnpm-Setup (nur checkout + yq, analog `factory-self-test`)
+- [x] AK7: neuer Job ohne Node/pnpm-Setup (nur checkout + yq, analog `factory-self-test`)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -40,10 +40,24 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
   Mechanik im selben PR mitpflegen).
 - Implementierung: neuer Job `config-validation` in `.github/workflows/factory-ci.yml`,
   Struktur wie `issue-sync` (nur `actions/checkout` + yq-Bereitstellung, kein
-  pnpm/Node) + `bash scripts/checks/config-validation-check.sh` ohne Argumente
-  (Default-Pfade zeigen bereits auf Repo-Root, s. Script-Header).
-- Ruleset-Update per `gh api -X PUT .../rulesets/19162920` ist eine echte GitHub-Settings-
-  Änderung — vor Ausführung nochmal explizit bestätigen lassen.
+  pnpm/Node) + `bash scripts/checks/config-validation-check.sh` **mit expliziten**
+  `$GITHUB_WORKSPACE/factory.defaults.yml` + `$GITHUB_WORKSPACE/factory.config.yml`
+  (AK3/ADR-041 verlangen den expliziten Aufruf gegen die realen Pfade, nicht den
+  impliziten Default-Pfad ohne Argumente – Korrektur ggü. der ursprünglichen
+  Architektur-Notiz oben, die "ohne Argumente" vorsah).
+- AK1/AK2/AK4 lokal simuliert: identischer Aufruf (`config-validation-check.sh
+  "$GITHUB_WORKSPACE/factory.defaults.yml" "$GITHUB_WORKSPACE/factory.config.yml"`)
+  gegen reale Dateien (exit 0), gegen eine Kopie mit unbekanntem Key (exit 1) und
+  mit `model_tiers.heavy`-Override (exit 1) durchgespielt – reale CI-Bestätigung
+  erfolgt zusätzlich, sobald der PR läuft.
+- ADR-041 Status auf "Accepted" gesetzt (Implementierung erfolgt, Lesson aus #197).
+- Neue CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
+  Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
+  realen Pfaden – analog zum bestehenden `issue-sync`-Wiring-Test.
+- **AK6 (Ruleset-Update) noch offen:** `gh api -X PUT .../rulesets/19162920` ist eine
+  echte, live wirksame GitHub-Settings-Änderung an `protect-main` (ADR-029) – wird erst
+  nach expliziter Bestätigung durch den Menschen ausgeführt (siehe Task-Datei-Notiz
+  von /architecture). Doku-Seite (ADR-029-JSON) ist bereits committed.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

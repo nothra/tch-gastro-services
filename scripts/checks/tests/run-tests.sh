@@ -1314,11 +1314,6 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   bash "$GATE" "$DEFAULTS" >/dev/null 2>&1
   assert_true "$?" "Gate #249 AK4: reiner Default-Lauf (kein Override) → exit 0"
 
-  # AK5 (Positiv): das reale, produktive factory.config.yml (überschreibt nur .light)
-  #   bleibt gültig — die neue Regel darf den legitimen Ist-Zustand nicht brechen.
-  bash "$GATE" "$DEFAULTS" "$FACTORY_ROOT/factory.config.yml" >/dev/null 2>&1
-  assert_true "$?" "Gate #249 AK5: reales factory.config.yml (nur .light-Override) bleibt gültig"
-
   # ── Config-Validation Root-Typ-Guard (Task 254) ─────────────────────────────
   # AK1 (Negativ): Skalar-Root im Override → explizite "kein Mapping"-Meldung, nicht
   #   die irreführende max_turns-Meldung aus Regel 4b.
@@ -1368,6 +1363,35 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
 else
   skip_yq "Gate-Validierung (Positiv/Negativ-Fixtures)"
 fi
+
+# ─── Config-Validation als eigener CI-Required-Check (Task 255, ADR-041) ─────
+echo ""
+echo "Config-Validation CI-Wiring (Task 255, ADR-041):"
+
+grep -q 'config-validation:' "$CI_FILE"
+assert_true "$?" "config-validation-Job in factory-ci.yml"
+
+# Job-Block isoliert extrahieren (nicht das ganze File scannen) — sonst würde die
+# "kein Node/pnpm"-Prüfung (AK7) an einem Fremd-Job (z. B. lint/test) vorbeirutschen,
+# der pnpm durchaus nutzt.
+cv_job_block="$(awk '/^  config-validation:/{f=1; next} /^  [A-Za-z0-9_-]+:/{if (f) exit} f' "$CI_FILE")"
+assert_true "$([[ -n "$cv_job_block" ]]; echo $?)" "config-validation-Job-Block ist extrahierbar"
+
+printf '%s' "$cv_job_block" | grep -q 'actions/checkout'
+assert_true "$?" "config-validation-Job checkt das Repo aus"
+
+printf '%s' "$cv_job_block" | grep -qi 'yq'
+assert_true "$?" "config-validation-Job stellt yq bereit (Gate-Prerequisite, ADR-009 §A)"
+
+printf '%s' "$cv_job_block" | grep -q 'config-validation-check.sh'
+assert_true "$?" "config-validation-Job ruft config-validation-check.sh auf"
+
+printf '%s' "$cv_job_block" | grep -q 'GITHUB_WORKSPACE/factory.defaults.yml' \
+  && printf '%s' "$cv_job_block" | grep -q 'GITHUB_WORKSPACE/factory.config.yml'
+assert_true "$?" "AK3: Job ruft das Gate explizit mit den Pfaden der realen Repo-Dateien auf"
+
+! printf '%s' "$cv_job_block" | grep -qE 'pnpm/action-setup|actions/setup-node'
+assert_true "$?" "AK7: config-validation-Job braucht kein Node/pnpm-Setup"
 
 # ─── Stufe-3: Config-Wizards / Single-Source-Begründung (#35, ADR-011) ───────
 echo ""
