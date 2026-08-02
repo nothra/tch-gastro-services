@@ -148,6 +148,12 @@ an vorhandenen Top-Level-Key erzeugt ein Duplicate-Key-Dokument, das nur zufäll
 (`testing.md`). ADR-Drift-nach-Rework-Muster war bereits durch bestehende Lessons (#55/#211)
 abgedeckt – keine neue Regel nötig.
 
+## PR-Shepherd
+PR-Shepherd [2026-08-02]: Merge freigegeben – alle Gates grün (CI: lint, test, issue-sync,
+factory-self-test, pr-closes-issue, config-validation, CodeQL, Vercel), 0 Approvals required
+(ADR-029), Branch bereits aktuell zu `origin/main` (`gh pr update-branch` → no-op), Draft →
+ready (`gh pr ready`).
+
 ---
 Branch: `chore/255-config-validation-check-ci-verdrahten`
 Erstellt: 2026-08-02 03:01
