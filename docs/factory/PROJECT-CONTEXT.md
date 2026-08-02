@@ -263,6 +263,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Zähl-/Aufzählungs-nennender Modul-Header („stellt EINE Funktion bereit") beim Hinzufügen einer Einheit mitpflegen (aus #207, Review-Finding W1)
 - Magic-Number-Konsistenz-Bewertung braucht projektweiten Grep, nicht nur Datei-/PR-lokalen Vergleich (aus #142, Review→Refactor-Diskrepanz)
 - Neue Verfügbarkeits-/Capability-Prüfung (`command -v` o. ä.) gegen bereits vorhandene im selben File abgleichen, statt eine dritte Schreibweise einzuführen (aus #224, Review-Runde-1-Finding)
+- Fix für falschen WHY-Kommentar (falsche Kausalkette) per Grep auf kopierte Geschwister-Stellen im selben PR ausweiten, nicht nur die gemeldete Zeile fixen (aus #264, Review-Runde-1-Finding, Rezidiv in Runde 3)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
 
@@ -281,7 +282,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Doku über „die Gates": required CI-Checks ≠ lokale pre-push-Gates nicht vermischen (aus #160) → Doku über CI/Gates
 - Review-Diff-Scope: `git diff main...HEAD` zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (aus #161; Skill-Vorlagen seit #176 auf `origin/main...HEAD`) → `/review`, `/security-review`, `/refactor` – Diff-Scope
 - ADR nach Review-Rework auf Drift prüfen – nicht nur `docs/routes.md` (aus #55, Review-Runde-2-Finding) → `/review`, `/implement` – bei ADR-Änderung
-- `/refactor` Turn-Limit-Exhaustion: Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185) → `/pipeline`, `/refactor` – bei Turn-Limit
+- `/refactor` Turn-Limit-Exhaustion: Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185); tritt auch ohne Code-Diff auf, Orchestrator prüft vor Retry nicht auf `git status` (aus #264, Härtung ausgelagert: #275) → `/pipeline`, `/refactor` – bei Turn-Limit
 - Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196) → `/implement` – bei Doku-Migration/Split
 - ADR-Status beim Implementieren einer frisch erstellten ADR auf Accepted flippen (aus #197, Review-Finding) → `/implement`, `/review` – bei ADR-Umsetzung
 - PR ändert die von einer ADR namentlich beschriebene Mechanik → ADR-Beschreibung im selben PR mitpflegen (ergänzt #55; triggert auch ohne ADR-Datei-Änderung) (aus #211, Review-Finding) → `/implement`, `/review` – bei Code-Änderung, die eine ADR beschreibt

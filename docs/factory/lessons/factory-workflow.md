@@ -485,6 +485,24 @@ Skill wiederholt das Turn-Limit: prüfen, ob der Änderungsumfang (hier: 3 neue 
 für ein Renderer-Feature) für einen einzelnen automatisierten `/refactor`-Lauf zu groß ist,
 statt endlos zu wiederholen.
 
+**Nachtrag (aus #264): Turn-Limit-Exhaustion auch OHNE Code-Diff, und der Orchestrator hält
+sich selbst nicht an die eigene Regel.** Derselbe automatisierte `/refactor`-Schritt riss in
+#264 erneut 3× das Turn-Limit – diesmal ohne jede Code-Änderung. Die Konklusion („keine
+Code-Änderung nötig", Checkliste geprüft, volle Testsuite grün) stand bereits nach dem ersten
+Versuch fest; allein die Verifikations-Overhead (volle Testsuite, Review-Rundenabgleich,
+Task-Datei-Prosa) reichte, um das Budget vor dem abschließenden Commit zu erschöpfen. Der
+Orchestrator (`run_skill()` in `scripts/run-pipeline.sh`) prüft zwischen den drei Retries
+– anders als die oben stehende Regel es verlangt – **nicht** auf `git status`/`git diff`; er
+retryt blind, wiederholt dieselbe (bereits fertige) Arbeit dreimal identisch und bricht die
+gesamte Pipeline ab. Ein Mensch musste den liegen gebliebenen, aber vollständig
+committierbaren Diff danach manuell finden und committen. `run_skill()` hat für
+`review`/`security-review` bereits einen Report-Guard (`report_verdict`, ADR-019 §4), der
+ein Turn-Limit nach bereits geschriebenem Report toleriert – für code-schreibende Skills
+fehlt das Äquivalent. Härtung als Issue #275 ausgelagert (Scope sprengt #264 selbst).
+**Für die Zwischenzeit:** vor jedem Retry-Abbruch eines automatisierten Skill-Schritts
+`git status` im Zielverzeichnis prüfen, bevor der Lauf als gescheitert gilt – ein
+committierbarer Zwischenstand ist kein Fehlschlag, nur ein fehlender letzter Schritt.
+
 ### Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196)
 
 Task #196 verschob 45 `/codify`-Learnings (~978 Zeilen) aus dem @import-Pfad in 7 thematische

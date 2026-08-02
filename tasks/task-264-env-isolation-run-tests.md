@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die vier realen (non-dry-run) `run-pipeline.sh`-Aufrufe in
@@ -275,6 +275,12 @@ Auflagen-Erledigung in `/test`) – keine Datei geändert, keine Regression mög
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe `tasks/codify-264.md` für den vollständigen Report. Kurzfassung: zwei neue
+Lesson-Einträge (`/refactor`-Turn-Limit auch ohne Code-Diff + Orchestrator-Retry-Lücke →
+Issue #275 ausgelagert; WHY-Kommentar-Sweep auf Geschwister-Stellen ausweiten,
+`code-style.md`). Kein neues Muster in der eigentlichen Env-Isolation-Härtung selbst –
+bestehende Lessons (#114/#255/#261/#265, #253) griffen bereits.
 
 ---
 Branch: `test/264-env-isolation-run-tests`
