@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `pipeline_summary()` in `scripts/run-pipeline.sh:385-387` bricht unter
@@ -140,6 +140,11 @@ Multi-Zeilen-Konstrukt statt als Reihenfolge-Guard. `docs/factory/lessons/
 factory-workflow.md` (Nachtrag 2 zum bestehenden Eintrag) + Index-Zeile in
 `PROJECT-CONTEXT.md` um die konkrete Technik ergänzt: bei Multi-Zeilen-Konstrukten
 `awk`-Block-Extraktion (Precedent #255) statt Fragment-Grep.
+
+PR-Shepherd [2026-08-02]: Merge freigegeben – alle Gates grün (Review APPROVED, Tests
+790/790, Security-Review PASSED, Refactoring abgeschlossen, Codify ausgeführt). Keine
+offenen Review-Kommentare, keine Approval-Pflicht (ADR-029, 0 Approvals), Branch bereits
+auf aktuellem `origin/main` (kein Rebase nötig), PR #269 aus Draft geholt.
 
 ---
 Branch: `fix/261-pipeline-summary-grep-abbruch`
