@@ -72,6 +72,18 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
     (jetzt als "doppelte Absicherung" beschrieben, CI-Required-Check + Selbsttest).
   - `docs/factory/lessons/factory-workflow.md`: beide required-Checks-Listen (Zeilen ~82
     und ~368) um `config-validation` ergänzt.
+- **Review-Runde 3 (NEEDS_REWORK, Circuit Breaker) behoben** – siehe [tasks/review-255.md](review-255.md):
+  - `scripts/checks/tests/run-tests.sh`: AK4-Testfixture (`model_tiers.heavy`-Override)
+    hängte per `printf` einen zweiten Top-Level-`model_tiers:`-Block an eine Kopie des
+    realen `factory.config.yml` an – ein YAML-Duplicate-Key, den `yq` per
+    last-key-wins auflöst (`model_tiers.light` verschwand dabei spurlos). Der Test
+    bestand nur zufällig, weil Regel 6 ohnehin auf jeden `heavy`-Wert greift. Ersetzt
+    durch echten Merge: `yq -i eval '.model_tiers.heavy = "claude-sonnet-5"' ...`
+    (verifiziert: `light` bleibt jetzt erhalten, Gate schlägt weiterhin korrekt fehl).
+  - `docs/adr/041-config-validation-ci-required-check.md`: Trade-off-Bullet gekürzt –
+    erzählte die Rework-Historie inline statt nur den aktuellen Trade-off zu nennen.
+  - Uneinheitliche "Nachtrag ADR-041"-Klammer-Schreibweise (Komma vs. Schrägstrich) in
+    ADR-029/Lesson-Datei vereinheitlicht.
 - ADR-041 Status auf "Accepted" gesetzt (Implementierung erfolgt, Lesson aus #197).
 - CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
@@ -101,7 +113,8 @@ Siehe [tasks/review-255.md](review-255.md).
 - Runde 3 (finale Re-Review): NEEDS_REWORK – 1 Wichtig-Finding (AK4-Testfixture in
   `run-tests.sh` nutzt Duplicate-YAML-Key statt sauberem Merge, besteht nur zufällig)
   + 2 Nitpicks. **Circuit Breaker erreicht (3. Runde) → an den Menschen eskaliert**,
-  keine automatische 4. `/implement`-Iteration.
+  keine automatische 4. `/implement`-Iteration. Nutzer hat "Jetzt fixen" gewählt –
+  alle drei Punkte in Commit nach der Eskalation behoben (siehe unten).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

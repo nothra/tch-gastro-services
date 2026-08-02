@@ -1423,8 +1423,12 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "AK1: unbekannter Key in factory.config.yml → config-validation-Job schlägt fehl"
 
   # AK4 (Negativ, Task-249-Regression): model_tiers.heavy-Override in einer Kopie.
+  # Echter yq-Merge in den bestehenden model_tiers-Block (nicht per printf einen
+  # zweiten Top-Level-Key anhängen) — sonst löst yq das Duplicate-Key-Dokument per
+  # last-key-wins auf und model_tiers.light verschwindet, wodurch der Test kein
+  # realistisches Override-Szenario mehr prüft (Review-Finding Runde 3, Task 255).
   cp "$FACTORY_ROOT/factory.config.yml" "$CVTMP/heavy-override.yml"
-  printf '\nmodel_tiers:\n  heavy: claude-sonnet-5\n' >> "$CVTMP/heavy-override.yml"
+  yq -i eval '.model_tiers.heavy = "claude-sonnet-5"' "$CVTMP/heavy-override.yml"
   bash "$GATE" "$FACTORY_ROOT/factory.defaults.yml" "$CVTMP/heavy-override.yml" >/dev/null 2>&1; rc=$?
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "AK4: model_tiers.heavy-Override (Task-249-Regression) → config-validation-Job schlägt fehl"
 
