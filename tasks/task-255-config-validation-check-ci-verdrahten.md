@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -95,6 +95,12 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
   nicht separat unit-testbar (GitHub-Actions-`run:`-Schritte failen per Default bei
   jedem non-zero exit, identisch zum unveränderten `factory-self-test`-Job-Muster) –
   keine zusätzlichen Tests nötig.
+- **`/refactor`-Pass:** Beide geänderten Code-Stellen (`config-validation`-Job in
+  `factory-ci.yml`, "Config-Validation CI-Wiring"-Testblock in `run-tests.sh`) gegen
+  die Clean-Code-Checkliste geprüft (Naming, Struktur, Magic Numbers, Kommentar-WHY) –
+  nach drei Review-Runden, die genau diese Punkte bereits gehärtet haben, kein
+  Verbesserungsbedarf ohne Mehrwert gefunden. Kein Code geändert, Tests weiterhin
+  609 grün (unverändert).
 - CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
   realen Pfaden in korrekter Reihenfolge, plus die oben genannten Behavior-Level-Tests
