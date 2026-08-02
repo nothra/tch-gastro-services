@@ -76,27 +76,12 @@ echo -e "  ${GREEN}✓${NC} PROJECT-CONTEXT.md initialisiert"
 echo ""
 echo -e "${YELLOW}Schritt 5: Git Hooks installieren...${NC}"
 
-GIT_HOOKS_DIR="$FACTORY_DIR/.git/hooks"
-
-if [ -d "$GIT_HOOKS_DIR" ]; then
-  # pre-commit Hook
-  cat > "$GIT_HOOKS_DIR/pre-commit" << 'EOF'
-#!/usr/bin/env bash
-bash scripts/checks/pre-commit.sh
-EOF
-  chmod +x "$GIT_HOOKS_DIR/pre-commit"
-  echo -e "  ${GREEN}✓${NC} pre-commit Hook installiert"
-
-  # pre-push Hook
-  cat > "$GIT_HOOKS_DIR/pre-push" << 'EOF'
-#!/usr/bin/env bash
-bash scripts/checks/pre-push.sh
-EOF
-  chmod +x "$GIT_HOOKS_DIR/pre-push"
-  echo -e "  ${GREEN}✓${NC} pre-push Hook installiert"
-else
-  echo -e "  ${YELLOW}⚠${NC}  Kein .git Verzeichnis gefunden – Hooks nicht installiert"
-  echo -e "     Führe 'git init' aus und dann nochmal 'bash scripts/init-factory.sh'"
+# Kanonische Quelle für Inhalt und Umfang der Hooks ist scripts/install-hooks.sh
+# (ADR-042) – hier bewusst nur der Aufruf, damit Neuprojekt-Bootstrap und Retrofit
+# bestehender Repos nicht auseinanderdriften.
+if ! bash "$FACTORY_DIR/scripts/install-hooks.sh"; then
+  echo -e "  ${YELLOW}⚠${NC}  Kein git-Repository gefunden – Hooks nicht installiert"
+  echo -e "     Führe 'git init' aus und dann 'bash scripts/install-hooks.sh'"
 fi
 
 # ─── 5. Scripts ausführbar machen ────────────────────────────────────────────

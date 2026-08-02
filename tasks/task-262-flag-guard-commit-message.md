@@ -1,7 +1,7 @@
 # Task 262: flag-guard-commit-message
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -18,16 +18,16 @@ in [`docs/specs/spec-262-flag-guard-commit-message.md`](../docs/specs/spec-262-f
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN der `commit-msg`-Hook ist installiert WHEN `git commit -m "fix: foo"` (reguläre Message) ausgeführt wird THEN wird der Commit wie bisher angelegt.
-- [ ] GIVEN der `commit-msg`-Hook ist installiert WHEN `git commit -m "--help"` oder `git commit -m "-h"` ausgeführt wird THEN lehnt der Hook fail-closed ab (kein Commit).
-- [ ] GIVEN eine Commit-Message, die mit `-` beginnt, aber nicht `--help`/`-h` ist (z. B. `-x`) WHEN committet wird THEN bleibt das bisherige Verhalten erhalten (keine Ablehnung).
-- [ ] GIVEN `scripts/factory-commit.sh -h`/`--help` wird aufgerufen WHEN das Skript läuft THEN nur Usage-Meldung, Exit 0, kein `git add`/`commit`/`push`.
-- [ ] GIVEN `scripts/factory-commit.sh` mit regulärer, nicht-leerer Message (kein `-h`/`--help`) WHEN das Skript läuft THEN Verhalten wie bisher (Regressionstest).
-- [ ] GIVEN `scripts/factory-commit.sh` mit anderem `-`-präfigiertem Argument (z. B. `-x`) WHEN das Skript läuft THEN wie jede andere Message behandelt (kein Sonderfall).
-- [ ] GIVEN ein Repo WHEN `bash scripts/install-hooks.sh` ausgeführt wird THEN sind `pre-commit`/`pre-push`/`commit-msg` installiert; wiederholter Aufruf ist idempotent.
-- [ ] GIVEN `scripts/init-factory.sh` für ein neues Projekt WHEN Hook-Installation läuft THEN ist `commit-msg` Teil der installierten Hooks.
-- [ ] GIVEN Commit-Message-Datei beim `commit-msg`-Hook nicht lesbar WHEN `commit-msg-check.sh` läuft THEN fail-closed Abbruch.
-- [ ] GIVEN eine leere Commit-Message WHEN committet wird THEN bestehende Leer-Prüfung bleibt unverändert wirksam.
+- [x] GIVEN der `commit-msg`-Hook ist installiert WHEN `git commit -m "fix: foo"` (reguläre Message) ausgeführt wird THEN wird der Commit wie bisher angelegt.
+- [x] GIVEN der `commit-msg`-Hook ist installiert WHEN `git commit -m "--help"` oder `git commit -m "-h"` ausgeführt wird THEN lehnt der Hook fail-closed ab (kein Commit).
+- [x] GIVEN eine Commit-Message, die mit `-` beginnt, aber nicht `--help`/`-h` ist (z. B. `-x`) WHEN committet wird THEN bleibt das bisherige Verhalten erhalten (keine Ablehnung).
+- [x] GIVEN `scripts/factory-commit.sh -h`/`--help` wird aufgerufen WHEN das Skript läuft THEN nur Usage-Meldung, Exit 0, kein `git add`/`commit`/`push`.
+- [x] GIVEN `scripts/factory-commit.sh` mit regulärer, nicht-leerer Message (kein `-h`/`--help`) WHEN das Skript läuft THEN Verhalten wie bisher (Regressionstest).
+- [x] GIVEN `scripts/factory-commit.sh` mit anderem `-`-präfigiertem Argument (z. B. `-x`) WHEN das Skript läuft THEN wie jede andere Message behandelt (kein Sonderfall).
+- [x] GIVEN ein Repo WHEN `bash scripts/install-hooks.sh` ausgeführt wird THEN sind `pre-commit`/`pre-push`/`commit-msg` installiert; wiederholter Aufruf ist idempotent.
+- [x] GIVEN `scripts/init-factory.sh` für ein neues Projekt WHEN Hook-Installation läuft THEN ist `commit-msg` Teil der installierten Hooks.
+- [x] GIVEN Commit-Message-Datei beim `commit-msg`-Hook nicht lesbar WHEN `commit-msg-check.sh` läuft THEN fail-closed Abbruch.
+- [x] GIVEN eine leere Commit-Message WHEN committet wird THEN bestehende Leer-Prüfung bleibt unverändert wirksam.
 
 ## Technische Notizen
 ADR-042 (`docs/adr/042-hook-installation-single-source.md`): `scripts/install-hooks.sh`
@@ -42,6 +42,24 @@ unabhängig voneinander (keine gemeinsame Flag-Liste extrahieren – Over-Engine
 zwei Zeilen an zwei unterschiedlichen Grenzen, siehe ADR-042 „Bewusst nicht extrahiert").
 Matching: exakter Vergleich des getrimmten Inhalts gegen `--help`/`-h` (kein Regex nötig,
 keine BSD/GNU-Portabilitätsfallen).
+
+### Notizen aus `/implement` (2026-08-02)
+
+- **AK8 strukturell statt end-to-end getestet:** `init-factory.sh` ist interaktiv (`read`-Prompts)
+  und nutzt `sed -i ''` (BSD-Syntax) – ein echter Bootstrap-Lauf wäre in CI (GNU) nicht portabel.
+  Der Test prüft deshalb die *Delegation* an `install-hooks.sh` in beide Richtungen (ruft es auf
+  **und** enthält keine `.git/hooks`-Referenz mehr). Dass die kanonische Quelle den
+  `commit-msg`-Hook tatsächlich installiert, deckt der Verhaltenstest zu AK7 ab.
+- **Kein zweiter Happy-Path für AK5:** Die Regression „reguläre Message committet und pusht wie
+  bisher" ist bereits durch den bestehenden `factory-commit`-Fall 1 abgedeckt – keine parallele
+  Schleife mit identischem Rumpf (Lesson #240/#251).
+- **E2E-Hook-Tests neutralisieren `pre-commit`:** Im Wegwerf-Repo wird der `pre-commit`-Hook durch
+  einen No-op ersetzt, damit ausschließlich der `commit-msg`-Pfad über Erfolg/Ablehnung
+  entscheidet (`pre-commit.sh` ruft `pnpm lint` und existiert dort gar nicht) – sonst wäre der
+  Test rot aus dem falschen Grund (Lesson #214).
+
+**Offen (außerhalb dieses PRs):** `scripts/install-hooks.sh` muss nach dem Merge in diesem Repo
+einmalig manuell ausgeführt werden, damit der `commit-msg`-Hook hier real scharf ist (ADR-042).
 
 ## Offene Fragen
 - [x] Code-Duplikation zwischen `scripts/install-hooks.sh` und dem Hook-Block in `scripts/init-factory.sh` – entschieden in ADR-042: `init-factory.sh` ruft `install-hooks.sh` auf.
