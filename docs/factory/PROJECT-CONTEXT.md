@@ -242,6 +242,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - `grep -qF`-Fixed-String-Regressionstest gegen Markdown-Prosa: beim Umbrechen die Testphrase auf einer Zeile halten, sonst lautlos rot – gilt in beide Richtungen (Prosa ändern UND neuen Test gegen bestehende Prosa schreiben) (aus #240/#249)
 - „Kein Argument übergeben"-Test simuliert nicht automatisch Abwesenheit, wenn das Skript einen `${N:-$REPO_ROOT/...}`-Default auf einen echten, existierenden Repo-Pfad hat – garantiert fehlenden Pfad explizit übergeben (aus #254, Review-Finding)
 - YAML-Testfixture per `printf >>` an eine Kopie mit bereits vorhandenem Top-Level-Key anhängen erzeugt ein Duplicate-Key-Dokument (yq „last-key-wins") – Test besteht nur zufällig; echten `yq -i eval`-Merge nutzen (aus #255, Review-Runde-3-Finding)
+- Rezidiv des #240-Duplikat-Schleife-Learnings trotz vorhandener Lesson: mehrdeutiger Spec-Wortlaut („Werteliste ergänzen **oder** neue Schleife daneben platzieren") bot die vom Lesson-Text bereits verbotene Alternative als scheinbar gleichwertige Option an – bei Widerspruch zwischen Spec und Lesson gilt der Lesson-Text (aus #251, Review-Runde-1-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -294,6 +295,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Write-Tool-Zielpfad im Worktree explizit gegen den Worktree-Suffix prüfen, nicht dem Bash-cwd vertrauen (der nach jedem Bash-Aufruf auf den Hauptbaum zurückspringt) (aus #240, /implement-Selbstfund) → jeder Skill – bei neuer Datei per `Write`-Tool in einer Worktree-Session
 - Divergiertes `origin/main` während laufender Pipeline: Rebase-Verantwortung bleibt bei `/pr-shepherd` (`gh pr update-branch`, kein Force-Push) – ein Zwischenschritt rebast nicht eigenständig gegen `main`, sonst erzwingt das einen Force-Push, den `factory-commit.sh` bewusst nicht anbietet (aus #249, /refactor-Selbstfund) → `/review`, `/test`, `/refactor`, `/security-review` – bei divergiertem `origin/main` auf bereits gepushtem Feature-Branch
 - `awk`-Job-Block-Isolation in CI-Wiring-Tests muss auch am Job-Trennkommentar (`# ───`) abbrechen, nicht nur am nächsten Job-Key – sonst bluten Kommentarzeilen des Folge-Jobs in den extrahierten Block hinein (aus #255, Review-Runde-1-Finding) → `/implement`, `/review` – bei neuem `awk`/`sed`-Block-Extraktor für einen CI-Job in `run-tests.sh`
+- Fix zwischen zwei Runden einer laufenden Multi-Agenten-Kette sofort committen (nicht erst am Ende bündeln) – sonst sieht eine spätere Runde, die ihren Kontext per `git diff origin/main...HEAD` bezieht, einen veralteten Stand (aus #251, Review-Runde-3-Finding) → `/review`, `/security-review` – bei Fix zwischen zwei Runden einer laufenden Review-Kette
 
 ---
 
