@@ -10,17 +10,37 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+`pipeline_summary()` in `scripts/run-pipeline.sh:385-387` bricht unter
+`set -euo pipefail` ab, wenn `/codify` 0 neue Regeln liefert: der
+`grep "^- " | head -3 | while read` -Block liefert dann einen Exit-Code ≠ 0 (die
+`while`-Schleife bricht sofort auf `EOF` mit Exit 1 ab), wodurch der komplette
+Pipeline-Lauf fälschlich als `failed` gemeldet wird – noch bevor die
+ADR-040-Endzustandsverifikation (`verify_final_state`) je läuft. Vollständige
+Spec: [docs/specs/spec-261-pipeline-summary-grep-abbruch.md](../docs/specs/spec-261-pipeline-summary-grep-abbruch.md).
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [ ] GIVEN `tasks/codify-<id>.md` mit 0 Treffern auf `^- ` WHEN `pipeline_summary()`
+      unter `set -euo pipefail` läuft THEN kein Abbruch (Exit 0), Rest des Skripts
+      (inkl. `verify_final_state`) wird erreicht.
+- [ ] GIVEN 1–3 Treffer WHEN `pipeline_summary()` läuft THEN alle Zeilen werden wie
+      bisher ausgegeben (keine Verhaltensänderung im Treffer-Fall).
+- [ ] GIVEN >3 Treffer WHEN `pipeline_summary()` läuft THEN erste 3 Zeilen +
+      `… (weitere in tasks/codify-<id>.md)` (unverändert).
+- [ ] GIVEN ein Regressionstest analog zu `run-tests.sh:1078-1091` (K-1) WHEN das
+      korrigierte Idiom gegen ein 0-Treffer-File unter `set -euo pipefail` läuft THEN
+      Exit 0 – UND die Gegenprobe ohne Fix bricht nachweislich ab.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+Naheliegendes Idiom (bereits im selben Skript für `rule_count`, Zeile 383, etabliert):
+`|| true` nach dem `done`. Endgültige Wahl obliegt /implement bzw. /architecture bei
+Bedarf.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
+Keine – Root-Cause, Reproduktion und Testkonvention sind durch Issue #261 und den
+bestehenden K-1-Testblock bereits eindeutig belegt.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
