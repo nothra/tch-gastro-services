@@ -273,7 +273,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding) → `/pipeline` (run-pipeline.sh)
 - `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91) → `/implement`, `/codify` – bei `.claude/**`-Änderung
 - Notiz-vor-Merge bei Squash-Strategie (aus #114) → `/pr-shepherd` – Merge mit Notiz
-- Reihenfolge-Guards: Kommando ≠ Prosa-Erwähnung – gilt für jeden Dokumenttyp (Skill-Markdown, CI-YAML, Shell), Anker ist die exakte Aufruf-Zeile, nie ein Kommando-Fragment (aus #114, Implement-Selbstfund; Rezidiv in neuer Domäne aus #265, Selbstfund) → Skill-Doc-Guards/Self-Tests, CI-Wiring-Tests
+- Reihenfolge-/Präsenz-Guards: Kommando ≠ Prosa-Erwähnung – Anker ist die exakte Aufruf-Zeile, nie ein Kommando-Fragment; bei Multi-Zeilen-Konstrukten `awk`-Block-Extraktion statt Fragment-Grep (aus #114, Implement-Selbstfund; Rezidiv in neuer Domäne aus #265; drittes Rezidiv als Präsenz-Guard auf Multi-Zeilen-Konstrukt aus #261, Review-Runde-2/3-Finding) → Skill-Doc-Guards/Self-Tests, CI-Wiring-Tests, Bash-Wiring-Tests (`run-tests.sh`)
 - App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145) → `/implement` – bei Routen/`docs/routes.md`
 - Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144) → Doku-/Rename-Sweeps
 - Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158) → `/pr-shepherd` – Merge-Freigabe
