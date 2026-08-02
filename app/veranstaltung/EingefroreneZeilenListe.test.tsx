@@ -100,20 +100,31 @@ describe("EingefroreneZeilenListe", () => {
     expect(namenInReihenfolge()).toEqual(["Anna", "Bernd", "Carla", "Dora"]);
   });
 
-  it("should_keepZeileUnchanged_when_rerenderedWithUnchangedZeilen", () => {
+  it("should_keepFrozenPositionAndStatus_when_subsequentKassierenFails", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
+      />,
     );
 
-    // Fehlgeschlagenes Kassieren: der Server liefert unveränderte Daten.
-    rerender(<EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />);
+    // Bernd wird erfolgreich kassiert – das erzeugt die Divergenz zwischen Server- und
+    // eingefrorener Reihenfolge, gegen die die folgende Assertion erst diskriminierend ist.
+    rerender(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
+      />,
+    );
 
-    // Aussagekräftig ist hier die Statusstabilität: bei unveränderten Server-Daten sind
-    // Server-Reihenfolge und eingefrorene Reihenfolge zwangsläufig gleich, die Reihenfolge-
-    // Assertion kann den Freeze also nicht belegen (das tut
-    // `should_keepFrozenOrder_when_serverReordersOnRerender`) – sie ist reiner Regressions-Guard.
-    expect(namenInReihenfolge()).toEqual(["Anna", "Bernd"]);
-    expect(screen.getByTestId("status-z-2")).toHaveTextContent("offen");
+    // Das Kassieren von Carla schlägt fehl: der Server liefert dieselben (bereits divergierten)
+    // Daten unverändert zurück.
+    rerender(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
+      />,
+    );
+
+    expect(namenInReihenfolge()).toEqual(["Anna", "Bernd", "Carla"]);
+    expect(screen.getByTestId("status-z-3")).toHaveTextContent("offen");
   });
 
   it("should_useServerOrder_when_mountedFreshAfterReload", () => {

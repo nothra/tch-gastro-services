@@ -41,6 +41,7 @@ vi.mock("@/db/auslage", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
 import { getCatalogItem } from "@/db/catalog";
@@ -81,6 +82,7 @@ const createMock = vi.mocked(createVeranstaltung);
 const addZeileMock = vi.mocked(addZeile);
 const removeZeileMock = vi.mocked(removeZeile);
 const setErhaltenMock = vi.mocked(setErhalten);
+const revalidatePathMock = vi.mocked(revalidatePath);
 const abschliessenMock = vi.mocked(abschliessenVeranstaltung);
 const wiedereroeffnenMock = vi.mocked(wiedereroeffnenVeranstaltung);
 const getVeranstaltungMock = vi.mocked(getVeranstaltung);
@@ -581,18 +583,21 @@ describe("kassiereZeileAction", () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
     await expect(bound({ zeileId: "z1", erhalten: "5" })).rejects.toThrow(ForbiddenError);
     expect(setErhaltenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_zeileIdMissing", async () => {
     const result = await bound({ erhalten: "5" });
     expect(result.error).toBeDefined();
     expect(setErhaltenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_amountInvalid", async () => {
     const result = await bound({ zeileId: "z1", erhalten: "-5" });
     expect(result.error).toBeDefined();
     expect(setErhaltenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_veranstaltungNotFound", async () => {
@@ -602,6 +607,7 @@ describe("kassiereZeileAction", () => {
     const result = await bound({ zeileId: "z1", erhalten: "5" });
     expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(setErhaltenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_veranstaltungNotOffen", async () => {
@@ -609,6 +615,7 @@ describe("kassiereZeileAction", () => {
     const result = await bound({ zeileId: "z1", erhalten: "5" });
     expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
     expect(setErhaltenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_zeileNotInVeranstaltung", async () => {
@@ -617,6 +624,7 @@ describe("kassiereZeileAction", () => {
     const result = await bound({ zeileId: "z1", erhalten: "5" });
     expect(result.error).toBe("Teilnehmerzeile nicht gefunden.");
     expect(setErhaltenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 });
 

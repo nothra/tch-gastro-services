@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -146,6 +146,43 @@ Behoben im Rework (`/implement`, 2026-08-02) – ausschließlich in
 **Gates nach Runde-2-Rework:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
 Routen-Doku, Hooks, Branch-Guard). Die Testzahl bleibt bei 678 – der bestehende Test wurde
 verstärkt, kein neuer Fall angelegt (Lesson #240: keine parallele Schleife/Duplikat-Test).
+
+**Runde 3 (`tasks/review-253.md`, APPROVED – letzte Review-Iteration laut Circuit Breaker):**
+kein Produktionscode-Finding in drei unabhängigen Durchläufen; der Code soll nicht mehr
+angefasst werden. Zwei Wichtig-Findings blieben, beide gezielt an nachfolgende Schritte
+delegiert statt in eine vierte `/implement`-Runde:
+
+- **W1 (an `/test` delegiert, hier behoben) – vakuumer Fehlerszenario-Test:**
+  `EingefroreneZeilenListe.test.tsx:103` (`should_keepZeileUnchanged_when_…`) rerenderte zweimal
+  mit *identischen* Props – weder die Reihenfolge- noch die Status-Assertion konnten den Freeze
+  von einem entfernten Freeze unterscheiden (Lesson #214: „grün aus dem falschen Grund").
+  Fix: Test umbenannt zu `should_keepFrozenPositionAndStatus_when_subsequentKassierenFails` und
+  auf die vom Review vorgegebene Sequenz umgestellt – ein *erfolgreiches* Kassieren (Bernd)
+  erzeugt zuerst die Divergenz zwischen Server- und eingefrorener Reihenfolge, danach ein
+  *fehlgeschlagenes* Kassieren (Carla, Server liefert unveränderte Daten). Vakuumer
+  Erklärkommentar entfällt ersatzlos.
+  Zusätzlich in `app/veranstaltung/actions.test.ts`: bei allen sechs bestehenden
+  `kassiereZeileAction`-Fehlerfällen (Rollen-Guard, fehlende `zeileId`, ungültiger Betrag,
+  Veranstaltung nicht gefunden/nicht offen, Zeile nicht in Veranstaltung) je ein
+  `expect(revalidatePathMock).not.toHaveBeenCalled()` ergänzt (analog zum dort bereits
+  konsequent gefahrenen `expect(setErhaltenMock).not.toHaveBeenCalled()`).
+  *Diskriminierung belegt (zwei separate Mutationsproben, danach jeweils zurückgesetzt –
+  `git diff` beider Produktionsdateien leer):*
+  - `EingefroreneZeilenListe.tsx:23` von `ordneNachEingefrorenerReihenfolge(...)` auf
+    `zeilen.map(...)` geändert → 4 Tests rot (u. a. der neue), alle anderen grün.
+  - `actions.ts`: `revalidatePath(...)` vor die Guards gezogen → alle sechs neuen
+    `revalidatePathMock`-Assertions rot, alle anderen grün.
+  Testzahl bleibt bei 678 (bestehende Tests verstärkt, kein neuer Fall – Lesson #240).
+- **W2 (Spec-/Prosa-Drift, nicht `/test`-Scope) – weiterhin offen:** `spec-253` beschreibt den
+  Freeze an zwei Stellen (`:54`, `:82-85`) als *kassier-lokal* („nur der Kassieren-Klick friert
+  ein", „kein Einfrieren ohne Statusänderung"), gebaut und per Test zementiert
+  (`page.test.tsx:440-460`) ist er *mount-basiert* (gilt für die gesamte Seiten-Session, auch
+  für einen StatusToggle nach einem vorherigen Kassiervorgang). Reiner Doku-Fix (~6 Zeilen in
+  `spec-253` + 2-zeiliger Nachtrag in `spec-223`), kein Testcode – bleibt für den nächsten
+  Schritt (`/refactor` oder manuell) offen, da außerhalb des `/test`-Mandats („nur Testdateien").
+
+**Gates nach dem Test-Fix:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
+Routen-Doku, Hooks, Branch-Guard).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
