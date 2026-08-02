@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Auf der Kassierseite springt eine gerade kassierte Teilnehmerzeile sofort in den unteren
@@ -230,6 +230,8 @@ Voller Report: `tasks/codify-253.md`. Zwei neue Lessons ergänzt (Volltext + Ind
 
 Produktionscode und Security-Review lieferten kein Finding – keine Regeländerung dort nötig.
 Out-of-Scope-Issues (#272, #273) wurden bereits vom Review-Schritt selbst angelegt.
+
+PR-Shepherd 2026-08-02: Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `feature/253-kassieren-position-bis-reload-behalten`
