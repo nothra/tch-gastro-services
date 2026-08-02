@@ -2621,8 +2621,11 @@ if [ "$HAS_YQ" = 1 ]; then
   git -C "$TMP_G101" init -q; git -C "$TMP_G101" add .
   git -C "$TMP_G101" -c user.email="t@t.com" -c user.name="t" commit -q -m init
   MARKER_G101="$TMP_G101/lint-ran.marker"
+  # env -u: der Wegwerf-Lauf entscheidet aus seinem eigenen Setup, nicht aus der Env der
+  # aufrufenden Shell – ein exportiertes PR_SHEPHERD würde sonst Phase 7 auslösen (#264).
   g101_out=$(cd "$TMP_G101" && PATH="$TMP_G101/bin:$PATH" \
     FACTORY_LINT_COMMAND="touch '$MARKER_G101'; false" \
+    env -u PR_SHEPHERD -u FACTORY_STAGE \
     bash "$TMP_G101/scripts/run-pipeline.sh" 101 2>&1 || true)
   printf '%s' "$g101_out" | grep -q 'Gate fehlgeschlagen: Lint'
   assert_true "$?" "#101: non-dry-run stoppt fail-closed am Lint-Gate (rotes Lint → Pipeline-Abbruch)"
@@ -3392,8 +3395,11 @@ CLEOF
   chmod +x "$TMP_INT/bin/claude"
   git -C "$TMP_INT" init -q; git -C "$TMP_INT" add .
   git -C "$TMP_INT" -c user.email=t@t -c user.name=t commit -q -m init
+  # env -u: siehe #264 – exportiertes PR_SHEPHERD würde Phase 7 im Wegwerf-Repo starten und
+  # dort mangels .claude/commands/pr-shepherd.md abbrechen, bevor der geprüfte Pfad greift.
   int_out=$(cd "$TMP_INT" && PATH="$TMP_INT/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    env -u PR_SHEPHERD -u FACTORY_STAGE \
     bash "$TMP_INT/scripts/run-pipeline.sh" 77 2>&1); int_rc=$?
   assert_true "$([[ "$int_rc" -ne 0 ]]; echo $?)" "#212 AK8: Interrupt-Sentinel → Non-Zero-Exit"
   printf '%s' "$int_out" | grep -q 'Pipeline erfolgreich abgeschlossen'
@@ -3437,8 +3443,11 @@ if [ "$HAS_YQ" = 1 ]; then
   git -C "$TMP_E2E" push -q origin "$E2E_BR"
   # Unvollständiger Endzustand: ein ungepushter Commit (Working Tree bleibt sauber → Preflight ok)
   echo "extra" > "$TMP_E2E/extra.txt"; git -C "$TMP_E2E" add .; git -C "$TMP_E2E" commit -q -m unpushed
+  # env -u: siehe #264 – ohne Neutralisierung entscheidet ein exportiertes PR_SHEPHERD über
+  # Phase 7 und über den PR-Zweig der Endzustands-Verifikation, nicht dieses Test-Setup.
   e2e_out=$(cd "$TMP_E2E" && PATH="$TMP_E2E/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    env -u PR_SHEPHERD -u FACTORY_STAGE \
     bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_rc=$?
   assert_true "$([[ "$e2e_rc" -ne 0 ]]; echo $?)" "#212 W3: unverifizierter Endzustand → Non-Zero-Exit (E2E)"
   printf '%s' "$e2e_out" | grep -q 'Pipeline erfolgreich abgeschlossen'
@@ -3449,15 +3458,45 @@ if [ "$HAS_YQ" = 1 ]; then
   assert_true "$?" "#212 W3: INCOMPLETE_OUTCOME wird ins interrupt-log geschrieben (ADR-006)"
   # Positiv-Gegenprobe: sauber+gepusht → Erfolgs-Banner erreicht (kein Fehlalarm)
   git -C "$TMP_E2E" push -q origin "$E2E_BR"
+  # env -u: siehe #264 (identischer Leck-Vektor wie im Negativ-Fall darüber).
   e2e_ok=$(cd "$TMP_E2E" && PATH="$TMP_E2E/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    env -u PR_SHEPHERD -u FACTORY_STAGE \
     bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_ok_rc=$?
   assert_exit 0 "$e2e_ok_rc" "#212 W3: sauber+gepushter Endzustand → Erfolg (exit 0, Gegenprobe)"
   printf '%s' "$e2e_ok" | grep -q 'Pipeline erfolgreich abgeschlossen'
   assert_true "$?" "#212 W3: Erfolgs-Banner erscheint bei verifiziertem Endzustand"
+
+  # ─── #264: Env-Isolation der realen run-pipeline.sh-Testaufrufe ────────────
+  # Verhaltensbeweis (kein Grep auf `env -u`): Dieselbe Positiv-Gegenprobe läuft erneut,
+  # diesmal mit PR_SHEPHERD/FACTORY_STAGE EXPORTIERT in der Shell, die run-pipeline.sh
+  # aufruft. Ohne die `env -u`-Härtung erbt der Wegwerf-Lauf PR_SHEPHERD=true, startet
+  # Phase 7 (pr-shepherd), bricht dort mangels .claude/commands/pr-shepherd.md ab und
+  # verlangt zusätzlich einen verwertbaren PR-Zustand (gh) → Non-Zero-Exit statt
+  # Erfolgs-Banner. Der Export ist die divergenzerzeugende Aktion – ohne ihn wäre der
+  # Block blind (Lesson #253).
+  # Er lebt bewusst INNERHALB der Kommando-Substitutions-Subshell: so kann er weder in
+  # nachfolgende Blöcke lecken noch dort einen künftig ungehärteten Aufruf maskieren
+  # (ein `unset` danach würde eine vom Aufrufer geerbte Variable mit verschlucken).
+  e2e_env=$(cd "$TMP_E2E" && export PR_SHEPHERD=true FACTORY_STAGE=3 && \
+    PATH="$TMP_E2E/bin:$PATH" \
+    FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    env -u PR_SHEPHERD -u FACTORY_STAGE \
+    bash "$TMP_E2E/scripts/run-pipeline.sh" 78 2>&1); e2e_env_rc=$?
+  assert_exit 0 "$e2e_env_rc" "#264: exportiertes PR_SHEPHERD/FACTORY_STAGE ändert das Ergebnis nicht (exit 0)"
+  printf '%s' "$e2e_env" | grep -q 'Pipeline erfolgreich abgeschlossen'
+  assert_true "$?" "#264: Erfolgs-Banner erscheint trotz exportiertem PR_SHEPHERD/FACTORY_STAGE"
+  # Pfadspezifisches Signal: Phase 7 lief nachweislich nicht, und die Verifikation blieb im
+  # git-Modus (ohne PR-Invarianten) – beides beweist, dass das Kind PR_SHEPHERD=false sah.
+  printf '%s' "$e2e_env" | grep -q 'Phase 7'
+  assert_true "$([ $? -ne 0 ]; echo $?)" "#264: Phase 7 (pr-shepherd) wird nicht ungewollt ausgelöst"
+  printf '%s' "$e2e_env" | grep -q 'Endzustand verifiziert (sauber, gepusht)'
+  assert_true "$?" "#264: Endzustands-Verifikation läuft ohne PR-Invarianten (Kind sah PR_SHEPHERD=false)"
+
   rm -rf "$TMP_E2E" "$TMP_E2E_ORIGIN"
 else
   skip_yq "#212 W3: Verifikations-Interrupt end-to-end"
+  skip_yq "#264: Env-Isolation gegen exportiertes PR_SHEPHERD/FACTORY_STAGE"
 fi
 
 echo ""

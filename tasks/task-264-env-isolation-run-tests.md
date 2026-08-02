@@ -1,7 +1,7 @@
 # Task 264: env-isolation-run-tests
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -21,21 +21,21 @@ für Recherche-Details (u. a.: `--dry-run`-Aufrufe sind nachweislich nicht betro
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert WHEN
+- [x] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert WHEN
       der `#212 AK8`-Block läuft THEN bleiben alle Assertions grün (Phase 7 wird nicht
       ungewollt ausgelöst).
-- [ ] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert WHEN
+- [x] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert WHEN
       der `#212 W3`-Block (Negativ-Fall) läuft THEN bleiben die vier zugehörigen Assertions
       identisch zum unbelasteten Fall.
-- [ ] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert WHEN
+- [x] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert WHEN
       der `#212 W3`-Block (Positiv-Gegenprobe) läuft THEN erscheint weiterhin das
       Erfolgs-Banner.
-- [ ] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true` exportiert WHEN der
+- [x] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true` exportiert WHEN der
       `#101`-Lint-Gate-Block läuft THEN bleibt das Ergebnis unverändert.
-- [ ] GIVEN einer der vier realen `run-pipeline.sh`-Aufrufe WHEN der Code gelesen wird THEN
+- [x] GIVEN einer der vier realen `run-pipeline.sh`-Aufrufe WHEN der Code gelesen wird THEN
       neutralisiert er `PR_SHEPHERD`/`FACTORY_STAGE` explizit für den Kindprozess (z. B.
       `env -u PR_SHEPHERD -u FACTORY_STAGE`).
-- [ ] GIVEN ein neuer Regressionstest, der die Env-Isolation verhaltensbasiert beweist WHEN
+- [x] GIVEN ein neuer Regressionstest, der die Env-Isolation verhaltensbasiert beweist WHEN
       er ohne die Härtung liefe THEN würde er rot ausschlagen (keine Tautologie).
 
 ## Technische Notizen
@@ -94,6 +94,39 @@ einer bestehenden Datei, kein Produktionscode betroffen).
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 _Keine offenen Fragen mehr – Inline-Ansatz entschieden (s. Technische Notizen)._
+
+## Implementierungs-Notizen (`/implement`, 2026-08-03)
+
+**Umgesetzt:** Alle vier realen `run-pipeline.sh`-Aufrufe in `scripts/checks/tests/run-tests.sh`
+tragen jetzt `env -u PR_SHEPHERD -u FACTORY_STAGE` samt kurzem WHY-Kommentar (`#101`,
+`#212 AK8`, `#212 W3` Negativ- und Positiv-Fall) – inline, wie in den technischen Notizen
+entschieden. Der neue `#264`-Block hängt als fünfte, ebenfalls gehärtete Aufrufstelle direkt an
+der Positiv-Gegenprobe und nutzt deren `$TMP_E2E`-Scaffold weiter (dritter Lauf ist idempotent:
+`verify_final_state` wertet nur getrackte Änderungen aus, die Wegwerf-Läufe schreiben nur
+untrackte Dateien).
+
+**Abweichung vom Notiz-Vorschlag (bewusst):** Statt `export …` vor und `unset …` nach dem Aufruf
+im Runner-Kontext steht der Export **innerhalb der Kommando-Substitutions-Subshell**
+(`$(cd … && export PR_SHEPHERD=true FACTORY_STAGE=3 && … )`). Semantisch identisch (die Shell,
+die `run-pipeline.sh` aufruft, hat die Variablen exportiert), aber ohne die Nebenwirkung des
+`unset`: Ein pauschales `unset` hätte auch eine **vom Aufrufer geerbte** Variable verschluckt und
+damit für alle nachfolgenden Blöcke maskiert, ob dort ein künftig hinzugefügter, ungehärteter
+Aufruf auf sie reagiert – also genau die Detektierbarkeit zerstört, deren Fehlen zu #262 führte.
+
+**Verifikation (Red → Green, in einer real kontaminierten Shell):**
+- Ausgangslage: `PR_SHEPHERD=true` war in der Session-Shell exportiert → Baseline
+  `786 grün / 4 rot`, exakt die vier `#212 W3`-Assertionen aus #262 (Symptom live reproduziert).
+- Nach der Härtung: `794 grün / 0 rot` in derselben Shell → AC1–AC4 verhaltensbasiert erfüllt.
+- Nicht-Tautologie (AC6): `env -u` am `#264`-Aufruf kurzzeitig entfernt → `790 grün / 4 rot`
+  (alle vier neuen Assertionen), danach wiederhergestellt → wieder `794 grün / 0 rot`. Zweimal
+  durchgeführt (vor und nach dem Subshell-Umbau).
+- Portabilität: `env -u` ist POSIX und lief hier real unter macOS/BSD; GNU-coreutils in CI
+  unterstützt dasselbe Flag (Fehlerszenario der Spec damit adressiert).
+
+**Bewusst nicht umgesetzt (Scope):** Kein struktureller Drift-Guard, der künftige reale
+`run-pipeline.sh`-Aufrufe in `run-tests.sh` auf `env -u` prüft. Der Spec-Scope nennt vier
+Aufrufstellen + einen Verhaltenstest; ein solcher Guard wäre Gold-Plating. Falls gewünscht,
+gehört er in ein eigenes Issue.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
