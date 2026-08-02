@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -203,8 +203,33 @@ Doppel-Ids, `data-testid` statt Positionsheuristik) bewusst nicht umgesetzt – 
 **Gates nach `/refactor`:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
 Routen-Doku, Hooks, Branch-Guard).
 
+**`/security-review` (2026-08-02, `tasks/security-253.md`): PASSED** – keine kritischen und keine
+wichtigen Findings, Merge nicht blockiert. Der Diff ändert nur die clientseitige
+Darstellungs-Reihenfolge auf einer rollen-gegateten Seite: keine neue Route, kein neuer
+Data-Layer-Zugriff, keine neue Server Action, keine Dependency-Änderung (`package.json`/
+`pnpm-lock.yaml` unverändert), kein `dangerouslySetInnerHTML`/`eval`/`console.*`. Die
+serverseitige Schutzkette (`hasRole` in `page.tsx:38`, `requireRole` + IDOR-Bindung
+`getZeile(zeileId, veranstaltungId)` in `actions.ts:221/234`) ist unberührt. Einziger
+nennenswerter Hinweis ohne Handlungsbedarf: `zeile.id` wird nun auch im abgeschlossenen
+(schreibgeschützten) Zweig in die RSC-Payload serialisiert – ein internes DB-Identifier ohne
+Capability-Charakter auf einer nur für `veranstalter` erreichbaren Seite. Positiv vermerkt:
+Map/Set statt Plain-Object-Lookup (kein `__proto__`-Vergiften) und die neuen
+`revalidatePathMock`-Assertions als Härtung der Fail-closed-Kette. Kein Out-of-Scope-Issue nötig.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Voller Report: `tasks/codify-253.md`. Zwei neue Lessons ergänzt (Volltext + Index-Zeile):
+
+1. `docs/factory/lessons/testing.md` – Freeze-/Unverändert-Tests brauchen vor dem Zielfall eine
+   echte divergenzerzeugende Aktion, sonst sind Reihenfolge- **und** Status-Assertion nicht
+   diskriminierend (dreifach in Review-Runde 1–3 an unterschiedlichen Stellen gefunden).
+2. `docs/factory/lessons/factory-workflow.md` – eine im selben PR neu erstellte/geänderte Spec
+   braucht denselben Drift-Check wie ADRs/Lessons (#211/#176-Kette erweitert); `spec-253`
+   beschrieb zunächst eine engere Mechanik als die tatsächlich gebaute und getestete.
+
+Produktionscode und Security-Review lieferten kein Finding – keine Regeländerung dort nötig.
+Out-of-Scope-Issues (#272, #273) wurden bereits vom Review-Schritt selbst angelegt.
 
 ---
 Branch: `feature/253-kassieren-position-bis-reload-behalten`

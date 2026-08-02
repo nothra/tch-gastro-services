@@ -244,6 +244,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - YAML-Testfixture per `printf >>` an eine Kopie mit bereits vorhandenem Top-Level-Key anhängen erzeugt ein Duplicate-Key-Dokument (yq „last-key-wins") – Test besteht nur zufällig; echten `yq -i eval`-Merge nutzen (aus #255, Review-Runde-3-Finding)
 - Rezidiv des #240-Duplikat-Schleife-Learnings trotz vorhandener Lesson: mehrdeutiger Spec-Wortlaut („Werteliste ergänzen **oder** neue Schleife daneben platzieren") bot die vom Lesson-Text bereits verbotene Alternative als scheinbar gleichwertige Option an – bei Widerspruch zwischen Spec und Lesson gilt der Lesson-Text (aus #251, Review-Runde-1-Finding)
 - Neuer git-Repo-Fixture-Helper, der committet, braucht lokale Git-Identität (`git config user.email`/`user.name`) – ohne sie läuft er nur zufällig, weil die lokale Entwicklungsumgebung meist einen Fallback liefert; in identitätsloser Umgebung schlägt der Commit fehl (aus #265, Review-Finding)
+- Positions-/Zustand-Freeze-Test braucht vor dem Zielfall eine echte, divergenzerzeugende Aktion – sonst können weder Reihenfolge- noch Status-Assertion zwischen „Freeze wirkt" und „kein Freeze da" unterscheiden (aus #253, dreifach in Review-Runde 1–3 gefunden)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -299,6 +300,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Fix zwischen zwei Runden einer laufenden Multi-Agenten-Kette sofort committen (nicht erst am Ende bündeln) – sonst sieht eine spätere Runde, die ihren Kontext per `git diff origin/main...HEAD` bezieht, einen veralteten Stand (aus #251, Review-Runde-3-Finding) → `/review`, `/security-review` – bei Fix zwischen zwei Runden einer laufenden Review-Kette
 - `PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell exportiert schlagen in jedes von der Testsuite erzeugte Wegwerf-Repo durch und lösen dort ungewollt Pipeline-Phasen aus – vor der Einordnung als Regression mit `unset` gegenprüfen (aus #262, Task-Selbstfund; Härtung ausgelagert: #264) → `/implement`, `/test`, `/review` – bei rotem, diff-unabhängigem E2E-Test während `PR_SHEPHERD`/`FACTORY_STAGE` exportiert sind
 - Neuer `pre-push.sh`-Check, der lokalen Installationszustand voraussetzt (nicht nur Repo-Inhalt): bestehende Self-Tests, die `pre-push.sh` echt gegen das reale `FACTORY_DIR` aufrufen (kein Fixture), brechen in CI, wenn dieser Zustand dort nie erfüllt ist – CI muss den Zustand vor der Self-Test-Suite herstellen, nicht den Check abschwächen (aus #265, User-gemeldete CI-Regression) → `/implement`, `/review` – bei neuem `pre-push.sh`/`pre-commit.sh`-Check mit Abhängigkeit von lokalem Umgebungszustand
+- Frisch im selben PR erstellte/geänderte Spec braucht denselben Drift-Check wie ADRs/Lessons – Code gegen die eigene Spec-Prosa spiegeln, nicht die Spec unhinterfragt als Maßstab nehmen (aus #253, Review-Runde-3-Finding) → `/review` – bei Spec, die im selben PR entstanden/geändert wurde
 
 ---
 
