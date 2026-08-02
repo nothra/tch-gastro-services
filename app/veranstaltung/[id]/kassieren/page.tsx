@@ -14,6 +14,7 @@ import { gesamtabrechnung, kassierTagessummen, kassierZeilen } from "../../kassi
 import { auslagenSummen } from "../../auslagenSummen";
 import { StatusToggle } from "../../StatusToggle";
 import { KassiereZeileForm } from "../../KassiereZeileForm";
+import { EingefroreneZeilenListe } from "../../EingefroreneZeilenListe";
 import { VerzehrAufschluesselung } from "../../VerzehrAufschluesselung";
 import {
   AUSLAGE_KATEGORIE_LABEL,
@@ -66,6 +67,9 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
   // nach dem abgeleiteten Offen-Status sortieren, damit die Index-Kopplung nicht bricht. `listZeilen`
   // liefert bereits alphabetisch und `Array.prototype.sort` ist stabil → die Alphabetik bleibt je
   // Gruppe erhalten; kein zweites Sortierkriterium nötig.
+  // Diese Sortierung gilt für jeden Seitenaufruf; innerhalb einer laufenden Sitzung hält
+  // `EingefroreneZeilenListe` die zuerst gerenderte Reihenfolge fest, damit eine gerade kassierte
+  // Zeile nicht sofort nach unten springt (#253).
   const zeilenMitKassier = zeilen
     .map((zeile, index) => ({
       zeile,
@@ -106,70 +110,72 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
         {zeilen.length === 0 ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {zeilenMitKassier.map(({ zeile, kassier, positionen: zeilenPositionen }) => (
-              <li
-                key={zeile.id}
-                className="flex flex-col gap-2 rounded border border-zinc-200 p-4 dark:border-zinc-800"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{zeile.anzeigename}</span>
-                  <span
-                    className={
-                      kassier.bezahlt
-                        ? "rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-950 dark:text-green-300"
-                        : "rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                    }
-                  >
-                    {kassier.bezahlt ? "bezahlt" : "offen"}
-                  </span>
-                </div>
-                <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  <div className="flex gap-2">
-                    <dt>Getränke</dt>
-                    <dd className="tabular-nums">{formatCents(kassier.getraenkeCents)}</dd>
-                  </div>
-                  <div className="flex gap-2">
-                    <dt>Essen</dt>
-                    <dd className="tabular-nums">{formatCents(kassier.essenCents)}</dd>
-                  </div>
-                  <div className="flex gap-2">
-                    <dt>Kaffee</dt>
-                    <dd className="tabular-nums">{formatCents(kassier.kaffeeCents)}</dd>
-                  </div>
-                  <div className="flex gap-2">
-                    <dt className="font-semibold text-zinc-900 dark:text-zinc-100">
-                      Verzehr-Gesamt
-                    </dt>
-                    <dd className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                      {formatCents(kassier.verzehrGesamtCents)}
-                    </dd>
-                  </div>
-                  <div className="flex gap-2">
-                    <dt>Spende</dt>
-                    <dd className="tabular-nums">{formatCents(kassier.spendeCents)}</dd>
-                  </div>
-                </dl>
-                <VerzehrAufschluesselung positionen={zeilenPositionen} />
-                {offen ? (
-                  <KassiereZeileForm
-                    action={kassiereAction}
-                    zeileId={zeile.id}
-                    initialErhalten={
-                      kassier.erhaltenCents === null ? "" : centsToEuroInput(kassier.erhaltenCents)
-                    }
-                  />
-                ) : (
-                  <p className="text-sm">
-                    Erhalten:{" "}
-                    <span className="tabular-nums">
-                      {kassier.erhaltenCents === null ? "—" : formatCents(kassier.erhaltenCents)}
+          <EingefroreneZeilenListe
+            zeilen={zeilenMitKassier.map(({ zeile, kassier, positionen: zeilenPositionen }) => ({
+              id: zeile.id,
+              inhalt: (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{zeile.anzeigename}</span>
+                    <span
+                      className={
+                        kassier.bezahlt
+                          ? "rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-950 dark:text-green-300"
+                          : "rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                      }
+                    >
+                      {kassier.bezahlt ? "bezahlt" : "offen"}
                     </span>
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+                  </div>
+                  <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div className="flex gap-2">
+                      <dt>Getränke</dt>
+                      <dd className="tabular-nums">{formatCents(kassier.getraenkeCents)}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt>Essen</dt>
+                      <dd className="tabular-nums">{formatCents(kassier.essenCents)}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt>Kaffee</dt>
+                      <dd className="tabular-nums">{formatCents(kassier.kaffeeCents)}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="font-semibold text-zinc-900 dark:text-zinc-100">
+                        Verzehr-Gesamt
+                      </dt>
+                      <dd className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                        {formatCents(kassier.verzehrGesamtCents)}
+                      </dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt>Spende</dt>
+                      <dd className="tabular-nums">{formatCents(kassier.spendeCents)}</dd>
+                    </div>
+                  </dl>
+                  <VerzehrAufschluesselung positionen={zeilenPositionen} />
+                  {offen ? (
+                    <KassiereZeileForm
+                      action={kassiereAction}
+                      zeileId={zeile.id}
+                      initialErhalten={
+                        kassier.erhaltenCents === null
+                          ? ""
+                          : centsToEuroInput(kassier.erhaltenCents)
+                      }
+                    />
+                  ) : (
+                    <p className="text-sm">
+                      Erhalten:{" "}
+                      <span className="tabular-nums">
+                        {kassier.erhaltenCents === null ? "—" : formatCents(kassier.erhaltenCents)}
+                      </span>
+                    </p>
+                  )}
+                </>
+              ),
+            }))}
+          />
         )}
       </section>
 
