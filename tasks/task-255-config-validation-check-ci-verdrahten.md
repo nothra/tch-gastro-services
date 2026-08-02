@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -85,6 +85,16 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
   - Uneinheitliche "Nachtrag ADR-041"-Klammer-Schreibweise (Komma vs. Schrägstrich) in
     ADR-029/Lesson-Datei vereinheitlicht.
 - ADR-041 Status auf "Accepted" gesetzt (Implementierung erfolgt, Lesson aus #197).
+- **`/test`-Vollständigkeitsprüfung:** Diff berührt ausschließlich CI-Workflow-YAML,
+  die Bash-Selbsttest-Suite und Doku (0 App-/TS-Dateien) – `pnpm test:coverage` bleibt
+  unverändert bei 89,06% Stmts/94,28% Branches (≥ 80%-Schwelle), da kein App-Code
+  betroffen ist. Die eigentliche Test-Suite für diese Task ist
+  `scripts/checks/tests/run-tests.sh` (609 grün): alle 7 AK haben dedizierte Tests
+  (Wiring- UND Behavior-Level für AK1-AK4/AK7, Ruleset-Live-Verifikation für AK6,
+  Diff-Check für AK5). Die yq-Download-Fehlerszenario (Spec „Fehlerszenarien") ist
+  nicht separat unit-testbar (GitHub-Actions-`run:`-Schritte failen per Default bei
+  jedem non-zero exit, identisch zum unveränderten `factory-self-test`-Job-Muster) –
+  keine zusätzlichen Tests nötig.
 - CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
   realen Pfaden in korrekter Reihenfolge, plus die oben genannten Behavior-Level-Tests
