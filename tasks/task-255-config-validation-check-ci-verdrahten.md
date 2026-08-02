@@ -67,6 +67,9 @@ _Keine – siehe Spec „Offene Fragen"._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe [tasks/review-255.md](review-255.md) – Empfehlung: NEEDS_REWORK (3 Wichtig-Findings:
+awk-Job-Block-Isolation brüchig, AK3-Test prüft keine Argument-Reihenfolge, fehlende
+Behavior-Level-Testabdeckung für AK1/AK2/AK4 nach Entfernung der Gate-#249-AK5-Zeile).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
