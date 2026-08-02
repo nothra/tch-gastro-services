@@ -3869,6 +3869,18 @@ assert_exit 1 "$rc" "#265 AK3: nicht ausführbarer pre-push-Hook → exit 1 (rei
 printf '%s' "$out" | grep -qF 'pre-push'
 assert_true "$?" "#265 AK3: Fehlermeldung nennt den nicht ausführbaren Hook (pre-push)"
 
+# 3b. Boundary: Hook-Name existiert als VERZEICHNIS statt Datei (keine reguläre Datei).
+# Ein Verzeichnis ist per `[ -x ]` fast immer "ausführbar" (durchsuchbar, typ. 755) – ohne
+# den `-f`-Test würde ein Verzeichnis fälschlich als installierter Hook durchgehen.
+WT=$(hi_repo dir-not-file)
+install_all_hooks "$WT"
+rm -f "$WT/.git/hooks/pre-commit"
+mkdir -p "$WT/.git/hooks/pre-commit"
+out=$(rc_hooks "$WT"); rc=$?
+assert_exit 1 "$rc" "#265 Boundary: Hook-Name als Verzeichnis (statt Datei) → exit 1 (keine reguläre Datei)"
+printf '%s' "$out" | grep -qF 'pre-commit'
+assert_true "$?" "#265 Boundary: Fehlermeldung nennt pre-commit, obwohl das Verzeichnis 'ausführbar' ist"
+
 # 4. Läuft aus einem Worktree heraus – Hooks liegen im GEMEINSAMEN .git (nicht worktree-lokal).
 WT=$(hi_repo worktreebase)
 install_all_hooks "$WT"

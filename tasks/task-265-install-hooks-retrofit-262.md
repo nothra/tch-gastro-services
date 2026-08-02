@@ -61,10 +61,18 @@ Inhaltsvergleich gegen `install-hooks.sh` und ohne Sonderbehandlung von `core.ho
   (`if VAR="$(...)"; then` statt Umleitung in eine Datei) – unter `set -e` in
   `pre-push.sh` darf eine reine Zuweisung mit fehlschlagender Subshell nicht
   außerhalb einer `if`-Bedingung stehen, sonst bricht das Skript sofort ab.
-- Tests in `scripts/checks/tests/run-tests.sh` (#265-Abschnitt, 20 neue Assertions):
+- Tests in `scripts/checks/tests/run-tests.sh` (#265-Abschnitt, 22 Assertions):
   deckt alle sieben Akzeptanzkriterien inkl. Worktree-Fall (`git worktree add`) und
   Diskriminierung (vorhandener Hook wird NICHT als fehlend gelistet) ab. Gesamte Suite:
-  772/772 grün. `pnpm lint` und `pnpm format:check` grün (keine TS/JS-Änderung).
+  774/774 grün. `pnpm lint` und `pnpm format:check` grün (keine TS/JS-Änderung).
+- **`/test`-Durchlauf:** Coverage-Schwelle (Vitest, 80 %) ist nicht anwendbar – diese
+  Task ändert ausschließlich Bash-Skripte, keine TS/JS-Zeilen. Test-Vollständigkeit
+  stattdessen gegen die 7 Spec-ACs + Boundary-Werte geprüft; einen zusätzlichen
+  Boundary-Test ergänzt (Hook-Name existiert als **Verzeichnis** statt regulärer Datei –
+  ein Verzeichnis ist über `[ -x ]` fast immer „ausführbar", ohne den `-f`-Test würde es
+  fälschlich als installierter Hook durchgehen). Regressionsfähigkeit des neuen Tests
+  gegen eine bewusst kaputte Check-Variante (nur `-x`, kein `-f`) verifiziert – dort
+  schlägt der Test wie erwartet fehl.
 
 ## Offene Fragen
 - [x] Implementierungsdetail (keine ADR nötig, in `/implement` zu entscheiden): neuer
