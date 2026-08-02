@@ -73,6 +73,21 @@ Inhaltsvergleich gegen `install-hooks.sh` und ohne Sonderbehandlung von `core.ho
   fälschlich als installierter Hook durchgehen). Regressionsfähigkeit des neuen Tests
   gegen eine bewusst kaputte Check-Variante (nur `-x`, kein `-f`) verifiziert – dort
   schlägt der Test wie erwartet fehl.
+- **CI-Regression nach dem Push behoben (User-Meldung: „Factory-CI/factory-self-test
+  meldet Fehler"):** Der bestehende `#149`-Test (`run_prepush_149` in `run-tests.sh`,
+  Zeile ~2608) ruft `pre-push.sh` ECHT gegen das reale `FACTORY_DIR` auf (kein isoliertes
+  Fixture-Repo). Ein frischer CI-Checkout hat – anders als dieser lokale Worktree – NIE
+  installierte Hooks (git hooks laufen in CI ohnehin nie); dadurch schlug der neue
+  Check 5 (`hooks-installed-check.sh`) dort IMMER fehl und riss zwei Format-Gate-Testfälle
+  mit (erwartet exit 0, tatsächlich exit 1). Root-Cause per Repro bestätigt: lokales
+  Entfernen der eigenen Hooks reproduzierte exakt dasselbe CI-Fehlerbild; nach Wieder-
+  installation wieder grün. **Fix:** `.github/workflows/factory-ci.yml` installiert im
+  `factory-self-test`-Job jetzt die Hooks (`bash scripts/install-hooks.sh`) vor der
+  Self-Test-Suite – der CI-Checkout erfüllt damit dieselbe Invariante, die ein
+  korrekt aufgesetzter lokaler Clone laut README/CLAUDE.md ohnehin erfüllen muss.
+  Neuer Wiring-Test (Job-Block-Extraktion + Reihenfolge-Assertion, RED→GREEN verifiziert
+  inkl. Gegenprobe mit vertauschter Reihenfolge) verhindert ein Wiederauftreten. Suite:
+  777/777 grün.
 
 ## Offene Fragen
 - [x] Implementierungsdetail (keine ADR nötig, in `/implement` zu entscheiden): neuer

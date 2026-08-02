@@ -3926,6 +3926,30 @@ grep -q 'hooks-installed-check.sh' "$CHECKS_DIR/pre-push.sh"
 assert_true "$?" "#265: pre-push.sh verdrahtet den Git-Hooks-Installiert-Check"
 
 echo ""
+echo "#265 CI-Absicherung: factory-self-test-Job installiert Hooks vor der Self-Test-Suite:"
+
+# CI-Regression (beobachtet in PR zu #265): der #149-Test ruft pre-push.sh ECHT gegen das
+# reale FACTORY_DIR auf (kein Fixture-Repo, siehe run_prepush_149 oben) – in einem frischen
+# CI-Checkout sind dort NIE Hooks installiert (git hooks laufen in CI ohnehin nie), also
+# schlägt Check 5 (hooks-installed-check.sh) dort IMMER fehl und reißt die Format-Gate-Tests
+# mit sich (erwartet exit 0, tatsächlich exit 1). Fix: der CI-Job installiert die Hooks vor
+# der Self-Test-Suite, genau wie es jeder frische Clone lokal tun müsste (README/CLAUDE.md) –
+# damit erfüllt auch der CI-Checkout die Invariante, die Check 5 selbst einfordert.
+ci_selftest_block="$(awk '/^  factory-self-test:/{f=1; next} /^  ([A-Za-z0-9_-]+:|# ───)/{if (f) exit} f' "$CI_FILE")"
+assert_true "$([[ -n "$ci_selftest_block" ]]; echo $?)" "#265: factory-self-test-Job-Block ist extrahierbar"
+
+printf '%s' "$ci_selftest_block" | grep -qF 'bash scripts/install-hooks.sh'
+assert_true "$?" "#265: factory-self-test-Job installiert die Git-Hooks (bash scripts/install-hooks.sh)"
+
+# Anker auf den echten COMMAND ('run:'-Zeile), nicht auf jede Erwähnung von 'run-tests.sh' –
+# eine Prosa-Erwähnung (z. B. in einem Kommentar oberhalb) wäre keine Reihenfolge-Aussage
+# über den tatsächlichen Schritt-Aufruf (Lesson #114 "Kommando ≠ Prosa-Erwähnung").
+ci_install_line="$(printf '%s\n' "$ci_selftest_block" | grep -n 'run: bash scripts/install-hooks.sh' | head -1 | cut -d: -f1)"
+ci_selftest_line="$(printf '%s\n' "$ci_selftest_block" | grep -n 'run: bash scripts/checks/tests/run-tests.sh' | head -1 | cut -d: -f1)"
+[ -n "$ci_install_line" ] && [ -n "$ci_selftest_line" ] && [ "$ci_install_line" -lt "$ci_selftest_line" ]
+assert_true "$?" "#265: Hook-Installation steht VOR der Self-Test-Suite (Reihenfolge, sonst wirkungslos)"
+
+echo ""
 echo "#262 Doku nennt den kanonischen Installationsweg (Lesson #211/#176):"
 
 # Ein neues Gate ist nur wirksam, wenn ein frischer Clone erfährt, dass es zu installieren ist –
