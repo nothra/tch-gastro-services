@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `factory.defaults.yml` (kanonische Quelle, ADR-009) trägt veraltete Modell-Tiers
@@ -128,6 +128,14 @@ Fehler-Muster, keine neue Regel nötig. Einziger Review-Nitpick (tote `yq`-Fallb
 `scripts/run-pipeline.sh:209-210`) ist vom Review selbst als „kein Handlungsbedarf in diesem PR"
 eingestuft; kein Issue angelegt (Sandbox blockiert den `source`-basierten Issue-Anlage-Seam).
 Voller Report: [`tasks/codify-252.md`](codify-252.md).
+
+## PR-Shepherd-Notiz (2026-08-02)
+PR-Shepherd 2026-08-02: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare,
+Branch ohne Konflikte auf aktuellem `main`, alle CI-Checks grün (`lint`, `test`,
+`config-validation`, `factory-self-test`, `issue-sync`, `pr-closes-issue`, CodeQL/Analyze),
+keine Approval-Pflicht offen (ADR-029, 0 Approvals). PR #260 aus Draft geholt
+(`gh pr ready`). `mergeStateStatus: CLEAN` → direkter Squash-Merge statt `--auto`
+(ADR-030, GitHub lehnt `--auto` bei bereits mergebarem PR ab).
 
 ---
 Branch: `chore/252-factory-defaults-kalibrieren`
