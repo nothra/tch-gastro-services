@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -115,6 +115,14 @@ nicht Teil dieser Task).
   Check-Ordering in `pre-push.sh` (zweiter Review-Nitpick) bewusst unverändert gelassen –
   Review stufte es als konsistent mit dem bestehenden Muster (`routes-doc-check.sh` auch
   spät platziert) ein, kein Fix nötig.
+
+## Security-Review-Notizen
+Siehe `tasks/security-265.md` – Ergebnis: PASSED, keine Blocker. Ein Hinweis: das bereits
+als Out-of-Scope-Issue [#268](https://github.com/nothra/tch-gastro-services/issues/268)
+gemeldete `core.hooksPath`-False-Positive hat eine Security-Seite (falsches Sicherheits-
+gefühl bzgl. Secret-Scan/Push-Schutz) – Issue nachträglich mit `security`-Label versehen
+und per Kommentar eingeordnet, kein neues Issue nötig. Server-seitiger Schutz
+(GitHub-Ruleset `protect-main`, ADR-029) bleibt davon unabhängig fail-closed wirksam.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
