@@ -1,7 +1,7 @@
 # Task 252: factory-defaults-kalibrieren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -21,18 +21,18 @@ Issue-Punkt 3 (keine dritte Tier-Stufe). Details, Scope und volle Akzeptanzkrite
 
 ## Akzeptanzkriterien
 <!-- Volltext inkl. GIVEN/WHEN/THEN in der Spec -->
-- [ ] AK1 – `model_tiers.heavy` → `claude-opus-5`
-- [ ] AK2 – `model_tiers.light` → `claude-sonnet-5`
-- [ ] AK3 – `skills.review.max_turns` → `30`
-- [ ] AK4 – `skills.security-review.max_turns` → `30`
-- [ ] AK5 – redundanter `model_tiers.light`-Override in `factory.config.yml` entfernt
-- [ ] AK6 – redundanter `skills.review.max_turns`-Override entfernt
-- [ ] AK7 – redundanter `skills.security-review.max_turns`-Override entfernt
-- [ ] AK8 – weiterhin nötige Overrides (implement/pr-shepherd/codify/test) unverändert
-- [ ] AK9 – `config-validation-check.sh` bleibt grün
-- [ ] AK10 – `run-pipeline.sh`-Fallback-Literale auf `claude-opus-5`/`claude-sonnet-5` aktualisiert
-- [ ] AK11 – betroffene Regressionstests in `run-tests.sh` auf neue Literal-Werte angepasst
-- [ ] AK12 – dritte Tier-Stufe dokumentiert entschieden (Nein, kein ADR)
+- [x] AK1 – `model_tiers.heavy` → `claude-opus-5`
+- [x] AK2 – `model_tiers.light` → `claude-sonnet-5`
+- [x] AK3 – `skills.review.max_turns` → `30`
+- [x] AK4 – `skills.security-review.max_turns` → `30`
+- [x] AK5 – redundanter `model_tiers.light`-Override in `factory.config.yml` entfernt
+- [x] AK6 – redundanter `skills.review.max_turns`-Override entfernt
+- [x] AK7 – redundanter `skills.security-review.max_turns`-Override entfernt
+- [x] AK8 – weiterhin nötige Overrides (implement/pr-shepherd/codify/test) unverändert
+- [x] AK9 – `config-validation-check.sh` bleibt grün (exit 0)
+- [x] AK10 – `run-pipeline.sh`-Fallback-Literale auf `claude-opus-5`/`claude-sonnet-5` aktualisiert
+- [x] AK11 – betroffene Regressionstests in `run-tests.sh` auf neue Literal-Werte angepasst
+- [x] AK12 – dritte Tier-Stufe dokumentiert entschieden (Nein, kein ADR)
 
 ## Technische Notizen
 Reine Werte-/Config-Kalibrierung ohne neuen Mechanismus – **kein neues ADR** nötig (analog zur
@@ -66,6 +66,33 @@ ADR-Drift-Fragen sind entschieden (s. Offene Fragen unten); Umsetzung für `/imp
       zum Zeitpunkt der Entscheidung, nicht einen live gepflegten Wert – anders als ADR-019 §5
       trifft er keine explizite Aussage über den „aktuellen" Stand, die durch die Kalibrierung
       falsch würde. Kein Nachtrag nötig; kanonischer aktueller Wert bleibt `factory.defaults.yml`.
+
+## Implementierungs-Notizen (2026-08-02)
+- **AK11 – Testzeilen über die Spec-Liste hinaus:** Neben den in der Spec gelisteten Dry-Run-
+  Assertions musste zusätzlich der direkte Default-Wert-Assert `#91: review + security-review
+  max_turns=14 (Budget-Puffer)` (`run-tests.sh`, vormals Zeile ~1972) auf `30` gezogen werden –
+  er liest `.skills.review/.security-review.max_turns` direkt aus `factory.defaults.yml` und war
+  nach AK3/AK4 sonst rot. Die Spec-Zeilenliste war nicht abschließend; AK11 verlangt „alle
+  betroffenen" Stellen.
+- **`run-tests.sh:1551` bewusst NICHT geändert:** Das `printf '#   heavy: claude-opus-4-8\n' |
+  grep -qE '^#[[:space:]]*heavy:'` ist eine synthetische Regex-Positivkontrolle (Task 249,
+  belegt, dass die `heavy:`-Erkennung scharf ist) – der Modell-String ist beliebiger Regex-Input,
+  kein Config-Default-Verweis. Nicht in der Spec-Liste, außerhalb des Scopes (YAGNI).
+- **`factory.config.yml` hat jetzt keinen `model_tiers`-Block mehr:** nach Entfernen des einzigen
+  (`light`-)Overrides ist der ganze `model_tiers:`-Schlüssel weggefallen. Effektive Config wird
+  über `config-validation-check.sh` (exit 0) und die grünen Dry-Run-E2E-Tests
+  (implement→opus-5/20, review→sonnet-5|opus-5/30, security-review→opus-5/30, test→sonnet-5/20)
+  end-to-end verifiziert.
+- **Vorbestehende, umgebungsbedingte Testfehler (4× `#212 W3`):** Die vier
+  `#212 W3`-End-to-End-Tests (`run-tests.sh` ~3253–3305) sind in dieser lokalen Sandbox rot
+  (inkl. der Positiv-Gegenprobe „exit 0", die exit 1 liefert – der Non-Dry-Pipeline-Lauf mit
+  echten Git-/Pipeline-Operationen bricht früh ab). **Nicht durch diese Task verursacht:** der
+  Testblock ist von meinem Diff unberührt (belegt via `git diff`), steht seit `ba61638`
+  (#212, 2026-07-24) unverändert auf `main`, und Factory CI (`factory-ci.yml:95` ruft
+  `run-tests.sh`) ist auf meinem Basis-Commit `fc190e6` grün. Der isolierte Repro-Lauf war durch
+  dieselben Sandbox-Restriktionen (Write-/`git stash`-Sperre) verhindert; Einordnung stützt sich
+  auf: volle Suite (2× deterministisch dieselben 4) + unveränderter Block + CI-Historie
+  (Lessons #239/#244). Alle übrigen 637 Tests grün.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
