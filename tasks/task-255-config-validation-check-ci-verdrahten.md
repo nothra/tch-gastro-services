@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -101,6 +101,14 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
   nach drei Review-Runden, die genau diese Punkte bereits gehärtet haben, kein
   Verbesserungsbedarf ohne Mehrwert gefunden. Kein Code geändert, Tests weiterhin
   609 grün (unverändert).
+- **`/security-review`: PASSED** – siehe [tasks/security-255.md](security-255.md).
+  Kein Kritisch-/Wichtig-Finding: kein Injection-Vektor (`pull_request`, nicht
+  `pull_request_target`; `$GITHUB_WORKSPACE` nicht PR-interpoliert), fail-closed
+  verifiziert, keine Secrets im neuen Job, Ruleset-Änderung live gegengeprüft (keine
+  Schwächung – nur `config-validation` ergänzt). Ein Hinweis (yq-Download ohne
+  Checksum-Verifikation, vorbestehend in `factory-self-test`, hier nur dupliziert)
+  als Out-of-Scope-Issue [#258](https://github.com/nothra/tch-gastro-services/issues/258)
+  angelegt statt in diesem PR gefixt.
 - CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
   realen Pfaden in korrekter Reihenfolge, plus die oben genannten Behavior-Level-Tests
