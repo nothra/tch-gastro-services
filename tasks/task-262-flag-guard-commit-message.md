@@ -30,10 +30,21 @@ in [`docs/specs/spec-262-flag-guard-commit-message.md`](../docs/specs/spec-262-f
 - [ ] GIVEN eine leere Commit-Message WHEN committet wird THEN bestehende Leer-Prüfung bleibt unverändert wirksam.
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+ADR-042 (`docs/adr/042-hook-installation-single-source.md`): `scripts/install-hooks.sh`
+ist die einzige Quelle für Hook-Inhalt (`pre-commit`/`pre-push`/`commit-msg`), idempotent,
+beliebig oft ausführbar. `scripts/init-factory.sh` ruft für Schritt 5 nur noch
+`bash scripts/install-hooks.sh` auf (keine eigenen Heredocs mehr). Für dieses Repo:
+`scripts/install-hooks.sh` nach Merge einmalig manuell ausführen (kein Auto-Aufruf durch
+`start-work.sh`, siehe Spec).
+
+`commit-msg-check.sh` und `factory-commit.sh` behalten die Literale `--help`/`-h`
+unabhängig voneinander (keine gemeinsame Flag-Liste extrahieren – Over-Engineering für
+zwei Zeilen an zwei unterschiedlichen Grenzen, siehe ADR-042 „Bewusst nicht extrahiert").
+Matching: exakter Vergleich des getrimmten Inhalts gegen `--help`/`-h` (kein Regex nötig,
+keine BSD/GNU-Portabilitätsfallen).
 
 ## Offene Fragen
-- [ ] Code-Duplikation zwischen `scripts/install-hooks.sh` und dem Hook-Block in `scripts/init-factory.sh` – gemeinsame Quelle oder bewusst getrennt? → `/architecture`.
+- [x] Code-Duplikation zwischen `scripts/install-hooks.sh` und dem Hook-Block in `scripts/init-factory.sh` – entschieden in ADR-042: `init-factory.sh` ruft `install-hooks.sh` auf.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
