@@ -3518,20 +3518,50 @@ fi
 # Multi-Zeilen-Konstrukte mit `\`-Fortsetzung – awk fügt die Fortsetzungszeilen erst zur
 # logischen Kommandozeile zusammen und bewertet dann. Ein zeilenweiser Grep würde die
 # `env -u`-Zeile und die `bash`-Zeile nie zusammen sehen.
+#
+# Erkannt wird die Pipeline-Referenz in AUSFÜHRUNGS-Position, nicht ein einzelnes Literal:
+# als Dateiname ODER als Pfad-Variable (`$PIPELINE`, `$PIPELINE214` – in dieser Datei bereits
+# etablierte Schreibweise), quotiert wie unquotiert, hinter `bash`/`sh` wie direkt ausgeführt.
+# Lese-Kontexte (`cp "$PIPELINE" …`, `grep … "$PIPELINE"`, Zuweisung, Kommentar) fallen
+# strukturell heraus, weil die Referenz dort nicht in Kommando-Position steht – das ist
+# robuster als ein gepflegter Ausschluss-Katalog, der beim nächsten `sed`-Aufruf veraltet.
+#
+# Reichweite: nur DIREKTE Aufrufe aus dieser Datei. Der transitive Weg (`factory-poll.sh`
+# startet `run-pipeline.sh`) ist derzeit kein Leck – die realen `factory-poll.sh`-Aufrufe der
+# Suite laufen gegen einen `run-pipeline.sh`-Stub, und `factory-poll.sh` liest `PR_SHEPHERD`/
+# `FACTORY_STAGE` selbst nicht. Ändert sich eines von beidem, braucht es einen zweiten Guard.
 echo ""
 echo "#264 Drift-Guard: reale run-pipeline.sh-Aufrufe in run-tests.sh sind env-isoliert:"
 
 RUN_TESTS_SELF="$CHECKS_DIR/tests/run-tests.sh"
+# Datei- und Variablenname stehen nur als Werte hier und gehen per `%s` in die Fixtures –
+# so sieht keine Zeile DIESER Datei selbst wie eine Aufrufstelle aus (sonst liest der Guard
+# seine eigenen Kontroll-Fixtures als ungehärteten Aufruf und wird falsch rot).
+RP_NAME='run-pipeline.sh'
+PV_NAME='PIPELINE'
 
-# unhardened_pipeline_calls <datei> – gibt je realem Aufruf eine Zeile "<zeile>\t<OK|MISSING>"
-# aus. Exit 1, sobald mindestens ein MISSING dabei ist (fail-closed).
-unhardened_pipeline_calls() {
-  awk '
+# audit_pipeline_calls <datei> – gibt je realem (non-dry-run) Aufruf eine Zeile
+# "<zeile>\t<OK|MISSING>" aus; der Nicht-Vakuitäts-Zähler unten liest beide Zustände mit.
+# Exit 1, sobald mindestens ein MISSING dabei ist (fail-closed).
+# Verlangt wird die kanonische Flag-Reihenfolge, nicht nur die Semantik: die gleichwertige
+# Umkehrung `-u FACTORY_STAGE -u PR_SHEPHERD` gilt als MISSING – bewusst ein Fehlalarm-Risiko
+# statt eines Lecks, und es hält die fünf Aufrufstellen auf einer Schreibweise.
+audit_pipeline_calls() {
+  awk -v rp='run-pipeline[.]sh' -v pv='[$][{]?[A-Za-z_0-9]*PIPELINE[A-Za-z_0-9]*[}]?' '
+    BEGIN {
+      # <ref> = ein Token, das run-pipeline.sh bezeichnet (Dateiname oder Pfad-Variable).
+      ref    = "[\"\047]?[^ \t\"\047;]*(" rp "|" pv ")[\"\047]?"
+      # …hinter einem Interpreter: `bash`/`sh` [flags] <ref>
+      interp = "(^|[^A-Za-z0-9_.-])(bash|sh)[ \t]+(-[^ \t]+[ \t]+)*" ref
+      # …oder in Kommando-Position: Zeilenanfang/Trenner, davor nur Env-Zuweisungen.
+      direct = "(^|[;&|(])[ \t]*([A-Za-z_][A-Za-z_0-9]*=[^ \t]*[ \t]+)*" ref "([ \t]|$)"
+    }
     { line = $0; sub(/[ \t]+$/, "", line) }
     line ~ /\\$/ { sub(/\\$/, "", line); buf = buf line; next }
     {
       cmd = buf line; buf = ""
-      if (cmd !~ /bash "[^"]*run-pipeline\.sh"/) next
+      if (cmd ~ /^[ \t]*#/) next
+      if (cmd !~ interp && cmd !~ direct) next
       if (cmd ~ /--dry-run/) next
       if (cmd ~ /env -u PR_SHEPHERD -u FACTORY_STAGE/) { print NR "\tOK"; next }
       print NR "\tMISSING"; found = 1
@@ -3540,38 +3570,63 @@ unhardened_pipeline_calls() {
   ' "$1"
 }
 
-# Positiv-Kontrolle: ein realer Aufruf OHNE env -u wird erkannt (Guard nicht vacuously grün).
-# Der Pfad wird aus einer Variablen zusammengesetzt, damit die Fixture-Zeile in DIESER Datei
-# nicht selbst wie eine ungehärtete Aufrufstelle aussieht und den Guard unten falsch rot macht.
-RP_NAME='run-pipeline.sh'
+# Positiv-Kontrollen: jede reale Aufruf-Schreibweise OHNE env -u wird erkannt (Guard nicht
+# vacuously grün) – literal, über Pfad-Variable, unquotiert und ohne bash-Präfix.
 TMP_DG264="$(mktemp)"
 printf 'x=$(cd "$T" && PATH="$T/bin:$PATH" \\\n  bash "$T/scripts/%s" 1 2>&1)\n' "$RP_NAME" > "$TMP_DG264"
-unhardened_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
-assert_exit 1 "$?" "#264 Guard: realer Aufruf ohne env -u wird erkannt (Positiv-Kontrolle)"
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 1 "$?" "#264 Guard: literaler Aufruf ohne env -u wird erkannt (Positiv-Kontrolle)"
+
+printf 'x=$(bash "$%s" 1 2>&1)\n' "$PV_NAME" > "$TMP_DG264"
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 1 "$?" "#264 Guard: Aufruf über die Pfad-Variable wird erkannt (Positiv-Kontrolle)"
+
+printf 'x=$(bash $T/scripts/%s 1 2>&1)\n' "$RP_NAME" > "$TMP_DG264"
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 1 "$?" "#264 Guard: unquotierter Aufruf wird erkannt (Positiv-Kontrolle)"
+
+printf 'x=$(cd "$T" && "$T/scripts/%s" 78 2>&1)\n' "$RP_NAME" > "$TMP_DG264"
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 1 "$?" "#264 Guard: direkt ausgeführter Aufruf (ohne bash-Präfix) wird erkannt"
 
 # Negativ-Kontrolle A: derselbe Aufruf MIT env -u (mehrzeilig) → sauber.
 printf 'x=$(cd "$T" && PATH="$T/bin:$PATH" \\\n  env -u PR_SHEPHERD -u FACTORY_STAGE \\\n  bash "$T/scripts/%s" 1 2>&1)\n' "$RP_NAME" > "$TMP_DG264"
-unhardened_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
 assert_exit 0 "$?" "#264 Guard: gehärteter Multi-Zeilen-Aufruf gilt als sauber (Negativ-Kontrolle)"
 
-# Negativ-Kontrolle B: --dry-run-Aufrufe sind nachweislich unbetroffen (run_skill kehrt vor
+# Negativ-Kontrolle B: auch die Pfad-Variablen-Form gilt gehärtet als sauber (die neue
+# Erkennung produziert keinen Dauer-Fehlalarm auf der Schreibweise, die sie zusätzlich fasst).
+printf 'x=$(env -u PR_SHEPHERD -u FACTORY_STAGE bash "$%s" 1 2>&1)\n' "$PV_NAME" > "$TMP_DG264"
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 0 "$?" "#264 Guard: gehärteter Aufruf über die Pfad-Variable gilt als sauber"
+
+# Negativ-Kontrolle C: --dry-run-Aufrufe sind nachweislich unbetroffen (run_skill kehrt vor
 # der PR_SHEPHERD-Verzweigung zurück) und dürfen den Guard nicht auslösen.
 printf 'x=$(bash "$T/scripts/%s" 1 --dry-run 2>&1 || true)\n' "$RP_NAME" > "$TMP_DG264"
-unhardened_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
 assert_exit 0 "$?" "#264 Guard: --dry-run-Aufruf ohne env -u ist erlaubt (Negativ-Kontrolle)"
+
+# Negativ-Kontrolle D: Lese-/Kopier-/Zuweisungs-Kontexte sind keine Aufrufstellen. Ohne diese
+# Diskriminierung wäre die erweiterte Erkennung auf jeder der ~40 `"$PIPELINE"`-Lesezeilen rot.
+printf 'cp "$%s" "$T/scripts/"\ngrep -q load_config "$%s"\n%s="$FACTORY_ROOT/scripts/%s"\n' \
+  "$PV_NAME" "$PV_NAME" "$PV_NAME" "$RP_NAME" > "$TMP_DG264"
+audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
+assert_exit 0 "$?" "#264 Guard: cp/grep/Zuweisung auf die Pfad-Variable sind keine Aufrufstellen"
 rm -f "$TMP_DG264"
 
 # Nicht-Vakuität: der Guard findet die bekannten realen Aufrufstellen tatsächlich. Untergrenze
 # statt exakter Zahl – eine künftige (gehärtete) sechste Stelle soll den Guard nicht rot machen.
-dg264_calls="$(unhardened_pipeline_calls "$RUN_TESTS_SELF" || true)"
+dg264_calls="$(audit_pipeline_calls "$RUN_TESTS_SELF" || true)"
 dg264_total="$(printf '%s\n' "$dg264_calls" | grep -cE '(OK|MISSING)$' || true)"
 assert_true "$([ "$dg264_total" -ge 5 ]; echo $?)" \
   "#264 Guard: findet die realen run-pipeline.sh-Aufrufstellen (>=5 erkannt, kein Leerlauf)"
 
 # Akzeptanzkriterium: keine davon ist ungehärtet.
-unhardened_pipeline_calls "$RUN_TESTS_SELF" >/dev/null 2>&1
+audit_pipeline_calls "$RUN_TESTS_SELF" >/dev/null 2>&1
 assert_exit 0 "$?" "#264 Guard: ALLE realen run-pipeline.sh-Aufrufe in run-tests.sh tragen env -u"
 
+echo ""
+echo "#264 K1: Lesson und Index nennen die Härtung als erledigt:"
 # ─── #264 K1: Lesson/Index nennen die Härtung als erledigt, nicht als offenen Follow-up ──
 # Ohne diese Regressionsabsicherung könnte ein künftiger Edit die Präsens-Korrektur still
 # zurückdrehen (gleiches Muster wie #224 AK7 / #240 AK8 oben).

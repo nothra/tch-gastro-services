@@ -32,11 +32,14 @@ für Recherche-Details (u. a.: `--dry-run`-Aufrufe sind nachweislich nicht betro
       Erfolgs-Banner.
 - [x] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true` exportiert WHEN der
       `#101`-Lint-Gate-Block läuft THEN bleibt das Ergebnis unverändert.
-- [x] GIVEN einer der vier realen `run-pipeline.sh`-Aufrufe WHEN der Code gelesen wird THEN
+- [x] GIVEN irgendein realer `run-pipeline.sh`-Aufruf WHEN der Code gelesen wird THEN
       neutralisiert er `PR_SHEPHERD`/`FACTORY_STAGE` explizit für den Kindprozess (z. B.
       `env -u PR_SHEPHERD -u FACTORY_STAGE`).
 - [x] GIVEN ein neuer Regressionstest, der die Env-Isolation verhaltensbasiert beweist WHEN
       er ohne die Härtung liefe THEN würde er rot ausschlagen (keine Tautologie).
+- [x] _(ergänzt in der Umsetzung)_ GIVEN der Drift-Guard WHEN an irgendeiner realen
+      Aufrufstelle `env -u` fehlt (beliebige Schreibweise) THEN wird die Suite rot, während
+      `--dry-run`-Aufrufe und Lese-Kontexte sie grün lassen.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -164,11 +167,64 @@ Alle Findings aus `tasks/review-264.md` abgearbeitet:
   `803 grün / 0 rot`. Damit ist belegt, dass der Guard die vom Verhaltenstest **nicht** gedeckten
   vier Aufrufstellen tatsächlich absichert.
 
+## Rework nach Review-Runde 2 (`/implement`, 2026-08-03)
+
+Beide wichtigen Findings und alle drei Nitpicks aus `tasks/review-264.md` (Runde 2) abgearbeitet.
+
+- **W1 (Guard-Reichweite):** Auflösung (b) aus dem Review – die Erkennung ist von einem Literal
+  auf eine **Positions-Regel** umgestellt. Der Guard sucht die Pipeline-Referenz in
+  Ausführungs-Position: als Dateiname **oder** als Pfad-Variable (`$PIPELINE`, `$PIPELINE214`,
+  `$MUT_PIPELINE` – Muster `[$][{]?[A-Za-z_0-9]*PIPELINE…`), quotiert wie unquotiert, hinter
+  `bash`/`sh` (inkl. Flags) wie direkt ausgeführt (Referenz in Kommando-Position, nur
+  Env-Zuweisungen davor). Lese-Kontexte (`cp "$PIPELINE" …`, `grep … "$PIPELINE"`, Zuweisung,
+  Kommentar) fallen **strukturell** heraus, weil die Referenz dort nicht in Kommando-Position
+  steht – bewusst kein gepflegter Ausschluss-Katalog, der beim nächsten `sed`-Aufruf veraltet.
+  Kontrollen von 3 auf 8 erweitert: vier Positiv-Kontrollen (literal / Pfad-Variable /
+  unquotiert / ohne `bash`-Präfix) und vier Negativ-Kontrollen (gehärtet mehrzeilig / gehärtet
+  über Pfad-Variable / `--dry-run` / `cp`+`grep`+Zuweisung). Die Reichweiten-Grenze steht jetzt
+  im Kommentar: der Guard deckt nur **direkte** Aufrufe ab; der transitive Weg über
+  `factory-poll.sh` ist derzeit kein Leck (Stub + `factory-poll.sh` liest die Variablen nicht).
+- **W2 (Spec-Drift):** `docs/specs/spec-264-…md` nachgezogen – Kontext-Tabelle nennt die durch
+  den Regressionstest entstandene **fünfte** Aufrufstelle („ergänzt in der Umsetzung"), Scope
+  spricht von *jedem* realen Aufruf statt von „den vier" und beschreibt den Drift-Guard als
+  eigenständiges Artefakt inkl. Reichweiten-Grenze; ein siebtes AK trägt die Guard-Invariante
+  nach (spiegelbildlich auch in dieser Task-Datei). Damit ist die Untergrenze `>= 5` im Guard
+  gegen die Spec herleitbar.
+- **N1:** `unhardened_pipeline_calls` → `audit_pipeline_calls` (die Funktion gibt `OK` *und*
+  `MISSING` aus, der Nicht-Vakuitäts-Zähler liest beides – der alte Name log).
+- **N2:** Kommentar nennt jetzt explizit, dass die kanonische **Flag-Reihenfolge** erzwungen
+  wird und die semantisch gleichwertige Umkehrung bewusst als MISSING gilt (Fehlalarm statt Leck).
+- **N3:** Der `#264 K1`-Doku-Regressionsblock hat eine eigene `echo`-Überschrift und erscheint
+  nicht mehr unter der Drift-Guard-Überschrift.
+
+**Verifikation dieser Runde:**
+- Volle Suite: `808 grün / 0 rot` (vorher 803; +5 aus den neuen Guard-Kontrollen).
+- **Rot-Beleg für die neue Reichweite am realen Ziel** (nicht nur gegen Fixtures): ein toter,
+  nie ausgeführter `bash "$PIPELINE" 1`-Aufruf (`if false; then …`) temporär in `run-tests.sh`
+  eingefügt → `807 grün / 1 rot`, genau die Guard-Assertion „ALLE realen run-pipeline.sh-Aufrufe
+  … tragen env -u". Damit ist belegt, dass die vom alten Literal-Muster übersehene
+  Pfad-Variablen-Form jetzt erkannt wird. Danach zurückgebaut.
+- **Exakte Zählprobe** im selben Lauf: Untergrenze temporär auf `-eq 6` gezogen → grün, d. h.
+  der Guard erkennt im sauberen Stand genau **5** reale Aufrufstellen (keine Über- oder
+  Untererkennung durch das breitere Muster). Danach zurück auf `>= 5`.
+- **Literale Form gegengeprüft:** `env -u` an der `#101`-Aufrufstelle entfernt →
+  `807 grün / 1 rot` (dieselbe Guard-Assertion), danach wiederhergestellt → wieder
+  `808 grün / 0 rot`.
+- **Nicht wiederholt:** der Gesamtlauf aus einer real kontaminierten Shell
+  (`PR_SHEPHERD=true FACTORY_STAGE=3 bash …/run-tests.sh`) – die Env-Var-Präfix-Form ist in
+  dieser Session nicht freigegeben. Kein Verlust: diese Runde ändert nur das Erkennungsmuster
+  des Guards, keine der fünf Aufrufstellen und kein Laufzeitverhalten; der Beleg aus Runde 1
+  gilt unverändert, und der `#264`-Verhaltenstest exportiert beide Variablen ohnehin in jedem
+  Lauf innerhalb seiner eigenen Subshell (in beiden grünen Läufen oben enthalten).
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
 **Runde 1 (`tasks/review-264.md`, NEEDS_REWORK):** 1 kritisches, 2 wichtige, 3 Nitpick-Findings –
 alle behoben, siehe „Rework nach Review-Runde 1".
+
+**Runde 2 (`tasks/review-264.md`, NEEDS_REWORK):** 0 kritische, 2 wichtige, 3 Nitpick-Findings –
+alle behoben, siehe „Rework nach Review-Runde 2".
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -33,7 +33,7 @@ Risiko – konsistent mit „fail-closed, im Zweifel ablehnen" aus den Bash-Gotc
 
 Ebenfalls Ergebnis dieser Phase: **`--dry-run`-Aufrufe sind nicht betroffen.** `run_skill()` und
 `quality_gate()` geben bei `DRY_RUN=true` zurück, **bevor** die `PR_SHEPHERD`-Verzweigung (Phase 7)
-oder der `skill_file`-Existenz-Check erreicht wird. Von den in `run-tests.sh` gefundenen
+oder der `skill_file`-Existenz-Check erreicht wird. Von den in `run-tests.sh` **vorgefundenen**
 `run-pipeline.sh`-Aufrufen sind **vier real** (non-dry-run) und damit potenziell betroffen:
 
 | Zeile(n)    | Block                                             |
@@ -42,6 +42,12 @@ oder der `skill_file`-Existenz-Check erreicht wird. Von den in `run-tests.sh` ge
 | ~3395–3397  | `#212 AK8` Interrupt-Sentinel end-to-end            |
 | ~3440–3442  | `#212 W3` Verifikations-Interrupt (Negativ-Fall)    |
 | ~3452–3454  | `#212 W3` Verifikations-Interrupt (Positiv-Gegenprobe) |
+| _(neu)_     | `#264` Regressionstest – s. „Ergänzt in der Umsetzung" |
+
+**Ergänzt in der Umsetzung:** Der unten geforderte Regressionstest ist selbst ein **fünfter
+realer Aufruf** (dritter Lauf gegen dasselbe `#212 W3`-Scaffold) und wird identisch gehärtet.
+Die Lieferung umfasst damit **fünf** gehärtete Aufrufstellen, nicht vier – überall dort, wo
+diese Spec „die vier Aufrufstellen" sagt, ist „jede reale Aufrufstelle" gemeint.
 
 Der `#101`-Block bricht zwar bereits vorher am Lint-Gate ab (vor Phase 7 erreichbar wäre), wird
 aber aus Konsistenzgründen in dieselbe Härtung einbezogen – ein Testblock soll grundsätzlich
@@ -51,17 +57,28 @@ Abhängigkeit gerade auslöst.
 ## Scope
 
 **Inbegriffen:**
-- Jeder der vier oben genannten realen `run-pipeline.sh`-Aufrufe in
-  `scripts/checks/tests/run-tests.sh` neutralisiert `PR_SHEPHERD` und `FACTORY_STAGE` explizit
-  für den gestarteten Kindprozess (z. B. `env -u PR_SHEPHERD -u FACTORY_STAGE …`), unabhängig
-  davon, ob diese Variablen in der aufrufenden Shell gesetzt sind.
+- **Jeder** reale `run-pipeline.sh`-Aufruf in `scripts/checks/tests/run-tests.sh` – die vier
+  oben genannten **und** der in dieser Task neu hinzukommende – neutralisiert `PR_SHEPHERD`
+  und `FACTORY_STAGE` explizit für den gestarteten Kindprozess (z. B.
+  `env -u PR_SHEPHERD -u FACTORY_STAGE …`), unabhängig davon, ob diese Variablen in der
+  aufrufenden Shell gesetzt sind.
 - Ein neuer Regressionstest in `run-tests.sh`, der die Env-Isolation **verhaltensbasiert**
   beweist: exportiert `PR_SHEPHERD=true` und `FACTORY_STAGE=3` innerhalb des Testlaufs, führt
   einen der gehärteten Blöcke (Positiv-Fall, sauber+gepusht) real aus und prüft, dass das
   Ergebnis identisch zum unbelasteten Fall bleibt (Erfolgs-Banner, kein Phase-7-Fehlschlag) –
   nicht nur ein struktureller Grep auf `env -u`.
-- Kurzer Code-Kommentar an den vier gehärteten Aufrufstellen, der auf den Leck-Vektor und
+- Kurzer Code-Kommentar an jeder gehärteten Aufrufstelle, der auf den Leck-Vektor und
   dieses Issue verweist (WHY, nicht WHAT – analog zu bestehenden Kommentaren im selben Block).
+- **Ergänzt in der Umsetzung – Drift-Guard in `run-tests.sh`:** ein struktureller Test, der
+  `run-tests.sh` selbst liest und für **jede** reale (non-`--dry-run`) Aufrufstelle die
+  Neutralisierung verlangt. Grund: Der Verhaltenstest oben hängt an genau **einer** der fünf
+  Aufrufstellen – ohne den Guard bliebe die Suite grün, wenn `env -u` an einer der anderen
+  entfernt oder eine neue ungehärtete Stelle hinzugefügt würde (genau die stille
+  Regressionsklasse, die zu #262 geführt hat). Der Guard erkennt die Pipeline-Referenz in
+  Ausführungs-Position – als Dateiname wie als Pfad-Variable (`$PIPELINE`), quotiert wie
+  unquotiert, hinter `bash`/`sh` wie direkt ausgeführt – und deckt direkte Aufrufe aus
+  `run-tests.sh` ab (nicht den transitiven Weg über `factory-poll.sh`, der aktuell gegen einen
+  Stub läuft und die Variablen nicht liest).
 
 **Nicht inbegriffen:**
 - Keine Änderung an den `--dry-run`-Aufrufen von `run-pipeline.sh` in `run-tests.sh` – belegt
@@ -90,7 +107,7 @@ Abhängigkeit gerade auslöst.
 - [ ] GIVEN die aufrufende Shell hat `PR_SHEPHERD=true` exportiert WHEN der `#101`-Lint-Gate-
       Block läuft THEN bleibt das Ergebnis unverändert (Lint-Gate-Fehlschlag bleibt der
       beobachtete Grund).
-- [ ] GIVEN einer der vier realen `run-pipeline.sh`-Aufrufe in `run-tests.sh` WHEN der Code
+- [ ] GIVEN irgendein realer `run-pipeline.sh`-Aufruf in `run-tests.sh` WHEN der Code
       gelesen wird THEN neutralisiert er `PR_SHEPHERD` und `FACTORY_STAGE` explizit für den
       gestarteten Kindprozess (z. B. `env -u PR_SHEPHERD -u FACTORY_STAGE`), erkennbar am Code
       selbst – nicht nur implizit durch das Testergebnis.
@@ -98,6 +115,12 @@ Abhängigkeit gerade auslöst.
       (Referenz: Verhalten vor dieser Task) THEN würde er rot ausschlagen – der Test beweist
       damit tatsächlich die Env-Isolation und ist keine Tautologie (Beleg in der
       Implementierungs-/Review-Phase, z. B. durch kurzzeitiges Rückgängigmachen der Härtung).
+- [ ] _(ergänzt in der Umsetzung)_ GIVEN der Drift-Guard aus dem Scope-Abschnitt WHEN in
+      `run-tests.sh` an **irgendeiner** realen Aufrufstelle `env -u` fehlt – an einer
+      bestehenden entfernt oder als neue Aufrufstelle hinzugefügt, in beliebiger Schreibweise
+      (Dateiname oder Pfad-Variable, quotiert oder nicht, mit oder ohne `bash`-Präfix) – THEN
+      wird die Suite rot, während `--dry-run`-Aufrufe und Lese-Kontexte (`cp`/`grep`/
+      Zuweisung) auf dieselbe Referenz sie grün lassen.
 
 ## Fehlerszenarien
 
