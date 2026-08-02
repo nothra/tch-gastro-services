@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Spec: `docs/specs/spec-265-hooks-installed-check.md`.
@@ -132,6 +132,12 @@ Regression), (2) neuer `lessons/testing.md`-Eintrag zu Git-Identität in commit-
 Fixture-Helpern, (3) Nachtrag am bestehenden #114-Reihenfolge-Guard-Eintrag (Rezidiv in neuer
 Domäne, CI-YAML). `PROJECT-CONTEXT.md`-Index entsprechend ergänzt/erweitert. Keine
 CLAUDE.md-/Guideline-Änderung nötig (alle Learnings projektspezifisch).
+
+PR-Shepherd 2026-08-02: Merge freigegeben – alle Gates grün. CI (Factory CI: lint, test,
+config-validation, factory-self-test, issue-sync, pr-closes-issue), CodeQL und Vercel-Preview
+alle `pass`. Keine offenen Review-Kommentare (nur Vercel-Bot-Kommentar). `reviewDecision`
+leer (kein Approval erforderlich, ADR-029). `mergeStateStatus: CLEAN`, kein Rebase nötig.
+Draft → ready for review (`gh pr ready`). Merge per `gh pr merge --squash` (CLEAN-Zweig).
 
 ---
 Branch: `improvement/265-install-hooks-retrofit-262`
