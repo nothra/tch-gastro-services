@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -77,6 +77,12 @@ behoben; ein Nitpick (16-Werte-Liste zwischen jq- und Grep-Pfad dupliziert) wurd
 - Kein neues Verhalten: volle Suite vor und nach dem Refactor identisch grün (641/0); Negativ-
   Test (`Edit(docs/**)` in Testkopie gestrichen) färbt weiterhin exakt dieselben 2 Assertionen
   rot wie vor dem Refactor.
+
+## Security-Review
+Siehe [tasks/security-251.md](security-251.md) – Ergebnis: PASSED, keine Findings. Injection-
+sichere Aufrufe (`grep -qF --`, `jq --arg`), fail-closed bei fehlendem `jq`/`$SETTINGS`, keine
+Rechteausweitung (16 Array-Werte 1:1 gegen `.claude/settings.json` abgeglichen, keine
+Ergänzung), keine neuen Dependencies.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
