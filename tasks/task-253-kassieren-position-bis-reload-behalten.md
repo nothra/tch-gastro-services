@@ -116,6 +116,37 @@ Extraktion von `KassierZeileInhalt` und `data-testid` für den Namens-Helfer sin
 Routen-Doku, Hooks, Branch-Guard); `page.tsx` bytegleich zum Vor-Rework-Stand
 (`git diff` leer nach der Mutationsprobe).
 
+**Runde 2 (`tasks/review-253.md`, NEEDS_REWORK):** keine kritischen Findings; Produktionscode
+bestätigt fertig und korrekt (soll nicht mehr angefasst werden). W1 aus Runde 1 ist behoben, W2
+nur zur Hälfte: die Korrektur an `EingefroreneZeilenListe.test.tsx` trägt, der Kommentar in
+`page.test.tsx:452-454` behauptet aber fälschlich, ein diskriminierender StatusToggle-Test sei
+„nicht konstruierbar". Er ist es – ein Kassiervorgang **vor** dem StatusToggle erzeugt die nötige
+Divergenz (Server-Sortierung `[Dora, Anna, Bernd, Carla]` vs. eingefrorene
+`[Bernd, Dora, Anna, Carla]`). Dadurch ist AC6 in genau dem Szenario ungetestet, in dem er unter
+der neuen Implementierung brechen kann (Freeze aktiv + Statuswechsel): ein künftiges
+statusabhängiges `key` an `<EingefroreneZeilenListe>` würde die Komponente beim Abschluss
+remounten, den Freeze verlieren – und die Suite bliebe grün. Offen ist eine Ergänzung von drei
+Zeilen im bestehenden Test plus die Korrektur des Kommentars; kein Produktionscode.
+
+Behoben im Rework (`/implement`, 2026-08-02) – ausschließlich in
+`app/veranstaltung/[id]/kassieren/page.test.tsx`:
+
+- `should_hideKassiereFormsAndLeaveOrderUntouched_when_veranstaltungIsAbgeschlossenViaStatusToggle`
+  kassiert jetzt **vor** dem StatusToggle-Schritt Bernd. Damit divergieren Server-Sortierung
+  (`[Dora, Anna, Bernd, Carla]`) und eingefrorene Reihenfolge (`[Bernd, Dora, Anna, Carla]`), und
+  die Reihenfolge-Assertion nach dem Statuswechsel ist nicht länger vakuum, sondern deckt AC6 in
+  genau dem Szenario ab, in dem er brechen kann (Freeze aktiv + Statuswechsel).
+- Der Kommentar behauptet nicht mehr „nicht konstruierbar", sondern benennt das abgedeckte
+  Regressionsszenario (statusabhängiges `key` → Remount → Freeze-Verlust).
+- *Diskriminierung belegt:* Mutation `key={veranstaltung.status}` an `<EingefroreneZeilenListe>`
+  in `page.tsx` macht genau diesen Test rot (677 passed / 1 failed), alle übrigen bleiben grün.
+  `page.tsx` ist danach wieder bytegleich (`git diff` listet die Datei nicht) – der Produktionscode
+  wurde wie vom Review empfohlen nicht angefasst.
+
+**Gates nach Runde-2-Rework:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
+Routen-Doku, Hooks, Branch-Guard). Die Testzahl bleibt bei 678 – der bestehende Test wurde
+verstärkt, kein neuer Fall angelegt (Lesson #240: keine parallele Schleife/Duplikat-Test).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

@@ -441,17 +441,20 @@ describe("KassierenPage", () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
     const { rerender } = render(await KassierenPage({ params: params("v-1") }));
 
+    // Bernd kassieren – ab hier weicht die Server-Sortierung ([Dora, Anna, Bernd, Carla]) von der
+    // eingefrorenen ab. Ohne diesen Schritt wäre die Reihenfolge-Assertion unten vakuum.
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    rerender(await KassierenPage({ params: params("v-1") }));
+
     // Abschluss über den StatusToggle lädt die Seite neu, ändert aber keinen Bezahlt-Status →
     // unverändertes Sortierverhalten dieser Aktion (nicht Teil von #253); Formulare entfallen.
-    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
     rerender(await KassierenPage({ params: params("v-1") }));
 
-    // Achtung: Server-Sortierung und eingefrorene Reihenfolge sind hier per Konstruktion identisch
-    // (die Aktion lässt `kassier.bezahlt` unberührt) – die Reihenfolge-Assertion ist deshalb ein
-    // Regressions-Guard gegen ein Umsortieren, **kein** Nachweis des Freeze. Ein diskriminierender
-    // Test ist für diesen Pfad nicht konstruierbar; der Freeze ist in
-    // `should_keepKassierteZeileAtItsPosition_when_serverReordersWithinSameSession` belegt.
+    // Der Statuswechsel darf weder umsortieren noch den Freeze verlieren: ein statusabhängiger
+    // `key` an <EingefroreneZeilenListe> würde die Komponente remounten und Bernd nach unten
+    // springen lassen – diese Assertion färbt das rot (Server sortierte [Dora, Anna, Bernd, Carla]).
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
     expect(screen.queryAllByTestId("kassiere-form")).toHaveLength(0);
   });
