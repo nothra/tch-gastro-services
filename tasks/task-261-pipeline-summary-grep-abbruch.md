@@ -42,6 +42,13 @@ Bedarf.
 Keine – Root-Cause, Reproduktion und Testkonvention sind durch Issue #261 und den
 bestehenden K-1-Testblock bereits eindeutig belegt.
 
+Root Cause [2026-08-02]: `scripts/run-pipeline.sh:385-387` – der `grep "^- " | head -3 |
+while IFS= read -r line; do … done`-Block ist unter `set -euo pipefail` nicht gegen den
+0-Treffer-Fall abgesichert (kein `|| true` wie beim benachbarten `rule_count`, Zeile 383).
+Bei 0 Treffern liefert `grep` Exit 1; unter `pipefail` wird daraus der Exit-Code der
+`while`-Schleife (1, da `read` sofort auf EOF trifft), und das Skript bricht ab, bevor
+`verify_final_state` je läuft.
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
