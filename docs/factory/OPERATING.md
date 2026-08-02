@@ -86,7 +86,7 @@ Diese Schritte sind einmalig. Danach greift die Automatik.
 | Docker (Compose v2) | lokale DEV-Postgres | `docker compose version` |
 
 Projekt aufsetzen: siehe [README → DEV](../../README.md#dev--lokale-entwicklung)
-(`pnpm install` · `.env.local` · `pnpm db:up` · `db:migrate` · `db:seed` · `pnpm dev`).
+(`pnpm install` · `install-hooks.sh` · `.env.local` · `pnpm db:up` · `db:migrate` · `db:seed` · `pnpm dev`).
 
 ### 0.2 GitHub-Repository-Secrets (für das Deploy-Gate)
 

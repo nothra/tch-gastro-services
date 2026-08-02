@@ -1909,8 +1909,12 @@ for flag_case in "-h|helpshort" "--help|helplong"; do
   assert_true "$?" "factory-commit AK4: '$flag_arg' gibt die Usage aus"
   [ "$(git -C "$WT" rev-parse HEAD)" = "$HEAD_BEFORE" ]
   assert_true "$?" "factory-commit AK4: '$flag_arg' committet nichts"
-  git -C "$WT" diff --cached --quiet
-  assert_true "$?" "factory-commit AK4: '$flag_arg' führt kein 'git add' aus (Index bleibt leer)"
+  # `git diff --cached --quiet` vergleicht Index gegen HEAD, nicht gegen leer: liefe trotz
+  # entferntem Guard `git add -A && git commit`, wäre der Index danach == neuer HEAD → grün
+  # aus dem falschen Grund. Stattdessen direkt prüfen, dass die neue Datei unverändert
+  # untracked bleibt – das gilt nur, wenn `git add` nie lief (Lesson #214).
+  [ "$(git -C "$WT" status --porcelain -- change.txt)" = "?? change.txt" ]
+  assert_true "$?" "factory-commit AK4: '$flag_arg' führt kein 'git add' aus (Datei bleibt untracked)"
   git -C "$WT" rev-parse origin/feature/262-help >/dev/null 2>&1
   assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit AK4: '$flag_arg' pusht nichts"
 done
@@ -3483,6 +3487,32 @@ printf '%s\n' "--help" "# kein Kommentar, wenn core.commentChar=';'" > "$CM_CFG_
 ( cd "$CM_CFG_REPO" && bash "$CMCHECK" "msg" ) >/dev/null 2>&1
 assert_exit 0 "$?" "#262: commit-msg-check lässt durch – '#'-Zeile zählt bei core.commentChar=';' als Inhalt (Diskriminierung)"
 
+# core.commentString (mehrzeichiger Präfix, ab git 2.45) – bislang ungetestet: der erste
+# Schleifendurchlauf inkl. `break` und die Mehrzeichen-Fähigkeit, der einzige Grund, warum
+# `commentString` überhaupt unterstützt wird.
+CM_CFG_REPO_STR="$TMP_CM/commentstring"
+mkdir -p "$CM_CFG_REPO_STR"
+git init -q -b main "$CM_CFG_REPO_STR" >/dev/null 2>&1
+git -C "$CM_CFG_REPO_STR" config core.commentString "//"
+printf '%s\n' "--help" "// Bitte gib eine Commit-Message ein" > "$CM_CFG_REPO_STR/msg"
+( cd "$CM_CFG_REPO_STR" && bash "$CMCHECK" "msg" ) >/dev/null 2>&1
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: commit-msg-check lehnt ab – --help mit mehrzeichigem Kommentar bei core.commentString='//'"
+printf '%s\n' "--help" "# kein Kommentar, wenn core.commentString='//'" > "$CM_CFG_REPO_STR/msg"
+( cd "$CM_CFG_REPO_STR" && bash "$CMCHECK" "msg" ) >/dev/null 2>&1
+assert_exit 0 "$?" "#262: commit-msg-check lässt durch – '#'-Zeile zählt bei core.commentString='//' als Inhalt (Diskriminierung)"
+
+# core.commentChar=auto – bislang ungetestet: der `auto`-Zweig (`[ "$configured_prefix" =
+# "auto" ] ||`) muss beim Default '#' bleiben, statt den Präfix wörtlich auf 'auto' zu setzen.
+# Ohne diesen Test würde ein Entfernen der `auto`-Sonderbehandlung (dokumentierte
+# ADR-042-Designentscheidung) lautlos die in Runde 2 geschlossene Editor-Pfad-Lücke reißen.
+CM_CFG_REPO_AUTO="$TMP_CM/commentauto"
+mkdir -p "$CM_CFG_REPO_AUTO"
+git init -q -b main "$CM_CFG_REPO_AUTO" >/dev/null 2>&1
+git -C "$CM_CFG_REPO_AUTO" config core.commentChar "auto"
+printf '%s\n' "--help" "# Please enter the commit message for your changes." > "$CM_CFG_REPO_AUTO/msg"
+( cd "$CM_CFG_REPO_AUTO" && bash "$CMCHECK" "msg" ) >/dev/null 2>&1
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: commit-msg-check lehnt ab – --help mit '#'-Template bei core.commentChar='auto' (Fallback auf Default, ADR-042)"
+
 printf '%s' "--help" > "$TMP_CM/msg"
 cm_out=$(bash "$CMCHECK" "$TMP_CM/msg" 2>&1)
 printf '%s' "$cm_out" | grep -qF 'sieht aus wie ein CLI-Flag'
@@ -3659,6 +3689,32 @@ GIT_EDITOR="$WT/editor.sh" git -C "$WT" commit >/dev/null 2>&1
 assert_exit 0 "$?" "#262 AK1: reguläre Message über den Editor-Pfad wird committet (Gegenprobe)"
 [ "$(git -C "$WT" log --format=%s -1)" = "fix: ueber den editor" ]
 assert_true "$?" "#262 AK1: Editor-Commit trägt die unveränderte Message"
+
+# Verbose-Pfad (`git commit -v`/`--verbose`): Git hängt den Diff unterhalb der Scissors-Zeile
+# UNPRÄFIGIERT an – ohne den Abbruch an der Scissors-Zeile bliebe der Diff in der Message
+# stehen und der Trim-Vergleich griffe nicht mehr (empirisch mit git 2.50 belegt).
+WT=$(cm_e2e_repo e2e-verbose)
+HEAD_BEFORE=$(git -C "$WT" rev-parse HEAD)
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "--help" | cat - "$1" > "$1.neu"\nmv "$1.neu" "$1"\n' > "$WT/editor.sh"
+chmod +x "$WT/editor.sh"
+echo "x" > "$WT/x.txt"; git -C "$WT" add -A
+cm_out=$(GIT_EDITOR="$WT/editor.sh" git -C "$WT" commit -v 2>&1); cm_rc=$?
+assert_true "$([ $cm_rc -ne 0 ]; echo $?)" "#262: 'git commit -v' mit --help oberhalb des verbose-Diffs → exit ≠ 0"
+[ "$(git -C "$WT" rev-parse HEAD)" = "$HEAD_BEFORE" ]
+assert_true "$?" "#262: über den verbose-Pfad entsteht kein '--help'-Commit"
+printf '%s' "$cm_out" | grep -qF 'sieht aus wie ein CLI-Flag'
+assert_true "$?" "#262: Ablehnung auf dem verbose-Pfad stammt aus dem commit-msg-Guard"
+
+# --cleanup=scissors (ohne -v): die Scissors-Zeile ist selbst kommentar-präfigiert und damit
+# schon vor dem Fix unkritisch – Gegenprobe, dass der neue Abbruch diesen Fall nicht bricht.
+WT=$(cm_e2e_repo e2e-scissors)
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "fix: mit scissors" | cat - "$1" > "$1.neu"\nmv "$1.neu" "$1"\n' > "$WT/editor.sh"
+chmod +x "$WT/editor.sh"
+echo "x" > "$WT/x.txt"; git -C "$WT" add -A
+GIT_EDITOR="$WT/editor.sh" git -C "$WT" commit --cleanup=scissors >/dev/null 2>&1
+assert_exit 0 "$?" "#262: reguläre Message mit --cleanup=scissors wird committet (Gegenprobe)"
+[ "$(git -C "$WT" log --format=%s -1)" = "fix: mit scissors" ]
+assert_true "$?" "#262: --cleanup=scissors-Commit trägt die unveränderte Message"
 
 WT=$(cm_e2e_repo e2e-dashx)
 echo "x" > "$WT/x.txt"; git -C "$WT" add -A

@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -223,6 +223,39 @@ Hook-Installation fail-closed, bevor es das Repo zurückgibt; AK-Labels (AK4/AK6
   `unset PR_SHEPHERD` ließ sich in dieser Session nicht ausführen (Permission-Classifier lehnt
   `unset …&&`, `env -u` und `bash -c` ab) – die Gegenprobe aus dem ersten Lauf bleibt der Beleg.
 - `bash scripts/checks/pre-commit.sh` (inkl. `pnpm lint`): grün. Keine UI-/Routen-Berührung.
+
+### Review-Runde 3 → Circuit Breaker → Fix-Pass (menschliche Entscheidung, 2026-08-02)
+
+Review-Runde 3 (`tasks/review-262.md`): **NEEDS_REWORK**, keine kritischen Findings, alle acht
+W-Findings aus Runde 2 real behoben. Vier neue, alle klein. Regelgemäß (3 von 3 möglichen Runden)
+eskaliert statt automatisch nachzuarbeiten – Ralf hat sich für **Option (a)** entschieden: ein
+eng begrenzter Fix-Pass über die vier Punkte, ohne vierte Multi-Persona-Review.
+
+**Behoben:**
+- [x] W1 **Echte Verhaltenslücke:** `git commit -v`/`--verbose` hängt den Diff unterhalb der
+      Scissors-Zeile **ohne** Kommentar-Präfix an – die Filterschleife verwarf nur präfigierte
+      Zeilen, der Diff blieb in `MESSAGE` stehen, `--help` wäre durchgerutscht. Fix: Abbruch der
+      Filterschleife (`break`), sobald die Scissors-Zeile (`>8`) erkannt wird – alles danach
+      gehört nie zur Message, unabhängig vom Präfix. Tests: `git commit -v` mit `--help` oberhalb
+      des Diffs (Ablehnung) + `--cleanup=scissors` ohne `-v` (Gegenprobe, unverändert unkritisch).
+      `commit.verbose=true` ist damit keine Restlücke mehr – ADR-042/Skript-Kommentar nennen
+      weiterhin korrekt nur noch `core.commentChar=auto` als bewusst offene Lücke.
+- [x] W2 **Coverage-Lücke:** `core.commentString` (mehrzeichiger Präfix) und der `auto`-Zweig
+      waren mit 0 Testtreffern komplett ungetestet – ein Wegfall der `auto`-Sonderbehandlung wäre
+      lautlos grün geblieben. Je ein Test mit `core.commentString='//'` (inkl. Diskriminierung
+      gegen `#`) und `core.commentChar=auto` (Fallback auf Default `#` bleibt wirksam) ergänzt.
+- [x] W3 **Tote Assertion** (`run-tests.sh`, factory-commit AK4): `git diff --cached --quiet`
+      verglich Index gegen HEAD statt gegen leer – nach einem hypothetischen `git add -A && git
+      commit` (bei entferntem Guard) wäre Index == neuer HEAD → grün, obwohl `git add` gelaufen
+      wäre. Ersetzt durch eine direkte Prüfung, dass die neue Datei unverändert `??` (untracked)
+      bleibt – das gilt nur, wenn `git add` nie lief.
+- [x] W4 `OPERATING.md:89`: `install-hooks.sh` als zweiten Schritt in die Setup-Kette ergänzt
+      (spiegelt jetzt README/CONTRIBUTING).
+
+**Gate-Verifikation nach Fix-Pass:** `bash scripts/checks/tests/run-tests.sh`: **753 grün, 0 rot**
+(die zuvor umgebungsbedingt roten `#212 W3`-Assertions sind in diesem Lauf ohne `PR_SHEPHERD`-Leak
+grün – getrackt bleibt trotzdem **#264**, da die Härtung selbst noch offen ist). `bash
+scripts/checks/pre-commit.sh` (inkl. `pnpm lint`): grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

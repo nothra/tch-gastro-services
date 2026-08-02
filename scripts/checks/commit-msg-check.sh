@@ -58,6 +58,11 @@ while IFS= read -r message_line || [ -n "$message_line" ]; do
   # Git zählt eine Zeile nur als Kommentar, wenn der Präfix am Zeilenanfang steht (kein
   # führender Whitespace). Der quotierte Variablen-Teil verhindert Glob-Interpretation.
   case "$message_line" in
+    # Scissors-Zeile (bei `--cleanup=scissors` bzw. `-v`/`--verbose`): alles ab hier gehört
+    # nicht zur Message, auch wenn es KEINEN Kommentar-Präfix trägt – der verbose-Diff hängt
+    # unpräfigiert direkt darunter (empirisch mit git 2.50 belegt: ohne diesen Abbruch bliebe
+    # der Diff in MESSAGE stehen und der Trim-Vergleich griffe nicht mehr).
+    "$COMMENT_PREFIX"*'>8'*) break ;;
     "$COMMENT_PREFIX"*) continue ;;
   esac
   MESSAGE="$MESSAGE$message_line
