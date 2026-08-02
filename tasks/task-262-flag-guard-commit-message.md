@@ -3,9 +3,9 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Tests vollständig
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -256,6 +256,25 @@ eng begrenzter Fix-Pass über die vier Punkte, ohne vierte Multi-Persona-Review.
 (die zuvor umgebungsbedingt roten `#212 W3`-Assertions sind in diesem Lauf ohne `PR_SHEPHERD`-Leak
 grün – getrackt bleibt trotzdem **#264**, da die Härtung selbst noch offen ist). `bash
 scripts/checks/pre-commit.sh` (inkl. `pnpm lint`): grün.
+
+### Phase 3: Test-Vervollständigung (2026-08-02)
+
+Diff-Scope (`git diff origin/main...HEAD`) enthält **keine** TypeScript-/App-Datei – ausschließlich
+Bash-Skripte und Doku. `pnpm test:coverage` (Vitest) misst daher keinen Code dieses PRs; die
+Baseline (89 % Statements, 665 grün/0 rot) ist unverändert. Die tatsächliche Testabdeckung für
+#262 liefert `scripts/checks/tests/run-tests.sh` (Bash-Suite) – **753 grün, 0 rot**, inkl. der im
+Fix-Pass ergänzten Fälle. Alle 10 Akzeptanzkriterien und beide Fehlerszenarien der Spec sind laut
+drei unabhängigen Review-Runden mit Tests belegt (kein AK nur behauptet). Keine weiteren Tests
+in dieser Phase nötig – kein Produktionscode geändert.
+
+### Phase 4: Refactoring (2026-08-02)
+
+Keine Änderung nötig. Naming, Struktur und Duplikationsfreiheit wurden bereits über drei
+Review-Runden geprüft (siehe „Positives" in `tasks/review-262.md`); der Fix-Pass folgt demselben
+Stil (WHY-Kommentare, Wiederverwendung bestehender Test-Helper, keine neue Duplikation). Verbliebene
+optionale Nitpicks aus Review-Runde 3 (Naming-Konsistenz einzelner Loop-Variablen, Modul-Header-
+Vollständigkeit u. a.) sind bewusst nicht Teil dieses eng begrenzten Fix-Pass – siehe
+Circuit-Breaker-Entscheidung oben.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
