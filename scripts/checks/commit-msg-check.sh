@@ -11,6 +11,10 @@
 # Fließtext erwähnen. Eine allgemeine Formatprüfung (Conventional Commits) und die
 # Leer-Prüfung sind bewusst NICHT Teil dieses Hooks (Scope: spec-262).
 #
+# Exit-Kontrakt: 0 = Message passiert, 1 = fachliche Ablehnung (Flag erkannt),
+# 2 = Infrastruktur-Fehler (kein/leeres Argument, Message-Datei nicht lesbar). Beides
+# blockiert den Commit; die Trennung macht im Log unterscheidbar, WARUM.
+#
 # Fail-closed: fehlendes Argument oder nicht lesbare Message-Datei → Abbruch (exit ≠ 0),
 # kein stilles Durchwinken.
 
@@ -31,7 +35,34 @@ if [ ! -r "$MESSAGE_FILE" ]; then
   exit 2
 fi
 
-MESSAGE="$(cat -- "$MESSAGE_FILE")"
+# Git entfernt die Kommentarzeilen des Editor-Templates erst NACH diesem Hook (`--cleanup`).
+# Auf dem Editor-Pfad (`git commit` ohne `-m`, `-e`, `--amend`, Merge, `-t <template>`) enthält
+# die Datei also z. B. `--help\n\n# Please enter the commit message …` – ohne Filterung wäre
+# der Guard dort blind (empirisch verifiziert mit git 2.50: der Hook sieht die Kommentare, der
+# Commit entstand mit Message `--help`). Deshalb erst Kommentarzeilen verwerfen, dann trimmen.
+# Der Kommentar-Präfix ist konfigurierbar (`core.commentString` ab git 2.45, sonst
+# `core.commentChar`); Default `#`.
+COMMENT_PREFIX='#'
+for config_key in core.commentString core.commentChar; do
+  if configured_prefix="$(git config --get "$config_key" 2>/dev/null)" && [ -n "$configured_prefix" ]; then
+    # `auto` lässt Git den Präfix pro Message aus einer Kandidatenliste wählen – welcher es
+    # war, steht nirgends. Dann beim Default bleiben: der Guard greift auf dem Editor-Pfad
+    # nur, wenn Git tatsächlich `#` gewählt hat (dokumentierte Restlücke, ADR-042).
+    [ "$configured_prefix" = "auto" ] || COMMENT_PREFIX="$configured_prefix"
+    break
+  fi
+done
+
+MESSAGE=""
+while IFS= read -r message_line || [ -n "$message_line" ]; do
+  # Git zählt eine Zeile nur als Kommentar, wenn der Präfix am Zeilenanfang steht (kein
+  # führender Whitespace). Der quotierte Variablen-Teil verhindert Glob-Interpretation.
+  case "$message_line" in
+    "$COMMENT_PREFIX"*) continue ;;
+  esac
+  MESSAGE="$MESSAGE$message_line
+"
+done < "$MESSAGE_FILE"
 
 # Umgebenden Whitespace (inkl. Zeilenumbrüche) entfernen: `git commit -m` hängt ein \n an,
 # und ein versehentliches Leerzeichen soll den Guard nicht aushebeln. Verglichen wird

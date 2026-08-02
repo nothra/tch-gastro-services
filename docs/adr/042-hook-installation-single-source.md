@@ -70,12 +70,29 @@ Feature-Branches, `git bisect`). Ohne diese Ausnahme wäre dort **jeder** Commit
 `No such file or directory` blockiert. Existiert das Skript, entscheidet weiterhin allein
 sein fail-closed Ergebnis – die Ausnahme deckt ausschließlich den Nicht-vorhanden-Fall ab.
 
+**Kommentarzeilen vor dem Vergleich verwerfen:** Git entfernt die `#`-Kommentarzeilen des
+Editor-Templates erst **nach** dem `commit-msg`-Hook (`--cleanup`). Ein reiner Trim-Vergleich
+griffe deshalb nur auf dem `-m`-Pfad; auf dem Editor-Pfad (`git commit` ohne `-m`, `-e`,
+`--amend`, Merge, `-t <template>`) sähe der Hook `--help\n\n# Please enter …` und ließe den
+Commit entstehen (empirisch mit git 2.50 verifiziert). `commit-msg-check.sh` verwirft daher
+zuerst alle Zeilen, die mit dem konfigurierten Kommentar-Präfix beginnen
+(`core.commentString`/`core.commentChar`, Default `#`), und trimmt erst danach.
+**Restlücke:** Bei `core.commentChar=auto` wählt Git den Präfix pro Message aus einer
+Kandidatenliste, ohne ihn festzuhalten – dort greift der Guard auf dem Editor-Pfad nur, wenn
+Git tatsächlich `#` gewählt hat. Bewusst nicht nachgebaut (Heuristik ohne verlässliche Quelle);
+der `-m`-Pfad und der Seam-Guard in `factory-commit.sh` bleiben davon unberührt.
+
 **Bewusst nicht extrahiert:** Die beiden Literalstrings `--help`/`-h` selbst bleiben
 **unabhängig** in `scripts/checks/commit-msg-check.sh` (Git-Hook, beliebige Commit-Messages)
 und `scripts/factory-commit.sh` (eigenes CLI-Argument-Parsing) stehen. Eine gemeinsame
 „Known-Flags"-Quelle für zwei Literale in zwei konzeptionell unterschiedlichen Skripten wäre
 Over-Engineering (kein Kompromiss bei Clean Code heißt hier: keine Abstraktion für zwei
-Zeilen Code an zwei unterschiedlichen Konzern-Grenzen).
+Zeilen Code an zwei unterschiedlichen Konzern-Grenzen). **Neu zu bewerten, sobald eine dritte
+Stelle dazukommt** – konkret Issue **#131** („`start-work.sh`: `--help`/`-h` behandeln"): drei
+Vorkommen sind der Punkt, an dem eine gemeinsame Quelle günstiger wird als die Duplikation.
+
+Der `-h`/`--help`-Guard in `scripts/factory-commit.sh` berührt den Seam-Kontrakt aus
+**ADR-019 §1** („Die Message ist Pflicht-Argument") – dort als Nachtrag (#262) präzisiert.
 
 ## Alternatives
 
@@ -138,4 +155,9 @@ lässt (idempotentes Skript statt vollständiger Bootstrap-Lauf).
   Entscheidungsschritt (der Installer bricht dort ab).
 - Die Ausführung von `scripts/install-hooks.sh` in diesem bestehenden Repo bleibt ein
   manueller Schritt nach dem Merge (keine Automatisierung, siehe Spec) – ein potenzieller
-  „vergessen, auszuführen"-Fehlerpunkt, der außerhalb dieses PRs liegt.
+  „vergessen, auszuführen"-Fehlerpunkt, der außerhalb dieses PRs liegt. Getrackt als Issue
+  **#265** (inkl. Vorschlag, die Hook-Präsenz im `pre-push`-Check fail-closed zu verifizieren),
+  damit der Schritt nicht nur in der nach dem Merge kaum gelesenen Task-Datei steht.
+- Ein `init-factory.sh`-Bootstrap, bei dem der Installer fail-closed abbricht, endet jetzt mit
+  eigenem Banner und Exit ≠ 0 statt mit der Erfolgsmeldung – sonst hätte die Aufrufstelle den
+  Fail-closed-Anspruch des Installers wieder aufgehoben.

@@ -18,6 +18,9 @@
 
 set -euo pipefail
 
+# Bewusst NICHT über `${FACTORY_DIR:-…}` überschreibbar wie in den Nachbarskripten: ein
+# Hook-Installer soll nur in das Repo schreiben, aus dem er selbst stammt – nie per Env-Var
+# in ein fremdes `.git`.
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -42,9 +45,13 @@ esac
 # überschreiben; die Entscheidung ist bewusst dem Menschen überlassen (ADR-042).
 if HOOKS_PATH_CONFIG="$(git -C "$REPO_DIR" config --get core.hooksPath 2>/dev/null)" &&
   [ -n "$HOOKS_PATH_CONFIG" ]; then
-  echo -e "${RED}✗${NC} install-hooks: 'core.hooksPath' ist auf '$HOOKS_PATH_CONFIG' gesetzt – Git führt nur Hooks aus diesem Verzeichnis aus." >&2
-  echo "     Keine Hooks installiert (fail-closed). Entweder 'git config --unset core.hooksPath' setzen" >&2
-  echo "     oder die Factory-Checks in '$HOOKS_PATH_CONFIG' einbinden (pre-commit, pre-push, commit-msg)." >&2
+  # Scope mitnennen: `--get` liest auch global/system – ein blanker Hinweis auf
+  # `git config --unset` würde sonst auf den falschen Scope zeigen.
+  HOOKS_PATH_ORIGIN="$(git -C "$REPO_DIR" config --show-origin --get core.hooksPath 2>/dev/null | cut -f1 || true)"
+  echo -e "${RED}✗${NC} install-hooks: 'core.hooksPath' ist auf '$HOOKS_PATH_CONFIG' gesetzt (${HOOKS_PATH_ORIGIN:-Herkunft unbekannt}) – Git führt nur Hooks aus diesem Verzeichnis aus." >&2
+  echo "     Keine Hooks installiert (fail-closed). Entweder die Option im genannten Scope entfernen" >&2
+  echo "     ('git config --unset core.hooksPath', ggf. mit --global/--system) oder die Factory-Checks" >&2
+  echo "     in '$HOOKS_PATH_CONFIG' einbinden (pre-commit, pre-push, commit-msg)." >&2
   exit 2
 fi
 
@@ -79,8 +86,15 @@ install_hook pre-push 'bash scripts/checks/pre-push.sh'
 # jeden Commit mit „No such file or directory" blockieren. Deshalb eine bewusste
 # Fail-open-Ausnahme ausschließlich für den Nicht-vorhanden-Fall (ADR-042 §Consequences);
 # existiert das Skript, entscheidet weiterhin allein sein fail-closed Ergebnis.
-install_hook commit-msg 'CHECK="scripts/checks/commit-msg-check.sh"
+# Mehrzeiliger Rumpf als Heredoc (nicht als gequotetes Argument), damit der Hook-Code
+# zusammenhängend lesbar bleibt.
+COMMIT_MSG_BODY="$(
+  cat <<'HOOK_BODY'
+CHECK="scripts/checks/commit-msg-check.sh"
 [ -f "$CHECK" ] || exit 0
-bash "$CHECK" "$1"'
+bash "$CHECK" "$1"
+HOOK_BODY
+)"
+install_hook commit-msg "$COMMIT_MSG_BODY"
 
 echo -e "${GREEN}Git-Hooks aktuell${NC} – $HOOKS_DIR"

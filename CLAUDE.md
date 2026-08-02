@@ -146,8 +146,8 @@ Jeder Agent bekommt nur die Tools, die er braucht:
   required Checks – [ADR-029](docs/adr/029-branch-protection-main-ruleset.md)).
 - **Git-Hooks kommen ausschließlich aus `bash scripts/install-hooks.sh`** (kanonische Quelle,
   [ADR-042](docs/adr/042-hook-installation-single-source.md); idempotent, beliebig oft
-  ausführbar). Installiert werden `pre-commit`, `pre-push` und `commit-msg` – letzterer lehnt
-  Commit-Messages ab, die in Wahrheit ein CLI-Flag sind (`--help`/`-h`, `commit-msg-check.sh`).
+  ausführbar). Installiert werden `pre-commit`, `pre-push` und der `commit-msg`-Hook – letzterer
+  lehnt Commit-Messages ab, die in Wahrheit ein CLI-Flag sind (`--help`/`-h`, `commit-msg-check.sh`).
   In einem frischen Clone bzw. einem vor dieser Regel initialisierten Repo einmalig ausführen;
   die Hooks liegen im gemeinsamen `.git` und gelten damit für alle Worktrees.
 - Keine offenen Checkboxen in der Task-Datei → kein Done

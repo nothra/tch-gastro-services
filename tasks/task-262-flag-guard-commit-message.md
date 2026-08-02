@@ -142,6 +142,88 @@ Zuweisungen wirken (genau deshalb stand dort ursprünglich `$1`). Der Nitpick is
 eine **eigene** `local`-Zeile umgesetzt, mit Kommentar an der Stelle. Aufgefallen ist es, weil
 die Test-Suite danach 25 rote Assertions zeigte – nicht durch Codelesen.
 
+### Review-Runde 2 → `/implement`-Runde 3 (2026-08-02)
+
+Review-Runde 2 (`tasks/review-262.md`): **NEEDS_REWORK** – erneut keine kritischen Findings,
+8 wichtige + 12 Nitpicks. Zwei Klassen: Doku-/ADR-Kohärenz und Test-Präzision.
+
+**Wichtige Findings – behoben:**
+- [x] W1 Hook-Tabelle in `git-workflow.md` beschrieb `pre-commit` faktisch falsch („Lint/**Format**").
+      Format (Prettier) ist Check 3 in `pre-push.sh`, nicht in `pre-commit.sh`. Beide Zweckspalten
+      jetzt an die Quell-Skripte angeglichen (Lesson #160).
+- [x] W2 `init-factory.sh` degradierte den fail-closed Abbruch des Installers zur Warnung und
+      meldete danach „erfolgreich initialisiert". Jetzt: Merkflag → eigenes Banner „Bootstrap
+      unvollständig – keine Git-Hooks" + `exit 1`; Erfolgs-Banner bleibt dem Erfolgsfall vorbehalten.
+- [x] W3 AK8-Grep traf auch die Kommentar-Prosa (`grep -qF 'scripts/install-hooks.sh'` matcht den
+      Kommentar darüber) und konnte nicht aus dem beabsichtigten Grund rot werden. Jetzt auf den
+      konkreten Aufruf gepinnt (`bash "$FACTORY_DIR/scripts/install-hooks.sh"`) **plus** ein echter
+      Verhaltenstest mit gestubbtem Installer (Stub-Marker belegt den Aufruf; Exit-Code, Banner und
+      Abwesenheit des Erfolgs-Banners werden geprüft, inkl. Gegenprobe mit Installer-Exit 0).
+- [x] W4 Doku-Guard `grep -qF 'commit-msg'` war nicht diskriminierend (Teilstring von
+      `commit-msg-check.sh`). Jetzt wird `` `commit-msg`-Hook `` gesucht – ein Token, das nur im
+      Hook-Satz vorkommt.
+- [x] W5 Doku-Nachführung war unvollständig: `OPERATING.md` (§Betrieb) und `CONTRIBUTING.md`
+      (Einstieg/lokales Setup) kannten den dritten Hook nicht, `README.md` ebenso wenig – wer der
+      Clone-Anleitung folgte, hatte danach **keinen** lokalen Hook. Alle drei ergänzt;
+      `OPERATING.md` + `CONTRIBUTING.md` laufen jetzt in derselben Doku-Guard-Schleife wie
+      `CLAUDE.md`/`git-workflow.md`, `README.md` mit eigener Setup-Assertion (Lesson #211/#176).
+- [x] W6 ADR-019 beschrieb die von diesem PR geänderte `factory-commit.sh`-Mechanik im alten Stand
+      („Die Message ist Pflicht-Argument", Guard-Aufzählung ohne Help-Guard). Nachtrag (#262)
+      ergänzt: `-h`/`--help` ist eine Hilfe-Anfrage, kein Message-Aufruf; ADR-042 verweist auf
+      ADR-019 §1 (Lesson #211).
+- [x] W7 **Echte Verhaltenslücke, nicht nur Doku:** Git entfernt die `#`-Kommentarzeilen erst
+      **nach** dem `commit-msg`-Hook (`--cleanup`) – auf dem Editor-Pfad (`git commit` ohne `-m`,
+      `-e`, `--amend`, Merge, `-t`) sah der Guard `--help\n\n# Please enter …`, getrimmt ≠ `--help`
+      → der Commit entstand. Reproduziert mit git 2.50. `commit-msg-check.sh` verwirft jetzt zuerst
+      alle Kommentarzeilen (Präfix aus `core.commentString`/`core.commentChar`, Default `#`) und
+      trimmt erst danach. Tests: Editor-Template abgelehnt, reguläre Message mit Template
+      durchgelassen, `--help` nur in einer Kommentarzeile → kein Treffer, `core.commentChar=';'`
+      in beide Richtungen (`;`-Zeile ist Kommentar, `#`-Zeile ist Inhalt), dazu ein
+      **End-to-End-Test über `GIT_EDITOR`** inkl. Gegenprobe mit regulärer Message.
+      **Restlücke bewusst offen:** bei `core.commentChar=auto` wählt Git den Präfix pro Message aus
+      einer Kandidatenliste, ohne ihn festzuhalten – dort greift der Guard auf dem Editor-Pfad nur,
+      wenn Git `#` gewählt hat. Als Heuristik nicht nachgebaut, in Skript-Kommentar und ADR-042
+      explizit festgehalten statt implizit zu bleiben.
+- [x] W8 Der manuelle Retrofit-Schritt war nur in dieser (nach dem Merge kaum gelesenen) Task-Datei
+      getrackt. Das im Review angelegte Issue **#265** ist jetzt in ADR-042 §Consequences
+      referenziert.
+
+**Nitpicks – umgesetzt:** Modul-Header von `run-tests.sh` ergänzt (zählungsfrei formuliert, analog
+`git-workflow.md`: „die Factory-Hooks" statt „drei Hooks"); ADR-042 nennt Issue **#131** als
+Auslöser zur Neubewertung der Literal-Duplikation; `LC_ALL=C` vor dem locale-abhängigen
+Abwesenheits-Grep; Exit-Kontrakt (1 = fachliche Ablehnung, 2 = Infrastruktur-Fehler) im
+Skript-Header benannt **und** je eigener Assertion getestet; `cm_e2e_repo` prüft die
+Hook-Installation fail-closed, bevor es das Repo zurückgibt; AK-Labels (AK4/AK6) im
+`factory-commit`-Block; sprechende Fixture-Namen (`helpshort`/`helplong` statt `helph`/`helphelp`)
+über eine `Flag|Name`-Tabelle, `GIT_WORKFLOW`-Dublette durch das bestehende `GITWF` ersetzt;
+`commit-msg`-Hook-Rumpf als Heredoc statt gequotetem Mehrzeiler; Ein-Zeilen-Begründung, warum
+`REPO_DIR` bewusst nicht per `FACTORY_DIR` überschreibbar ist; `core.hooksPath`-Meldung nennt via
+`--show-origin` den Scope.
+
+**Nitpicks bewusst nicht umgesetzt:**
+- `.claude/commands/setup-project.md` (Adoptions-Pfad nennt `install-hooks.sh` nicht):
+  `.claude/**` ist für Agenten hard denied – die Änderung ginge nur über den Patch-Workflow mit
+  menschlichem `git apply` und hinterließe bis dahin ein inkonsistentes Branch-Artefakt. Für einen
+  als optional markierten Nitpick unverhältnismäßig; der kanonische Installationsweg steht in
+  `CLAUDE.md`, `git-workflow.md`, `OPERATING.md`, `CONTRIBUTING.md` und `README.md`.
+- stderr-Signal beim `-h`/`--help`-Guard in `factory-commit.sh`: AK4 fordert wortlautgemäß „nur
+  Usage-Meldung, Exit 0" – ein zweiter Kanal wäre eine Verhaltensergänzung über die Spec hinaus.
+- Datei-Modus `100755` für `install-hooks.sh`/`commit-msg-check.sh`: `git update-index --chmod=+x`
+  in dieser Session erneut vom Permission-Classifier abgelehnt (dritter Versuch). Funktional
+  irrelevant (Aufruf immer über `bash …`); manuell:
+  `git update-index --chmod=+x scripts/install-hooks.sh scripts/checks/commit-msg-check.sh`.
+
+### Gate-Verifikation nach Review-Runde 2 (2026-08-02)
+
+- `bash scripts/checks/tests/run-tests.sh`: **741 grün**, 4 rot – ausschließlich die weiter oben
+  belegten, umgebungsbedingten `#212 W3`-Assertions (namentlich identisch mit den Vorläufen:
+  „meldet den realen Zustand", „INCOMPLETE_OUTCOME wird ins interrupt-log geschrieben",
+  „sauber+gepushter Endzustand → Erfolg (Gegenprobe)", „Erfolgs-Banner erscheint bei verifiziertem
+  Endzustand"; getrackt in **#264**). Alle #262-Assertions grün, +26 gegenüber Runde 2.
+  `unset PR_SHEPHERD` ließ sich in dieser Session nicht ausführen (Permission-Classifier lehnt
+  `unset …&&`, `env -u` und `bash -c` ab) – die Gegenprobe aus dem ersten Lauf bleibt der Beleg.
+- `bash scripts/checks/pre-commit.sh` (inkl. `pnpm lint`): grün. Keine UI-/Routen-Berührung.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

@@ -60,12 +60,13 @@ Hook-Änderungen:
 bash scripts/install-hooks.sh
 ```
 
-Installiert werden drei Hooks:
+Installiert werden die Factory-Hooks – neben `pre-commit` und `pre-push` auch der neue
+`commit-msg`-Hook (Flag-Guard, #262). Kanonisch ist jeweils das aufgerufene Check-Skript:
 
-| Hook | Ruft auf | Zweck |
-|------|----------|-------|
-| `pre-commit` | `scripts/checks/pre-commit.sh` | Lint/Format vor dem Commit |
-| `pre-push` | `scripts/checks/pre-push.sh` | Gates + Schutz gegen Push auf `main`/`master` |
+| Hook | Ruft auf | Zweck (Stand der Check-Skripte) |
+|------|----------|---------------------------------|
+| `pre-commit` | `scripts/checks/pre-commit.sh` | Merge-Konflikte, Debug-Statements, TODO-ohne-Ticket (Warnung), hardkodierte Credentials, Lint |
+| `pre-push` | `scripts/checks/pre-push.sh` | Tests, Typecheck, Format (Prettier), Routen-Doku-Drift, Schutz gegen Push auf `main`/`master` |
 | `commit-msg` | `scripts/checks/commit-msg-check.sh` | Flag-Guard: lehnt `--help`/`-h` als Commit-Message ab (#262) |
 
 - **Neue Projekte:** `scripts/init-factory.sh` ruft `install-hooks.sh` auf – die

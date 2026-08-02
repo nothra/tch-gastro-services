@@ -4,10 +4,14 @@
 # Verwendung: bash scripts/checks/tests/run-tests.sh
 # Exit-Code 0 = alle Tests grün, 1 = mindestens ein Test rot.
 #
-# Deckt ab:
+# Deckt ab (nicht abschließend – der Umfang wächst mit den Check-/Seam-Skripten):
 #   - branch-name-check.sh: Erkennung von checkout -b/-B und switch -c/-C
 #     sowie Prüfung gegen die erlaubten Präfixe
 #   - check.sh (pre-tool): End-to-End über stdin-JSON (Hook-Kontrakt)
+#   - factory-commit.sh: Commit/Push-Seam inkl. Guards (ADR-019)
+#   - commit-msg-check.sh / install-hooks.sh / init-factory.sh: Flag-Guard für
+#     Commit-Messages und Hook-Installation (ADR-042)
+#   - weitere Pipeline-/Doku-Invarianten je Issue-Block (Abschnittstitel nennen die Nummer)
 
 set -uo pipefail
 
@@ -1891,21 +1895,24 @@ echo "#262 factory-commit.sh (-h/--help-Guard):"
 
 # AK5 (reguläre Message committet + pusht wie bisher) ist bereits durch Fall 1 oben
 # abgedeckt – hier keine zweite Happy-Path-Schleife (Lesson #240).
-for help_flag in "-h" "--help"; do
-  WT=$(fc_repo "help${help_flag//-/}")
+# Tabelle „Flag|Fixture-Name", damit die Wegwerf-Repos sprechend heißen (statt aus dem Flag
+# generierter Namen wie 'helph').
+for flag_case in "-h|helpshort" "--help|helplong"; do
+  IFS='|' read -r flag_arg fixture_name <<< "$flag_case"
+  WT=$(fc_repo "$fixture_name")
   git -C "$WT" checkout -q -b feature/262-help
   HEAD_BEFORE=$(git -C "$WT" rev-parse HEAD)
   echo "darf nicht committet werden" > "$WT/change.txt"
-  fc_out=$( cd "$WT" && bash "$FCOMMIT" "$help_flag" 2>/dev/null ); fc_rc=$?
-  assert_exit 0 "$fc_rc" "factory-commit: '$help_flag' → exit 0"
+  fc_out=$( cd "$WT" && bash "$FCOMMIT" "$flag_arg" 2>/dev/null ); fc_rc=$?
+  assert_exit 0 "$fc_rc" "factory-commit AK4: '$flag_arg' → exit 0"
   printf '%s' "$fc_out" | grep -qF 'Aufruf: factory-commit.sh'
-  assert_true "$?" "factory-commit: '$help_flag' gibt die Usage aus"
+  assert_true "$?" "factory-commit AK4: '$flag_arg' gibt die Usage aus"
   [ "$(git -C "$WT" rev-parse HEAD)" = "$HEAD_BEFORE" ]
-  assert_true "$?" "factory-commit: '$help_flag' committet nichts"
+  assert_true "$?" "factory-commit AK4: '$flag_arg' committet nichts"
   git -C "$WT" diff --cached --quiet
-  assert_true "$?" "factory-commit: '$help_flag' führt kein 'git add' aus (Index bleibt leer)"
+  assert_true "$?" "factory-commit AK4: '$flag_arg' führt kein 'git add' aus (Index bleibt leer)"
   git -C "$WT" rev-parse origin/feature/262-help >/dev/null 2>&1
-  assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit: '$help_flag' pusht nichts"
+  assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit AK4: '$flag_arg' pusht nichts"
 done
 
 # `--help` plus Zusatz-Argument ist keine Hilfe-Anfrage → bestehende Argumentzahl-Prüfung.
@@ -1913,9 +1920,9 @@ WT=$(fc_repo helpextra)
 git -C "$WT" checkout -q -b feature/262-helpextra
 echo "x" > "$WT/change.txt"
 fc_out=$( cd "$WT" && bash "$FCOMMIT" "--help" "extra" 2>&1 ); fc_rc=$?
-assert_true "$([ $fc_rc -ne 0 ]; echo $?)" "factory-commit: '--help' mit Zusatz-Argument → exit ≠ 0 (kein Help-Sonderfall)"
+assert_true "$([ $fc_rc -ne 0 ]; echo $?)" "factory-commit AK4: '--help' mit Zusatz-Argument → exit ≠ 0 (kein Help-Sonderfall)"
 printf '%s' "$fc_out" | grep -qF 'genau ein Argument erwartet'
-assert_true "$?" "factory-commit: '--help extra' scheitert an der Argumentzahl-Prüfung (pfadspezifisches Signal)"
+assert_true "$?" "factory-commit AK4: '--help extra' scheitert an der Argumentzahl-Prüfung (pfadspezifisches Signal)"
 
 # Fehlerszenario 2 der Spec, `factory-commit.sh`-Seite: die leere Message läuft weiterhin in
 # die bestehende Leer-Prüfung (`[ -z "${1:-}" ]`) – der neue -h/--help-Guard davor darf sie
@@ -1931,16 +1938,16 @@ assert_true "$?" "factory-commit: leere Message scheitert an der Leer-/Argumentp
 [ "$(git -C "$WT" rev-parse HEAD)" = "$HEAD_BEFORE" ]
 assert_true "$?" "factory-commit: leere Message committet nichts"
 
-# Abgrenzung: jedes andere '-'-präfigierte Argument bleibt eine gewöhnliche Message.
+# AK6 – Abgrenzung: jedes andere '-'-präfigierte Argument bleibt eine gewöhnliche Message.
 WT=$(fc_repo dashx)
 git -C "$WT" checkout -q -b feature/262-dashx
 echo "x" > "$WT/change.txt"
 ( cd "$WT" && bash "$FCOMMIT" "-x" ) >/dev/null 2>&1
-assert_exit 0 "$?" "factory-commit: '-x' wird wie jede andere Message behandelt (exit 0)"
+assert_exit 0 "$?" "factory-commit AK6: '-x' wird wie jede andere Message behandelt (exit 0)"
 [ "$(git -C "$WT" log --format=%s -1)" = "-x" ]
-assert_true "$?" "factory-commit: '-x' landet unverändert als Commit-Message"
+assert_true "$?" "factory-commit AK6: '-x' landet unverändert als Commit-Message"
 git -C "$WT" diff --quiet HEAD origin/feature/262-dashx
-assert_true "$?" "factory-commit: '-x' wird wie bisher gepusht"
+assert_true "$?" "factory-commit AK6: '-x' wird wie bisher gepusht"
 
 rm -rf "$TMP_FC"
 
@@ -3443,10 +3450,52 @@ printf '\n\n-h\n\n' > "$TMP_CM/msg"
 bash "$CMCHECK" "$TMP_CM/msg" >/dev/null 2>&1
 assert_true "$([ $? -ne 0 ]; echo $?)" "#262: commit-msg-check lehnt ab – -h mit Leerzeilen (getrimmt)"
 
+# Editor-Pfad: Git entfernt die Template-Kommentarzeilen erst NACH dem Hook (`--cleanup`) –
+# der Guard muss sie selbst verwerfen, sonst greift er bei `git commit` ohne `-m` überhaupt
+# nicht (empirisch mit git 2.50 belegt: der Hook sieht das Template, der Commit entstand).
+printf '%s\n' "--help" "" \
+  "# Please enter the commit message for your changes. Lines starting" \
+  "# with '#' will be ignored, and an empty message aborts the commit." \
+  "#" "# On branch feature/262-flag-guard-commit-message" > "$TMP_CM/msg"
+bash "$CMCHECK" "$TMP_CM/msg" >/dev/null 2>&1
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: commit-msg-check lehnt ab – --help mit Editor-Template-Kommentaren (Editor-Pfad)"
+
+# Gegenprobe: verworfen werden nur die Kommentarzeilen, nicht der Inhalt.
+printf '%s\n' "fix: foo" "" "# Please enter the commit message for your changes." > "$TMP_CM/msg"
+bash "$CMCHECK" "$TMP_CM/msg" >/dev/null 2>&1
+assert_exit 0 "$?" "#262: commit-msg-check lässt durch – reguläre Message mit Editor-Template-Kommentaren"
+
+# Ein Flag, das NUR in einer Kommentarzeile steht, ist keine Message (Rest ist leer).
+printf '%s\n' "# --help" > "$TMP_CM/msg"
+bash "$CMCHECK" "$TMP_CM/msg" >/dev/null 2>&1
+assert_exit 0 "$?" "#262: commit-msg-check lässt durch – '--help' steht nur in einer Kommentarzeile"
+
+# Konfigurierter Kommentar-Präfix (core.commentChar) wird respektiert – und zwar in beide
+# Richtungen: mit ';' als Präfix ist eine ';'-Zeile Kommentar und eine '#'-Zeile Inhalt.
+CM_CFG_REPO="$TMP_CM/commentchar"
+mkdir -p "$CM_CFG_REPO"
+git init -q -b main "$CM_CFG_REPO" >/dev/null 2>&1
+git -C "$CM_CFG_REPO" config core.commentChar ";"
+printf '%s\n' "--help" "; Bitte gib eine Commit-Message ein" > "$CM_CFG_REPO/msg"
+( cd "$CM_CFG_REPO" && bash "$CMCHECK" "msg" ) >/dev/null 2>&1
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: commit-msg-check lehnt ab – --help mit ';'-Kommentar bei core.commentChar=';'"
+printf '%s\n' "--help" "# kein Kommentar, wenn core.commentChar=';'" > "$CM_CFG_REPO/msg"
+( cd "$CM_CFG_REPO" && bash "$CMCHECK" "msg" ) >/dev/null 2>&1
+assert_exit 0 "$?" "#262: commit-msg-check lässt durch – '#'-Zeile zählt bei core.commentChar=';' als Inhalt (Diskriminierung)"
+
 printf '%s' "--help" > "$TMP_CM/msg"
 cm_out=$(bash "$CMCHECK" "$TMP_CM/msg" 2>&1)
 printf '%s' "$cm_out" | grep -qF 'sieht aus wie ein CLI-Flag'
 assert_true "$?" "#262: Ablehnung nennt den Grund (Message sieht aus wie ein Flag)"
+
+# Exit-Kontrakt aus dem Skript-Header: 1 = fachliche Ablehnung, 2 = Infrastruktur-Fehler. Ohne
+# eigene Assertion bliebe ein Vertauschen der beiden Codes unbemerkt (alle anderen Fälle prüfen
+# nur „≠ 0").
+printf '%s' "--help" > "$TMP_CM/msg"
+bash "$CMCHECK" "$TMP_CM/msg" >/dev/null 2>&1
+assert_exit 1 "$?" "#262: fachliche Ablehnung (Flag erkannt) endet mit exit 1"
+bash "$CMCHECK" "$TMP_CM/gibt-es-nicht" >/dev/null 2>&1
+assert_exit 2 "$?" "#262: Infrastruktur-Fehler (Message-Datei fehlt) endet mit exit 2"
 
 # Fehlerszenario: kein/leeres Argument bzw. unlesbare Datei → fail-closed, kein Durchwinken.
 bash "$CMCHECK" >/dev/null 2>&1
@@ -3558,6 +3607,13 @@ cm_e2e_repo() {
   git -C "$wt" add -A >/dev/null 2>&1
   git -C "$wt" commit -q -m "chore: init" >/dev/null 2>&1
   bash "$wt/scripts/install-hooks.sh" >/dev/null 2>&1
+  # Fail-closed: ohne installierten Hook wären die folgenden Erfolgsfälle grün aus dem
+  # falschen Grund (nichts würde prüfen). Kein assert_* hier – die Ausgabe dieser Funktion
+  # wird per Kommandosubstitution gelesen.
+  if [ ! -x "$wt/.git/hooks/commit-msg" ]; then
+    echo "cm_e2e_repo: commit-msg-Hook wurde in '$wt' nicht installiert" >&2
+    return 1
+  fi
   printf '#!/usr/bin/env bash\nexit 0\n' > "$wt/.git/hooks/pre-commit"
   chmod +x "$wt/.git/hooks/pre-commit"
   printf '%s\n' "$wt"
@@ -3583,6 +3639,27 @@ for flag_case in "--help" "-h"; do
   assert_true "$?" "#262 AK2: Ablehnung von '$flag_case' stammt aus dem commit-msg-Guard"
 done
 
+# Editor-Pfad end-to-end (`git commit` ohne `-m`): der Editor stellt die Flag-Zeile vor das
+# Template, dessen Kommentarzeilen Git erst NACH dem Hook entfernt. Ohne eigenes Verwerfen der
+# Kommentarzeilen entstünde hier ein Commit mit der Message '--help'.
+WT=$(cm_e2e_repo e2e-editor)
+HEAD_BEFORE=$(git -C "$WT" rev-parse HEAD)
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "--help" | cat - "$1" > "$1.neu"\nmv "$1.neu" "$1"\n' > "$WT/editor.sh"
+chmod +x "$WT/editor.sh"
+echo "x" > "$WT/x.txt"; git -C "$WT" add -A
+cm_out=$(GIT_EDITOR="$WT/editor.sh" git -C "$WT" commit 2>&1); cm_rc=$?
+assert_true "$([ $cm_rc -ne 0 ]; echo $?)" "#262 AK2: 'git commit' über den Editor mit --help → exit ≠ 0"
+[ "$(git -C "$WT" rev-parse HEAD)" = "$HEAD_BEFORE" ]
+assert_true "$?" "#262 AK2: über den Editor-Pfad entsteht kein '--help'-Commit"
+printf '%s' "$cm_out" | grep -qF 'sieht aus wie ein CLI-Flag'
+assert_true "$?" "#262 AK2: Ablehnung auf dem Editor-Pfad stammt aus dem commit-msg-Guard"
+# Gegenprobe: eine reguläre Message läuft über denselben Editor-Pfad durch.
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "fix: ueber den editor" | cat - "$1" > "$1.neu"\nmv "$1.neu" "$1"\n' > "$WT/editor.sh"
+GIT_EDITOR="$WT/editor.sh" git -C "$WT" commit >/dev/null 2>&1
+assert_exit 0 "$?" "#262 AK1: reguläre Message über den Editor-Pfad wird committet (Gegenprobe)"
+[ "$(git -C "$WT" log --format=%s -1)" = "fix: ueber den editor" ]
+assert_true "$?" "#262 AK1: Editor-Commit trägt die unveränderte Message"
+
 WT=$(cm_e2e_repo e2e-dashx)
 echo "x" > "$WT/x.txt"; git -C "$WT" add -A
 git -C "$WT" commit -q -m "-x" >/dev/null 2>&1
@@ -3596,7 +3673,9 @@ assert_true "$?" "#262 AK3: Commit mit Message '-x' entsteht unverändert"
 WT=$(cm_e2e_repo e2e-nocheck)
 rm -f "$WT/scripts/checks/commit-msg-check.sh"
 echo "x" > "$WT/x.txt"; git -C "$WT" add -A
-cm_out=$(git -C "$WT" commit -q -m "fix: branch ohne pruefskript" 2>&1); cm_rc=$?
+# LC_ALL=C: die Abwesenheits-Prüfung unten sucht die englische git/bash-Meldung – unter einer
+# deutschen Locale hieße sie „Datei oder Verzeichnis nicht gefunden" und der Grep ginge ins Leere.
+cm_out=$(LC_ALL=C git -C "$WT" commit -q -m "fix: branch ohne pruefskript" 2>&1); cm_rc=$?
 assert_exit 0 "$cm_rc" "#262: fehlendes commit-msg-check.sh blockiert den Commit nicht (Fail-open-Ausnahme)"
 printf '%s' "$cm_out" | grep -qF 'No such file or directory'
 assert_true "$([ $? -ne 0 ]; echo $?)" "#262: kein kryptischer 'No such file'-Fehler auf Branches ohne Prüfskript"
@@ -3615,12 +3694,13 @@ echo ""
 echo "#262 init-factory.sh delegiert die Hook-Installation (ADR-042):"
 
 # AK8 strukturell: init-factory.sh ist interaktiv (read-Prompts) und nutzt `sed -i ''`
-# (BSD-Syntax) – ein End-to-End-Lauf wäre in CI nicht portabel. Geprüft wird deshalb die
-# Delegation an die kanonische Quelle; dass diese den commit-msg-Hook installiert, deckt
-# der Verhaltenstest oben ab.
+# (BSD-Syntax) – ein vollständiger, echter Bootstrap-Lauf wäre in CI (GNU sed) nicht portabel.
+# Geprüft wird deshalb (a) die Delegation an die kanonische Quelle – auf den KONKRETEN Aufruf
+# gepinnt, nicht auf den Pfad als Fließtext (der steht auch im Kommentar darüber) – und (b)
+# unten mit gestubbtem Installer das reale Aufruf-/Fehlerverhalten.
 INIT_FACTORY="$SCRIPTS_DIR/init-factory.sh"
-grep -qF 'scripts/install-hooks.sh' "$INIT_FACTORY"
-assert_true "$?" "#262 AK8: init-factory.sh ruft scripts/install-hooks.sh auf"
+grep -qF 'bash "$FACTORY_DIR/scripts/install-hooks.sh"' "$INIT_FACTORY"
+assert_true "$?" "#262 AK8: init-factory.sh ruft scripts/install-hooks.sh auf (konkreter Aufruf, nicht nur Erwähnung)"
 # Fail-closed vor dem Negativ-Grep: wäre die Datei unlesbar oder verschoben, lieferte `grep`
 # ebenfalls ≠ 0 und die Abwesenheits-Assertion wäre grün aus dem falschen Grund (Lesson #214).
 [ -r "$INIT_FACTORY" ]
@@ -3628,21 +3708,79 @@ assert_true "$?" "#262 AK8: init-factory.sh ist lesbar (Vorbedingung des Abwesen
 grep -qF '.git/hooks' "$INIT_FACTORY"
 assert_true "$([ $? -ne 0 ]; echo $?)" "#262 AK8: init-factory.sh schreibt keine Hooks mehr selbst (keine .git/hooks-Referenz)"
 
+# AK8 verhaltensbasiert: echter Lauf mit gestubbtem Installer. Der Stub belegt, dass der
+# Aufruf wirklich stattfindet (nicht nur im Quelltext steht), und deckt zugleich ab, dass ein
+# fail-closed Abbruch des Installers den Bootstrap nicht als Erfolg beenden lässt.
+IF_TMP="$(mktemp -d)"
+
+# if_fixture <name> <exit-code-des-stubs> → Mini-Projektbaum mit kopiertem init-factory.sh.
+if_fixture() {
+  local root="$IF_TMP/$1"
+  mkdir -p "$root/scripts/checks" "$root/docs/factory" "$root/bin"
+  cp "$INIT_FACTORY" "$root/scripts/"
+  printf '#!/usr/bin/env bash\necho "STUB-INSTALLER LIEF"\nexit %s\n' "$2" > "$root/scripts/install-hooks.sh"
+  printf '%s\n' 'Name: {{PROJECT_NAME}}' > "$root/docs/factory/PROJECT-CONTEXT.md"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$root/scripts/checks/dummy.sh"
+  # `sed -i ''` in init-factory.sh ist BSD-Syntax und scheitert unter GNU-sed (CI). Das
+  # PROJECT-CONTEXT-Templating ist für diesen Test irrelevant → No-op-`sed` im PATH, damit
+  # der Lauf überall bis zum Hook-Schritt kommt.
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$root/bin/sed"
+  chmod +x "$root/bin/sed" "$root/scripts/install-hooks.sh"
+  printf '%s\n' "$root"
+}
+
+# run_init_factory <root> → beantwortet die acht read-Prompts und gibt stdout+stderr aus.
+run_init_factory() {
+  printf '%s\n' proj "eine beschreibung" webapp team "" typescript next postgres |
+    PATH="$1/bin:$PATH" bash "$1/scripts/init-factory.sh" 2>&1
+}
+
+IF_ROOT=$(if_fixture initfail 2)
+if_out=$(run_init_factory "$IF_ROOT"); if_rc=$?
+printf '%s' "$if_out" | grep -qF 'STUB-INSTALLER LIEF'
+assert_true "$?" "#262 AK8: init-factory.sh führt scripts/install-hooks.sh wirklich aus (Stub lief)"
+assert_true "$([ $if_rc -ne 0 ]; echo $?)" "#262: fail-closed Abbruch des Installers → init-factory.sh endet mit exit ≠ 0"
+printf '%s' "$if_out" | grep -qF 'Bootstrap unvollständig'
+assert_true "$?" "#262: Abschluss nennt den fehlgeschlagenen Hook-Schritt (pfadspezifisches Signal)"
+printf '%s' "$if_out" | grep -qF 'erfolgreich initialisiert'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: kein Erfolgs-Banner, wenn keine Hooks installiert wurden"
+
+# Gegenprobe: mit erfolgreichem Installer läuft derselbe Bootstrap wie bisher durch.
+IF_ROOT=$(if_fixture initok 0)
+if_out=$(run_init_factory "$IF_ROOT"); if_rc=$?
+assert_exit 0 "$if_rc" "#262: erfolgreicher Installer → init-factory.sh endet mit exit 0 (Gegenprobe)"
+printf '%s' "$if_out" | grep -qF 'erfolgreich initialisiert'
+assert_true "$?" "#262: Erfolgs-Banner erscheint bei erfolgreicher Hook-Installation"
+
+rm -rf "$IF_TMP"
+
 echo ""
 echo "#262 Doku nennt den kanonischen Installationsweg (Lesson #211/#176):"
 
-# Ein neues Gate ist nur wirksam, wenn ein frischer Clone erfährt, dass es zu installieren
-# ist – die Stellen, die die lokalen Gates beschreiben, müssen den dritten Hook kennen.
+# Ein neues Gate ist nur wirksam, wenn ein frischer Clone erfährt, dass es zu installieren ist –
+# jede Stelle, die die lokale Gate-Landschaft beschreibt, muss den commit-msg-Hook kennen:
+# CLAUDE.md + git-workflow.md (Agenten-Regeln), OPERATING.md (Betrieb), CONTRIBUTING.md
+# (Einstieg für Menschen). Gesucht wird der Hook als Hook ('`commit-msg`-Hook') – 'commit-msg'
+# allein wäre Teilstring von 'commit-msg-check.sh' und damit nicht diskriminierend.
 CLAUDE_MD="$FACTORY_ROOT/CLAUDE.md"
-GIT_WORKFLOW="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
-for doc_file in "$CLAUDE_MD" "$GIT_WORKFLOW"; do
+OPERATING_MD="$FACTORY_ROOT/docs/factory/OPERATING.md"
+CONTRIBUTING_MD="$FACTORY_ROOT/CONTRIBUTING.md"
+for doc_file in "$CLAUDE_MD" "$GITWF" "$OPERATING_MD" "$CONTRIBUTING_MD"; do
   [ -r "$doc_file" ]
   assert_true "$?" "#262: $(basename "$doc_file") ist lesbar (Vorbedingung der Doku-Checks)"
   grep -qF 'scripts/install-hooks.sh' "$doc_file"
   assert_true "$?" "#262: $(basename "$doc_file") nennt scripts/install-hooks.sh als Installationsweg"
-  grep -qF 'commit-msg' "$doc_file"
-  assert_true "$?" "#262: $(basename "$doc_file") nennt den commit-msg-Hook"
+  grep -qF '`commit-msg`-Hook' "$doc_file"
+  assert_true "$?" "#262: $(basename "$doc_file") nennt den commit-msg-Hook als Hook"
 done
+
+# Setup-Anleitung für einen frischen Clone: die Hook-Installation gehört in den Ablauf, sonst
+# folgt ihr jemand vollständig und hat danach keinen einzigen lokalen Hook.
+README_MD="$FACTORY_ROOT/README.md"
+[ -r "$README_MD" ]
+assert_true "$?" "#262: README.md ist lesbar (Vorbedingung des Setup-Checks)"
+grep -qF 'bash scripts/install-hooks.sh' "$README_MD"
+assert_true "$?" "#262: README.md nennt 'bash scripts/install-hooks.sh' im lokalen Setup"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
