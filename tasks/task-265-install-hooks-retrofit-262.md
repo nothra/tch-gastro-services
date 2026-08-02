@@ -75,6 +75,10 @@ Inhaltsvergleich gegen `install-hooks.sh` und ohne Sonderbehandlung von `core.ho
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe `tasks/review-265.md` – Empfehlung: NEEDS_REWORK (1 Wichtig-Finding: fehlende
+Git-Identität im Testfixture `hi_repo()`, run-tests.sh; Out-of-Scope-Finding zu
+`core.hooksPath` als Issue [#268](https://github.com/nothra/tch-gastro-services/issues/268)
+angelegt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
