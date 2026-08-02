@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -92,6 +92,22 @@ run-pipeline.sh <id> --dry-run` gegen ein isoliertes Temp-Repo) –
 Volle Suite: `bash scripts/checks/tests/run-tests.sh` → **790 grün, 0 rot** (vorher 782;
 +8 neue Assertions durch die beiden End-to-end-Blöcke). `pnpm test`/Typecheck/Format
 weiterhin unverändert grün (kein TS-Code betroffen).
+
+## Refactor-Notizen (2026-08-02)
+Kein neues Verhalten – nur die beiden verbliebenen Review-Nitpicks aus Durchlauf 2
+sauber gemacht:
+- Der awk-Regex zur Block-Extraktion (`grep|head|while`…`done`) war wortgleich zweimal
+  als Literal dupliziert (reguläre Assertion + Schärfe-Beweis) – jetzt in einer Variable
+  `codify_block_awk` gebündelt, damit beide Stellen nicht auseinanderlaufen können.
+- Kommentar ergänzt: die Block-Extraktion schließt bewusst Start- **und** Endzeile ein
+  (anders als das exklusive Precedent `cv_job_block`/`ci_selftest_block` aus #255) –
+  vorher stillschweigend abweichend, jetzt explizit begründet.
+- `ZERO2` → `ZERO_WHILE_LOOP` umbenannt (sprechenderer Name im Kontext von `ZERO`).
+- Bewusst unverändert: Header-only- statt 0-Byte-Fixture (funktional gleichwertig,
+  konsistent mit dem bestehenden `ZERO`-Muster).
+
+Volle Suite nach Refactor: `bash scripts/checks/tests/run-tests.sh` → **790 grün, 0 rot**
+(identisch zur Test-Phase – keine Verhaltensänderung).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

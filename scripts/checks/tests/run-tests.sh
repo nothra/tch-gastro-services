@@ -1092,21 +1092,26 @@ assert_true "$?" "run-pipeline.sh rule_count ist set-e-sicher (|| true, K-1)"
 
 # K-2 (Issue #261): Laufzeit-Beweis der set-e-Sicherheit für den grep|head|while-Block
 # (pipeline_summary's Codify-Regelzeilen-Ausgabe) gegen ein 0-Treffer-File unter set -e.
-ZERO2=$(mktemp); printf '# nur ein Header, keine Regel-Zeilen\n' > "$ZERO2"
+ZERO_WHILE_LOOP=$(mktemp); printf '# nur ein Header, keine Regel-Zeilen\n' > "$ZERO_WHILE_LOOP"
 # Korrektes Idiom (|| true nach done) → kein Abbruch, rc=0:
-( set -euo pipefail; grep "^- " "$ZERO2" 2>/dev/null | head -3 | while IFS= read -r line; do echo "    ${line}"; done || true ) 2>/dev/null
+( set -euo pipefail; grep "^- " "$ZERO_WHILE_LOOP" 2>/dev/null | head -3 | while IFS= read -r line; do echo "    ${line}"; done || true ) 2>/dev/null
 assert_exit 0 "$?" "Issue #261 RICHTIG-Idiom (|| true nach done) ist set-e-sicher bei 0 Treffern"
 # Gegenprobe: ohne || true bricht es unter set -e ab (beweist, dass der Test scharf ist):
-( set -euo pipefail; grep "^- " "$ZERO2" 2>/dev/null | head -3 | while IFS= read -r line; do echo "    ${line}"; done ) 2>/dev/null
+( set -euo pipefail; grep "^- " "$ZERO_WHILE_LOOP" 2>/dev/null | head -3 | while IFS= read -r line; do echo "    ${line}"; done ) 2>/dev/null
 assert_true "$([ $? -ne 0 ]; echo $?)" "Gegenprobe: ohne || true bricht der grep|head|while-Block unter set -e ab (K-2)"
-rm -f "$ZERO2"
+rm -f "$ZERO_WHILE_LOOP"
 
 # (3) run-pipeline.sh Codify-Regelzeilen-Block nutzt das set-e-sichere Idiom (|| true nach
 # done) – Issue #261. Block-isoliert statt Datei-weitem Fragment-Grep (Review-Finding
 # Runde 2/3, Lesson zu Reihenfolge-Guards aus #114/#265: Anker ist die exakte Aufruf-
 # Zeile, nie ein Kommando-Fragment) – awk extrahiert nur den Block zwischen der
-# Codify-Pipeline und ihrem "done", analog zur Job-Block-Isolation aus #255.
-codify_regelzeilen_block="$(awk '/grep "\^- " "\$codify_file" 2>\/dev\/null \| head -3 \| while/{f=1} f{print} f&&/done/{exit}' "$PIPELINE")"
+# Codify-Pipeline und ihrem "done", analog zur Job-Block-Isolation aus #255. Anders als
+# dort schließt der Block hier Start- UND Endzeile bewusst mit ein (nicht aus), weil
+# genau die "done"-Zeile selbst geprüft werden muss. Ein-Wort-Anker als Variable
+# (nicht zweimal als Regex-Literal), damit Original- und Mutations-Extraktion (unten)
+# nicht auseinanderlaufen können.
+codify_block_awk='/grep "\^- " "\$codify_file" 2>\/dev\/null \| head -3 \| while/{f=1} f{print} f&&/done/{exit}'
+codify_regelzeilen_block="$(awk "$codify_block_awk" "$PIPELINE")"
 assert_true "$([[ -n "$codify_regelzeilen_block" ]]; echo $?)" "Codify-Regelzeilen-Block ist extrahierbar (Issue #261)"
 printf '%s' "$codify_regelzeilen_block" | grep -qE 'done \|\| true'
 assert_true "$?" "run-pipeline.sh Codify-Regelzeilen-Block ist set-e-sicher (|| true nach done, Issue #261)"
@@ -1116,7 +1121,7 @@ assert_true "$?" "run-pipeline.sh Codify-Regelzeilen-Block ist set-e-sicher (|| 
 MUT_PIPELINE=$(mktemp)
 sed -e 's/    done || true/    done/' "$PIPELINE" > "$MUT_PIPELINE"
 printf '\ndone || true\n' >> "$MUT_PIPELINE"
-mut_block="$(awk '/grep "\^- " "\$codify_file" 2>\/dev\/null \| head -3 \| while/{f=1} f{print} f&&/done/{exit}' "$MUT_PIPELINE")"
+mut_block="$(awk "$codify_block_awk" "$MUT_PIPELINE")"
 ! printf '%s' "$mut_block" | grep -qE 'done \|\| true'
 assert_true "$?" "Schärfe-Beweis: unabhängiges 'done || true' anderswo täuscht den Block-Guard nicht (Issue #261)"
 rm -f "$MUT_PIPELINE"
