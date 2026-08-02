@@ -1,21 +1,23 @@
 # Review: Task 264
 
-> **Review-Runde 2** (Iteration 2 von max. 3, Circuit Breaker). Diff-Scope:
-> `git diff origin/main...HEAD` → `scripts/checks/tests/run-tests.sh` (+125),
-> `docs/factory/lessons/factory-workflow.md`, `docs/factory/PROJECT-CONTEXT.md`,
-> `docs/specs/spec-264-…md` (neu), `tasks/task-264-…md` (neu).
+> **Review-Runde 3** (Iteration 3 von max. 3 – **Circuit-Breaker-Grenze erreicht**, siehe
+> „Empfehlung"). Diff-Scope: `git fetch origin` + `git diff origin/main...HEAD` →
+> `scripts/checks/tests/run-tests.sh` (+180), `docs/factory/lessons/factory-workflow.md`,
+> `docs/factory/PROJECT-CONTEXT.md`, `docs/specs/spec-264-…md` (neu),
+> `tasks/task-264-…md` (neu).
 >
-> **Runde 1 (1 kritisch / 2 wichtig / 3 Nitpicks) ist vollständig abgearbeitet** – siehe
-> „Positives". Die Findings unten sind **neu** und betreffen ausschließlich den in der
-> Rework-Runde hinzugekommenen Drift-Guard bzw. die Spec-Prosa.
+> **Runde 1 (1 kritisch / 2 wichtig / 3 Nitpicks) und Runde 2 (2 wichtig / 3 Nitpicks) sind
+> vollständig abgearbeitet** – nachgeprüft, siehe „Positives". Das einzige Finding unten ist
+> **neu** und wurde in beiden Vorrunden übersehen.
 >
-> **Verifikations-Hinweis (unverändert zu Runde 1):** Ein eigener Lauf von
-> `scripts/checks/tests/run-tests.sh` war auch in dieser Session nicht möglich – die
-> Ausführung ist freigabepflichtig und wurde nicht erteilt. Alle Aussagen unten sind statisch
-> gegen `scripts/run-pipeline.sh`, `scripts/lib/verify-final-state.sh`, `scripts/factory-poll.sh`
-> und die Datei selbst belegt; die Zahlen 803 grün / 0 rot sowie der Red-Beleg (`env -u` an
-> `#101` entfernt → 802/1 rot) stammen aus der Implementierungsphase und wurden nicht
-> reproduziert.
+> **Verifikations-Hinweis (Abweichung zu den Vorrunden – hier deutlich mehr belegt):** Ein
+> Lauf von `run-tests.sh` war auch in dieser Session nicht freigegeben. Statt die Zahlen aus
+> der Implementierungsphase zu übernehmen, wurde die **Kernbehauptung des Drift-Guards
+> unabhängig nachgerechnet**: alle 63 `run-pipeline.sh`-Vorkommen in `run-tests.sh` wurden
+> einzeln klassifiziert (s. „Positives" → Vollständigkeitsprobe), ebenso alle
+> `PIPELINE`-Variablen-Vorkommen. Ergebnis: **genau 5 reale Aufrufstellen, alle gehärtet,
+> keine sechste in einer vom Guard nicht erfassten Schreibweise.** Die Reichweiten-Aussagen
+> des Guards wurden gegen `scripts/run-pipeline.sh` und `scripts/factory-poll.sh` geprüft.
 
 ## Kritische Findings (müssen behoben werden)
 
@@ -23,137 +25,148 @@ _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] `scripts/checks/tests/run-tests.sh:3534` (Drift-Guard, Erkennungsmuster): Der Guard
-      erkennt eine Aufrufstelle nur über das Literal
-      `bash "<pfad>run-pipeline.sh"` – doppelte Anführungszeichen **und** der ausgeschriebene
-      Dateiname im Pfad. Die in **derselben Datei bereits etablierte** Schreibweise über eine
-      Pfad-Variable entkommt ihm vollständig: `PIPELINE="$FACTORY_ROOT/scripts/run-pipeline.sh"`
-      (`:181`, genutzt in `cp "$PIPELINE" …` beim Scaffolding der betroffenen Blöcke selbst,
-      `:3427`) und `PIPELINE214="$SCRIPTS_DIR/run-pipeline.sh"` (`:2142`). Schreibt jemand einen
-      neuen realen Testblock als `bash "$PIPELINE" 99` – naheliegend, weil die Variable direkt
-      daneben schon für `cp` benutzt wird –, meldet der Guard **kein** MISSING, die Assertion
-      „ALLE realen `run-pipeline.sh`-Aufrufe … tragen `env -u`" (`:3573`) bleibt grün, und die
-      Untergrenze `>= 5` (`:3568`) wird von den fünf bereits gehärteten Stellen erfüllt. Damit
-      ist genau die stille Regressionsklasse offen, die der Guard laut seinem eigenen
-      Kommentar (`:3511–3515`) strukturell schließen soll – der Guard *behauptet* eine
-      Vollständigkeit, die sein Muster nicht trägt. Dasselbe gilt für unquotierte
-      (`bash $T/scripts/run-pipeline.sh`) und direkt ausgeführte Formen
-      (`"$T/scripts/run-pipeline.sh" 78`). Das Review aus Runde 1 hatte als Auflösung (a) „jeden
-      `bash …/run-pipeline.sh`-Aufruf" verlangt; umgesetzt ist eine Teilmenge davon.
-      **Auflösung:** Muster so erweitern, dass es die Pfad-Variablen-Formen mitfasst (z. B.
-      zusätzlich `bash "\$PIPELINE[0-9]*"` / `bash "\$[A-Z_]*PIPELINE[^"]*"`), oder – robuster
-      und fail-closed – die Logik umdrehen: jede logische Kommandozeile mit `bash ` **und** einem
-      Pipeline-Bezug (Dateiname *oder* bekannte Pfad-Variable) muss entweder `--dry-run` oder
-      `env -u PR_SHEPHERD -u FACTORY_STAGE` tragen, wobei Nicht-Ausführungs-Kontexte (`cp `,
-      `grep `, `printf `, Zuweisung) explizit ausgenommen werden. Beide Kontrollen aus `:3543–3561`
-      um je einen Fall in der neuen Schreibweise ergänzen (Positiv-Kontrolle mit
-      `bash "$PIPELINE" 1` → muss erkannt werden), sonst wandert die Lücke nur.
-      *Nebenbefund, kein eigenes Finding:* Der transitive Vektor
-      (`factory-poll.sh:171` startet `run-pipeline.sh`) ist aktuell **kein** Leck – die beiden
-      realen `factory-poll.sh`-Aufrufe in der Suite (`:505`, `:538`) laufen gegen einen
-      `run-pipeline.sh`-Stub (`:491`, `:523`), und `factory-poll.sh` liest `PR_SHEPHERD`/
-      `FACTORY_STAGE` selbst nicht. Ein Halbsatz im Guard-Kommentar, dass der Guard nur
-      **direkte** Aufrufe abdeckt, macht diese Grenze für die nächste Person sichtbar.
-
-- [ ] `docs/specs/spec-264-env-isolation-run-tests.md:36–49` (Kontext-Tabelle), `:54–64`
-      (Scope) und `:78–100` (Akzeptanzkriterien): Die Spec ist in **diesem** PR entstanden und
-      beschreibt die Lieferung inzwischen falsch. Sie nennt durchgängig **vier** reale
-      Aufrufstellen („Von den … gefundenen `run-pipeline.sh`-Aufrufen sind **vier real**",
-      Scope: „Kurzer Code-Kommentar an den **vier** gehärteten Aufrufstellen") – geliefert sind
-      **fünf** gehärtete Aufrufstellen, weil der neue `#264`-Regressionstest selbst eine fünfte
-      reale Aufrufstelle ist (`:3488–3492`). Und der in der Rework-Runde
-      hinzugekommene **Drift-Guard** (`:3510–3573`) – ein eigenständiges, dauerhaftes Artefakt
-      mit sechs Assertionen – kommt in Scope und Akzeptanzkriterien überhaupt nicht vor. Konkret
-      sichtbare Folge: Die Untergrenze `>= 5` im Guard (`:3568`) ist gegen die Spec nicht
-      herleitbar; wer sie prüft, findet dort vier. **Begründung:** Verstoß gegen die kodifizierte
-      Projektregel „Frisch im selben PR erstellte/geänderte Spec braucht denselben Drift-Check
-      wie ADRs/Lessons – Code gegen die eigene Spec-Prosa spiegeln" (aus #253, Index in
-      `PROJECT-CONTEXT.md`, Trigger `/review`) – dieselbe Klasse wie das kritische Finding K1 aus
-      Runde 1, nur auf der Spec statt auf der Lesson. Die Task-Datei wurde nachgezogen, die Spec
-      nicht. **Auflösung:** In der Spec-Tabelle die fünfte (durch den Regressionstest entstandene)
-      Aufrufstelle ergänzen bzw. den Zählungssatz relativieren, und Scope + ein AK um den
-      Drift-Guard erweitern (Invariante: „jede reale Aufrufstelle bleibt gehärtet, eine neue
-      ungehärtete macht die Suite rot"). Der Nachtrag darf als „ergänzt in der Umsetzung"
-      gekennzeichnet werden – Hauptsache, Spec und Code sagen dasselbe.
+- [x] `scripts/checks/tests/run-tests.sh:3603–3604` (Negativ-Kontrolle C) **und**
+      `docs/specs/spec-264-env-isolation-run-tests.md:34–35`: Die Begründung, mit der
+      `--dry-run`-Aufrufe **dauerhaft** aus dem Drift-Guard ausgenommen werden, ist sachlich
+      falsch. Beide Stellen behaupten, `run_skill()` kehre „**vor** der
+      `PR_SHEPHERD`-Verzweigung (Phase 7)" zurück. Tatsächlich steht die Verzweigung in
+      `run-pipeline.sh:483` **außerhalb** von `run_skill` und *ruft* `run_skill "pr-shepherd"`
+      erst auf (`:486`). Ein geerbtes `PR_SHEPHERD=true` **betritt Phase 7 auch im Dry-Run**;
+      `run_skill` kehrt lediglich in `:225–228` – korrekt: vor dem `skill_file`-Existenz-Check
+      (`:230`) – ohne Abbruch zurück. **Beobachtbare Folge:** Ein Dry-Run-Aufruf gibt unter
+      exportiertem `PR_SHEPHERD` drei zusätzliche Zeilen aus (`Phase 7: PR Shepherd …`,
+      `→ Starte: /pr-shepherd …`, `[DRY-RUN] claude --print …`) und wechselt die Schlusszeile
+      von „Nächster Schritt: Pull Request erstellen" auf „PR Shepherd wurde ausgeführt …"
+      (`run-pipeline.sh:521–525`). Der Exit-Code bleibt 0.
+      **Warum das mehr als ein Wortlaut-Fehler ist:** Der Guard nimmt auf Basis dieser
+      Begründung **11 Aufrufstellen** unbefristet von der Härtung aus – und genau die
+      Eigenschaft, die diese Task beseitigen soll („das Testergebnis hängt an der Env der
+      aufrufenden Shell"), besteht dort in der **Ausgabe** fort. Heute bricht nichts: die
+      Vollständigkeitsprobe zeigt, dass keine einzige Dry-Run-Assertion an diesen Zeilen
+      hängt (kein Treffer auf `Phase 7` / `Nächster Schritt` / `PR Shepherd wurde ausgeführt`
+      außerhalb des `#264`-Blocks selbst), und die beiden Abwesenheits-Assertions in
+      `#261 AC2/AC3` (`:3161`, `:3172`) prüfen unbeteiligte Strings. Wer aber künftig eine
+      Dry-Run-Assertion auf Ausgabe-Abwesenheit oder auf die Schlusszeile legt, baut sich
+      einen unter exportiertem `PR_SHEPHERD` flakenden Test – und der Kommentar an der
+      Ausnahme sagt ihm, das sei strukturell unmöglich. Das ist dieselbe Finding-Klasse wie
+      W1 aus Runde 1 („WHY-Kommentar behauptet eine Kausalkette, die es nicht gibt"), nur an
+      der Stelle, die als Einzige *nicht* nachgezogen wurde, und zugleich dieselbe Klasse wie
+      W2 aus Runde 2 (im selben PR entstandene Spec-Prosa, die den Code falsch beschreibt →
+      kodifizierte Regel aus #253).
+      **Auflösung (2 Prosa-Stellen, keine Verhaltensänderung, keine Guard-Logik-Änderung):**
+      Beide auf den tatsächlichen Grund umstellen – *„Der Dry-Run betritt Phase 7 zwar, bricht
+      dort aber nicht ab (`run_skill` kehrt vor dem `skill_file`-Check zurück) und ändert nur
+      die Ausgabe; keine Dry-Run-Assertion hängt an diesen Zeilen – deshalb bleibt die Ausnahme
+      fail-open, statt 11 Aufrufstellen mitzuhärten."* Damit steht die **Bedingung** der
+      Ausnahme am Code, und die nächste Person weiß, wann sie kippt. Optional (bewusst *nicht*
+      gefordert – Scope/YAGNI): die Dry-Run-Ausnahme fallen lassen und alle 11 Stellen
+      mithärten.
 
 ## Nitpicks (optional)
 
-- [ ] `scripts/checks/tests/run-tests.sh:3528`: `unhardened_pipeline_calls` gibt **alle** realen
-      Aufrufstellen aus (`OK` *und* `MISSING`), nicht nur die ungehärteten – der zweite Konsument
-      (`dg264_calls`/`dg264_total`, `:3566–3567`) verlässt sich genau darauf. Der Name verspricht
-      etwas anderes und trifft die Regel „keine irreführenden Namen: wenn `getUser` auch Daten
-      schreibt, ist das falsch" (`clean-code.md` → Naming). `audit_pipeline_calls` oder
-      `pipeline_call_isolation_report` beschreibt beide Nutzungen ehrlich; der Exit-Code bleibt
-      wie er ist.
+- [ ] `scripts/checks/tests/run-tests.sh:3564` (`audit_pipeline_calls`): Die Härtung wird per
+      `cmd ~ /env -u PR_SHEPHERD -u FACTORY_STAGE/` **irgendwo** auf der logischen
+      Kommandozeile gesucht, nicht in Präfix-Position vor dem Interpreter. Eine logische Zeile
+      mit zwei Aufrufen (`x=$(env -u … bash "$P" 1); y=$(bash "$P" 2)`) meldet deshalb `OK`
+      für beide. Rein theoretisch, weil die Datei durchgängig einen Aufruf je logischer Zeile
+      schreibt – erwähnenswert nur, weil der Guard sonst konsequent fail-closed argumentiert.
+      Kein Handlungsbedarf, solange die Ein-Aufruf-pro-Zeile-Konvention gilt.
 
-- [ ] `scripts/checks/tests/run-tests.sh:3536`: Der Guard verlangt die exakte Flag-Reihenfolge
-      `env -u PR_SHEPHERD -u FACTORY_STAGE`. Die semantisch identische Umkehrung
-      (`-u FACTORY_STAGE -u PR_SHEPHERD`) gilt als MISSING → False-Positive-Rot bei korrektem
-      Code. Die Richtung ist fail-closed und damit vertretbar (lieber ein Fehlalarm als ein
-      Leck), aber ein Halbsatz im Kommentar („bewusst kanonische Schreibweise erzwungen, nicht
-      nur Semantik") spart der nächsten Person die Diagnose am roten Gate.
+- [ ] `scripts/checks/tests/run-tests.sh:3574–3600`: Die acht Guard-Kontrollen sind achtmal
+      dasselbe Dreizeiler-Muster (`printf` → `audit_pipeline_calls` → `assert_exit`). Der
+      Datei-Header nennt die Suite „tabellen-getrieben"; eine Tabelle
+      `fixture|erwarteter_exit|label` mit einer Schleife wäre stilkonsistenter und macht eine
+      neunte Kontrolle zu einer Datenzeile. **Bewusst nur Nitpick:** Lesson #240 warnt vor
+      *zusätzlichen* Schleifen mit identischem Rumpf – hier wäre es eine Ersetzung, kein
+      Nebeneinander; und der Umbau lohnt den Eingriff in dieser Iteration nicht.
 
-- [ ] `scripts/checks/tests/run-tests.sh:3575–3586`: Der `#264 K1`-Doku-Regressionsblock hat
-      keine eigene `echo`-Überschrift und erscheint im Testoutput unter
-      „#264 Drift-Guard: reale run-pipeline.sh-Aufrufe in run-tests.sh sind env-isoliert" (`:3522`),
-      obwohl er Lesson-/Index-Prosa prüft. Eine eigene `echo`-Zeile analog zur Konvention der
-      Datei (jeder Block nennt sein Thema) macht ein rotes Ergebnis sofort zuordenbar.
+- [ ] `scripts/checks/tests/run-tests.sh:3633–3638` (`#264 K1`-Doku-Regression): Abgesichert
+      sind der **Fließtext** der Lesson (`Die Härtung ist in #264 umgesetzt`) und die
+      Index-Zeile in `PROJECT-CONTEXT.md`. Die ebenfalls in Runde 1 korrigierte
+      **Überschrift** der Lesson (`factory-workflow.md:827`, „… Härtung umgesetzt in #264")
+      trägt keinen eigenen Guard – ein Edit könnte sie still auf „ausgelagert" zurückdrehen,
+      während der Fließtext das Gegenteil sagt. Geringes Risiko (die widersprüchliche Prosa
+      fiele beim Lesen auf), einzeilig zu schließen.
 
 ## Positives
 
-- **Alle sechs Findings aus Runde 1 sind sachlich geschlossen, nicht wegdiskutiert.**
-  - *K1 (Lesson-Drift):* Überschrift und Schlusssatz in `lessons/factory-workflow.md:827,849–857`
-    sowie die Index-Zeile in `PROJECT-CONTEXT.md:301` nennen jetzt den Erledigt-Stand; die
-    weiterhin gültige Diagnose-Regel bleibt stehen und ist sauber vom **Stand**-Absatz getrennt.
-    Zusätzlich gegen stilles Zurückdrehen abgesichert (Negativ- + Positiv-`grep -qF`, `:3578–3586`),
-    Testphrasen je auf einer Zeile – Lesson #240/#249 korrekt beachtet.
-  - *W1 (falsche WHY-Kommentare):* `:2624–2627` und `:3400–3403` behaupten keine Phase-7-Kausalität
-    mehr, sondern nennen den tatsächlichen Abbruchpunkt (Lint-Gate bzw. Interrupt-Sentinel in
-    Phase 1) und deklarieren sich als Konsistenz-Härtung – deckungsgleich mit `spec-264…md:46–49`.
-    Der real beobachtete Vektor wird nur noch an den beiden `#212 W3`-Stellen behauptet, wo er
-    stimmt.
-  - *W2 (Abdeckung):* Auflösung (a) gewählt, Lücke geschlossen statt in ein Issue verschoben.
-  - *N1–N3:* Wording entschärft, Idempotenz-Kopplung des dritten `$TMP_E2E`-Laufs explizit
-    gemacht, `e2e_env` → `e2e_dirty_env` umbenannt.
-- **Der `awk`-Blockextraktor ist handwerklich korrekt.** Die Fortsetzungszeilen werden vor der
-  Bewertung zur logischen Kommandozeile zusammengefügt (`:3530–3533`) – Lesson #114/#255/#261/#265
-  richtig angewandt statt Fragment-Grep. Token-Verschmelzung beim Zusammenfügen kann nicht
-  auftreten: die Fortsetzungszeilen sind eingerückt, das Trennzeichen bleibt erhalten. Der
-  Selbstreferenz-Fallstrick ist erkannt und über `RP_NAME` + `%s` gelöst (`:3544–3548`) – die
-  Fixture-Zeilen sehen für den Guard nicht wie Aufrufstellen aus; gegengeprüft: auch die
-  `awk`-Programmzeile `:3534` matcht ihr eigenes Muster nicht.
-- **Guard-Kontrollen sind vollständig und diskriminierend.** Positiv-Kontrolle (ungehärtet →
-  erkannt), zwei Negativ-Kontrollen (gehärtet mehrzeilig; `--dry-run` ohne `env -u` bleibt
-  erlaubt) und eine Nicht-Vakuitäts-Untergrenze. Die Untergrenze statt einer exakten Zahl ist die
-  richtige Wahl – eine künftige *gehärtete* Stelle macht den Guard nicht rot. Der Red-Beleg wurde
-  laut Task-Notiz am **realen** Ziel geführt (`env -u` an `#101` entfernt → genau die
-  Guard-Assertion rot), nicht nur gegen Fixtures (Lesson #214).
-- **Der Guard steht bewusst außerhalb des `HAS_YQ`-Gates** (`:3508` schließt den yq-Block, der
-  Guard beginnt `:3510`) – er läuft also auch in einer Umgebung ohne `yq`, in der der
-  Verhaltenstest übersprungen wird. Das ist genau richtig: der strukturelle Schutz darf nicht an
-  derselben Voraussetzung hängen wie der Verhaltenstest.
-- **Beide Assertion-Signale des Verhaltenstests sind gegen die Quelle verifiziert.** `Phase 7`
-  existiert als Ausgabe ausschließlich im `PR_SHEPHERD`-Zweig (`run-pipeline.sh:486`); und
-  `Endzustand verifiziert (sauber, gepusht)` ist tatsächlich diskriminierend – bei
-  `pr_shepherd=true` hängt `run-pipeline.sh:512–514` `, PR merge-ready/gemergt` **vor** die
-  schließende Klammer, der gesuchte Literal-String kann dann nicht matchen. Die entschärfte
-  Kommentar-Formulierung („zusätzlicher Positiv-Beleg, kein zweiter unabhängiger Beweis",
-  `:3499–3500`) trifft den Sachverhalt jetzt exakt.
-- **Die divergenzerzeugende Aktion bleibt echt.** Der `export` innerhalb der
-  Kommando-Substitutions-Subshell (`:3488`) stellt den in #262 beobachteten Zustand her, ohne
-  nachfolgende Blöcke zu maskieren – die Begründung steht am Code und in der Task-Notiz
-  (Lesson #253 korrekt umgesetzt).
-- **Kein ADR, sauber begründet** (Prüfung gegen die vier ADR-Trigger aus Spec-002/ADR-002);
-  keine Routen-Änderung → `docs/routes.md` zu Recht unberührt; `skip_yq`-Zweig blockweise
-  mitgepflegt; `rm -rf`-Aufräumzeile korrekt hinter den neuen Block gezogen.
+- **Beide Findings aus Runde 2 sind sachlich geschlossen – nachgeprüft, nicht geglaubt.**
+  - *W1 (Guard-Reichweite):* Die Erkennung ist tatsächlich von einem Literal auf eine
+    Positions-Regel umgestellt (`:3550–3558`): `ref` fasst Dateiname **und** Pfad-Variable
+    (`[$][{]?[A-Za-z_0-9]*PIPELINE…`), `interp` deckt `bash`/`sh` inkl. Flags, `direct` die
+    Kommando-Position mit vorangestellten Env-Zuweisungen. Die Regexe wurden manuell gegen die
+    kritischen Zeilen der Datei durchgespielt: `PIPELINE="$FACTORY_ROOT/scripts/run-pipeline.sh"`
+    (`:181`), `sed -e 's/… || …/…/' "$PIPELINE" > "$MUT_PIPELINE"` (`:1122`, enthält `|` als
+    potenziellen `direct`-Anker), `cp "$PIPELINE" …`, `grep -q … "$PIPELINE"`,
+    `drift_guard … "$PIPELINE214"` und die `echo`-Überschrift `:3534` matchen **keines** der
+    beiden Muster – die Lese-Kontexte fallen wie behauptet strukturell heraus, nicht über
+    einen gepflegten Ausschluss-Katalog.
+  - *W2 (Spec-Drift):* Die Spec nennt jetzt die fünfte Aufrufstelle („Ergänzt in der
+    Umsetzung", `:44–48`), spricht im Scope von *jedem* realen Aufruf (`:57`), beschreibt den
+    Drift-Guard als eigenes Artefakt inkl. Reichweiten-Grenze (`:71–80`) und trägt AK7
+    (`:117–124`). Die Untergrenze `>= 5` ist damit gegen die Spec herleitbar; die Task-Datei
+    spiegelt es.
+  - *N1–N3:* `audit_pipeline_calls` (ehrlicher Name für die `OK`+`MISSING`-Ausgabe),
+    Flag-Reihenfolge-Halbsatz (`:3546–3548`), eigene `echo`-Überschrift für `#264 K1` (`:3629`).
+- **Vollständigkeitsprobe – die zentrale Behauptung des Guards hält.** Alle 63
+  `run-pipeline.sh`-Vorkommen klassifiziert: Kommentare/Prosa, ~20 `grep`/`awk`-Lesezugriffe
+  auf `$PIPELINE`, 2 Stub-Erzeugungen (`:491`, `:523`, `printf` → `factory-poll`-Tests),
+  11 `--dry-run`-Aufrufe (`:169`, `:1153`, `:1166`, `:1218`, `:1224`, `:1242`, `:3151`,
+  `:3158`, `:3165`, `:3175`, `:3184`) und **5 reale Aufrufe** (`:2631`, `:3407`, `:3455`,
+  `:3469`, `:3492`) – jeder der fünf trägt `env -u PR_SHEPHERD -u FACTORY_STAGE`. Zusätzlich:
+  **keine** der `PIPELINE`/`PIPELINE214`/`MUT_PIPELINE`-Verwendungen steht in
+  Ausführungs-Position, d. h. die in Runde 2 befürchtete Schreibweise existiert real noch
+  nicht – der erweiterte Guard ist Vorsorge, kein nachträglicher Flicken. Die Untergrenze
+  `>= 5` ist damit exakt, nicht nur plausibel.
+- **Die Reichweiten-Grenze im Guard-Kommentar (`:3529–3532`) stimmt.** Gegengeprüft:
+  `scripts/factory-poll.sh` liest weder `PR_SHEPHERD` noch `FACTORY_STAGE` (kein einziger
+  Treffer), und die realen `factory-poll.sh`-Aufrufe der Suite laufen gegen die
+  `printf`-Stubs aus `:491`/`:523`. Der transitive Vektor ist also tatsächlich kein Leck, und
+  die Bedingung, unter der er eines würde, steht am Code.
+- **Fail-closed-Verhalten des Guards ist echt.** `audit_pipeline_calls` auf eine unlesbare
+  Datei → `awk` Exit ≠ 0 → `assert_exit 0` rot; zusätzlich fängt die
+  Nicht-Vakuitäts-Untergrenze (`:3620–3623`) den Leerlauf ab. `run-tests.sh` läuft mit
+  `set -uo pipefail` **ohne** `-e` (`:16`) – das `cmd; assert_exit 0 "$?"`-Muster des Guards
+  ist damit korrekt und bricht die Suite nicht vorzeitig ab.
+- **Der Selbstreferenz-Fallstrick ist sauber gelöst.** `RP_NAME`/`PV_NAME` + `%s`
+  (`:3540–3541`) sorgen dafür, dass keine Fixture-Zeile des Guards für ihn selbst wie eine
+  Aufrufstelle aussieht; nachgeprüft, dass auch die `awk`-Programmzeile `:3550` ihr eigenes
+  `pv`-Muster nicht matcht (`[$]` liefert kein `$`+`PIPELINE`-Paar).
+- **Der Verhaltenstest bleibt der stärkere Beleg.** Der `export` innerhalb der
+  Kommando-Substitutions-Subshell (`:3488`) erzeugt echte Divergenz (Lesson #253), ohne
+  nachfolgende Blöcke zu maskieren – die bewusste Abweichung vom `unset`-Vorschlag der
+  Task-Notizen ist begründet und richtig. Das diskriminierende Signal
+  `Endzustand verifiziert (sauber, gepusht)` ist gegengeprüft: bei geerbtem `PR_SHEPHERD`
+  schiebt `run-pipeline.sh:512–513` `, PR merge-ready/gemergt` vor die schließende Klammer,
+  der Literal-String kann dann nicht matchen.
+- **Der Guard steht außerhalb des `HAS_YQ`-Gates**, der Verhaltenstest innerhalb – mit
+  `skip_yq`-Zweig (`:3506`). Der strukturelle Schutz hängt damit nicht an derselben
+  Voraussetzung wie der Verhaltenstest. Richtige Aufteilung.
+- **Prozess sauber:** kein ADR (gegen die vier Trigger aus Spec-002/ADR-002 geprüft), keine
+  Routen-Änderung → `docs/routes.md` zu Recht unberührt, Lesson + Index + Spec + Task-Datei
+  konsistent nachgezogen, `rm -rf`-Aufräumzeile hinter den neuen Block gezogen, CI setzt
+  `PR_SHEPHERD`/`FACTORY_STAGE` nirgends (`factory-ci.yml:102` ruft die Suite blank auf).
 
 ## Empfehlung
 
-NEEDS_REWORK
+APPROVED
 
-> **Einordnung für die Rework-Runde (Iteration 2 von 3):** Alle sechs Akzeptanzkriterien der
-> Spec sind erfüllt – die fachliche Härtung selbst ist korrekt, belegt und gegen Regression
-> geschützt. Die beiden wichtigen Findings betreffen die **Reichweite** des neu hinzugekommenen
-> Drift-Guards (W1) und die **Doku-Kohärenz** der im selben PR entstandenen Spec (W2). Beide sind
-> eng umrissen und ohne Verhaltensänderung an der Härtung zu beheben; die Rework-Runde sollte
-> sich strikt darauf beschränken.
+> **Circuit Breaker (Iteration 3 von 3) – bewusste Einordnung, kein Durchwinken.**
+> Alle sieben Akzeptanzkriterien sind erfüllt, und – anders als in den Vorrunden – die
+> Kernbehauptung des Drift-Guards ist in diesem Review **unabhängig nachgerechnet** worden
+> (5 reale Aufrufstellen, alle gehärtet, keine in einer nicht erfassten Schreibweise). Die
+> Härtung selbst, ihr Verhaltensbeleg und ihr Regressionsschutz sind korrekt.
+>
+> Das verbleibende wichtige Finding ist **kein Verhaltens-, sondern ein Begründungsfehler**:
+> zwei Prosa-Stellen erklären die Dry-Run-Ausnahme mit einer Kausalkette, die es so nicht
+> gibt. Eine vierte `/implement`-Runde dafür wäre unverhältnismäßig und würde die
+> Circuit-Breaker-Regel verletzen.
+>
+> **Auflage statt Rework-Runde:** Die Korrektur (2 Prosa-Stellen, keine Code-/Guard-Änderung)
+> ist im laufenden PR mitzunehmen – im nächsten ohnehin anstehenden Schritt (`/test` oder
+> `/refactor`), **vor** `/pr-shepherd`. Die Nitpicks sind optional und ausdrücklich nicht
+> Teil der Auflage.
+>
+> Sollte sich bei der Umsetzung zeigen, dass die Korrektur doch eine Verhaltensänderung
+> erfordert (z. B. weil man sich für das Mithärten der 11 Dry-Run-Stellen entscheidet), ist
+> das ein eigener Task – dann eskalieren statt hier anhängen.

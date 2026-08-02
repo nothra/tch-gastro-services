@@ -3600,8 +3600,10 @@ printf 'x=$(env -u PR_SHEPHERD -u FACTORY_STAGE bash "$%s" 1 2>&1)\n' "$PV_NAME"
 audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
 assert_exit 0 "$?" "#264 Guard: gehärteter Aufruf über die Pfad-Variable gilt als sauber"
 
-# Negativ-Kontrolle C: --dry-run-Aufrufe sind nachweislich unbetroffen (run_skill kehrt vor
-# der PR_SHEPHERD-Verzweigung zurück) und dürfen den Guard nicht auslösen.
+# Negativ-Kontrolle C: Der Dry-Run betritt Phase 7 zwar, bricht dort aber nicht ab (run_skill
+# kehrt vor dem skill_file-Check zurück) und ändert nur die Ausgabe; keine Dry-Run-Assertion
+# hängt an diesen Zeilen – deshalb bleibt die Ausnahme fail-open, statt 11 Aufrufstellen
+# mitzuhärten (#264, Review-Runde-3-Auflage).
 printf 'x=$(bash "$T/scripts/%s" 1 --dry-run 2>&1 || true)\n' "$RP_NAME" > "$TMP_DG264"
 audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
 assert_exit 0 "$?" "#264 Guard: --dry-run-Aufruf ohne env -u ist erlaubt (Negativ-Kontrolle)"

@@ -31,9 +31,14 @@ den einen Aufruf und überschreibt dabei jeden geerbten Wert – eine von außen
 Variablen als beobachtetes Leck-Paar, und eine Neutralisierung ohne Wirkung ist hier no-op statt
 Risiko – konsistent mit „fail-closed, im Zweifel ablehnen" aus den Bash-Gotchas-Guidelines.
 
-Ebenfalls Ergebnis dieser Phase: **`--dry-run`-Aufrufe sind nicht betroffen.** `run_skill()` und
-`quality_gate()` geben bei `DRY_RUN=true` zurück, **bevor** die `PR_SHEPHERD`-Verzweigung (Phase 7)
-oder der `skill_file`-Existenz-Check erreicht wird. Von den in `run-tests.sh` **vorgefundenen**
+Ebenfalls Ergebnis dieser Phase: **`--dry-run`-Aufrufe brechen nicht ab.** Die
+`PR_SHEPHERD`-Verzweigung (Phase 7) liegt außerhalb von `run_skill()`, in `run-pipeline.sh`
+selbst, und wird auch im Dry-Run betreten; `run_skill()` gibt bei `DRY_RUN=true` lediglich
+**vor** dem `skill_file`-Existenz-Check zurück, ohne abzubrechen. Ein geerbtes `PR_SHEPHERD=true`
+ändert im Dry-Run also nur die Ausgabe (drei zusätzliche Zeilen + andere Schlusszeile), ohne dass
+etwas fehlschlägt – keine bestehende Dry-Run-Assertion hängt an diesen Zeilen. Die Ausnahme der
+`--dry-run`-Aufrufe von der Härtung bleibt deshalb bewusst fail-open, statt zusätzlich elf
+Aufrufstellen mitzuhärten (Review-Runde-3-Auflage, #264). Von den in `run-tests.sh` **vorgefundenen**
 `run-pipeline.sh`-Aufrufen sind **vier real** (non-dry-run) und damit potenziell betroffen:
 
 | Zeile(n)    | Block                                             |

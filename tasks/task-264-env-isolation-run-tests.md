@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -225,6 +225,28 @@ alle behoben, siehe „Rework nach Review-Runde 1".
 
 **Runde 2 (`tasks/review-264.md`, NEEDS_REWORK):** 0 kritische, 2 wichtige, 3 Nitpick-Findings –
 alle behoben, siehe „Rework nach Review-Runde 2".
+
+**Runde 3 (`tasks/review-264.md`, APPROVED mit Auflage):** 0 kritische, 1 wichtiges,
+3 Nitpick-Findings. Alle sieben AK erfüllt; die Kernbehauptung des Drift-Guards wurde in dieser
+Runde unabhängig nachgerechnet (alle 63 `run-pipeline.sh`-Vorkommen klassifiziert → genau
+5 reale Aufrufstellen, alle gehärtet, keine in einer nicht erfassten Schreibweise).
+
+**Offene Auflage (vor `/pr-shepherd` mitzunehmen, kein Rework-Zyklus – Circuit Breaker
+Iteration 3/3):** Die Begründung der Dry-Run-Ausnahme ist an zwei Stellen sachlich falsch
+(`run-tests.sh:3603–3604`, `spec-264-…md:34–35`): `run_skill()` kehrt **nicht** vor der
+`PR_SHEPHERD`-Verzweigung zurück – die Verzweigung liegt außerhalb (`run-pipeline.sh:483`) und
+wird auch im Dry-Run betreten; `run_skill` bricht dort nur nicht ab (Rückkehr vor dem
+`skill_file`-Check). Folge: Dry-Run-Ausgabe hängt weiterhin an der Env der aufrufenden Shell
+(3 Zusatzzeilen + andere Schlusszeile), heute ohne Assertion daran. Korrektur = 2 Prosa-Stellen,
+keine Verhaltens-/Guard-Änderung.
+
+**Auflage erledigt (`/test`, 2026-08-03):** Beide Prosa-Stellen auf den tatsächlichen Grund
+umgestellt (Phase 7 wird auch im Dry-Run betreten, `run_skill` kehrt lediglich vor dem
+`skill_file`-Check ohne Abbruch zurück; Ausnahme bleibt bewusst fail-open, da keine
+Dry-Run-Assertion an den betroffenen Zeilen hängt) – keine Code-/Guard-Änderung, wie vom Review
+gefordert. Finding in `tasks/review-264.md` abgehakt. Volle Suite danach erneut grün:
+**808 grün / 0 rot** (unverändert zur Implementierungsphase – reiner Prosa-Fix ohne
+Verhaltensänderung, kein neuer Testfall nötig). `scripts/checks/pre-commit.sh` (Lint) grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
