@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -123,7 +123,11 @@ Anpassungen in `run-tests.sh`-Assertions – keine neue Funktion, kein neuer Kon
 Duplikation. Kein Refactoring-Bedarf; `config-validation-check.sh` weiterhin grün (exit 0).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Review und Security-Review liefen ohne kritische/wichtige Findings (APPROVED/PASSED) – kein
+Fehler-Muster, keine neue Regel nötig. Einziger Review-Nitpick (tote `yq`-Fallback-Literale in
+`scripts/run-pipeline.sh:209-210`) ist vom Review selbst als „kein Handlungsbedarf in diesem PR"
+eingestuft; kein Issue angelegt (Sandbox blockiert den `source`-basierten Issue-Anlage-Seam).
+Voller Report: [`tasks/codify-252.md`](codify-252.md).
 
 ---
 Branch: `chore/252-factory-defaults-kalibrieren`
