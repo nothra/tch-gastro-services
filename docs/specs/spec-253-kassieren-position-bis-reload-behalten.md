@@ -23,10 +23,12 @@ Quelle: Issue #253. Verwandt: [spec-223](spec-223-kassieren-gesamtsumme-sortieru
 - Das Kassieren-Formular einer bereits kassierten, aber noch oben stehenden Zeile bleibt
   **editierbar** (Korrektur des Erhalten-Betrags weiterhin möglich) – keine zusätzliche
   Umschaltung auf eine reine Anzeige. Es ändert sich nur die Sortierung, nicht die Form.
-- Die eingefrorene Position gilt **ausschließlich** für das Kassieren einer Zeile. Andere
-  Aktionen auf derselben Seite, die ebenfalls neu laden (z. B. Abschluss/Wiederöffnen über
-  den `StatusToggle`), sind **nicht** Teil dieser Task – deren aktuelles Sortierverhalten
-  bleibt unverändert (dort ändert sich `kassier.bezahlt` durch diese Aktionen ohnehin nicht).
+- Die Reihenfolge wird beim ersten Rendern der Seite eingefroren und gilt für die gesamte
+  Seiten-Session; jede Neuladung ohne Remount (Kassieren **und** Abschluss/Wiederöffnen über
+  den `StatusToggle`) behält sie bei. Das Sortierverhalten des `StatusToggle` selbst wird
+  dadurch **nicht** zusätzlich verändert – deren aktuelles Sortierverhalten bleibt unverändert
+  (dort ändert sich `kassier.bezahlt` durch diese Aktion ohnehin nicht), er ist **nicht** Teil
+  dieser Task.
 
 ## Scope
 
@@ -50,8 +52,9 @@ Quelle: Issue #253. Verwandt: [spec-223](spec-223-kassieren-gesamtsumme-sortieru
   unverändert).
 - Keine Änderung am Formular-Verhalten (`KassiereZeileForm` bleibt editierbar, auch für
   bereits kassierte, aber noch oben stehende Zeilen – keine Umschaltung auf reine Anzeige).
-- Keine Änderung am Sortierverhalten bei anderen seitenweiten Neuladungen (z. B.
-  Abschluss/Wiederöffnen via `StatusToggle`) – nur der Kassieren-Klick friert die Position ein.
+- Keine Änderung am Sortierverhalten selbst bei anderen seitenweiten Neuladungen (z. B.
+  Abschluss/Wiederöffnen via `StatusToggle`) – die Reihenfolge ist ab dem ersten Rendern der
+  Seite eingefroren, unabhängig davon, welche Aktion die Neuladung auslöst.
 - Keine Änderung an der Verzehr-Aufschlüsselung (`VerzehrAufschluesselung`), den
   Tagessummen oder der Gesamtabrechnung.
 
@@ -74,14 +77,14 @@ Quelle: Issue #253. Verwandt: [spec-223](spec-223-kassieren-gesamtsumme-sortieru
   Nutzer den Erhalten-Betrag erneut über dasselbe Formular korrigiert THEN bleibt das
   Formular weiterhin editierbar und die Position ändert sich nicht erneut.
 - [ ] GIVEN dieselbe Seite WHEN eine Zeile abgeschlossen/wiedereröffnet wird (StatusToggle,
-  außerhalb des Kassierens) THEN bleibt das bestehende Sortierverhalten dieser Aktion
-  unverändert (nicht Teil dieser Task).
+  außerhalb des Kassierens) THEN bleibt der Freeze erhalten und das Sortierverhalten des
+  `StatusToggle` selbst wird dadurch nicht zusätzlich verändert (nicht Teil dieser Task).
 
 ## Fehlerszenarien
 
 - [ ] GIVEN das Kassieren einer Zeile schlägt fehl (z. B. Validierungsfehler, Veranstaltung
   inzwischen abgeschlossen) WHEN die Server-Action eine Fehlermeldung zurückgibt THEN bleibt
-  die Zeile unverändert an ihrer aktuellen Position (kein Einfrieren einer Position ohne
+  die Zeile unverändert an ihrer aktuellen Position (keine Positionsänderung ohne
   tatsächliche Statusänderung).
 - [ ] GIVEN eine frisch geladene Kassierseite (erster Aufruf, keine Zeile in dieser Sitzung
   kassiert) WHEN sie gerendert wird THEN entspricht die Sortierung weiterhin unverändert dem

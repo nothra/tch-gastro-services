@@ -46,6 +46,9 @@ Zeilenstatus), `spec-55-kassieren-abschluss.md`, `spec-209-verzehr-gesamt-summe-
 - [ ] GIVEN eine Teilnehmerliste mit teils offenen, teils bereits kassierten Zeilen WHEN die
   Kassierseite gerendert wird THEN erscheinen alle **offenen** (`bezahlt === false`)
   Teilnehmer oberhalb aller **bezahlten** Teilnehmer.
+  (Seit [spec-253](spec-253-kassieren-position-bis-reload-behalten.md) gilt das für den Zustand
+  **nach einem Seitenaufruf** – innerhalb einer laufenden Sitzung hält eine Client-Komponente
+  die zuerst gerenderte Reihenfolge fest.)
 - [ ] GIVEN mehrere Teilnehmer mit demselben Offen-/Bezahlt-Status WHEN die Liste sortiert
   wird THEN bleiben sie innerhalb ihrer Gruppe alphabetisch nach Anzeigename geordnet (stabile
   Sortierung über die bereits alphabetisch gelieferten Zeilen).

@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -182,6 +182,25 @@ delegiert statt in eine vierte `/implement`-Runde:
   Schritt (`/refactor` oder manuell) offen, da außerhalb des `/test`-Mandats („nur Testdateien").
 
 **Gates nach dem Test-Fix:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
+Routen-Doku, Hooks, Branch-Guard).
+
+**`/refactor` (2026-08-02) – W2 aus Runde 3 behoben, kein Produktionscode angefasst:**
+Produktionscode bleibt bytegleich (Review-Vorgabe „soll nicht mehr angefasst werden"); nur die
+Spec-/Modul-Prosa wurde auf die tatsächliche, per Test zementierte Mechanik nachgezogen:
+
+- `spec-253` – Klärung, „Nicht inbegriffen", AC6 und die Fehlerszenario-AC umformuliert: der
+  Freeze ist *mount-basiert* (gilt für die gesamte Seiten-Session, jede Neuladung ohne Remount –
+  Kassieren **und** StatusToggle), nicht *kassier-lokal* wie zuvor beschrieben.
+- `spec-223` – zweizeiliger Nachtrag am AC „offene Zeilen oberhalb bezahlter": gilt seit
+  spec-253 für den Zustand nach einem Seitenaufruf.
+- `EingefroreneZeilenListe.tsx` – ein Satz im Modulkommentar: Freeze gilt session-weit, neue
+  Zeilen werden angehängt, ihre Position wird nicht eingefroren.
+
+Nitpicks aus Review-Runde 3 (Layout-Props, `children`-Variante, Typkommentar-Präzisierungen,
+Doppel-Ids, `data-testid` statt Positionsheuristik) bewusst nicht umgesetzt – bereits als Issue
+#272 gebündelt, kein Produktionscode-Bedarf für #253.
+
+**Gates nach `/refactor`:** `scripts/checks/pre-push.sh` grün (678 Tests, Typecheck, Prettier,
 Routen-Doku, Hooks, Branch-Guard).
 
 ## Codify-Notizen

@@ -8,6 +8,8 @@ import { useState, type ReactNode } from "react";
 // `zeile.id`s des ersten Renderns fest und ordnet die Zeilen bei jedem weiteren Rendern wieder in
 // diese Reihenfolge ein. Eingefroren wird ausschließlich die **Position** – der gerenderte
 // `inhalt` (Badge, Beträge, Formularwerte) kommt unverändert vom Server und bleibt damit aktuell.
+// Der Freeze gilt für die gesamte Seiten-Session (jede Neuladung ohne Remount, nicht nur der
+// Kassieren-Klick); neu hinzukommende Zeilen werden angehängt, ihre Position wird nicht eingefroren.
 // Beim nächsten Seitenaufruf (Reload) mountet die Komponente neu → die Server-Sortierung gilt wieder.
 
 export type EingefroreneZeile = {
