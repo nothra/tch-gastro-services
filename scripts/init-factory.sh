@@ -80,8 +80,8 @@ echo -e "${YELLOW}Schritt 5: Git Hooks installieren...${NC}"
 # (ADR-042) – hier bewusst nur der Aufruf, damit Neuprojekt-Bootstrap und Retrofit
 # bestehender Repos nicht auseinanderdriften.
 if ! bash "$FACTORY_DIR/scripts/install-hooks.sh"; then
-  echo -e "  ${YELLOW}⚠${NC}  Kein git-Repository gefunden – Hooks nicht installiert"
-  echo -e "     Führe 'git init' aus und dann 'bash scripts/install-hooks.sh'"
+  echo -e "  ${YELLOW}⚠${NC}  Hook-Installation fehlgeschlagen – siehe Meldung oben"
+  echo -e "     Ursache beheben (z. B. 'git init') und dann 'bash scripts/install-hooks.sh'"
 fi
 
 # ─── 5. Scripts ausführbar machen ────────────────────────────────────────────

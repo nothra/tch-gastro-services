@@ -1912,8 +1912,24 @@ done
 WT=$(fc_repo helpextra)
 git -C "$WT" checkout -q -b feature/262-helpextra
 echo "x" > "$WT/change.txt"
-( cd "$WT" && bash "$FCOMMIT" "--help" "extra" ) >/dev/null 2>&1
-assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit: '--help' mit Zusatz-Argument → exit ≠ 0 (kein Help-Sonderfall)"
+fc_out=$( cd "$WT" && bash "$FCOMMIT" "--help" "extra" 2>&1 ); fc_rc=$?
+assert_true "$([ $fc_rc -ne 0 ]; echo $?)" "factory-commit: '--help' mit Zusatz-Argument → exit ≠ 0 (kein Help-Sonderfall)"
+printf '%s' "$fc_out" | grep -qF 'genau ein Argument erwartet'
+assert_true "$?" "factory-commit: '--help extra' scheitert an der Argumentzahl-Prüfung (pfadspezifisches Signal)"
+
+# Fehlerszenario 2 der Spec, `factory-commit.sh`-Seite: die leere Message läuft weiterhin in
+# die bestehende Leer-Prüfung (`[ -z "${1:-}" ]`) – der neue -h/--help-Guard davor darf sie
+# nicht aushebeln. Der Fall „gar kein Argument" (#91, Fall 5) deckt das nicht ab.
+WT=$(fc_repo emptymsg)
+git -C "$WT" checkout -q -b feature/262-emptymsg
+HEAD_BEFORE=$(git -C "$WT" rev-parse HEAD)
+echo "darf nicht committet werden" > "$WT/change.txt"
+fc_out=$( cd "$WT" && bash "$FCOMMIT" "" 2>&1 ); fc_rc=$?
+assert_true "$([ $fc_rc -ne 0 ]; echo $?)" "factory-commit: leere Message ('') → exit ≠ 0 (Leer-Prüfung unverändert wirksam)"
+printf '%s' "$fc_out" | grep -qF 'genau ein Argument erwartet'
+assert_true "$?" "factory-commit: leere Message scheitert an der Leer-/Argumentprüfung (pfadspezifisches Signal)"
+[ "$(git -C "$WT" rev-parse HEAD)" = "$HEAD_BEFORE" ]
+assert_true "$?" "factory-commit: leere Message committet nichts"
 
 # Abgrenzung: jedes andere '-'-präfigierte Argument bleibt eine gewöhnliche Message.
 WT=$(fc_repo dashx)
@@ -3404,8 +3420,8 @@ cm_pass_cases=(
   "--help und mehr|Flag mit Zusatztext (kein exakter Treffer)"
   "|leere Message (Leer-Prüfung bleibt bei git/factory-commit – kein Duplikat)"
 )
-for case in "${cm_pass_cases[@]}"; do
-  IFS='|' read -r cm_msg cm_desc <<< "$case"
+for cm_case in "${cm_pass_cases[@]}"; do
+  IFS='|' read -r cm_msg cm_desc <<< "$cm_case"
   cm_check "$cm_msg"
   assert_exit 0 "$?" "#262: commit-msg-check lässt durch – $cm_desc"
 done
@@ -3416,8 +3432,8 @@ cm_fail_cases=(
   "-h|exaktes -h"
   "  --help  |--help mit umgebendem Whitespace (getrimmt)"
 )
-for case in "${cm_fail_cases[@]}"; do
-  IFS='|' read -r cm_msg cm_desc <<< "$case"
+for cm_case in "${cm_fail_cases[@]}"; do
+  IFS='|' read -r cm_msg cm_desc <<< "$cm_case"
   cm_check "$cm_msg"
   assert_true "$([ $? -ne 0 ]; echo $?)" "#262: commit-msg-check lehnt ab – $cm_desc"
 done
@@ -3467,8 +3483,10 @@ ih_repo() {
 WT=$(ih_repo install)
 # Veralteter Hook-Stand vor dem Lauf → der Installer muss ihn aktualisieren (Retrofit).
 printf '#!/usr/bin/env bash\necho veraltet\n' > "$WT/.git/hooks/pre-push"
-bash "$WT/scripts/install-hooks.sh" >/dev/null 2>&1
-assert_exit 0 "$?" "#262 AK7: install-hooks.sh läuft im git-Repo durch (exit 0)"
+ih_out=$(bash "$WT/scripts/install-hooks.sh" 2>&1); ih_rc=$?
+assert_exit 0 "$ih_rc" "#262 AK7: install-hooks.sh läuft im git-Repo durch (exit 0)"
+printf '%s' "$ih_out" | grep -qF 'vorhandener pre-push Hook wird durch den Factory-Stand ersetzt'
+assert_true "$?" "#262: Ersetzen eines abweichenden vorhandenen Hooks wird gemeldet (kein stiller Verlust)"
 for hook in pre-commit pre-push commit-msg; do
   [ -x "$WT/.git/hooks/$hook" ]
   assert_true "$?" "#262 AK7: Hook '$hook' installiert und ausführbar"
@@ -3479,13 +3497,16 @@ grep -qF 'bash scripts/checks/pre-push.sh' "$WT/.git/hooks/pre-push"
 assert_true "$?" "#262 AK7: pre-push-Hook ruft pre-push.sh auf (veralteter Stand überschrieben)"
 grep -qF 'veraltet' "$WT/.git/hooks/pre-push"
 assert_true "$([ $? -ne 0 ]; echo $?)" "#262 AK7: veralteter Hook-Inhalt bleibt nicht stehen"
-grep -qF 'bash scripts/checks/commit-msg-check.sh "$1"' "$WT/.git/hooks/commit-msg"
+{ grep -qF 'scripts/checks/commit-msg-check.sh' "$WT/.git/hooks/commit-msg" &&
+  grep -qF 'bash "$CHECK" "$1"' "$WT/.git/hooks/commit-msg"; }
 assert_true "$?" "#262 AK7: commit-msg-Hook ruft commit-msg-check.sh mit dem Message-Pfad auf"
 
-# Idempotenz: zweiter Lauf → exit 0, unveränderte Hook-Inhalte.
+# Idempotenz: zweiter Lauf → exit 0, unveränderte Hook-Inhalte, keine Ersetzungs-Warnung.
 hooks_before=$(cat "$WT/.git/hooks/pre-commit" "$WT/.git/hooks/pre-push" "$WT/.git/hooks/commit-msg")
-bash "$WT/scripts/install-hooks.sh" >/dev/null 2>&1
-assert_exit 0 "$?" "#262 AK7: wiederholter Aufruf → exit 0 (idempotent)"
+ih_out=$(bash "$WT/scripts/install-hooks.sh" 2>&1); ih_rc=$?
+assert_exit 0 "$ih_rc" "#262 AK7: wiederholter Aufruf → exit 0 (idempotent)"
+printf '%s' "$ih_out" | grep -qF 'wird durch den Factory-Stand ersetzt'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: identischer Hook-Stand meldet keine Ersetzung (Warnung diskriminiert)"
 hooks_after=$(cat "$WT/.git/hooks/pre-commit" "$WT/.git/hooks/pre-push" "$WT/.git/hooks/commit-msg")
 [ "$hooks_before" = "$hooks_after" ]
 assert_true "$?" "#262 AK7: wiederholter Aufruf verändert die Hook-Inhalte nicht"
@@ -3494,6 +3515,24 @@ assert_true "$?" "#262 AK7: wiederholter Aufruf verändert die Hook-Inhalte nich
 mkdir -p "$TMP_CM/nogit/scripts"; cp "$INSTALL_HOOKS" "$TMP_CM/nogit/scripts/"
 bash "$TMP_CM/nogit/scripts/install-hooks.sh" >/dev/null 2>&1
 assert_true "$([ $? -ne 0 ]; echo $?)" "#262: install-hooks.sh ohne git-Repo → exit ≠ 0 (fail-closed)"
+
+# Gesetztes core.hooksPath (z. B. husky): Git führt NUR Hooks aus diesem Verzeichnis aus –
+# eine Installation nach .git/hooks wäre wirkungslos. Fail-closed statt Schein-Erfolg.
+WT=$(ih_repo hookspath)
+git -C "$WT" config core.hooksPath ".husky"
+ih_out=$(bash "$WT/scripts/install-hooks.sh" 2>&1); ih_rc=$?
+assert_true "$([ $ih_rc -ne 0 ]; echo $?)" "#262: gesetztes core.hooksPath → exit ≠ 0 (fail-closed, keine wirkungslose Installation)"
+printf '%s' "$ih_out" | grep -qF 'core.hooksPath'
+assert_true "$?" "#262: Abbruch nennt core.hooksPath als Ursache (pfadspezifisches Signal)"
+[ -e "$WT/.git/hooks/commit-msg" ]
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: bei gesetztem core.hooksPath wird kein Hook geschrieben"
+# Gegenprobe: dieselbe Repo-Anlage OHNE die Option installiert wie gewohnt (die Ablehnung
+# hängt an der Option, nicht am Testrepo).
+git -C "$WT" config --unset core.hooksPath
+bash "$WT/scripts/install-hooks.sh" >/dev/null 2>&1
+assert_exit 0 "$?" "#262: ohne core.hooksPath läuft dasselbe Repo durch (Gegenprobe)"
+[ -x "$WT/.git/hooks/commit-msg" ]
+assert_true "$?" "#262: Gegenprobe installiert den commit-msg-Hook"
 
 # Worktree-Fall (ADR-042-Begründung): Hooks liegen im gemeinsamen git-Verzeichnis und
 # gelten damit repo-weit – ein Lauf aus dem Worktree heraus installiert in den Hauptbaum.
@@ -3551,6 +3590,25 @@ assert_exit 0 "$?" "#262 AK3: '-x' als Message bleibt erlaubt (kein zu breites M
 [ "$(git -C "$WT" log --format=%s -1)" = "-x" ]
 assert_true "$?" "#262 AK3: Commit mit Message '-x' entsteht unverändert"
 
+# Der Hook gilt repo-weit, auch auf Branches ohne das Prüfskript (ältere Feature-Branches,
+# `git bisect`, vor dem Merge angelegte Worktrees). Dort darf er nicht JEDEN Commit mit
+# „No such file or directory" blockieren → bewusste Fail-open-Ausnahme (ADR-042).
+WT=$(cm_e2e_repo e2e-nocheck)
+rm -f "$WT/scripts/checks/commit-msg-check.sh"
+echo "x" > "$WT/x.txt"; git -C "$WT" add -A
+cm_out=$(git -C "$WT" commit -q -m "fix: branch ohne pruefskript" 2>&1); cm_rc=$?
+assert_exit 0 "$cm_rc" "#262: fehlendes commit-msg-check.sh blockiert den Commit nicht (Fail-open-Ausnahme)"
+printf '%s' "$cm_out" | grep -qF 'No such file or directory'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: kein kryptischer 'No such file'-Fehler auf Branches ohne Prüfskript"
+[ "$(git -C "$WT" log --format=%s -1)" = "fix: branch ohne pruefskript" ]
+assert_true "$?" "#262: Commit auf einem Branch ohne Prüfskript entsteht regulär"
+# Diskriminierung: liegt das Skript wieder vor, greift der Guard unverändert (die Ausnahme
+# deckt ausschließlich den Nicht-vorhanden-Fall ab, nicht den Guard selbst).
+cp "$CMCHECK" "$WT/scripts/checks/"
+echo "y" > "$WT/y.txt"; git -C "$WT" add -A
+git -C "$WT" commit -q -m "--help" >/dev/null 2>&1
+assert_true "$([ $? -ne 0 ]; echo $?)" "#262: mit wieder vorhandenem Prüfskript lehnt der Hook '--help' weiterhin ab"
+
 rm -rf "$TMP_CM"
 
 echo ""
@@ -3563,8 +3621,28 @@ echo "#262 init-factory.sh delegiert die Hook-Installation (ADR-042):"
 INIT_FACTORY="$SCRIPTS_DIR/init-factory.sh"
 grep -qF 'scripts/install-hooks.sh' "$INIT_FACTORY"
 assert_true "$?" "#262 AK8: init-factory.sh ruft scripts/install-hooks.sh auf"
+# Fail-closed vor dem Negativ-Grep: wäre die Datei unlesbar oder verschoben, lieferte `grep`
+# ebenfalls ≠ 0 und die Abwesenheits-Assertion wäre grün aus dem falschen Grund (Lesson #214).
+[ -r "$INIT_FACTORY" ]
+assert_true "$?" "#262 AK8: init-factory.sh ist lesbar (Vorbedingung des Abwesenheits-Checks)"
 grep -qF '.git/hooks' "$INIT_FACTORY"
 assert_true "$([ $? -ne 0 ]; echo $?)" "#262 AK8: init-factory.sh schreibt keine Hooks mehr selbst (keine .git/hooks-Referenz)"
+
+echo ""
+echo "#262 Doku nennt den kanonischen Installationsweg (Lesson #211/#176):"
+
+# Ein neues Gate ist nur wirksam, wenn ein frischer Clone erfährt, dass es zu installieren
+# ist – die Stellen, die die lokalen Gates beschreiben, müssen den dritten Hook kennen.
+CLAUDE_MD="$FACTORY_ROOT/CLAUDE.md"
+GIT_WORKFLOW="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
+for doc_file in "$CLAUDE_MD" "$GIT_WORKFLOW"; do
+  [ -r "$doc_file" ]
+  assert_true "$?" "#262: $(basename "$doc_file") ist lesbar (Vorbedingung der Doku-Checks)"
+  grep -qF 'scripts/install-hooks.sh' "$doc_file"
+  assert_true "$?" "#262: $(basename "$doc_file") nennt scripts/install-hooks.sh als Installationsweg"
+  grep -qF 'commit-msg' "$doc_file"
+  assert_true "$?" "#262: $(basename "$doc_file") nennt den commit-msg-Hook"
+done
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

@@ -77,11 +77,70 @@ keine BSD/GNU-Portabilitätsfallen).
 **Offen (außerhalb dieses PRs):** `scripts/install-hooks.sh` muss nach dem Merge in diesem Repo
 einmalig manuell ausgeführt werden, damit der `commit-msg`-Hook hier real scharf ist (ADR-042).
 
+### Gate-Verifikation nach Review-Runde 1 (2026-08-02)
+
+- `bash scripts/checks/tests/run-tests.sh`: **715 grün**, 4 rot – ausschließlich die oben
+  belegten, umgebungsbedingten `#212 W3`-Assertions (identische vier wie vor der Nacharbeit;
+  `PR_SHEPHERD`/`FACTORY_STAGE` sind in dieser Session exportiert). Alle #262-Assertions grün.
+  Die vier roten sind namentlich verifiziert: „meldet den realen Zustand", „INCOMPLETE_OUTCOME
+  wird ins interrupt-log geschrieben", „sauber+gepushter Endzustand → Erfolg (Gegenprobe)",
+  „Erfolgs-Banner erscheint bei verifiziertem Endzustand" – getrackt in **#264**.
+- `bash scripts/checks/pre-commit.sh` (inkl. `pnpm lint`): grün.
+
 ## Offene Fragen
 - [x] Code-Duplikation zwischen `scripts/install-hooks.sh` und dem Hook-Block in `scripts/init-factory.sh` – entschieden in ADR-042: `init-factory.sh` ruft `install-hooks.sh` auf.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Review-Runde 1 (`tasks/review-262.md`): **NEEDS_REWORK** – keine kritischen Findings,
+5 wichtige + 7 Nitpicks. Nacharbeit in `/implement`-Runde 2 (2026-08-02):
+
+**Wichtige Findings – behoben:**
+- [x] W1 `install-hooks.sh`: gesetztes `core.hooksPath` (z. B. husky) wurde ignoriert → Hooks
+      wären inert gewesen, der Installer meldete Erfolg. Jetzt fail-closed Abbruch (exit 2) mit
+      Ursachen-Meldung; Entscheidung (Option entfernen vs. Checks dort einbinden) bleibt beim
+      Menschen. Test + Gegenprobe ohne die Option.
+- [x] W2 Fehlerszenario 2 auf der `factory-commit.sh`-Seite: Testfall für die **leere** Message
+      (`bash factory-commit.sh ""`) ergänzt – exit ≠ 0, pfadspezifisches Signal, nichts committet.
+      Der bisherige Fall deckte nur „gar kein Argument" ab (#91, Fall 5).
+- [x] W3 Doku: neues Gate + kanonischer Installationsweg stehen jetzt in `CLAUDE.md` (Guardrails)
+      und `docs/factory/guidelines/git-workflow.md` (eigener Abschnitt „Git-Hooks installieren",
+      inkl. Hook-Tabelle und `core.hooksPath`-Verhalten). Doku-Guard-Tests dazu.
+- [x] W4 Repo-weiter Hook auf Branches ohne Prüfskript: der erzeugte `commit-msg`-Hook prüft
+      `[ -f "$CHECK" ]` und beendet sich sonst mit exit 0 – bewusste Fail-open-Ausnahme **nur**
+      für den Nicht-vorhanden-Fall (ältere Branches, `git bisect`, In-Flight-Worktrees), in
+      ADR-042 (Decision + Consequences) festgehalten. Test inkl. Diskriminierungs-Gegenprobe
+      (Skript wieder vorhanden → `--help` wird weiterhin abgelehnt).
+- [x] W5 Out-of-Scope-Issue zum `PR_SHEPHERD`-Erben des `#212 W3`-Blocks: angelegt als
+      **[#264](https://github.com/nothra/tch-gastro-services/issues/264)**
+      (`enhancement` + `test`,`tech-debt`). Der Seam `scripts/lib/create-issue.sh` blieb auch in
+      dieser Session unerreichbar (der Permission-Classifier lehnt `. scripts/lib/create-issue.sh
+      && create_issue …` ab, ebenso ein Wrapper-Skript) – die Anlage lief deshalb als einmaliger
+      manueller `gh issue create`-Aufruf mit denselben Labels, die der Seam vergeben hätte. Das
+      Seam-Gebot aus `git-workflow.md` zielt auf automatisierte Anlage-Pfade in Skripten; hier
+      entsteht kein zweiter Code-Pfad.
+
+**Nitpicks – umgesetzt:** Warnung beim Ersetzen eines abweichenden vorhandenen Hooks (inkl.
+Diskriminierungs-Test, dass ein identischer Stand nicht warnt); `$hook_name` statt `$1` im
+Hook-Pfad; neutrale Fehlermeldung in `init-factory.sh` („Hook-Installation fehlgeschlagen –
+siehe Meldung oben"); Lesbarkeits-Vorbedingung vor den Abwesenheits-Greps (AK8 + Doku-Guards,
+Lesson #214); pfadspezifisches Signal für `--help extra`; Schleifenvariable `case` → `cm_case`;
+ADR-042 nennt den `factory-commit.sh`-Guard nicht mehr als „bereits existierend".
+
+**Nitpick nicht umgesetzt:** Datei-Modus `100644` → `100755` für `install-hooks.sh` und
+`commit-msg-check.sh` – `chmod` und `git update-index --chmod=+x` sind in dieser Session nicht
+freigegeben (in beiden Implementierungs-Runden erneut versucht, beide Male vom
+Permission-Classifier abgelehnt). Funktional irrelevant (Aufruf immer über `bash …`), aber
+inkonsistent zu den Nachbarn; bei Bedarf manuell:
+`git update-index --chmod=+x scripts/install-hooks.sh scripts/checks/commit-msg-check.sh`.
+
+### Nachtrag zur Nitpick-Umsetzung (Bash-Gotcha)
+
+`local hook_name="$1" hook_file="$HOOKS_DIR/$hook_name"` in **einer** `local`-Zeile bricht unter
+`set -u` mit `hook_name: unbound variable` – `local` expandiert alle Argumentwörter, bevor die
+Zuweisungen wirken (genau deshalb stand dort ursprünglich `$1`). Der Nitpick ist deshalb über
+eine **eigene** `local`-Zeile umgesetzt, mit Kommentar an der Stelle. Aufgefallen ist es, weil
+die Test-Suite danach 25 rote Assertions zeigte – nicht durch Codelesen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

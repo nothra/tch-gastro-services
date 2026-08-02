@@ -10,7 +10,8 @@ Accepted
 
 Issue #262 (Spec: `docs/specs/spec-262-flag-guard-commit-message.md`) verlangt einen
 neuen `commit-msg`-Git-Hook (lehnt Commit-Messages ab, die wie `--help`/`-h` aussehen),
-zusätzlich zum bereits existierenden `-h|--help`-Guard in `scripts/factory-commit.sh`.
+zusätzlich zu einem in derselben Task neu entstehenden `-h|--help`-Guard in
+`scripts/factory-commit.sh`.
 
 Bisher installiert ausschließlich `scripts/init-factory.sh` Git-Hooks – als Teil eines
 **einmaligen** Projekt-Bootstraps (`pre-commit`/`pre-push` werden dort per Heredoc in
@@ -52,6 +53,22 @@ Für **dieses** Repo wird `scripts/install-hooks.sh` nach Merge dieser Task einm
 ausgeführt, um den `commit-msg`-Hook tatsächlich scharf zu schalten (siehe Spec, „Nicht
 inbegriffen" – kein automatischer Aufruf durch `start-work.sh` o. Ä., da Hooks bereits
 repo-weit über alle Worktrees geteilt werden).
+
+**Fail-closed bei gesetztem `core.hooksPath`:** Ist die Git-Option gesetzt (in
+JS-Projekten häufig, z. B. durch husky), führt Git **ausschließlich** Hooks aus diesem
+Verzeichnis aus – eine Installation nach `.git/hooks` wäre wirkungslos, das Repo hielte
+sich aber für geschützt. `install-hooks.sh` bricht in diesem Fall mit exit ≠ 0 und einer
+Meldung ab, statt fremde Hook-Verwaltung zu überschreiben oder stillen Schein-Erfolg zu
+melden. Welche der beiden Auflösungen richtig ist (Option entfernen oder die Factory-Checks
+in den konfigurierten Pfad einbinden), entscheidet der Mensch pro Repo.
+
+**Fail-open nur für ein fehlendes Prüfskript:** Der `commit-msg`-Hook prüft vor dem Aufruf,
+ob `scripts/checks/commit-msg-check.sh` im Arbeitsbaum existiert, und beendet sich sonst mit
+exit 0. Grund: Der Hook gilt dank gemeinsamem Git-Verzeichnis sofort für alle Branches und
+Worktrees – auch für solche ohne das Skript (vor dem Merge angelegte Worktrees, ältere
+Feature-Branches, `git bisect`). Ohne diese Ausnahme wäre dort **jeder** Commit mit
+`No such file or directory` blockiert. Existiert das Skript, entscheidet weiterhin allein
+sein fail-closed Ergebnis – die Ausnahme deckt ausschließlich den Nicht-vorhanden-Fall ab.
 
 **Bewusst nicht extrahiert:** Die beiden Literalstrings `--help`/`-h` selbst bleiben
 **unabhängig** in `scripts/checks/commit-msg-check.sh` (Git-Hook, beliebige Commit-Messages)
@@ -114,6 +131,11 @@ lässt (idempotentes Skript statt vollständiger Bootstrap-Lauf).
 **Negative / Trade-offs:**
 - `init-factory.sh` ist nicht mehr vollständig in sich geschlossen lesbar – wer die
   Hook-Installation nachvollziehen will, muss zusätzlich `install-hooks.sh` öffnen.
+- Der `commit-msg`-Hook enthält eine bewusste Fail-open-Ausnahme (fehlendes Prüfskript →
+  exit 0, siehe Decision). Auf einem Branch ohne `commit-msg-check.sh` greift der Flag-Guard
+  also nicht – der Preis dafür, dass ein repo-weiter Hook keine älteren Branches blockiert.
+- In Repos mit gesetztem `core.hooksPath` bleibt die Hook-Installation ein manueller
+  Entscheidungsschritt (der Installer bricht dort ab).
 - Die Ausführung von `scripts/install-hooks.sh` in diesem bestehenden Repo bleibt ein
   manueller Schritt nach dem Merge (keine Automatisierung, siehe Spec) – ein potenzieller
   „vergessen, auszuführen"-Fehlerpunkt, der außerhalb dieses PRs liegt.
