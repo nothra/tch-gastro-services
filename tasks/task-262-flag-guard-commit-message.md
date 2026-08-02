@@ -58,6 +58,22 @@ keine BSD/GNU-Portabilitätsfallen).
   entscheidet (`pre-commit.sh` ruft `pnpm lint` und existiert dort gar nicht) – sonst wäre der
   Test rot aus dem falschen Grund (Lesson #214).
 
+### Gate-Verifikation (2026-08-02)
+
+- `bash scripts/checks/tests/run-tests.sh`: **697 grün, 0 rot**; `bash scripts/checks/pre-commit.sh`
+  (inkl. `pnpm lint`): grün. Keine UI-/Routen-Berührung → keine Oberflächen-/E2E-Verifikation nötig.
+- **Umgebungsbedingter Fehlschlag ohne Bezug zu #262 (belegt, nicht behauptet):** Sind in der
+  aufrufenden Shell `PR_SHEPHERD=true`/`FACTORY_STAGE=3` exportiert (so in der Session dieses
+  Laufs), laufen 4 Assertions des `#212 W3`-E2E-Blocks rot – die Variable schlägt in das
+  Wegwerf-Repo durch, `run-pipeline.sh` startet dort Phase 7 und bricht mit „Skill-Datei nicht
+  gefunden: …/.claude/commands/pr-shepherd.md" ab, bevor die Endzustands-Verifikation greift.
+  Nachweis nach Lesson #239/#244: (a) Diff-Scope dieses Branches berührt keinen Input des Blocks
+  (`run-pipeline.sh`, `verify-final-state.sh`, `raise-interrupt.sh`, `factory.defaults.yml`
+  unverändert), (b) identisch reproduziert gegen einen unveränderten `origin/main`-Worktree,
+  (c) CI auf `main` ist grün (dort ist `PR_SHEPHERD` nicht gesetzt), (d) mit `unset PR_SHEPHERD`
+  ist die Suite hier vollständig grün. Härtung (E2E-Block sollte `PR_SHEPHERD` explizit
+  neutralisieren, statt es aus der Umgebung zu erben) ist **out of scope** für #262 → eigenes Issue.
+
 **Offen (außerhalb dieses PRs):** `scripts/install-hooks.sh` muss nach dem Merge in diesem Repo
 einmalig manuell ausgeführt werden, damit der `commit-msg`-Hook hier real scharf ist (ADR-042).
 
