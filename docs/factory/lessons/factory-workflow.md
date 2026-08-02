@@ -79,7 +79,8 @@ was fälschlich „läuft ja" suggeriert; ein Job, der per Event gar nicht getri
 fehlt komplett.
 
 **Regel:** Als required nur Jobs setzen, die auf `pull_request`-Events **bis zum Ende
-durchlaufen** (hier: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`).
+durchlaufen** (hier: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`,
+`config-validation`, Nachtrag ADR-041/Task 255).
 Vor dem Scharfschalten gegen **echte PR-Check-Runs** verifizieren, nicht gegen die Job-Namen im
 Workflow-YAML: `gh api repos/<owner>/<repo>/commits/<pr-head-sha>/check-runs --jq '.check_runs[].name'`.
 Post-Merge-/Deploy-Gates gehören in `/post-merge-verify` bzw. das Deploy-Gate, nicht in die
@@ -364,7 +365,8 @@ Falsch: Das Repo hat **zwei getrennte Ebenen**, die sich überschneiden, aber ni
 sind (Review-Runde 1 fand es):
 
 - **Required CI-Checks** (branch-ruleset `protect-main`, auf `pull_request` bis zum Ende laufend,
-  #155): `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue` – die Jobs in
+  #155): `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`,
+  `config-validation` (Nachtrag ADR-041/Task 255) – die Jobs in
   `.github/workflows/factory-ci.yml`.
 - **Lokale pre-push-Gates** (`scripts/checks/pre-push.sh`): Tests **plus** `Typecheck` (#137),
   `Format:check`, `Routen-Doku-Drift` (#145), Branch-Name – ein **Superset**, das nur lokal läuft

@@ -101,11 +101,15 @@ machbar.
   per Tooling gegen den Live-Stand abgeglichen — dieselbe bekannte Drift-Gefahr,
   hier zusätzlich gemildert durch die AK6-Verifikation (`gh api … --jq`-Abgleich)
   im selben PR.
-- `run-tests.sh` verliert die AK5-Testzeile, die bisher die Nicht-Regression des
-  Gates gegen das reale `factory.config.yml` auf Unit-Test-Ebene (schnelles
-  lokales Feedback vor Push) geprüft hat; dieser Fall wird jetzt ausschließlich in
-  CI (Job `config-validation`) abgedeckt, nicht mehr lokal per `pre-push.sh`
-  (das Gate läuft lokal weiterhin nur über `run-pipeline.sh`, nicht direkt).
+- `run-tests.sh` verliert zunächst die AK5-Testzeile, die bisher die Nicht-Regression
+  des Gates gegen das reale `factory.config.yml` geprüft hat; eine Review-Runde
+  (Task 255) verlangte diese Absicherung strukturell zurück, da reine CI-Wiring-Greps
+  keinen Beleg für tatsächliches Verhalten liefern (Lesson #212). Die Nicht-Regression
+  läuft daher jetzt **doppelt**: als CI-Required-Check (Job `config-validation`) UND
+  als Behavior-Level-Test in `run-tests.sh` (AK2, realer Aufruf gegen
+  `factory.defaults.yml`/`factory.config.yml`) – Letzterer bleibt weiterhin nicht Teil
+  des lokalen `pre-push.sh` (der ruft nur `pnpm test`, nicht `run-tests.sh`), sondern
+  läuft manuell oder im `factory-self-test`-Job.
 
 ## Bezug zu anderen ADRs
 

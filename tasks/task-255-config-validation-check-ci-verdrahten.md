@@ -61,6 +61,17 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
     exit ≠0) und einmal mit `model_tiers.heavy`-Override (AK4, exit ≠0). Ersetzt
     strukturell die entfernte `Gate #249 AK5`-Zeile auf der neuen CI-Wiring-Ebene.
   - Nitpick (dangling "oben"-Verweis) oben in dieser Notiz korrigiert.
+- **Review-Runde 2 (NEEDS_REWORK) behoben** – siehe [tasks/review-255.md](review-255.md):
+  reine Doku-Drift, die nach dem Runde-1-Rework entstanden war (ADR-Prosa/Lesson blieben
+  hinter dem bereits aktualisierten JSON/Code zurück):
+  - `docs/adr/029-branch-protection-main-ruleset.md`: Decision-Prosa um `config-validation`
+    ergänzt (war nur im JSON-Sollzustand weiter unten aktuell).
+  - `docs/adr/041-config-validation-ci-required-check.md`: Trade-off-Text korrigiert –
+    behauptete "ausschließlich in CI abgedeckt", obwohl der Runde-1-Rework die
+    Nicht-Regression bereits als AK2-Behavior-Test wieder in `run-tests.sh` eingebaut hatte
+    (jetzt als "doppelte Absicherung" beschrieben, CI-Required-Check + Selbsttest).
+  - `docs/factory/lessons/factory-workflow.md`: beide required-Checks-Listen (Zeilen ~82
+    und ~368) um `config-validation` ergänzt.
 - ADR-041 Status auf "Accepted" gesetzt (Implementierung erfolgt, Lesson aus #197).
 - CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
@@ -85,7 +96,8 @@ Siehe [tasks/review-255.md](review-255.md).
   – alle drei behoben in Commit `37cbae2`.
 - Runde 2 (Re-Review): NEEDS_REWORK – 3 neue Wichtig-Findings, alle reine
   Dokumentations-Drift (ADR-029-Decision-Prosa, ADR-041-Trade-off-Text,
-  factory-workflow.md-Lesson listen die required-Checks ohne `config-validation`).
+  factory-workflow.md-Lesson listen die required-Checks ohne `config-validation`) –
+  alle drei behoben (siehe Technische Notizen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

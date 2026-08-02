@@ -42,7 +42,7 @@ Regeln:
   autonomen Auto-Merge (kein Self-Approve nötig).
 - **Merge-Methode ausschließlich `squash`** – nagelt die etablierte PR-Strategie fest.
 - **Required Status Checks:** `lint`, `test`, `issue-sync`, `factory-self-test`,
-  `pr-closes-issue`.
+  `pr-closes-issue`, `config-validation` (Nachtrag ADR-041, Task 255).
 - **`strict_required_status_checks_policy: false`** (kein „up-to-date"-Zwang).
 - **Force-Push und Löschung blockiert** (`non_fast_forward`, `deletion`).
 
