@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -247,6 +247,31 @@ Dry-Run-Assertion an den betroffenen Zeilen hängt) – keine Code-/Guard-Änder
 gefordert. Finding in `tasks/review-264.md` abgehakt. Volle Suite danach erneut grün:
 **808 grün / 0 rot** (unverändert zur Implementierungsphase – reiner Prosa-Fix ohne
 Verhaltensänderung, kein neuer Testfall nötig). `scripts/checks/pre-commit.sh` (Lint) grün.
+
+## Refactoring-Notizen (`/refactor`, 2026-08-03)
+
+**Ergebnis: keine Code-Änderung.** Geprüft gegen die Refactoring-Checkliste (Naming, SRP,
+Funktionslänge, Verschachtelung, Duplikation, Magic Numbers, Kommentar-Qualität) – ausschließlich
+`scripts/checks/tests/run-tests.sh` ist der einzige geänderte Code (restliche Diff-Dateien sind
+Doku/Task/Spec/Review-Artefakte, kein Refactoring-Ziel):
+
+- Naming konsistent mit bestehenden Helpern im selben File (`drift_guard`,
+  `extract_verdict_header`, `extract_section_headers`); `audit_pipeline_calls` wurde bereits in
+  Review-Runde 2 von `unhardened_pipeline_calls` umbenannt.
+- Die sieben Positiv-/Negativ-Kontrollblöcke um `audit_pipeline_calls` wirken auf den ersten Blick
+  wie Duplikation, folgen aber demselben Ein-Assertion-pro-Fall-Idiom, das im restlichen File
+  durchgängig verwendet wird (z. B. die `#224`/`#240`-Kontrollen weiter oben) – eine Extraktion
+  würde hier Indirektion statt Klarheit bringen und der Testing-Standard verlangt ohnehin je
+  separierbaren Teil eine eigene Assertion.
+- Keine Magic Numbers/Strings ohne Erklärung, keine tiefe Verschachtelung, keine
+  auskommentierten Code-Blöcke; alle Kommentare erklären WHY (Herkunfts-Issue + Begründung), nicht
+  WHAT.
+- Der bereits mehrfach reviewte Stand (3 Review-Runden + 1 Auflage) zeigte keine offenen
+  Struktur-Findings mehr – zusätzliches Refactoring hätte nur Risiko ohne Nutzen eingebracht
+  (Persona-Regel „bei Zweifel: lieber nicht refactoren als riskieren").
+
+**Verifikation:** Volle Suite unverändert grün, `808 grün / 0 rot` (identisch zum Stand nach der
+Auflagen-Erledigung in `/test`) – keine Datei geändert, keine Regression möglich.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
