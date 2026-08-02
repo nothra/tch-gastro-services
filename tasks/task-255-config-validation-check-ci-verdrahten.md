@@ -44,16 +44,28 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
   `$GITHUB_WORKSPACE/factory.defaults.yml` + `$GITHUB_WORKSPACE/factory.config.yml`
   (AK3/ADR-041 verlangen den expliziten Aufruf gegen die realen Pfade, nicht den
   impliziten Default-Pfad ohne Argumente – Korrektur ggü. der ursprünglichen
-  Architektur-Notiz oben, die "ohne Argumente" vorsah).
-- AK1/AK2/AK4 lokal simuliert: identischer Aufruf (`config-validation-check.sh
-  "$GITHUB_WORKSPACE/factory.defaults.yml" "$GITHUB_WORKSPACE/factory.config.yml"`)
-  gegen reale Dateien (exit 0), gegen eine Kopie mit unbekanntem Key (exit 1) und
-  mit `model_tiers.heavy`-Override (exit 1) durchgespielt – reale CI-Bestätigung
-  erfolgt zusätzlich, sobald der PR läuft.
+  Architektur-Entscheidung im Commit `523c04f`, die noch "ohne Argumente" vorsah;
+  Nitpick aus Review-Runde 1, Task 255).
+- **Review-Runde 1 (NEEDS_REWORK) behoben** – siehe [tasks/review-255.md](review-255.md):
+  - awk-Job-Block-Extraktion in `run-tests.sh` bricht jetzt zusätzlich am nächsten
+    Job-Trennkommentar (`# ───`) ab, nicht nur am nächsten `wort:`-Key – vorher bluteten
+    die Header-Kommentarzeilen des Folge-Jobs (`factory-self-test`) in den extrahierten
+    Block hinein (aktuell folgenlos, aber brüchig für den AK7-Negativ-Check).
+  - AK3-Test prüft jetzt zusätzlich die Positions-Reihenfolge (defaults-Pfad vor
+    config-Pfad im Job-Block) statt nur die Anwesenheit beider Strings – das Gate
+    liest `$1`/`$2` strikt positional.
+  - AK1/AK2/AK4 sind jetzt automatisiert auf Behavior-Level abgedeckt (nicht mehr nur
+    "lokal simuliert"/manuell): neue Tests führen `config-validation-check.sh` mit
+    `$FACTORY_ROOT/factory.defaults.yml` + `$FACTORY_ROOT/factory.config.yml` real aus
+    – einmal unverändert (AK2, exit 0), einmal mit injiziertem unbekanntem Key (AK1,
+    exit ≠0) und einmal mit `model_tiers.heavy`-Override (AK4, exit ≠0). Ersetzt
+    strukturell die entfernte `Gate #249 AK5`-Zeile auf der neuen CI-Wiring-Ebene.
+  - Nitpick (dangling "oben"-Verweis) oben in dieser Notiz korrigiert.
 - ADR-041 Status auf "Accepted" gesetzt (Implementierung erfolgt, Lesson aus #197).
-- Neue CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
+- CI-Wiring-Tests in `run-tests.sh` (Abschnitt "Config-Validation CI-Wiring"):
   Job-Existenz, isolierter Job-Block (kein Node/pnpm), expliziter Aufruf mit den
-  realen Pfaden – analog zum bestehenden `issue-sync`-Wiring-Test.
+  realen Pfaden in korrekter Reihenfolge, plus die oben genannten Behavior-Level-Tests
+  – analog zum bestehenden `issue-sync`-Wiring-Test, aber mit echter Ausführung.
 - **AK6 (Ruleset-Update) angewendet:** nach expliziter Bestätigung `gh api -X PUT
   .../rulesets/19162920` mit dem in ADR-029 dokumentierten JSON (inkl.
   `config-validation`) ausgeführt und per `gh api … --jq` verifiziert – Live-Checks
