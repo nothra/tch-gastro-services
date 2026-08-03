@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 yq-Download in CI-Jobs ohne Checksum-Verifikation härten: `.github/workflows/factory-ci.yml`
@@ -272,6 +272,8 @@ Fünf Hinweise ohne Handlungsbedarf in diesem PR:
 Zwei Learnings als Volltext in `docs/factory/lessons/factory-workflow.md` ausgelagert +
 Index-Zeilen in `PROJECT-CONTEXT.md` ergänzt; ein Out-of-Scope-Follow-up als Issue angelegt.
 Details in [codify-258.md](codify-258.md).
+
+PR-Shepherd 2026-08-03: Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `chore/258-yq-checksum-verifikation`
