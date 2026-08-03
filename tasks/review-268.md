@@ -1,165 +1,155 @@
 # Review: Task 268
 
-**Runde 2** (nach Rework zu Runde 1). Diff-Scope: `git diff origin/main...HEAD` (8 Dateien, +407/−10,
-Commits `c039ad8`, `465ac54`).
+**Runde 3** (nach Rework zu Runde 2). Diff-Scope: `git diff origin/main...HEAD` (8 Dateien,
++575/−10, Commits `c039ad8`, `465ac54`, `29626fb`).
 Test-Stand, in dieser Session selbst nachgeprüft: `bash scripts/checks/tests/run-tests.sh` →
-**821 grün, 0 rot**.
+**821 grün, 0 rot**. Zusätzlich der Check live gegen dieses Repo ausgeführt:
+`bash scripts/checks/hooks-installed-check.sh` → exit 0, „Alle Factory-Git-Hooks … installiert
+und ausführbar" (kein `core.hooksPath` gesetzt, das eigene Push-Gate bleibt grün).
 
-Alle 7 Findings aus Runde 1 (1 kritisch + 6 wichtig) sind verifiziert behoben – Details unter
-„Positives". Die Runde-1-Nitpicks sind bewusst offen geblieben und unten kompakt zusammengefasst.
+Alle 3 wichtigen Findings aus Runde 2 (W1 Spec-„Offene Fragen", W2 Spec-Scope-Bullet,
+W3 `git config`-Exit-Behandlung) sind verifiziert behoben – Details unter „Positives".
 
 ## Kritische Findings (müssen behoben werden)
 
-_Keine._ Das Kernverhalten (AK2, Kernszenario des Issues) ist korrekt implementiert und
-diskriminierend abgesichert; das kritische Runde-1-Finding (in sich widersprüchliche
-Remediation-Meldung) ist behoben.
+_Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] **`docs/specs/spec-268-hooks-installed-check-hookspath.md:117-120`** — **Die Spec widerspricht
-  sich selbst und der Implementierung.** Der zweite „Offene Fragen"-Bullet nennt weiterhin die in
-  Runde 1 falsifizierte Auflösung als Vorgabe: „Vorbild ist der `[ -n "$HOOKS_PATH_CONFIG" ]`-Guard
-  in `install-hooks.sh`, der einen Leerstring bereits als ‚nicht gesetzt' behandelt — **dieselbe
-  Guard-Logik in `hooks-installed-check.sh` übernehmen**." Implementiert ist das Gegenteil
-  (`hooks-installed-check.sh:70`, Leerstring = gesetzt = fail-closed), und derselbe Spec-Abschnitt
-  „Fehlerszenarien" (Z. 99-108) trägt die Korrektur bereits per Strikethrough. **Fehlszenario:** Der
-  nächste Leser (Folge-Task, `/refactor`, Adopter-Projekt) nimmt den unkorrigierten
-  „Offene Fragen"-Bullet als kanonische Vorgabe, „harmonisiert" den Guard zurück auf `[ -n … ]`, passt
-  den dann roten Leerstring-Test (`run-tests.sh:4258-4267`) als „spec-konform" an — und die
-  Fail-open-Klasse, die dieser PR schließt, ist mit anderem Config-Wert zurück. Genau die codifizierte
-  Lesson `lessons/factory-workflow.md` (#253: „frisch im selben PR geänderte Spec braucht denselben
-  Drift-Check wie ADRs/Lessons") und #251 („bei Widerspruch zwischen Spec und Lesson/Realität gilt
-  nicht die Spec-Formulierung, die die falsche Alternative als gleichwertig anbietet").
-  **Zusatz:** `tasks/task-268-hooks-installed-check-hookspath-fp.md:52-59` behauptet, genau diese
-  Stelle sei nachgezogen worden („spec-268 ‚Offene Fragen' per Strikethrough + Korrektur-Absatz
-  nachgezogen") – der Strikethrough sitzt aber in „Fehlerszenarien", nicht dort. **Fix:** Bullet
-  analog Z. 99-108 durchstreichen + auf die verifizierte Korrektur verweisen; die Aussage in der
-  Task-Datei entsprechend richtigstellen.
-- [ ] **`docs/specs/spec-268-hooks-installed-check-hookspath.md:43-47`** — Der Scope-Bullet schreibt
-  die Meldung vor, die Runde 1 als falsch nachgewiesen hat: „Remediation-Hinweis (`core.hooksPath`
-  entfernen **ODER die Factory-Checks in das genannte Verzeichnis einbinden**) — konsistent zur
-  bestehenden Meldung in `install-hooks.sh`". Die Implementierung verneint diese Option seit dem
-  Rework ausdrücklich (`hooks-installed-check.sh:77-79`: „kann bei gesetztem core.hooksPath nicht grün
-  werden – auch nicht durch Einbinden der Factory-Checks in …"). **Fehlszenario:** AK4 ist in Task-Datei
-  und Spec abgehakt, obwohl Code und Scope-Vorgabe gegenläufig sind; ein Review/Refactor, das die Spec
-  als Maßstab nimmt (regulärer Weg in dieser Factory), meldet die *korrigierte* Meldung als Regression
-  und dreht sie zurück. Dieselbe Drift-Klasse wie oben – und dieselbe Behandlung, die `spec-265:44-52`
-  in diesem PR schon vorbildlich bekommen hat (Strikethrough + benannter Korrektur-Absatz). **Fix:**
-  Scope-Bullet korrigieren/durchstreichen und auf ADR-042 §Consequences (Z. 156-162) verweisen, wo die
-  Divergenz zwischen Installer- und Push-Gate-Meldung jetzt dokumentiert ist.
-- [ ] **`scripts/checks/hooks-installed-check.sh:67-69` + `:70`** — Der WHY-Kommentar über-behauptet und
-  begründet damit einen Fail-open-Pfad in einem Fail-closed-Gate: „`git config --get` liefert exit 1
-  **nur**, wenn der Key völlig fehlt". `git config` dokumentiert weitere Nicht-Null-Exits (u. a. exit 3
-  für eine ungültige Config-Datei, eigene Codes für mehrfach passende Zeilen). Die Bedingung hängt
-  ausschließlich am Exit-Status, stderr wird per `2>/dev/null` verworfen — **jeder** unerwartete
-  `git config`-Fehler nimmt daher den „nicht gesetzt"-Zweig und führt weiter in die Präsenzprüfung, die
-  bei vorhandenen Datei-Resten grün meldet. Das ist die Falsch-Positiv-Klasse dieses Issues, nur mit
-  anderer Ursache, und widerspricht der Faustregel aus `clean-code.md` („Validierungs-Gates fail-closed
-  – im Zweifel ablehnen, nie still durchwinken"). `install-hooks.sh:46-47` ist hier robuster, weil es
-  zusätzlich den *Wert* auswertet. **Fix (klein):** Exit-Status explizit dreiteilen –
-  `HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)"; rc=$?; case $rc in 0) fail-closed;;
-  1) weiter;; *) fail-closed mit „core.hooksPath nicht auswertbar";; esac` – oder mindestens die
-  Kommentarbehauptung wahrheitsgemäß formulieren. **Verifikationsstand:** Die konkrete Erreichbarkeit
-  (mehrfach gesetzter Key, kaputte Config-Datei) war in dieser Session nicht empirisch prüfbar –
-  `git`-Aufrufe in Wegwerf-Repos und Schreibzugriffe außerhalb des Worktrees waren permission-blockiert.
-  Einordnung: durch Codelesen belegt, Reichweite plausibel, nicht empirisch verifiziert.
+_Keine, die einen weiteren `/implement`-Durchlauf rechtfertigen._ Die zwei verbleibenden
+inhaltlichen Punkte betreffen ausschließlich die **Test-Suite** und gehören damit in den
+unmittelbar folgenden Pipeline-Schritt `/test` – sie stehen unten unter „Nitpicks" mit
+`→ /test` markiert, statt eine vierte Review↔Implement-Iteration am Circuit-Breaker-Limit
+auszulösen. Produktionsverhalten, Guard-Semantik und Fail-closed-Reihenfolge sind korrekt und
+diskriminierend abgesichert.
 
 ## Nitpicks (optional)
 
-- [ ] `scripts/checks/hooks-installed-check.sh:74,78-79` — im Leerstring-Zweig ist die Meldung sinnfrei:
-  `HOOKS_PATH_DISPLAY` ist dann `<leer>`, ausgegeben wird „auch nicht durch Einbinden der Factory-Checks
-  in '<leer>'". Zeile im Leerstring-Fall auslassen oder neutral formulieren.
-- [ ] `scripts/checks/hooks-installed-check.sh:25-31`, `docs/adr/042-…:163-169`,
-  `docs/specs/spec-268-…:101-108` — die tragende Git-Verhaltensannahme („`core.hooksPath=""` löst auf das
-  Arbeitsverzeichnis auf, empirisch mit git 2.51 verifiziert") ist durch **keinen** Test gepinnt, obwohl
-  sie eine bewusste Abweichung vom Geschwisterskript rechtfertigt. Ändert eine künftige git-Version das
-  Verhalten, wird das nicht erkannt (Verhalten bleibt fail-closed, aber die Begründung in drei Dokumenten
-  wäre falsch). Getrackt als **#279** Punkt 2; ein Invarianten-Test (`git -c core.hooksPath= rev-parse
-  --git-path hooks` ≠ `$GIT_COMMON_DIR/hooks`) wäre auch hier billig. In dieser Session war die Probe
-  erneut nicht möglich (wie in Runde 1) – die Annahme ist also weiterhin nur durch die
-  Implementierungs-Session belegt.
-- [ ] `docs/adr/042-hook-installation-single-source.md:162,167-169` — beide neuen Consequence-Bullets
-  deferieren („bei Bedarf als eigenständiges Issue anzulegen", „außerhalb des Scopes von #268"), nennen
-  aber keine Issue-Nummer, während der Nachbar-Bullet (Z. 172-174) vorbildlich auf #265 verweist. Die
-  Issues existieren jetzt: **#278** (Opt-out/Escape-Hatch für Repos mit gesetztem `core.hooksPath`) und
-  **#279** (`install-hooks.sh`-Leerstring-Blindspot) – Nummern im selben PR eintragen, dann ist die
-  Deferral auffindbar.
-- [ ] Runde-1-Nitpicks unverändert offen, weiterhin gültig, beim nächsten Anfassen mitnehmen:
-  Testblock (`run-tests.sh:4197-4276`) spaltet den #265-Abschnitt (dessen CI-Absicherung folgt erst
-  ab Z. 4279); Testfall 6 (Z. 4269-4274) ist rezept-identisch zu #265 Testfall 1; Magic String `'file:'`
-  (Z. 4233) ohne Herleitungs-Kommentar; Traceability-Lücke `#268 AK1` (Z. 4274 labelt AK1 als
-  „Gegenprobe, spec-265 AK1"); Exit-1-statt-2-Entscheidung nur in der Task-Datei begründet, nicht im
-  Skript-Header; Guard-Meldung auf stdout, das benannte Vorbild `install-hooks.sh:51-54` auf stderr.
-- [ ] `run-tests.sh:4229-4236` (AK4-Fixture) — dritte identische Arrange-Wiederholung des
-  `install_all_hooks` + `config core.hooksPath .husky`-Rezepts und die einzige Stelle im Block ohne
-  `; rc=$?`; der `$out` aus Z. 4207 wäre wiederverwendbar (Runde-1-Nitpick, unverändert).
+- [ ] **→ /test** `scripts/checks/tests/run-tests.sh:4113` (`rc_hooks`), `:4119`, `:4160`,
+  `:4274` — **Hermetik-Regression der Fixtures.** Vor diesem PR war
+  `hooks-installed-check.sh` rein dateibasiert; die Wegwerf-Repos aus `hi_repo()` waren
+  damit unabhängig von der Umgebung. Der neue Guard liest `git config --get core.hooksPath`,
+  und `--get` liest **global/system** mit. Ein Entwickler mit
+  `git config --global core.hooksPath ~/.githooks` (verbreitetes dotfiles-/husky-Muster) bekommt
+  die drei Erfolgs-Assertions rot (`#265 AK1`, `#265 AK4`, `#268 Gegenprobe`), obwohl der Code
+  korrekt ist. In `run-tests.sh` gibt es bislang **keinerlei** git-Config-Isolation
+  (`grep GIT_CONFIG_GLOBAL|GIT_CONFIG_SYSTEM|HOME=` → 0 Treffer). Dieselbe Klasse wie die
+  codifizierte Lesson „`PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell schlagen in jedes
+  Wegwerf-Repo durch" (#262/#264): ambiente Umgebung leckt in die Fixture. **Fix (eine Zeile):**
+  `rc_hooks() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null FACTORY_DIR="$1" bash "$HI_CHECK" 2>&1; }`
+  (git ≥ 2.32) – analog für die beiden direkten `FACTORY_DIR=… bash "$HI_CHECK"`-Aufrufe in den
+  Worktree-Tests (Z. 4159, 4247). **Einordnung als Nitpick:** Für genau diese Entwickler ist das
+  Push-Gate ohnehin bewusst rot (das ist der Zweck des PRs, Escape-Hatch getrackt als **#278**),
+  der Testfehlschlag ist also Symptom derselben, gewollten Entscheidung – kein verstecktes
+  Fehlverhalten, aber eine Assertion, die auf ambienten Zustand statt auf die Fixture zielt.
+- [ ] **→ /test** `scripts/checks/hooks-installed-check.sh:94-97` — der in Runde 2 neu ergänzte
+  **dritte Zweig** (`HOOKS_PATH_RC` ∉ {0,1} → „core.hooksPath nicht auswertbar", fail-closed)
+  ist durch **keinen** Testfall abgedeckt, während der Rest des Guards diskriminierend gepinnt
+  ist. Projektregel `testing-standards.md`: „Neuer Code: 100 % coverage erwartet (wird im Review
+  geprüft)"; Lesson #207: „Strict-mode-/Umgebungs-Kontrakt-Tests auf die Fehler-/No-Match-Zweige
+  legen". **Verifikationsstand (ehrlich):** Ob der Zweig überhaupt erreichbar ist, konnte ich in
+  dieser Session **nicht** klären – jede Probe (`git init` in Wegwerf-Repo, `git -c core.hooksPath= rev-parse
+  --git-path hooks`, Schreiben eines Probe-Skripts) war permission-blockiert, exakt wie in Runde 1
+  und 2. Analytisch: der naheliegende Kandidat „kaputte Config-Datei" (git-Doku ret=3) dürfte
+  bereits das vorgelagerte `git rev-parse --git-common-dir` (Z. 52) zum Scheitern bringen und damit
+  im „kein git-Repository"-Zweig landen; ein mehrfach gesetzter Key liefert bei `--get`
+  vermutlich den letzten Wert mit exit 0. Der Zweig ist also möglicherweise defensiv-unerreichbar.
+  **Empfehlung an `/test`:** genau das klären – ist ein Input reproduzierbar, Testfall ergänzen;
+  ist keiner reproduzierbar, das im Code-Kommentar festhalten (dann ist der Zweig bewusste
+  Defense-in-depth, kein Coverage-Loch, das man wegtestet). So oder so bleibt das Verhalten
+  fail-closed und damit sicher.
+- [ ] `docs/adr/042-hook-installation-single-source.md:161-162,167-169` — Runde-2-Nitpick
+  **unverändert offen**: beide neuen Consequence-Bullets deferieren weiterhin ohne Nummer („bei
+  Bedarf als eigenständiges Issue anzulegen", „außerhalb des Scopes von #268"), obwohl die Issues
+  seit Runde 2 existieren: **#278** (Opt-out/Escape-Hatch bei gesetztem `core.hooksPath`) und
+  **#279** (`install-hooks.sh`-Leerstring-Blindspot + Invarianten-Test der git-Verhaltensannahme).
+  Ein Leser legt sonst ein Duplikat an. Genau die Lesson #176 („Doku, die einen offenen
+  Follow-up (#N) nennt, im selben PR nachziehen"); der Nachbar-Bullet (Z. 172-174) macht es mit
+  #265 vorbildlich. **Fix:** zwei Nummern eintragen.
+- [ ] `docs/specs/spec-268-hooks-installed-check-hookspath.md:80-97,101,117` — die AK-Checkboxen
+  der Spec stehen alle noch auf `- [ ]`, während `tasks/task-268-…md` sie auf `- [x]` führt; auch
+  die entschiedene „Offene Frage" zum Exit-Code (Z. 117-121, Antwort steht in der Task-Datei:
+  Exit 1) ist dort nicht abgehakt. Kein Gate wertet das aus, aber die beiden Dateien driften.
+- [ ] Runde-1-Nitpicks weiterhin offen, weiterhin gültig, beim nächsten Anfassen mitnehmen:
+  der #268-Testblock (`run-tests.sh:4197-4276`) spaltet den #265-Abschnitt auf (dessen
+  CI-Absicherung folgt erst ab Z. 4278); Testfall 6 (Z. 4269-4274) ist rezept-identisch zu
+  #265 Testfall 1 (Z. 4115-4119) – Lesson #240 („Duplikat-Schleife/-Fixture vor dem Anlegen
+  gegen die vorhandene abgleichen"); Magic String `'file:'` (Z. 4233) ohne Herleitungs-Kommentar;
+  Traceability-Lücke `#268 AK1` (Z. 4274 labelt AK1 als „Gegenprobe, spec-265 AK1"); die
+  Exit-1-statt-2-Entscheidung ist nur in der Task-Datei begründet, nicht im Skript-Header;
+  AK4-Fixture (Z. 4227-4230) ist die dritte identische `install_all_hooks` + `config
+  core.hooksPath .husky`-Wiederholung und die einzige Stelle ohne `; rc=$?`.
+  Der Runde-1-Nitpick „Guard-Meldung auf stdout statt stderr wie das Vorbild
+  `install-hooks.sh:51-54`" ist **nachweislich folgenlos**: `pre-push.sh:118` fängt mit `2>&1`,
+  die Detailmeldung erscheint unter dem Banner (`sed 's/^/     /'`, Z. 122) – rein kosmetisch.
 
 ## Positives
 
-- **Alle sieben Runde-1-Findings sind verifiziert behoben**, jeweils an der Ursache statt symptomatisch:
-  - Kritisch: die Meldung (Z. 75-79) bietet die „einbinden"-Option nicht mehr an, sondern benennt
-    ausdrücklich, dass der Check ausschließlich `$GIT_COMMON_DIR/hooks` liest und deshalb nur durch
-    `git config --unset core.hooksPath` grün wird — inklusive Scope-Hinweis `--global/--system`.
-    ADR-042 §Consequences (Z. 156-162) und `git-workflow.md:77-84` benennen die Asymmetrie
-    Installer ↔ Push-Gate jetzt beide, statt die Mechanik weiter nur für den Installer zu beschreiben
-    (Lesson #211/#176 erfüllt).
-  - AK3-Test (Z. 4218-4224): pfadspezifisches Signal **plus** Abwesenheits-Assertion der alten
-    Präsenzmeldung — der Test wird rot, wenn der Guard entfernt wird (Lesson #214 erfüllt).
-  - AK4-Test (Z. 4235-4236): matcht jetzt auf `git config --unset core.hooksPath`, also auf die
-    Remediation und nicht mehr tautologisch auf die Ursachenzeile.
-  - AK5-Worktree-Test (Z. 4253-4254): `.husky`-Signal-Assertion schließt das „grün, weil `worktree add`
-    scheiterte"-Loch, samt Kommentar, der den Fehlpfad benennt.
-  - Hartkodierte Hook-Liste aus der Guard-Meldung entfernt → kein zweiter Pflegeort neben
-    `FACTORY_HOOKS` (Z. 87).
-  - Header-Aufzählung (Z. 5-8) und die „nur Präsenz + Ausführbarkeit"-Zeile (Z. 10-11) sind auf die
-    neue Fail-Menge nachgezogen — genau in der von spec-268 vorgegebenen Formulierung.
-  - Leerstring-Semantik nicht per Analogie festgeschrieben, sondern umgedreht und begründet
-    (fail-closed) — die schärfere, richtige Richtung.
-- **Der Leerstring-Test ist echt diskriminierend** (Z. 4258-4267): `install_all_hooks` erfüllt alle
-  übrigen Bedingungen, nur der Guard kann rot machen — kein Zufallstreffer über die Präsenzprüfung.
-- **Fail-closed-Reihenfolge unverändert korrekt:** „kein Git-Repo" (Z. 52-55) → `core.hooksPath`-Guard
-  (Z. 70-81) → Präsenzprüfung (Z. 90-101), exakt die von spec-268 „Fehlerszenarien" geforderte
-  Vorrang-Ordnung, als Guard Clause umgesetzt.
-- **Exit-Code-Semantik unter `set -uo pipefail` (ohne `-e`) bleibt sauber:** Zuweisungsstatus als
-  Bedingung, `HOOKS_PATH_CONFIG` danach immer definiert (keine `set -u`-Falle),
-  `${…:-Herkunft unbekannt}`-Fallback und `|| true` gegen `pipefail`.
-- **Spec-/Doku-Drift dort, wo sie nachgezogen wurde, methodisch vorbildlich:** `spec-265:44-52` per
-  Strikethrough + benanntem „Korrektur (spec-268)"-Absatz falsifiziert statt still überschrieben; die
-  Fehlannahme bleibt historisch nachvollziehbar (Lesson #253).
-- **Rework wurde zwischen den Runden committet** (`465ac54`), nicht am Ende gebündelt — Lesson #251
-  eingehalten; ein Review, das seinen Kontext per `git diff origin/main...HEAD` bezieht, sieht den
-  aktuellen Stand.
-- **Suite selbst nachgeprüft:** 821 grün, 0 rot (Runde 1: 817) — die vier neuen Assertions sind
-  tatsächlich zusätzlich und nicht Ersatz.
-- `docs/routes.md` korrekt **nicht** betroffen (keine `app/**/page.tsx`, kein `app/api/**/route.ts` im
-  Diff); kein neuer CI-Wiring-Test nötig (Begründung aus Runde 1 gilt unverändert).
-- **Kein Akutrisiko für dieses Repo:** kein husky, `core.hooksPath` nirgends gesetzt — der PR kann das
-  eigene Push-Gate nicht blockieren.
+- **Alle drei Runde-2-Findings sind an der Ursache behoben, nicht kosmetisch:**
+  - **W1** – `spec-268:122-129` („Offene Fragen", Leerstring) trägt jetzt Strikethrough +
+    Korrektur („Diese Annahme war falsch und wurde empirisch (git 2.51) widerlegt … bewusst
+    **abweichend** vom `install-hooks.sh`-Vorbild"). Die Spec kann einen Folge-Task nicht mehr
+    dazu verleiten, den Guard auf `[ -n … ]` zurückzudrehen. Zusätzlich hat die Task-Datei
+    (`task-268-…md:52-59`) ihre eigene Falschaussage zum Ort des Strikethroughs explizit
+    richtiggestellt statt sie still zu überschreiben – vorbildlich nachvollziehbar.
+  - **W2** – `spec-268:45-52` (Scope-Bullet) streicht die „ODER die Factory-Checks einbinden"-
+    Vorgabe durch und verweist auf ADR-042 §Consequences. Spec, Code (`hooks-installed-check.sh:87-89`),
+    ADR und `git-workflow.md:77-84` sagen jetzt **dasselbe**: bei diesem Check ist `--unset` der
+    einzige Ausweg, weil er ausschließlich `$GIT_COMMON_DIR/hooks` liest. Die Drift-Klasse
+    #253/#251 ist damit geschlossen.
+  - **W3** – der Exit-Status von `git config --get` ist jetzt sauber dreigeteilt
+    (`:72-97`): `0` → fail-closed, `1` → weiter, **jeder andere Code** → eigener
+    „nicht auswertbar"-Fail-closed-Zweig mit Nennung des Codes in der Meldung. Der
+    Kommentar (`:67-71`) behauptet nichts mehr über `git config` hinaus, was die Doku nicht
+    hergibt, und begründet den dritten Zweig mit dem Fail-closed-Grundsatz aus `clean-code.md`.
+    Die Fail-open-Lücke in einem Fail-closed-Gate ist damit unabhängig davon geschlossen, ob
+    sie praktisch erreichbar war – die richtige Richtung für ein Gate.
+  - **Runde-2-Nitpick gratis mitgenommen:** die Leerstring-Meldung (`:87-92`) sagt nicht mehr
+    sinnfrei „… einbinden in '<leer>'", sondern lässt die Pfadnennung in diesem Zweig weg –
+    saubere Verzweigung statt Textflicken.
+- **Guard-Semantik und Reihenfolge unverändert korrekt:** „kein Git-Repo" (`:52-55`) →
+  `core.hooksPath`-Guard (`:72-97`) → Präsenzprüfung (`:99-117`) – exakt die von spec-268
+  „Fehlerszenarien" geforderte Vorrang-Ordnung, als Guard Clause umgesetzt (`clean-code.md`:
+  frühzeitig zurückkehren).
+- **Exit-Code-Handling unter `set -uo pipefail` (ohne `-e`) ist wasserdicht:** `HOOKS_PATH_RC=$?`
+  steht unmittelbar nach der Zuweisung (keine dazwischenliegende Expansion), `HOOKS_PATH_CONFIG`
+  ist danach in jedem Zweig definiert (keine `set -u`-Falle), `${…:-Herkunft unbekannt}`-Fallback
+  und `|| true` fangen den `pipefail`-Pfad der `--show-origin | cut`-Pipe ab.
+- **Der Leerstring-Test bleibt echt diskriminierend** (`run-tests.sh:4261-4267`):
+  `install_all_hooks` erfüllt alle übrigen Bedingungen, nur der Guard kann rot machen – kein
+  Zufallstreffer über die Präsenzprüfung. Gleiches gilt für AK3 (Abwesenheits-Assertion der
+  alten Präsenzmeldung) und AK5 (`.husky`-Signal gegen den „`worktree add` gescheitert"-Fehlpfad).
+- **Suite selbst nachgeprüft:** 821 grün, 0 rot – unverändert gegenüber Runde 2, wie in der
+  Task-Datei angekündigt („Runde 2 hat keine Test-Assertions berührt"). Die Behauptung stimmt.
+- **Kein Akutrisiko für dieses Repo, live verifiziert:** `bash scripts/checks/hooks-installed-check.sh`
+  → exit 0. Der PR blockiert sein eigenes Push-Gate nicht.
+- **Doku-Kette vollständig:** ADR-042 §Consequences, `git-workflow.md` (Hook-Tabelle **und**
+  `core.hooksPath`-Absatz), `spec-265` (Strikethrough + „Korrektur (spec-268)") und der
+  Skript-Header beschreiben durchgängig dieselbe Mechanik – Lesson #211/#176 erfüllt, inklusive
+  der bewussten Asymmetrie Installer ↔ Push-Gate.
+- `docs/routes.md` korrekt **nicht** betroffen (keine `app/**/page.tsx`, kein `app/api/**/route.ts`
+  im Diff); kein neuer CI-Wiring-Test nötig (die `pre-push.sh`-Verdrahtung ist seit #265 gepinnt,
+  `run-tests.sh:4194-4195`).
 
 ## Empfehlung
 
-NEEDS_REWORK
+APPROVED
 
-**Begründung:** Kein kritisches Finding mehr; das Verhalten ist korrekt, diskriminierend getestet und
-die Runde-1-Kritik ist vollständig aufgelöst. Offen sind drei wichtige Findings, davon zwei derselben
-Klasse: **die im selben PR entstandene `spec-268` widerspricht nach dem Rework der Implementierung** —
-einmal im Scope („einbinden" als gleichwertige Remediation, Z. 43-47), einmal in „Offene Fragen"
-(Leerstring = „nicht gesetzt", Z. 117-120, unkorrigiert, während „Fehlerszenarien" die Korrektur
-schon trägt). Beides ist die codifizierte Rezidiv-Falle #253/#251: die Spec ist in dieser Factory der
-Maßstab für Folge-Skills, und in ihrer aktuellen Form würde sie den gerade eingebauten Fail-closed
-zurückdrehen. Dazu W3 (Kommentar-Über-Behauptung + Fail-open bei unerwartetem `git config`-Exit).
-**Umfang des Reworks: drei Absätze Doku/Kommentar plus optional vier Zeilen `case`-Verzweigung** —
-kein Testverhalten und keine Guard-Semantik betroffen.
+**Begründung:** Kein kritisches und kein rework-pflichtiges wichtiges Finding. Die drei
+Runde-2-Findings sind an der Ursache behoben, das Kernverhalten (AK1–AK5) ist korrekt,
+diskriminierend getestet und in Spec/ADR/Guidelines widerspruchsfrei beschrieben; die
+Spec-Drift, die Runde 2 blockiert hatte, ist in beide Richtungen aufgelöst. Die verbleibenden
+Punkte sind zwei **Test-Suite-Themen** (Fixture-Hermetik gegenüber globalem `core.hooksPath`;
+Coverage bzw. Erreichbarkeits-Klärung des neuen dritten `git config`-Exit-Zweigs) und drei
+Doku-Kleinigkeiten. Die beiden Test-Themen gehören dem unmittelbar folgenden Pipeline-Schritt
+`/test` – sie dort zu erledigen ist der kürzere und sachlich richtige Weg gegenüber einer
+vierten Review↔Implement-Iteration am Circuit-Breaker-Limit.
 
-**Out-of-Scope-Issues (ADR-018) – in dieser Runde autonom angelegt:**
-- **#278** `hooks-installed-check.sh`: Opt-out für Repos mit bewusst gesetztem `core.hooksPath`
-  (`enhancement`, `tech-debt`) — der in ADR-042 §Consequences selbst angekündigte, bisher nicht
-  getrackte Escape-Hatch; ohne ihn kann ein Adopter-Repo mit korrekt in `.husky/` eingebundenen
-  Factory-Checks dauerhaft nicht pushen.
-- **#279** `install-hooks.sh`: leerer `core.hooksPath` wird fälschlich als „nicht gesetzt" behandelt
-  (`bug`, `tech-debt`) — der in ADR-042 neu dokumentierte Blindspot, inkl. Invarianten-Test für die
-  git-Verhaltensannahme und Rück-Referenz/Paritätstest zwischen den beiden Guard-Kopien.
-  spec-268 schließt Änderungen an `install-hooks.sh` ausdrücklich aus, daher eigener Task.
+**Keine neuen Out-of-Scope-Issues in dieser Runde** – die aus Runde 2 (**#278** Escape-Hatch,
+**#279** `install-hooks.sh`-Leerstring-Blindspot + Invarianten-Test) decken die einzigen
+Out-of-Scope-Themen bereits ab; sie sind lediglich noch nicht in ADR-042 verlinkt (Nitpick 3).
 
-**Circuit Breaker:** Dies ist Review-Runde 2 von maximal 3. Bleibt nach dem nächsten `/implement`
-etwas offen, das nicht Doku ist, an den Menschen eskalieren.
+**Circuit Breaker:** Dies war Review-Runde 3 von maximal 3 – mit `APPROVED` ist die Schleife
+regulär beendet, keine Eskalation nötig. Sollte `/test` an den beiden markierten Punkten auf
+einen echten Verhaltensfehler stoßen (statt nur auf fehlende Abdeckung), ist das an den
+Menschen zu eskalieren statt eine vierte Implement-Runde zu starten.

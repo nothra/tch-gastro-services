@@ -64,11 +64,16 @@ esac
 # Ist core.hooksPath gesetzt (z. B. durch husky) – auch auf einen Leerstring, siehe
 # Skript-Header –, führt Git Hooks nicht mehr aus $GIT_COMMON_DIR/hooks aus. Ausführbare
 # Reste dort laufen dann nie und dürfen den Check nicht als Erfolg durchgehen lassen
-# (spec-268, analog install-hooks.sh ADR-042). `git config --get` liefert neben exit 0
-# (gesetzt) und exit 1 (Key fehlt) weitere Nicht-Null-Codes (z. B. exit 3 bei kaputter
-# Config-Datei) – ein solcher Fall darf nicht stillschweigend wie „nicht gesetzt"
-# durchgehen (Fail-closed-Grundsatz, clean-code.md), daher eigener dritter Zweig statt
-# reinem Truthy-Check.
+# (spec-268, analog install-hooks.sh ADR-042). `git config --get` liefert exit 0 auch bei
+# mehrfach gesetztem Schlüssel (letzter Wert gewinnt, kein Fehler) und exit 1, wenn der
+# Key fehlt – beides deckt der Truthy-Check ab. Der dritte Zweig unten (jeder andere Code)
+# ist Fail-closed-Defense-in-depth, nicht durch einen reproduzierbaren Input belegt: eine
+# kaputte/unlesbare Config-Datei lässt bereits das vorgelagerte `git rev-parse
+# --git-common-dir` (oben) mit demselben Nicht-Null-Exit scheitern (empirisch verifiziert,
+# git 2.50), sodass der Check dort schon in den „kein Git-Repository"-Zweig fail-closed
+# geht und diese Zeile nie erreicht. Trotzdem bleibt der Zweig stehen (clean-code.md:
+# Validierungs-Gates fail-closed – im Zweifel ablehnen, auch für einen Code-Pfad ohne
+# bekannten Trigger).
 HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)"
 HOOKS_PATH_RC=$?
 

@@ -4110,7 +4110,14 @@ install_all_hooks() {
   done
 }
 
-rc_hooks() { FACTORY_DIR="$1" bash "$HI_CHECK" 2>&1; }
+# GIT_CONFIG_GLOBAL/GIT_CONFIG_SYSTEM=/dev/null isolieren gegen ambientes core.hooksPath
+# (z. B. `git config --global core.hooksPath ~/.githooks`, verbreitetes husky-/dotfiles-
+# Muster) – ohne Isolation liest `git config --get` in hooks-installed-check.sh auch
+# global/system mit, und die Erfolgs-Assertions würden auf einer Entwickler-Maschine mit
+# gesetztem globalem core.hooksPath fälschlich rot, obwohl der Code korrekt ist
+# (Review-Finding #268 Runde 3; dieselbe Klasse wie #262/#264: ambiente Umgebung leckt in
+# die Fixture).
+rc_hooks() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null FACTORY_DIR="$1" bash "$HI_CHECK" 2>&1; }
 
 # 1. Alle drei Hooks vorhanden + ausführbar → Erfolg, Push nicht blockiert.
 WT=$(hi_repo allok)
@@ -4156,7 +4163,7 @@ install_all_hooks "$WT"
 echo "x" > "$WT/x.txt"; git -C "$WT" add -A >/dev/null 2>&1
 git -C "$WT" commit -q -m "chore: init" >/dev/null 2>&1
 git -C "$WT" worktree add -q -b improvement/265-probe "$TMP_HI/worktreebase-wt" >/dev/null 2>&1
-out=$(FACTORY_DIR="$TMP_HI/worktreebase-wt" bash "$HI_CHECK" 2>&1); rc=$?
+out=$(rc_hooks "$TMP_HI/worktreebase-wt"); rc=$?
 assert_exit 0 "$rc" "#265 AK4: Check aus einem Worktree heraus findet die Hooks im gemeinsamen .git"
 
 # 5. Mehrere Hooks fehlen gleichzeitig → alle betroffenen Namen werden genannt.
@@ -4244,7 +4251,7 @@ git -C "$WT" config core.hooksPath ".husky"
 echo "x" > "$WT/x.txt"; git -C "$WT" add -A >/dev/null 2>&1
 git -C "$WT" commit -q -m "chore: init" >/dev/null 2>&1
 git -C "$WT" worktree add -q -b improvement/268-probe "$TMP_HI/hookspath-worktree-wt" >/dev/null 2>&1
-out=$(FACTORY_DIR="$TMP_HI/hookspath-worktree-wt" bash "$HI_CHECK" 2>&1); rc=$?
+out=$(rc_hooks "$TMP_HI/hookspath-worktree-wt"); rc=$?
 assert_true "$([ "$rc" -ne 0 ]; echo $?)" "#268 AK5: core.hooksPath aus einem Worktree heraus → derselbe effektive Wert, fail-closed"
 # Pfadspezifisches Signal nötig: schlägt `git worktree add` fehl (z. B. Fixture-Fehler),
 # existiert der Ziel-Worktree nicht und schon `cd "$ROOT"` scheitert im Skript – exit ≠ 0,

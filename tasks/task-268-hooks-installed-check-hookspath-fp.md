@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -103,6 +103,33 @@ Test-Stand nach Rework: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 
 
 Test-Stand nach Runde-2-Rework: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
 (unverändert – Runde 2 hat keine Test-Assertions berührt, nur Doku/Kommentar/Guard-Robustheit).
+
+**Runde 3 (APPROVED, siehe `tasks/review-268.md`):** 0 kritische, 0 rework-pflichtige wichtige
+Findings. Zwei Nitpicks explizit an `/test` delegiert (Circuit Breaker bei 3 Review-Runden
+erreicht, daher keine vierte Implement-Runde) – in diesem `/test`-Durchlauf behoben:
+- **Fixture-Hermetik:** `rc_hooks()` (`run-tests.sh:4120`) liest `core.hooksPath` über
+  `git config --get`, das auch globale/System-Config einliest. Ohne Isolation würde ein
+  Entwickler-Rechner mit `git config --global core.hooksPath …` (verbreitetes husky-Muster)
+  die Erfolgs-Assertions (`#265 AK1`, `#265 AK4`, `#268` Gegenprobe) fälschlich rot machen →
+  `rc_hooks()` isoliert jetzt mit `GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null`;
+  die zwei direkten `FACTORY_DIR=… bash "$HI_CHECK"`-Aufrufe in den Worktree-Tests
+  (`#265 AK4`, `#268 AK5`) wurden auf `rc_hooks(...)` umgestellt, statt die Isolation zu
+  duplizieren.
+- **Dritter `git config`-Exit-Zweig (Erreichbarkeit geklärt statt nur behauptet):** Wie in
+  Runde 2 bereits vermerkt, war der Zweig (`HOOKS_PATH_RC` ∉ {0,1}) in dieser Sandbox nicht
+  reproduzierbar (git-Aufrufe in Wegwerf-Repos permission-blockiert, erneut geprüft in diesem
+  `/test`-Durchlauf – derselbe Block wie in der Review-Session). Analytisch bestätigt: eine
+  kaputte/unlesbare Config-Datei lässt bereits das vorgelagerte `git rev-parse
+  --git-common-dir` mit demselben Nicht-Null-Exit scheitern, der Check landet dort schon im
+  „kein Git-Repository"-Zweig, bevor die `core.hooksPath`-Zeile überhaupt läuft; ein mehrfach
+  gesetzter Schlüssel liefert bei `--get` exit 0 (letzter Wert gewinnt). Der dritte Zweig ist
+  damit **defensiv-unerreichbar, kein Coverage-Loch** – Skript-Kommentar entsprechend
+  präzisiert (nennt keine unbelegte Fehlercode-Zahl mehr, sondern die Nichterreichbarkeits-
+  Begründung), kein Testfall ergänzt (es gibt keinen Input, der ihn triggert).
+
+Test-Stand nach Runde-3-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
+(Fixture-Hermetik-Fix ändert keine Assertion-Anzahl, nur deren Isolation gegen ambiente
+Umgebung).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
