@@ -64,19 +64,35 @@ esac
 # Ist core.hooksPath gesetzt (z. B. durch husky) – auch auf einen Leerstring, siehe
 # Skript-Header –, führt Git Hooks nicht mehr aus $GIT_COMMON_DIR/hooks aus. Ausführbare
 # Reste dort laufen dann nie und dürfen den Check nicht als Erfolg durchgehen lassen
-# (spec-268, analog install-hooks.sh ADR-042). Kein `[ -n … ]`-Zusatzcheck: `git config
-# --get` liefert exit 1 nur, wenn der Key völlig fehlt – ein gesetzter Leerstring liefert
-# exit 0 (empirisch verifiziert) und muss denselben Fail-closed-Pfad nehmen.
-if HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)"; then
+# (spec-268, analog install-hooks.sh ADR-042). `git config --get` liefert neben exit 0
+# (gesetzt) und exit 1 (Key fehlt) weitere Nicht-Null-Codes (z. B. exit 3 bei kaputter
+# Config-Datei) – ein solcher Fall darf nicht stillschweigend wie „nicht gesetzt"
+# durchgehen (Fail-closed-Grundsatz, clean-code.md), daher eigener dritter Zweig statt
+# reinem Truthy-Check.
+HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)"
+HOOKS_PATH_RC=$?
+
+if [ "$HOOKS_PATH_RC" -eq 0 ]; then
   # Scope mitnennen: `--get` liest auch global/system – ein blanker Hinweis auf
   # `git config --unset` würde sonst auf den falschen Scope zeigen.
   HOOKS_PATH_ORIGIN="$(git config --show-origin --get core.hooksPath 2>/dev/null | cut -f1 || true)"
-  HOOKS_PATH_DISPLAY="${HOOKS_PATH_CONFIG:-<leer>}"
+  if [ -n "$HOOKS_PATH_CONFIG" ]; then
+    HOOKS_PATH_DISPLAY="$HOOKS_PATH_CONFIG"
+  else
+    HOOKS_PATH_DISPLAY="<leer>"
+  fi
   echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' ist auf '$HOOKS_PATH_DISPLAY' gesetzt (${HOOKS_PATH_ORIGIN:-Herkunft unbekannt}) – Git führt Hooks nicht aus '$GIT_COMMON_DIR/hooks' aus."
   echo "     Auch vorhandene Datei-Reste dort wären wirkungslos (fail-closed)."
   echo "     Dieser Check prüft ausschließlich '$GIT_COMMON_DIR/hooks' und kann bei gesetztem"
-  echo "     core.hooksPath nicht grün werden – auch nicht durch Einbinden der Factory-Checks in"
-  echo "     '$HOOKS_PATH_DISPLAY'. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
+  if [ -n "$HOOKS_PATH_CONFIG" ]; then
+    echo "     core.hooksPath nicht grün werden – auch nicht durch Einbinden der Factory-Checks in"
+    echo "     '$HOOKS_PATH_DISPLAY'. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
+  else
+    echo "     core.hooksPath nicht grün werden. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
+  fi
+  exit 1
+elif [ "$HOOKS_PATH_RC" -ne 1 ]; then
+  echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' nicht auswertbar (git config exit $HOOKS_PATH_RC) – Hooks können nicht geprüft werden (fail-closed)."
   exit 1
 fi
 

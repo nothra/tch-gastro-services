@@ -69,9 +69,40 @@ Alle behoben:
   statt echtem Guard-Treffer) → `.husky`-Signal-Assertion ergänzt.
 - Leerstring-Semantik war unverifiziert gegen die Analogie zu `install-hooks.sh` übernommen
   → empirisch mit git 2.51 verifiziert, Verhalten umgekehrt (fail-closed statt „nicht gesetzt"),
-  spec-268 „Offene Fragen" per Strikethrough + Korrektur-Absatz nachgezogen.
+  spec-268 „Fehlerszenarien" per Strikethrough + Korrektur-Absatz nachgezogen.
+  (Korrektur zur eigenen Aussage weiter oben: der Strikethrough saß nach Runde 1 nur in
+  „Fehlerszenarien", **nicht** zusätzlich in „Offene Fragen" – dort blieb die falsifizierte
+  Annahme unkorrigiert stehen, siehe Runde-2-Finding W1 unten.)
 
 Test-Stand nach Rework: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot.
+
+**Runde 2 (NEEDS_REWORK, siehe `tasks/review-268.md`):** 0 kritische, 3 wichtige Findings
+(alle Doku-/Kommentar-Drift, kein Testverhalten/keine Guard-Semantik-Lücke). Alle behoben:
+- **W1** – spec-268 „Offene Fragen" (Leerstring-Bullet) widersprach nach dem Runde-1-Rework
+  weiterhin der Implementierung (nannte die bereits falsifizierte `[ -n … ]`-Analogie als
+  Vorgabe) → per Strikethrough + Korrektur-Verweis auf „Fehlerszenarien" nachgezogen; obige
+  Falschaussage in diesem Abschnitt richtiggestellt.
+- **W2** – spec-268 Scope-Bullet (Remediation-Hinweis) schrieb weiterhin „core.hooksPath
+  entfernen ODER Factory-Checks einbinden" vor, obwohl die Implementierung seit Runde 1
+  ausdrücklich nur noch `--unset` als Ausweg nennt → Scope-Bullet per Strikethrough +
+  Korrektur-Absatz (Verweis ADR-042 §Consequences) nachgezogen.
+- **W3** – WHY-Kommentar über `git config --get` behauptete, es liefere „exit 1 nur, wenn
+  der Key völlig fehlt" – tatsächlich hat `git config` weitere Nicht-Null-Exit-Codes (z. B.
+  kaputte Config-Datei), die über den bloßen Truthy-Check still in den „nicht gesetzt"-Zweig
+  gefallen wären (Fail-open-Lücke in einem Fail-closed-Gate) → `git config --get`-Exit-Status
+  jetzt explizit dreigeteilt (`0` = gesetzt/fail-closed, `1` = nicht gesetzt/weiter, jeder
+  andere Code = „nicht auswertbar"/fail-closed). Kommentar entsprechend korrigiert.
+  Empirische Reproduktion des dritten Zweigs (mehrfach gesetzter Key, kaputte Config-Datei)
+  war in dieser Session wie schon in der Review-Session selbst nicht möglich – `git`-Aufrufe
+  in Wegwerf-Repos sind hier durchgehend permission-blockiert (Sandbox-Genehmigung fehlt).
+  Verhalten ist daher durch Codelesen + git-Dokumentation begründet, nicht per Test gepinnt;
+  kein neuer Testfall ergänzt.
+- Nitpick (kostenlos mitgenommen, da derselbe Codeblock ohnehin bearbeitet wurde): die
+  Leerstring-Fallmeldung nannte zuvor sinnfrei „... einbinden in '<leer>'" – jetzt ohne
+  Pfadnennung, wenn `HOOKS_PATH_CONFIG` leer ist.
+
+Test-Stand nach Runde-2-Rework: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
+(unverändert – Runde 2 hat keine Test-Assertions berührt, nur Doku/Kommentar/Guard-Robustheit).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

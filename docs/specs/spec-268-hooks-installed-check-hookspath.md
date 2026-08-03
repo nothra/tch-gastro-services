@@ -42,9 +42,14 @@ schließen.
   Vorrang vor der bestehenden Präsenzprüfung.
 - Fehlermeldung nennt den konfigurierten Pfad **und** den Scope/die Herkunft
   (lokal/global/system, via `git config --show-origin`) sowie einen
-  Remediation-Hinweis (`core.hooksPath` entfernen ODER die Factory-Checks in das
+  Remediation-Hinweis. ~~(`core.hooksPath` entfernen ODER die Factory-Checks in das
   genannte Verzeichnis einbinden) — konsistent zur bestehenden Meldung in
-  `install-hooks.sh`.
+  `install-hooks.sh`.~~ **Korrektur (Rework nach Review-Runde 2, Finding W2):**
+  „Factory-Checks einbinden" ist hier — anders als beim einmaligen Installer — **keine**
+  gleichwertige Alternative: Dieser Check liest ausschließlich `$GIT_COMMON_DIR/hooks`
+  und bleibt bei gesetztem `core.hooksPath` unabhängig vom Zielverzeichnis dauerhaft rot
+  (ADR-042 §Consequences). Die Meldung nennt daher nur `git config --unset
+  core.hooksPath` (ggf. mit `--global`/`--system`) als Ausweg.
 - Bestehende Präsenz+Ausführbarkeits-Prüfung (spec-265) bleibt für den Fall
   „`core.hooksPath` nicht gesetzt" unverändert.
 - Skript-Header-Kommentar aktualisieren: der bisherige Satz „Kein Inhaltsvergleich…
@@ -114,7 +119,11 @@ schließen.
       `pre-push.sh` wertet ohnehin nur Exit 0 vs. ≠ 0 aus (kein
       Verhaltensunterschied nach außen) — Implementierungsdetail, kann in
       `/implement` entschieden werden.
-- [ ] Verhalten bei leerem `core.hooksPath`-Wert (`git config core.hooksPath ""`):
+- [x] ~~Verhalten bei leerem `core.hooksPath`-Wert (`git config core.hooksPath ""`):
       Implementierungsdetail, Vorbild ist der `[ -n "$HOOKS_PATH_CONFIG" ]`-Guard
       in `install-hooks.sh`, der einen Leerstring bereits als „nicht gesetzt"
-      behandelt — dieselbe Guard-Logik in `hooks-installed-check.sh` übernehmen.
+      behandelt — dieselbe Guard-Logik in `hooks-installed-check.sh` übernehmen.~~
+      **Korrektur (siehe „Fehlerszenarien" oben):** Diese Annahme war falsch und wurde
+      empirisch (git 2.51) widerlegt. `hooks-installed-check.sh` behandelt einen
+      Leerstring bewusst **abweichend** vom `install-hooks.sh`-Vorbild — als „gesetzt"
+      und damit fail-closed, nicht als „nicht gesetzt".
