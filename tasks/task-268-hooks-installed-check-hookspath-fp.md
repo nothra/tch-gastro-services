@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -219,7 +219,13 @@ bisher meldete der Check grün, während Git keinen Factory-Hook aufrief (u. a. 
 Credential-Scan des `pre-commit`-Hooks war still inaktiv).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vollständiger Report: `tasks/codify-268.md`. Kurzfassung: Neue Lesson in
+`docs/factory/lessons/code-style.md` (+ Index-Zeile in `PROJECT-CONTEXT.md`) zum wiederkehrenden
+„empirisch verifiziert"-Overclaiming (Runde 2 W3 + Runde 4 W1, dasselbe Muster an anderer Stelle,
+plus falsche Versionsangabe auf 7 Stellen kopiert). Ein neues Out-of-Scope-Issue **#282**
+(Fixture-Isolation-Lücke in `run-tests.sh` gegen ambiente `core.hooksPath`, Review-Nitpick N3).
+Übrige Nitpicks bleiben als Backlog in `tasks/review-268.md`.
 
 ---
 Branch: `feature/268-hooks-installed-check-hookspath-fp`
