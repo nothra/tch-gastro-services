@@ -4246,6 +4246,162 @@ assert_true "$?" "#262: README.md ist lesbar (Vorbedingung des Setup-Checks)"
 grep -qF 'bash scripts/install-hooks.sh' "$README_MD"
 assert_true "$?" "#262: README.md nennt 'bash scripts/install-hooks.sh' im lokalen Setup"
 
+echo ""
+echo "#258 yq-Bereitstellung: Versions-Pin + Checksum-Verifikation:"
+
+INSTALL_YQ="$FACTORY_ROOT/scripts/install-yq.sh"
+[ -r "$INSTALL_YQ" ]
+assert_true "$?" "#258: scripts/install-yq.sh vorhanden (Vorbedingung der folgenden Checks)"
+
+# AK1: kein `releases/latest/download/...`-URL mehr – weder in den Workflows noch im Seam.
+# Angeankert an der URL-Form, nicht an jeder Erwähnung von "releases/latest": der
+# Skript-Header erklärt genau diese alte Form als WHY-Kommentar (Lesson #114).
+! grep -q 'releases/latest/download' "$CI_FILE" "$POLL_YML" "$INSTALL_YQ"
+assert_true "$?" "#258 AK1: keine releases/latest/download-URL mehr in factory-ci.yml / factory-poll.yml / install-yq.sh"
+
+grep -qE '^YQ_VERSION="v[0-9]+\.[0-9]+\.[0-9]+"$' "$INSTALL_YQ"
+assert_true "$?" "#258 AK1: install-yq.sh pinnt eine konkrete yq-Version (YQ_VERSION=\"vX.Y.Z\")"
+
+# AK4: alle drei betroffenen Jobs rufen denselben Seam auf – und keiner hat noch einen
+# eigenen wget+chmod-Block. Job-Block isoliert extrahieren (Bruch am nächsten Job-Key ODER
+# Job-Trennkommentar, sonst blutet der Kommentarkopf des Folge-Jobs herein, Lesson #255).
+for yq_job_spec in "config-validation|$CI_FILE" "factory-self-test|$CI_FILE" "factory-poll|$POLL_YML"; do
+  IFS='|' read -r yq_job yq_job_file <<< "$yq_job_spec"
+  yq_job_block="$(awk -v j="$yq_job" '$0 ~ "^  " j ":" {f=1; next} /^  ([A-Za-z0-9_-]+:|# ───)/{if (f) exit} f' "$yq_job_file")"
+  assert_true "$([[ -n "$yq_job_block" ]]; echo $?)" "#258 AK4: Job-Block '$yq_job' ist extrahierbar"
+
+  printf '%s' "$yq_job_block" | grep -qF 'bash scripts/install-yq.sh'
+  assert_true "$?" "#258 AK4: Job '$yq_job' ruft 'bash scripts/install-yq.sh' auf"
+
+  ! printf '%s' "$yq_job_block" | grep -qE 'wget.*yq_linux_amd64|chmod \+x /usr/local/bin/yq'
+  assert_true "$?" "#258 AK4: Job '$yq_job' hat keinen eigenen wget+chmod-yq-Block mehr"
+done
+
+# Beide umgebauten Workflow-Dateien müssen valides YAML bleiben (nur wo yq da ist, ADR-009).
+if [ "$HAS_YQ" = 1 ]; then
+  yq '.' "$CI_FILE" >/dev/null 2>&1 && yq '.' "$POLL_YML" >/dev/null 2>&1
+  assert_true "$?" "#258: factory-ci.yml und factory-poll.yml bleiben valides YAML (yq-Parse)"
+else
+  skip_yq "#258: factory-ci.yml / factory-poll.yml bleiben valides YAML"
+fi
+
+# AK3 (Reihenfolge im Download-Pfad): das Ausführbar-Bit darf erst NACH der Verifikation
+# fallen. Der Fixture-Test unten belegt nur den --verify-Zweig (dort gibt es kein chmod);
+# die Reihenfolge im nicht netzwerkfrei testbaren Download-Pfad braucht diesen Anker.
+# Angeankert an den echten Aufruf-Zeilen (Spaltenanfang), nicht an einer Prosa-Erwähnung
+# im Kommentar (Lesson #114 "Kommando ≠ Prosa-Erwähnung").
+yq_verify_line="$(grep -n '^verify_sha256 "' "$INSTALL_YQ" | head -1 | cut -d: -f1)"
+yq_chmod_line="$(grep -n '^chmod 0755 "' "$INSTALL_YQ" | head -1 | cut -d: -f1)"
+[ -n "$yq_verify_line" ] && [ -n "$yq_chmod_line" ] && [ "$yq_verify_line" -lt "$yq_chmod_line" ]
+assert_true "$?" "#258 AK3: verify_sha256-Aufruf steht VOR 'chmod 0755' (sonst wäre die Verifikation wirkungslos)"
+
+# ── Verifikationslogik gegen lokale Fixtures (AK2/AK3/AK5/AK6, netzwerkfrei) ──
+# Fixture-Binary ist bewusst LEER: SHA-256 der leeren Eingabe ist ein öffentlich bekannter
+# Testvektor, damit der Erwartungswert unten ein Literal bleibt (testing-standards: kein
+# Soll-Wert, der aus dem Objekt-under-Test abgeleitet wird) – ohne Hash-Werkzeug beim
+# Testschreiben. Schlägt der Positiv-Fall fehl, ist entweder die Hash-Berechnung oder die
+# Spaltenauswahl im Seam defekt.
+YQ_EMPTY_SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+# yq_fixture <verzeichnis> – legt eine INTAKTE Fixture-Familie im echten Release-Format an:
+# `checksums_hashes_order` (ein Algorithmus-Name pro Zeile) + `checksums` (Feld 1 = Dateiname,
+# danach die Hashes in genau dieser Reihenfolge). SHA-256 steht bewusst auf Zeile 3 (= Feld 4),
+# damit ein Off-by-one in der Spaltenrechnung auffällt; die Nachbarzeilen `yq_linux_386` und
+# `yq_linux_amd64.tar.gz` tragen absichtlich falsche SHA-256-Werte (Diskriminierungs-Kontrolle
+# gegen Zeilenauswahl per Präfix/erstem Treffer statt exaktem Dateinamen-Vergleich).
+yq_fixture() {
+  local dir="$1"
+  local other_a other_b other_c wrong
+  other_a="$(printf 'a%.0s' {1..64})"
+  other_b="$(printf 'b%.0s' {1..64})"
+  other_c="$(printf 'c%.0s' {1..64})"
+  wrong="$(printf 'd%.0s' {1..64})"
+  mkdir -p "$dir"
+  : > "$dir/yq_linux_amd64"
+  printf 'BLAKE2B-512\nSHA-384\nSHA-256\nSHA-512\n' > "$dir/checksums_hashes_order"
+  {
+    printf 'yq_linux_386 %s %s %s %s\n' "$other_a" "$other_b" "$wrong" "$other_c"
+    printf 'yq_linux_amd64.tar.gz %s %s %s %s\n' "$other_a" "$other_b" "$wrong" "$other_c"
+    printf 'yq_linux_amd64 %s %s %s %s\n' "$other_a" "$other_b" "$YQ_EMPTY_SHA256" "$other_c"
+  } > "$dir/checksums"
+}
+
+# run_verify <verzeichnis> – ruft den netzwerkfreien --verify-Zweig gegen eine Fixture auf.
+# Unerreichbarer Proxy: würde der Zweig doch etwas herunterladen, schlüge er fehl – damit ist
+# "ohne Netzwerkzugriff" (AK5) nicht nur behauptet, sondern beim Positiv-Fall mitgeprüft.
+run_verify() {
+  local dir="$1"
+  http_proxy="http://127.0.0.1:1" https_proxy="http://127.0.0.1:1" no_proxy="" \
+    bash "$INSTALL_YQ" --verify \
+    "$dir/yq_linux_amd64" "$dir/checksums" "$dir/checksums_hashes_order" 2>&1
+}
+
+YQTMP="$(mktemp -d)"
+
+# AK5 (Positiv): passender Hash → Erfolg, ohne Netzwerk, ohne Ausführbar-Bit.
+yq_fixture "$YQTMP/ok"
+yq_ok_out="$(run_verify "$YQTMP/ok")"; yq_rc=$?
+assert_exit 0 "$yq_rc" "#258 AK5: --verify gegen Fixture mit korrektem Hash → exit 0 (ohne Netzwerkzugriff)"
+printf '%s' "$yq_ok_out" | grep -qF 'verifiziert'
+assert_true "$?" "#258 AK5: Erfolgsfall meldet die Verifikation explizit"
+[ ! -x "$YQTMP/ok/yq_linux_amd64" ]
+assert_true "$?" "#258 AK3: --verify setzt selbst im Erfolgsfall kein Ausführbar-Bit (Installation ist ein eigener Schritt)"
+
+# AK6 (Negativ, eigener Testfall): genau EIN Defekt – der SHA-256-Wert der Zielzeile ist
+# manipuliert. Alles andere bleibt intakt, damit der Fehlschlag nur aus diesem Pfad kommt
+# und die Meldung pfadspezifisch geprüft werden kann (Lesson #214).
+yq_fixture "$YQTMP/mismatch"
+sed "s/$YQ_EMPTY_SHA256/${YQ_EMPTY_SHA256%??}00/" "$YQTMP/mismatch/checksums" > "$YQTMP/mismatch/checksums.new"
+mv "$YQTMP/mismatch/checksums.new" "$YQTMP/mismatch/checksums"
+yq_bad_out="$(run_verify "$YQTMP/mismatch")"; yq_rc=$?
+assert_true "$([[ $yq_rc -ne 0 ]]; echo $?)" "#258 AK6: --verify gegen manipulierten Hash → exit ≠ 0 (fail-closed)"
+printf '%s' "$yq_bad_out" | grep -qF 'Checksum-Mismatch'
+assert_true "$?" "#258 AK6: Mismatch-Meldung benennt den Checksum-Mismatch"
+[ ! -x "$YQTMP/mismatch/yq_linux_amd64" ]
+assert_true "$?" "#258 AK3: Mismatch lässt die Binary nicht-ausführbar (kein chmod im Fehlerfall)"
+
+# Fehlerszenario: kein checksums-Eintrag für yq_linux_amd64 (Format-Drift eines Releases).
+yq_fixture "$YQTMP/no-entry"
+grep -v '^yq_linux_amd64 ' "$YQTMP/no-entry/checksums" > "$YQTMP/no-entry/checksums.new"
+mv "$YQTMP/no-entry/checksums.new" "$YQTMP/no-entry/checksums"
+yq_noentry_out="$(run_verify "$YQTMP/no-entry")"; yq_rc=$?
+assert_true "$([[ $yq_rc -ne 0 ]]; echo $?)" "#258: fehlender checksums-Eintrag → exit ≠ 0 (kein leiser Erfolg)"
+printf '%s' "$yq_noentry_out" | grep -qF 'keinen Eintrag'
+assert_true "$?" "#258: Meldung benennt den fehlenden checksums-Eintrag"
+
+# Fehlerszenario: keine SHA-256-Zeile in checksums_hashes_order (rotierende Spaltenordnung).
+yq_fixture "$YQTMP/no-algo"
+printf 'BLAKE2B-512\nSHA-384\nSHA-512\n' > "$YQTMP/no-algo/checksums_hashes_order"
+yq_noalgo_out="$(run_verify "$YQTMP/no-algo")"; yq_rc=$?
+assert_true "$([[ $yq_rc -ne 0 ]]; echo $?)" "#258: fehlende SHA-256-Zeile in checksums_hashes_order → exit ≠ 0"
+printf '%s' "$yq_noalgo_out" | grep -qF 'SHA-256'
+assert_true "$?" "#258: Meldung benennt die fehlende SHA-256-Zeile"
+
+# Fehlerszenario: Zielzeile vorhanden, aber die SHA-256-Spalte fehlt (verkürzte Zeile) –
+# ein leerer Erwartungswert darf nicht als „verifiziert" durchgehen.
+yq_fixture "$YQTMP/short-row"
+grep -v '^yq_linux_amd64 ' "$YQTMP/short-row/checksums" > "$YQTMP/short-row/checksums.new"
+printf 'yq_linux_amd64 %s\n' "$(printf 'a%.0s' {1..64})" >> "$YQTMP/short-row/checksums.new"
+mv "$YQTMP/short-row/checksums.new" "$YQTMP/short-row/checksums"
+yq_short_out="$(run_verify "$YQTMP/short-row")"; yq_rc=$?
+assert_true "$([[ $yq_rc -ne 0 ]]; echo $?)" "#258: fehlende SHA-256-Spalte in der Zielzeile → exit ≠ 0"
+printf '%s' "$yq_short_out" | grep -qF 'Format-Drift'
+assert_true "$?" "#258: Meldung benennt die Format-Drift statt leise zu verifizieren"
+
+# Fehlerszenario: nicht lesbare Eingabedatei (abgebrochener Download).
+yq_fixture "$YQTMP/unreadable"
+rm -f "$YQTMP/unreadable/checksums"
+yq_unreadable_out="$(run_verify "$YQTMP/unreadable")"; yq_rc=$?
+assert_true "$([[ $yq_rc -ne 0 ]]; echo $?)" "#258: nicht lesbare checksums-Datei → exit ≠ 0 (fail-closed)"
+printf '%s' "$yq_unreadable_out" | grep -qF 'nicht lesbar'
+assert_true "$?" "#258: Meldung benennt die nicht lesbare Datei"
+
+# Aufruf-Fehler: --verify ohne die drei Pfade darf nicht als Erfolg durchgehen.
+bash "$INSTALL_YQ" --verify "$YQTMP/ok/yq_linux_amd64" >/dev/null 2>&1
+assert_exit 2 "$?" "#258: --verify mit unvollständigen Argumenten → exit 2 (Aufruf-Fehler)"
+
+rm -rf "$YQTMP"
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
