@@ -67,14 +67,14 @@ diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter z
       (Empfehlung, analog `install-hooks.sh`) statt als externer Parameter. → Umgesetzt:
       `YQ_VERSION="v4.53.3"` als Konstante in `scripts/install-yq.sh`; Versions-Bump ändert
       genau diese Zeile.
-- [ ] **Nachtest in CI (Umgebung, kein offener Scope):** Diese Session hatte keinen
-      Netzwerkzugriff (`curl`/WebFetch nicht freigegeben), der echte Download konnte lokal
-      also nicht ausgeführt werden. Belegt sind Versions-Pin, Verifikationslogik und Wiring
-      per Fixture-/Struktur-Tests (837 Self-Tests grün). Ob das Release `v4.53.3` die Assets
-      `yq_linux_amd64` / `checksums` / `checksums_hashes_order` im erwarteten Format liefert,
-      beweist erst der erste CI-Lauf des PRs – fail-closed: bei Abweichung werden
-      `config-validation` / `factory-self-test` / `factory-poll` rot mit expliziter Meldung,
-      Fix ist die Versions-Konstante bzw. die Spaltenermittlung.
+- [x] **Nachtest in CI (Umgebung, kein offener Scope):** Diese Session hatte keinen
+      Netzwerkzugriff (`curl`/WebFetch nicht freigegeben), der echte Download war lokal also
+      nicht ausführbar – Versions-Pin, Verifikationslogik und Wiring sind per Fixture-/
+      Struktur-Tests belegt (837 Self-Tests grün), das Release-Asset-Format aber nur per
+      yq-Doku angenommen. → **In CI bestätigt** (PR #277, Run 30805947583): der Schritt
+      „yq bereitstellen" meldet `install-yq: lade yq v4.53.3 (yq_linux_amd64) …` und
+      `✓ SHA-256 von 'yq_linux_amd64' verifiziert (fa52a4e7…eded4)`, danach
+      `yq … version v4.53.3`; `config-validation` und `factory-self-test` grün.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
