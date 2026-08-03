@@ -32,6 +32,10 @@ mikefarah/yq veröffentlichten Release-Checksums, bevor `chmod +x` gesetzt wird.
       läuft THEN meldet sie Erfolg ohne Netzwerkzugriff.
 - [x] GIVEN dieselbe Logik WHEN sie gegen ein Fixture mit manipuliertem Hash läuft THEN
       meldet sie einen Fehler (eigener Negativ-Testfall).
+- [x] **AK7 (aus Review-Runde 1):** GIVEN ein Fixture, dessen veröffentlichter Hash vom im Repo
+      gepinnten `YQ_SHA256` abweicht („Release-Asset unter demselben Tag ersetzt") WHEN die
+      Verifikationslogik läuft THEN bricht sie mit einer eigenen, von „Checksum-Mismatch"
+      unterscheidbaren Meldung ab (Exit ≠ 0).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -60,6 +64,34 @@ diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter z
 - Prettier ignoriert `.github/` und `scripts/` (`.prettierignore`) – das Format-Gate ist von
   dieser Änderung nicht betroffen.
 
+**Rework nach Review-Runde 1 (Implement-Runde 2):**
+- **Zwei Anker statt einem:** `YQ_SHA256` ist jetzt im Repo gepinnt und der eigentliche
+  Supply-Chain-Anker; der aus `checksums` gelesene Wert wird dagegen geprüft (eigener
+  Fehlerpfad „Pin-Abweichung"). Grund: `checksums`/`checksums_hashes_order` kommen aus
+  demselben Kanal wie das Binary – wer das eine ersetzen kann, ersetzt das andere mit. Die
+  mitgeladenen Release-Dateien liefern weiterhin Spaltenordnung + Korruptions-/Drift-Erkennung.
+  Grenze der Zusage (im Header dokumentiert): Trust-on-First-Use-Anker, keine Prüfung der
+  Publisher-Identität. Ein Bump ändert genau zwei Zeilen (`YQ_VERSION` + `YQ_SHA256`).
+- **Pin-Wert im Volltext belegt:** die CI-Notiz unten zitiert den Hash gekürzt; der gepinnte
+  Wert wurde per `gh run view 30805947583 --log` gegen das Log gegengeprüft, nicht aus der
+  Kürzung rekonstruiert.
+- **Plattform-Guard** `require_linux_amd64` vor dem ersten Download: der Pin gilt für genau ein
+  Artefakt; ohne Guard hätte ein macOS-Aufruf erfolgreich verifiziert und `/usr/local/bin/yq`
+  mit einem Linux-Binary überschrieben (auffällig erst nach dem Clobbern). Tests stellen `uname`
+  per PATH-Shadowing, damit der Guard auf jeder Maschine deterministisch feuert.
+- **Fail-closed Argument-Dispatch** (`case` statt einzelner `--verify`-Bedingung): `--help`
+  installiert nicht mehr, ein Tippfehler wie `--verfiy` endet in Usage + Exit 2 statt im
+  privilegierten Installationspfad (Muster aus #262).
+- **`ci_job_block <job> <file>`** als einziger awk-Job-Block-Extraktor; die zwei
+  Bestandsstellen sind mitgezogen (Lesson #240/#251 – keine dritte Kopie).
+- **Regel in geladener Doku** (CLAUDE.md §Guardrails + OPERATING.md §5.4), nicht nur im
+  Skript-Header – Header landen nicht im Agenten-Kontext. Zwei Doku-Checks in der Suite sichern
+  das fail-closed ab.
+- **Netzwerkfreiheit deterministisch belegt:** `wget`/`curl` werden im Test per PATH-Shadowing
+  durch ein lautes, immer fehlschlagendes Stub ersetzt (statt Proxy-Variablen, die nur wirken,
+  wenn das Werkzeug sie beachtet).
+- Suite nach dem Rework: **861 grün / 0 rot** (vorher 837).
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 - [x] Scope: `factory-poll.yml` mitgehärtet? → Ja (Nutzer-Entscheidung, siehe Spec-Kontext).
@@ -78,6 +110,16 @@ diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter z
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Runde 1: `NEEDS_REWORK` – Volltext in [review-258.md](review-258.md). Sechs wichtige Findings,
+alle behoben (siehe §Rework dort und in den technischen Notizen oben); acht Nitpicks mit
+erledigt, vier bewusst offen gelassen (mit Begründung dokumentiert). Erneutes `/review` steht
+aus – die Status-Checkbox „Review bestanden" bleibt daher offen.
+
+**Neuer Nachtest in CI nötig:** Der Download-Pfad hat sich durch das Rework geändert
+(Plattform-Guard + Pin-Vergleich vor der Berechnung). Der CI-Nachweis unten (Run 30805947583)
+belegt den Stand *vor* dem Rework; der nächste Push muss zeigen, dass `config-validation` und
+`factory-self-test` weiterhin grün sind und die Pin-Prüfung nicht anschlägt (bei falschem Pin
+wäre der Job rot mit „Pin-Abweichung" – fail-closed, also nicht still).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

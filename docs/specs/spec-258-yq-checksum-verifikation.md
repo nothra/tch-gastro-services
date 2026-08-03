@@ -21,6 +21,15 @@ Man-in-the-Middle auf der Download-URL ohne TLS-Pinning-Ausfall) würde unbemerk
 CI-Lauf ausgeführt – mit Zugriff auf `GITHUB_TOKEN` (issue-sync, config-validation) bzw.
 `ANTHROPIC_API_KEY` (factory-poll).
 
+**Präzisierung nach Review-Runde 1:** Eine Verifikation *ausschließlich* gegen die zur Laufzeit
+mitgeladenen `checksums`/`checksums_hashes_order` deckt das oben genannte Asset-Ersetzungs-Szenario
+**nicht** ab – die Hash-Dateien kommen aus demselben Kanal wie das Binary, wer das eine ersetzen
+kann, ersetzt das andere mit. Der tragende Anker ist deshalb ein **im Repo gepinnter SHA-256**
+(`YQ_SHA256`), gegen den der veröffentlichte Wert geprüft wird; die mitgeladenen Release-Dateien
+liefern Spaltenordnung und Erkennung von Korruption/Teil-Download/Format-Drift. Grenze der
+Zusage: der Pin ist ein Trust-on-First-Use-Anker, keine Prüfung der Publisher-Identität
+(Signaturkette bleibt außerhalb des Scopes, siehe unten).
+
 ## Scope
 
 **Inbegriffen:**
@@ -29,6 +38,15 @@ CI-Lauf ausgeführt – mit Zugriff auf `GITHUB_TOKEN` (issue-sync, config-valid
   Dateien `checksums` und `checksums_hashes_order` (offizielle mikefarah/yq-Release-Assets),
   verifiziert den SHA-256-Hash des heruntergeladenen `yq_linux_amd64`-Binaries dagegen, **bevor**
   `chmod +x` gesetzt wird, und installiert erst danach nach `/usr/local/bin/yq`.
+- Zusätzlich (Review-Runde 1) ein **im Repo gepinnter Erwartungswert** `YQ_SHA256` als zweite
+  Konstante neben `YQ_VERSION`: der aus `checksums` gelesene Wert wird dagegen geprüft, damit der
+  Erwartungswert nicht ausschließlich aus dem ungeprüften Download-Kanal stammt. Ein
+  Versions-Bump ändert genau diese zwei Zeilen.
+- Ein **Plattform-Guard** (`uname -s`/`uname -m`) vor dem Download: der gepinnte Hash gilt für
+  genau ein Artefakt (`yq_linux_amd64`), ein Aufruf auf macOS/arm64 darf `/usr/local/bin/yq`
+  nicht mit einem Fremdplattform-Binary überschreiben.
+- **Fail-closed Argument-Dispatch:** unbekannte Argumente (Tippfehler, `--help`) landen nicht im
+  privilegierten Installationspfad, sondern in Usage + Exit ≠ 0 (Muster aus #262).
 - Die Verifikationslogik (Hash aus `checksums` + `checksums_hashes_order` extrahieren, gegen
   die Binary prüfen) liegt in einer eigenen, ohne Netzwerk aufrufbaren Funktion/Skript-Sektion,
   damit sie per Fixture testbar ist (Mocking-Regel: kein Netzwerk in Unit-/Self-Tests).
@@ -78,6 +96,10 @@ CI-Lauf ausgeführt – mit Zugriff auf `GITHUB_TOKEN` (issue-sync, config-valid
 - [ ] GIVEN dieselbe Verifikationslogik WHEN sie im Self-Test gegen ein Fixture mit
       **manipuliertem** Hash geprüft wird THEN meldet sie einen Fehler (Exit ≠ 0) – die
       Negativ-Probe ist ein eigener Testfall, nicht nur die Abwesenheit des Positiv-Tests.
+- [ ] GIVEN ein Fixture, dessen veröffentlichter Hash vom **im Repo gepinnten** `YQ_SHA256`
+      abweicht (Szenario „Release-Asset unter demselben Tag ersetzt") WHEN die
+      Verifikationslogik läuft THEN bricht sie mit einer eigenen, von „Checksum-Mismatch"
+      unterscheidbaren Meldung ab (Exit ≠ 0).
 
 ## Fehlerszenarien
 
