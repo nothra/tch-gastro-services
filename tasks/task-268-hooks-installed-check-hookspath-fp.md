@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -169,6 +169,27 @@ Teständerung, in diesem `/test`-Durchlauf behoben:
 
 Test-Stand nach Runde-4-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
 (reine Kommentar-/Doku-Korrektur, keine Assertion berührt).
+
+## Security-Review-Notizen
+
+`/security-review` → **PASSED** (0 kritische, 0 wichtige Findings, 4 Hinweise; Report:
+`tasks/security-268.md`). Angriffsfläche ist ausschließlich lokale Shell-Ausführung
+(Gate-Skript + Tests + Doku, kein Anwendungscode, keine Dependency-Änderung). Kein
+Command-Injection-Pfad (alle Verwendungen des config-kontrollierten Werts sind quotierte
+Expansions, kein `eval`), kein Fail-open (alle drei `git config --get`-Exit-Klassen
+abgedeckt), keine Secrets. Die drei substanziellen Hinweise waren bereits aus `/review`
+getrackt – kein neues Issue angelegt, stattdessen `security`-Aspekt-Label ergänzt:
+- **#280** – `echo -e` interpretiert Backslash-Escapes im config-kontrollierten
+  `core.hooksPath`-Wert (Output-Integrität; kein Gate-Bypass, Exit-Code unberührt).
+- **#279** – `install-hooks.sh` behandelt Leerstring weiter als „nicht gesetzt" (Fail-open
+  in der Geschwister-Stelle, außerhalb des #268-Scopes).
+- **#278** – fehlendes Opt-out kann bei global gesetztem `core.hooksPath` zur Gewöhnung an
+  `git push --no-verify` führen (umgeht dann alle pre-push-Gates; server-seitige Grenze
+  bleibt ADR-029).
+
+Security-Positiv: der PR schließt eine Fail-open-Lücke in einem sicherheitsrelevanten Gate –
+bisher meldete der Check grün, während Git keinen Factory-Hook aufrief (u. a. der
+Credential-Scan des `pre-commit`-Hooks war still inaktiv).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
