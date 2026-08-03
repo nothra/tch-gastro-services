@@ -65,13 +65,6 @@ ci_job_block() {
   awk -v j="$1" '$0 ~ "^  " j ":" {f=1; next} /^  ([A-Za-z0-9_-]+:|# ───)/{if (f) exit} f' "$2"
 }
 
-# hex64 <zeichen> – 64-stelliger Hex-Füllwert aus einem Zeichen (Platzhalter-Hash in Fixtures).
-hex64() {
-  local i out=""
-  for ((i = 0; i < 64; i++)); do out+="$1"; done
-  printf '%s' "$out"
-}
-
 # ─── branch-name-check.sh: direkter Aufruf mit Befehls-String ────────────────
 echo "branch-name-check.sh (Befehls-String als \$1):"
 
@@ -4381,6 +4374,16 @@ YQ_EMPTY_SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85
 # Die Nachbarzeilen `yq_linux_386` und `yq_linux_amd64.tar.gz` tragen in der SHA-256-Spalte
 # absichtlich falsche Werte (Kontrolle gegen Zeilenauswahl per Präfix/erstem Treffer statt
 # exaktem Dateinamen-Vergleich).
+# hex64 <zeichen> – 64-stelliger Hex-Füllwert aus einem Zeichen (Platzhalter-Hash in Fixtures).
+# Nur hier gebraucht (yq_fixture + zwei Fehlerszenarien unten) – deshalb lokal bei den
+# #258-Fixtures definiert statt bei den generischen Helfern am Dateikopf (Review-Runde-2-Nitpick;
+# ci_job_block bleibt oben, weil es drei Nutzer über die Datei verteilt hat).
+hex64() {
+  local i out=""
+  for ((i = 0; i < 64; i++)); do out+="$1"; done
+  printf '%s' "$out"
+}
+
 yq_fixture() {
   local dir="$1" sha256_pos="${2:-3}"
   local -a fillers=(BLAKE2B-512 SHA-384 SHA-512 MD5)

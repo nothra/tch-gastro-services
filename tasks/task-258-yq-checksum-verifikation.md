@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -229,6 +229,15 @@ bleiben bewusst offen: die ersten beiden verlangen eine Produktionscode-Änderun
 (`/test` darf laut Testing-Agent-Persona keinen Produktionscode ändern) bzw. sind mit dem
 etablierten PATH-Shadowing nicht ohne Zusatzaufwand erreichbar; die dritte ist reine
 Doku-Pflege ohne Test-Hebel. Ebenso weiterhin offen: `hex64`-Platzierung (`/refactor`).
+
+## Refactoring-Notizen (`/refactor`)
+
+Einziger offener Punkt aus dem Review (Runde 2, bewusst dem `/refactor`-Schritt überlassen):
+`hex64` stand bei den generischen Helfern am Dateikopf (`run-tests.sh`), hat aber genau einen
+Nutzungsort ~4300 Zeilen weiter unten (der #258-Fixture-Block: `yq_fixture` + zwei
+Fehlerszenarien). Verschoben an die einzige Nutzungsstelle, direkt vor `yq_fixture`;
+`ci_job_block` bleibt oben, da es drei über die Datei verteilte Nutzer hat. Kein Verhalten
+geändert – reine Platzierung. Suite vor und nach dem Schritt identisch: 865 grün / 0 rot.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
