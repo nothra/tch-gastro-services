@@ -4210,11 +4210,18 @@ printf '%s' "$out" | grep -qF 'core.hooksPath'
 assert_true "$?" "#268 AK2: Fehlermeldung nennt core.hooksPath als Ursache"
 
 # 2. core.hooksPath gesetzt, Hooks fehlen im Standardpfad vollständig → ebenfalls fail-closed
-# (die core.hooksPath-Prüfung greift unabhängig vom Dateizustand).
+# (die core.hooksPath-Prüfung greift unabhängig vom Dateizustand). Ohne install_all_hooks
+# würde bereits die bestehende Präsenzprüfung (spec-265) exit 1 liefern – erst das
+# pfadspezifische Signal + die Abwesenheit der Präsenz-Meldung belegen, dass wirklich der
+# neue core.hooksPath-Guard gegriffen hat (Review-Finding #268 Runde 1).
 WT=$(hi_repo hookspath-no-residue)
 git -C "$WT" config core.hooksPath ".husky"
 out=$(rc_hooks "$WT"); rc=$?
 assert_true "$([ "$rc" -ne 0 ]; echo $?)" "#268 AK3: core.hooksPath gesetzt + Hooks fehlen im Standardpfad → exit ≠ 0"
+printf '%s' "$out" | grep -qF 'core.hooksPath'
+assert_true "$?" "#268 AK3: Fehlermeldung nennt core.hooksPath (pfadspezifisches Signal statt Zufallstreffer der Präsenzprüfung)"
+printf '%s' "$out" | grep -qF 'Fehlende oder nicht ausführbare Git-Hooks'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#268 AK3: die alte Präsenz-Fehlermeldung erscheint NICHT (Guard hat Vorrang, wird vorher erreicht)"
 
 # 3. Fehlermeldung nennt Pfad, Scope/Herkunft und Remediation-Hinweis.
 WT=$(hi_repo hookspath-message)
@@ -4225,8 +4232,8 @@ printf '%s' "$out" | grep -qF '.husky'
 assert_true "$?" "#268 AK4: Fehlermeldung nennt den konfigurierten Pfad (.husky)"
 printf '%s' "$out" | grep -qF 'file:'
 assert_true "$?" "#268 AK4: Fehlermeldung nennt die Herkunft/Scope (git config --show-origin)"
-printf '%s' "$out" | grep -qF 'core.hooksPath'
-assert_true "$?" "#268 AK4: Fehlermeldung nennt einen Remediation-Hinweis rund um core.hooksPath"
+printf '%s' "$out" | grep -qF 'git config --unset core.hooksPath'
+assert_true "$?" "#268 AK4: Fehlermeldung nennt den konkreten Remediation-Befehl (nicht nur tautologisch 'core.hooksPath')"
 
 # 4. Läuft aus einem Worktree heraus – core.hooksPath liegt im gemeinsamen Git-Verzeichnis,
 # der Check muss denselben effektiven Wert lesen wie install-hooks.sh (kein worktree-lokales
@@ -4239,13 +4246,25 @@ git -C "$WT" commit -q -m "chore: init" >/dev/null 2>&1
 git -C "$WT" worktree add -q -b improvement/268-probe "$TMP_HI/hookspath-worktree-wt" >/dev/null 2>&1
 out=$(FACTORY_DIR="$TMP_HI/hookspath-worktree-wt" bash "$HI_CHECK" 2>&1); rc=$?
 assert_true "$([ "$rc" -ne 0 ]; echo $?)" "#268 AK5: core.hooksPath aus einem Worktree heraus → derselbe effektive Wert, fail-closed"
+# Pfadspezifisches Signal nötig: schlägt `git worktree add` fehl (z. B. Fixture-Fehler),
+# existiert der Ziel-Worktree nicht und schon `cd "$ROOT"` scheitert im Skript – exit ≠ 0,
+# ohne dass core.hooksPath je gelesen wurde. Erst der '.husky'-Treffer belegt, dass der
+# Guard tatsächlich lief (Review-Finding #268 Runde 1).
+printf '%s' "$out" | grep -qF '.husky'
+assert_true "$?" "#268 AK5: Fehlermeldung nennt den aus dem gemeinsamen Git-Verzeichnis gelesenen Pfad (.husky) statt nur zufällig grün zu sein"
 
-# 5. Leerer core.hooksPath-Wert wird wie „nicht gesetzt" behandelt (Vorbild install-hooks.sh).
+# 5. Leerer core.hooksPath-Wert verhält sich NICHT wie „nicht gesetzt" (empirisch mit
+# git 2.51 verifiziert, siehe Skript-Header): Git löst den Hook-Pfad dann auf das
+# Arbeitsverzeichnis auf und ruft $GIT_COMMON_DIR/hooks nicht mehr auf. Muss daher
+# ebenfalls fail-closed sein – bewusste Abweichung vom ursprünglich angenommenen Vorbild
+# install-hooks.sh (Korrektur ggü. Review-Finding #268 Runde 1, spec-268 „Offene Fragen").
 WT=$(hi_repo hookspath-empty)
 install_all_hooks "$WT"
 git -C "$WT" config core.hooksPath ""
 out=$(rc_hooks "$WT"); rc=$?
-assert_exit 0 "$rc" "#268: leerer core.hooksPath-Wert zählt als nicht gesetzt → exit 0 (Gegenprobe)"
+assert_true "$([ "$rc" -ne 0 ]; echo $?)" "#268: leerer core.hooksPath-Wert ist NICHT gleichbedeutend mit 'nicht gesetzt' → exit ≠ 0 (fail-closed)"
+printf '%s' "$out" | grep -qF 'core.hooksPath'
+assert_true "$?" "#268: Fehlermeldung nennt core.hooksPath auch im Leerstring-Fall"
 
 # 6. Gegenprobe: core.hooksPath NICHT gesetzt, Hooks vorhanden+ausführbar → unverändertes
 # Erfolgsverhalten (spec-265 AK1 bleibt bestehen).

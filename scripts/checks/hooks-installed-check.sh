@@ -2,20 +2,33 @@
 # hooks-installed-check.sh – prüft, dass die drei Factory-Git-Hooks installiert sind
 # (pre-commit, pre-push, commit-msg).
 #
-# Fail-closed: fehlt einer der Hooks im gemeinsamen Git-Verzeichnis ODER ist er nicht
-# ausführbar, schlägt der Check fehl (Exit 1) und nennt den/die betroffenen Hook-Namen
-# sowie den Remediation-Befehl `bash scripts/install-hooks.sh`. Reine Existenzprüfung
-# reicht nicht – nicht ausführbare Hooks laufen bei Git ins Leere (Issue #265,
-# ADR-042 §Consequences).
+# Fail-closed: fehlt einer der Hooks im gemeinsamen Git-Verzeichnis, ist er nicht
+# ausführbar, ODER ist `core.hooksPath` gesetzt (siehe unten), schlägt der Check fehl
+# (Exit 1) und nennt Ursache + Remediation-Hinweis. Reine Existenzprüfung reicht nicht –
+# nicht ausführbare Hooks laufen bei Git ins Leere (Issue #265, ADR-042 §Consequences).
 #
 # Kein Inhaltsvergleich gegen install-hooks.sh (bewusst, siehe spec-265 „Nicht
-# inbegriffen") – nur Präsenz + Ausführbarkeit.
+# inbegriffen") – nur Präsenz + Ausführbarkeit + `core.hooksPath` (spec-268).
 #
 # core.hooksPath (z. B. durch husky) hat Vorrang vor der Präsenzprüfung: ist die Option
 # gesetzt, führt Git ausschließlich Hooks aus diesem Verzeichnis aus – Datei-Reste im
 # Standardpfad ($GIT_COMMON_DIR/hooks) liefen dort nie, auch wenn sie noch ausführbar
 # vorhanden sind. Fail-closed statt Schein-Erfolg (spec-268, analog install-hooks.sh
-# ADR-042).
+# ADR-042). Anders als der einmalige Installer läuft dieser Check wiederholt im
+# Push-Gate – es gibt keinen Zustand, in dem Reste im Standardpfad tatsächlich greifen,
+# solange `core.hooksPath` gesetzt bleibt. Die Meldung bietet daher bewusst **keine**
+# „Factory-Checks im konfigurierten Pfad einbinden"-Option an: das würde diesen Check
+# nie grün machen, da er ausschließlich `$GIT_COMMON_DIR/hooks` liest (im Unterschied zu
+# `install-hooks.sh`, dessen Meldung diese Option nennt, weil sie dort tatsächlich einen
+# Ausweg beschreibt).
+#
+# Leerstring-Sonderfall (bewusste Abweichung von install-hooks.sh, empirisch mit
+# git 2.51 verifiziert): `core.hooksPath=""` verhält sich NICHT wie „nicht gesetzt" –
+# Git löst den Hook-Pfad dann auf das Arbeitsverzeichnis auf (`git rev-parse
+# --git-path hooks` liefert `./` statt `$GIT_COMMON_DIR/hooks`) und ruft die Hooks im
+# Standardpfad gar nicht mehr auf. Ein leerer Wert zählt hier deshalb ebenfalls als
+# „gesetzt" (fail-closed) – `install-hooks.sh` hat denselben Blindspot, bleibt aber
+# unverändert (außerhalb des Scopes von spec-268).
 #
 # Verwendet das GEMEINSAME Git-Verzeichnis (`git rev-parse --git-common-dir`), damit der
 # Check aus jedem Worktree dieses Repos dasselbe Ergebnis liefert wie install-hooks.sh
@@ -48,19 +61,22 @@ case "$GIT_COMMON_DIR" in
   *) GIT_COMMON_DIR="$ROOT/$GIT_COMMON_DIR" ;;
 esac
 
-# Ist core.hooksPath gesetzt (z. B. durch husky), führt Git AUSSCHLIESSLICH Hooks aus
-# diesem Verzeichnis aus – ausführbare Reste im Standardpfad ($GIT_COMMON_DIR/hooks) laufen
-# dort nie und dürfen den Check nicht als Erfolg durchgehen lassen (spec-268, analog
-# install-hooks.sh ADR-042). Ein Leerstring zählt wie bei install-hooks.sh als „nicht gesetzt".
-if HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)" &&
-  [ -n "$HOOKS_PATH_CONFIG" ]; then
+# Ist core.hooksPath gesetzt (z. B. durch husky) – auch auf einen Leerstring, siehe
+# Skript-Header –, führt Git Hooks nicht mehr aus $GIT_COMMON_DIR/hooks aus. Ausführbare
+# Reste dort laufen dann nie und dürfen den Check nicht als Erfolg durchgehen lassen
+# (spec-268, analog install-hooks.sh ADR-042). Kein `[ -n … ]`-Zusatzcheck: `git config
+# --get` liefert exit 1 nur, wenn der Key völlig fehlt – ein gesetzter Leerstring liefert
+# exit 0 (empirisch verifiziert) und muss denselben Fail-closed-Pfad nehmen.
+if HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)"; then
   # Scope mitnennen: `--get` liest auch global/system – ein blanker Hinweis auf
   # `git config --unset` würde sonst auf den falschen Scope zeigen.
   HOOKS_PATH_ORIGIN="$(git config --show-origin --get core.hooksPath 2>/dev/null | cut -f1 || true)"
-  echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' ist auf '$HOOKS_PATH_CONFIG' gesetzt (${HOOKS_PATH_ORIGIN:-Herkunft unbekannt}) – Git führt nur Hooks aus diesem Verzeichnis aus."
-  echo "     Auch vorhandene Datei-Reste in \$GIT_COMMON_DIR/hooks wären wirkungslos (fail-closed)."
-  echo "     Beheben: Option entfernen ('git config --unset core.hooksPath', ggf. mit --global/--system)"
-  echo "     oder die Factory-Checks in '$HOOKS_PATH_CONFIG' einbinden (pre-commit, pre-push, commit-msg)."
+  HOOKS_PATH_DISPLAY="${HOOKS_PATH_CONFIG:-<leer>}"
+  echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' ist auf '$HOOKS_PATH_DISPLAY' gesetzt (${HOOKS_PATH_ORIGIN:-Herkunft unbekannt}) – Git führt Hooks nicht aus '$GIT_COMMON_DIR/hooks' aus."
+  echo "     Auch vorhandene Datei-Reste dort wären wirkungslos (fail-closed)."
+  echo "     Dieser Check prüft ausschließlich '$GIT_COMMON_DIR/hooks' und kann bei gesetztem"
+  echo "     core.hooksPath nicht grün werden – auch nicht durch Einbinden der Factory-Checks in"
+  echo "     '$HOOKS_PATH_DISPLAY'. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
   exit 1
 fi
 

@@ -96,8 +96,16 @@ schließen.
 - [ ] `git config --get core.hooksPath` liefert keinen Wert, weil kein
       Git-Repository vorliegt → bestehendes Fail-closed-Verhalten (spec-265
       Fehlerszenario „kein Git-Repository") hat Vorrang, unverändert.
-- [ ] `core.hooksPath` ist auf einen leeren String gesetzt → wird wie „nicht
-      gesetzt" behandelt (siehe Offene Frage — Vorbild `install-hooks.sh`).
+- [x] ~~`core.hooksPath` ist auf einen leeren String gesetzt → wird wie „nicht
+      gesetzt" behandelt (siehe Offene Frage — Vorbild `install-hooks.sh`).~~
+      **Korrektur (Rework nach Review-Finding, empirisch mit git 2.51 verifiziert):**
+      Diese Annahme war falsch. `core.hooksPath=""` verhält sich NICHT wie „nicht
+      gesetzt" – Git löst den Hook-Pfad dann auf das Arbeitsverzeichnis auf und ruft
+      `$GIT_COMMON_DIR/hooks` nicht mehr auf (`git rev-parse --git-path hooks` liefert
+      `./` statt `.git/hooks`; ein Test-Hook lief in der Probe nachweislich nicht mehr).
+      Ein Leerstring wird daher ebenfalls fail-closed behandelt – bewusste Abweichung
+      vom Vorbild `install-hooks.sh`, das denselben Blindspot noch hat (Follow-up,
+      s. ADR-042 §Consequences).
 
 ## Offene Fragen
 
