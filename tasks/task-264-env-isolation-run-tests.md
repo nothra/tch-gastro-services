@@ -282,6 +282,10 @@ Issue #275 ausgelagert; WHY-Kommentar-Sweep auf Geschwister-Stellen ausweiten,
 `code-style.md`). Kein neues Muster in der eigentlichen Env-Isolation-Härtung selbst –
 bestehende Lessons (#114/#255/#261/#265, #253) griffen bereits.
 
+PR-Shepherd 2026-08-03: Merge freigegeben – alle Gates grün (Review APPROVED mit erledigter
+Auflage, Security-Review PASSED, Refactoring abgeschlossen, CI grün, keine Approval-Pflicht
+ausstehend, `mergeStateStatus: CLEAN`).
+
 ---
 Branch: `test/264-env-isolation-run-tests`
 Erstellt: 2026-08-03 00:02
