@@ -170,6 +170,32 @@ Teständerung, in diesem `/test`-Durchlauf behoben:
 Test-Stand nach Runde-4-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
 (reine Kommentar-/Doku-Korrektur, keine Assertion berührt).
 
+**Runde 5 (APPROVED, siehe `tasks/review-268.md`):** Re-Review nach dem Runde-4-Fix
+(`b756cb8`) und dem Security-Review (`c0f999a`). 0 kritische Findings, 2 wichtige Findings –
+wieder reine Textkorrekturen ohne Verhaltens- oder Teständerung, in diesem `/refactor`-Durchlauf
+behoben:
+- **W1** – der WHY-Kommentar `hooks-installed-check.sh:17-19` behauptete kategorisch, es gebe
+  „keinen Zustand, in dem Reste im Standardpfad tatsächlich greifen, solange `core.hooksPath`
+  gesetzt bleibt" – das ist falsch für den Sonderfall, dass `core.hooksPath` selbst auf
+  `$GIT_COMMON_DIR/hooks` zeigt (dort laufen die Reste dann doch, der Guard lehnt aber
+  wertunabhängig jeden gesetzten Wert ab). Kommentar relativiert auf „… solange
+  `core.hooksPath` auf ein anderes Verzeichnis zeigt" + Verweis auf das dafür neu angelegte
+  Out-of-Scope-Issue **#281**. Die Verhaltensänderung selbst (effektiven Hookpfad statt reiner
+  Gesetzt-Prüfung vergleichen) ist eine Spec-Entscheidung gegen ADR-042 §Consequences und
+  bleibt außerhalb dieses PRs.
+- **W2** – `docs/adr/042-hook-installation-single-source.md` nannte die beiden
+  Escape-Hatch-/Leerstring-Consequence-Bullets weiter ohne Issue-Nummer, obwohl der in
+  demselben PR committete Security-Report (`c0f999a`) bereits **#278** (Opt-out) und **#279**
+  (Leerstring-Blindspot) referenziert – zwei Artefakte desselben PRs widersprachen sich über
+  denselben Sachverhalt. Beide Bullets tragen jetzt die Issue-Nummer.
+- Nitpick (kostenlos mitgenommen): die Security-Review-Notiz oben behauptete, alle drei
+  getrackten Hinweise hätten das `security`-Aspekt-Label erhalten – `gh issue view 278/279/280`
+  zeigt, dass nur #279/#280 es tragen, #278 nicht. Notiz auf den tatsächlichen Label-Stand
+  korrigiert, kein Label nachträglich gesetzt (Genauigkeitsfix, keine neue Entscheidung).
+
+Test-Stand nach Runde-5-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
+(reine Kommentar-/Doku-Korrektur, keine Assertion berührt).
+
 ## Security-Review-Notizen
 
 `/security-review` → **PASSED** (0 kritische, 0 wichtige Findings, 4 Hinweise; Report:
@@ -178,14 +204,15 @@ Test-Stand nach Runde-4-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 
 Command-Injection-Pfad (alle Verwendungen des config-kontrollierten Werts sind quotierte
 Expansions, kein `eval`), kein Fail-open (alle drei `git config --get`-Exit-Klassen
 abgedeckt), keine Secrets. Die drei substanziellen Hinweise waren bereits aus `/review`
-getrackt – kein neues Issue angelegt, stattdessen `security`-Aspekt-Label ergänzt:
-- **#280** – `echo -e` interpretiert Backslash-Escapes im config-kontrollierten
-  `core.hooksPath`-Wert (Output-Integrität; kein Gate-Bypass, Exit-Code unberührt).
-- **#279** – `install-hooks.sh` behandelt Leerstring weiter als „nicht gesetzt" (Fail-open
-  in der Geschwister-Stelle, außerhalb des #268-Scopes).
-- **#278** – fehlendes Opt-out kann bei global gesetztem `core.hooksPath` zur Gewöhnung an
-  `git push --no-verify` führen (umgeht dann alle pre-push-Gates; server-seitige Grenze
-  bleibt ADR-029).
+getrackt – kein neues Issue angelegt:
+- **#280** (`security`-Aspekt-Label) – `echo -e` interpretiert Backslash-Escapes im
+  config-kontrollierten `core.hooksPath`-Wert (Output-Integrität; kein Gate-Bypass,
+  Exit-Code unberührt).
+- **#279** (`security`-Aspekt-Label) – `install-hooks.sh` behandelt Leerstring weiter als
+  „nicht gesetzt" (Fail-open in der Geschwister-Stelle, außerhalb des #268-Scopes).
+- **#278** (ohne `security`-Aspekt-Label) – fehlendes Opt-out kann bei global gesetztem
+  `core.hooksPath` zur Gewöhnung an `git push --no-verify` führen (umgeht dann alle
+  pre-push-Gates; server-seitige Grenze bleibt ADR-029).
 
 Security-Positiv: der PR schließt eine Fail-open-Lücke in einem sicherheitsrelevanten Gate –
 bisher meldete der Check grün, während Git keinen Factory-Hook aufrief (u. a. der

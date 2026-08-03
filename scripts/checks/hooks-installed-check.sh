@@ -15,8 +15,9 @@
 # Standardpfad ($GIT_COMMON_DIR/hooks) liefen dort nie, auch wenn sie noch ausführbar
 # vorhanden sind. Fail-closed statt Schein-Erfolg (spec-268, analog install-hooks.sh
 # ADR-042). Anders als der einmalige Installer läuft dieser Check wiederholt im
-# Push-Gate – es gibt keinen Zustand, in dem Reste im Standardpfad tatsächlich greifen,
-# solange `core.hooksPath` gesetzt bleibt. Die Meldung bietet daher bewusst **keine**
+# Push-Gate – Reste im Standardpfad greifen nicht, solange `core.hooksPath` auf ein
+# anderes Verzeichnis zeigt (der Sonderfall eines auf den Standardpfad selbst gerichteten
+# Werts wird bewusst mit-abgelehnt, s. #281). Die Meldung bietet daher bewusst **keine**
 # „Factory-Checks im konfigurierten Pfad einbinden"-Option an: das würde diesen Check
 # nie grün machen, da er ausschließlich `$GIT_COMMON_DIR/hooks` liest (im Unterschied zu
 # `install-hooks.sh`, dessen Meldung diese Option nennt, weil sie dort tatsächlich einen
