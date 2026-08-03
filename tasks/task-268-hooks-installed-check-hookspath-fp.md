@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -130,6 +130,23 @@ erreicht, daher keine vierte Implement-Runde) – in diesem `/test`-Durchlauf be
 Test-Stand nach Runde-3-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
 (Fixture-Hermetik-Fix ändert keine Assertion-Anzahl, nur deren Isolation gegen ambiente
 Umgebung).
+
+## Refactoring-Notizen
+
+Clean-Code-Pass über `scripts/checks/hooks-installed-check.sh` (nach 3 APPROVED-Review-Runden
+kaum noch Spielraum, ein Punkt gefunden): Im `core.hooksPath`-gesetzt-Zweig wurde dieselbe
+Bedingung (`[ -n "$HOOKS_PATH_CONFIG" ]`) zweimal hintereinander geprüft – einmal für
+`HOOKS_PATH_DISPLAY`, einmal für die zwei alternativen Remediation-Textblöcke, wobei der
+Satz „Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)." wortgleich in
+beiden Zweigen stand. Zusammengeführt zu einer einzigen `if`/`else`, die `HOOKS_PATH_DISPLAY`
+und einen `HOOKS_PATH_HINT`-Text in einem Rutsch setzt; die Ausgabe ist byte-identisch
+(gegen die bestehenden `#268`-Testfälle AK2–AK5 + Leerstring-Fall + Gegenprobe geprüft).
+Sonst keine weiteren Refactoring-Kandidaten gefunden (Struktur/Naming/Duplikation im übrigen
+Skript sowie in den `run-tests.sh`-Ergänzungen bereits sauber, letztere folgen dem
+projektweit etablierten `assert_true "$([ $rc -ne 0 ]; echo $?)"`-Idiom).
+
+Test-Stand nach Refactoring: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
+(unverändert – keine neue/entfernte Assertion, nur interne Struktur verbessert).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

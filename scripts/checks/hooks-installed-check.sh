@@ -83,18 +83,16 @@ if [ "$HOOKS_PATH_RC" -eq 0 ]; then
   HOOKS_PATH_ORIGIN="$(git config --show-origin --get core.hooksPath 2>/dev/null | cut -f1 || true)"
   if [ -n "$HOOKS_PATH_CONFIG" ]; then
     HOOKS_PATH_DISPLAY="$HOOKS_PATH_CONFIG"
+    HOOKS_PATH_HINT="core.hooksPath nicht grün werden – auch nicht durch Einbinden der Factory-Checks in
+     '$HOOKS_PATH_CONFIG'. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
   else
     HOOKS_PATH_DISPLAY="<leer>"
+    HOOKS_PATH_HINT="core.hooksPath nicht grün werden. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
   fi
   echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' ist auf '$HOOKS_PATH_DISPLAY' gesetzt (${HOOKS_PATH_ORIGIN:-Herkunft unbekannt}) – Git führt Hooks nicht aus '$GIT_COMMON_DIR/hooks' aus."
   echo "     Auch vorhandene Datei-Reste dort wären wirkungslos (fail-closed)."
   echo "     Dieser Check prüft ausschließlich '$GIT_COMMON_DIR/hooks' und kann bei gesetztem"
-  if [ -n "$HOOKS_PATH_CONFIG" ]; then
-    echo "     core.hooksPath nicht grün werden – auch nicht durch Einbinden der Factory-Checks in"
-    echo "     '$HOOKS_PATH_DISPLAY'. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
-  else
-    echo "     core.hooksPath nicht grün werden. Beheben: git config --unset core.hooksPath (ggf. mit --global/--system)."
-  fi
+  echo "     $HOOKS_PATH_HINT"
   exit 1
 elif [ "$HOOKS_PATH_RC" -ne 1 ]; then
   echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' nicht auswertbar (git config exit $HOOKS_PATH_RC) – Hooks können nicht geprüft werden (fail-closed)."
