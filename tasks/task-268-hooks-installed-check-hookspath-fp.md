@@ -227,6 +227,13 @@ plus falsche Versionsangabe auf 7 Stellen kopiert). Ein neues Out-of-Scope-Issue
 (Fixture-Isolation-Lücke in `run-tests.sh` gegen ambiente `core.hooksPath`, Review-Nitpick N3).
 Übrige Nitpicks bleiben als Backlog in `tasks/review-268.md`.
 
+## PR-Shepherd-Notizen
+
+PR-Shepherd 2026-08-03: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare
+(nur Vercel-Deploy-Bot), Branch bereits aktuell zu `main` (kein Rebase nötig), CI lief zum
+Freigabe-Zeitpunkt noch (`--auto` wartet serverseitig), keine Approval-Pflicht (ADR-029: 0
+Approvals). Draft → ready for review.
+
 ---
 Branch: `feature/268-hooks-installed-check-hookspath-fp`
 Erstellt: 2026-08-03 06:41
