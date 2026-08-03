@@ -4261,7 +4261,7 @@ printf '%s' "$out" | grep -qF '.husky'
 assert_true "$?" "#268 AK5: Fehlermeldung nennt den aus dem gemeinsamen Git-Verzeichnis gelesenen Pfad (.husky) statt nur zufällig grün zu sein"
 
 # 5. Leerer core.hooksPath-Wert verhält sich NICHT wie „nicht gesetzt" (empirisch mit
-# git 2.51 verifiziert, siehe Skript-Header): Git löst den Hook-Pfad dann auf das
+# git 2.50 verifiziert, siehe Skript-Header): Git löst den Hook-Pfad dann auf das
 # Arbeitsverzeichnis auf und ruft $GIT_COMMON_DIR/hooks nicht mehr auf. Muss daher
 # ebenfalls fail-closed sein – bewusste Abweichung vom ursprünglich angenommenen Vorbild
 # install-hooks.sh (Korrektur ggü. Review-Finding #268 Runde 1, spec-268 „Offene Fragen").

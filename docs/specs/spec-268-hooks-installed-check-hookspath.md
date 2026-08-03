@@ -103,7 +103,7 @@ schließen.
       Fehlerszenario „kein Git-Repository") hat Vorrang, unverändert.
 - [x] ~~`core.hooksPath` ist auf einen leeren String gesetzt → wird wie „nicht
       gesetzt" behandelt (siehe Offene Frage — Vorbild `install-hooks.sh`).~~
-      **Korrektur (Rework nach Review-Finding, empirisch mit git 2.51 verifiziert):**
+      **Korrektur (Rework nach Review-Finding, empirisch mit git 2.50 verifiziert):**
       Diese Annahme war falsch. `core.hooksPath=""` verhält sich NICHT wie „nicht
       gesetzt" – Git löst den Hook-Pfad dann auf das Arbeitsverzeichnis auf und ruft
       `$GIT_COMMON_DIR/hooks` nicht mehr auf (`git rev-parse --git-path hooks` liefert
@@ -124,6 +124,6 @@ schließen.
       in `install-hooks.sh`, der einen Leerstring bereits als „nicht gesetzt"
       behandelt — dieselbe Guard-Logik in `hooks-installed-check.sh` übernehmen.~~
       **Korrektur (siehe „Fehlerszenarien" oben):** Diese Annahme war falsch und wurde
-      empirisch (git 2.51) widerlegt. `hooks-installed-check.sh` behandelt einen
+      empirisch (git 2.50) widerlegt. `hooks-installed-check.sh` behandelt einen
       Leerstring bewusst **abweichend** vom `install-hooks.sh`-Vorbild — als „gesetzt"
       und damit fail-closed, nicht als „nicht gesetzt".

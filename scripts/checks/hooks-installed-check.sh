@@ -23,7 +23,7 @@
 # Ausweg beschreibt).
 #
 # Leerstring-Sonderfall (bewusste Abweichung von install-hooks.sh, empirisch mit
-# git 2.51 verifiziert): `core.hooksPath=""` verhält sich NICHT wie „nicht gesetzt" –
+# git 2.50 verifiziert): `core.hooksPath=""` verhält sich NICHT wie „nicht gesetzt" –
 # Git löst den Hook-Pfad dann auf das Arbeitsverzeichnis auf (`git rev-parse
 # --git-path hooks` liefert `./` statt `$GIT_COMMON_DIR/hooks`) und ruft die Hooks im
 # Standardpfad gar nicht mehr auf. Ein leerer Wert zählt hier deshalb ebenfalls als
@@ -69,9 +69,10 @@ esac
 # Key fehlt – beides deckt der Truthy-Check ab. Der dritte Zweig unten (jeder andere Code)
 # ist Fail-closed-Defense-in-depth, nicht durch einen reproduzierbaren Input belegt: eine
 # kaputte/unlesbare Config-Datei lässt bereits das vorgelagerte `git rev-parse
-# --git-common-dir` (oben) mit demselben Nicht-Null-Exit scheitern (empirisch verifiziert,
-# git 2.50), sodass der Check dort schon in den „kein Git-Repository"-Zweig fail-closed
-# geht und diese Zeile nie erreicht. Trotzdem bleibt der Zweig stehen (clean-code.md:
+# --git-common-dir` (oben) mit demselben Nicht-Null-Exit scheitern (analytisch begründet –
+# in dieser Umgebung nicht reproduzierbar: `git`-Aufrufe in Wegwerf-Repos sind
+# permission-blockiert), sodass der Check dort schon in den „kein Git-Repository"-Zweig
+# fail-closed geht und diese Zeile nie erreicht. Trotzdem bleibt der Zweig stehen (clean-code.md:
 # Validierungs-Gates fail-closed – im Zweifel ablehnen, auch für einen Code-Pfad ohne
 # bekannten Trigger).
 HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)"

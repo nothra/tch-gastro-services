@@ -45,7 +45,7 @@ in die Projektwurzel gewechselt ist – liest denselben effektiven Wert wie
   Exit 0 vs. ≠ 0 aus.
 - [x] Leerer `core.hooksPath`-Wert: wie `install-hooks.sh` behandeln (Leerstring = „nicht gesetzt")
   → **Korrigiert nach Review-Runde 1** (siehe Review-Findings unten): Die ursprüngliche
-  Annahme war falsch. Empirisch mit git 2.51 verifiziert: `core.hooksPath=""` löst den
+  Annahme war falsch. Empirisch mit git 2.50 verifiziert: `core.hooksPath=""` löst den
   Hook-Pfad auf das Arbeitsverzeichnis auf (`git rev-parse --git-path hooks` → `./` statt
   `$GIT_COMMON_DIR/hooks`) – Git ruft `$GIT_COMMON_DIR/hooks` dann nicht mehr auf. Ein
   Leerstring zählt daher als „gesetzt" und wird fail-closed behandelt (bewusste Abweichung
@@ -68,7 +68,7 @@ Alle behoben:
 - AK5-Worktree-Test konnte über den falschen Pfad grün werden (`worktree add`-Fehlschlag
   statt echtem Guard-Treffer) → `.husky`-Signal-Assertion ergänzt.
 - Leerstring-Semantik war unverifiziert gegen die Analogie zu `install-hooks.sh` übernommen
-  → empirisch mit git 2.51 verifiziert, Verhalten umgekehrt (fail-closed statt „nicht gesetzt"),
+  → empirisch mit git 2.50 verifiziert, Verhalten umgekehrt (fail-closed statt „nicht gesetzt"),
   spec-268 „Fehlerszenarien" per Strikethrough + Korrektur-Absatz nachgezogen.
   (Korrektur zur eigenen Aussage weiter oben: der Strikethrough saß nach Runde 1 nur in
   „Fehlerszenarien", **nicht** zusätzlich in „Offene Fragen" – dort blieb die falsifizierte
@@ -147,6 +147,28 @@ projektweit etablierten `assert_true "$([ $rc -ne 0 ]; echo $?)"`-Idiom).
 
 Test-Stand nach Refactoring: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
 (unverändert – keine neue/entfernte Assertion, nur interne Struktur verbessert).
+
+**Runde 4 (APPROVED, siehe `tasks/review-268.md`):** Re-Review nach `/test` (`8c2fa9d`) und
+`/refactor` (`ebef830`) – kein weiterer Umlauf im Review↔Implement-Circuit-Breaker (der war
+mit Runde 3 bereits erschöpft), sondern eine reine Nachprüfung der beiden danach entstandenen
+Commits. 0 kritische, 2 wichtige Findings – beide reine Textkorrekturen ohne Verhaltens- oder
+Teständerung, in diesem `/test`-Durchlauf behoben:
+- **W1** – Kommentar `hooks-installed-check.sh:70-73` behauptete „empirisch verifiziert",
+  dass eine kaputte Config-Datei bereits das vorgelagerte `git rev-parse --git-common-dir`
+  scheitern lässt – tatsächlich blieb das (wie in Runde 2/3 dokumentiert) in dieser Sandbox
+  durchgehend permission-blockiert und ist nur analytisch begründet, nicht empirisch belegt.
+  Rezidiv der Runde-2-Finding-W3-Klasse (Kommentar behauptet mehr Evidenz, als vorliegt) an
+  derselben Stelle → Formulierung auf „analytisch begründet (in dieser Umgebung nicht
+  reproduzierbar: `git`-Aufrufe in Wegwerf-Repos sind permission-blockiert)" korrigiert.
+- **W2** – die Versionsangabe „empirisch mit git 2.51 verifiziert" für den Leerstring-Befund
+  war an fünf Stellen falsch (`hooks-installed-check.sh:25`, `run-tests.sh:4263`,
+  `spec-268.md:106,127`, `ADR-042.md:163`) plus zwei weitere in der Task-Datei selbst
+  (`:48,:71`) – auf dieser Maschine läuft ausschließlich git **2.50.1** (`git --version`),
+  deckungsgleich mit allen übrigen empirischen Notizen des Repos (`ADR-042:77`,
+  `run-tests.sh:3728`,`:3964`). Alle sieben Stellen auf `2.50` korrigiert.
+
+Test-Stand nach Runde-4-Fixes: `bash scripts/checks/tests/run-tests.sh` → 821 grün, 0 rot
+(reine Kommentar-/Doku-Korrektur, keine Assertion berührt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

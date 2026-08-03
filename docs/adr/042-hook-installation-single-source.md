@@ -161,7 +161,7 @@ lässt (idempotentes Skript statt vollständiger Bootstrap-Lauf).
   husky-Einsatz (z. B. eine `FACTORY_HOOKS_PATH_ACK`-Umgehung) ist bewusst nicht Teil von #268
   (YAGNI ohne konkreten Bedarf) – bei Bedarf als eigenständiges Issue anzulegen.
 - `core.hooksPath=""` (Leerstring) verhält sich **nicht** wie „nicht gesetzt" (empirisch mit
-  git 2.51 verifiziert, #268): Git löst den Hook-Pfad dann auf das Arbeitsverzeichnis auf und
+  git 2.50 verifiziert, #268): Git löst den Hook-Pfad dann auf das Arbeitsverzeichnis auf und
   ruft `$GIT_COMMON_DIR/hooks` nicht mehr auf. Der `[ -n "$HOOKS_PATH_CONFIG" ]`-Guard in
   diesem Skript (s. o., „Fail-closed bei gesetztem `core.hooksPath`") behandelt einen
   Leerstring also fälschlich als „nicht gesetzt" – ein bestehender Blindspot, der außerhalb
