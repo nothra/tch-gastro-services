@@ -4289,6 +4289,24 @@ assert_true "$?" "#258 AK1: install-yq.sh pinnt eine konkrete yq-Version (YQ_VER
 grep -qE '^YQ_SHA256="[0-9a-f]{64}"$' "$INSTALL_YQ"
 assert_true "$?" "#258 AK7: install-yq.sh pinnt den erwarteten SHA-256 im Repo (YQ_SHA256, 64 Hex)"
 
+# …und der Pin ist am PRODUKTIONSAUFRUF verdrahtet. Der Check darüber belegt nur, dass die
+# Konstante existiert und formal ein Hash ist; die AK7-Verhaltenstests unten fahren `--verify`
+# mit einem selbst mitgegebenen Fixture-Pin und berühren die Verdrahtung nicht. Ein Refactor,
+# der als vierten Parameter den aus `checksums` GELESENEN Wert übergibt, macht den
+# Pin-Vergleich trivial wahr (published = pinned) – und bliebe ohne diesen Guard lautlos:
+# Self-Test grün UND CI grün, weil ein ehrlicher Download zu seinem eigenen Hash passt
+# (Lessons #212/#214: Kopplungs-Guard am echten Aufruf, nicht nur Existenz-Grep).
+# Anker ist die Aufruf-Zeile am Spaltenanfang, nicht eine Prosa-Erwähnung (Lesson #114).
+yq_prod_verify_call="$(grep -n '^verify_sha256 "' "$INSTALL_YQ" | head -1 | cut -d: -f2-)"
+printf '%s' "$yq_prod_verify_call" | grep -qE '"\$YQ_SHA256"$'
+assert_true "$?" "#258 AK7: der Produktionsaufruf von verify_sha256 übergibt \$YQ_SHA256 als letztes Argument (Pin ist verdrahtet, nicht nur vorhanden)"
+
+# Die Download-URL muss aus $YQ_VERSION gebildet werden – sonst behauptet die Konstante eine
+# Version, während ein hartkodiertes Tag in der URL eine andere lädt (beide Guards oben würden
+# das passieren lassen; in CI fiele es erst über die Pin-Abweichung auf).
+grep -qF 'releases/download/$YQ_VERSION' "$INSTALL_YQ"
+assert_true "$?" "#258 AK1: die Download-URL wird aus \$YQ_VERSION gebildet (kein zweites, hartkodiertes Tag)"
+
 # AK4: alle drei betroffenen Jobs rufen denselben Seam auf – und keiner hat noch einen
 # eigenen wget+chmod-Block. Job-Block isoliert extrahieren (ci_job_block, Lesson #255).
 for yq_job_spec in "config-validation|$CI_FILE" "factory-self-test|$CI_FILE" "factory-poll|$POLL_YML"; do
@@ -4501,9 +4519,12 @@ assert_true "$?" "#258: unbekanntes Argument wird als solches benannt (pfadspezi
 ! printf '%s' "$yq_typo_out" | grep -qF 'NETZWERK-STUB'
 assert_true "$?" "#258: unbekanntes Argument löst keinen Download aus (fail-closed)"
 
-# Aufruf-Fehler: --verify ohne die vollständigen vier Argumente darf nicht als Erfolg durchgehen.
-yq_dispatch --verify "$YQTMP/ok/yq_linux_amd64" >/dev/null 2>&1
-assert_exit 2 "$?" "#258: --verify mit unvollständigen Argumenten → exit 2 (Aufruf-Fehler)"
+# Aufruf-Fehler: --verify ohne die vollständigen vier Argumente darf nicht als Erfolg durchgehen –
+# und benennt wie jeder andere Fehlerpfad, was fehlt (nicht nur nackte Usage).
+yq_argc_out="$(yq_dispatch --verify "$YQTMP/ok/yq_linux_amd64")"; yq_rc=$?
+assert_exit 2 "$yq_rc" "#258: --verify mit unvollständigen Argumenten → exit 2 (Aufruf-Fehler)"
+printf '%s' "$yq_argc_out" | grep -qF 'braucht vier Argumente'
+assert_true "$?" "#258: unvollständige --verify-Argumente werden pfadspezifisch benannt"
 
 # ── Plattform-Guard: der gepinnte Hash gilt für genau EIN Artefakt (yq_linux_amd64) ──
 # `uname` wird per PATH-Shadowing verstellt, damit der Guard auf JEDER Testmaschine (macOS wie

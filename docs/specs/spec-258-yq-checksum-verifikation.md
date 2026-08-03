@@ -119,8 +119,11 @@ Zusage: der Pin ist ein Trust-on-First-Use-Anker, keine Prüfung der Publisher-I
 
 - [x] Scope-Frage aus der Requirements-Phase: Soll der dritte, im Issue nicht genannte Fund
       (`factory-poll.yml`) mitgehärtet werden? → Ja (Nutzer-Entscheidung, siehe Kontext).
-- [ ] Implementierungsdetail (kann in `/implement` entschieden werden, keine ADR nötig):
+- [x] Implementierungsdetail (kann in `/implement` entschieden werden, keine ADR nötig):
       genaue CLI-Signatur von `scripts/install-yq.sh` (z. B. Versionskonstante fest im Skript
       vs. als Parameter) – Empfehlung: Versionskonstante fest im Skript (eine Änderungsstelle
       für Versions-Bumps, analog `install-hooks.sh`-Stil, kein zusätzlicher Konfigurationspfad
-      nötig).
+      nötig). → Umgesetzt: `YQ_VERSION` + `YQ_SHA256` als Konstanten im Skript (ein Bump ändert
+      genau diese zwei Zeilen); CLI = ohne Argumente installieren,
+      `--verify <binary> <checksums> <order> <sha256>` netzwerkfrei prüfen, `--help`, sonst
+      Exit 2.

@@ -44,9 +44,12 @@ Kein ADR-Trigger – reine Anwendung eines bekannten Security-Best-Practice-Must
 diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter zu `/implement`.
 
 **Umsetzung (Implement):**
-- `scripts/install-yq.sh` als einziger Bereitstellungsweg. Zwei Modi: ohne Argumente
-  „laden + verifizieren + installieren"; `--verify <binary> <checksums> <order>` prüft nur
-  eine vorliegende Datei – **netzwerkfrei**, das ist der im Self-Test getestete Kern.
+- `scripts/install-yq.sh` als einziger Bereitstellungsweg. Drei Modi: ohne Argumente
+  „laden + verifizieren + installieren"; `--verify <binary> <checksums> <order> <sha256>`
+  prüft nur eine vorliegende Datei – **netzwerkfrei**, das ist der im Self-Test getestete
+  Kern; `--help` gibt die Verwendung aus. Jedes andere Argument endet fail-closed in Usage +
+  Exit 2 (kein Durchfallen in den Installationspfad). Der vierte `--verify`-Parameter ist
+  beim Rework aus Runde 1 dazugekommen (gepinnter Erwartungswert, siehe unten).
 - Spaltenermittlung wie in yqs eigenem `extract-checksum.sh`: Zeile N in
   `checksums_hashes_order` (Algorithmus-Name) entspricht Feld N+1 der `checksums`-Zeile
   (Feld 1 = Dateiname). Zeilenauswahl per **exaktem** Feldvergleich, damit `…​.tar.gz`-Zeilen
@@ -92,6 +95,38 @@ diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter z
   wenn das Werkzeug sie beachtet).
 - Suite nach dem Rework: **861 grün / 0 rot** (vorher 837).
 
+**Rework nach Review-Runde 2 (Implement-Runde 3):**
+- **Kopplungs-Guard für den Repo-Pin:** Runde 2 zeigte per Mutation, dass `YQ_SHA256` auf
+  `000…0` gesetzt werden konnte, ohne dass ein Test rot wurde – geprüft war nur die *Existenz*
+  der Konstante, nicht ihre **Verdrahtung** an `verify_sha256`. Gefährlich ist dabei nicht das
+  Löschen des Arguments (`set -u` fängt das), sondern ein Refactor, der stattdessen den aus
+  `checksums` gelesenen Wert übergibt: dann ist `published = pinned` trivial wahr, der
+  Supply-Chain-Anker ist lautlos weg, und **beide** Signale bleiben grün (Self-Test wie CI,
+  weil ein ehrlicher Download zu seinem eigenen Hash passt). Neuer Guard ankert an der echten
+  Aufruf-Zeile (`^verify_sha256 "`) und verlangt `"$YQ_SHA256"` als letztes Argument
+  (Lessons #212/#214/#114).
+- **Diskriminierung der drei neuen Guards per Mutation belegt**, nicht behauptet: Aufruf auf
+  `published_sha256`-Wert umgestellt / Tag in `BASE_URL` hartkodiert / Meldungs-`echo`
+  entfernt → **genau** die drei zugehörigen Assertions rot (861 grün / 3 rot), kein
+  Kollateral-Rot; nach dem Rückbau 864 grün / 0 rot.
+- **URL ↔ Versionskonstante gekoppelt** (Nitpick aus Runde 2): ein hartkodiertes Tag in
+  `BASE_URL` hätte beide AK1-Guards passiert, während `YQ_VERSION` etwas anderes behauptet
+  (in CI fail-closed über die Pin-Abweichung, lokal aber unentdeckt).
+- **Letzter Fehlerpfad ohne eigene Meldung geschlossen:** `--verify` mit falscher
+  Argumentzahl benennt jetzt, *was* fehlt (statt nackter Usage), und der Test assertiert die
+  Meldung statt nur den Exit-Code – damit gilt die Designregel „jeder Fehlerpfad trägt eine
+  pfadspezifische Meldung" ausnahmslos (10 von 10).
+- **Veraltete CLI-Beschreibung nachgezogen** (§Umsetzung oben): „Zwei Modi" → drei Modi, und
+  `--verify` nimmt seit Runde 1 **vier** Argumente. Wer der alten Notiz folgte, landete bei
+  Usage + Exit 2 (Lesson #211/#176 – Präsens-Doku im selben PR mitpflegen); dieselbe Drift in
+  der Spec-Frage „genaue CLI-Signatur" ist mitabgehakt.
+- Bewusst **nicht** geändert (Nitpicks aus Runde 2): der Kommentar-Hinweis zu `YQ_HASH_ALGO`
+  ist jetzt ehrlich formuliert statt die Asymmetrie zu beseitigen (der Algorithmusname ist
+  konstant; variiert wird nur seine *Position*, und die kommt aus der Fixture) – und die
+  Platzierung von `hex64` bei den generischen Helfern bleibt dem `/refactor`-Schritt
+  überlassen, statt sie im Review-Rework mit zu verschieben.
+- Suite nach dem Rework: **864 grün / 0 rot** (vorher 861).
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 - [x] Scope: `factory-poll.yml` mitgehärtet? → Ja (Nutzer-Entscheidung, siehe Spec-Kontext).
@@ -112,8 +147,16 @@ diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter z
 <!-- Wird durch /review befüllt -->
 Runde 1: `NEEDS_REWORK` – Volltext in [review-258.md](review-258.md). Sechs wichtige Findings,
 alle behoben (siehe §Rework dort und in den technischen Notizen oben); acht Nitpicks mit
-erledigt, vier bewusst offen gelassen (mit Begründung dokumentiert). Erneutes `/review` steht
-aus – die Status-Checkbox „Review bestanden" bleibt daher offen.
+erledigt, vier bewusst offen gelassen (mit Begründung dokumentiert).
+
+Runde 2: `NEEDS_REWORK` – keine kritischen Findings, alle sechs Runde-1-Findings verifiziert
+behoben, alle sieben AK erfüllt. Zwei wichtige Findings, **beide behoben** (Implement-Runde 3
+oben): (1) fehlender Kopplungs-Guard zwischen `YQ_SHA256` und dem Produktionsaufruf,
+(2) veraltete CLI-Signatur in der technischen Notiz. Zusätzlich drei der fünf Nitpicks mit
+erledigt (Spec-Checkbox-Drift, URL↔Versions-Kopplung, Meldung im Argumentzahl-Fehlerpfad);
+zwei bewusst offen (Begründung oben). Die Runde-2-Empfehlung hält eine dritte Review-Runde
+für unnötig, wenn beide Punkte umgesetzt sind – die Status-Checkbox „Review bestanden" bleibt
+trotzdem offen, bis der Pipeline-Schritt sie setzt.
 
 **Nachtest in CI nach dem Rework – bestätigt:** Der Download-Pfad hat sich geändert
 (Plattform-Guard + Pin-Vergleich vor der Hash-Berechnung), der Nachweis unten (Run 30805947583)

@@ -102,7 +102,10 @@ published_sha256() {
 
 # verify_sha256 <binary> <checksums> <checksums_hashes_order> <gepinnter-sha256>
 # Netzwerkfreier Kern: genau diese Funktion fährt der Self-Test gegen Fixtures. Der Pin ist
-# ein Parameter (kein globaler Zugriff), damit Produktionspfad und Test dieselbe Bahn nehmen.
+# ein Parameter, damit Produktionspfad und Test dieselbe Bahn nehmen – der Fixture-Pin des
+# Tests durchläuft denselben Vergleich wie der Repo-Pin. Der Algorithmusname bleibt dagegen
+# absichtlich global: er ist konstant, rotiert wird nur seine Position, und die kommt aus der
+# übergebenen Order-Datei (also aus der Fixture) – Variieren im Test bringt hier nichts.
 verify_sha256() {
   local binary="$1" checksums_file="$2" order_file="$3" pinned="$4"
   local file target published actual
@@ -159,7 +162,10 @@ fetch() {
 # als beabsichtigt, '--help' würde installieren) – analog zum Flag-Guard aus #262.
 case "${1:-}" in
   --verify)
+    # Eigene Meldung statt nur Usage: jeder Fehlerpfad benennt, WAS fehlt (sonst rät der
+    # Aufrufer, welches der vier Argumente er vergessen hat).
     [ "$#" -eq 5 ] || {
+      echo "install-yq: --verify braucht vier Argumente <binary> <checksums> <checksums_hashes_order> <sha256> (erhalten: $(($# - 1)))." >&2
       usage >&2
       exit 2
     }
