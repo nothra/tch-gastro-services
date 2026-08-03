@@ -125,7 +125,18 @@ diskutieren. `/architecture` wird für diese Task übersprungen, direkt weiter z
   konstant; variiert wird nur seine *Position*, und die kommt aus der Fixture) – und die
   Platzierung von `hex64` bei den generischen Helfern bleibt dem `/refactor`-Schritt
   überlassen, statt sie im Review-Rework mit zu verschieben.
-- Suite nach dem Rework: **864 grün / 0 rot** (vorher 861).
+- Suite nach dem Rework: **864 grün / 0 rot** (vorher 861); in CI **875 grün / 0 rot**
+  (Run 30811969232, Commit 44228ec) – dort laufen die yq-abhängigen Checks mit, die lokal
+  übersprungen werden. Beide neuen Struktur-Guards sind im CI-Log namentlich grün.
+- **Beobachteter CI-Flake (Umgebung, kein Finding):** Der Lauf **30809774637** (Vorgänger-Commit
+  b68dacd, nur Doku) war rot – nicht wegen des Diffs, sondern weil der Download von
+  `checksums_hashes_order` bei GitHub scheiterte: `✗ install-yq: Download fehlgeschlagen:
+  …/v4.53.3/checksums_hashes_order – Abbruch ohne Installation.` Im **selben** Lauf hat
+  `config-validation` dieselben drei Dateien erfolgreich geladen, im Folgelauf 30811969232 alle
+  Jobs. Der Seam hat sich also korrekt fail-closed verhalten und dank der URL in der Meldung
+  sofort diagnostizierbar gemacht. Offen bleibt, dass drei Netzwerk-Downloads pro Job den
+  CI-Gate gelegentlich rot flackern lassen können (`wget --tries=3` greift nicht bei
+  HTTP-Fehlerantworten) – Härtung wäre eigener Scope, nicht Teil dieser Task.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
