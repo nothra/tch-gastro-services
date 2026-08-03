@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -169,6 +169,34 @@ zwei bewusst offen (Begründung oben). Die Runde-2-Empfehlung hält eine dritte 
 für unnötig, wenn beide Punkte umgesetzt sind – die Status-Checkbox „Review bestanden" bleibt
 trotzdem offen, bis der Pipeline-Schritt sie setzt.
 
+Runde 3: **`APPROVED`** – Volltext in [review-258.md](review-258.md). Keine kritischen Findings,
+alle sieben AK erfüllt, beide Runde-2-Findings **per Mutation als behoben belegt** (Aufruf-Pin
+entkoppelt → genau 1 Assertion rot, kein Kollateral; CLI-Signatur konsistent mit `usage()` und
+`case`-Dispatch). Suite lokal reproduziert: 864 grün / 0 rot; Arbeitsbaum nach allen Mutationen
+wieder clean.
+
+**Ein wichtiges Finding bleibt offen und ist verbindlich an `/test` übergeben** (kein Defekt am
+gelieferten Verhalten, sondern eine Lücke im Regressions-Guard): Der AK4-Guard „Job hat keinen
+eigenen wget+chmod-Block mehr" (`run-tests.sh:4320-4321`) ist ein Ein-Zeilen-Fragment-Grep gegen
+ein Konstrukt, das in seiner echten Form über **zwei** Zeilen läuft – `wget.*yq_linux_amd64` kann
+nie feuern (im entfernten Block stehen `wget` und die URL auf verschiedenen Zeilen), also trägt
+allein die literale Alternative `chmod +x /usr/local/bin/yq`. Per Mutation belegt: den entfernten
+Block wortgleich wieder eingesetzt, nur mit **gepinnter** URL und `chmod 0755` → Suite bleibt
+**864 grün / 0 rot**; mit `chmod +x` → 1 rot. Damit läuft genau der Fall, den die in diesem PR neu
+geschriebene Regel `CLAUDE.md:153-159` ausdrücklich verbietet („auch nicht mit gepinnter URL"),
+ungehindert durch. Fix (eine Zeile, deckt zusätzlich einen künftigen vierten Job ab):
+`! grep -rq 'mikefarah/yq/releases' .github/` – repo-weit existiert genau eine solche URL
+(`install-yq.sh:194`), geprüft. Klasse #114/#261/#265 (Fragment-Grep statt Block-Extraktion bei
+Multi-Zeilen-Konstrukten).
+
+Warum trotzdem `APPROVED`: Circuit Breaker – dies war Review-Iteration 3 von 3, ein Rework würde
+Runde 4 auslösen. Runde 2 hatte eine dritte Runde für unnötig erklärt, falls beide Findings
+umgesetzt sind; sie sind es. Das Restfinding ist inhaltlich eine Testabdeckungs-Lücke und damit
+im `/test`-Schritt korrekt aufgehoben – dort mit beiden Mutationen zu belegen, nicht abzuhaken.
+Drei Nitpicks neu (asymmetrische `wget`-Verfügbarkeitsprüfung in `fetch`, ungetesteter
+„kein SHA-256-Werkzeug"-Pfad, vierfache namentliche Job-Aufzählung), einer aus Runde 2 weiterhin
+bewusst offen (`hex64`-Platzierung → `/refactor`).
+
 **Nachtest in CI nach dem Rework – bestätigt:** Der Download-Pfad hat sich geändert
 (Plattform-Guard + Pin-Vergleich vor der Hash-Berechnung), der Nachweis unten (Run 30805947583)
 belegt nur den Stand *davor*. Neuer Lauf **30809613876** (Commit 948d089) ist grün: der Schritt
@@ -176,6 +204,31 @@ belegt nur den Stand *davor*. Neuer Lauf **30809613876** (Commit 948d089) ist gr
 `✓ SHA-256 von 'yq_linux_amd64' verifiziert (fa52a4e7…eded4)`, danach `yq … version v4.53.3`.
 Damit ist auch der gepinnte `YQ_SHA256` empirisch als korrekt belegt – ein falscher Pin wäre
 fail-closed rot mit „Pin-Abweichung" gewesen, nicht still grün.
+
+## Test-Notizen (`/test`)
+
+Offenes Runde-3-Finding geschlossen (kein Produktionscode geändert, nur `run-tests.sh`):
+Der AK4-Regressions-Guard prüfte pro Job-Block auf `wget.*yq_linux_amd64|chmod \+x
+/usr/local/bin/yq` – die erste Alternative konnte nie feuern (Download-Kommando und URL
+standen im entfernten Block auf getrennten Zeilen, `grep -E` prüft zeilenweise), die zweite
+griff nur bei exakt dieser `chmod`-Schreibweise. Fix: der Job-Block-Check prüft jetzt auf
+`wget|curl` (jedes wiedereingefügte Download-Kommando enthält mindestens eines von beiden,
+der Seam-Aufruf `bash scripts/install-yq.sh` keines), ergänzt um einen repo-weiten
+Präsenz-Guard `! grep -rq 'mikefarah/yq/releases' "$FACTORY_ROOT/.github/"` – der greift auch
+für einen künftigen vierten Job, den die `for`-Schleife nicht kennt.
+
+**Mutation reproduziert (Review-Runde-3-Szenario):** den entfernten Block wortgleich in
+`config-validation` wieder eingesetzt (gepinnte URL, `chmod 0755`) → **862 grün / 3 rot**
+(die zwei Job-Block-Assertions + der neue repo-weite Guard), kein Kollateral-Rot. Nach dem
+Rückbau: Arbeitsbaum wieder clean (`git status --porcelain .github/workflows/factory-ci.yml`
+leer), Suite **865 grün / 0 rot**.
+
+Die drei Nitpicks aus Review-Runde 3 (asymmetrische `wget`-Verfügbarkeitsprüfung in `fetch`,
+ungetesteter „kein SHA-256-Werkzeug"-Pfad, vierfache namentliche Job-Aufzählung in Doku/Skript)
+bleiben bewusst offen: die ersten beiden verlangen eine Produktionscode-Änderung
+(`/test` darf laut Testing-Agent-Persona keinen Produktionscode ändern) bzw. sind mit dem
+etablierten PATH-Shadowing nicht ohne Zusatzaufwand erreichbar; die dritte ist reine
+Doku-Pflege ohne Test-Hebel. Ebenso weiterhin offen: `hex64`-Platzierung (`/refactor`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

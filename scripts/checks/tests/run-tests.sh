@@ -4309,6 +4309,15 @@ assert_true "$?" "#258 AK1: die Download-URL wird aus \$YQ_VERSION gebildet (kei
 
 # AK4: alle drei betroffenen Jobs rufen denselben Seam auf – und keiner hat noch einen
 # eigenen wget+chmod-Block. Job-Block isoliert extrahieren (ci_job_block, Lesson #255).
+#
+# Der Negativ-Anker prüft auf 'wget|curl' im Block, NICHT auf die alte Zwei-Zeilen-Form
+# 'wget.*yq_linux_amd64' (Download-Kommando und URL standen im entfernten Block auf
+# getrennten Zeilen – dieses Fragment konnte nie feuern, grep -E ist zeilenweise) und NICHT
+# auf 'chmod \+x /usr/local/bin/yq' allein (ein wiedereingefügter Block mit `chmod 0755`
+# statt `chmod +x` hätte diese Alternative unbemerkt umgangen). Ein Job, der den Seam
+# aufruft, enthält weder 'wget' noch 'curl' im eigenen Block – ein wiedereingefügter
+# Download+chmod-Block, gleich welcher chmod-Schreibweise, enthält mindestens eines von
+# beiden (Review-Runde-3-Finding, Mutationsbeleg in der Task-Datei).
 for yq_job_spec in "config-validation|$CI_FILE" "factory-self-test|$CI_FILE" "factory-poll|$POLL_YML"; do
   IFS='|' read -r yq_job yq_job_file <<< "$yq_job_spec"
   yq_job_block="$(ci_job_block "$yq_job" "$yq_job_file")"
@@ -4317,9 +4326,17 @@ for yq_job_spec in "config-validation|$CI_FILE" "factory-self-test|$CI_FILE" "fa
   printf '%s' "$yq_job_block" | grep -qF 'bash scripts/install-yq.sh'
   assert_true "$?" "#258 AK4: Job '$yq_job' ruft 'bash scripts/install-yq.sh' auf"
 
-  ! printf '%s' "$yq_job_block" | grep -qE 'wget.*yq_linux_amd64|chmod \+x /usr/local/bin/yq'
-  assert_true "$?" "#258 AK4: Job '$yq_job' hat keinen eigenen wget+chmod-yq-Block mehr"
+  ! printf '%s' "$yq_job_block" | grep -qE 'wget|curl'
+  assert_true "$?" "#258 AK4: Job '$yq_job' hat keinen eigenen wget/curl-Download-Block mehr"
 done
+
+# Repo-weiter Präsenz-Guard zusätzlich zur Job-Schleife oben: die Schleife kennt nur die drei
+# heute betroffenen Jobs – ein künftiger vierter Job mit einem wiedereingefügten
+# Download+chmod-Block (auch mit gepinnter URL, CLAUDE.md §Guardrails) fiele ihr nicht auf.
+# Repo-weit trägt genau EINE Stelle die Download-URL: scripts/install-yq.sh selbst (verifiziert
+# per grep). Taucht dieselbe URL-Form in .github/ auf, hat ein Workflow-Job sie inline kopiert.
+! grep -rq 'mikefarah/yq/releases' "$FACTORY_ROOT/.github/"
+assert_true "$?" "#258 AK4: keine .github/-Workflow-Datei enthält die yq-Download-URL inline (Seam-Aufruf statt Kopie)"
 
 # Beide umgebauten Workflow-Dateien müssen valides YAML bleiben (nur wo yq da ist, ADR-009).
 if [ "$HAS_YQ" = 1 ]; then
