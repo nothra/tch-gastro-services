@@ -11,6 +11,12 @@
 # Kein Inhaltsvergleich gegen install-hooks.sh (bewusst, siehe spec-265 „Nicht
 # inbegriffen") – nur Präsenz + Ausführbarkeit.
 #
+# core.hooksPath (z. B. durch husky) hat Vorrang vor der Präsenzprüfung: ist die Option
+# gesetzt, führt Git ausschließlich Hooks aus diesem Verzeichnis aus – Datei-Reste im
+# Standardpfad ($GIT_COMMON_DIR/hooks) liefen dort nie, auch wenn sie noch ausführbar
+# vorhanden sind. Fail-closed statt Schein-Erfolg (spec-268, analog install-hooks.sh
+# ADR-042).
+#
 # Verwendet das GEMEINSAME Git-Verzeichnis (`git rev-parse --git-common-dir`), damit der
 # Check aus jedem Worktree dieses Repos dasselbe Ergebnis liefert wie install-hooks.sh
 # (ADR-042) – nicht ein worktree-lokales `.git`.
@@ -41,6 +47,22 @@ case "$GIT_COMMON_DIR" in
   /*) ;;
   *) GIT_COMMON_DIR="$ROOT/$GIT_COMMON_DIR" ;;
 esac
+
+# Ist core.hooksPath gesetzt (z. B. durch husky), führt Git AUSSCHLIESSLICH Hooks aus
+# diesem Verzeichnis aus – ausführbare Reste im Standardpfad ($GIT_COMMON_DIR/hooks) laufen
+# dort nie und dürfen den Check nicht als Erfolg durchgehen lassen (spec-268, analog
+# install-hooks.sh ADR-042). Ein Leerstring zählt wie bei install-hooks.sh als „nicht gesetzt".
+if HOOKS_PATH_CONFIG="$(git config --get core.hooksPath 2>/dev/null)" &&
+  [ -n "$HOOKS_PATH_CONFIG" ]; then
+  # Scope mitnennen: `--get` liest auch global/system – ein blanker Hinweis auf
+  # `git config --unset` würde sonst auf den falschen Scope zeigen.
+  HOOKS_PATH_ORIGIN="$(git config --show-origin --get core.hooksPath 2>/dev/null | cut -f1 || true)"
+  echo -e "${RED}✗${NC} hooks-installed-check: 'core.hooksPath' ist auf '$HOOKS_PATH_CONFIG' gesetzt (${HOOKS_PATH_ORIGIN:-Herkunft unbekannt}) – Git führt nur Hooks aus diesem Verzeichnis aus."
+  echo "     Auch vorhandene Datei-Reste in \$GIT_COMMON_DIR/hooks wären wirkungslos (fail-closed)."
+  echo "     Beheben: Option entfernen ('git config --unset core.hooksPath', ggf. mit --global/--system)"
+  echo "     oder die Factory-Checks in '$HOOKS_PATH_CONFIG' einbinden (pre-commit, pre-push, commit-msg)."
+  exit 1
+fi
 
 HOOKS_DIR="$GIT_COMMON_DIR/hooks"
 
