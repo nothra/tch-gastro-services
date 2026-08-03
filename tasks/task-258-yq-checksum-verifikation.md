@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -239,8 +239,39 @@ Fehlerszenarien). Verschoben an die einzige Nutzungsstelle, direkt vor `yq_fixtu
 `ci_job_block` bleibt oben, da es drei über die Datei verteilte Nutzer hat. Kein Verhalten
 geändert – reine Platzierung. Suite vor und nach dem Schritt identisch: 865 grün / 0 rot.
 
+## Security-Notizen (`/security-review`)
+
+**Ergebnis: `PASSED`** – Volltext in [security-258.md](security-258.md). Keine kritischen und
+keine wichtigen Findings. Geprüft und tragfähig: Reihenfolge fail-closed (Guard → Download →
+Pin-Vergleich → Hash-Vergleich → `chmod`), keine Command Injection (externe `checksums`-Daten
+laufen über `awk -v` als Daten, variable Dateiargumente mit `--`), kein leerer Erwartungswert
+(Hex-Format-Guard), `set -e`-Maskierung durch getrennte Zuweisungen vermieden, `mktemp -d`
+ohne Symlink-Race, keine Secrets/kein Information Disclosure, keine neue Dependency,
+Workflow-Permissions unverändert (`factory-ci.yml` bleibt read-only).
+
+Fünf Hinweise ohne Handlungsbedarf in diesem PR:
+1. Der Pin ist ein **Trust-on-First-Use**-Anker (keine Publisher-Identität) – im Header
+   ehrlich als Grenze benannt, Signaturkette per Spec ausgeklammert.
+2. **Angrenzendes Risiko, out of scope → Issue
+   [#284](https://github.com/nothra/tch-gastro-services/issues/284)** (`enhancement` +
+   `security`): `npm install -g @anthropic-ai/claude-code` im **selben** `factory-poll`-Schritt
+   ist weiterhin unversioniert und unverifiziert – und dieser Job hält `ANTHROPIC_API_KEY` +
+   `contents: write`. Dieselbe Risikoklasse wie der behobene yq-Fund, höheres
+   Schadenspotenzial; von `spec-258` §Nicht inbegriffen ausdrücklich ausgeschlossen.
+3. CI-Trust-Boundary unverändert: In `factory-ci.yml` (`pull_request`) ist der Seam
+   PR-kontrollierter Inhalt wie zuvor der Inline-`run:`-Block – die Auslagerung verschlechtert
+   nichts, wirksame Kontrolle bleibt Review + `protect-main`. Für `factory-poll.yml`
+   (secret-haltend, nur `schedule`/`workflow_dispatch` vom Default-Branch) greift der Schutz voll.
+4. `fetch` prüft `wget` nicht auf Verfügbarkeit (asymmetrisch zu `sha256_of`) – bleibt
+   fail-closed, reine Diagnose-Qualität; deckt den bereits offenen Review-Runde-3-Nitpick.
+5. Der Pin altert ohne Bump-Automatisierung (per Spec bewusst manuell).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Zwei Learnings als Volltext in `docs/factory/lessons/factory-workflow.md` ausgelagert +
+Index-Zeilen in `PROJECT-CONTEXT.md` ergänzt; ein Out-of-Scope-Follow-up als Issue angelegt.
+Details in [codify-258.md](codify-258.md).
 
 ---
 Branch: `chore/258-yq-checksum-verifikation`
