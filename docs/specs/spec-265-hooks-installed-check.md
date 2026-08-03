@@ -41,10 +41,15 @@ blockiert, statt still unbemerkt zu bleiben.
   `install-hooks.sh` (keine Drift-/Manipulations-Erkennung) – nur Präsenz + Ausführbarkeit.
   Grund: vermeidet eine zweite Stelle, die bei jeder künftigen Hook-Änderung synchron
   gehalten werden müsste (Kopplungsrisiko, siehe `lessons/code-style.md`).
-- Keine Sonderbehandlung von `core.hooksPath` im neuen Check selbst – dieser Fall wird
+- ~~Keine Sonderbehandlung von `core.hooksPath` im neuen Check selbst – dieser Fall wird
   bereits von `install-hooks.sh` fail-closed behandelt (ADR-042); der neue Check würde in
   diesem Szenario die Hooks korrekt als „fehlend" im Standard-Pfad werten und auf den
-  Remediation-Befehl verweisen, der dann seinerseits die passende Fehlermeldung liefert.
+  Remediation-Befehl verweisen, der dann seinerseits die passende Fehlermeldung liefert.~~
+  **Korrektur (spec-268):** Diese Annahme war falsch – liegen im Standardpfad noch
+  ausführbare Datei-Reste (z. B. von einem Retrofit vor dem Setzen von `core.hooksPath`),
+  wertet der Check sie ohne Sonderbehandlung fälschlich als „installiert". Der Check prüft
+  `core.hooksPath` inzwischen selbst fail-closed, mit Vorrang vor der Präsenzprüfung
+  (siehe `docs/specs/spec-268-hooks-installed-check-hookspath.md`).
 - Keine Automatisierung, die `install-hooks.sh` selbst aufruft (z. B. aus `start-work.sh`
   oder dem neuen Check heraus) – der Check meldet nur, er repariert nicht automatisch.
 
