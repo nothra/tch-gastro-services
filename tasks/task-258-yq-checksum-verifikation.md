@@ -115,11 +115,13 @@ alle behoben (siehe §Rework dort und in den technischen Notizen oben); acht Nit
 erledigt, vier bewusst offen gelassen (mit Begründung dokumentiert). Erneutes `/review` steht
 aus – die Status-Checkbox „Review bestanden" bleibt daher offen.
 
-**Neuer Nachtest in CI nötig:** Der Download-Pfad hat sich durch das Rework geändert
-(Plattform-Guard + Pin-Vergleich vor der Berechnung). Der CI-Nachweis unten (Run 30805947583)
-belegt den Stand *vor* dem Rework; der nächste Push muss zeigen, dass `config-validation` und
-`factory-self-test` weiterhin grün sind und die Pin-Prüfung nicht anschlägt (bei falschem Pin
-wäre der Job rot mit „Pin-Abweichung" – fail-closed, also nicht still).
+**Nachtest in CI nach dem Rework – bestätigt:** Der Download-Pfad hat sich geändert
+(Plattform-Guard + Pin-Vergleich vor der Hash-Berechnung), der Nachweis unten (Run 30805947583)
+belegt nur den Stand *davor*. Neuer Lauf **30809613876** (Commit 948d089) ist grün: der Schritt
+„yq bereitstellen" meldet `install-yq: lade yq v4.53.3 …` und
+`✓ SHA-256 von 'yq_linux_amd64' verifiziert (fa52a4e7…eded4)`, danach `yq … version v4.53.3`.
+Damit ist auch der gepinnte `YQ_SHA256` empirisch als korrekt belegt – ein falscher Pin wäre
+fail-closed rot mit „Pin-Abweichung" gewesen, nicht still grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
