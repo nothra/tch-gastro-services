@@ -1,7 +1,7 @@
 # Task 286: out-of-scope-funde-sammeldatei
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -25,75 +25,81 @@ Spec: [`docs/specs/spec-286-kleinfunde-sammeldatei.md`](../docs/specs/spec-286-k
 ## Akzeptanzkriterien
 
 ### Schwelle und ihre Verortung
-- [ ] GIVEN jemand sucht die Regel „Issue oder Sammeldatei" WHEN er `git-workflow.md`
+- [x] GIVEN jemand sucht die Regel „Issue oder Sammeldatei" WHEN er `git-workflow.md`
       §„Zentraler Anlage-Weg (ADR-018)" liest THEN findet er die vollständige
       Schwellen-Tabelle (4 Zeilen: Merge-Blocker / echtes Sicherheitsrisiko / reproduzierbarer
       Defekt / alles andere).
-- [ ] GIVEN die Tabelle steht in `git-workflow.md` WHEN man das Repo durchsucht THEN existiert
+- [x] GIVEN die Tabelle steht in `git-workflow.md` WHEN man das Repo durchsucht THEN existiert
       sie genau einmal – Skills, ADR-018 und `kleinfunde.md` verweisen nur darauf.
-- [ ] GIVEN ein Fund ist nicht eindeutig zuzuordnen WHEN der Skill klassifiziert THEN gilt die
+- [x] GIVEN ein Fund ist nicht eindeutig zuzuordnen WHEN der Skill klassifiziert THEN gilt die
       dokumentierte Zweifelsregel „im Zweifel Issue".
-- [ ] GIVEN die Entscheidungshilfe „Ist der Auslöser in diesem Repo herstellbar?" WHEN die
+- [x] GIVEN die Entscheidungshilfe „Ist der Auslöser in diesem Repo herstellbar?" WHEN die
       Schwellen-Doku gelesen wird THEN steht sie als Abgrenzungskriterium dabei.
 
 ### Verhalten der drei Skills
-- [ ] GIVEN `/review` findet ein Out-of-Scope-Nitpick unterhalb der Schwelle WHEN der Skill
+> Patch [`tasks/patch-286.diff`](patch-286.diff) angewendet (2026-08-11) – Durchsetzung ist
+> prompt-Ebene (ADR-043 Decision 5), verifiziert über den Doku-Guard in `run-tests.sh`.
+- [x] GIVEN `/review` findet ein Out-of-Scope-Nitpick unterhalb der Schwelle WHEN der Skill
       seiner Doku folgt THEN ergänzt er `kleinfunde.md` und ruft **nicht**
       `create_issue_idempotent` auf.
-- [ ] GIVEN `/security-review` findet ein echtes, ausnutzbares Sicherheitsrisiko WHEN der
+- [x] GIVEN `/security-review` findet ein echtes, ausnutzbares Sicherheitsrisiko WHEN der
       Skill seiner Doku folgt THEN legt er unverändert ein Issue mit Aspekt-Label `security`
       über den Seam an.
-- [ ] GIVEN `/review` oder `/codify` findet einen funktionalen Defekt mit reproduzierbarem
+- [x] GIVEN `/review` oder `/codify` findet einen funktionalen Defekt mit reproduzierbarem
       Auslöser WHEN der Skill seiner Doku folgt THEN legt er unverändert ein Issue an.
-- [ ] GIVEN ein kritisches Finding **im** Scope des laufenden PR WHEN es gemeldet wird THEN
+- [x] GIVEN ein kritisches Finding **im** Scope des laufenden PR WHEN es gemeldet wird THEN
       bleibt es Merge-Blocker – weder Issue noch Sammeldatei-Eintrag.
-- [ ] GIVEN eine der drei Skill-Dokus WHEN man sie liest THEN steht die Klassifikations-
+- [x] GIVEN eine der drei Skill-Dokus WHEN man sie liest THEN steht die Klassifikations-
       Anweisung **vor** dem `create_issue_idempotent`-Aufrufblock.
 
 ### Sammeldatei
-- [ ] GIVEN der PR ist gemergt WHEN `git ls-files docs/factory/kleinfunde.md` läuft THEN ist
+- [x] GIVEN der PR ist gemergt WHEN `git ls-files docs/factory/kleinfunde.md` läuft THEN ist
       die Datei im Repo, mit den vier Einträgen aus #279, #280, #282, #283 inhaltlich
       unverändert.
-- [ ] GIVEN ein Skill trägt einen Fund ein WHEN er dem Schema folgt THEN enthält der Eintrag
+- [x] GIVEN ein Skill trägt einen Fund ein WHEN er dem Schema folgt THEN enthält der Eintrag
       eine Überschrift **ohne** laufende Nummer plus die Felder Wo (`Datei:Zeile` mit
       Verifikationsdatum), Was, Fix (mit Aufwandsschätzung), Herkunft.
-- [ ] GIVEN eine Fundstelle steht bereits in `kleinfunde.md` WHEN ein Skill sie eintragen will
+- [x] GIVEN eine Fundstelle steht bereits in `kleinfunde.md` WHEN ein Skill sie eintragen will
       THEN prüft er das per Suche vorab und legt keinen zweiten Eintrag an.
-- [ ] GIVEN ein Eintrag wächst über „unter zehn Zeilen" WHEN das auffällt THEN ist die
+- [x] GIVEN ein Eintrag wächst über „unter zehn Zeilen" WHEN das auffällt THEN ist die
       dokumentierte Regel, ihn zu einem Issue zu promovieren.
-- [ ] GIVEN ein erledigter Eintrag WHEN er abgearbeitet ist THEN wird er gelöscht, nicht
+- [x] GIVEN ein erledigter Eintrag WHEN er abgearbeitet ist THEN wird er gelöscht, nicht
       abgehakt.
 
 ### Doku-Nachzug
-- [ ] GIVEN ADR-018 §5 beschreibt die unbedingte autonome Anlage WHEN der PR gemergt ist THEN
+- [x] GIVEN ADR-018 §5 beschreibt die unbedingte autonome Anlage WHEN der PR gemergt ist THEN
       nennt §5 die Schwelle und verweist für die Tabelle auf `git-workflow.md`.
-- [ ] GIVEN `git-workflow.md:157-158` beschreibt „ebenso legen die Skills … autonom darüber
+- [x] GIVEN `git-workflow.md:157-158` beschreibt „ebenso legen die Skills … autonom darüber
       an" WHEN der PR gemergt ist THEN ist die Prosa auf den bedingten Stand nachgezogen.
 
 ### Test (Doku-Guard in `run-tests.sh`)
-- [ ] GIVEN die Suite läuft WHEN der Guard je Skill-Datei prüft THEN assertiert er
+- [x] GIVEN die Suite läuft WHEN der Guard je Skill-Datei prüft THEN assertiert er
       **Präsenz**: Datei nennt `docs/factory/kleinfunde.md` und verweist auf die Schwelle in
       `git-workflow.md`.
-- [ ] GIVEN die Suite läuft WHEN der Guard je Skill-Datei prüft THEN assertiert er
+- [x] GIVEN die Suite läuft WHEN der Guard je Skill-Datei prüft THEN assertiert er
       **Abwesenheit** der unbedingten Issue-Anweisung, verankert an der echten
       Anweisungszeile (kein Kommando-Fragment, keine nie feuernde Alternative).
-- [ ] GIVEN die Abwesenheits-Assertion WHEN sie geschrieben ist THEN ist per Mutation belegt,
+- [x] GIVEN die Abwesenheits-Assertion WHEN sie geschrieben ist THEN ist per Mutation belegt,
       dass die alte, unbedingte Formulierung den Test rot macht.
-- [ ] GIVEN die Suite läuft WHEN der Guard `git-workflow.md` prüft THEN assertiert er, dass
+- [x] GIVEN die Suite läuft WHEN der Guard `git-workflow.md` prüft THEN assertiert er, dass
       die Schwellen-Tabelle dort existiert (kein dangling reference).
-- [ ] GIVEN die Guards `run-tests.sh:1012` (#82) und `run-tests.sh:961` (#207) WHEN die Suite
+- [x] GIVEN die Guards `run-tests.sh:1012` (#82) und `run-tests.sh:961` (#207) WHEN die Suite
       läuft THEN bleiben beide grün – der Seam-Aufruf verschwindet nicht, er wird bedingt.
-- [ ] GIVEN die vollständige Bash-Testsuite WHEN sie läuft THEN ist sie grün.
+- [x] GIVEN die vollständige Bash-Testsuite WHEN sie läuft THEN ist sie grün. (900 grün / 0 rot,
+      verifiziert 2026-08-11 nach Patch-Anwendung; zusätzlich `pre-commit.sh` inkl. `pnpm lint`
+      grün geprüft)
 
 ## Fehlerszenarien
-- [ ] `kleinfunde.md` fehlt/nicht schreibbar → Fund im jeweiligen Report vermerken, nicht
-      still verlieren.
-- [ ] Fund nicht eindeutig klassifizierbar → „im Zweifel Issue".
-- [ ] Skill läuft mehrfach über denselben Code → Duplikat-Prüfung über die Fundstelle.
-- [ ] `.claude/**` ist per `settings.json:72` für Direkt-Edits gesperrt → Patch-Workflow
+- [x] `kleinfunde.md` fehlt/nicht schreibbar → Fund im jeweiligen Report vermerken, nicht
+      still verlieren. (Nachtrag per zweitem Patch [`tasks/patch-286b.diff`](patch-286b.diff),
+      2026-08-11 – Lücke beim ersten Review-Durchgang gegen die Spec-Fehlerszenarien selbst
+      gefunden und sofort geschlossen, s. u.)
+- [x] Fund nicht eindeutig klassifizierbar → „im Zweifel Issue".
+- [x] Skill läuft mehrfach über denselben Code → Duplikat-Prüfung über die Fundstelle.
+- [x] `.claude/**` ist per `settings.json:72` für Direkt-Edits gesperrt → Patch-Workflow
       (#91); Test prüft den Endzustand der committeten Live-Datei, nicht das Patch-Artefakt
       (#212).
-- [ ] `Write`-Permission-Regeln werden nicht ausgewertet (#224) → Sammeldatei muss im Repo
+- [x] `Write`-Permission-Regeln werden nicht ausgewertet (#224) → Sammeldatei muss im Repo
       existieren, damit Skills sie per `Edit` ergänzen können.
 
 ## Technische Notizen
@@ -134,11 +140,27 @@ Entscheidungen aus `/requirements` (2026-08-11, mit dem Menschen abgestimmt):
    Seam-Verhaltenstest (der Seam ändert sich nicht).
 
 ## Offene Fragen
-- [ ] Exakter Anker der Abwesenheits-Assertion – hängt vom finalen Wortlaut der Skill-Dokus
-      ab, wird in `/implement` festgelegt (Anforderung „echte Anweisungszeile + Mutation
-      belegt Rotfärbung" ist als AK verbindlich).
-- [ ] Beim Committen kurz gegenprüfen, ob die Zeilennummern der vier bestehenden Einträge seit
-      dem 05./06.08.2026 gedriftet sind, und das Verifikationsdatum entsprechend setzen.
+- [x] Exakter Anker der Abwesenheits-Assertion – festgelegt: `statt es nur zu vermerken`
+      (review), `damit es auffindbar bleibt` (security-review), `statt es nur im Report zu
+      vermerken` (codify) – je die echte, einmalig vorkommende Anweisungszeile aus dem
+      Wortlaut vor #286. Mutationsbeleg: `scripts/checks/tests/run-tests.sh` Task-286-Block
+      hängt die alte Zeile an eine Fixture-Kopie und belegt, dass dieselbe Erkennung darauf
+      positiv feuert (Rotfärbung des Abwesenheits-Guards demonstriert).
+- [x] Zeilennummern der vier bestehenden `kleinfunde.md`-Einträge gegen den aktuellen Stand
+      geprüft (2026-08-11): `install-hooks.sh:46-47`/`:51`, `hooks-installed-check.sh:94`,
+      `run-tests.sh` `hi_repo()` bei `:4101` / Fixture-Commit bei `:4170`, `ADR-009:69`/`:187`
+      – keine Drift seit 05./06.08.2026, Verifikationsdaten unverändert korrekt.
+
+## Blocker
+- [x] Blocker [2026-08-11]: `.claude/commands/{review,security-review,codify}.md` sind per
+      `settings.json` (`Edit(.claude/**)` in `deny`) für Direkt-Edits gesperrt (#91-Patch-
+      Workflow). Die Klassifikations-Anweisung (Schwelle vor `create_issue_idempotent`-Block)
+      liegt deshalb als geprüfter Patch in [`tasks/patch-286.diff`](patch-286.diff) vor
+      (`git apply --check` erfolgreich gegen alle drei Dateien, einzeln und kombiniert). **Der
+      Mensch muss** `git apply tasks/patch-286.diff` ausführen (oder dem Agenten einen
+      expliziten Bash-Grant dafür erteilen); danach sind die neuen `#286`-Doku-Guards in
+      `run-tests.sh` (Präsenz + Abwesenheit je Skill-Doku) grün. Bis dahin bleiben genau diese
+      9 Assertions erwartungsgemäß rot – alle anderen Tests (inkl. Mutationsbeleg) sind grün.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

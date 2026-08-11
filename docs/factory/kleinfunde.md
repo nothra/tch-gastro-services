@@ -11,8 +11,13 @@
 > wuchs schneller, als die App voranschritt (Juli 2026: 57 Factory- gegen 38 App-Commits).
 > Diese Liste ist die Alternative: Fund festhalten, ohne den Tracker zu belasten.
 >
+> **Schema je Eintrag** (kein Seam, siehe [ADR-043](../adr/043-schwelle-fuer-autonome-issue-anlage.md)):
+> Überschrift **ohne laufende Nummer** (Kurztitel), darunter die Felder **Wo** (`Datei:Zeile`
+> + Verifikationsdatum), **Was**, **Fix** (inkl. Aufwandsschätzung) und **Herkunft**.
+>
 > **Regeln für Einträge:**
 > - Fundstelle mit `Datei:Zeile` **verifiziert am Eintragsdatum** – Zeilennummern driften.
+> - Vor dem Anhängen per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
 > - Aufwandsschätzung mit dazu; wächst ein Eintrag über „unter zehn Zeilen", wird er ein Issue.
 > - Erledigte Einträge werden gelöscht, nicht abgehakt (Git hat eine History).
 
@@ -20,7 +25,7 @@
 
 ## Offen
 
-### 1 · `install-hooks.sh`: leerer `core.hooksPath` fällt durch den Guard
+### `install-hooks.sh`: leerer `core.hooksPath` fällt durch den Guard
 
 - **Wo:** [`scripts/install-hooks.sh:46-47`](../../scripts/install-hooks.sh) – `if HOOKS_PATH_CONFIG="$(git … --get core.hooksPath …)" && [ -n "$HOOKS_PATH_CONFIG" ]; then`
 - **Was:** `git config --get core.hooksPath ""` liefert exit 0 mit leerer Ausgabe, der
@@ -34,7 +39,7 @@
   gesetzter Leerstring – in diesem Repo ist `core.hooksPath` in keinem Scope gesetzt.
 - **Herkunft:** #279, geschlossen am 2026-08-05. Fundstelle verifiziert am 2026-08-05.
 
-### 2 · Config-Wert nicht durch `echo -e` interpretieren lassen
+### Config-Wert nicht durch `echo -e` interpretieren lassen
 
 - **Wo:** [`scripts/checks/hooks-installed-check.sh:94`](../../scripts/checks/hooks-installed-check.sh)
   und [`scripts/install-hooks.sh:51`](../../scripts/install-hooks.sh) – beide interpolieren den
@@ -50,7 +55,7 @@
 - **Herkunft:** #280 (dort als Review-Runde-4-Nitpick), geschlossen am 2026-08-05. Das Issue
   nennt `hooks-installed-check.sh:92`; verifiziert ist **`:94`** (`:92` ist der HINT-String).
 
-### 3 · Test-Fixtures gegen ambientes globales `core.hooksPath` isolieren
+### Test-Fixtures gegen ambientes globales `core.hooksPath` isolieren
 
 - **Wo:** [`scripts/checks/tests/run-tests.sh`](../../scripts/checks/tests/run-tests.sh) –
   `hi_repo()` bei `:4101` setzt `user.email`/`user.name`, aber kein `core.hooksPath=`; die
@@ -67,7 +72,7 @@
   `:4164`; das ist eine `assert_true`-Zeile – der Fixture-Commit steht bei **`:4170`**
   (Drift seit #276).
 
-### 4 · ADR-009 §2 beschreibt ein nicht existierendes Runtime-Image
+### ADR-009 §2 beschreibt ein nicht existierendes Runtime-Image
 
 - **Wo:** [`docs/adr/009-factory-configuration.md:69`](../adr/009-factory-configuration.md)
   („yq wird analog zum bestehenden `factory-selftest`-Image gebacken", Präsens) und `:187`

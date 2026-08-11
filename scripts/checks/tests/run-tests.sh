@@ -4680,6 +4680,86 @@ for yq_doc in "$FACTORY_ROOT/CLAUDE.md" "$FACTORY_ROOT/docs/factory/OPERATING.md
   assert_true "$?" "#258: $(basename "$yq_doc") nennt 'scripts/install-yq.sh' als kanonischen yq-Bereitstellungsweg"
 done
 
+# ─── Task 286: Kleinfunde-Schwelle statt unbedingter autonomer Issue-Anlage (ADR-043) ──
+echo ""
+echo "Task 286: Schwellen-Tabelle + Sammeldatei statt unbedingter Issue-Anlage:"
+
+KLEINFUNDE="$FACTORY_ROOT/docs/factory/kleinfunde.md"
+
+# (0) Verweis-Ziel existiert: sonst zeigen die Skill-Verweise auf kleinfunde.md ins Leere,
+# ohne dass ein Guard das bemerkt (dangling reference, analog zum #155-ADR-029-Muster).
+assert_true "$([[ -f "$KLEINFUNDE" ]]; echo $?)" \
+  "#286: docs/factory/kleinfunde.md ist im Repo vorhanden (Verweis-Ziel nicht dangling)"
+
+# Schema-Kontrakt lebt in der Datei selbst (ADR-043 Decision 4): Überschrift ohne laufende
+# Nummer, Felder Wo/Was/Fix/Herkunft. Kein "### <Ziffer> ·"-Eintrag mehr im Bestand.
+grep -qF 'ohne laufende Nummer' "$KLEINFUNDE"
+assert_true "$?" "#286: kleinfunde.md dokumentiert das Schema 'Überschrift ohne laufende Nummer'"
+assert_true "$(! grep -qE '^### [0-9]+ ·' "$KLEINFUNDE"; echo $?)" \
+  "#286: kleinfunde.md hat keine nummerierten Eintrags-Überschriften mehr"
+
+# git-workflow.md trägt die Schwellen-Tabelle als kanonische Einzelquelle – kein dangling
+# reference bei den drei Skill-Verweisen unten.
+grep -qF 'Schwelle: Issue oder Sammeldatei' "$GITWF"
+assert_true "$?" "#286: git-workflow.md trägt die Schwellen-Tabelle (Verweis-Ziel existiert)"
+grep -qF 'im Zweifel Issue' "$GITWF"
+assert_true "$?" "#286: git-workflow.md dokumentiert die Zweifelsregel 'im Zweifel Issue'"
+grep -qF 'Ist der Auslöser' "$GITWF"
+assert_true "$?" "#286: git-workflow.md nennt die Herstellbarkeits-Entscheidungshilfe"
+assert_true "$(! grep -qF 'ebenso legen die Skills' "$GITWF"; echo $?)" \
+  "#286: git-workflow.md beschreibt die Skill-Anlage nicht mehr als unbedingt ('ebenso legen die Skills')"
+
+# Je Skill-Doku: Präsenz (verweist auf Sammeldatei + Schwellen-Tabelle) UND Abwesenheit (die
+# alte unbedingte Anweisungszeile ist verschwunden). Anker sind echte, im jeweiligen
+# Wortlaut vor #286 einmalig vorkommende Anweisungssätze – kein Kommando-Fragment (Lesson
+# factory-workflow.md "Reihenfolge-/Präsenz-Guards": Anker an der echten Zeile, nicht an
+# einem Fragment oder einer nie feuernden Alternative).
+# Kein 'declare -A' (macOS-Bash 3.2 kennt keine assoziativen Arrays, clean-code.md
+# "Portabilität in Gate-/Shell-Skripten") – Zuordnung Skill → alte Anweisungszeile per case.
+old_unconditional_line_286() {
+  case "$1" in
+    review) printf '%s' 'statt es nur zu vermerken' ;;
+    security-review) printf '%s' 'damit es auffindbar bleibt' ;;
+    codify) printf '%s' 'statt es nur im Report zu vermerken' ;;
+  esac
+}
+for sk in codify review security-review; do
+  skf="$FACTORY_ROOT/.claude/commands/$sk.md"
+
+  grep -qF 'kleinfunde.md' "$skf"
+  assert_true "$?" "#286: /$sk-Skill-Doku verweist auf docs/factory/kleinfunde.md"
+  grep -qF 'Schwellen-Tabelle in' "$skf"
+  assert_true "$?" "#286: /$sk-Skill-Doku verweist auf die Schwellen-Tabelle in git-workflow.md"
+
+  old_line="$(old_unconditional_line_286 "$sk")"
+  assert_true "$(! grep -qF "$old_line" "$skf"; echo $?)" \
+    "#286: /$sk-Skill-Doku enthält die alte unbedingte Anweisung ('$old_line') nicht mehr"
+
+  # Mutationsbeleg: dieselbe Erkennung (grep -qF "$old_line") MUSS auf einer Fixture, die die
+  # alte Formulierung zurückdreht, positiv feuern – sonst wäre der Abwesenheits-Guard oben
+  # vakuos (AK: "per Mutation belegt, dass ein Zurückdrehen ... den Test rot macht").
+  mut_286="$(mktemp)"
+  cp "$skf" "$mut_286"
+  printf '\n%s\n' "$old_line" >> "$mut_286"
+  grep -qF "$old_line" "$mut_286"
+  assert_true "$?" "#286: Mutationsbeleg /$sk – Zurückdrehen auf die alte Formulierung macht den Abwesenheits-Guard rot"
+  rm -f "$mut_286"
+done
+
+# ADR-018 §5 nennt die Schwelle und verweist auf ADR-043, statt die Tabelle zu kopieren.
+ADR018="$FACTORY_ROOT/docs/adr/018-central-issue-seam.md"
+grep -qF 'ADR-043' "$ADR018"
+assert_true "$?" "#286: ADR-018 verweist auf ADR-043 (Einschränkung von §5)"
+assert_true "$(! grep -qE '\| Fund-Art \|' "$ADR018"; echo $?)" \
+  "#286: ADR-018 kopiert die Schwellen-Tabelle nicht (bleibt allein in git-workflow.md)"
+
+# ADR-043 ist beim Implementieren von Proposed auf Accepted geflippt (Lesson factory-workflow.md).
+# Erste nicht-leere Zeile nach der '## Status'-Überschrift, statt 'head -n -1' (GNU-Extension,
+# auf BSD/macOS-head nicht verfügbar – clean-code.md "Portabilität in Gate-/Shell-Skripten").
+ADR043="$FACTORY_ROOT/docs/adr/043-schwelle-fuer-autonome-issue-anlage.md"
+adr043_status_line="$(awk '/^## Status/{found=1; next} found && NF {print; exit}' "$ADR043")"
+assert_true "$([[ "$adr043_status_line" = "Accepted" ]]; echo $?)" "#286: ADR-043 Status ist auf 'Accepted' geflippt"
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"

@@ -1,0 +1,112 @@
+diff --git a/.claude/commands/review.md b/.claude/commands/review.md
+index 661d72f..c81c2c1 100644
+--- a/.claude/commands/review.md
++++ b/.claude/commands/review.md
+@@ -63,11 +63,16 @@ Schreibe Findings in `tasks/review-$ARGUMENTS.md`.
+ APPROVED | NEEDS_REWORK
+ ```
+ 
+-## Out-of-Scope-Findings autonom als Issue anlegen (ADR-018)
++## Out-of-Scope-Findings: Schwelle klassifizieren (ADR-018/ADR-043)
+ 
+ Ein Finding, das **außerhalb** des aktuellen Task-Scopes liegt (eigenständiges Refactoring,
+-fehlende Tests an anderer Stelle, Härtung), gehört nicht in diesen PR, sondern in ein eigenes
+-GitHub-Issue. Lege es autonom über den zentralen Seam an – statt es nur zu vermerken:
++fehlende Tests an anderer Stelle, Härtung), gehört nicht in diesen PR. Klassifiziere es zuerst
++gegen die Schwellen-Tabelle in `docs/factory/guidelines/git-workflow.md` → „Zentraler
++Anlage-Weg (ADR-018)": ein echtes Sicherheitsrisiko, ein funktionaler Defekt mit
++reproduzierbarem Auslöser oder ein Zweifelsfall (**im Zweifel Issue**) folgen Schritt A;
++alles andere (Nitpick, Doku-Drift, „unter zehn Zeilen") folgt Schritt B.
++
++**A – oberhalb der Schwelle:** autonom über den zentralen Seam anlegen:
+ 
+ ```bash
+ . scripts/lib/create-issue.sh
+@@ -77,7 +82,13 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Datei:Zeile, warum eig
+ **Genau ein Art-Label** (`bug`/`enhancement`/`documentation`) + passende **Aspekt-Labels**
+ (`security`/`tech-debt`/`test`) – Konvention kanonisch in
+ `docs/factory/guidelines/git-workflow.md` → „GitHub-Labels". Die Issue-Nummer erscheint auf
+-stdout; im Review-Report referenzieren. Findings **im** Scope bleiben in `tasks/review-<id>.md`.
++stdout; im Review-Report referenzieren.
++
++**B – unterhalb der Schwelle:** Eintrag in
++[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
++Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
++
++Findings **im** Scope bleiben in `tasks/review-<id>.md`.
+ 
+ > **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
+ > ableiten (nur Titel/Body dürfen Inhalt zitieren). Der `factory::`-Präfix ist der Pipeline
+diff --git a/.claude/commands/security-review.md b/.claude/commands/security-review.md
+index 174cd10..ce41ad0 100644
+--- a/.claude/commands/security-review.md
++++ b/.claude/commands/security-review.md
+@@ -59,11 +59,17 @@ PASSED | NEEDS_FIXES
+ 
+ Bei kritischen Findings: Merge BLOCKIERT bis behoben.
+ 
+-## Out-of-Scope-Findings autonom als Issue anlegen (ADR-018)
++## Out-of-Scope-Findings: Schwelle klassifizieren (ADR-018/ADR-043)
+ 
+ Ein Security-Finding, das **nicht** in diesem PR behoben wird (eigenständige Härtung, ein
+-angrenzendes System, Backlog-würdig), gehört in ein eigenes GitHub-Issue. Lege es autonom
+-über den zentralen Seam an – mit `security`-Aspekt-Label, damit es auffindbar bleibt:
++angrenzendes System, Backlog-würdig), klassifizierst du zuerst gegen die Schwellen-Tabelle in
++`docs/factory/guidelines/git-workflow.md` → „Zentraler Anlage-Weg (ADR-018)": ein echtes,
++ausnutzbares Sicherheitsrisiko ist **immer** Schritt A – **im Zweifel Issue**, damit kein Fund
++in einer Textdatei verschwindet. Nur ein reiner Nitpick ohne Sicherheitsrelevanz („unter zehn
++Zeilen", Doku-Drift) folgt Schritt B.
++
++**A – Sicherheitsrisiko / Zweifelsfall:** autonom über den zentralen Seam anlegen, weiterhin
++mit `security`-Aspekt-Label:
+ 
+ ```bash
+ . scripts/lib/create-issue.sh
+@@ -73,8 +79,13 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Kategorie, Angriffsfl
+ **Genau ein Art-Label** (`bug` bei aktivem Defekt, sonst `enhancement`) + Aspekt-Label
+ `security` (Konvention kanonisch in `docs/factory/guidelines/git-workflow.md` →
+ „GitHub-Labels"). Die Issue-Nummer erscheint auf stdout; im Security-Report referenzieren.
+-**Kritische Findings im Scope** blockieren weiterhin den Merge und werden sofort behoben –
+-sie werden **nicht** in ein Issue ausgelagert.
++
++**B – reiner Nitpick unterhalb der Schwelle:** Eintrag in
++[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
++Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
++
++**Kritische Findings im Scope** blockieren weiterhin den Merge und werden sofort behoben – sie
++werden **nicht** in ein Issue oder die Sammeldatei ausgelagert.
+ 
+ > **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
+ > ableiten (nur Titel/Body dürfen Inhalt zitieren, und auch dort keine ausführbaren Marker).
+diff --git a/.claude/commands/codify.md b/.claude/commands/codify.md
+index 8e99889..a1e0332 100644
+--- a/.claude/commands/codify.md
++++ b/.claude/commands/codify.md
+@@ -50,9 +50,14 @@ Kern-Kurzregel inline stehen. Passt kein Thema, eine neue `lessons/<thema>.md` a
+ **Neuer Check (für hartnäckige, automatisierbare Fehler):**
+ → Erstelle neuen Check in `scripts/checks/`
+ 
+-**Folge-Arbeit, die den aktuellen Scope sprengt → autonom als GitHub-Issue anlegen (ADR-018):**
++**Folge-Arbeit, die den aktuellen Scope sprengt → Schwelle klassifizieren (ADR-018/ADR-043):**
+ Stößt du auf ein Learning, das eigenen Aufwand braucht (Refactoring, fehlende Tests,
+-Härtung), lege es über den zentralen Seam an – statt es nur im Report zu vermerken:
++Härtung), klassifiziere es zuerst gegen die Schwellen-Tabelle in
++`docs/factory/guidelines/git-workflow.md` → „Zentraler Anlage-Weg (ADR-018)": ein echtes
++Sicherheitsrisiko, ein funktionaler Defekt mit reproduzierbarem Auslöser oder ein Zweifelsfall
++(**im Zweifel Issue**) folgen Schritt A; alles andere folgt Schritt B.
++
++**A – oberhalb der Schwelle:** über den zentralen Seam anlegen:
+ 
+ ```bash
+ . scripts/lib/create-issue.sh
+@@ -63,6 +68,10 @@ Konvention (kanonisch in `docs/factory/guidelines/git-workflow.md` → „GitHub
+ **genau ein Art-Label** (`bug`/`enhancement`/`documentation`) + passende **Aspekt-Labels**
+ (`security`/`tech-debt`/`test`). Die Issue-Nummer erscheint auf stdout; im Report verlinken.
+ 
++**B – unterhalb der Schwelle:** Eintrag in
++[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
++Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
++
+ > **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
+ > ableiten (nur Titel/Body dürfen Inhalt zitieren). Der `factory::`-Präfix ist der Pipeline
+ > vorbehalten und wird vom Seam verworfen.

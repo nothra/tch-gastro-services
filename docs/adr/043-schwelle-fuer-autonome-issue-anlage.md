@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Schränkt [ADR-018](018-central-issue-seam.md) §5 ein** (#286): Die dort
 > festgehaltene Mensch-Entscheidung „`codify`/`review`/`security-review` dürfen autonom Issues
