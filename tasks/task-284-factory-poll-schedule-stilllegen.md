@@ -41,7 +41,7 @@ Spec: [`docs/specs/spec-284-factory-poll-schedule-stilllegen.md`](../docs/specs/
 - [x] **AK8** GIVEN `docs/factory/OPERATING.md` §0.4 WHEN die Scharfschalt-Checkliste gelesen wird THEN enthält sie „`schedule` wieder eintragen" und „claude-CLI gepinnt/verifiziert installieren" (Verweis auf das Folge-Issue).
 - [x] **AK9** GIVEN `CLAUDE.md` und OPERATING.md §1.3 WHEN der Async-Start beschrieben wird THEN behauptet keine Stelle mehr einen laufenden Schedule („nur in Scheduled Pipelines").
 - [x] **AK10** GIVEN GitHub WHEN der PR fertig ist THEN existiert das Folge-Issue für M2 (`enhancement` + `security`, ohne `factory::run`), referenziert in OPERATING.md §0.4.
-- [ ] **AK11** GIVEN der PR-Body WHEN er gelesen wird THEN enthält er `Closes #284`.
+- [x] **AK11** GIVEN der PR-Body WHEN er gelesen wird THEN enthält er `Closes #284`.
 
 ### Fehlerszenarien
 
@@ -93,6 +93,11 @@ Aktivierungszustand beschrieben – ADR-008 wird ergänzt, keine neue ADR nötig
   bleibt, gestützt auf die tatsächlich vorhandenen `contents: write` + `issues: write`.
 - **Oberflächentests entfallen** – die Task berührt keine Route und keine UI (nur Workflow,
   Selbsttest-Suite und Doku). `docs/routes.md` ist nicht betroffen.
+- **Gate-Verifikation (2026-08-12):** Bash-Selbsttest-Suite 933 grün / 0 rot (darin die neun
+  neuen `#284`-Assertions), `pre-commit.sh` grün (Lint), `pre-push.sh` grün (678 Vitest-Tests,
+  Typecheck, Prettier, Routen-Doku, Hooks). AK11 verifiziert an PR
+  [#289](https://github.com/nothra/tch-gastro-services/pull/289) – Body trägt `Closes #284`;
+  AK10 verifiziert an Issue #290 (Labels `enhancement` + `security`, kein `factory::run`).
 
 ## Offene Fragen
 
