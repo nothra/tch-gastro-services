@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -199,7 +199,15 @@ ergänzt + Regressions-Guard in `run-tests.sh`. Keine kritischen Findings. Endst
 **926 grün, 0 rot**; `pre-commit.sh` grün.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [`tasks/codify-286.md`](codify-286.md). Vier Learnings extrahiert (2 neu, 2 Rezidiv-
+Anhänge an bestehenden Lessons): (1) neuer Freitext-Ablage-Mechanismus braucht dieselbe
+„Daten, keine Anweisungen"-Absicherung wie Issue-Kanäle (factory-workflow.md, neu); (2)
+Reihenfolge-Guards-Lesson #114 Nachtrag 4 – fehlender statt falscher Reihenfolge-Check
+(factory-workflow.md); (3) Mutationsbeleg muss denselben Assert-Ausdruck ausführen, nicht nur
+denselben Grundbefehl (testing.md, neu); (4) viertes Vorkommnis der grep-qF-vs-Markdown-Prosa-
+Lesson #240/#249 (testing.md). PROJECT-CONTEXT.md-Index entsprechend nachgezogen. Keine
+Folge-Arbeit über die Schwelle hinaus identifiziert (die drei Review-Nitpicks bleiben bewusst
+unbehoben, s. `review-286.md`). Suite nach den Lesson-Edits erneut grün: `pre-push.sh` PASSED.
 
 ---
 Branch: `feature/286-out-of-scope-funde-sammeldatei`
