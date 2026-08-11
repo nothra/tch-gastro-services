@@ -55,8 +55,8 @@ jobs:
       # yq kommt über den zentralen Seam: gepinnte Version + SHA-256-Verifikation gegen die
       # Release-Checksums, statt ein `latest`-Asset ungeprüft auszuführen (#258). Dieser Job
       # läuft mit `contents: write` + `issues: write` – ein manipuliertes Asset hätte hier
-      # Schreibzugriff auf Repo und Issues. (ANTHROPIC_API_KEY ist im Repo nicht gesetzt,
-      # die Env-Var unten bleibt leer, solange der Trigger nicht scharf ist – #284.)
+      # Schreibzugriff auf Repo und Issues. (Das Secret ANTHROPIC_API_KEY existiert im Repo
+      # nicht; bis es gesetzt wird, läuft der Job ohne dieses Secret – #284/#290.)
       - name: Runtime bereitstellen (claude-CLI + yq)
         run: |
           npm install -g @anthropic-ai/claude-code

@@ -20,7 +20,10 @@ MR-Beschreibung — End-to-End-Verifikation erst nach Spur B.
 > Labels + Auth-Variable"; ein aktiver Schedule ohne die anderen zwei Bausteine (kein
 > `ANTHROPIC_API_KEY` im Repo, nie ein `factory::run`-Issue) pollte 48× am Tag ergebnislos und
 > installierte dabei jedes Mal ungepinnte Software in einem Job mit `contents: write` +
-> `issues: write`. Job, `permissions`, `concurrency` und beide Steps bleiben unverändert – das
+> `issues: write`. Nebenfolge: Der Stale-Reaper (`FACTORY_RUN_TIMEOUT`, setzt verwaiste
+> `factory::running`-Labels zurück) lebt in `factory-poll.sh` und läuft damit ebenfalls nur noch
+> bei manuellem Dispatch – heute ohne Wirkung, weil nie ein `factory::run`-Issue existierte.
+> Job, `permissions`, `concurrency` und beide Steps bleiben unverändert – das
 > Scharfschalten trägt den `schedule`-Block in einem Schritt wieder ein (Checkliste in
 > [OPERATING.md §0.4](../factory/OPERATING.md#04-async-trigger-scharfschalten-unbeaufsichtigte-pipeline-in-ci),
 > Vorbedingung: gepinnte claude-CLI, #290).

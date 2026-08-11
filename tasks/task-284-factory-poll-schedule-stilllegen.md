@@ -104,7 +104,39 @@ Aktivierungszustand beschrieben – ADR-008 wird ergänzt, keine neue ADR nötig
 _Keine._ Scope geklärt am 2026-08-12: nur M1 + Doku-Nachzug; M2 als Folge-Issue mit Doku-Anker.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Runde 1 (`/review`, 2026-08-12): **NEEDS_REWORK** – 1 kritisch, 3 wichtig, 5 Nitpicks. Bericht:
+[`tasks/review-284.md`](review-284.md). Alle acht Findings im Rework-Durchlauf behoben (Details im
+Bericht unter „Rework"). Kernpunkt: Die AK3-Assertion war nach dem Kommentar-Nachzug **durch Prosa
+erfüllbar** – `grep -q 'contents: write'` dateiweit traf den neuen WHY-Kommentar, sodass ein
+gelöschter oder abgeschwächter `permissions:`-Block eine grüne Suite ergeben hätte (Rezidiv der
+Lesson-#114-Klasse, diesmal ausgelöst durch den eigenen Doku-Nachzug desselben PRs).
+
+### Notizen aus dem Rework (2026-08-12)
+
+- **`poll_on_block` → `poll_yaml_block <datei> <key>`:** Der Block-Extraktor ist parametrisiert,
+  statt einen zweiten awk-Ausdruck für `permissions:` daneben zu legen. Zusätzlich bleibt der
+  Inline-Inhalt der Key-Zeile erhalten – vorher verwarf `/^on:/{next}` genau die Zeile, in der
+  ein Wiedereintrag in Flow-Notation (`on: {schedule: [...]}`) stünde.
+- **Trigger-Suche auf Wortgrenze** (`(schedule|cron)` mit `[^[:alnum:]_-]`-Rändern) statt auf
+  `schedule:`/`cron:`: erfasst Flow-Notation und gequotete Keys (`"schedule":`). Prosa kann nicht
+  treffen, weil die Kommentare vor der Suche fallen; `schedule_override` o. ä. bleibt unberührt
+  (Unterstrich ist aus der Randklasse ausgenommen).
+- **RED-vor-GREEN belegt:** Der AK3-Mutant (permissions-Block gelöscht, WHY-Kommentar bleibt) lief
+  zuerst gegen den **alten** dateiweiten `grep` – Suite 933 grün / **1 rot**. Erst danach der
+  Guard-Umbau → 939 grün / 0 rot.
+- **Sechs neue Assertions:** AK3 ×4 (zwei Löschungs-Mutanten, `contents: read`-Abschwächung,
+  fail-closed), AK5 ×1 (Flow-Notation), F2 ×1 (`workflow_dispatch` entfernt → `poll_dispatch_guard`
+  rot; F2 war bisher nur behauptet).
+- **Doku-Nachzüge:** `scripts/factory-poll.sh:4` (Kopie der im PR korrigierten Falschaussage
+  „Scheduled Workflow" – Grep fand kein weiteres Vorkommen), `docs/adr/012` Migrations-Tabelle
+  (beschreibt den heutigen Stand, Lesson #211), ADR-008-Notiz um die Stale-Reaper-Nebenfolge
+  ergänzt, OPERATING.md §0.4 Listenreihenfolge (der „kommt zuletzt"-Punkt steht jetzt zuletzt).
+- **`factory-poll.yml`-Kommentar:** „Env-Var bleibt leer, solange der Trigger nicht scharf ist"
+  war eine falsche Kausalkette – die Var ist leer, weil das Secret im Repo fehlt. Getrennt
+  formuliert; die Checkliste plant „Secret gesetzt, Schedule noch nicht" ausdrücklich ein.
+- **Kleinfund abgelegt:** `.issue-npm-pin.md` (verwaister Issue-Body-Entwurf) ist als Eintrag in
+  `docs/factory/kleinfunde.md` erfasst – nach ADR-043 unterhalb der Issue-Schwelle.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

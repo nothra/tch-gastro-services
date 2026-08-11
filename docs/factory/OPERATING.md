@@ -135,10 +135,10 @@ Issues, die die Factory eigenständig abarbeitet (`factory-poll.yml`, ADR-008):
   „Runtime bereitstellen" holt sie heute ungepinnt per `npm install -g` in einen Job mit
   `contents: write` + `issues: write`. Seam analog `install-yq.sh` → Issue
   [#290](https://github.com/nothra/tch-gastro-services/issues/290).
+- Steuerung erfolgt **ausschließlich** über das Label `factory::run` am Issue (bewusst per Hand).
 - **`schedule`-Trigger in `.github/workflows/factory-poll.yml` wieder eintragen** – er ist seit
   #284 entfernt (siehe unten); ohne ihn läuft der Poll nur auf manuelles `workflow_dispatch`.
   Dieser Punkt kommt **zuletzt**: er schaltet die Automatik scharf.
-- Steuerung erfolgt **ausschließlich** über das Label `factory::run` am Issue (bewusst per Hand).
 
 > Default **aus**. Ohne `factory::run`-Label und ohne API-Key passiert nichts – und seit #284
 > zusätzlich ohne `schedule`-Trigger: Der Poll passiert nicht mehr von selbst, bleibt aber per
