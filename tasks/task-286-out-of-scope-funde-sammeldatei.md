@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -169,6 +169,17 @@ ADR-043 Decision 4) wurden noch in derselben Review-Sitzung gefixt (dritte Patch
 `tasks/patch-286c.diff` für die Skill-Dokus, direkte Edits für `run-tests.sh`/`kleinfunde.md`).
 Drei Nitpicks dokumentiert und bewusst nicht behoben (Begründung im Report). Suite danach
 erneut grün: 900/900, `pre-commit.sh` + `pre-push.sh` grün.
+
+## Test-Ergebnis
+Siehe [`tasks/coverage-286.md`](coverage-286.md). Testing-Persona-Audit fand 7 AK ohne
+direkte Assertion (Tabellenzeilen-Inhalt, Eindeutigkeit, Aspekt-Label `security`, Scope-
+Blocker-Sätze, Bestandseinträge, Schema-Felder einzeln) – alle sieben ergänzt. Dabei ein
+weiterer echter Bug im neuen Guard selbst gefunden und gefixt: ein `grep -qF`-Mehrwort-Check
+brach an einem Markdown-Zeilenumbruch (bekannte Lesson-Falle) – gelöst über einen
+zeilenumbruch-toleranten `flat_286()`-Helper statt Prosa umzuschreiben. Zusätzlich neu: Guard
+für die zentrale Reihenfolge-Anforderung (Klassifikation steht vor `create_issue_idempotent`)
+inkl. eigener Mutations-Negativkontrolle. Endstand: **925 grün, 0 rot**; `pre-commit.sh` +
+`pre-push.sh` grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

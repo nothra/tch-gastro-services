@@ -4684,6 +4684,13 @@ done
 echo ""
 echo "Task 286: Schwellen-Tabelle + Sammeldatei statt unbedingter Issue-Anlage:"
 
+# Mehrwort-Content-Checks unten prüfen Prosa-Aussagen, keine Kommando-/Aufruf-Zeilen – ein
+# harmloser Markdown-Zeilenumbruch mitten im Satz würde einen reinen `grep -qF`-Mehrwort-Anker
+# sonst lautlos rot machen (Lesson factory-workflow.md: "grep -qF-Fixed-String-Regressionstest
+# gegen Markdown-Prosa"). Zeilenumbrüche vor dem Matchen durch Leerzeichen ersetzen, damit der
+# Test die Aussage prüft, nicht die aktuelle Zeilenbreite.
+flat_286() { tr '\n' ' ' < "$1"; }
+
 KLEINFUNDE="$FACTORY_ROOT/docs/factory/kleinfunde.md"
 
 # (0) Verweis-Ziel existiert: sonst zeigen die Skill-Verweise auf kleinfunde.md ins Leere,
@@ -4693,20 +4700,59 @@ assert_true "$([[ -f "$KLEINFUNDE" ]]; echo $?)" \
 
 # Schema-Kontrakt lebt in der Datei selbst (ADR-043 Decision 4): Überschrift ohne laufende
 # Nummer, Felder Wo/Was/Fix/Herkunft. Kein "### <Ziffer> ·"-Eintrag mehr im Bestand.
-grep -qF 'ohne laufende Nummer' "$KLEINFUNDE"
+kleinfunde_flat_286="$(flat_286 "$KLEINFUNDE")"
+printf '%s' "$kleinfunde_flat_286" | grep -qF 'ohne laufende Nummer'
 assert_true "$?" "#286: kleinfunde.md dokumentiert das Schema 'Überschrift ohne laufende Nummer'"
 assert_true "$(! grep -qE '^### [0-9]+ ·' "$KLEINFUNDE"; echo $?)" \
   "#286: kleinfunde.md hat keine nummerierten Eintrags-Überschriften mehr"
+# AK "Sammeldatei": alle vier Schema-Felder sind im Dateikopf benannt (/test-Ergänzung –
+# bisher nur "ohne laufende Nummer" geprüft, nicht die Feldliste selbst).
+for kleinfunde_field in '**Wo**' '**Was**' '**Fix**' '**Herkunft**'; do
+  printf '%s' "$kleinfunde_flat_286" | grep -qF "$kleinfunde_field"
+  assert_true "$?" "#286: kleinfunde.md nennt das Schema-Feld $kleinfunde_field im Dateikopf"
+done
+# AK "wächst ein Eintrag über 'unter zehn Zeilen' → Issue" und "erledigt → gelöscht, nicht
+# abgehakt" – beide Regeln waren schon vor #286 da, aber ungetestet (/test-Ergänzung).
+printf '%s' "$kleinfunde_flat_286" | grep -qF 'wird er ein Issue'
+assert_true "$?" "#286: kleinfunde.md dokumentiert die Promotion-Regel (über 'unter zehn Zeilen' → Issue)"
+printf '%s' "$kleinfunde_flat_286" | grep -qF 'gelöscht, nicht abgehakt'
+assert_true "$?" "#286: kleinfunde.md dokumentiert 'erledigt → gelöscht, nicht abgehakt'"
+# AK "vier überführte Einträge aus #279/#280/#282/#283 vorhanden" – bisher nur "keine
+# Nummerierung mehr" geprüft, nicht dass die vier konkreten Bestandseinträge noch da sind
+# (/test-Ergänzung, Testing-Persona-Finding).
+for kleinfunde_issue in '#279' '#280' '#282' '#283'; do
+  printf '%s' "$kleinfunde_flat_286" | grep -qF "$kleinfunde_issue"
+  assert_true "$?" "#286: kleinfunde.md enthält weiterhin den Bestandseintrag zu $kleinfunde_issue"
+done
+# AK "Duplikat-Prüfung per Suche auf die Fundstelle dokumentiert" (/test-Ergänzung).
+printf '%s' "$kleinfunde_flat_286" | grep -qF 'schon existiert'
+assert_true "$?" "#286: kleinfunde.md dokumentiert die Duplikat-Prüfung ('schon existiert')"
 
 # git-workflow.md trägt die Schwellen-Tabelle als kanonische Einzelquelle – kein dangling
 # reference bei den drei Skill-Verweisen unten.
-grep -qF 'Schwelle: Issue oder Sammeldatei' "$GITWF"
+gitwf_flat_286="$(flat_286 "$GITWF")"
+printf '%s' "$gitwf_flat_286" | grep -qF 'Schwelle: Issue oder Sammeldatei'
 assert_true "$?" "#286: git-workflow.md trägt die Schwellen-Tabelle (Verweis-Ziel existiert)"
-grep -qF 'im Zweifel Issue' "$GITWF"
+# AK "vollständige Schwellen-Tabelle mit den vier Zeilen" – bisher nur die Abschnitts-
+# Überschrift geprüft, nicht die vier tatsächlichen Tabellenzeilen selbst (ein Abschneiden
+# der Tabelle auf zwei Zeilen hätte den bisherigen Guard nicht rot gemacht, Testing-Persona-
+# Finding).
+for kleinfunde_row_286 in 'Merge-Blocker im aktuellen PR' 'Echtes Sicherheitsrisiko' \
+    'Funktionaler Defekt mit reproduzierbarem Auslöser' 'Alles andere'; do
+  printf '%s' "$gitwf_flat_286" | grep -qF "$kleinfunde_row_286"
+  assert_true "$?" "#286: Schwellen-Tabelle in git-workflow.md enthält die Zeile '$kleinfunde_row_286'"
+done
+# AK "existiert genau einmal": die Tabellenzeile ist repo-weit eindeutig identifizierbar, nicht
+# nur "vorhanden" (sonst könnte ein zweites Vorkommen unbemerkt entstehen, obwohl ADR-043
+# Decision 4 explizit "ein Ort je Regel" fordert).
+kleinfunde_tabellenkopf_count="$(grep -rn 'Fund-Art' "$FACTORY_ROOT/docs/" "$FACTORY_ROOT/.claude/" 2>/dev/null | wc -l | tr -d ' ')"
+assert_true "$([[ "$kleinfunde_tabellenkopf_count" = "1" ]]; echo $?)" \
+  "#286: Schwellen-Tabelle (Kopfzeile 'Fund-Art') existiert repo-weit in docs/+.claude/ genau einmal"
+printf '%s' "$gitwf_flat_286" | grep -qF 'im Zweifel Issue'
 assert_true "$?" "#286: git-workflow.md dokumentiert die Zweifelsregel 'im Zweifel Issue'"
-grep -qF 'Ist der Auslöser' "$GITWF"
+printf '%s' "$gitwf_flat_286" | grep -qF 'Ist der Auslöser'
 assert_true "$?" "#286: git-workflow.md nennt die Herstellbarkeits-Entscheidungshilfe"
-assert_true "$(! grep -qF 'ebenso legen die Skills' "$GITWF"; echo $?)" \
+assert_true "$(! printf '%s' "$gitwf_flat_286" | grep -qF 'ebenso legen die Skills'; echo $?)" \
   "#286: git-workflow.md beschreibt die Skill-Anlage nicht mehr als unbedingt ('ebenso legen die Skills')"
 
 # Je Skill-Doku: Präsenz (verweist auf Sammeldatei + Schwellen-Tabelle) UND Abwesenheit (die
@@ -4729,11 +4775,45 @@ old_unconditional_line_286() {
 }
 for sk in codify review security-review; do
   skf="$FACTORY_ROOT/.claude/commands/$sk.md"
+  skf_flat_286="$(flat_286 "$skf")"
 
-  grep -qF 'kleinfunde.md' "$skf"
+  printf '%s' "$skf_flat_286" | grep -qF 'kleinfunde.md'
   assert_true "$?" "#286: /$sk-Skill-Doku verweist auf docs/factory/kleinfunde.md"
-  grep -qF 'Schwellen-Tabelle in' "$skf"
+  printf '%s' "$skf_flat_286" | grep -qF 'Schwellen-Tabelle in'
   assert_true "$?" "#286: /$sk-Skill-Doku verweist auf die Schwellen-Tabelle in git-workflow.md"
+
+  # AK "Klassifikations-Anweisung steht VOR dem create_issue_idempotent-Aufruf" (die zentrale
+  # Reihenfolge-Anforderung der ganzen Task – bisher nur inhaltlich, nie an der Position
+  # geprüft, Lesson factory-workflow.md "Reihenfolge-/Präsenz-Guards"). Anker ist die echte
+  # Aufrufzeile am Spaltenanfang (Lesson #114), nicht eine Prosa-Erwähnung.
+  class_line_286="$(grep -n 'Schwellen-Tabelle in' "$skf" | head -1 | cut -d: -f1)"
+  call_line_286="$(grep -n '^create_issue_idempotent ' "$skf" | head -1 | cut -d: -f1)"
+  assert_true "$([ -n "$class_line_286" ] && [ -n "$call_line_286" ] \
+      && [ "$class_line_286" -lt "$call_line_286" ]; echo $?)" \
+    "#286: /$sk-Skill-Doku: Klassifikations-Anweisung (Zeile $class_line_286) steht vor dem create_issue_idempotent-Aufruf (Zeile $call_line_286)"
+
+  # AK "kritisches Finding im Scope bleibt Merge-Blocker" gilt laut Spec nur für /review und
+  # /security-review (nicht /codify, das keinen PR-Diff-Scope hat) – Testing-Persona-Finding.
+  # AK "funktionaler Defekt mit reproduzierbarem Auslöser" gilt für /review und /codify, nicht
+  # /security-review (dessen Schwelle-A ausschließlich Sicherheitsrisiko/Zweifelsfall ist).
+  case "$sk" in
+    review)
+      printf '%s' "$skf_flat_286" | grep -qF 'Findings **im** Scope bleiben'
+      assert_true "$?" "#286: /$sk-Skill-Doku: kritische Findings im Scope bleiben Merge-Blocker (nicht Issue/Sammeldatei)"
+      printf '%s' "$skf_flat_286" | grep -qF 'funktionaler Defekt mit reproduzierbarem Auslöser'
+      assert_true "$?" "#286: /$sk-Skill-Doku nennt 'funktionaler Defekt mit reproduzierbarem Auslöser' als Issue-Fall (Schritt A)"
+      ;;
+    security-review)
+      printf '%s' "$skf_flat_286" | grep -qF 'Kritische Findings im Scope** blockieren weiterhin den Merge'
+      assert_true "$?" "#286: /$sk-Skill-Doku: kritische Findings im Scope bleiben Merge-Blocker (nicht Issue/Sammeldatei)"
+      printf '%s' "$skf_flat_286" | grep -qF '"security"'
+      assert_true "$?" "#286: /$sk-Skill-Doku trägt weiterhin das Aspekt-Label 'security' am create_issue_idempotent-Aufruf"
+      ;;
+    codify)
+      printf '%s' "$skf_flat_286" | grep -qF 'funktionaler Defekt mit reproduzierbarem Auslöser'
+      assert_true "$?" "#286: /$sk-Skill-Doku nennt 'funktionaler Defekt mit reproduzierbarem Auslöser' als Issue-Fall (Schritt A)"
+      ;;
+  esac
 
   old_line="$(old_unconditional_line_286 "$sk")"
   assert_true "$(! grep -qF "$old_line" "$skf"; echo $?)" \
@@ -4752,6 +4832,18 @@ for sk in codify review security-review; do
     "#286: Mutationsbeleg /$sk – derselbe Assert-Ausdruck wird auf der zurückgedrehten Fixture rot (liefert '1')"
   rm -f "$mut_286"
 done
+
+# Negativ-Kontrolle für den Reihenfolge-Guard oben: eine Fixture mit VERTAUSCHTER Reihenfolge
+# (Aufruf zuerst, Klassifikations-Erwähnung danach) muss die Prüfung tatsächlich verfehlen –
+# sonst wäre der Guard vakuos (kein Fall, in dem er je rot würde).
+mut_order_286="$(mktemp)"
+printf 'create_issue_idempotent "x" "y" enhancement\nSchwellen-Tabelle in git-workflow.md\n' > "$mut_order_286"
+mut_order_class_286="$(grep -n 'Schwellen-Tabelle in' "$mut_order_286" | head -1 | cut -d: -f1)"
+mut_order_call_286="$(grep -n '^create_issue_idempotent ' "$mut_order_286" | head -1 | cut -d: -f1)"
+assert_true "$(! { [ -n "$mut_order_class_286" ] && [ -n "$mut_order_call_286" ] \
+    && [ "$mut_order_class_286" -lt "$mut_order_call_286" ]; }; echo $?)" \
+  "#286: Mutationsbeleg Reihenfolge-Guard – vertauschte Fixture (Aufruf vor Klassifikation) lässt den Ordering-Check fehlschlagen"
+rm -f "$mut_order_286"
 
 # ADR-018 §5 nennt die Schwelle und verweist auf ADR-043, statt die Tabelle zu kopieren.
 ADR018="$FACTORY_ROOT/docs/adr/018-central-issue-seam.md"
