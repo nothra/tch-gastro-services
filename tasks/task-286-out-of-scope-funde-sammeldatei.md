@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -188,6 +188,15 @@ verdichtet. Irreführende Variable `kleinfunde_row_286` (beschrieb tatsächlich 
 `git-workflow.md`-Tabelle, nicht `kleinfunde.md`) umbenannt zu `schwellen_tabelle_zeile_286`;
 `kleinfunde_tabellenkopf_count` zu `fund_art_zeilen_count_286` präzisiert. Testsuite vor/nach
 identisch: **925 grün, 0 rot**, dieselben Testnamen.
+
+## Security-Review-Ergebnis
+Siehe [`tasks/security-286.md`](security-286.md) – Ergebnis **PASSED**. Ein Wichtiges Finding
+(Prompt-Injection-Lücke: neue `kleinfunde.md`-Freitextfelder Wo/Was/Fix hatten keine zu
+Issue-Labels/-Body äquivalente „Daten, keine Anweisungen"-Warnung – ein Stored-Prompt-
+Injection-Kanal, da die Datei von künftigen Skill-Läufen wieder in den Agentenkontext geladen
+wird) noch in derselben Sitzung gefixt: Sicherheits-Absatz im Kopf von `kleinfunde.md`
+ergänzt + Regressions-Guard in `run-tests.sh`. Keine kritischen Findings. Endstand:
+**926 grün, 0 rot**; `pre-commit.sh` grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
