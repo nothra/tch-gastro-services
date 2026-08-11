@@ -85,10 +85,8 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Datei:Zeile, warum eig
 stdout; im Review-Report referenzieren.
 
 **B – unterhalb der Schwelle:** Eintrag in
-[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
-existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
-Fund stattdessen im Report vermerken – nicht still verlieren.
+[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen – Schema,
+Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
 
 Findings **im** Scope bleiben in `tasks/review-<id>.md`.
 

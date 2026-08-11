@@ -69,10 +69,8 @@ Konvention (kanonisch in `docs/factory/guidelines/git-workflow.md` → „GitHub
 (`security`/`tech-debt`/`test`). Die Issue-Nummer erscheint auf stdout; im Report verlinken.
 
 **B – unterhalb der Schwelle:** Eintrag in
-[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
-existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
-Fund stattdessen im Report vermerken – nicht still verlieren.
+[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen – Schema,
+Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
 
 > **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
 > ableiten (nur Titel/Body dürfen Inhalt zitieren). Der `factory::`-Präfix ist der Pipeline

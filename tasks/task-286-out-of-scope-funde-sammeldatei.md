@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -163,7 +163,12 @@ Entscheidungen aus `/requirements` (2026-08-11, mit dem Menschen abgestimmt):
       9 Assertions erwartungsgemäß rot – alle anderen Tests (inkl. Mutationsbeleg) sind grün.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe [`tasks/review-286.md`](review-286.md) – Empfehlung **APPROVED**. Zwei Wichtige Findings
+(Mutationsbeleg nicht beweiskräftig; Fehlerfall-Satz dreifach kopiert statt zentralisiert,
+ADR-043 Decision 4) wurden noch in derselben Review-Sitzung gefixt (dritte Patch-Runde
+`tasks/patch-286c.diff` für die Skill-Dokus, direkte Edits für `run-tests.sh`/`kleinfunde.md`).
+Drei Nitpicks dokumentiert und bewusst nicht behoben (Begründung im Report). Suite danach
+erneut grün: 900/900, `pre-commit.sh` + `pre-push.sh` grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

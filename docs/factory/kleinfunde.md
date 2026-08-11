@@ -20,6 +20,8 @@
 > - Vor dem Anhängen per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
 > - Aufwandsschätzung mit dazu; wächst ein Eintrag über „unter zehn Zeilen", wird er ein Issue.
 > - Erledigte Einträge werden gelöscht, nicht abgehakt (Git hat eine History).
+> - **Fehlt diese Datei oder ist sie nicht schreibbar:** der aufrufende Skill vermerkt den
+>   Fund stattdessen in seinem eigenen Report – nicht still verlieren (#286).
 
 ---
 

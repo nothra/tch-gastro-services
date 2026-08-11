@@ -4721,6 +4721,10 @@ old_unconditional_line_286() {
     review) printf '%s' 'statt es nur zu vermerken' ;;
     security-review) printf '%s' 'damit es auffindbar bleibt' ;;
     codify) printf '%s' 'statt es nur im Report zu vermerken' ;;
+    # Fail-closed statt stillem Leerstring: ein Leerstring wäre als grep-F-Pattern ein
+    # Match auf JEDE Zeile (Review-Runde-1-Finding) – ein unbekannter Skill-Key soll den
+    # Anker sichtbar verfehlen, nicht versehentlich alles matchen.
+    *) printf '%s' '__UNKNOWN_SKILL_KEY_286__' ;;
   esac
 }
 for sk in codify review security-review; do
@@ -4735,14 +4739,17 @@ for sk in codify review security-review; do
   assert_true "$(! grep -qF "$old_line" "$skf"; echo $?)" \
     "#286: /$sk-Skill-Doku enthält die alte unbedingte Anweisung ('$old_line') nicht mehr"
 
-  # Mutationsbeleg: dieselbe Erkennung (grep -qF "$old_line") MUSS auf einer Fixture, die die
-  # alte Formulierung zurückdreht, positiv feuern – sonst wäre der Abwesenheits-Guard oben
-  # vakuos (AK: "per Mutation belegt, dass ein Zurückdrehen ... den Test rot macht").
+  # Mutationsbeleg: NICHT nur derselbe grep-Aufruf isoliert (das bewiese nur Quoting,
+  # Review-Runde-2-Finding), sondern DERSELBE Assert-Ausdruck aus Zeile oben, gegen eine
+  # Fixture, die die alte Formulierung zurückdreht – der MUSS dort mit "1" (rot) auswerten,
+  # sonst wäre der Abwesenheits-Guard vakuos (AK: "per Mutation belegt, dass ein
+  # Zurückdrehen ... den Test rot macht").
   mut_286="$(mktemp)"
   cp "$skf" "$mut_286"
   printf '\n%s\n' "$old_line" >> "$mut_286"
-  grep -qF "$old_line" "$mut_286"
-  assert_true "$?" "#286: Mutationsbeleg /$sk – Zurückdrehen auf die alte Formulierung macht den Abwesenheits-Guard rot"
+  mut_286_result="$(! grep -qF "$old_line" "$mut_286"; echo $?)"
+  assert_true "$([[ "$mut_286_result" = "1" ]]; echo $?)" \
+    "#286: Mutationsbeleg /$sk – derselbe Assert-Ausdruck wird auf der zurückgedrehten Fixture rot (liefert '1')"
   rm -f "$mut_286"
 done
 

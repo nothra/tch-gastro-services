@@ -81,10 +81,8 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Kategorie, Angriffsfl�
 „GitHub-Labels"). Die Issue-Nummer erscheint auf stdout; im Security-Report referenzieren.
 
 **B – reiner Nitpick unterhalb der Schwelle:** Eintrag in
-[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
-existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
-Fund stattdessen im Report vermerken – nicht still verlieren.
+[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen – Schema,
+Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
 
 **Kritische Findings im Scope** blockieren weiterhin den Merge und werden sofort behoben – sie
 werden **nicht** in ein Issue oder die Sammeldatei ausgelagert.
