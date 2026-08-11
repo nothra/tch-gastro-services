@@ -209,6 +209,12 @@ Lesson #240/#249 (testing.md). PROJECT-CONTEXT.md-Index entsprechend nachgezogen
 Folge-Arbeit über die Schwelle hinaus identifiziert (die drei Review-Nitpicks bleiben bewusst
 unbehoben, s. `review-286.md`). Suite nach den Lesson-Edits erneut grün: `pre-push.sh` PASSED.
 
+PR-Shepherd [2026-08-11]: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare
+(nur der informative Vercel-Deploy-Kommentar), 0 Approvals erforderlich (ADR-029), `mergeStateStatus`
+`CLEAN`, alle CI-Checks grün (`lint`, `test`, `config-validation`, `factory-self-test`,
+`issue-sync`, `pr-closes-issue`, CodeQL/Analyze, Vercel-Preview; `post-merge-verify` erwartungs-
+gemäß `skipping`, läuft nur auf `main`). Draft-PR #287 über `gh pr ready` freigegeben.
+
 ---
 Branch: `feature/286-out-of-scope-funde-sammeldatei`
 Erstellt: 2026-08-11 19:31
