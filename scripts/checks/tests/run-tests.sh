@@ -4691,6 +4691,14 @@ echo "Task 286: Schwellen-Tabelle + Sammeldatei statt unbedingter Issue-Anlage:"
 # Test die Aussage prüft, nicht die aktuelle Zeilenbreite.
 flat_286() { tr '\n' ' ' < "$1"; }
 
+# Wiederkehrendes Muster "enthält geflachten Inhalt die Phrase?" auf einen Aufruf verdichtet
+# (Refactor: eliminiert ~17 wortgleiche Zwei-Zeiler-Wiederholungen im Block, kein neues
+# Verhalten – Kommando und Assert-Nachricht bleiben Zeile für Zeile identisch).
+assert_contains_286() {
+  printf '%s' "$1" | grep -qF "$2"
+  assert_true "$?" "$3"
+}
+
 KLEINFUNDE="$FACTORY_ROOT/docs/factory/kleinfunde.md"
 
 # (0) Verweis-Ziel existiert: sonst zeigen die Skill-Verweise auf kleinfunde.md ins Leere,
@@ -4701,57 +4709,57 @@ assert_true "$([[ -f "$KLEINFUNDE" ]]; echo $?)" \
 # Schema-Kontrakt lebt in der Datei selbst (ADR-043 Decision 4): Überschrift ohne laufende
 # Nummer, Felder Wo/Was/Fix/Herkunft. Kein "### <Ziffer> ·"-Eintrag mehr im Bestand.
 kleinfunde_flat_286="$(flat_286 "$KLEINFUNDE")"
-printf '%s' "$kleinfunde_flat_286" | grep -qF 'ohne laufende Nummer'
-assert_true "$?" "#286: kleinfunde.md dokumentiert das Schema 'Überschrift ohne laufende Nummer'"
+assert_contains_286 "$kleinfunde_flat_286" 'ohne laufende Nummer' \
+  "#286: kleinfunde.md dokumentiert das Schema 'Überschrift ohne laufende Nummer'"
 assert_true "$(! grep -qE '^### [0-9]+ ·' "$KLEINFUNDE"; echo $?)" \
   "#286: kleinfunde.md hat keine nummerierten Eintrags-Überschriften mehr"
 # AK "Sammeldatei": alle vier Schema-Felder sind im Dateikopf benannt (/test-Ergänzung –
 # bisher nur "ohne laufende Nummer" geprüft, nicht die Feldliste selbst).
 for kleinfunde_field in '**Wo**' '**Was**' '**Fix**' '**Herkunft**'; do
-  printf '%s' "$kleinfunde_flat_286" | grep -qF "$kleinfunde_field"
-  assert_true "$?" "#286: kleinfunde.md nennt das Schema-Feld $kleinfunde_field im Dateikopf"
+  assert_contains_286 "$kleinfunde_flat_286" "$kleinfunde_field" \
+    "#286: kleinfunde.md nennt das Schema-Feld $kleinfunde_field im Dateikopf"
 done
 # AK "wächst ein Eintrag über 'unter zehn Zeilen' → Issue" und "erledigt → gelöscht, nicht
 # abgehakt" – beide Regeln waren schon vor #286 da, aber ungetestet (/test-Ergänzung).
-printf '%s' "$kleinfunde_flat_286" | grep -qF 'wird er ein Issue'
-assert_true "$?" "#286: kleinfunde.md dokumentiert die Promotion-Regel (über 'unter zehn Zeilen' → Issue)"
-printf '%s' "$kleinfunde_flat_286" | grep -qF 'gelöscht, nicht abgehakt'
-assert_true "$?" "#286: kleinfunde.md dokumentiert 'erledigt → gelöscht, nicht abgehakt'"
+assert_contains_286 "$kleinfunde_flat_286" 'wird er ein Issue' \
+  "#286: kleinfunde.md dokumentiert die Promotion-Regel (über 'unter zehn Zeilen' → Issue)"
+assert_contains_286 "$kleinfunde_flat_286" 'gelöscht, nicht abgehakt' \
+  "#286: kleinfunde.md dokumentiert 'erledigt → gelöscht, nicht abgehakt'"
 # AK "vier überführte Einträge aus #279/#280/#282/#283 vorhanden" – bisher nur "keine
 # Nummerierung mehr" geprüft, nicht dass die vier konkreten Bestandseinträge noch da sind
 # (/test-Ergänzung, Testing-Persona-Finding).
 for kleinfunde_issue in '#279' '#280' '#282' '#283'; do
-  printf '%s' "$kleinfunde_flat_286" | grep -qF "$kleinfunde_issue"
-  assert_true "$?" "#286: kleinfunde.md enthält weiterhin den Bestandseintrag zu $kleinfunde_issue"
+  assert_contains_286 "$kleinfunde_flat_286" "$kleinfunde_issue" \
+    "#286: kleinfunde.md enthält weiterhin den Bestandseintrag zu $kleinfunde_issue"
 done
 # AK "Duplikat-Prüfung per Suche auf die Fundstelle dokumentiert" (/test-Ergänzung).
-printf '%s' "$kleinfunde_flat_286" | grep -qF 'schon existiert'
-assert_true "$?" "#286: kleinfunde.md dokumentiert die Duplikat-Prüfung ('schon existiert')"
+assert_contains_286 "$kleinfunde_flat_286" 'schon existiert' \
+  "#286: kleinfunde.md dokumentiert die Duplikat-Prüfung ('schon existiert')"
 
 # git-workflow.md trägt die Schwellen-Tabelle als kanonische Einzelquelle – kein dangling
 # reference bei den drei Skill-Verweisen unten.
 gitwf_flat_286="$(flat_286 "$GITWF")"
-printf '%s' "$gitwf_flat_286" | grep -qF 'Schwelle: Issue oder Sammeldatei'
-assert_true "$?" "#286: git-workflow.md trägt die Schwellen-Tabelle (Verweis-Ziel existiert)"
+assert_contains_286 "$gitwf_flat_286" 'Schwelle: Issue oder Sammeldatei' \
+  "#286: git-workflow.md trägt die Schwellen-Tabelle (Verweis-Ziel existiert)"
 # AK "vollständige Schwellen-Tabelle mit den vier Zeilen" – bisher nur die Abschnitts-
 # Überschrift geprüft, nicht die vier tatsächlichen Tabellenzeilen selbst (ein Abschneiden
 # der Tabelle auf zwei Zeilen hätte den bisherigen Guard nicht rot gemacht, Testing-Persona-
 # Finding).
-for kleinfunde_row_286 in 'Merge-Blocker im aktuellen PR' 'Echtes Sicherheitsrisiko' \
+for schwellen_tabelle_zeile_286 in 'Merge-Blocker im aktuellen PR' 'Echtes Sicherheitsrisiko' \
     'Funktionaler Defekt mit reproduzierbarem Auslöser' 'Alles andere'; do
-  printf '%s' "$gitwf_flat_286" | grep -qF "$kleinfunde_row_286"
-  assert_true "$?" "#286: Schwellen-Tabelle in git-workflow.md enthält die Zeile '$kleinfunde_row_286'"
+  assert_contains_286 "$gitwf_flat_286" "$schwellen_tabelle_zeile_286" \
+    "#286: Schwellen-Tabelle in git-workflow.md enthält die Zeile '$schwellen_tabelle_zeile_286'"
 done
 # AK "existiert genau einmal": die Tabellenzeile ist repo-weit eindeutig identifizierbar, nicht
 # nur "vorhanden" (sonst könnte ein zweites Vorkommen unbemerkt entstehen, obwohl ADR-043
 # Decision 4 explizit "ein Ort je Regel" fordert).
-kleinfunde_tabellenkopf_count="$(grep -rn 'Fund-Art' "$FACTORY_ROOT/docs/" "$FACTORY_ROOT/.claude/" 2>/dev/null | wc -l | tr -d ' ')"
-assert_true "$([[ "$kleinfunde_tabellenkopf_count" = "1" ]]; echo $?)" \
+fund_art_zeilen_count_286="$(grep -rn 'Fund-Art' "$FACTORY_ROOT/docs/" "$FACTORY_ROOT/.claude/" 2>/dev/null | wc -l | tr -d ' ')"
+assert_true "$([[ "$fund_art_zeilen_count_286" = "1" ]]; echo $?)" \
   "#286: Schwellen-Tabelle (Kopfzeile 'Fund-Art') existiert repo-weit in docs/+.claude/ genau einmal"
-printf '%s' "$gitwf_flat_286" | grep -qF 'im Zweifel Issue'
-assert_true "$?" "#286: git-workflow.md dokumentiert die Zweifelsregel 'im Zweifel Issue'"
-printf '%s' "$gitwf_flat_286" | grep -qF 'Ist der Auslöser'
-assert_true "$?" "#286: git-workflow.md nennt die Herstellbarkeits-Entscheidungshilfe"
+assert_contains_286 "$gitwf_flat_286" 'im Zweifel Issue' \
+  "#286: git-workflow.md dokumentiert die Zweifelsregel 'im Zweifel Issue'"
+assert_contains_286 "$gitwf_flat_286" 'Ist der Auslöser' \
+  "#286: git-workflow.md nennt die Herstellbarkeits-Entscheidungshilfe"
 assert_true "$(! printf '%s' "$gitwf_flat_286" | grep -qF 'ebenso legen die Skills'; echo $?)" \
   "#286: git-workflow.md beschreibt die Skill-Anlage nicht mehr als unbedingt ('ebenso legen die Skills')"
 
@@ -4777,10 +4785,10 @@ for sk in codify review security-review; do
   skf="$FACTORY_ROOT/.claude/commands/$sk.md"
   skf_flat_286="$(flat_286 "$skf")"
 
-  printf '%s' "$skf_flat_286" | grep -qF 'kleinfunde.md'
-  assert_true "$?" "#286: /$sk-Skill-Doku verweist auf docs/factory/kleinfunde.md"
-  printf '%s' "$skf_flat_286" | grep -qF 'Schwellen-Tabelle in'
-  assert_true "$?" "#286: /$sk-Skill-Doku verweist auf die Schwellen-Tabelle in git-workflow.md"
+  assert_contains_286 "$skf_flat_286" 'kleinfunde.md' \
+    "#286: /$sk-Skill-Doku verweist auf docs/factory/kleinfunde.md"
+  assert_contains_286 "$skf_flat_286" 'Schwellen-Tabelle in' \
+    "#286: /$sk-Skill-Doku verweist auf die Schwellen-Tabelle in git-workflow.md"
 
   # AK "Klassifikations-Anweisung steht VOR dem create_issue_idempotent-Aufruf" (die zentrale
   # Reihenfolge-Anforderung der ganzen Task – bisher nur inhaltlich, nie an der Position
@@ -4798,20 +4806,20 @@ for sk in codify review security-review; do
   # /security-review (dessen Schwelle-A ausschließlich Sicherheitsrisiko/Zweifelsfall ist).
   case "$sk" in
     review)
-      printf '%s' "$skf_flat_286" | grep -qF 'Findings **im** Scope bleiben'
-      assert_true "$?" "#286: /$sk-Skill-Doku: kritische Findings im Scope bleiben Merge-Blocker (nicht Issue/Sammeldatei)"
-      printf '%s' "$skf_flat_286" | grep -qF 'funktionaler Defekt mit reproduzierbarem Auslöser'
-      assert_true "$?" "#286: /$sk-Skill-Doku nennt 'funktionaler Defekt mit reproduzierbarem Auslöser' als Issue-Fall (Schritt A)"
+      assert_contains_286 "$skf_flat_286" 'Findings **im** Scope bleiben' \
+        "#286: /$sk-Skill-Doku: kritische Findings im Scope bleiben Merge-Blocker (nicht Issue/Sammeldatei)"
+      assert_contains_286 "$skf_flat_286" 'funktionaler Defekt mit reproduzierbarem Auslöser' \
+        "#286: /$sk-Skill-Doku nennt 'funktionaler Defekt mit reproduzierbarem Auslöser' als Issue-Fall (Schritt A)"
       ;;
     security-review)
-      printf '%s' "$skf_flat_286" | grep -qF 'Kritische Findings im Scope** blockieren weiterhin den Merge'
-      assert_true "$?" "#286: /$sk-Skill-Doku: kritische Findings im Scope bleiben Merge-Blocker (nicht Issue/Sammeldatei)"
-      printf '%s' "$skf_flat_286" | grep -qF '"security"'
-      assert_true "$?" "#286: /$sk-Skill-Doku trägt weiterhin das Aspekt-Label 'security' am create_issue_idempotent-Aufruf"
+      assert_contains_286 "$skf_flat_286" 'Kritische Findings im Scope** blockieren weiterhin den Merge' \
+        "#286: /$sk-Skill-Doku: kritische Findings im Scope bleiben Merge-Blocker (nicht Issue/Sammeldatei)"
+      assert_contains_286 "$skf_flat_286" '"security"' \
+        "#286: /$sk-Skill-Doku trägt weiterhin das Aspekt-Label 'security' am create_issue_idempotent-Aufruf"
       ;;
     codify)
-      printf '%s' "$skf_flat_286" | grep -qF 'funktionaler Defekt mit reproduzierbarem Auslöser'
-      assert_true "$?" "#286: /$sk-Skill-Doku nennt 'funktionaler Defekt mit reproduzierbarem Auslöser' als Issue-Fall (Schritt A)"
+      assert_contains_286 "$skf_flat_286" 'funktionaler Defekt mit reproduzierbarem Auslöser' \
+        "#286: /$sk-Skill-Doku nennt 'funktionaler Defekt mit reproduzierbarem Auslöser' als Issue-Fall (Schritt A)"
       ;;
   esac
 

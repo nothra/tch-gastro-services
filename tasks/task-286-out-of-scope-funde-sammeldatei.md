@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -180,6 +180,14 @@ zeilenumbruch-toleranten `flat_286()`-Helper statt Prosa umzuschreiben. Zusätzl
 für die zentrale Reihenfolge-Anforderung (Klassifikation steht vor `create_issue_idempotent`)
 inkl. eigener Mutations-Negativkontrolle. Endstand: **925 grün, 0 rot**; `pre-commit.sh` +
 `pre-push.sh` grün.
+
+## Refactoring-Notizen
+Kein neues Verhalten. Wiederkehrendes Zwei-Zeiler-Muster (`printf | grep -qF` + `assert_true`,
+~17 Vorkommen im Task-286-Block von `run-tests.sh`) auf einen Helper `assert_contains_286()`
+verdichtet. Irreführende Variable `kleinfunde_row_286` (beschrieb tatsächlich eine Zeile der
+`git-workflow.md`-Tabelle, nicht `kleinfunde.md`) umbenannt zu `schwellen_tabelle_zeile_286`;
+`kleinfunde_tabellenkopf_count` zu `fund_art_zeilen_count_286` präzisiert. Testsuite vor/nach
+identisch: **925 grün, 0 rot**, dieselben Testnamen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
