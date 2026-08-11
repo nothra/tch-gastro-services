@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -105,6 +105,15 @@ _Keine._ Scope geklärt am 2026-08-12: nur M1 + Doku-Nachzug; M2 als Folge-Issue
 
 ## Review-Findings
 
+Runde 2 (`/review`, 2026-08-12): **APPROVED** – 0 kritisch, 0 wichtig, 6 Nitpicks (Robustheits-
+und Leseführungspunkte ohne heutigen Defekt, keiner merge-blockierend). Bericht:
+[`tasks/review-284.md`](review-284.md). Der kritische Runde-1-Punkt ist substanziell behoben und
+per RED-vor-GREEN belegt; nachgeprüft, dass kein Kommentar in `factory-poll.yml` die
+`permissions`-Zeilen mehr zeilengleich erfüllen kann. Mitnehmen, falls `/test`/`/refactor` die
+Stellen ohnehin anfasst: (1) `run-tests.sh:453` `group: factory-runtime` an den
+`concurrency:`-Block ankern statt dateiweit greppen, (2) je Mutant eine positive Kontrolle, damit
+die `! poll_*_guard`-Belege ihren Fail-Pfad nicht mit AK6 („Datei unlesbar") teilen.
+
 Runde 1 (`/review`, 2026-08-12): **NEEDS_REWORK** – 1 kritisch, 3 wichtig, 5 Nitpicks. Bericht:
 [`tasks/review-284.md`](review-284.md). Alle acht Findings im Rework-Durchlauf behoben (Details im
 Bericht unter „Rework"). Kernpunkt: Die AK3-Assertion war nach dem Kommentar-Nachzug **durch Prosa
@@ -137,6 +146,31 @@ Lesson-#114-Klasse, diesmal ausgelöst durch den eigenen Doku-Nachzug desselben 
   formuliert; die Checkliste plant „Secret gesetzt, Schedule noch nicht" ausdrücklich ein.
 - **Kleinfund abgelegt:** `.issue-npm-pin.md` (verwaister Issue-Body-Entwurf) ist als Eintrag in
   `docs/factory/kleinfunde.md` erfasst – nach ADR-043 unterhalb der Issue-Schwelle.
+
+### Notizen aus `/test` (2026-08-12)
+
+- Kein Produktionscode in diesem Task (nur Workflow-YAML, Doku, Selbsttest-Suite) – keine
+  Vitest-Coverage-Lücke zu schließen, `pnpm test:coverage` bleibt unberührt.
+- Vollständigkeitsprüfung gegen die Spec: AK1–AK6 und F1–F4 haben je einen dedizierten Guard in
+  `scripts/checks/tests/run-tests.sh` (`poll_trigger_guard`/`poll_dispatch_guard`/
+  `poll_permission_guard`), jeder mit Mutationsbeleg (RED bei Regression) **und** grüner
+  Gegenprobe (Kommentar-Erwähnung bleibt grün) – kein Lückenfund. AK7–AK10 sind einmalige
+  Doku-Fakten (ADR-Update-Notiz, Checkliste, Folge-Issue), bereits im Rework/Review manuell
+  verifiziert; kein permanenter Regressionsguard nötig, da die Prosa selbst nicht die
+  überwachte Mechanik ist (die überwacht AK1/AK5).
+- **Zwei Review-Runde-2-Nitpicks aufgegriffen** (von `/review` explizit für `/test`/`/refactor`
+  vorgeschlagen): (1) `factory-poll:`-Job und `group: factory-runtime` sind jetzt über
+  `poll_yaml_block` an den `jobs:`- bzw. `concurrency:`-Block geankert statt dateiweiter
+  Fragment-Grep (Lesson #114-Klasse präventiv geschlossen). (2) Jeder `! poll_*_guard
+  "<mutant>.yml"`-Mutationsbeleg bekommt eine grüne Positivkontrolle auf ein anderes Signal
+  derselben Mutanten-Datei (Lesson #214: bliebe die Mutanten-Datei aus, teilten sich alle
+  Belege bisher denselben Fail-Pfad mit AK6). Eine erste Positivkontrolle
+  (`poll_trigger_guard` auf `ohne-dispatch.yml`) schlug beim ersten Lauf tatsächlich fehl – der
+  leere `on:`-Block dieses Mutanten ist selbst ein Fail-Closed-Fall der Funktion, kein gültiges
+  Grün; Kontrolle auf `poll_permission_guard` (Permissions-Block bleibt unberührt) umgestellt.
+  5 neue Assertions, 939 → 944 grün / 0 rot.
+- Re-Verifikation: Bash-Selbsttest-Suite 944 grün / 0 rot, `pre-commit.sh` grün (Lint),
+  `pre-push.sh` grün (678 Vitest-Tests, Typecheck, Prettier, Routen-Doku, Hooks).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

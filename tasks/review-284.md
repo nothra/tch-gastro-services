@@ -1,154 +1,177 @@
 # Review: Task 284
 
-Diff-Scope: `git diff origin/main...HEAD` (7 Dateien, +416/−13). Drei Runden: Backend/Logik
-(Korrektheit der AKs, Guard-Verhalten), Code-Qualität (Testqualität, Kommentare), Architektur
-(ADR-Treue, Doku-Konsistenz).
+**Runde 2 (2026-08-12)** – Wiedervorlage nach dem Rework aus Runde 1. Diff-Scope:
+`git diff origin/main...HEAD` (11 Dateien, +681/−15). Drei Runden: Backend/Logik (AK-Abdeckung,
+Guard-Verhalten), Code-Qualität (Testqualität, Kommentare, Namen), Architektur (ADR-Treue,
+Doku-Konsistenz, Reaktivierbarkeit).
 
-> **Hinweis zur Verifikation:** Der Lauf der Bash-Selbsttest-Suite war in dieser Session
-> nicht möglich (Ausführung ist per Berechtigung gesperrt). AK4 „Suite grün" stützt sich
-> deshalb auf die `/implement`-Notiz (933 grün); die Findings unten sind statisch am Diff und
-> an den Dateizuständen belegt (Zeilennummern verifiziert am 2026-08-12).
+> **Hinweis zur Verifikation:** Das Ausführen von Shell-Skripten ist in dieser Session per
+> Berechtigung gesperrt – die Bash-Selbsttest-Suite konnte auch in Runde 2 nicht laufen. AK4
+> („Suite grün") stützt sich auf die `/implement`-Notiz (939 grün / 0 rot, Baseline 933) samt
+> dem dort dokumentierten RED-vor-GREEN-Beleg. Alle Findings unten sind statisch am Diff und am
+> Dateizustand belegt; Zeilennummern verifiziert am 2026-08-12. Gegen GitHub verifiziert:
+> PR #289 (`Closes #284` im Body), Issue #290 (offen, Labels `enhancement`,`security`, kein
+> `factory::run`), `.issue-npm-pin.md` getrackt und aus `baf55e4`.
 
 ## Kritische Findings (müssen behoben werden)
 
-- [x] `scripts/checks/tests/run-tests.sh:493-494` – Die beiden neuen AK3-Assertions
-      (`grep -q 'contents: write'` / `grep -q 'issues: write'`, dateiweit) werden von dem
-      **im selben PR neu eingefügten Kommentar** `.github/workflows/factory-poll.yml:57`
-      erfüllt: dort steht die Zeichenfolge „`contents: write` + `issues: write`" als Prosa.
-      **Fehlerszenario:** Wer den echten `permissions:`-Block (`factory-poll.yml:33-35`)
-      löscht oder auf `contents: read` abschwächt, bekommt eine **grüne** Suite – der Guard
-      bewacht nach dem Kommentar-Nachzug nicht mehr, was AK3 zusichert („permissions
-      unverändert"). Genau die Klasse „Kommando ≠ Prosa-Erwähnung" aus Lesson #114
-      (fünf dokumentierte Rezidive). **Fix:** auf die YAML-Zeile ankern statt auf ein
-      Fragment, z. B. `grep -qx '  contents: write' "$POLL_YML"` – oder den bereits in dieser
-      Datei vorhandenen kommentar-strippenden Helfer (`poll_on_block`-Muster) auf den
-      `permissions:`-Block anwenden. Mutationsbeleg mitliefern (Block entfernen → rot),
-      analog zu den AK5-Belegen; Lesson #286.
+_Keine._ Das kritische Finding aus Runde 1 (AK3-Assertion war nach dem Kommentar-Nachzug durch
+Prosa erfüllbar) ist substanziell behoben: `poll_permission_guard` liest den `permissions:`-Block
+über den kommentar-strippenden `poll_yaml_block` und vergleicht mit `grep -qxF --` auf die
+ganze Zeile. Drei Mutanten, in denen der prosa-nennende WHY-Kommentar stehen bleibt, belegen die
+Trennschärfe (Block gelöscht → rot für beide Zeilen, `contents: read` → rot, unlesbar → rot).
+Nachgeprüft: Kein Kommentar in `factory-poll.yml` enthält die Zeichenfolge `  contents: write`
+zeilengleich, der Guard ist also nicht mehr prosa-erfüllbar.
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [x] `scripts/factory-poll.sh:4` – „Läuft in einem GitHub Actions **Scheduled Workflow**."
-      Der wortgleiche Satz in `factory-poll.yml:3` wurde in diesem PR korrigiert, die Kopie im
-      Skript-Header nicht. Das Skript ist die Gegenstelle des Workflows; ein Agent, der es als
-      kanonische Quelle liest, erhält die vom PR gerade beseitigte Falschaussage. Lesson
-      `code-style.md` („Fix für falschen WHY-Kommentar per Grep auf kopierte Geschwister-Stellen
-      im selben PR ausweiten") und Lesson #176 („Doku im Präsens, die die geänderte Mechanik
-      beschreibt, im selben PR nachziehen"). Ein Satz.
+_Keine._ Die drei wichtigen Findings aus Runde 1 sind erledigt und nachgeprüft:
+`scripts/factory-poll.sh:4-6` nennt jetzt `workflow_dispatch` + Stilllegung (repo-weiter Grep auf
+„Scheduled Workflow/Pipeline" zeigt nur noch ADR-008/012-Historie, s. Nitpick 4),
+`docs/adr/012:34` trägt den Klammerzusatz mit funktionierendem Anker (`#status` passt zu
+`## Status` in ADR-008), und der WHY-Kommentar `factory-poll.yml:57-59` trennt die zwei Gründe
+(Secret fehlt im Repo ≠ Trigger-Zustand) statt eine falsche Kausalkette zu behaupten.
 
-- [x] `docs/adr/012-github-platform-migration.md:34` – Die Migrations-Tabelle nennt als
-      GitHub-Umsetzung des Async-Triggers „`.github/workflows/factory-poll.yml`
-      (`schedule` + `concurrency`)". Nach diesem PR gibt es kein `schedule` mehr. Dass die
-      Tabelle als **Aussage über den heutigen Stand** gelesen wird, belegt der bestehende
-      Eintrag in `docs/factory/kleinfunde.md:92`, der genau die Nachbarzeile (`ADR-012:36`)
-      als Beschreibung des aktuellen Zustands zitiert. Lesson #211: „PR ändert die von einer
-      ADR namentlich beschriebene Mechanik → ADR-Beschreibung im selben PR mitpflegen
-      (triggert auch ohne ADR-Datei-Änderung)". Ein Klammerzusatz mit Verweis auf die
-      ADR-008-Update-Notiz genügt.
-
-- [x] `.github/workflows/factory-poll.yml:57-58` – Falsche Kausalkette im neuen WHY-Kommentar:
-      „die Env-Var unten bleibt leer, **solange der Trigger nicht scharf ist**". Die Env-Var
-      ist leer, weil das Secret `ANTHROPIC_API_KEY` im Repo nicht existiert – mit dem
-      Trigger-Zustand hat sie nichts zu tun. Die Checkliste in `OPERATING.md` §0.4 plant den
-      Zustand „Secret gesetzt, Schedule noch nicht eingetragen" sogar ausdrücklich ein (Secret
-      zuerst, Schedule zuletzt); ab dann ist der Satz schlicht falsch, und zwar in einem
-      Kommentar, dessen Korrektur ein erklärtes Ziel dieses PRs war. **Fix:** die zwei Gründe
-      trennen – „ANTHROPIC_API_KEY ist im Repo nicht gesetzt; bis das geschieht, läuft der Job
-      ohne dieses Secret (#284/#290)".
+Funktional gegengeprüft, kein Finding: Weder `scripts/factory-poll.sh` noch ein anderer Workflow
+verzweigt auf `github.event_name`/`GITHUB_EVENT_NAME` – der Wegfall des `schedule`-Events kann
+den Poll-Pfad nicht stillegen (F2). `bash scripts/install-yq.sh` und die YAML-Validität von
+`factory-poll.yml` deckt weiterhin der #258-Block (`run-tests.sh:4524-4529` Job-Schleife mit
+`factory-poll|$POLL_YML`, `:4545` YAML-Parse hinter `HAS_YQ`) – F3 ohne neuen `yq`-Bedarf erfüllt.
 
 ## Nitpicks (optional)
 
-- [x] `scripts/checks/tests/run-tests.sh:468-470` – `poll_on_block` verwirft den Inhalt der
-      `on:`-Zeile selbst (`/^on:/{f=1; next}`). Ein Wiedereintrag in Flow-Notation
-      (`on: {schedule: [{cron: "*/30 * * * *"}]}`) oder mit gequotetem Key (`"schedule":`)
-      passiert den Guard grün, obwohl der Trigger aktiv ist. Der dokumentierte
-      Reaktivierungsweg (§0.4: „Block unten unter `on:` wieder eintragen") ist Block-Notation,
-      das Restrisiko also klein – erwähnenswert bleibt, dass der Guard eine Zeile des Blocks
-      nicht sieht, den er laut Assertion-Text auswertet.
-
-- [x] `scripts/checks/tests/run-tests.sh:488` – Die AK2-Assertion (`workflow_dispatch` vorhanden)
-      hat keinen Mutationsbeleg, während AK5/AK6 beide Richtungen belegen. Ein dritter
-      awk-Mutant (`workflow_dispatch` entfernen → rot) kostet drei Zeilen und schließt die
-      Asymmetrie; F2 („kein leerer `on:`-Block") wäre damit ebenfalls belegt statt nur
-      behauptet.
-
-- [x] `docs/adr/008-async-trigger-mechanism.md:17-24` / `docs/factory/OPERATING.md:143-145` –
-      Nicht erwähnte Nebenfolge: Der Stale-Reaper (`FACTORY_RUN_TIMEOUT`, setzt verwaiste
-      `factory::running`-Labels zurück) lebt in `factory-poll.sh` und läuft damit ebenfalls nur
-      noch bei manuellem Dispatch. Heute ohne Wirkung (nie ein `factory::run`-Issue), aber die
-      Update-Notiz listet auf, was unverändert bleibt – dieser Punkt gehört inhaltlich dazu.
-
-- [x] `docs/factory/OPERATING.md:138-140` – „Dieser Punkt kommt **zuletzt**" steht als
-      vorletzter Listenpunkt; danach folgt noch der Label-Punkt. Inhaltlich kein Widerspruch
-      (der Label-Punkt ist keine Setup-Handlung), als Leseführung aber irritierend.
+- [ ] `scripts/checks/tests/run-tests.sh:452-453` – Die zwei AK3-Bausteine `factory-poll:` und
+      `group: factory-runtime` bleiben **dateiweite Fragment-Greps**, während `permissions` in
+      Runde 1 auf den Block umgestellt wurde. Heute kein Defekt (kein Kommentar in
+      `factory-poll.yml` enthält diese Zeichenfolgen – geprüft), aber die Konstellation, die in
+      Runde 1 kritisch wurde, entstand genau so: durch einen Kommentar-Nachzug im selben PR. Da
+      `poll_yaml_block` jetzt existiert, kostet das Angleichen eine Zeile
+      (`poll_yaml_block "$POLL_YML" concurrency | grep -qxF -- '  group: factory-runtime'`).
+      Lesson #114, sechstes Rezidiv wäre vermeidbar.
+- [ ] `scripts/checks/tests/run-tests.sh:535,547,556,562,564,569` – Die Mutationsbelege der Form
+      `! poll_*_guard "$TMP_POLL_GUARD/<mutant>.yml"` teilen ihren Fail-Pfad mit AK6: „Datei nicht
+      lesbar" liefert dasselbe non-zero wie „Mutation erkannt". Bliebe die Mutanten-Datei aus
+      (`mktemp -d` fehlgeschlagen, Redirect nach `/` als Nicht-Root), wären sie grün, ohne etwas
+      geprüft zu haben – Lesson #214 („Negativ-Test auf den Ziel-Pfad isolieren, nur er darf
+      greifen"). Abgefedert ist das heute nur indirekt: der eine positiv erwartete Mutant
+      (`nur-kommentar.yml`, `:540`) würde in diesem Szenario rot und die Suite damit insgesamt
+      auch. Sauber wäre je Mutant eine positive Kontrolle, die Existenz und Parsbarkeit belegt –
+      je eine Zeile, z. B. `poll_dispatch_guard "$TMP_POLL_GUARD/mit-schedule.yml"` grün oder
+      `poll_permission_guard "$TMP_POLL_GUARD/contents-read.yml" 'issues: write'` grün.
+- [ ] `scripts/checks/tests/run-tests.sh:506-510` – `poll_permission_guard` hängt die Einrückung
+      selbst an (`grep -qxF -- "  $2"`), der Aufrufer übergibt `'contents: write'`. Die
+      Zwei-Spaces-Konvention steckt damit unsichtbar in der Funktion: wer intuitiv
+      `'  contents: write'` übergibt, bekommt ein falsches Rot, und der Signaturkommentar („0, wenn
+      die Zeile wörtlich im `permissions:`-Block steht") beschreibt nicht ganz, was passiert.
+      Entweder die volle Zeile als Parameter nehmen oder den Zusatz im Kommentar benennen.
+      Nebenbei: `poll_trigger_guard` hat einen `[ -n "$on_block" ]`-Guard, die zwei
+      Geschwister-Funktionen nicht – verhaltensgleich (`grep` auf Leerstring scheitert), aber der
+      Leser muss sich das erst herleiten.
+- [ ] `docs/adr/008-async-trigger-mechanism.md:9-14` – Die Update-Notiz vom 2026-07-08 sagt im
+      Präsens weiter „die Umsetzung nutzt jetzt einen GitHub Actions **Scheduled Workflow**".
+      Korrigiert wird das erst von der neuen Notiz direkt darunter. Chronologisch gestapelte,
+      datierte Notizen sind vertretbar (die ADR erklärt Text weiter unten ausdrücklich als
+      historisch), ein „(überholt, s. Update 2026-08-12)" spart dem Leser den Widerspruch.
+- [ ] `docs/factory/kleinfunde.md:94-95` – Der Fix-Hinweis sagt „Vorher kurz gegenprüfen, dass
+      nichts auf sie verweist (`grep -rn 'issue-npm-pin'`) – heute keine Referenz." Genau dieser
+      PR erzeugt fünf Nennungen der Datei (Spec, Task, dieser Bericht, der kleinfunde-Eintrag
+      selbst). Wer dem Hinweis folgt, sieht Treffer und stutzt – „keine Referenz **aus Code oder
+      Workflow**" wäre präzise.
+- [ ] `.github/workflows/factory-poll.yml:19-20` – Die Einrichtungs-Checkliste im Header führt
+      „`schedule`-Trigger wieder eintragen" als 3. von 5 Punkten. `OPERATING.md` §0.4 betont für
+      denselben Schritt „Dieser Punkt kommt **zuletzt**: er schaltet die Automatik scharf". Die
+      Reihenfolge-Aussage steht nur an einer der beiden Stellen; ein „(zuletzt)" im Header hält
+      die zwei Checklisten deckungsgleich.
 
 ## Positives
 
-- **Guard-Konstruktion trägt ihre Begründung.** `poll_on_block`/`poll_trigger_guard` sind an der
-  YAML-Struktur verankert (Kommentare werden **vor** der Suche gestrippt), scheitern
-  fail-closed bei unlesbarer Datei und bei leerem `on:`-Block, und die beiden bewussten
-  Bash-Entscheidungen (eine awk-Passage statt `sed | awk`; Here-String statt Pipe, damit
-  `grep -q` + Negation unter `pipefail` nicht ausgerechnet im Fund-Fall grün wird) sind im
-  Kommentar mit dem echten Grund dokumentiert. Das ist die richtige Lehre aus Lesson #114/#214.
-- **Mutationsbelege in beide Richtungen** (echter Trigger → rot, Kommentar mit
-  `schedule`/`cron` → grün) führen denselben Guard-Ausdruck inklusive Negation aus – erfüllt
-  Lesson #286 –, und die Mutation wird per awk **in** den bestehenden `on:`-Block eingefügt
-  statt per `printf >>` angehängt (kein Duplicate-Key-Dokument, Lesson #255).
-- **Alter Guard nicht nur entfernt, sondern umgedreht.** Der Vorzustand („`schedule:` muss da
-  sein") wird durch einen gleichwertig scharfen Gegenguard ersetzt – F4 („kein stiller
-  Rückfall") ist damit technisch und nicht nur per Prosa abgesichert.
-- **Doku-Nachzug ist breit und konsistent:** ADR-008 erhält eine datierte Update-Notiz ohne
-  Status-Änderung (Option A bleibt die Entscheidung – korrekt, es ändert sich nur der
-  Aktivierungszustand), OPERATING.md §0.4 bekommt die zwei Aktivierungsschritte inkl.
-  Reihenfolge-Hinweis, §1.3 und CLAUDE.md verlieren die Behauptung eines laufenden Schedules.
-  Der Anker `#04-async-trigger-scharfschalten-unbeaufsichtigte-pipeline-in-ci` passt zur
-  Überschrift `OPERATING.md:126` (geprüft).
-- **AK3 im Sinne der Reaktivierbarkeit erfüllt:** Der Diff berührt außerhalb des `on:`-Blocks
-  ausschließlich Kommentare – Job, `env`, `permissions`, `concurrency` und beide Steps sind
-  byte-identisch. `install-yq.sh`-Aufruf und YAML-Validität deckt weiterhin der
-  #258-Job-Block-Guard (`run-tests.sh:4465-4471`, `:4487` mit `skip_yq`) ab, F3 ist damit
-  erfüllt, ohne dass der neue Guard `yq` braucht.
-- **AK10/AK11 gegen GitHub verifiziert:** Issue #290 existiert (offen, Labels `enhancement` +
-  `security`, kein `factory::run`) und ist in OPERATING.md §0.4 sowie im Workflow-Header
-  referenziert; PR #289 trägt `Closes #284` im Body.
+- **Der kritische Fix ist empirisch belegt, nicht behauptet.** Die Task-Notiz dokumentiert, dass
+  der AK3-Mutant zuerst gegen den **alten** dateiweiten `grep` lief (933 grün / **1 rot**) und
+  erst danach der Guard-Umbau folgte (939/0). Das ist RED-vor-GREEN auf einen Testfehler
+  angewandt – genau die Beweisführung, die Lesson #286 verlangt.
+- **Der Block-Extraktor wurde verallgemeinert statt kopiert.** `poll_on_block` → `poll_yaml_block
+  <datei> <key>` bedient jetzt `on:` und `permissions:`; kein zweiter awk-Ausdruck daneben
+  (Lesson #240-Klasse vermieden). Dass dabei der Inline-Inhalt der Key-Zeile erhalten bleibt,
+  schließt zugleich die Flow-Notations-Lücke aus Runde 1 – ein Fix, zwei Findings.
+- **Die Trigger-Suche ist auf Wortgrenze statt auf `schedule:` umgestellt** und deckt damit
+  Block-Notation, Flow-Notation und gequotete Keys ab, ohne `schedule_override` o. ä. zu treffen
+  (Unterstrich ist aus der Randklasse ausgenommen). Der Mutationsbeleg für die Flow-Notation ist
+  mitgeliefert – der Guard bewacht nicht mehr nur die Schreibweise, die er erwartet.
+- **Fail-closed durchgezogen und in beide Richtungen belegt.** Unlesbare Datei → rot (Trigger-
+  *und* Permissions-Guard), leerer `on:`-Block → rot, entferntes `workflow_dispatch` → rot (F2 ist
+  damit belegt statt behauptet). Nachgeprüft: Ein Umbenennen des `on:`-Keys (z. B. auf `"on":`)
+  läuft nicht in ein stilles Grün, sondern macht AK1 rot – die Guards sind hier nicht umgehbar.
+- **Die zwei Bash-Entscheidungen tragen ihren echten Grund im Kommentar** (eine awk-Passage statt
+  `sed | awk`; Here-String statt Pipe, damit `grep -q` + Negation unter `pipefail` nicht
+  ausgerechnet im Fund-Fall grün wird). Ebenso korrekt: `local on_block` steht getrennt von der
+  Zuweisung, sonst hätte `local` den Exit-Code der Kommandosubstitution verschluckt.
+- **Doku-Kette ist vollständig und konsistent.** ADR-008 datierte Update-Notiz ohne
+  Status-Änderung (Option A bleibt Entscheidung – richtig, es ändert sich nur der
+  Aktivierungszustand) inkl. der Stale-Reaper-Nebenfolge, ADR-012-Tabelle nachgezogen (Lesson
+  #211), OPERATING §0.4 mit beiden Aktivierungsschritten und „zuletzt"-Punkt jetzt am Listenende,
+  §1.3 + CLAUDE.md ohne Schedule-Behauptung, `factory-poll.sh`-Header nachgezogen. Beide
+  Markdown-Anker (`#04-async-trigger-…`, `#status`) gegen die Zielüberschriften geprüft.
+- **Scope-Disziplin:** Kein Pin, kein Installations-Seam, keine Poll-Logik angefasst – M2 lebt
+  vollständig in #290 und ist an drei Stellen als Vorbedingung verankert (Workflow-Header,
+  OPERATING §0.4, ADR-008-Notiz). `docs/routes.md` ist korrekt nicht betroffen (keine Route, keine
+  UI).
 
 ## Out-of-Scope-Funde (nicht in diesem PR)
 
-- **Unterhalb der Schwelle (ADR-043 → Sammeldatei):** Der bereits in Spec/Task notierte
-  verwaiste Issue-Body-Entwurf `.issue-npm-pin.md` (getrackt, aus `baf55e4`/#258) ist als
-  Eintrag in `docs/factory/kleinfunde.md` ergänzt („Verwaister Issue-Body-Entwurf
-  `.issue-npm-pin.md` im Repo-Wurzelverzeichnis", Fix: `git rm`, eine Zeile). Kein Issue: kein
-  Sicherheitsrisiko, kein funktionaler Defekt, unter zehn Zeilen.
-- Kein weiterer Fund oberhalb der Schwelle – die vier Findings oben liegen alle **im** Scope
-  (drei davon in Dateien, die dieser PR anfasst; ADR-012 ist der von Lesson #211 geforderte
-  Nachzug derselben Mechanik).
+- **Unterhalb der Schwelle (ADR-043 → Sammeldatei):** `.issue-npm-pin.md` (getrackter, verwaister
+  Issue-Body-Entwurf aus `baf55e4`/#258) ist im Rework als Eintrag in
+  `docs/factory/kleinfunde.md:85-96` erfasst – Fix `git rm`, eine Zeile. Kein Issue: kein
+  Sicherheitsrisiko, kein funktionaler Defekt. Verifiziert: Datei ist in `git ls-files`, 42
+  Zeilen, keine Referenz aus Code oder Workflow.
+- Kein weiterer Fund oberhalb der Schwelle. Die sechs Nitpicks oben liegen alle **im** Scope
+  (Dateien, die dieser PR anfasst).
 
-## Rework (2026-08-12, `/implement`)
+## Historie: Runde 1 (2026-08-12) – NEEDS_REWORK
 
-Alle acht Findings behoben; Bash-Selbsttest-Suite **939 grün / 0 rot** (Baseline vor dem Rework:
-933/0, danach sechs neue Assertions).
+1 kritisch, 3 wichtig, 5 Nitpicks – alle behoben; Belege in den Abschnitten oben.
 
-- **Kritisch (AK3-Guard prosa-erfüllbar):** `poll_on_block` ist zu `poll_yaml_block <datei> <key>`
-  verallgemeinert; neuer `poll_permission_guard` liest den `permissions:`-Block (Kommentare
-  vorher gestrippt) und prüft die Zeile mit `grep -qxF --`. Belegt per drei Mutanten, in denen
-  der prosa-nennende WHY-Kommentar stehen bleibt: Block gelöscht → rot (beide Zeilen),
-  `contents: read` → rot, unlesbare Datei → rot. Der zuerst geschriebene Mutationsbeleg war
-  gegen den **alten** dateiweiten `grep` rot – die Regression ist also empirisch, nicht behauptet.
-- **`factory-poll.sh:4`:** Header nennt jetzt `workflow_dispatch` + Stilllegung; Grep auf kopierte
-  Geschwister-Stellen der Falschaussage lief leer (nur dieses Vorkommen).
-- **ADR-012:34:** Tabellenzelle trägt den Klammerzusatz „`schedule` seit #284 stillgelegt" mit
-  Link auf die ADR-008-Update-Notiz.
-- **`factory-poll.yml`-Kommentar:** Kausalketten getrennt – das Secret existiert im Repo nicht,
-  unabhängig vom Trigger-Zustand (#284/#290).
-- **Nitpicks:** Flow-Notation/gequoteter Key werden erfasst (Inline-Inhalt der `on:`-Zeile bleibt
-  im Block, Suche auf Wortgrenze statt `schedule:`), Mutationsbeleg dafür ergänzt; `poll_dispatch_guard`
-  mit Mutant belegt F2; Stale-Reaper-Nebenfolge steht in der ADR-008-Notiz; der „kommt zuletzt"-Punkt
-  in OPERATING.md §0.4 ist an das Listenende gerückt.
+### Kritisch (behoben)
+
+- [x] `run-tests.sh:493-494` – Die neuen AK3-Assertions (`grep -q 'contents: write'` /
+      `grep -q 'issues: write'`, dateiweit) wurden vom **im selben PR eingefügten** Kommentar
+      `factory-poll.yml:57` erfüllt: dort stand „`contents: write` + `issues: write`" als Prosa.
+      Wer den echten `permissions:`-Block gelöscht oder auf `contents: read` abgeschwächt hätte,
+      hätte eine **grüne** Suite bekommen – der Guard bewachte nicht mehr, was AK3 zusichert.
+      Lesson #114 („Kommando ≠ Prosa-Erwähnung"), ausgelöst durch den eigenen Doku-Nachzug.
+      → Fix: `poll_permission_guard` auf dem gestrippten Block + drei Mutationsbelege.
+
+### Wichtig (behoben)
+
+- [x] `scripts/factory-poll.sh:4` – „Läuft in einem GitHub Actions **Scheduled Workflow**": der
+      wortgleiche Satz in `factory-poll.yml:3` war korrigiert, die Kopie im Skript-Header nicht.
+      Lesson `code-style.md` (Fix auf kopierte Geschwister-Stellen ausweiten) + Lesson #176.
+- [x] `docs/adr/012-github-platform-migration.md:34` – Migrations-Tabelle nannte
+      „`factory-poll.yml` (`schedule` + `concurrency`)" als heutigen Stand. Lesson #211: ADR-
+      Beschreibung derselben Mechanik im selben PR mitpflegen.
+- [x] `.github/workflows/factory-poll.yml:57-58` – Falsche Kausalkette im neuen WHY-Kommentar
+      („Env-Var bleibt leer, solange der Trigger nicht scharf ist"). Sie ist leer, weil das Secret
+      fehlt; §0.4 plant „Secret gesetzt, Schedule noch nicht" ausdrücklich ein.
+
+### Nitpicks (behoben)
+
+- [x] `run-tests.sh:468-470` – `poll_on_block` verwarf die `on:`-Zeile selbst → Flow-Notation und
+      gequoteter Key passierten grün.
+- [x] `run-tests.sh:488` – AK2 ohne Mutationsbeleg, während AK5/AK6 beide Richtungen belegten;
+      F2 war nur behauptet.
+- [x] `docs/adr/008:17-24` / `OPERATING.md:143-145` – Stale-Reaper-Nebenfolge (läuft ebenfalls nur
+      noch bei manuellem Dispatch) nicht erwähnt.
+- [x] `OPERATING.md:138-140` – „Dieser Punkt kommt **zuletzt**" stand als vorletzter Listenpunkt.
+- [x] `.issue-npm-pin.md` – als Kleinfund nach ADR-043 abgelegt statt als Issue.
 
 ## Empfehlung
 
-NEEDS_REWORK (Rework oben erledigt – Wiedervorlage für `/review` Runde 2)
+APPROVED
 
-Ein kritisches Finding (die AK3-Assertion ist nach dem Kommentar-Nachzug prosa-erfüllbar und
-kann ihre Regression nicht mehr erkennen) plus drei wichtige Doku-/Kommentar-Nachzüge. Alle
-vier sind kleine, lokal begrenzte Änderungen; die Substanz des PRs – Stilllegung, Gegenguard,
-Doku-Kette, Folge-Issue – ist tragfähig.
+Alle acht Findings aus Runde 1 sind behoben, und die Fixes gehen über das Gemeldete hinaus, wo es
+richtig war (Block-Extraktor verallgemeinert statt zweimal geschrieben; sechs zusätzliche
+Assertions inkl. positivem RED-Beleg für die Regression). Die verbleibenden sechs Nitpicks sind
+Robustheits- und Leseführungspunkte ohne heutigen Defekt – keiner blockiert den Merge, und keiner
+rechtfertigt eine dritte Review-Runde. Sinnvoll mitzunehmen, falls `/test` oder `/refactor` die
+Stellen ohnehin anfasst: Nitpick 1 (concurrency-Guard an den Block ankern) und Nitpick 2
+(positive Kontrolle je Mutant) – beide je eine Zeile und in derselben Lesson-Familie, die diesen
+PR schon einmal in die Nacharbeit geschickt hat.
