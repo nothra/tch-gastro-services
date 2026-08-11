@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -194,6 +194,19 @@ Kein neues Verhalten – nur die vier verbliebenen Review-Runde-2-Nitpicks aufge
   der Reihenfolge-Aussage in OPERATING.md §0.4 (Nitpick 6).
 - Re-Verifikation: Bash-Selbsttest-Suite weiterhin 944 grün / 0 rot, `pre-commit.sh` grün
   (Lint), `pre-push.sh` grün (678 Vitest-Tests, Typecheck, Prettier, Routen-Doku, Hooks).
+
+### Notizen aus `/security-review` (2026-08-12)
+
+**PASSED** – 0 kritisch, 0 wichtig, 6 Hinweise (alle ohne Handlungsbedarf). Bericht:
+[`tasks/security-284.md`](security-284.md). Der PR ist selbst eine Härtung: die automatische
+CI-Angriffsfläche sinkt von 48 Läufen/Tag auf 0, die verbleibende ungepinnte
+claude-CLI-Installation ist nur noch per bewusstem `workflow_dispatch` erreichbar und als
+Vorbedingung des Scharfschaltens in #290 + OPERATING.md §0.4 verankert. Geprüft und negativ:
+Secret-Literale im Diff (nur `${{ secrets.* }}`-Referenzen), neue Dependencies (keine),
+Prompt-Injection-Fläche im neuen `kleinfunde.md`-Eintrag (reine Daten). `grep` über
+`.github/workflows/` bestätigt `factory-poll.yml:63` als einzige ungepinnte
+Fremd-Binary-Installation – alle übrigen Jobs nutzen `pnpm install --frozen-lockfile` oder den
+verifizierten `install-yq.sh`-Seam. Kein neues Issue nötig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
