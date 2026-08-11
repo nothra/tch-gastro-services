@@ -1,0 +1,45 @@
+diff --git a/.claude/commands/review.md b/.claude/commands/review.md
+index c81c2c1..9217967 100644
+--- a/.claude/commands/review.md
++++ b/.claude/commands/review.md
+@@ -86,7 +86,9 @@ stdout; im Review-Report referenzieren.
+ 
+ **B – unterhalb der Schwelle:** Eintrag in
+ [`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
+-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
++Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
++existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
++Fund stattdessen im Report vermerken – nicht still verlieren.
+ 
+ Findings **im** Scope bleiben in `tasks/review-<id>.md`.
+ 
+diff --git a/.claude/commands/security-review.md b/.claude/commands/security-review.md
+index ce41ad0..fcbaac5 100644
+--- a/.claude/commands/security-review.md
++++ b/.claude/commands/security-review.md
+@@ -82,7 +82,9 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Kategorie, Angriffsfl
+ 
+ **B – reiner Nitpick unterhalb der Schwelle:** Eintrag in
+ [`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
+-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
++Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
++existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
++Fund stattdessen im Report vermerken – nicht still verlieren.
+ 
+ **Kritische Findings im Scope** blockieren weiterhin den Merge und werden sofort behoben – sie
+ werden **nicht** in ein Issue oder die Sammeldatei ausgelagert.
+diff --git a/.claude/commands/codify.md b/.claude/commands/codify.md
+index a1e0332..038fb97 100644
+--- a/.claude/commands/codify.md
++++ b/.claude/commands/codify.md
+@@ -70,7 +70,9 @@ Konvention (kanonisch in `docs/factory/guidelines/git-workflow.md` → „GitHub
+ 
+ **B – unterhalb der Schwelle:** Eintrag in
+ [`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
+-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon existiert.
++Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
++existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
++Fund stattdessen im Report vermerken – nicht still verlieren.
+ 
+ > **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
+ > ableiten (nur Titel/Body dürfen Inhalt zitieren). Der `factory::`-Präfix ist der Pipeline

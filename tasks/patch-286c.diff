@@ -1,0 +1,51 @@
+diff --git a/.claude/commands/review.md b/.claude/commands/review.md
+index 9217967..c389665 100644
+--- a/.claude/commands/review.md
++++ b/.claude/commands/review.md
+@@ -85,10 +85,8 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Datei:Zeile, warum eig
+ stdout; im Review-Report referenzieren.
+ 
+ **B – unterhalb der Schwelle:** Eintrag in
+-[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
+-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
+-existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
+-Fund stattdessen im Report vermerken – nicht still verlieren.
++[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen – Schema,
++Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
+ 
+ Findings **im** Scope bleiben in `tasks/review-<id>.md`.
+ 
+diff --git a/.claude/commands/security-review.md b/.claude/commands/security-review.md
+index fcbaac5..9e5e3ac 100644
+--- a/.claude/commands/security-review.md
++++ b/.claude/commands/security-review.md
+@@ -81,10 +81,8 @@ create_issue_idempotent "<Titel im Imperativ>" "<Kontext: Kategorie, Angriffsfl
+ „GitHub-Labels"). Die Issue-Nummer erscheint auf stdout; im Security-Report referenzieren.
+ 
+ **B – reiner Nitpick unterhalb der Schwelle:** Eintrag in
+-[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
+-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
+-existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
+-Fund stattdessen im Report vermerken – nicht still verlieren.
++[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen – Schema,
++Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
+ 
+ **Kritische Findings im Scope** blockieren weiterhin den Merge und werden sofort behoben – sie
+ werden **nicht** in ein Issue oder die Sammeldatei ausgelagert.
+diff --git a/.claude/commands/codify.md b/.claude/commands/codify.md
+index 038fb97..49ab446 100644
+--- a/.claude/commands/codify.md
++++ b/.claude/commands/codify.md
+@@ -69,10 +69,8 @@ Konvention (kanonisch in `docs/factory/guidelines/git-workflow.md` → „GitHub
+ (`security`/`tech-debt`/`test`). Die Issue-Nummer erscheint auf stdout; im Report verlinken.
+ 
+ **B – unterhalb der Schwelle:** Eintrag in
+-[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen (Schema im
+-Dateikopf); vorher per Suche auf die Fundstelle prüfen, ob der Eintrag schon
+-existiert. Schlägt der Edit fehl (Datei fehlt oder ist nicht schreibbar), den
+-Fund stattdessen im Report vermerken – nicht still verlieren.
++[`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) ergänzen – Schema,
++Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
+ 
+ > **Sicherheit:** Labels sind **feste Literale** – niemals aus Finding-/Diff-/Fremdinhalt
+ > ableiten (nur Titel/Body dürfen Inhalt zitieren). Der `factory::`-Präfix ist der Pipeline
