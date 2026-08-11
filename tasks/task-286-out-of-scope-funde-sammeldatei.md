@@ -97,7 +97,30 @@ Spec: [`docs/specs/spec-286-kleinfunde-sammeldatei.md`](../docs/specs/spec-286-k
       existieren, damit Skills sie per `Edit` ergänzen können.
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+
+ADR: [`docs/adr/043-schwelle-fuer-autonome-issue-anlage.md`](../docs/adr/043-schwelle-fuer-autonome-issue-anlage.md)
+(Status `Proposed` → beim Implementieren auf `Accepted` flippen, Lesson `factory-workflow.md`
+aus #197).
+
+Entscheidungen aus `/architecture` (2026-08-11):
+
+5. **Kein Seam für die Sammeldatei** – der Eintrag entsteht als direkter `Edit` des Agenten,
+   **kein** `scripts/lib/add-kleinfund.sh` analog zu `create-issue.sh`. Grund: der
+   Duplikat-Schlüssel (`Datei:Zeile`) ist nicht maschinenentscheidbar – Zeilennummern driften
+   (sagt die Datei selbst), und ein Grep auf den bloßen Pfad über-matcht (Einträge 1 und 2
+   betreffen beide `install-hooks.sh`, sind aber verschiedene Funde). Ein Seam wäre in seiner
+   Kernfunktion schwächer als das Urteil eines lesenden Agenten.
+6. **Eigene ADR statt Umschreiben von ADR-018 §5** – folgt dem Muster von ADR-040 (eigene ADR +
+   Hinweis im Statusblock von ADR-018).
+7. **Schema-Kontrakt lebt in `kleinfunde.md` selbst**, die Schwellen-Tabelle in
+   `git-workflow.md`; die drei Skill-Dokus tragen nur je eine dünne Referenz – weder Schema
+   noch Tabelle werden dreifach kopiert.
+8. **Durchsetzungsebene ist der Prompt, nicht die Laufzeit** – bewusst so benannt. Der
+   Doku-Guard sichert die Anweisung gegen Regression, nicht deren Befolgung.
+
+Reihenfolge-Hinweis für `/implement`: `git-workflow.md` (Tabelle) zuerst, dann ADR-018-Statusblock
+und §5, dann die drei Skill-Dokus (Patch-Workflow), zuletzt der Guard in `run-tests.sh` – so
+existiert jedes Verweis-Ziel, bevor darauf verwiesen wird.
 
 Entscheidungen aus `/requirements` (2026-08-11, mit dem Menschen abgestimmt):
 1. **Ort der Schwellen-Tabelle:** `git-workflow.md` §„Zentraler Anlage-Weg (ADR-018)" – dort
