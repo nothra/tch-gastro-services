@@ -13,6 +13,18 @@ MR-Beschreibung — End-to-End-Verifikation erst nach Spur B.
 > Der Budget-Guard und die Label-State-Maschine sind unverändert. Historischer Text unten
 > beschreibt die GitLab-Variante.
 
+> **Update (2026-08-12, [#284](https://github.com/nothra/tch-gastro-services/issues/284)):**
+> Der `schedule`-Trigger in `factory-poll.yml` ist **stillgelegt**; einziger Trigger ist
+> `workflow_dispatch`. Option A (Scheduled-Poll) bleibt die getroffene Entscheidung – nur ihr
+> Aktivierungszustand ändert sich. Grund: Die ADR nennt „Default aus; Aktivierung = Schedule +
+> Labels + Auth-Variable"; ein aktiver Schedule ohne die anderen zwei Bausteine (kein
+> `ANTHROPIC_API_KEY` im Repo, nie ein `factory::run`-Issue) pollte 48× am Tag ergebnislos und
+> installierte dabei jedes Mal ungepinnte Software in einem Job mit `contents: write` +
+> `issues: write`. Job, `permissions`, `concurrency` und beide Steps bleiben unverändert – das
+> Scharfschalten trägt den `schedule`-Block in einem Schritt wieder ein (Checkliste in
+> [OPERATING.md §0.4](../factory/OPERATING.md#04-async-trigger-scharfschalten-unbeaufsichtigte-pipeline-in-ci),
+> Vorbedingung: gepinnte claude-CLI, #290).
+
 ## Datum
 2026-06-17 (Entwurf) · 2026-06-19 (Accepted)
 
