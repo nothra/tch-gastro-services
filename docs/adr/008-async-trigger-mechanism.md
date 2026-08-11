@@ -6,12 +6,13 @@ bestätigt, alle 5 Fragen geklärt, Vorbedingungen V-0…V-3 benannt. Umsetzung:
 (Code, mock-getestet) in diesem MR; Spur B (GitLab-Admin-Setup) als Checkliste in der
 MR-Beschreibung — End-to-End-Verifikation erst nach Spur B.
 
-> **Update (2026-07-08, [ADR-012](012-github-platform-migration.md)):** Auf GitHub
-> migriert. Option A (Scheduled-Poll) bleibt die Entscheidung; die Umsetzung nutzt jetzt
-> einen GitHub Actions Scheduled Workflow (`.github/workflows/factory-poll.yml`), die
-> `gh`-CLI für Issues/Labels und die Workflow-`concurrency`-Group statt `resource_group`.
-> Der Budget-Guard und die Label-State-Maschine sind unverändert. Historischer Text unten
-> beschreibt die GitLab-Variante.
+> **Update (2026-07-08, [ADR-012](012-github-platform-migration.md); überholt, s. Update
+> 2026-08-12 unten):** Auf GitHub migriert. Option A (Scheduled-Poll) bleibt die Entscheidung;
+> die Umsetzung nutzt jetzt einen GitHub Actions Scheduled Workflow
+> (`.github/workflows/factory-poll.yml`), die `gh`-CLI für Issues/Labels und die
+> Workflow-`concurrency`-Group statt `resource_group`. Der Budget-Guard und die
+> Label-State-Maschine sind unverändert. Historischer Text unten beschreibt die
+> GitLab-Variante.
 
 > **Update (2026-08-12, [#284](https://github.com/nothra/tch-gastro-services/issues/284)):**
 > Der `schedule`-Trigger in `factory-poll.yml` ist **stillgelegt**; einziger Trigger ist

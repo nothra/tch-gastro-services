@@ -499,17 +499,20 @@ poll_trigger_guard() {
 }
 
 # poll_dispatch_guard <workflow-datei> – 0, wenn der on:-Block workflow_dispatch trägt.
+# Kein expliziter [ -n "$on_block" ]-Guard wie bei poll_trigger_guard nötig: `grep` auf
+# einen leeren Block scheitert ohnehin non-zero, das Verhalten ist identisch.
 poll_dispatch_guard() {
   local on_block
   on_block="$(poll_yaml_block "$1" on)" || return 1
   grep -q 'workflow_dispatch' <<<"$on_block"
 }
 
-# poll_permission_guard <workflow-datei> <permissions-zeile> – 0, wenn die Zeile wörtlich
-# im permissions:-Block steht. Dateiweites Suchen wäre hier wertlos: der WHY-Kommentar am
-# Runtime-Step nennt „contents: write + issues: write" als Prosa und erfüllte einen
-# `grep -q` auch dann, wenn der echte Block fehlt oder auf `contents: read` abgeschwächt
-# ist (Lesson #114: Kommando ≠ Prosa-Erwähnung). Wert als Daten behandeln (`-qxF --`).
+# poll_permission_guard <workflow-datei> <permissions-zeile-OHNE-Einrückung> – 0, wenn die
+# Zeile (mit der zweispaltigen Einrückung des Blocks ergänzt) wörtlich im permissions:-Block
+# steht. Dateiweites Suchen wäre hier wertlos: der WHY-Kommentar am Runtime-Step nennt
+# „contents: write + issues: write" als Prosa und erfüllte einen `grep -q` auch dann, wenn
+# der echte Block fehlt oder auf `contents: read` abgeschwächt ist (Lesson #114: Kommando ≠
+# Prosa-Erwähnung). Wert als Daten behandeln (`-qxF --`).
 poll_permission_guard() {
   local permissions_block
   permissions_block="$(poll_yaml_block "$1" permissions)" || return 1

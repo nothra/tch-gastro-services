@@ -92,7 +92,8 @@
   ihr Anliegen inzwischen Issue #290; die Datei ist damit eine zweite, nicht gepflegte Quelle
   für dieselbe Aussage – der Punkt-Präfix versteckt sie zusätzlich in `ls`.
 - **Fix:** `git rm .issue-npm-pin.md`. Eine Zeile. Vorher kurz gegenprüfen, dass nichts auf sie
-  verweist (`grep -rn 'issue-npm-pin'`) – heute keine Referenz.
+  verweist (`grep -rn 'issue-npm-pin'`) – heute keine Referenz aus Code oder Workflow (Doku wie
+  dieser Eintrag oder eine Task-/Review-Datei nennt die Datei erwartungsgemäß).
 - **Herkunft:** `/review` zu #284 (dort schon in Spec/Task als Out-of-Scope-Fund notiert).
   Fundstelle verifiziert am 2026-08-12.
 

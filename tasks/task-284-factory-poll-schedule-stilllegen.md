@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -171,6 +171,29 @@ Lesson-#114-Klasse, diesmal ausgelöst durch den eigenen Doku-Nachzug desselben 
   5 neue Assertions, 939 → 944 grün / 0 rot.
 - Re-Verifikation: Bash-Selbsttest-Suite 944 grün / 0 rot, `pre-commit.sh` grün (Lint),
   `pre-push.sh` grün (678 Vitest-Tests, Typecheck, Prettier, Routen-Doku, Hooks).
+
+### Notizen aus `/refactor` (2026-08-12)
+
+Kein neues Verhalten – nur die vier verbliebenen Review-Runde-2-Nitpicks aufgegriffen, die
+`/test` noch offen ließ (Nitpick 1+2 waren dort bereits erledigt):
+
+- **`run-tests.sh` – `poll_permission_guard`/`poll_dispatch_guard`:** Signaturkommentar von
+  `poll_permission_guard` benennt jetzt explizit, dass die zweispaltige Einrückung vom Aufrufer
+  ohne Präfix übergeben und intern ergänzt wird (Nitpick 3, statt stillschweigend voraussetzen).
+  `poll_dispatch_guard` bekommt einen Einzeiler, der begründet, warum es – anders als
+  `poll_trigger_guard` – keinen expliziten `[ -n "$on_block" ]`-Guard braucht (verhaltensgleich,
+  `grep` auf Leerstring scheitert ohnehin).
+- **ADR-008:** Die 2026-07-08-Update-Notiz trägt jetzt „(überholt, s. Update 2026-08-12 unten)",
+  damit der Widerspruch zur Gegenwarts-Aussage („nutzt jetzt einen … Scheduled Workflow") nicht
+  erst beim Weiterlesen auffällt (Nitpick 4).
+- **`docs/factory/kleinfunde.md`:** Fix-Hinweis zu `.issue-npm-pin.md` präzisiert auf „keine
+  Referenz aus Code oder Workflow" – Doku-Erwähnungen (dieser Eintrag, Task/Review) sind
+  erwartungsgemäß und keine Verweise, die der `git rm` beachten müsste (Nitpick 5).
+- **`factory-poll.yml`-Header:** Checkliste ergänzt „Dieser Punkt kommt zuletzt: er schaltet die
+  Automatik scharf (OPERATING.md §0.4)" beim `schedule`-Wiedereintrag-Punkt, deckungsgleich mit
+  der Reihenfolge-Aussage in OPERATING.md §0.4 (Nitpick 6).
+- Re-Verifikation: Bash-Selbsttest-Suite weiterhin 944 grün / 0 rot, `pre-commit.sh` grün
+  (Lint), `pre-push.sh` grün (678 Vitest-Tests, Typecheck, Prettier, Routen-Doku, Hooks).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
