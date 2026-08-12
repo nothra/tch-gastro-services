@@ -7,7 +7,9 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd 2026-08-12: Merge freigegeben – alle Gates grün.
 
 ## Beschreibung
 
