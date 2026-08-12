@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -210,6 +210,14 @@ verifizierten `install-yq.sh`-Seam. Kein neues Issue nötig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vollständiger Bericht: [`tasks/codify-284.md`](codify-284.md). Drei neue Learnings:
+`lessons/factory-workflow.md` Nachtrag 5 (sechstes Rezidiv der #114-Klasse: Guard durch eigenen,
+im selben PR neu verfassten WHY-Kommentar prosa-erfüllbar), `lessons/testing.md` (Positivkontrolle
+für einen Mutations-Fixture darf keine Fail-closed-Vorbedingung eines anderen Guards verletzen)
+und `guidelines/bash-gotchas.md` Addendum zu Gotcha #3 (Negation kippt SIGPIPE-Falschrot in
+Falschgrün, ausgerechnet im Fund-Fall). Alle drei jeweils mit Index-Zeile in
+`docs/factory/PROJECT-CONTEXT.md` verlinkt.
 
 ### Angrenzende Funde (nicht in Scope)
 - `.issue-npm-pin.md` im Repo-Wurzelverzeichnis ist ein getrackter Entwurf des Issue-Bodys von
