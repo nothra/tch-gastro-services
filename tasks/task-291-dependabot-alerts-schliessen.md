@@ -193,6 +193,53 @@ Eintrag `"nanoid@<3.3.17"` (samt Kommentarzeilen) streichen, `pnpm install`, Loc
 Der Floor-Guard prüft die **aufgelöste** Version und bleibt in beiden Fällen grün, das Entfernen
 ist also regressionsfrei.
 
+### Rework-Runde 2 (`/implement`, 2026-08-13)
+
+**Ergebnis: keine der beiden verbliebenen Findings ist in dieser Session lösbar.** Beide sind
+Umgebungs-, keine Implementierungs-Blocker; die Runde hat sie erneut geprüft statt sie
+weiterzureichen.
+
+**Kanal-Prüfung (alle vier gescheitert, jeweils selbst versucht):**
+
+| Kanal | Ergebnis |
+|---|---|
+| `gh api …/dependabot/alerts` | `This command requires approval` – nicht allow-gelistet, Session nicht-interaktiv |
+| `pnpm --version` (stellvertretend für `pnpm install`) | `This command requires approval` |
+| WebFetch gegen `api.github.com/advisories` | Tool nicht freigegeben |
+| Repo-weiter Grep nach `GHSA-…` | 7 Treffer, **alle** aus #228 (next-auth) – keine ID für die sechs Floors |
+
+**K1 – Befund unabhängig nachverifiziert** (nicht aus der Vorrunde übernommen):
+`grep -n nanoid pnpm-lock.yaml` → genau **eine** Konsumenten-Kante (`nanoid: 3.3.18`, Zeile 6539,
+im `postcss@8.5.26`-Snapshot); `postcss@8.5.26` deklariert `"nanoid": "^3.3.17"`
+(`node_modules/.pnpm/postcss@8.5.26/…/package.json:81`). Der Eintrag ist damit bestätigt
+redundant. Das Streichen bleibt blockiert: der `overrides:`-Block ist in `pnpm-lock.yaml:7-16`
+gespiegelt (selbst gelesen), ein Entfernen nur in `pnpm-workspace.yaml` lässt CI mit
+`ERR_PNPM_OUTDATED_LOCKFILE` scheitern.
+
+**Einzige Änderung dieser Runde – präzisierte Kausalkette im `nanoid`-Kommentar.** Der bisherige
+Text („der Floor folgt bereits aus der Parent-Range") war unvollständig: er folgt aus der Range
+derjenigen postcss-Version, die der *postcss-Override* erzwingt. Ohne diesen Override zöge `next`
+seinen exakten Pin `postcss: 8.4.31` (verifiziert in `next@16.2.12/package.json:85`), dessen
+nanoid-Range älter ist. Weil der postcss-Override dauerhaft bleibt (next pinnt exakt), bleibt das
+Streichen gefahrlos – aber die Begründung steht jetzt vollständig da (Lesson #264, unvollständige
+WHY-Kausalkette).
+
+**Gates:** `bash scripts/checks/tests/run-tests.sh` → 967 grün / 0 rot ·
+`bash scripts/checks/pre-push.sh` grün. `pnpm build` nicht erneut nötig: die Änderung ist
+ausschließlich ein YAML-Kommentar, die Auflösung ist unberührt (Lockfile unverändert).
+
+**Eskalation an den Menschen – zwei Befehle entblocken beides:**
+
+1. **K1** (`nanoid`-Override streichen): Eintrag `"nanoid@<3.3.17": "^3.3.17"` samt seiner
+   Kommentarzeilen aus `pnpm-workspace.yaml` entfernen → `pnpm install` → Lockfile mitcommitten.
+   Der Floor-Guard prüft die aufgelöste Version und bleibt grün.
+2. **AK-5 / W2** (GHSA-IDs): `gh api "repos/nothra/tch-gastro-services/dependabot/alerts?state=open&per_page=100"`
+   einmal ausführen (oder `gh api` freigeben) und je Floor die GHSA mit passender
+   `patched_version` in den Kommentar von `pnpm-workspace.yaml` eintragen.
+
+Ohne einen dieser Eingriffe kann keine weitere `/implement`-Runde etwas hinzufügen – ein dritter
+Rework-Durchlauf wäre reine Wiederholung (Circuit Breaker, CLAUDE.md → Guardrails).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

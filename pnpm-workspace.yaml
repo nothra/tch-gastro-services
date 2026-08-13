@@ -27,9 +27,14 @@ allowBuilds:
 # - nanoid   <3.3.17: via postcss (Build-Zeit, runtime-Scope laut Dependabot), #291.
 #            REDUNDANT und deshalb zum Entfernen vorgemerkt: postcss@8.5.26 deklariert selbst
 #            nanoid ^3.3.17, und der Lockfile kennt genau eine nanoid-Kante (aus postcss) –
-#            der Floor folgt bereits aus der Parent-Range. Das Streichen braucht einen
-#            Lockfile-Refresh (`pnpm install`; sonst ERR_PNPM_OUTDATED_LOCKFILE in CI) und
-#            steht als Blocker in tasks/task-291-dependabot-alerts-schliessen.md.
+#            der Floor folgt bereits aus der Parent-Range. Genauer: er folgt aus der Range
+#            DERJENIGEN postcss-Version, die der Eintrag darüber erzwingt – ohne den
+#            postcss-Override zöge next seinen exakten 8.4.31-Pin, dessen nanoid-Range älter
+#            und damit möglicherweise unterhalb des Floors liegt. Weil dieser Override laut
+#            Notiz oben dauerhaft bleibt, ist das Streichen hier trotzdem gefahrlos.
+#            Es braucht aber einen Lockfile-Refresh (`pnpm install`; sonst
+#            ERR_PNPM_OUTDATED_LOCKFILE in CI) und steht als Blocker in
+#            tasks/task-291-dependabot-alerts-schliessen.md.
 # - brace-expansion: zwei DISJUNKTE Selektoren, weil 1.x und 2.x getrennte Advisories mit
 #            getrennten Floors tragen. Ohne die untere Grenze am 2er-Selektor (`>=2.0.0 <2.1.4`)
 #            griffe er auch auf 1.1.x und höbe sie über die Major-Grenze (#291, empirisch belegt).
