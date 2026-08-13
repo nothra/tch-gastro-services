@@ -256,6 +256,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)
 - Verschachtelte alte `@types/node`-Kopie (transitive Dependency) kollidiert mit generischem `Buffer`-Typ bei TS≥5.7 – Cast über die Ziel-Funktionssignatur, nicht `as unknown as Buffer` (aus #189)
 - `pnpm audit` scheitert in dieser Sandbox an einem Gzip-Decoding-Bug – Registry-Endpoint direkt per `curl` + manuellem `gunzip` abfragen liefert echte Advisory-Daten statt nur des Lockfile-Ersatzkriteriums (aus #228, /security-review-Selbstfund)
+- Override-Ziel-Range immer als Caret innerhalb derselben Major-Linie (nicht offenes `>=`), bei Advisories in zwei Major-Linien disjunkte Selektoren; ein „No-op"-Verdacht auf einen Override ist zu messen (entfernen, neu auflösen, Version prüfen), nicht aus der Parent-Range anzunehmen (aus #291, Review-Runde-1/2-Findings)
 
 **[`lessons/code-style.md`](lessons/code-style.md)** – Clean-Code-Muster (Naming, Kommentar-Ort) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
 
@@ -307,6 +308,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - `PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell exportiert schlagen in jedes von der Testsuite erzeugte Wegwerf-Repo durch und lösen dort ungewollt Pipeline-Phasen aus – vor der Einordnung als Regression mit `unset` gegenprüfen (aus #262, Task-Selbstfund; Härtung umgesetzt in #264 – gilt weiter für andere Skripte mit eigenen Env-Schaltern) → `/implement`, `/test`, `/review` – bei rotem, diff-unabhängigem E2E-Test während `PR_SHEPHERD`/`FACTORY_STAGE` exportiert sind
 - Neuer `pre-push.sh`-Check, der lokalen Installationszustand voraussetzt (nicht nur Repo-Inhalt): bestehende Self-Tests, die `pre-push.sh` echt gegen das reale `FACTORY_DIR` aufrufen (kein Fixture), brechen in CI, wenn dieser Zustand dort nie erfüllt ist – CI muss den Zustand vor der Self-Test-Suite herstellen, nicht den Check abschwächen (aus #265, User-gemeldete CI-Regression) → `/implement`, `/review` – bei neuem `pre-push.sh`/`pre-commit.sh`-Check mit Abhängigkeit von lokalem Umgebungszustand
 - Frisch im selben PR erstellte/geänderte Spec braucht denselben Drift-Check wie ADRs/Lessons – Code gegen die eigene Spec-Prosa spiegeln, nicht die Spec unhinterfragt als Maßstab nehmen (aus #253, Review-Runde-3-Finding) → `/review` – bei Spec, die im selben PR entstanden/geändert wurde
+- „Nicht allow-gelistet" ist kein Umgebungs-Blocker, solange der Wrapper-Skript-Weg (`scripts/*.tmp.sh`, bereits erlaubt über `Bash(bash scripts/*)`) ungeprüft ist – nur eine echte Datei-Zugriffssperre (z. B. `.env*` unter Deny) ist ein echter Blocker (aus #291, zwei Rework-Runden verloren) → jeder Skill – vor dem Dokumentieren eines Umgebungs-/Berechtigungs-Blockers
+- `kleinfunde.md`-Eintrag mit `Datei:Zeile`-Ankern, im selben PR angelegt, braucht denselben Drift-Check wie ADR/Lesson/Spec (#211/#176/#253) – auch wenn die Drift-Quelle die eigenen Folge-Commits derselben Task sind (aus #291, Review-Finding) → `/review`, `/security-review` – vor Merge-Freigabe, wenn dieser PR selbst einen `kleinfunde.md`-Eintrag angelegt hat
 
 ---
 
