@@ -5111,7 +5111,7 @@ assert_true "$([ -n "$eslint_next_pin_291" ] && [ "$eslint_next_pin_291" = "$nex
 
 # Der Pin allein genügt nicht (AK-1 verlangt dieselbe Version im Lockfile): genau eine
 # aufgelöste next-Version, und die deckungsgleich mit der Deklaration.
-lock_next_291="$(lock_versions_291 next 16 "$LOCKFILE_291")"
+lock_next_291="$(lock_versions_291 next "${next_pin_291%%.*}" "$LOCKFILE_291")"
 assert_true "$([ -n "$lock_next_291" ] && [ "$lock_next_291" = "$next_pin_291" ]; echo $?)" \
   "#291 AK1: pnpm-lock.yaml löst next auf genau die deklarierte Version auf (ist: '$(printf '%s' "$lock_next_291" | tr '\n' ' ')')"
 
@@ -5167,6 +5167,29 @@ assert_true "$(grep -qxF -- '  "brace-expansion@<1.1.18": "^1.1.18"' "$WORKSPACE
   "#291 AK5: brace-expansion@1.x-Override hebt innerhalb der 1er-Linie (^1.1.18)"
 assert_true "$(grep -qxF -- '  "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4"' "$WORKSPACE_YAML_291"; echo $?)" \
   "#291 AK5: brace-expansion@2.x-Override ist nach unten begrenzt (>=2.0.0) und greift nicht auf 1.x über"
+
+# Caret-Regel projektweit für ALLE neuen #291-Einträge, nicht nur brace-expansion – sharp/
+# undici/js-yaml tragen dieselbe Ziel-Range-Form und dürfen bei einem künftigen Umstellen auf
+# ">=" nicht unbemerkt durchrutschen. Die Alt-Einträge esbuild/uuid behalten bewusst die offene
+# Form (Kleinfund docs/factory/kleinfunde.md) und sind darum explizit ausgenommen.
+# caret_violations_291 <eintragszeilen> – Einträge (außer esbuild/uuid), deren Ziel-Range
+# NICHT als Caret geschrieben ist.
+caret_violations_291() {
+  printf '%s\n' "$1" | grep -vE '^  "?(esbuild|uuid)@' | grep -vE ': "\^[0-9]' || true
+}
+
+caret_violations_291="$(caret_violations_291 "$overrides_keys_291")"
+assert_true "$([ -z "$caret_violations_291" ]; echo $?)" \
+  "#291 AK5: alle Ziel-Ranges außer esbuild/uuid sind Caret-gebunden${caret_violations_291:+ – offen:${caret_violations_291}}"
+
+# Diskriminierungs-Kontrolle: der Guard muss einen echten Verstoß melden UND die esbuild-
+# Ausnahme unauffällig lassen – sonst wäre nicht unterscheidbar, ob er wirklich prüft oder
+# die Ausnahmeliste einfach alles durchwinkt (Lesson testing.md, #286).
+mut_caret_291='  "foo@<1.0.0": ">=1.0.0"
+  "esbuild@<0.25.0": ">=0.25.0"'
+mut_caret_viol_291="$(caret_violations_291 "$mut_caret_291")"
+assert_true "$([ "$mut_caret_viol_291" = '  "foo@<1.0.0": ">=1.0.0"' ]; echo $?)" \
+  "#291 Mutationsbeleg AK5: Caret-Guard meldet nur den nicht ausgenommenen Verstoß, esbuild-Ausnahme bleibt unauffällig (ist: '${mut_caret_viol_291}')"
 
 # AK-7 (#169): der postcss-Eintrag ist ANGEHOBEN (8.5.10 → 8.5.23), nicht dupliziert – genau
 # ein postcss-Override, und zwar auf dem aktuellen Floor. Der esbuild-Eintrag BLEIBT: er ist

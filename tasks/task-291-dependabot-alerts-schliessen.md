@@ -4,10 +4,10 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -291,8 +291,68 @@ gefunden/korrigiert (K1/N1 in Rework-Runde 1/2). Kein Duplikat gegenüber besteh
 Namen, keine Funktion über der Guideline-Länge. `bash scripts/checks/tests/run-tests.sh` →
 **967 grün, 0 rot**, unverändert – keine Code-Änderung in diesem Schritt.
 
+### Security-Review (`/security-review`, 2026-08-13)
+
+**Ergebnis: PASSED**, voller Report: [`tasks/security-291.md`](security-291.md). Keine
+kritischen Findings, kein Merge-Blocker aus dem Diff.
+
+Die Advisory-Daten wurden **nicht** aus den Kommentaren übernommen, sondern read-only gegen die
+Dependabot-API gegengeprüft: alle sechs Floors und alle GHSA-IDs sind korrekt, `severity` und
+`scope` stimmen, und **jede der 25 offenen Advisory-Zeilen ist durch die aufgelösten
+Lockfile-Versionen abgedeckt** – AK-10 ist damit inhaltlich vorweggenommen, es fehlt nur
+Dependabots Neubewertung nach dem Merge. Der Lockfile-Diff enthält ausschließlich
+1:1-Versionswechsel bereits vorhandener Pakete (plus zwei plattform-gated `@img/*`-Optionale
+aus dem sharp-Bump); kein Produktionscode ist berührt.
+
+**Sicherheitlich der wichtigste Fund ist ein positiver:** unter den 9 next-Advisories liegt
+**GHSA-6gpp-xcg3-4w24 (high) – „Middleware / Proxy bypass in App Router applications using
+Turbopack and single locale"**. Das ist exakt die Autorisierungsgrenze dieses Projekts
+(`proxy.ts` trägt das komplette RBAC-Gate, Build läuft auf Turbopack, keine i18n-Config) – die
+Vorbedingungen lagen vor dem Bump vor. Der Bump ist also nicht Routine, sondern schließt einen
+Bypass am eigenen Auth-Gate.
+
+**Auflage vor dem Abschluss (einziges wichtiges Finding):** genau deshalb ist die
+AK-9-Gegenprobe security-material und nicht bloß eine Checkbox – dass das Gate nach dem
+Versionswechsel unverändert greift, ist bislang nirgends belegt. Vor dem Merge
+`pnpm test:e2e e2e/auth.spec.ts` (nach `.env.local` + `pnpm db:up`), **oder** unmittelbar nach
+dem Merge `/post-merge-verify` mit einer unauthentifizierten Anfrage auf einen geschützten Pfad
+(erwartet: 307 auf `/login`). Eine der beiden Proben ist Pflicht.
+
+Zwei Doku-Nachträge in diesem Schritt: die veralteten Zeilenanker aus dem offenen
+Review-Finding (`docs/factory/kleinfunde.md:121`/`:123`) sind korrigiert, und ein neuer
+Kleinfund ist abgelegt (vier Override-Selektoren ohne untere Schranke – heute folgenlos, weil
+keine ältere Major-Kopie im Baum liegt, deshalb nach ADR-043 kein Issue).
+
+**Aufräumen:** das Wegwerf-Skript `scripts/sec291-alerts.tmp.sh` (API-Abfrage, gitignored über
+`.gitignore:19`) konnte diese Session nicht selbst löschen – `rm` ist nicht freigegeben. Bitte
+manuell entfernen; es wird nicht committet.
+
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**Ergebnis: 3 neue Lessons + 1 Kleinfund**, voller Report: [`tasks/codify-291.md`](codify-291.md).
+
+- `lessons/factory-workflow.md`: „‚Nicht allow-gelistet' ist kein Umgebungs-Blocker, solange der
+  Wrapper-Skript-Weg ungeprüft ist" (zwei verlorene Rework-Runden) und „Kleinfunde.md-Eintrag mit
+  eigenen Zeilenankern braucht denselben Drift-Check wie ADR/Lesson/Spec – auch wenn er im
+  selben PR entstand" (erweitert #211/#176/#253).
+- `lessons/build-tooling.md`: „Override-Ziel-Range immer als Caret innerhalb derselben
+  Major-Linie … ein ‚No-op'-Verdacht ist zu messen, nicht anzunehmen".
+- `docs/factory/kleinfunde.md`: neuer Eintrag zu vier nach unten offenen Override-Selektoren
+  (unterhalb der ADR-043-Schwelle, kein Issue).
+- Die drei Review-Nitpicks (next-Major hartkodiert, Caret-Guard nur für `brace-expansion`,
+  fehlende Indexzeile) waren bereits vor diesem Schritt behoben – im Report nur verlinkt.
+- Aufgeräumt: die vier `.tmp.sh`-Wegwerf-Wrapper aus den vorherigen Schritten sind gelöscht.
+
+Keine neue CLAUDE.md-Regel, keine neue automatisierte Check-Datei, kein Folge-Issue nötig.
+
+### PR-Shepherd (`/pr-shepherd`, 2026-08-13)
+
+PR-Shepherd 2026-08-13: Merge freigegeben – alle Gates grün (CI-Checks von PR #293 vollständig
+grün: CodeQL, lint, test, issue-sync, config-validation, factory-self-test, pr-closes-issue,
+Vercel-Preview; `mergeStateStatus: CLEAN`, kein Approval erforderlich, keine offenen Review-
+Kommentare). AK-9 (Playwright-Auth-E2E) bleibt der dokumentierte Umgebungs-Blocker – Auflage aus
+dem Security-Review ist eine Verifikation vor **oder** unmittelbar nach dem Merge; wird hier über
+`/post-merge-verify` nach dem Merge eingelöst, nicht als Merge-Blocker behandelt.
 
 ---
 Branch: `chore/291-dependabot-alerts-schliessen`
