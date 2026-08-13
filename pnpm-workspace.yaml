@@ -10,11 +10,36 @@ allowBuilds:
 # jeweiligen Patch-Floor. Konditionale Form (paket@<version) → greift NUR unterhalb
 # des Patches; spätere legitime Upgrades der Parents (next, drizzle-kit) fließen
 # ungehindert durch. Entfernen, sobald die Parents die Patches selbst mitbringen.
-# - postcss  <8.5.10: GHSA-qx2v-qp2m-jg93 (XSS im CSS-Stringify), via next (Build-Zeit)
-# - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev)
+#
+# Ziel-Range immer als Caret innerhalb DERSELBEN Major-Linie (^1.1.18 statt >=1.1.18):
+# ein offenes >= lässt pnpm auf die neueste Major springen und schiebt damit einen
+# Major-Bump in einen Baum, der ihn nicht angefordert hat (#291: `>=` hätte die von
+# minimatch@3 erwartete brace-expansion@1.x auf 2.x gehoben).
+#
+# - postcss  <8.5.23: XSS im CSS-Stringify (GHSA-qx2v-qp2m-jg93, gefixt in 8.5.10) plus
+#            Folge-Advisory mit Floor 8.5.23; via next (Build-Zeit). Floor angehoben
+#            statt zweiter Eintrag daneben (#169/#291).
+# - nanoid   <3.3.17: via postcss (Build-Zeit, runtime-Scope laut Dependabot), #291
+# - brace-expansion: zwei DISJUNKTE Selektoren, weil 1.x und 2.x getrennte Advisories mit
+#            getrennten Floors tragen. Ohne die untere Grenze am 2er-Selektor (`>=2.0.0 <2.1.4`)
+#            griffe er auch auf 1.1.x und höbe sie über die Major-Grenze (#291, empirisch belegt).
+#            <1.1.18 via minimatch@3, >=2.0.0 <2.1.4 via minimatch@5 – beide runtime.
+# - sharp    <0.35.0: via next (Bildoptimierung, optionale Dep). Minor-Bump, kein Patch –
+#            deshalb steht sharp in allowBuilds und der Post-Install-Build muss durchlaufen (#291).
+# - undici   <7.29.0: via jsdom (Vitest-Environment, dev-Scope), #291
+# - js-yaml  <4.3.1:  via eslint (dev-Scope), #291
+# - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev).
+#            Nachweislich KEIN No-op: ohne den Eintrag löst der Baum esbuild@0.18.20 auf
+#            (in #291 durch Entfernen + Neuinstallation verifiziert).
 # - uuid     <11.1.1: GHSA-w5hq-g745-h8pq (fehlende Buffer-Bounds-Prüfung bei v3/v5/v6 mit
 #            `buf`-Argument), via exceljs (Bericht-Renderer, #189)
 overrides:
-  "postcss@<8.5.10": ">=8.5.10"
+  "postcss@<8.5.23": "^8.5.23"
+  "nanoid@<3.3.17": "^3.3.17"
+  "brace-expansion@<1.1.18": "^1.1.18"
+  "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4"
+  "sharp@<0.35.0": "^0.35.0"
+  "undici@<7.29.0": "^7.29.0"
+  "js-yaml@<4.3.1": "^4.3.1"
   "esbuild@<0.25.0": ">=0.25.0"
   "uuid@<11.1.1": ">=11.1.1"
