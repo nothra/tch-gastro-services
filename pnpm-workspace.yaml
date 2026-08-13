@@ -20,34 +20,37 @@ allowBuilds:
 # exceljs ^8.3.2 deklariert). Ihre Umstellung liegt außerhalb des #291-Scopes und ist als
 # Kleinfund abgelegt (docs/factory/kleinfunde.md).
 #
-# - postcss  <8.5.23: XSS im CSS-Stringify (GHSA-qx2v-qp2m-jg93, gefixt in 8.5.10) plus
-#            Folge-Advisory mit Floor 8.5.23; via next (Build-Zeit). Floor angehoben
-#            statt zweiter Eintrag daneben (#169/#291). Das Entfern-Kriterium oben ist hier
-#            unerreichbar, solange next postcss EXAKT auf 8.4.31 pinnt – der Eintrag bleibt.
-# - nanoid   <3.3.17: via postcss (Build-Zeit, runtime-Scope laut Dependabot), #291.
-#            REDUNDANT und deshalb zum Entfernen vorgemerkt: postcss@8.5.26 deklariert selbst
-#            nanoid ^3.3.17, und der Lockfile kennt genau eine nanoid-Kante (aus postcss) –
-#            der Floor folgt bereits aus der Parent-Range. Genauer: er folgt aus der Range
-#            DERJENIGEN postcss-Version, die der Eintrag darüber erzwingt – ohne den
-#            postcss-Override zöge next seinen exakten 8.4.31-Pin, dessen nanoid-Range älter
-#            und damit möglicherweise unterhalb des Floors liegt. Weil dieser Override laut
-#            Notiz oben dauerhaft bleibt, ist das Streichen hier trotzdem gefahrlos.
-#            Es braucht aber einen Lockfile-Refresh (`pnpm install`; sonst
-#            ERR_PNPM_OUTDATED_LOCKFILE in CI) und steht als Blocker in
-#            tasks/task-291-dependabot-alerts-schliessen.md.
-# - brace-expansion: zwei DISJUNKTE Selektoren, weil 1.x und 2.x getrennte Advisories mit
-#            getrennten Floors tragen. Ohne die untere Grenze am 2er-Selektor (`>=2.0.0 <2.1.4`)
+# KEIN nanoid-Eintrag: in #291 angelegt und nach Messung wieder entfernt. postcss@8.5.26
+# deklariert selbst nanoid ^3.3.17, und der Lockfile kennt genau eine nanoid-Kante (aus postcss) –
+# nach dem Streichen löste der Baum weiterhin nanoid@3.3.18 auf (GHSA-2v37-7h3g-55p8, Floor
+# 3.3.17, erfüllt). Der Floor folgt also aus der Range derjenigen postcss-Version, die der
+# postcss-Eintrag unten erzwingt; weil dieser dauerhaft bleibt (next pinnt postcss exakt), ist
+# der nanoid-Floor dauerhaft mitgedeckt. Nicht wieder anlegen, ohne erneut zu messen.
+#
+# - postcss  <8.5.23: GHSA-r28c-9q8g-f849 (high, Floor 8.5.18) und GHSA-fxqj-rqcc-2cmp
+#            (medium, Floor 8.5.23) – der höhere Floor gewinnt; der ursprüngliche 8.5.10-Eintrag
+#            aus #167 (GHSA-qx2v-qp2m-jg93, XSS im CSS-Stringify) geht darin auf. Via next
+#            (Build-Zeit). Floor angehoben statt zweiter Eintrag daneben (#169/#291). Das
+#            Entfern-Kriterium oben ist hier unerreichbar, solange next postcss EXAKT auf
+#            8.4.31 pinnt – der Eintrag bleibt.
+# - brace-expansion: zwei DISJUNKTE Selektoren, weil 1.x und 2.x getrennte Floors tragen.
+#            GHSA-rgw5-rvv9-x895 setzt beide (1.1.18 bzw. 2.1.4) und schließt die älteren
+#            GHSA-3jxr-9vmj-r5cp (1.1.16) und GHSA-mh99-v99m-4gvg (1.1.17 / 2.1.3) ein.
+#            Ohne die untere Grenze am 2er-Selektor (`>=2.0.0 <2.1.4`)
 #            griffe er auch auf 1.1.x und höbe sie über die Major-Grenze (#291, empirisch belegt).
 #            <1.1.18 via minimatch@3, >=2.0.0 <2.1.4 via minimatch@5 – beide runtime.
-# - sharp    <0.35.0: via next (Bildoptimierung, optionale Dep). Minor-Bump, kein Patch –
+# - sharp    <0.35.0: GHSA-f88m-g3jw-g9cj (high), via next (Bildoptimierung, optionale Dep).
+#            Minor-Bump, kein Patch –
 #            deshalb steht sharp in allowBuilds und der Post-Install-Build muss durchlaufen (#291).
 #            Bewusst AUSSERHALB der von next deklarierten Range ^0.34.5 (= <0.35.0): weil sharp
 #            eine optionale und keine Peer-Dependency ist, warnt pnpm install dabei nicht, der
 #            Range-Bruch bliebe also unbemerkt. Vertretbar, weil die App next/image nirgends
 #            nutzt und next.config.ts keine images-Config trägt – sharp wird zur Laufzeit nie
 #            aufgerufen, das Restrisiko ist praktisch null (#291, Review-Finding).
-# - undici   <7.29.0: via jsdom (Vitest-Environment, dev-Scope), #291
-# - js-yaml  <4.3.1:  via eslint (dev-Scope), #291
+# - undici   <7.29.0: GHSA-4cwx-7wf7-3272 (high) plus GHSA-8xcm-r25x-g524, GHSA-jr45-8vmc-qm54,
+#            GHSA-m8rv-5g2x-5cg5, GHSA-v3r7-h72x-cjcm (medium) – alle mit Floor 7.29.0.
+#            Via jsdom (Vitest-Environment, dev-Scope), #291
+# - js-yaml  <4.3.1:  GHSA-5p4m-2wfm-xmqj (high), via eslint (dev-Scope), #291
 # - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev).
 #            Nachweislich KEIN No-op: ohne den Eintrag löst der Baum esbuild@0.18.20 auf
 #            (in #291 durch Entfernen + Neuinstallation verifiziert).
@@ -55,7 +58,6 @@ allowBuilds:
 #            `buf`-Argument), via exceljs (Bericht-Renderer, #189)
 overrides:
   "postcss@<8.5.23": "^8.5.23"
-  "nanoid@<3.3.17": "^3.3.17"
   "brace-expansion@<1.1.18": "^1.1.18"
   "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4"
   "sharp@<0.35.0": "^0.35.0"
