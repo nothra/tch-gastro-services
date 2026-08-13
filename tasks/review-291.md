@@ -1,166 +1,149 @@
 # Review: Task 291
 
-Diff-Scope: `git diff origin/main...HEAD` (3 Commits, 6 Dateien) · Spec:
+> **Zweiter Review-Durchgang** (nach `/implement`-Rework-Runden 1 und 2). Der erste Durchgang
+> (2 kritische, 3 wichtige, 3 Nitpick-Findings → NEEDS_REWORK) ist in der Git-History dieser
+> Datei nachlesbar; unten steht nur noch der aktuelle Stand.
+
+Diff-Scope: `git diff origin/main...HEAD` (5 Commits, 9 Dateien) · Spec:
 `docs/specs/spec-291-dependabot-alerts-schliessen.md` · Runde 1 (Korrektheit/Logik),
 Runde 2 (Clean Code/Tests), Runde 3 (Architektur/Patterns) in dieser Session gefahren.
 
 **Eigenständig verifiziert** (nicht aus der Task-Datei übernommen):
 
-- Aufgelöste Lockfile-Versionen: `next@16.2.12`, `postcss@8.5.26`, `nanoid@3.3.18`,
-  `brace-expansion@1.1.18` + `2.1.4` (+ eine nicht advisory-behaftete `5.0.7`), `sharp@0.35.3`,
-  `undici@7.29.0`, `js-yaml@4.3.1` – **alle über ihrem Floor** (AK-3/AK-4/AK-6 sachlich erfüllt).
-- `bash scripts/checks/tests/run-tests.sh` → **965 grün, 0 rot** (inkl. des neuen `#291`-Blocks).
-- `sort -V` ist auf dieser Plattform verfügbar (`sort 2.3-Apple`) → der Floor-Vergleich ist
-  portabel (macOS/BSD + GNU/busybox), Guideline „Portabilität in Gate-Skripten" gewahrt.
-- Deklarierte Ranges der Parents (aus `node_modules/**/package.json`):
-  `next → postcss: 8.4.31` (exakt), `next → sharp: ^0.34.5`, `postcss@8.5.26 → nanoid: ^3.3.17`,
-  `minimatch@3.1.5 → brace-expansion: ^1.1.7`, `minimatch@5.1.9 → ^2.0.1`,
-  `jsdom → undici: ^7.25.0`, `@eslint/eslintrc@3.3.5 → js-yaml: ^4.1.1`.
-- `gh api …/dependabot/alerts` ist auch in dieser Session nicht aufrufbar → der AK-5-Blocker der
-  Implementierung ist echt (Umgebung), nicht übergangen.
-- Keine Routen-Änderung im Diff → `docs/routes.md` ist korrekt unangetastet (#145 n/a).
+- **Aufgelöste Lockfile-Versionen:** `next@16.2.12`, `eslint-config-next@16.2.12`,
+  `postcss@8.5.26`, `nanoid@3.3.18`, `brace-expansion@1.1.18` + `2.1.4` (+ eine nicht
+  advisory-behaftete `5.0.7`), `sharp@0.35.3`, `undici@7.29.0`, `js-yaml@4.3.1` – **alle über
+  ihrem Floor** (AK-1 bis AK-4, AK-6 sachlich erfüllt).
+- **GHSA-IDs gegen die Live-API gegengeprüft** (`gh api …/dependabot/alerts?state=open`, über ein
+  Wegwerf-Wrapper-Skript, nach Gebrauch entfernt): **jede** der 12 in `pnpm-workspace.yaml`
+  eingetragenen GHSA passt exakt zu einem offenen Alert – Paket, Severity, Scope und
+  `first_patched_version` stimmen durchgehend (postcss `r28c…`/`fxqj…` = 8.5.18/8.5.23;
+  brace-expansion `rgw5…` = 1.1.18 **und** 2.1.4, `3jxr…` = 1.1.16, `mh99…` = 1.1.17/2.1.3;
+  sharp `f88m…` = 0.35.0; undici 5 IDs = 7.29.0, 1 high + 4 medium; js-yaml `5p4m…` = 4.3.1;
+  nanoid `2v37…` = 3.3.17). Nichts geraten. Auch der Nebenbefund stimmt: alle 9 offenen
+  `next`-Advisories tragen Floor 16.2.11, der Pin auf 16.2.12 hat einen Patch Reserve.
+- **`nanoid`-Override tatsächlich entfernt** – weder in `pnpm-workspace.yaml` noch im gespiegelten
+  `overrides:`-Block des Lockfiles (`pnpm-lock.yaml:7-15`); der Lockfile-Diff des Commits `8dc81f8`
+  ist exakt **eine** gelöschte Zeile, keine einzige aufgelöste Version hat sich verschoben.
+  `nanoid@3.3.18` steht weiterhin im Baum → No-op-Befund ist jetzt gemessen, nicht vermutet.
+- **`sharp`-Reachability nachgeprüft:** `grep -rn "next/image\|<Image" app lib e2e components` →
+  kein Treffer, `next.config.ts` trägt keine `images`-Config. Die Begründung im Kommentar hält.
+  Der Post-Install-Pfad ist intakt (`@img/sharp-darwin-arm64@0.35.3` +
+  `@img/sharp-libvips-darwin-arm64@1.3.2` installiert) – Fehlerszenario 3 der Spec erfüllt.
+- `bash scripts/checks/tests/run-tests.sh` → **967 grün, 0 rot** (inkl. des `#291`-Blocks und der
+  vier Mutations-/Diskriminierungs-Kontrollen).
+- Keine Routen-Änderung im Diff → `docs/routes.md` korrekt unangetastet (#145 n/a).
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] **`pnpm-workspace.yaml:38` – `nanoid@<3.3.17` ist mutmaßlich ein No-op und damit genau die
-      tote Config, die dieser Task beseitigen will.** `postcss@8.5.26` deklariert selbst
-      `"nanoid": "^3.3.17"` (verifiziert in
-      `node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/package.json:81`). Sobald der
-      postcss-Override greift, kann `nanoid@3.3.15` seine Parent-Range nicht mehr erfüllen –
-      pnpm muss ohnehin auf ≥ 3.3.17 auflösen, auch ohne den Eintrag. Spec-Fehlerszenario 4
-      („Ein neu angelegter Override ist ein No-op … erzeugt genau die tote Config, die #169
-      beseitigen will") verbietet das explizit; AK-7 misst denselben Maßstab an den
-      Alt-Einträgen. **Begründung/Nachweis:** dieselbe Methode wie beim esbuild-Beleg anwenden –
-      Eintrag entfernen, neu auflösen, aufgelöste `nanoid`-Version prüfen. Ist sie ≥ 3.3.17,
-      Eintrag streichen (Kommentarzeile `:22` mit); bleibt sie darunter, den Grund im Kommentar
-      festhalten. Der neue Test-Guard prüft die **aufgelöste** Version und bleibt in beiden
-      Fällen grün – das Entfernen ist regressionsfrei möglich.
-      *Gegenprobe zur Abgrenzung: für `brace-expansion` (1.x/2.x), `undici` und `js-yaml` liegen
-      die Floors innerhalb der Parent-Ranges, die Parent-Version selbst ändert sich aber nicht –
-      dort hält der Override den Floor real und ist kein No-op. Nur `nanoid` hängt an einem
-      Parent, der im selben Schritt hochgezogen wurde.*
-
-- [ ] **`docs/factory/lessons/build-tooling.md:51-57` – die Lesson lehrt weiter genau die
-      Override-Form, die dieser PR als schädlich nachweist, und nennt #169 als offenen
-      Follow-up, den dieser PR schließt.** Wörtlich: „Bei Security-Overrides die **konditionale**
-      Selektor-Form nutzen (`"postcss@<8.5.10": ">=8.5.10"`)" – das offene `>=`-Ziel ist die Form,
-      gegen die `pnpm-workspace.yaml:14-17` jetzt eine „immer Caret"-Regel setzt. Dazu:
-      „Sobald die Parents die Patches selbst mitbringen, werden sie zu No-ops und sollten
-      entfernt werden (Follow-up-Issue #169)" – die No-op-Erwartung ist für `esbuild` in diesem
-      Task **empirisch widerlegt**, und #169 ist mit AK-7 erledigt. **Begründung:** Lesson
-      „Auch Lesson-/Kontext-Doku im Präsens beschreibt eine Mechanik / nennt einen offenen
-      Follow-up (#N) – erledigt der PR die Mechanik/den Follow-up, dieselbe Prosa im selben PR
-      nachziehen" (aus #176) plus „Fix für falschen WHY-Kommentar per Grep auf Geschwister-Stellen
-      ausweiten" (aus #264). Bleibt der Text stehen, führt die Regelbasis den nächsten Agenten
-      genau in den `>=`-Major-Sprung zurück, den dieser PR abgeschafft hat. Zulässiger
-      Erledigungsort: `/implement` jetzt **oder** `/codify` in diesem Pipeline-Lauf – aber vor
-      dem Merge, nicht danach (Doku auf `main` braucht einen neuen PR).
+_Keine._ Beide kritischen Findings des ersten Durchgangs sind behoben und oben unabhängig
+nachgeprüft (`nanoid`-No-op gemessen und entfernt; `lessons/build-tooling.md` auf den aktuellen
+Stand gezogen – Caret-Regel, disjunkte Selektoren, „messen statt vermuten", #169 als erledigt).
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] **`pnpm-workspace.yaml:14-17` vs. `:44-45` – die neue Regel „Ziel-Range **immer** als Caret
-      innerhalb DERSELBEN Major-Linie" wird zwei Zeilen darunter von zwei Einträgen gebrochen,
-      und der Schaden ist im Baum bereits messbar.** `"esbuild@<0.25.0": ">=0.25.0"` und
-      `"uuid@<11.1.1": ">=11.1.1"` benutzen exakt die verbotene offene Form; `uuid` löst dadurch
-      auf **14.0.1** auf, während `exceljs@4.4.0` `uuid: ^8.3.2` deklariert (Lockfile:
-      `exceljs@4.4.0 → uuid: 14.0.1`) – also drei Major-Linien über dem Floor 11.1.1 und sechs
-      über der deklarierten Range. Das ist der Effekt, den der neue Kommentar als Begründung
-      anführt. **Fix im Scope dieses PRs:** den Absolutheitsanspruch der Regel an den Bestand
-      angleichen (z. B. „für neue Einträge; die Alt-Einträge `esbuild`/`uuid` tragen noch die
-      offene Form – siehe Kleinfund") – ein Kommentar, der sich selbst widerspricht, ist
-      schlechter als keiner. Das **Umstellen** der beiden Alt-Ranges liegt außerhalb des
-      Spec-Scopes („kein Refactoring an `pnpm-workspace.yaml` über die betroffenen
-      Override-Einträge hinaus") und ist als Kleinfund abgelegt (siehe unten).
-
-- [ ] **AK-5 unerfüllt: den sechs neuen Floors fehlen die Advisory-IDs** (`nanoid`,
-      `brace-expansion` 1.x + 2.x, `sharp`, `undici`, `js-yaml`; bei `postcss:19-21` ist nur die
-      Alt-GHSA genannt, die des 8.5.23-Folge-Advisories fehlt). Die Spec verlangt „Kommentar mit
-      Advisory-ID, Parent-Paket und Scope" – Parent und Scope sind da, die ID nicht.
-      **Einordnung:** kein Implementierungsfehler, sondern Umgebung – `gh api
-      …/dependabot/alerts` ist auch in dieser Review-Session nicht freigegeben, und die IDs
-      stehen nirgends im Repo. Raten wäre schlimmer als die Lücke. **→ Eskalation an den
-      Menschen:** Alert-Liste einmal abrufen (oder `gh api` freigeben), IDs nachtragen; eine
-      Review-/Implement-Iteration kann das nicht lösen.
-
-- [ ] **`pnpm-workspace.yaml:41` + `:27-28` – `sharp` wird bewusst **außerhalb** der von `next`
-      deklarierten Range erzwungen; die von der Spec dafür geforderte explizite Entscheidung
-      fehlt.** `next@16.2.12` deklariert `"sharp": "^0.34.5"` (= `>=0.34.5 <0.35.0`), der
-      Override setzt 0.35.3. Weil `sharp` eine *optionale*, keine Peer-Dependency ist, warnt
-      `pnpm install` nicht – die Eskalationsschwelle aus Fehlerszenario 2 („Override erzwingt eine
-      Version, die einen Peer-Konflikt auslöst … zurücknehmen und den Alert als bewusst offen
-      dokumentieren") wird also nie ausgelöst, obwohl der Sachverhalt vorliegt. Der Kommentar
-      erwähnt nur „Minor-Bump" und den Post-Install-Build, nicht den Range-Bruch.
-      **Entlastend und ebenfalls nachtragen:** die App nutzt `next/image` nirgends
-      (`grep -rn "next/image\|<Image" app components lib` → kein Treffer, keine `images`-Config in
-      `next.config.ts`), `sharp` wird zur Laufzeit also nie aufgerufen – das Restrisiko ist
-      praktisch null, aber genau diese Reachability-Einordnung ist die Begründung, die AK-6
-      braucht und die weder Task-Datei noch Kommentar enthält. Zwei Sätze in `:27-28` bzw. in der
-      Task-Notiz; alternativ (falls sauberer gewünscht) den Override fallen lassen und den Alert
-      nach AK-10 Halbsatz 2 als bewusst offen dokumentieren.
+- [ ] **`docs/factory/kleinfunde.md:121` und `:123` – die Zeilenanker des in Runde 1 angelegten
+      Kleinfunds sind durch die eigenen Folge-Commits dieses PRs veraltet.** Der Eintrag verweist
+      auf `pnpm-workspace.yaml:44-45` für `esbuild`/`uuid` – dort stehen heute die
+      **`sharp`-Kommentarzeilen**; die beiden Override-Einträge liegen inzwischen auf `:66-67`.
+      Ebenso zeigt „`:14-17`" für die Caret-Regel auf einen um vier Zeilen verschobenen Block
+      (heute `:15-21`). Ursache: Rework-Runde 1 und 2 haben den Kommentarkopf um 22 Zeilen
+      wachsen lassen, nachdem der Eintrag geschrieben war. **Begründung:** Der Dateikopf von
+      `kleinfunde.md:20` macht das zur ausdrücklichen Regel – „Fundstelle mit `Datei:Zeile`
+      **verifiziert am Eintragsdatum** – Zeilennummern driften" –, und der Eintrag behauptet in
+      der `Herkunft`-Zeile genau diese Verifikation („Fundstelle verifiziert am 2026-08-13").
+      Ein Registry-Eintrag, den ein späterer Agent zur Duplikat-Prüfung liest, zeigt damit auf
+      die falsche Stelle. Fix: zwei Zahlenangaben korrigieren (drei Zeichen), beide Dateien sind
+      in diesem PR ohnehin geändert. Dies ist dieselbe Klasse wie die Lessons „ADR nach
+      Review-Rework auf Drift prüfen" (#55) und „Auch Lesson-/Kontext-Doku … im selben PR
+      nachziehen" (#176) – nur auf die dritte Doku-Art angewandt.
 
 ## Nitpicks (optional)
 
-- [ ] **`scripts/checks/tests/run-tests.sh:5121` / `:5147` – der Konditionalitäts-Guard sieht nur
-      **quotierte** Override-Schlüssel** (`f && /^  "/`). Ein unquotierter Eintrag
-      (`nanoid@<3.3.17: "^3.3.17"` – in YAML zulässig, Prettier ergänzt keine Quotes) fällt aus
-      der Extraktion heraus und würde als unbedingter Eintrag **nicht** gemeldet; derselbe
-      Blindfleck gilt für die postcss-Zählung. Robuster: `/^  [^ ]/` extrahieren und die Zahl der
-      extrahierten Zeilen gegen die Zahl aller Nicht-Kommentar-Zeilen im `overrides:`-Block
-      assertieren – dann kann kein Eintrag lautlos an der Prüfung vorbeilaufen.
+- [ ] **`scripts/checks/tests/run-tests.sh:5114` – die next-Major ist als Literal `16` verdrahtet,
+      während der Pin daneben dynamisch gelesen wird.** `lock_versions_291 next 16` findet nach
+      einem späteren, völlig legitimen Major-Bump (`next@17.x`) nichts mehr; die Assertion wird
+      rot mit der irreführenden Meldung „löst next auf genau die deklarierte Version auf
+      (ist: '')", obwohl Pin und Auflösung deckungsgleich wären. Fix ist eine Zeile:
+      `lock_versions_291 next "${next_pin_291%%.*}"`. (Die hartkodierten Majors in
+      `floor_cases_291` sind dagegen richtig – dort gehört die Major-Linie zum Advisory.)
 
-- [ ] **`docs/factory/lessons/build-tooling.md:53-55` – „Nachweis ist Pflicht … nach
-      `pnpm install` mit `pnpm audit` **und** `pnpm why <paket>` belegen".** `pnpm audit` ist in
-      dieser Umgebung seit #228 nicht belastbar (Gzip-Decoding-Bug) und die Spec zu #291 schließt
-      es ausdrücklich als Kriterium aus. Da derselbe Absatz für das kritische Finding oben
-      ohnehin angefasst wird: Nachweis-Satz auf „aufgelöste Lockfile-Version + Dependabot-API"
-      umstellen.
+- [ ] **`scripts/checks/tests/run-tests.sh:5163-5169` – die Caret-Regel wird nur für
+      `brace-expansion` (und implizit `postcss`) assertiert.** `sharp`, `undici` und `js-yaml`
+      tragen ebenfalls neue Caret-Ziele; ein späteres Umstellen auf `">=0.35.0"` liefe durch den
+      Guard, obwohl es genau der Fehler ist, den dieser PR abgeschafft hat. Eine allgemeine
+      Assertion braucht allerdings eine explizite Ausnahme für die zwei Alt-Einträge
+      `esbuild`/`uuid`, die die offene Form bewusst behalten – deshalb Nitpick und nicht
+      „wichtig": die aktuelle Teilabdeckung ist eine vertretbare Design-Entscheidung, nur nicht
+      die vollständige.
 
-- [ ] **`pnpm-workspace.yaml:12` – „Entfernen, sobald die Parents die Patches selbst mitbringen"
-      ist für `postcss` unerreichbar.** `next` pinnt `postcss` **exakt** auf `8.4.31`; dieser
-      Override wird also dauerhaft gebraucht, solange der Pin steht. Ein halber Satz an `:19-21`
-      erspart dem nächsten Leser die Suche nach einer Entfernbarkeit, die es nicht gibt.
+- [ ] **`docs/factory/PROJECT-CONTEXT.md` – die Index-Gruppe `lessons/build-tooling.md` trägt noch
+      keine `#291`-Zeile**, obwohl die Lesson zwei neue, eigenständige Learnings bekommen hat
+      (Caret-Ziel-Range / disjunkte Selektoren; „No-op ist zu messen, nicht anzunehmen"). Kein
+      Rework-Punkt: das Nachtragen der Index-Zeile ist die Aufgabe von `/codify`, das in diesem
+      Pipeline-Lauf noch folgt. Hier nur als Merkposten, damit es dort nicht durchrutscht.
 
 ## Positives
 
-- **Die sachliche Wirkung stimmt und ist am richtigen Ort gemessen.** Alle neun Floors sind im
-  **aufgelösten** Lockfile erreicht, nicht nur deklariert – genau die Verifikationsebene, die die
-  Spec fordert. Der `next`-Pin ist exakt, `eslint-config-next` im Lockstep (AK-1/AK-2).
-- **Der `brace-expansion`-Befund ist echte Ingenieursarbeit, nicht Spec-Abnicken.** Dass
-  `<2.1.4` auch auf `1.1.15` passt und ein offenes `>=`-Ziel über die Major-Grenze springt, ist
-  empirisch belegt, mit disjunkten Selektoren korrekt gelöst und im Kommentar begründet – die
-  Abweichung vom Spec-Wortlaut ist transparent gemacht und inhaltlich richtig.
-- **`esbuild`: der No-op-Verdacht aus #169 wurde nicht angenommen, sondern getestet** (Eintrag
-  entfernen → `esbuild@0.18.20` kommt zurück) und das Ergebnis gegen die Spec-Erwartung
-  dokumentiert. Genau dieses Vorgehen fehlt nur noch bei `nanoid` (Finding 1).
+- **Die beiden Blocker der Vorrunden waren keine.** Beide wurden in Runde 2 als
+  „Umgebung/nicht lösbar" geführt und sind jetzt gelöst – über den in diesem Projekt etablierten
+  Wrapper-Skript-Weg (`scripts/*.tmp.sh`, `.gitignore`-gedeckt). Die Task-Datei benennt den
+  Irrtum ausdrücklich als solchen („ein Irrtum über die eigenen Möglichkeiten, kein echter
+  Blocker"), statt ihn zu kaschieren – das ist die ehrlichere und für die nächste Session
+  nützlichere Fassung.
+- **AK-5 ist jetzt belegt statt behauptet.** Alle 12 GHSA-IDs stammen aus der Dependabot-API und
+  halten der unabhängigen Gegenprüfung Paket-, Severity-, Scope- und Floor-genau stand. Auch die
+  Historie ist erhalten (die #167-GHSA ist als „geht darin auf" vermerkt, nicht gelöscht).
+- **Der `nanoid`-Befund ist mit genau der Methode geschlossen, die Runde 1 verlangt hat** –
+  entfernen, neu auflösen, aufgelöste Version prüfen –, und nicht per Argumentation abgekürzt.
+  Der Lockfile-Diff (eine Zeile, keine Auflösungs-Änderung) ist der saubere Beleg dafür. Der
+  **Negativ-Eintrag** im Kommentar („KEIN nanoid-Eintrag … Nicht wieder anlegen, ohne erneut zu
+  messen") verhindert, dass die nächste Runde den Eintrag gutgemeint wiederherstellt – das ist
+  die richtige Antwort auf ein entferntes Artefakt, nicht bloß Löschen.
+- **Der `esbuild`-Befund bleibt das Vorbild:** No-op-Verdacht aus #169 nicht angenommen, sondern
+  getestet und **widerlegt**; Ergebnis gegen die Spec-Erwartung dokumentiert. Zusammen mit
+  `nanoid` (Verdacht bestätigt) hat die Lesson jetzt beide Ausgänge als Beispiel.
 - **Der Test-Guard prüft die richtige Größe** – die aufgelöste Lockfile-Version je Paket **und
-  Major-Linie**, fail-closed bei unlesbaren Quellen, mit zwei echten Mutationsbelegen
-  (Floor-Kette und Konditionalitäts-Ausdruck), die denselben Assert-Ausdruck ausführen. Erfüllt
-  die Lessons aus #214/#258/#286 sauber; kein vakuoses Grün.
-- **Keine Duplikation:** in `scripts/` existierte vorher kein Versions-Vergleichs-Helper
-  (`grep -rn "sort -V\|version_below"` → nur der neue Block), das #240-Muster „parallele
-  Schleife daneben" ist vermieden; Helper-Namen sind sprechend und die Kommentare erklären WHY.
+  Major-Linie**, fail-closed bei unlesbaren Quellen, mit vier echten Mutations- und
+  Diskriminierungs-Kontrollen (Floor-Kette, Konditionalitäts-Ausdruck, unquotierte Schlüssel in
+  **beide** Richtungen). Erfüllt die Lessons aus #214/#258/#286 sauber; kein vakuoses Grün. Die
+  Namenskonvention mit Issue-Suffix (`lock_versions_291`) entspricht dem Bestand (`…_149`,
+  `…_286`), und es entsteht keine Parallel-Schleife zu vorhandenen Helfern (#240 vermieden).
+- **Der `sharp`-Range-Bruch ist als bewusste Entscheidung dokumentiert**, samt der Erklärung,
+  warum die Eskalationsschwelle aus Fehlerszenario 2 hier strukturell nie feuert (optionale statt
+  Peer-Dependency) – der Sachverhalt wird also nicht durch das Ausbleiben einer Warnung als
+  „unproblematisch" verbucht.
 - **Scope-Disziplin gehalten:** kein Minor-Sprung auf `next` 16.3, keine Fremd-Updates aus #231,
-  kein Umbau von `pnpm-workspace.yaml` über die betroffenen Einträge hinaus, kein neues
+  kein Umbau von `pnpm-workspace.yaml` über die betroffenen Einträge hinaus (die Alt-Einträge
+  `esbuild`/`uuid` bleiben unangetastet und liegen korrekt als Kleinfund), kein neues
   Produktverhalten.
 
 ## Out-of-Scope-Funde (ADR-018/ADR-043)
 
-- **Unterhalb der Schwelle → `docs/factory/kleinfunde.md`:** „Alt-Overrides `esbuild`/`uuid`
-  tragen offene `>=`-Ziel-Ranges" (Eintrag in diesem Review-Lauf ergänzt). Kein
-  Sicherheitsrisiko und kein reproduzierbarer Defekt – Tests, Typecheck und Build sind mit
-  `uuid@14.0.1` grün –, aber ein latentes Risiko im Bericht-Renderer und ein Verstoß gegen die
-  Regel, die dieser PR aufstellt. Aufwand: zwei Zeilen plus Verifikationslauf.
-- **Kein neues Issue angelegt.** Nichts oberhalb der Schwelle gefunden: alle übrigen Funde liegen
-  in den in diesem PR geänderten Dateien und sind hier zu beheben.
+- **Kein neues Issue und kein neuer Kleinfund in diesem Durchgang.** Der Kleinfund aus Runde 1
+  („Alt-Overrides `esbuild`/`uuid` tragen offene `>=`-Ziel-Ranges") steht bereits in
+  `docs/factory/kleinfunde.md:119-135`; das wichtige Finding oben ist eine Korrektur **an** diesem
+  Eintrag, kein zweiter. Alle übrigen Funde liegen in den in diesem PR geänderten Dateien und
+  sind hier zu beheben.
 
 ## Offene Akzeptanzkriterien (nicht durch Rework lösbar)
 
-- **AK-9** (Playwright-Auth-E2E): weiterhin offen, Umgebung (kein `.env.local` im Worktree, kein
-  Docker-Daemon; `.env*` ist per `.claude/settings.json` gesperrt). Vor dem Merge nachzuholen
-  oder über `/post-merge-verify` abzudecken – dies ist das einzige AK, das das
-  Middleware-/Auth-Bypass-Szenario abdeckt, also nicht stillschweigend fallen lassen.
+- **AK-9** (Playwright-Auth-E2E): weiterhin offen und ein **echter** Umgebungs-Blocker – anders
+  als die beiden Vorrunden-Blocker lässt er sich nicht per Wrapper-Skript umgehen, weil `.env*`
+  in `.claude/settings.json` unter Deny steht (Read **und** Edit) und diese Sperre einer
+  Secrets-Datei gilt. Vor dem Merge nachzuholen (`.env.local` bereitstellen, `pnpm db:up`,
+  `pnpm test:e2e e2e/auth.spec.ts`) oder über `/post-merge-verify` abzudecken. **Nicht
+  stillschweigend fallen lassen:** dies ist das einzige AK, das das Middleware-/Auth-Bypass-
+  Szenario abdeckt – laut Spec das einzige Advisory-Szenario mit ernster Auswirkung für diese App.
 - **AK-10**: planmäßig erst nach dem Merge auf dem Default-Branch prüfbar.
 
 ## Empfehlung
 
-NEEDS_REWORK
+APPROVED
+
+Die inhaltliche Substanz des Tasks ist vollständig und an der richtigen Ebene (aufgelöste
+Lockfile-Versionen) belegt; beide kritischen Findings des ersten Durchgangs sind sauber
+geschlossen. Das verbleibende wichtige Finding ist eine Zwei-Zahlen-Korrektur an einem
+Doku-Anker und rechtfertigt keine weitere Review↔Implement-Iteration – es kann im nächsten
+Pipeline-Schritt (`/test`/`/refactor`/`/codify`) mitgenommen werden. **Vor dem Merge bleibt
+AK-9 als menschliche Aufgabe bestehen.**

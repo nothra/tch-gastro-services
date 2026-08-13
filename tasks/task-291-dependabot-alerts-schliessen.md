@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -137,8 +137,15 @@ die GHSA mit passender `patched_version` in den Kommentar von `pnpm-workspace.ya
 
 ## Review-Findings
 
-Runde 1–3 gelaufen → **NEEDS_REWORK**, voller Report:
-[`tasks/review-291.md`](review-291.md).
+**Aktueller Stand: Review-Durchgang 2 → APPROVED**, voller Report:
+[`tasks/review-291.md`](review-291.md). Verbleibend: 1 wichtiges Finding (veraltete Zeilenanker
+im Kleinfund-Eintrag, `docs/factory/kleinfunde.md:121`/`:123`) + 3 Nitpicks – im nächsten
+Pipeline-Schritt mitzunehmen, kein Rework-Zyklus. AK-9 bleibt als menschliche Aufgabe vor dem
+Merge offen.
+
+<details><summary>Durchgang 1 (NEEDS_REWORK) – Historie</summary>
+
+Runde 1–3 gelaufen → **NEEDS_REWORK**.
 
 - **Kritisch (2):** `nanoid@<3.3.17` ist mutmaßlich ein No-op (postcss@8.5.26 deklariert selbst
   `nanoid: ^3.3.17`) → Spec-Fehlerszenario 4 · `lessons/build-tooling.md:51-57` lehrt weiter die
@@ -149,6 +156,8 @@ Runde 1–3 gelaufen → **NEEDS_REWORK**, voller Report:
   Reachability (`next/image` wird nirgends genutzt) nicht dokumentiert.
 - **Out of Scope:** ein Kleinfund ergänzt (`docs/factory/kleinfunde.md` – offene `>=`-Ziel-Ranges
   bei `esbuild`/`uuid`); kein neues Issue nötig.
+
+</details>
 
 ### Rework-Runde 1 (`/implement`, 2026-08-13)
 
@@ -253,6 +262,21 @@ sich nicht per Wrapper-Skript umgehen: der Playwright-Auth-Lauf braucht ein `.en
 Secrets-Datei und wird bewusst nicht über ein Hilfsskript umgangen. → Nachzuholen durch den
 Menschen: `.env.local` bereitstellen, `pnpm db:up`, dann `pnpm test:e2e e2e/auth.spec.ts`.
 Alternativ nach dem Merge über `/post-merge-verify`.
+
+### Test-Vollständigkeits-Prüfung (`/test`, 2026-08-13)
+
+**Ergebnis: keine fehlenden Tests.** Jedes testbare Akzeptanzkriterium (AK-1 bis AK-7) hat einen
+eigenen, gegen die aufgelöste Lockfile-Version prüfenden Guard in
+`scripts/checks/tests/run-tests.sh` (`#291`-Block) – inklusive Mutationsbelegen für Floor-Vergleich
+und Konditionalitäts-Prüfung (quotiert + unquotiert). AK-8 (Gates) ist kein Testfall, sondern eine
+Ausführungspflicht – erneut grün verifiziert. AK-9 (Playwright) bleibt der dokumentierte
+Umgebungs-Blocker; AK-10 ist erst nach dem Merge prüfbar. Da die Spec explizit **kein neues
+App-Verhalten** vorsieht, entstehen keine neuen Produkt-Tests (Vitest) – nur die bereits
+vorhandenen Dependency-Floor-Guards zählen als Testsuite dieser Task.
+
+Finale Ausführung: `bash scripts/checks/tests/run-tests.sh` → **967 grün, 0 rot** ·
+`bash scripts/checks/pre-push.sh` → grün (678 Vitest-Tests, Typecheck, `format:check`,
+Routen-Doku, Hooks). Kein Produktionscode geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
