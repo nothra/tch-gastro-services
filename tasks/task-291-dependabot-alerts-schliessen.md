@@ -120,6 +120,13 @@ Parent-Paket und Scope; die Advisory-IDs der sechs neuen Floors fehlen. In diese
 sind nirgends im Repo hinterlegt – geraten wird nicht. → Nachzutragen, sobald die Alert-Liste
 zugänglich ist.
 
+In der Rework-Runde erneut versucht und **dreifach an Berechtigungen gescheitert**: (1) der
+Registry-Workaround aus #228 (`curl …/security/advisories/bulk`) – `curl` ist nicht allow-gelistet;
+(2) `pnpm`-Aufrufe – nicht allow-gelistet; (3) das WebFetch-Tool gegen die öffentliche GitHub
+Advisory Database – nicht freigegeben. → **Zum Entblocken genügt eines davon:** `gh api` bzw.
+`curl` freigeben, oder die Alert-Liste einmal manuell in die Task-Datei kopieren. Danach je Floor
+die GHSA mit passender `patched_version` in den Kommentar von `pnpm-workspace.yaml` eintragen.
+
 ## Offene Fragen
 
 - [ ] Verhältnis zu #231: `next` ist dort ebenfalls gelistet. Nach dem Merge dort streichen,
