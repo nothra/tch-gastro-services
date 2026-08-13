@@ -127,7 +127,64 @@ zugänglich ist.
       `/codify`, kein Blocker).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Runde 1–3 gelaufen → **NEEDS_REWORK**, voller Report:
+[`tasks/review-291.md`](review-291.md).
+
+- **Kritisch (2):** `nanoid@<3.3.17` ist mutmaßlich ein No-op (postcss@8.5.26 deklariert selbst
+  `nanoid: ^3.3.17`) → Spec-Fehlerszenario 4 · `lessons/build-tooling.md:51-57` lehrt weiter die
+  offene `>=`-Override-Form und nennt #169 als offen, obwohl dieser PR beides widerlegt/erledigt.
+- **Wichtig (3):** Kommentar-Regel „immer Caret" widerspricht den Alt-Einträgen `esbuild`/`uuid`
+  (`uuid` steht faktisch auf 14.0.1) · AK-5 GHSA-IDs weiterhin offen (Umgebung → Eskalation) ·
+  `sharp` wird außerhalb der von next deklarierten Range `^0.34.5` erzwungen, Entscheidung und
+  Reachability (`next/image` wird nirgends genutzt) nicht dokumentiert.
+- **Out of Scope:** ein Kleinfund ergänzt (`docs/factory/kleinfunde.md` – offene `>=`-Ziel-Ranges
+  bei `esbuild`/`uuid`); kein neues Issue nötig.
+
+### Rework-Runde 1 (`/implement`, 2026-08-13)
+
+| Finding | Status |
+|---|---|
+| K1 `nanoid`-Override No-op | **teilweise** – Befund verifiziert und dokumentiert, Entfernen blockiert (siehe Blocker) |
+| K2 `lessons/build-tooling.md` veraltet | **behoben** |
+| W1 Kommentar-Regel vs. `esbuild`/`uuid` | **behoben** |
+| W2 AK-5 GHSA-IDs | **offen** – Umgebung, Eskalation bleibt |
+| W3 `sharp` außerhalb der next-Range | **behoben** |
+| N1 Konditionalitäts-Guard sieht nur quotierte Schlüssel | **behoben** |
+| N2 „Nachweis per `pnpm audit`" in der Lesson | **behoben** (Teil von K2) |
+| N3 postcss-Entfernkriterium unerreichbar | **behoben** |
+
+**K1 – Befundlage.** Der No-op-Verdacht ist bestätigt, aber nicht per Neu-Auflösung, sondern aus
+dem Resolver-Vertrag: `pnpm-lock.yaml` kennt genau **eine** `nanoid`-Kante (`nanoid: 3.3.18`
+innerhalb des `postcss@8.5.26`-Snapshots, Zeile 6539), und `postcss@8.5.26` deklariert selbst
+`"nanoid": "^3.3.17"`. Jede Auflösung ohne den Override muss diese Parent-Range erfüllen, liegt
+also zwangsläufig ≥ 3.3.17. Anders als bei `esbuild` (zweiter Konsument mit alter Range) gibt es
+hier keine Kante, die den Floor unterlaufen könnte. Der Eintrag ist im Kommentar als redundant und
+zum Entfernen vorgemerkt gekennzeichnet – gestrichen ist er noch nicht (Blocker unten).
+
+**W3 – `sharp`-Entscheidung.** `next@16.2.12` deklariert `sharp: ^0.34.5`, der Override erzwingt
+0.35.3, liegt also bewusst außerhalb dieser Range. Weil `sharp` eine *optionale* und keine
+Peer-Dependency ist, warnt `pnpm install` nicht – die Eskalationsschwelle aus Fehlerszenario 2
+greift also nie, obwohl der Sachverhalt vorliegt. Bewusst beibehalten, weil die Reachability
+null ist: `grep -rn -e "next/image" -e "<Image" app lib e2e` → kein Treffer, und `next.config.ts`
+trägt keine `images`-Config (beides in dieser Session selbst geprüft). `sharp` wird zur Laufzeit
+nie aufgerufen; der Alert ist damit geschlossen, ohne ein reales Verhaltensrisiko einzugehen.
+
+**Gates nach dem Rework:** `bash scripts/checks/tests/run-tests.sh` → **967 grün, 0 rot** (zwei
+neue Guards für den unquotierten Fall) · `bash scripts/checks/pre-push.sh` grün (678 Tests,
+Typecheck, `format:check`, Routen-Doku, Hooks). `pnpm build` nicht erneut ausgeführt: die
+Rework-Änderungen sind ausschließlich Kommentare in `pnpm-workspace.yaml`, Lesson-Prosa und
+Bash-Test-Guards – kein Produktionscode, keine Dependency-Auflösung berührt.
+
+**Blocker – K1 (`nanoid`-Override streichen) braucht einen Lockfile-Refresh.** `pnpm-lock.yaml`
+spiegelt den `overrides:`-Block (Zeilen 7–16); wird der Eintrag nur in `pnpm-workspace.yaml`
+entfernt, scheitert CI mit `ERR_PNPM_OUTDATED_LOCKFILE` beim `--frozen-lockfile`-Install. Nötig
+ist also `pnpm install` + Commit des neuen Lockfiles. In dieser Session ist `pnpm` nicht
+freigegeben (`.claude/settings.json` erlaubt nur `bash scripts/*`) und `pnpm-lock.yaml` steht
+unter `Edit(...)`-Deny – Handarbeit am Lockfile wäre ohnehin falsch. → **Ein Befehl nachzuholen:**
+Eintrag `"nanoid@<3.3.17"` (samt Kommentarzeilen) streichen, `pnpm install`, Lockfile mitcommitten.
+Der Floor-Guard prüft die **aufgelöste** Version und bleibt in beiden Fällen grün, das Entfernen
+ist also regressionsfrei.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

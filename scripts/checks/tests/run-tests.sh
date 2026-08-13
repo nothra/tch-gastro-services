@@ -5118,19 +5118,47 @@ assert_true "$([ -n "$lock_next_291" ] && [ "$lock_next_291" = "$next_pin_291" ]
 # AK-5: jeder Override ist konditional, trägt also eine obere Schranke (@<floor bzw.
 # @>=x <floor) – ein unbedingter Eintrag würde auch spätere legitime Upgrades der Parents
 # festnageln (Muster aus #167).
-overrides_keys_291="$(awk '/^overrides:/{f=1; next} /^[^[:space:]#]/{f=0} f && /^  "/ {print}' "$WORKSPACE_YAML_291")"
+# override_keys_291 <workspace-yaml> – alle Eintragszeilen des overrides:-Blocks. Bewusst
+# NICHT auf /^  "/ verengt: YAML erlaubt unquotierte Schlüssel und Prettier ergänzt keine
+# Quotes, ein solcher Eintrag fiele sonst aus der Extraktion und liefe damit lautlos an der
+# Konditionalitäts-Prüfung vorbei, statt als Verstoß gemeldet zu werden.
+override_keys_291() {
+  awk '/^overrides:/{f=1; next} /^[^[:space:]#]/{f=0} f && /^  [^ #]/ {print}' "$1"
+}
+
+# unconditional_overrides_291 <eintragszeilen> – die Einträge OHNE obere Schranke im Selektor.
+# `"?` und `[^:"]` decken quotierte wie unquotierte Schlüssel ab; die Zeichenklasse endet am
+# Doppelpunkt, damit die Ziel-Range rechts davon den Selektor nicht scheinbar konditional macht.
+unconditional_overrides_291() {
+  printf '%s\n' "$1" | grep -vE '^  "?[^:"]*@[^:"]*<[0-9]' || true
+}
+
+overrides_keys_291="$(override_keys_291 "$WORKSPACE_YAML_291")"
 assert_true "$([ -n "$overrides_keys_291" ]; echo $?)" \
   "#291 AK5: overrides:-Block in pnpm-workspace.yaml ist auslesbar und nicht leer"
-unconditional_291="$(printf '%s\n' "$overrides_keys_291" | grep -vE '^  "[^"]*@[^"]*<[0-9]' || true)"
+unconditional_291="$(unconditional_overrides_291 "$overrides_keys_291")"
 assert_true "$([ -z "$unconditional_291" ]; echo $?)" \
   "#291 AK5: alle overrides-Einträge sind konditional (obere Schranke im Selektor)${unconditional_291:+ – unbedingt: $(printf '%s' "$unconditional_291" | tr -d ' ')}"
 
-# Negativ-Kontrolle zum Konditionalitäts-Guard: derselbe grep-Ausdruck MUSS einen unbedingten
+# Negativ-Kontrolle zum Konditionalitäts-Guard: derselbe Ausdruck MUSS einen unbedingten
 # Eintrag melden. Ohne sie wäre nicht unterscheidbar, ob der Guard prüft oder das Muster nur
 # auf jede Zeile passt (Lesson testing.md: Mutationsbeleg mit demselben Assert-Ausdruck).
 mut_ovr_291='  "postcss": "^8.5.23"'
-assert_true "$([ -n "$(printf '%s\n' "$mut_ovr_291" | grep -vE '^  "[^"]*@[^"]*<[0-9]' || true)" ]; echo $?)" \
+assert_true "$([ -n "$(unconditional_overrides_291 "$mut_ovr_291")" ]; echo $?)" \
   "#291 Mutationsbeleg AK5: derselbe Ausdruck meldet einen unbedingten Eintrag ('postcss' ohne @<floor) als Verstoß"
+
+# Blindfleck-Kontrolle für den unquotierten Fall, in beide Richtungen: die Extraktion muss
+# beide Zeilen sehen, und der Konditionalitäts-Ausdruck darf davon GENAU den unbedingten
+# Eintrag melden – sonst wäre nicht unterscheidbar, ob er unquotierte Schlüssel prüft oder
+# pauschal durchwinkt bzw. pauschal meldet (Lesson testing.md, Diskriminierungs-Kontrolle).
+mut_ws_291="$(mktemp)"
+printf 'overrides:\n  nanoid@<3.3.17: "^3.3.17"\n  nanoid: "^3.3.17"\n' > "$mut_ws_291"
+mut_keys_291="$(override_keys_291 "$mut_ws_291")"
+assert_true "$([ "$(printf '%s\n' "$mut_keys_291" | grep -c .)" = "2" ]; echo $?)" \
+  "#291 Mutationsbeleg AK5: die Extraktion sieht auch UNQUOTIERTE Override-Schlüssel (2 Einträge erwartet)"
+assert_true "$([ "$(unconditional_overrides_291 "$mut_keys_291")" = '  nanoid: "^3.3.17"' ]; echo $?)" \
+  "#291 Mutationsbeleg AK5: derselbe Ausdruck meldet vom unquotierten Paar nur den unbedingten Eintrag"
+rm -f "$mut_ws_291"
 
 # AK-5 zweite Hälfte: die Ziel-Range bleibt in derselben Major-Linie (Caret), sonst hebt pnpm
 # über die Major-Grenze – in #291 empirisch passiert, als ">=2.1.4" die von minimatch@3
@@ -5144,7 +5172,7 @@ assert_true "$(grep -qxF -- '  "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4"' "$WOR
 # ein postcss-Override, und zwar auf dem aktuellen Floor. Der esbuild-Eintrag BLEIBT: er ist
 # nachweislich kein No-op (ohne ihn löst der Baum esbuild@0.18.20 auf, in #291 durch Entfernen
 # + Neuinstallation verifiziert), und der No-op-Verdacht aus #169 ist damit widerlegt.
-postcss_ovr_count_291="$(printf '%s\n' "$overrides_keys_291" | grep -cE '^  "postcss@' || true)"
+postcss_ovr_count_291="$(printf '%s\n' "$overrides_keys_291" | grep -cE '^  "?postcss@' || true)"
 assert_true "$([ "$postcss_ovr_count_291" = "1" ]; echo $?)" \
   "#291 AK7: genau ein postcss-Override in pnpm-workspace.yaml, kein zweiter Floor daneben (ist: $postcss_ovr_count_291)"
 assert_true "$(grep -qxF -- '  "postcss@<8.5.23": "^8.5.23"' "$WORKSPACE_YAML_291"; echo $?)" \

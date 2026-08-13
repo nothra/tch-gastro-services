@@ -9,23 +9,38 @@ allowBuilds:
 # Sicherheits-Overrides: heben verwundbare, transitiv gepinnte Kopien auf den
 # jeweiligen Patch-Floor. Konditionale Form (paket@<version) → greift NUR unterhalb
 # des Patches; spätere legitime Upgrades der Parents (next, drizzle-kit) fließen
-# ungehindert durch. Entfernen, sobald die Parents die Patches selbst mitbringen.
+# ungehindert durch. Entfernen, sobald die Parents die Patches selbst mitbringen –
+# gemessen, nicht vermutet (#291: für esbuild traf die Vermutung nicht zu, für nanoid schon).
 #
-# Ziel-Range immer als Caret innerhalb DERSELBEN Major-Linie (^1.1.18 statt >=1.1.18):
-# ein offenes >= lässt pnpm auf die neueste Major springen und schiebt damit einen
+# Ziel-Range bei NEUEN Einträgen als Caret innerhalb DERSELBEN Major-Linie (^1.1.18 statt
+# >=1.1.18): ein offenes >= lässt pnpm auf die neueste Major springen und schiebt damit einen
 # Major-Bump in einen Baum, der ihn nicht angefordert hat (#291: `>=` hätte die von
-# minimatch@3 erwartete brace-expansion@1.x auf 2.x gehoben).
+# minimatch@3 erwartete brace-expansion@1.x auf 2.x gehoben). Die Alt-Einträge esbuild und uuid
+# tragen noch die offene Form – bei uuid mit messbarer Wirkung (aufgelöst 14.0.1, während
+# exceljs ^8.3.2 deklariert). Ihre Umstellung liegt außerhalb des #291-Scopes und ist als
+# Kleinfund abgelegt (docs/factory/kleinfunde.md).
 #
 # - postcss  <8.5.23: XSS im CSS-Stringify (GHSA-qx2v-qp2m-jg93, gefixt in 8.5.10) plus
 #            Folge-Advisory mit Floor 8.5.23; via next (Build-Zeit). Floor angehoben
-#            statt zweiter Eintrag daneben (#169/#291).
-# - nanoid   <3.3.17: via postcss (Build-Zeit, runtime-Scope laut Dependabot), #291
+#            statt zweiter Eintrag daneben (#169/#291). Das Entfern-Kriterium oben ist hier
+#            unerreichbar, solange next postcss EXAKT auf 8.4.31 pinnt – der Eintrag bleibt.
+# - nanoid   <3.3.17: via postcss (Build-Zeit, runtime-Scope laut Dependabot), #291.
+#            REDUNDANT und deshalb zum Entfernen vorgemerkt: postcss@8.5.26 deklariert selbst
+#            nanoid ^3.3.17, und der Lockfile kennt genau eine nanoid-Kante (aus postcss) –
+#            der Floor folgt bereits aus der Parent-Range. Das Streichen braucht einen
+#            Lockfile-Refresh (`pnpm install`; sonst ERR_PNPM_OUTDATED_LOCKFILE in CI) und
+#            steht als Blocker in tasks/task-291-dependabot-alerts-schliessen.md.
 # - brace-expansion: zwei DISJUNKTE Selektoren, weil 1.x und 2.x getrennte Advisories mit
 #            getrennten Floors tragen. Ohne die untere Grenze am 2er-Selektor (`>=2.0.0 <2.1.4`)
 #            griffe er auch auf 1.1.x und höbe sie über die Major-Grenze (#291, empirisch belegt).
 #            <1.1.18 via minimatch@3, >=2.0.0 <2.1.4 via minimatch@5 – beide runtime.
 # - sharp    <0.35.0: via next (Bildoptimierung, optionale Dep). Minor-Bump, kein Patch –
 #            deshalb steht sharp in allowBuilds und der Post-Install-Build muss durchlaufen (#291).
+#            Bewusst AUSSERHALB der von next deklarierten Range ^0.34.5 (= <0.35.0): weil sharp
+#            eine optionale und keine Peer-Dependency ist, warnt pnpm install dabei nicht, der
+#            Range-Bruch bliebe also unbemerkt. Vertretbar, weil die App next/image nirgends
+#            nutzt und next.config.ts keine images-Config trägt – sharp wird zur Laufzeit nie
+#            aufgerufen, das Restrisiko ist praktisch null (#291, Review-Finding).
 # - undici   <7.29.0: via jsdom (Vitest-Environment, dev-Scope), #291
 # - js-yaml  <4.3.1:  via eslint (dev-Scope), #291
 # - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev).
