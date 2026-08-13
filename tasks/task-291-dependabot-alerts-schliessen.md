@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -277,6 +277,19 @@ vorhandenen Dependency-Floor-Guards zählen als Testsuite dieser Task.
 Finale Ausführung: `bash scripts/checks/tests/run-tests.sh` → **967 grün, 0 rot** ·
 `bash scripts/checks/pre-push.sh` → grün (678 Vitest-Tests, Typecheck, `format:check`,
 Routen-Doku, Hooks). Kein Produktionscode geändert.
+
+### Refactoring (`/refactor`, 2026-08-13)
+
+**Ergebnis: kein Refactoring-Bedarf.** Diese Task ändert keinen Produktionscode – einzige
+"Code"-Änderung ist der `#291`-Block in `scripts/checks/tests/run-tests.sh` (Bash-Testguards),
+daneben nur `package.json`/`pnpm-workspace.yaml` (reine Deklarationen/Kommentare) sowie
+generiertes `pnpm-lock.yaml`. Der Bash-Block folgt bereits durchgängig den im File etablierten
+Konventionen (Helper-Funktionen mit `_291`-Suffix, datengetriebene `floor_cases_291`-Schleife
+statt sieben Einzel-Asserts, Mutationsbelege je Guard) und wurde bereits zweifach im Review
+gefunden/korrigiert (K1/N1 in Rework-Runde 1/2). Kein Duplikat gegenüber bestehenden Helpern
+(`lock_versions_291` u. a. sind projektweit einmalig, per Grep geprüft), keine irreführenden
+Namen, keine Funktion über der Guideline-Länge. `bash scripts/checks/tests/run-tests.sh` →
+**967 grün, 0 rot**, unverändert – keine Code-Änderung in diesem Schritt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
