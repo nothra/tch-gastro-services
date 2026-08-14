@@ -1920,6 +1920,129 @@ assert_exit 1 "$asp_rc" "#82: start-work --labels ohne Wert → exit 1 (kein wor
 printf '%s' "$asp_err" | grep -q -- '--labels erwartet einen Wert'
 assert_true "$?" "#82: start-work --labels ohne Wert nennt die usage()-Ursache"
 
+# ─── #236: .env.local in den neuen Worktree spiegeln ─────────────────────────
+# Die Datei ist gitignored und wandert beim 'worktree add' nicht mit, alle DEV-Skripte
+# laden sie aber per 'dotenv -e .env.local' (#228). Fixtures von oben werden bewusst
+# wiederverwendet (gh-Stub, Wegwerf-Repo REPO_SW/REPO_IP, FACTORY_WT_SKIP_INSTALL=1).
+echo ""
+echo "#236 .env.local-Spiegelung in neue Worktrees:"
+
+# start_work_env <worktree-basis> <task-id> <desc> [extra-env]
+# start-work.sh im Worktree-Default gegen REPO_SW; gibt stdout+stderr zurück, damit die
+# Output-Kriterien (Kopier-/Überspringen-Meldung, db:seed-Hinweis) prüfbar sind.
+start_work_env() {
+  ( cd "$REPO_SW" && env ${4:-} PATH="$TMP_SW/bin:$PATH" \
+      FACTORY_DIR="$REPO_SW" FACTORY_REPO="acme/demo" \
+      FACTORY_WORKTREE_BASE="$1" FACTORY_WT_SKIP_INSTALL=1 \
+      bash "$SW" "$2" "$3" ) 2>&1
+}
+
+# AK2/AK7: bewusst VOR dem Anlegen der Quelle – so ist „Quelle fehlt" echt und nicht
+# nur ein Nebeneffekt einer späteren Testreihenfolge.
+OUT_NOENV=$(start_work_env "$TMP_SW/wt-noenv" 780 demo-noenv); RC_NOENV=$?
+assert_exit 0 "$RC_NOENV" "#236 AK2: fehlende .env.local im Haupt-Baum → start-work endet mit exit 0"
+[ ! -e "$TMP_SW/wt-noenv/feature-780-demo-noenv/.env.local" ]
+assert_true "$?" "#236 AK2: ohne Quelle entsteht keine .env.local im Worktree"
+printf '%s' "$OUT_NOENV" | grep -q 'db:seed'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK7: ohne Kopie kein db:seed-Hinweis im Abschluss-Output"
+
+# Quelle im Haupt-Baum: Modus 600 (AK5) + eindeutiger Inhalt (AK1 prüft byte-identisch).
+printf 'DATABASE_URL=postgres://demo\nSEED_ADMIN_EMAIL=a@b\n' > "$REPO_SW/.env.local"
+chmod 600 "$REPO_SW/.env.local"
+
+OUT_COPY=$(start_work_env "$TMP_SW/wt-env" 781 demo-env)
+WT_ENV="$TMP_SW/wt-env/feature-781-demo-env/.env.local"
+cmp -s "$REPO_SW/.env.local" "$WT_ENV"
+assert_true "$?" "#236 AK1: .env.local liegt byte-identisch im neuen Worktree"
+printf '%s' "$OUT_COPY" | grep -qF '.env.local aus dem Haupt-Baum kopiert'
+assert_true "$?" "#236 AK1: der Output nennt das Kopieren der .env.local"
+# Rechte über ls -l (portabel macOS/BSD + GNU; stat-Flags sind es nicht).
+[ "$(ls -l "$WT_ENV" 2>/dev/null | cut -c2-10)" = "rw-------" ]
+assert_true "$?" "#236 AK5: die Kopie behält Modus 600 (cp -p)"
+printf '%s' "$OUT_COPY" | grep -q 'db:seed'
+assert_true "$?" "#236 AK6: nach der Kopie nennt der Abschluss-Output pnpm db:seed"
+
+# AK3: derselbe Branch/dieselbe Basis erneut → Worktree wird wiederverwendet, die dort
+# abweichende Datei bleibt unangetastet (fail-safe: nie fremde Konfiguration zerstören).
+printf 'LOKAL_ANGEPASST=1\n' > "$WT_ENV"
+OUT_KEEP=$(start_work_env "$TMP_SW/wt-env" 781 demo-env)
+[ "$(cat "$WT_ENV")" = "LOKAL_ANGEPASST=1" ]
+assert_true "$?" "#236 AK3: vorhandene .env.local im Worktree wird nicht überschrieben"
+printf '%s' "$OUT_KEEP" | grep -qF '.env.local existiert im Worktree bereits'
+assert_true "$?" "#236 AK3: der Output weist auf das Überspringen hin"
+
+# AK4: Opt-out. Diskriminierung ist durch AK1 oben belegt – dieselbe Quelle wird dort
+# kopiert, hier nicht.
+OUT_SKIP=$(start_work_env "$TMP_SW/wt-skipenv" 782 demo-skipenv "FACTORY_WT_SKIP_ENV=1")
+[ ! -e "$TMP_SW/wt-skipenv/feature-782-demo-skipenv/.env.local" ]
+assert_true "$?" "#236 AK4: FACTORY_WT_SKIP_ENV=1 kopiert die .env.local nicht"
+printf '%s' "$OUT_SKIP" | grep -q 'db:seed'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK4: Opt-out erzeugt auch keinen db:seed-Hinweis"
+
+# Fehlerszenario: Quelle ist ein Verzeichnis → der reguläre Datei-Test greift, behandelt
+# wird der Fall wie „Quelle fehlt" (kein Sonderfall-Handling).
+mv "$REPO_SW/.env.local" "$TMP_SW/env-backup"
+mkdir "$REPO_SW/.env.local"
+start_work_env "$TMP_SW/wt-envdir" 784 demo-envdir >/dev/null
+assert_exit 0 "$?" "#236 Fehlerfall: Verzeichnis als Quelle → exit 0 (wie fehlende Quelle)"
+[ ! -e "$TMP_SW/wt-envdir/feature-784-demo-envdir/.env.local" ]
+assert_true "$?" "#236 Fehlerfall: Verzeichnis als Quelle wird nicht kopiert"
+rmdir "$REPO_SW/.env.local"
+mv "$TMP_SW/env-backup" "$REPO_SW/.env.local"
+
+# Fehlerszenario: Kopieren schlägt fehl (Quelle nicht lesbar) → Warnung, KEIN Abbruch;
+# unter 'set -euo pipefail' darf start-work nicht wortlos enden. Als root ist chmod 000
+# wirkungslos (Lesetest würde gelingen) → dann lautes Skip statt falsch-grün.
+if [ "$(id -u)" != "0" ]; then
+  chmod 000 "$REPO_SW/.env.local"
+  OUT_FAIL=$(start_work_env "$TMP_SW/wt-envfail" 785 demo-envfail); RC_FAIL=$?
+  chmod 600 "$REPO_SW/.env.local"
+  assert_exit 0 "$RC_FAIL" "#236 Fehlerfall: unlesbare Quelle → start-work läuft weiter (exit 0)"
+  printf '%s' "$OUT_FAIL" | grep -qF '.env.local konnte nicht kopiert werden'
+  assert_true "$?" "#236 Fehlerfall: unlesbare Quelle erzeugt eine Warnung"
+  printf '%s' "$OUT_FAIL" | grep -q 'Bereit!'
+  assert_true "$?" "#236 Fehlerfall: der Abschluss-Output wird trotz Kopier-Fehler erreicht"
+  printf '%s' "$OUT_FAIL" | grep -q 'db:seed'
+  assert_true "$([ $? -ne 0 ]; echo $?)" "#236 Fehlerfall: fehlgeschlagene Kopie erzeugt keinen db:seed-Hinweis"
+else
+  echo "  • #236 Fehlerfall unlesbare Quelle – übersprungen (Suite läuft als root)"
+fi
+
+# AK8: In-Place-Modus – der Arbeitsbaum IST der Haupt-Baum, es gibt nichts zu kopieren.
+printf 'DATABASE_URL=postgres://demo\n' > "$REPO_IP/.env.local"
+OUT_IP=$( cd "$REPO_IP" && PATH="$TMP_SW/bin:$PATH" \
+    FACTORY_DIR="$REPO_IP" FACTORY_REPO="acme/demo" FACTORY_NO_WORKTREE=1 \
+    bash "$SW" 783 demo-ip 2>&1 )
+printf '%s' "$OUT_IP" | grep -qF '.env.local aus dem Haupt-Baum kopiert'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK8: In-Place-Modus führt keine Kopieraktion aus"
+printf '%s' "$OUT_IP" | grep -q 'db:seed'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK8: In-Place-Modus gibt keinen db:seed-Hinweis"
+
+# AK9: Doku-Drift im selben PR nachgezogen. Anker sind Ein-Zeilen-Fragmente (Lesson
+# #240/#249: grep -qF gegen umgebrochene Prosa läuft lautlos rot).
+sw_header=$(awk '/^set -euo pipefail/{exit} {print}' "$SW")
+printf '%s\n' "$sw_header" | grep -q 'FACTORY_WT_SKIP_ENV'
+assert_true "$?" "#236 AK9(d): start-work.sh nennt FACTORY_WT_SKIP_ENV im Kopf-Kommentar"
+
+grep -q 'FACTORY_WT_SKIP_ENV' "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
+assert_true "$?" "#236 AK9(c): git-workflow.md listet FACTORY_WT_SKIP_ENV als Env-Schalter"
+
+LESSON_FW="$FACTORY_ROOT/docs/factory/lessons/factory-workflow.md"
+grep -qF 'seit #236 automatisch' "$LESSON_FW"
+assert_true "$?" "#236 AK9(a): Lesson beschreibt den Kopier-Schritt als automatisiert"
+grep -qF 'als eigener Task ausgelagert' "$LESSON_FW"
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK9(a): Lesson nennt #236 nicht mehr als offenen Follow-up"
+printf 'ist als eigener Task ausgelagert:\n' | grep -qF 'als eigener Task ausgelagert'
+assert_true "$?" "#236 AK9(a): Positiv-Kontrolle – das Abwesenheits-Muster matcht den alten Wortlaut"
+
+PC_CTX="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
+grep -qF 'Root-Cause-Fix in #236 umgesetzt' "$PC_CTX"
+assert_true "$?" "#236 AK9(b): PROJECT-CONTEXT-Index weist #236 als umgesetzt aus"
+grep -qF 'Root-Cause-Fix ausgelagert: #236' "$PC_CTX"
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK9(b): PROJECT-CONTEXT-Index nennt #236 nicht mehr als ausgelagert"
+printf '(aus #228; Root-Cause-Fix ausgelagert: #236)\n' | grep -qF 'Root-Cause-Fix ausgelagert: #236'
+assert_true "$?" "#236 AK9(b): Positiv-Kontrolle – das Abwesenheits-Muster matcht den alten Wortlaut"
+
 rm -rf "$TMP_SW"
 
 # ─── #66: Deploy-Gate liest Secrets über env:, nicht inline im run: ──────────

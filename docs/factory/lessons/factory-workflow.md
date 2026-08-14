@@ -735,7 +735,8 @@ laufen statt gegen eine Temp-Kopie.
 
 `start-work.sh` legt jede Task standardmäßig in einem **eigenen** Worktree an (Geschwister-
 Ordner `…​.worktrees/<branch>`, siehe `git-workflow.md` → „Parallele Sessions"). `.env.local`
-ist gitignored und wird dabei **nicht** kopiert. Die lokale Postgres-DB läuft dagegen meist
+ist gitignored und wurde damals dabei **nicht** mitkopiert (heute automatisiert, siehe Regel
+unten). Die lokale Postgres-DB läuft dagegen meist
 schon als **gemeinsamer** Docker-Container über alle Worktrees hinweg (fester Host-Port,
 zwei Wochen alt in #228). Ein `pnpm test:e2e e2e/auth.spec.ts` im frischen Worktree scheitert
 dadurch beim Login mit `CredentialsSignin` – nicht weil der Login-Code kaputt ist, sondern weil
@@ -747,12 +748,13 @@ den next-auth-Versions-Bump aus, war aber ein reines Umgebungs-Setup-Problem.
 obwohl der Code unverändert ist (oder nur eine Dependency gebumpt wurde)?" → zuerst Umgebung
 prüfen, nicht den Code verdächtigen.
 
-**Regel:** Vor dem ersten `pnpm test:e2e` in einem neuen Worktree: (1) `.env.local` aus dem
-Haupt-Worktree kopieren, falls nicht vorhanden; (2) `pnpm db:seed` laufen lassen (idempotent,
-legt das Admin-Konto an/aktualisiert es für die geladenen `SEED_ADMIN_*`-Werte) – **bevor** ein
-E2E-Fehlschlag vorschnell dem gerade bearbeiteten Task-Diff zugeschrieben wird. Root-Cause-Fix
-(Automatisierung in `start-work.sh`) ist als eigener Task ausgelagert:
-[#236](https://github.com/nothra/tch-gastro-services/issues/236).
+**Regel:** Vor dem ersten `pnpm test:e2e` in einem neuen Worktree `pnpm db:seed` laufen lassen
+(idempotent, legt das Admin-Konto an/aktualisiert es für die geladenen `SEED_ADMIN_*`-Werte) –
+**bevor** ein E2E-Fehlschlag vorschnell dem gerade bearbeiteten Task-Diff zugeschrieben wird.
+Der erste Schritt – das Kopieren der `.env.local` aus dem Haupt-Baum – ist **nicht** mehr manuell:
+`start-work.sh` erledigt das seit #236 automatisch beim Anlegen des Worktrees (überschreibt eine
+dort vorhandene Datei nie; Opt-out `FACTORY_WT_SKIP_ENV=1`) und weist im Abschluss-Output auf den
+noch nötigen `db:seed`-Lauf hin.
 
 ### Neuer Interrupt-Typ → kanonische OPERATING.md-Interrupt-Tabelle mitpflegen (aus #212, Review-Finding)
 
