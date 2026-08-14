@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -234,6 +234,41 @@ Vollständigkeits-Prüfung nach Runde 4 – kein Produktionscode geändert, nur 
 - **Gates:** `bash scripts/checks/tests/run-tests.sh` → 1029 grün / 0 rot;
   `bash scripts/checks/pre-commit.sh` → Lint bestanden, keine Debug-Statements/Credentials.
 - **Fehlende Tests:** keine identifiziert – nichts ergänzt.
+
+### Refactoring-Notizen (/refactor, 2026-08-14)
+
+Geprüft: Produktionscode (`scripts/start-work.sh:119-124`, `:220-256`, `:408-415`) sowie die
+drei in den Rework-Notizen (Runde 3) als „Kandidaten für den `/refactor`-Pass" benannten
+Test-Hygiene-Nitpicks. Ergebnis: **kein Code geändert** – Baseline vorher/nachher identisch
+`bash scripts/checks/tests/run-tests.sh` → 1029 grün / 0 rot.
+
+- **Produktionscode**: bereits sauber (Guard Clauses, ein `ENV_COPIED`-Flag mit begründetem
+  Vorbelegungs-Kommentar, keine Duplikation, keine Magic Numbers, WHY-Kommentare an jeder
+  nicht-offensichtlichen Stelle). Kein Refactoring-Bedarf gefunden.
+- **`flat_286`/`assert_contains_286` umbenennen** – geprüft, ob sich die Fremdblock-Kopplung
+  eingrenzen lässt: die Helper sind entgegen der Runde-3-Vermutung **nicht** dupliziert, sondern
+  wurden von #236 an EINER Stelle (Datei-Kopf) um `tr -s ' '` erweitert und dort belassen – #286
+  und der `kleinfunde.md`-Block nutzen dieselbe Definition weiter (25+ Aufrufstellen, alle
+  vorbestehend). Eine Umbenennung bliebe also weiterhin ein Fremdblock-weiter Eingriff außerhalb
+  des Scopes dieser Task (CLAUDE.md Regel 5) – Entscheidung aus Runde 3 bestätigt, nicht neu
+  bewertet nötig.
+- **`set_env_source`-Setter für die Quell-Fixture-Kette** – die sechs Stellen, die die Quelle
+  `$REPO_SW/.env.local` verändern (Normal/600, Modus-Umschaltung für den `cp -p`-Beleg,
+  Verzeichnis-als-Quelle, gültiger/defekter Symlink, unlesbare Quelle), sind keine Duplikation
+  im Clean-Code-Sinn: jede hat einen eigenen, bereits vorhandenen WHY-Kommentar für genau diesen
+  Fixture-Zustand. Ein generischer Setter mit Moduswahl würde diese Begründungen entweder
+  verlieren oder hinter einer zusätzlichen Indirektionsebene verstecken – mehr Overengineering
+  als Vereinfachung (Clean-Code-Guideline „Kein Over-Engineering").
+- **Zusammenlegen der drei Env-Prologe** (`FACTORY_DIR=…`/`FACTORY_REPO=…`-Blöcke vor den
+  `bash "$SW" …`-Aufrufen) – zwei der drei Vorkommen gehören zum vorbestehenden #74/#80/#82-Block
+  (nicht von dieser Task eingeführt); ein Zusammenlegen träfe denselben Fremdblock-Scope wie
+  oben. Nicht umgesetzt.
+
+Alle drei Nitpicks bleiben damit bewusst offen – keiner erfüllt sowohl „im Scope dieser Task"
+als auch „echte Vereinfachung ohne Verlust an Klarheit". Kein Ticket eröffnet: es handelt sich
+um Test-Hygiene ohne Verhaltensbezug (Schwelle `kleinfunde.md` würde ohnehin nicht greifen, s.
+`docs/factory/guidelines/git-workflow.md` „Schwelle: Issue oder Sammeldatei" – kein reproduzier-
+barer Defekt, kein Sicherheitsrisiko).
 
 ## Offene Fragen
 
