@@ -270,6 +270,13 @@ Gemergte Branches werden weitgehend automatisch entfernt – dreistufig:
 > `[gone]` bedeutet hier verlässlich „PR gemergt, Remote gelöscht". Nur wer einen Remote-Branch
 > **ohne** Merge löscht, verlöre lokalen Stand – im PR-Workflow praktisch kein Thema.
 
+> **Secret-Hygiene (seit #236):** Ein Worktree enthält seit der automatischen `.env.local`-Kopie
+> (siehe „Parallele Sessions" unten) eine eigene Kopie der lokalen Secrets (`DATABASE_URL`,
+> `AUTH_SECRET`, `SEED_ADMIN_*`). `git worktree remove` löscht diese Kopie mit – ein von Hand
+> abgehängter oder per `FACTORY_WORKTREE_BASE` in einen synchronisierten Ordner (iCloud/Dropbox/
+> Backup) verlegter Worktree lässt sie dagegen zurück. Aufräumen nach dem Merge ist damit nicht
+> nur Plattenplatz, sondern auch Secret-Hygiene.
+
 ---
 
 ## Eine Task = Eine Session

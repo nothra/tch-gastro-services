@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -294,8 +294,32 @@ Bewusst **nicht** umgesetzt:
   `set_env_source`-Setter, Zusammenlegen der drei Env-Prologe) – Begründung in den
   Rework-Notizen Runde 3.
 
+### Security-Review-Notizen (/security-review, 2026-08-14)
+
+Report: [`tasks/security-236.md`](security-236.md) → **PASSED** (0 kritisch, 0 wichtig,
+3 Hinweise). Kein Code geändert, kein Issue angelegt, kein `kleinfunde.md`-Eintrag –
+keiner der Hinweise erreicht die Schwelle aus `git-workflow.md`.
+
+- Positiv verifiziert: `.gitignore:50` (`.env*`, slash-frei → greift auch im Worktree) schließt
+  den Commit-Pfad der Kopie strukturell; der `-e`/`-L`-Guard blockiert den Symlink-Write-Through;
+  `TASK_DESC`-Sanitisierung (`tr -cd '[:alnum:]-'`) verhindert Path Traversal im Zielpfad; keine
+  Secret-Werte im Output; keine Dependency-Änderung.
+- Offene Empfehlung (Doku, Folge-PR oder `/codify`-Kandidat): in `git-workflow.md` beim
+  Aufräum-Punkt vermerken, dass ein Worktree seit #236 eine Secret-Kopie enthält und
+  `git worktree remove` deshalb auch Secret-Hygiene ist.
+- Nicht messbar in dieser Session: der reale Modus der lokalen `.env.local` (`.env*` ist für den
+  Tool-Zugriff deny-gelistet, auch der `scripts/*.tmp.sh`-Wrapper-Weg wurde abgelehnt). Der
+  Hinweis zu `cp -p` ist daher invariantenbasiert begründet (Kopie nie breiter als Quelle),
+  nicht gemessen.
+
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Voller Report: [`tasks/codify-236.md`](codify-236.md). Zwei neue Regeln: Bash-Gotcha #11
+(„eigene Aufräumzeile im Fehlerpfad braucht selbst `set -e`-Absicherung",
+`docs/factory/guidelines/bash-gotchas.md`) und ein Secret-Hygiene-Hinweis beim
+Worktree-Aufräumen (`docs/factory/guidelines/git-workflow.md` → „Branch-Aufräumen"), der die
+offene Security-Review-Empfehlung nachträgt. Beides reine Doku, keine Code-Änderung.
+Testsuite danach erneut grün: 1029/0.
 
 ---
 Branch: `chore/236-env-local-in-worktree-kopieren`
