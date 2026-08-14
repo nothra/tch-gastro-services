@@ -1981,7 +1981,7 @@ run_start_work() {
 # nur ein Nebeneffekt einer späteren Testreihenfolge.
 WT_NOENV="$TMP_SW/wt-236-noenv/feature-780-demo-noenv"
 OUT_NOENV=$(run_start_work "$TMP_SW/wt-236-noenv" 780 demo-noenv); RC_NOENV=$?
-assert_exit 0 "$RC_NOENV" "#236 AK2: fehlende .env.local im Haupt-Baum → start-work endet mit exit 0"
+assert_exit 0 "$RC_NOENV" "#236 AK2: fehlende .env.local im Quellbaum (\$FACTORY_DIR) → start-work endet mit exit 0"
 # Existenz-Anker vor jeder Abwesenheits-Prüfung: „keine Datei unter <pfad>" ist auch dann wahr,
 # wenn es <pfad> gar nicht gibt – ein Tippfehler oder ein geändertes Slug-Schema in start-work.sh
 # (WORKDIR="$WT_BASE/${BRANCH_NAME//\//-}") entwertete die Assertion sonst lautlos.
@@ -1991,7 +1991,8 @@ assert_true "$([ -d "$WT_NOENV" ]; echo $?)" \
 assert_true "$?" "#236 AK2: ohne Quelle entsteht keine .env.local im Worktree"
 assert_absent "$OUT_NOENV" 'pnpm db:seed' "#236 AK7: ohne Kopie kein db:seed-Hinweis im Abschluss-Output"
 
-# Quelle im Haupt-Baum: Modus 600 (AK5) + eindeutiger Inhalt (AK1 prüft byte-identisch).
+# Quelle im Quellbaum ($FACTORY_DIR, in dieser Fixture zugleich der Haupt-Baum):
+# Modus 600 (AK5) + eindeutiger Inhalt (AK1 prüft byte-identisch).
 printf 'DATABASE_URL=postgres://demo\nSEED_ADMIN_EMAIL=a@b\n' > "$REPO_SW/.env.local"
 chmod 600 "$REPO_SW/.env.local"
 
@@ -2161,6 +2162,60 @@ assert_true "$?" "#236 Fehlerfall: der halb kopierte Rest wird entfernt, nicht l
 run_start_work "$TMP_SW/wt-236-envpartial" 790 demo-envpartial >/dev/null
 cmp -s "$REPO_SW/.env.local" "$WT_PARTIAL/.env.local"
 assert_true "$?" "#236 Fehlerfall: der Folgelauf kopiert vollständig (Teilabbruch ist nicht permanent)"
+
+# Fehlerszenario: am Worktree-Pfad liegt eine REGULÄRE DATEI. start-work nimmt dann den
+# Wiederverwendungs-Zweig (:210) und läuft weiter – der Kopier-Block darf diesen Ablauf nicht
+# verkürzen. Ohne den '-d'-Guard scheitern dort cp UND rm mit ENOTDIR ('rm -f' unterdrückt nur
+# ENOENT); die rm-Zeile steht in keiner Bedingung, also bricht 'set -e' den Lauf WORTLOS ab –
+# ohne Warnung und ohne die Schritte 3–5, die vor diesem PR noch erreicht wurden.
+# Referenzpunkt ist bewusst „Schritt 3 wird erreicht", nicht 'Bereit!': dass Schritt 3 an
+# seinem eigenen 'mkdir -p' scheitert, ist vorbestehendes #74-Verhalten (der :210-Zweig kennt
+# keinen Nicht-Verzeichnis-Pfad) und außerhalb dieses Scopes – gemessen wird nur, dass der
+# Kopier-Block den Abbruchpunkt nicht nach vorne zieht.
+WT_NOTDIR_BASE="$TMP_SW/wt-236-notdir"
+mkdir -p "$WT_NOTDIR_BASE"
+: > "$WT_NOTDIR_BASE/feature-791-demo-notdir"
+OUT_NOTDIR=$(run_start_work "$WT_NOTDIR_BASE" 791 demo-notdir)
+# Existenz-Anker: der Pfad ist wirklich eine reguläre Datei – ein geändertes Slug-Schema in
+# start-work.sh entwertete den ganzen Testfall sonst lautlos (er liefe gegen einen freien Pfad).
+assert_true "$([ -f "$WT_NOTDIR_BASE/feature-791-demo-notdir" ]; echo $?)" \
+  "#236 Fehlerfall: am Worktree-Pfad liegt eine reguläre Datei (Anker für den Nicht-Verzeichnis-Fall)"
+printf '%s' "$OUT_NOTDIR" | grep -qF 'wird wiederverwendet'
+assert_true "$?" "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad nimmt den Wiederverwendungs-Zweig"
+printf '%s' "$OUT_NOTDIR" | grep -qF '3/5  Task-Datei anlegen'
+assert_true "$?" "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad bricht den Lauf nicht im Kopier-Block ab"
+assert_absent "$OUT_NOTDIR" '.env.local in den Worktree spiegeln' \
+  "#236 Fehlerfall: der Kopier-Block wird bei einem Nicht-Verzeichnis gar nicht erst betreten"
+# Bewusst auf die Kommando-Präfixe der beiden Aufrufe des Blocks verankert und NICHT auf den
+# Fehlertext 'Not a directory': den erzeugt in Schritt 3 auch das vorbestehende
+# 'mkdir -p "$WORKDIR/tasks"' – eine Assertion darauf wäre aus dem falschen Grund rot.
+assert_absent "$OUT_NOTDIR" 'cp: ' \
+  "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad erzeugt keine rohe cp-Fehlerzeile"
+assert_absent "$OUT_NOTDIR" 'rm: ' \
+  "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad erzeugt keine rohe rm-Fehlerzeile"
+
+# Fehlerszenario: das Aufräumen selbst scheitert (nicht nur das cp). Ein schreibgeschütztes
+# Zielverzeichnis, ein Fremd-'rm' auf PATH – der Grund ist egal, die Zeile darf den Lauf nie
+# beenden. start-work.sh ruft 'rm' an genau EINER Stelle auf (der Aufräumzeile), der PATH-Stub
+# trifft also präzise sie und nichts sonst. Die Kombination aus beiden Stubs ist nötig: ohne
+# den cp-Stub wird die Aufräumzeile gar nicht erreicht.
+cat > "$TMP_SW/bin/cp" << 'CPSTUB'
+#!/usr/bin/env bash
+printf 'HALB_KOPIERT=' > "${@: -1}"
+exit 1
+CPSTUB
+cat > "$TMP_SW/bin/rm" << 'RMSTUB'
+#!/usr/bin/env bash
+exit 1
+RMSTUB
+chmod +x "$TMP_SW/bin/cp" "$TMP_SW/bin/rm"
+OUT_RMFAIL=$(run_start_work "$TMP_SW/wt-236-rmfail" 792 demo-rmfail); RC_RMFAIL=$?
+rm -f "$TMP_SW/bin/cp" "$TMP_SW/bin/rm"
+assert_exit 0 "$RC_RMFAIL" "#236 Fehlerfall: fehlgeschlagenes Aufräumen → start-work läuft weiter (exit 0)"
+printf '%s' "$OUT_RMFAIL" | grep -qF '.env.local konnte nicht kopiert werden'
+assert_true "$?" "#236 Fehlerfall: fehlgeschlagenes Aufräumen erzeugt trotzdem die Warnung"
+printf '%s' "$OUT_RMFAIL" | grep -q 'Bereit!'
+assert_true "$?" "#236 Fehlerfall: der Abschluss-Output wird trotz fehlgeschlagenem Aufräumen erreicht"
 
 # AK8: In-Place-Modus – der Arbeitsbaum IST der Haupt-Baum, es gibt nichts zu kopieren.
 printf 'DATABASE_URL=postgres://demo\n' > "$REPO_IP/.env.local"

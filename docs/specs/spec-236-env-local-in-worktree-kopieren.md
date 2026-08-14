@@ -96,15 +96,23 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
 
 - [ ] **Kopieren schlägt fehl** (z. B. Leserecht auf der Quelle fehlt, Zielverzeichnis nicht
       beschreibbar): Warnung ausgeben, **kein Abbruch** von `start-work.sh` – analog zum
-      bestehenden Umgang mit fehlgeschlagenem `pnpm install` (`start-work.sh:255`). Wichtig
+      bestehenden Umgang mit fehlgeschlagenem `pnpm install` (`start-work.sh:262`). Wichtig
       wegen `set -euo pipefail`: der Kopierbefehl muss abgesichert sein und darf das Skript
       nicht wortlos beenden. Scheitert `cp` erst **nach** dem Anlegen der Zieldatei, wird der
       eigene unvollständige Rest wieder entfernt – sonst konservierte ihn AK3 dauerhaft.
+      Die Absicherung gilt für **jeden** Befehl des Blocks, auch für das Aufräumen selbst:
+      scheitert das Entfernen des Rests (nicht beschreibbares Zielverzeichnis o. Ä.), bleibt
+      es bei der Warnung.
 - [ ] **Wiederverwendeter Worktree** (`start-work.sh` meldet „wird wiederverwendet"): der
       Kopier-Schritt läuft trotzdem, greift aber wegen AK3 nur, wenn dort noch keine
       `.env.local` liegt. Welche der beiden Wiederverwendungs-Meldungen dabei erscheint
       („Worktree existiert bereits" vs. „Pfad existiert bereits (kein Worktree)"), ist für
-      dieses Szenario unerheblich und **nicht** normativ.
+      dieses Szenario unerheblich und **nicht** normativ. **Ausnahme:** ist der
+      wiederverwendete Pfad gar kein Verzeichnis (z. B. eine reguläre Datei), wird der
+      Kopier-Block übersprungen – jeder Dateizugriff darunter scheiterte dort mit `ENOTDIR`
+      und machte den Block zum neuen, früheren Abbruchpunkt des Skripts. Dass der Lauf
+      anschließend an anderer Stelle scheitert (Schritt 3, `mkdir -p "$WORKDIR/tasks"`), ist
+      vorbestehendes Verhalten aus #74 und **nicht** Gegenstand dieser Spec.
 - [ ] **Quelle ist ein Verzeichnis oder defekter Symlink**: kein Sonderfall-Handling – es gilt
       AK1 (regulärer Datei-Test als Vorbedingung), beides wird wie „Quelle fehlt" (AK2)
       behandelt. Ein Symlink **auf eine vorhandene Datei** fällt dagegen nicht darunter: `-f`

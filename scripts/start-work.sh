@@ -222,7 +222,11 @@ if [ "$WORKTREE_MODE" = true ]; then
   # Ohne sie scheitert der erste 'pnpm test:e2e' im frischen Worktree mit einem irreführenden
   # CredentialsSignin (#228). Vor dem pnpm install, damit die Datei auch bei fehlgeschlagener
   # Installation da ist. Fail-safe: eine vorhandene Zieldatei wird nie überschrieben.
-  if [ "${FACTORY_WT_SKIP_ENV:-0}" != "1" ] && [ -f "$FACTORY_DIR/.env.local" ]; then
+  # '-d "$WORKDIR"': liegt am Worktree-Pfad eine reguläre Datei, greift oben der
+  # Wiederverwendungs-Zweig und der Lauf geht weiter – jeder Dateizugriff darunter scheiterte
+  # dann aber mit ENOTDIR. Ohne diesen Guard wäre der Kopier-Block der neue (frühere)
+  # Abbruchpunkt des Skripts; so bleibt er wirkungslos statt schädlich.
+  if [ "${FACTORY_WT_SKIP_ENV:-0}" != "1" ] && [ -d "$WORKDIR" ] && [ -f "$FACTORY_DIR/.env.local" ]; then
     # Opt-out-Hinweis in der Ankündigungszeile (wie im pnpm-Block unten), nicht in der
     # Erfolgsmeldung – so ist er auch sichtbar, wenn der Kopiervorgang selbst übersprungen
     # wird (vorhandene Zieldatei) oder fehlschlägt.
@@ -241,7 +245,10 @@ if [ "$WORKTREE_MODE" = true ]; then
       # mitten im Schreiben, oder nur das -p misslingt), bliebe eine unvollständige Datei liegen –
       # und der Guard oben konservierte sie bei jedem Folgelauf dauerhaft. Sicher, weil der
       # -e/-L-Guard eine vorbestehende Zieldatei bereits ausgeschlossen hat.
-      rm -f "$WORKDIR/.env.local"
+      # '|| true': das Aufräumen ist Kür, kein Muss – scheitert es (schreibgeschütztes
+      # Zielverzeichnis o. Ä.), bleibt es bei der Warnung. Ohne die Absicherung beendete
+      # 'set -e' den Lauf hier wortlos, genau das verbietet Fehlerszenario 1 der Spec.
+      rm -f "$WORKDIR/.env.local" 2>/dev/null || true
       echo -e "  ${YELLOW}⚠  .env.local konnte nicht kopiert werden – im Worktree manuell nachziehen${NC}"
     fi
   fi

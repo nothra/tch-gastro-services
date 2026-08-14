@@ -50,10 +50,14 @@ ausführen (keine Seiteneffekte auf die geteilte DEV-DB).
 
 ## Fehlerszenarien
 
-- [x] Kopieren schlägt fehl → Warnung, kein Abbruch (analog `pnpm install`, `start-work.sh:255`;
+- [x] Kopieren schlägt fehl → Warnung, kein Abbruch (analog `pnpm install`, `start-work.sh:262`;
       `set -euo pipefail` beachten). Scheitert `cp` erst **nach** dem Anlegen des Ziels, wird der
-      eigene unvollständige Rest entfernt (sonst friert ihn AK3 dauerhaft ein)
-- [x] Wiederverwendeter Worktree → Kopier-Schritt läuft, greift aber nur bei fehlender Zieldatei
+      eigene unvollständige Rest entfernt (sonst friert ihn AK3 dauerhaft ein) – die Absicherung
+      gilt für **jeden** Befehl des Blocks, auch für das Aufräumen selbst
+- [x] Wiederverwendeter Worktree → Kopier-Schritt läuft, greift aber nur bei fehlender Zieldatei.
+      **Ausnahme:** ist der Pfad gar kein Verzeichnis, wird der Block übersprungen (jeder
+      Dateizugriff scheiterte dort mit `ENOTDIR`); der spätere Abbruch in Schritt 3 ist
+      vorbestehendes #74-Verhalten und nicht Gegenstand dieser Task
 - [x] Quelle ist Verzeichnis / **defekter** Symlink → wird wie „Quelle fehlt" (AK2) behandelt;
       ein Symlink auf eine vorhandene Datei wird dagegen als echte Datei-Kopie materialisiert
       (gewollt, per Test gepinnt)
@@ -65,7 +69,7 @@ Kein ADR-Trigger (lokale Tooling-Ergonomie, reversibel, keine Architektur-Entsch
 nach diesem Schritt direkt `/implement 236`.
 
 - Einbau im Worktree-Zweig von `scripts/start-work.sh` nach `worktree add` (`:208-218`),
-  **vor** dem `pnpm install`-Block (`:249-257`)
+  **vor** dem `pnpm install`-Block (`:257-264`)
 - Rechte-Erhalt via `cp -p` (portabel macOS/BSD + GNU)
 - Tests in den bestehenden Block `scripts/checks/tests/run-tests.sh:1823+` einhängen
   (vorhandene Fixtures wiederverwenden, keine parallele Fixture-Landschaft)
@@ -167,21 +171,69 @@ plus der umsetzbaren Nitpicks.
   (RED-Lauf des neuen `cp`-Teilabbruch-Tests vorher: 2 rot – „Rest wird entfernt" und
   „Folgelauf kopiert vollständig").
 
+### Rework-Notizen (/implement, Runde 4, 2026-08-14)
+
+Abarbeitung des **einen kritischen Findings** aus [`tasks/review-236.md`](review-236.md)
+(Runde 3) plus der zwei umsetzbaren Nitpicks. Der Circuit Breaker (max. 3 Review↔Implement-
+Iterationen) war mit Runde 3 erreicht; die Runde-4-Freigabe ist die menschliche Entscheidung,
+diesen einen Fix noch zuzulassen – wie vom Review empfohlen, danach ohne vierten Vollreview
+weiter zu `/test`.
+
+- **`set -e`-Regression in der eigenen Aufräumzeile behoben** – beide vom Review vorgeschlagenen
+  Wege umgesetzt, weil sie unterschiedliche Fälle decken:
+  - (a) `rm -f "$WORKDIR/.env.local" 2>/dev/null || true` – die Zeile steht in keiner Bedingung,
+    `rm -f` unterdrückt nur `ENOENT`, nicht `ENOTDIR`/`EACCES`. Ohne `|| true` beendete `set -e`
+    den Lauf wortlos, genau das verbietet Fehlerszenario 1 der Spec.
+  - (b) `[ -d "$WORKDIR" ]` in der Eintritts-Bedingung – liegt am Worktree-Pfad eine reguläre
+    Datei, wird der Block gar nicht erst betreten. Das erledigt zugleich den Runde-3-Nitpick zur
+    rohen `cp:`-stderr-Zeile für den auffälligsten Fall; für die übrigen Fehlerfälle bleibt
+    stderr bewusst sichtbar (die Rohzeile nennt die Ursache, die eigene Warnung nur die Folge).
+- **Sieben neue Assertions**, zwei Szenarien: reguläre Datei am Worktree-Pfad (deckt Weg b) und
+  `cp`-Stub + `rm`-Stub kombiniert (deckt Weg a – ohne den `cp`-Stub wird die Aufräumzeile nie
+  erreicht). Referenzpunkt im ersten Szenario ist bewusst „Schritt 3 wird erreicht", nicht
+  `Bereit!`: dass Schritt 3 an seinem eigenen `mkdir -p` scheitert, ist vorbestehendes
+  #74-Verhalten außerhalb dieses Scopes – gemessen wird nur, dass der Kopier-Block den
+  Abbruchpunkt nicht nach vorne zieht. Die Abwesenheits-Assertions ankern auf die
+  Kommando-Präfixe `cp: `/`rm: `, nicht auf `Not a directory` (den erzeugt in Schritt 3 auch das
+  vorbestehende `mkdir -p` – die Assertion wäre sonst aus dem falschen Grund rot).
+- **Nitpicks umgesetzt:** Testbeschreibung + Kommentar auf „Quellbaum (`$FACTORY_DIR`)" gezogen
+  (letzte Stelle mit der alten Sprachregelung „Haupt-Baum"); Lesson-Zeile
+  `factory-workflow.md:744` auf den ~100-Spalten-Stil umbrochen (gefahrlos, weil die
+  Fixed-String-Anker dieses PRs über `flat_286` laufen und umbruch-tolerant sind).
+- **Spec + Task-Fehlerszenarien nachgezogen:** die Nicht-Verzeichnis-Ausnahme und „die
+  Absicherung gilt auch für das Aufräumen selbst" stehen jetzt normativ in der Spec, gespiegelt
+  in dieser Datei.
+- **Zeilenanker nachgezählt** (sie sind durch die neuen Kommentarzeilen gewandert):
+  `pnpm install`-Block `:249-257` → **`:257-264`**, die Warnzeile `:255` → **`:262`** (in Spec
+  und Task-Datei); `:208-218` und der `kleinfunde.md`-Anker `:208` bleiben korrekt.
+- **Bewusst nicht umgesetzt:** unverändert die drei Test-Hygiene-Nitpicks ohne Verhaltensbezug
+  (Begründung in den Rework-Notizen Runde 3) – Kandidaten für den `/refactor`-Pass.
+- Verifikation: `bash scripts/checks/tests/run-tests.sh` → **1029 grün / 0 rot**. RED-Beleg
+  eigenständig gefahren (beide Fix-Zeilen temporär zurückgenommen): **1022 grün / 7 rot** –
+  genau die sieben neuen Assertions, der Aufräum-Fall mit `erwartet exit=0, war 1`, also dem
+  wortlosen Abbruch aus dem Finding. Keine UI-/Routen-Berührung → keine Oberflächentests nötig.
+
 ## Offene Fragen
 
 _Keine offenen Fragen._
 
 ## Review-Findings
 
-Runde 1 und Runde 2: siehe [`tasks/review-236.md`](review-236.md) – in beiden Runden keine
-kritischen Findings; alle wichtigen Findings und die umsetzbaren Nitpicks sind abgearbeitet
-(Checkboxen dort gesetzt, Runde-1-Volltext in der Git-History der Datei).
+Runden 1–3: siehe [`tasks/review-236.md`](review-236.md) (Volltext der Runden 1 und 2 in der
+Git-History der Datei). Runde 3 meldete **ein** kritisches Finding – eine `set -e`-Regression in
+der Zeile, die Runde 2 selbst angefordert hatte – und **null** wichtige Findings; es ist in
+Runde 4 behoben, alle umsetzbaren Nitpicks sind abgearbeitet (Checkboxen dort gesetzt).
+
+Der Circuit Breaker (max. 3 Iterationen) ist mit Runde 3 erreicht. Die Findings konvergierten
+monoton (8 → 5 → 0 wichtige), es liegt keine offene Meinungsdifferenz vor; die Runde-4-Freigabe
+für den einen Fix ist die menschliche Entscheidung. Nächster Schritt nach Review-Empfehlung:
+`/test` zur gezielten Verifikation, kein vierter Vollreview.
 
 Bewusst **nicht** umgesetzt:
 - Runde 1: der Regressions-Guard „kopierte Datei gerät nie in einen Commit" (vom Review selbst
   als hypothetischer Zustand eingestuft; strukturell durch `.gitignore:50` und das gezielte
   `git add "$TASK_FILE"` abgedeckt).
-- Runde 2: die drei Test-Hygiene-Nitpicks ohne Verhaltensbezug (Helper-Rename `flat_286`,
+- Runde 2/3: die drei Test-Hygiene-Nitpicks ohne Verhaltensbezug (Helper-Rename `flat_286`,
   `set_env_source`-Setter, Zusammenlegen der drei Env-Prologe) – Begründung in den
   Rework-Notizen Runde 3.
 
