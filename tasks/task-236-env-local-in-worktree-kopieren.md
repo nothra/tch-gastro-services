@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -212,6 +212,28 @@ weiter zu `/test`.
   eigenständig gefahren (beide Fix-Zeilen temporär zurückgenommen): **1022 grün / 7 rot** –
   genau die sieben neuen Assertions, der Aufräum-Fall mit `erwartet exit=0, war 1`, also dem
   wortlosen Abbruch aus dem Finding. Keine UI-/Routen-Berührung → keine Oberflächentests nötig.
+
+### Test-Verifikations-Notizen (/test, 2026-08-14)
+
+Vollständigkeits-Prüfung nach Runde 4 – kein Produktionscode geändert, nur verifiziert.
+
+- **Coverage-Analyse:** Diese Task berührt ausschließlich Shell-Skripte (`scripts/start-work.sh`)
+  und Doku (`docs/`) – kein `app/`-/TypeScript-Code (`git diff --stat origin/main...HEAD`
+  bestätigt). Die `pnpm test:coverage`-Schwelle aus `PROJECT-CONTEXT.md` betrifft diesen Diff
+  nicht; maßgeblich ist die Bash-Testsuite `scripts/checks/tests/run-tests.sh`.
+- **AK-für-AK-Abgleich:** jedes der neun Akzeptanzkriterien (inkl. AK9(a)-(d)) sowie alle drei
+  Fehlerszenarien aus der Spec haben mindestens eine eigene Assertion mit Existenz-Anker
+  („Lauf wirklich durchgelaufen"), Diskriminierung gegen den Gegenfall und – wo einschlägig –
+  Mutationsbeleg (`cp`-Stub, `rm`-Stub, umask-Diskriminierung für `cp -p`). Keine Lücke
+  gefunden; Produktionscode (`scripts/start-work.sh:220-254`) und Tests (`run-tests.sh:1961ff`)
+  wurden zeilenweise gegeneinander gelesen, kein Drift.
+- **Test-Qualität:** AAA-Struktur durchgehend, jeder Testfall nutzt einen eigenen
+  Worktree-Pfad/Sentinel (keine geteilte mutable State zwischen Fällen), PATH-Stubs (`cp`/`rm`)
+  werden pro Fall installiert und sofort danach entfernt. Deterministisch (kein `sleep`, keine
+  Netzwerkabhängigkeit).
+- **Gates:** `bash scripts/checks/tests/run-tests.sh` → 1029 grün / 0 rot;
+  `bash scripts/checks/pre-commit.sh` → Lint bestanden, keine Debug-Statements/Credentials.
+- **Fehlende Tests:** keine identifiziert – nichts ergänzt.
 
 ## Offene Fragen
 

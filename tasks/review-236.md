@@ -1,201 +1,158 @@
 # Review: Task 236
 
-> **Runde 3** (Backend/Logik · Code-Qualität · Architektur/Doku) gegen
-> `git diff origin/main...HEAD`. Alle **fünf** wichtigen Findings aus Runde 2 sind einzeln
-> gegengeprüft und substanziell behoben (Details unter „Positives"); Volltext der Runden 1 und 2
-> steht in der Git-History dieser Datei.
+> **Runde 4** (Backend/Logik · Code-Qualität · Architektur/Doku) gegen
+> `git diff origin/main...HEAD` (HEAD = `52a1d11`). Volltext der Runden 1–3 steht in der
+> Git-History dieser Datei.
 >
-> **Circuit Breaker: Iteration 3 von 3 erreicht** – siehe „Empfehlung". Der neue kritische Fund
-> ist keine offene Meinungsdifferenz, sondern eine **Regression, die der Runde-2-Fix selbst
-> eingeführt hat** (ein `rm -f` ohne `set -e`-Absicherung). Er ist mit einer Zeile plus einem
-> Testfall geschlossen.
+> **Circuit-Breaker-Einordnung:** Runde 3 hatte mit „Iteration 3 von 3" an den Menschen
+> eskaliert und ausdrücklich empfohlen, den **einen** verbliebenen Fix noch zuzulassen und
+> danach **ohne vierten Vollreview** zu `/test` zu gehen. Dieser Durchlauf ist die vom Menschen
+> angeforderte **gezielte Verifikation genau dieses Fixes** plus ein Regressions-Sweep über den
+> Gesamtdiff – keine Neu-Eröffnung der Diskussion über bereits abgeschlossene Punkte. Es wurde
+> kein Finding aus einer früheren Runde neu aufgerollt.
 >
 > Verifikationsbasis dieser Runde:
-> - `bash scripts/checks/tests/run-tests.sh` eigenständig nachgefahren → **1020 grün / 0 rot**,
->   exit 0 (deckt sich mit der Rework-Notiz).
-> - Ende-zu-Ende-Repro des kritischen Funds gegen das **echte** `start-work.sh` (Wegwerf-Repo +
->   `gh`-Stub, Fixture-Mechanik des #74-Blocks) – Ausgabe unten im Finding zitiert.
-> - Zeilenanker der Doku gegen den HEAD-Stand nachgezählt (`start-work.sh:208-218`, `:249-257`,
->   `:255`, `kleinfunde.md` → `:208`) – **alle vier korrekt**.
-> - Alt-Wortlaut über `git diff origin/main...HEAD` gegengelesen (Positiv-Kontrollen AK9).
-> - Repo-Sweep auf verbliebene „`.env.local` manuell kopieren"-Prosa.
+> - `bash scripts/checks/tests/run-tests.sh` eigenständig nachgefahren → **1029 grün / 0 rot**
+>   (deckt sich mit der Rework-Notiz Runde 4).
+> - `rm`/`cp`-Aufrufe in `start-work.sh` per Grep gezählt: `cp` genau 1× (`:237`), `rm` genau 1×
+>   (`:251`) – die Prämisse des `rm`-PATH-Stub-Tests („trifft präzise die Aufräumzeile") ist
+>   damit belegt, nicht nur behauptet.
+> - Alle vier Zeilenanker gegen den HEAD-Stand nachgezählt: `worktree add`-Block `:208-218` ✓,
+>   `pnpm install`-Block `:257-264` ✓, Warnzeile `:262` ✓, `kleinfunde.md` → `:208` ✓.
+> - `.gitignore`/`git add`-Scope gegengeprüft (`start-work.sh:340` addet ausschließlich
+>   `"$TASK_FILE"`) – die dismissed Runde-1-Sorge „kopierte Datei gerät in einen Commit" ist
+>   strukturell ausgeschlossen, die Einordnung hält.
+> - Repo-Sweep auf verbliebene „Haupt-Baum"-Sprachregelung und auf Prosa, die das Kopieren im
+>   Präsens als manuellen Schritt beschreibt.
+> - Zeilenlängen der geänderten Doku-Absätze geprüft (Nitpick Runde 3).
 
 ## Kritische Findings (müssen behoben werden)
 
-- [x] **`scripts/start-work.sh:244` · Das neu eingefügte `rm -f "$WORKDIR/.env.local"` bricht
-      `start-work.sh` unter `set -euo pipefail` **wortlos** ab, wenn `$WORKDIR` kein Verzeichnis
-      ist – genau der Abbruch, den Fehlerszenario 1 der Spec ausdrücklich verbietet.**
+_Keine._
 
-      `rm -f` unterdrückt nur `ENOENT`, **nicht** `ENOTDIR`. Existiert am Worktree-Pfad eine
-      reguläre Datei, läuft das Skript in den Wiederverwendungs-Zweig `:210` („Pfad existiert
-      bereits (kein Worktree) – wird wiederverwendet"), `cp -p` scheitert mit `ENOTDIR` (harmlos,
-      steht in der `elif`-Bedingung) – und dann scheitert auch `rm -f` mit `ENOTDIR`. Diese Zeile
-      steht **nicht** in einer Bedingung, also greift `set -e`: Abbruch mit exit 1, **ohne** die
-      Warnzeile, **ohne** Abschluss-Output, ohne Task-Datei, ohne Draft-PR.
+Das einzige kritische Finding aus Runde 3 (`set -e`-Regression in der Aufräumzeile) ist behoben –
+und zwar über **beide** dort vorgeschlagenen Wege, die unterschiedliche Fälle decken:
 
-      Ende-zu-Ende reproduziert gegen das echte Skript (Wegwerf-Repo, `gh`-Stub,
-      `FACTORY_WORKTREE_BASE`; am Zielpfad eine reguläre Datei):
+- **(a) `rm -f "$WORKDIR/.env.local" 2>/dev/null || true`** (`start-work.sh:251`). Die Zeile steht
+  in keiner Bedingung; `rm -f` unterdrückt nur `ENOENT`, nicht `ENOTDIR`/`EACCES`. Das `|| true`
+  ist damit die einzige Absicherung gegen den wortlosen Abbruch, den Fehlerszenario 1 der Spec
+  verbietet.
+- **(b) `[ -d "$WORKDIR" ]` in der Eintritts-Bedingung** (`:229`). Liegt am Worktree-Pfad eine
+  reguläre Datei, wird der Block gar nicht erst betreten – der Kopier-Schritt kann den
+  Abbruchpunkt des Skripts nicht nach vorne ziehen.
 
-      ```
-      === exit-code: 1 ===
-      2/5  Lege Worktree an: …/wt/feature-799-demo-file
-        ⚠  Pfad existiert bereits (kein Worktree) – wird wiederverwendet
-        →  .env.local in den Worktree spiegeln (FACTORY_WT_SKIP_ENV=1 überspringt)...
-      cp: …/wt/feature-799-demo-file/.env.local: Not a directory
-      rm: …/wt/feature-799-demo-file/.env.local: Not a directory
-      === Marker-Prüfungen ===
-      WARNUNG-ZEILE: FEHLT
-      ABSCHLUSS-OUTPUT: NICHT erreicht
-      ```
+Nachgeprüft, dass der Block danach **keinen** unabgesicherten Befehl mehr enthält: alle vier
+Nicht-`echo`-Kommandos stehen entweder in einer `if`/`elif`-Bedingung (`[ -e ]`/`[ -L ]`,
+`cp -p`) oder sind explizit abgesichert (`rm … || true`); `ENV_COPIED=true` kann nicht fehlschlagen.
 
-      **Regression durch diesen PR, nicht vorbestehend:** vor dem Runde-2-Fix führte derselbe
-      Zustand nur in den `else`-Zweig mit Warnung und lief weiter. Das `rm -f` war der Fix für
-      Runde-2-Finding 5 – er hat den dort geschützten Fall geschlossen und einen neuen geöffnet.
-      Die Spec ist an dieser Stelle unmissverständlich: „der Kopierbefehl muss abgesichert sein
-      und darf das Skript nicht wortlos beenden" (`spec-236…md:100-101`).
-
-      Der Zustand ist reproduzierbar herstellbar (`touch "$WT_BASE/<branch-slug>"`) und der
-      Zweig `:210` behandelt ihn explizit als gültigen Ablauf – also kein hypothetischer Zustand,
-      sondern ein funktionaler Defekt im Pfad, den dieser PR anlegt → Merge-Blocker (Schwellen-
-      Tabelle `git-workflow.md`, Zeile 1), kein Sammeldatei-Eintrag.
-
-      → Zwei sich ergänzende Wege, beide klein:
-      (a) die Aufräumzeile `set -e`-fest machen: `rm -f "$WORKDIR/.env.local" 2>/dev/null || true`
-      – konsistent mit dem Prinzip „jeder Pfad dieses Blocks warnt, keiner bricht ab";
-      (b) zusätzlich `[ -d "$WORKDIR" ]` in die Eintritts-Bedingung `:225` aufnehmen – dann wird
-      der Block bei einem Nicht-Verzeichnis gar nicht erst betreten und die rohe
-      `cp:`-stderr-Zeile entfällt ebenfalls.
-      **Test dazu ist Pflicht** (RED zuerst): reguläre Datei am Worktree-Pfad anlegen, dann
-      `assert_exit 0` + `grep 'Bereit!'` + Warnzeile. Die vorhandenen Kopier-Fehlerfälle deckt
-      das nicht ab – „unlesbare Quelle" scheitert am `open()` der Quelle und der `cp`-PATH-Stub
-      (`run-tests.sh:2143-2160`) arbeitet in einem gültigen Zielverzeichnis; in beiden Fällen ist
-      `rm -f` erfolgreich und die Lücke bleibt unsichtbar.
+Die Spec-Behauptung zum Restverhalten ist korrekt: dass der Lauf bei einer regulären Datei am
+Worktree-Pfad später in Schritt 3 (`mkdir -p "$WORKDIR/tasks"`, `:299`) scheitert, ist
+vorbestehendes #74-Verhalten – der Zweig `:210` kennt keinen Nicht-Verzeichnis-Pfad, und
+`[[ -f "$TASK_FILE" ]]` liefert dort `false`. Der PR verschlechtert diesen Pfad nicht, er stellt
+den Vor-PR-Zustand wieder her.
 
 ## Wichtige Findings (sollten behoben werden)
 
-_Keine._ Die fünf wichtigen Findings aus Runde 2 sind alle behoben (siehe „Positives"); über den
-kritischen Fund hinaus hat diese Runde in Logik, Testqualität, Doku-Drift und Architektur keinen
-weiteren Handlungsbedarf oberhalb der Nitpick-Schwelle gefunden.
+_Keine._
+
+Die sieben neuen Assertions der Runde 4 sind Verhaltenstests, keine Wiring-Greps, und beide
+Szenarien diskriminieren gegen genau einen der beiden Fix-Wege:
+
+- **Reguläre Datei am Worktree-Pfad** – ohne Weg (b) erschienen die rohen `cp: `/`rm: `-Zeilen und
+  die Ankündigungszeile; ohne Weg (a) endete der Lauf vor `3/5`. Der Referenzpunkt ist bewusst
+  „Schritt 3 wird erreicht" statt `Bereit!`, weil Schritt 3 aus vorbestehenden Gründen scheitert –
+  gemessen wird nur, dass der Kopier-Block den Abbruchpunkt nicht vorzieht. Die
+  Abwesenheits-Anker liegen auf den Kommando-Präfixen `cp: `/`rm: ` statt auf `Not a directory`,
+  das auch das vorbestehende `mkdir -p` erzeugt – die Assertion wäre sonst aus dem falschen Grund
+  rot (Lesson #214).
+- **`cp`-Stub + `rm`-Stub kombiniert** – ohne den `cp`-Stub würde die Aufräumzeile nie erreicht;
+  die Kombination ist also nicht redundant, sondern notwendig. Der RED-Beleg der Rework-Notiz
+  (1022 grün / 7 rot, Aufräum-Fall mit „erwartet exit=0, war 1") passt exakt zum Fehlerbild des
+  Findings.
+- Beide Szenarien tragen einen **Existenz-Anker** vor den Abwesenheits-Assertions
+  (`[ -f "$WT_NOTDIR_BASE/feature-791-demo-notdir" ]`, `assert_exit 0`), so dass ein geändertes
+  Slug-Schema oder ein vorzeitiger Abbruch den Testfall nicht lautlos entwertet.
 
 ## Nitpicks (optional)
 
-- [x] `scripts/start-work.sh:233` · `cp -p` leitet stderr nicht um, während der strukturell
-      gleiche `pnpm install`-Block (`:252`) sein `>/dev/null 2>&1` mitbringt. Im Fehlerfall
-      erscheint deshalb erst eine rohe `cp: …`-Zeile und danach die eigene, formatierte Warnung
-      („konnte nicht kopiert werden"). Diagnostisch ist die Rohzeile eher nützlich als schädlich –
-      deshalb Nitpick; bei Umsetzung von Weg (b) des kritischen Funds erledigt sich der
-      auffälligste Fall ohnehin.
-      → Erledigt über Weg (b): bei einem Nicht-Verzeichnis wird der Block nicht mehr betreten,
-      die rohe `cp:`-Zeile entfällt (per Assertion gepinnt). Für die übrigen Fehlerfälle bleibt
-      stderr bewusst sichtbar – die Rohzeile nennt die Ursache, die eigene Warnung nur die Folge.
-- [x] `docs/factory/lessons/factory-workflow.md:744` · Die Zeile ist mit ~130 Zeichen nicht
-      umbrochen und fällt aus dem ~100-Spalten-Stil der Datei (der Rest des Absatzes hält ihn).
-      Entstanden beim Einziehen der Kausalbrücke in Runde 3. **Beim Umbrechen die Lesson-Regel
-      beachten:** die Fixed-String-Anker dieses PRs laufen über `flat_286` und sind
-      umbruch-tolerant, ein Reflow ist hier also gefahrlos – die Vorsicht gilt nur für
-      zeilengebundene Anker.
-- [x] `scripts/checks/tests/run-tests.sh:1984` (und der Kommentar `:1994`) · Die
-      Assertion-Beschreibung sagt weiter „fehlende `.env.local` im **Haupt-Baum**", während
-      Runde 2 die Terminologie repo-weit auf „**Quellbaum** (`$FACTORY_DIR`)" gezogen hat. In der
-      Fixture stimmen beide (`FACTORY_DIR="$REPO_SW"` ist dort der Haupt-Baum), die Aussage ist
-      also nicht falsch – aber sie ist die letzte Stelle im PR, die die alte Sprachregelung führt,
-      und Testbeschreibungen sind das, was ein Nachfolger als Vertrag liest.
-- [ ] **Übernommen aus Runde 2, bewusst offen** (Einordnung dort bestätigt – reine Test-Hygiene
-      ohne Verhaltensbezug, Kandidaten für den `/refactor`-Pass, nicht für diesen PR):
-      Rename `flat_286`/`assert_contains_286` (`:50-58`, 25 Aufrufstellen im Fremdblock #286);
-      `set_env_source`-Setter für die siebenfach umgebaute Quell-Fixture (`:1980-2098`);
-      Zusammenlegen der drei Env-Prologe (`:1899-1906` / `:1957-1962` / `:2120-2122`);
-      Reihenfolge-Guard vergleicht Textpositionen (`:2181-2184`, vom Review selbst als
-      „ausreichend und fail-closed" bewertet).
+- [ ] `scripts/start-work.sh:251` · Das `2>/dev/null` auf der Aufräumzeile ist durch keinen Test
+      gepinnt. Der `rm`-Stub schreibt nichts nach stderr, und im Nicht-Verzeichnis-Fall wird die
+      Zeile dank Weg (b) gar nicht erreicht – ein Entfernen der Umleitung bliebe grün. Zugleich
+      steht sie in leichter Spannung zur in Runde 3 festgehaltenen Begründung für das `cp`
+      daneben („die Rohzeile nennt die Ursache, die eigene Warnung nur die Folge"): beim
+      Aufräumen wird genau diese Ursache verworfen. Beides ist rein diagnostisch, kein
+      Verhaltensunterschied – deshalb Nitpick, nicht mehr. Wer es angleichen will: entweder
+      `2>/dev/null` streichen (Symmetrie zum `cp`) oder eine Assertion auf die Abwesenheit von
+      `rm: ` im `rm`-Stub-Szenario ergänzen (Stub müsste dann nach stderr schreiben).
+- [ ] **Übernommen aus Runde 2/3, bewusst offen** (Einordnung unverändert bestätigt – reine
+      Test-Hygiene ohne Verhaltensbezug, Kandidaten für den `/refactor`-Pass, nicht für diesen PR):
+      Rename `flat_286`/`assert_contains_286` (`run-tests.sh:50-73`, Aufrufstellen überwiegend im
+      Fremdblock #286); `set_env_source`-Setter für die mehrfach umgebaute Quell-Fixture;
+      Zusammenlegen der drei Env-Prologe.
 
 ## Positives
 
-- **Alle fünf wichtigen Findings aus Runde 2 sind einzeln nachgeprüft und substanziell behoben:**
-  - *Quelle der Kopie*: `git-workflow.md:315-319`, die Lesson-Regel (`:756-758`), Spec-Scope
-    (`:31-33`) und AK1/AK2/AK4/AK5 sowie die Task-AKs sagen jetzt geschlossen „der Baum, in dem
-    `start-work.sh` liegt (`$FACTORY_DIR`) – üblicherweise, aber nicht zwingend der Haupt-Baum",
-    inklusive der praktisch wichtigen Konsequenz („startet man aus einem Worktree ohne eigene
-    `.env.local`, wird nichts kopiert"). Der Widerspruch zum Code ist damit aufgelöst – und zwar
-    in der Richtung, die die Spec-Entscheidung nicht umschreibt.
-  - *Falsche empirische Behauptung*: gegen den Alt-Stand gegengelesen – die Lesson-Stelle **war**
-    über zwei Zeilen umbrochen (`ist als eigener Task ausgelagert:` / `[#236](…)`), die
-    PROJECT-CONTEXT-Zeile stand **einzeilig**. Genau das steht jetzt im Kommentar
-    (`run-tests.sh:2206-2210`), die Fixtures geben beide Wortlaute wortgetreu wieder, und die
-    zweite Kontrolle ist ehrlich als reiner Quoting-/Fixed-String-Beleg deklariert statt als
-    Umbruch-Beweis. Die Korrektur ist genau die von Lesson #268/#284 verlangte.
-  - *AK9(d)-Fail-open*: der Zeilenzahl-Beleg (`:2194-2195`) plus der Anker auf die Kommentarform
-    (`^#   FACTORY_WT_SKIP_ENV=1`) schließt das #255-Muster in Fail-open-Richtung – ein geänderter
-    `awk`-Sentinel macht den Guard jetzt rot, statt still auf den Produktionscode durchzugreifen.
-  - *Veraltete Task-Behauptungen*: alle vier nachgezogen – `:206` → `:208` (auch in
-    `kleinfunde.md`), `cut -c2-10` → `ls_mode_matches`, Assertion-Zählung entfernt statt falsch
-    fortgeschrieben, `ENV_COPIED`-Kausalkette auf „kein Zweig erreicht die Zuweisung garantiert"
-    verallgemeinert. Der Out-of-Scope-Fund trägt jetzt die getroffene Klassifikation.
-  - *`cp`-Teilabbruch*: Aufräumen implementiert **und** mit einem echten Verhaltenstest belegt –
-    der `cp`-PATH-Stub stellt „Ziel angelegt, Inhalt unvollständig, exit 1" her, und die
-    Diskriminierung über einen Folgelauf mit echtem `cp` beweist, dass der Zustand reparierbar
-    bleibt statt vom AK3-Guard eingefroren zu werden. Methodisch die stärkste Änderung dieser
-    Runde. (Dass genau diese Zeile den kritischen Fund oben mitbringt, ändert nichts an der
-    Qualität des Ansatzes – nur die Absicherung der Aufräumzeile selbst fehlt.)
-- **`assert_absent` ist die richtige Antwort auf den Runde-2-Nitpick:** neun kryptische
-  `assert_true "$([ $? -ne 0 ]; echo $?)"`-Stellen sind auf einen sprechenden Aufruf verdichtet,
-  die `$?`-Subtilität ist einmal am Helper dokumentiert statt an jeder Aufrufstelle neu zu
-  entziffern – Spiegel-Symmetrie zu `assert_contains_286`, kein neues Idiom.
-- **Die übrigen zehn umgesetzten Nitpicks halten der Nachprüfung stand:** `flat_286` squeezt jetzt
-  Leerzeichen (Umbruch-Toleranz gilt auch für die 2-Space-Continuation, den dominanten Stil dieser
-  Doku); die AK5-Diskriminierung läuft unter `umask 022` und ist damit umgebungsunabhängig; AK3
-  belegt „unverändert" byte-genau per `cmp -s` gegen eine Referenzdatei; die beiden Symlink-Tests
-  haben eigene Sentinel-Pfade (keine geteilte Fehlerquelle mehr); `env "${@:4}"` beseitigt die
-  Pathname-Expansion; AK9(c) ankert über `flat_286` auf die Env-Schalter-**Liste** statt file-weit
-  auf ein Einzelwort.
-- **Zeilenanker sind diesmal alle korrekt** – nachgezählt: `start-work.sh:208-218` ist der
-  `worktree add`-Block, `:249-257` der `pnpm install`-Block, `:255` die
-  „pnpm install fehlgeschlagen"-Warnung (das Vorbild des Fehlerszenarios), `kleinfunde.md:164`
-  zeigt auf den exakten String-Vergleich. Der #291-Drift-Check auf den eigenen
-  `kleinfunde.md`-Eintrag ist damit erfüllt.
-- **Doku-Sweep sauber:** repo-weit keine Prosa mehr, die das Kopieren im Präsens als manuellen
-  Schritt vorschreibt; `tasks/codify-228.md` und `task-228…md` sind historische Protokolle
-  (korrekt unangetastet), `README`/`CONTRIBUTING`/`OPERATING` betreffen das Frisch-Clone-Setup
-  (`cp .env.example .env.local`), nicht den Worktree-Fall.
-- **Suite eigenständig nachgefahren: 1020 grün / 0 rot, exit 0** – die Zahl in der Rework-Notiz
-  ist belastbar, kein vorbestehender Fehlschlag, keine Reihenfolge-Abhängigkeit sichtbar.
-- **Scope-Disziplin:** die drei bewusst nicht umgesetzten Nitpicks sind mit Begründung
-  dokumentiert statt still abgehakt (CLAUDE.md Regel 5); der Out-of-Scope-Fund (#74-Symlink) ist
-  klassifiziert, in `kleinfunde.md` abgelegt und **nicht** mitgefixt. Kein Gold-Plating.
+- **Der kritische Fix ist minimal und trifft die Ursache.** Zwei Zeilen Code, keine Umstrukturierung
+  des Blocks, kein neues Verhalten in den bereits abgenommenen Pfaden. Dass beide vom Review
+  vorgeschlagenen Wege umgesetzt wurden, ist hier kein Gold-Plating: (a) deckt jeden künftigen
+  `rm`-Fehlerfall (`EACCES` auf einem schreibgeschützten Zielverzeichnis), (b) deckt den konkret
+  reproduzierten `ENOTDIR`-Fall **und** erledigt den Runde-3-Nitpick zur rohen `cp:`-Zeile für
+  dessen auffälligste Ausprägung.
+- **Die WHY-Kommentare sind ehrlich und prüfbar.** Beide neuen Blöcke benennen die Kausalkette
+  („`rm -f` unterdrückt nur `ENOENT`", „ohne diesen Guard wäre der Kopier-Block der neue,
+  frühere Abbruchpunkt") statt das WAS zu wiederholen – und keine Aussage darin ist eine
+  unbelegte „empirisch verifiziert"-Behauptung (Lessons #268/#264/#284 eingehalten).
+- **Die `rm`-Stub-Prämisse ist belastbar:** `start-work.sh` ruft `rm` an genau einer Stelle auf.
+  Der Stub trifft damit präzise die Aufräumzeile – und bleibt fail-closed, falls später an
+  anderer Stelle ein `rm` hinzukommt.
+- **Fehlerszenario-Abdeckung ist jetzt vollständig gegen die Spec:** unlesbare Quelle,
+  `cp`-Teilabbruch (mit Reparierbarkeits-Diskriminierung über einen Folgelauf), fehlgeschlagenes
+  Aufräumen, Nicht-Verzeichnis am Worktree-Pfad, Quelle als Verzeichnis, Quelle als defekter
+  Symlink, Quelle als Symlink-auf-Datei. Jeder Fall endet mit `exit 0` und einer Warnung –
+  Fehlerszenario 1 („Warnung, kein Abbruch") ist damit über alle bekannten Auslöser assertiert,
+  nicht nur über den erstgenannten.
+- **Spec und Task-Datei sind mit dem Code mitgewandert**, nicht nachträglich zurechtgebogen: die
+  Nicht-Verzeichnis-Ausnahme und „die Absicherung gilt für **jeden** Befehl des Blocks, auch für
+  das Aufräumen selbst" stehen jetzt normativ in der Spec (`:103-115`) und gespiegelt in den
+  Task-Fehlerszenarien. Der #253-Drift-Check auf die im selben PR entstandene Spec ist damit
+  erfüllt.
+- **Zeilenanker nach dem Verschieben nachgezählt statt fortgeschrieben:** `pnpm install`-Block
+  `:249-257` → `:257-264` und die Warnzeile `:255` → `:262` sind in Spec **und** Task-Datei
+  korrigiert; `:208-218` und der `kleinfunde.md`-Anker `:208` sind unverändert korrekt. Alle vier
+  in dieser Runde unabhängig gegengezählt.
+- **Der Runde-3-Nitpick zur Sprachregelung ist vollständig abgeräumt:** der Repo-Sweep findet
+  „Haupt-Baum" nur noch dort, wo es sachlich stimmt (In-Place-Modus; `.env.int`/`.env.prd`
+  bleiben im Haupt-Baum; „in dieser Fixture zugleich der Haupt-Baum"; das historische
+  #74-Narrativ). Keine Stelle behauptet mehr, die Kopier-**Quelle** sei per se der Haupt-Baum.
+- **Lesson-Reflow ist regelkonform ausgeführt:** die Zeile ist auf ~100 Spalten umbrochen, und der
+  Umbruch ist gefahrlos, weil die Fixed-String-Anker dieses PRs über `flat_286` laufen –
+  genau die Abwägung, die Lesson #240/#249/#286 verlangt. Im geänderten Absatz
+  (`factory-workflow.md:736-759`) liegt keine Zeile mehr über 105 Zeichen.
 - **Architektur unverändert tragfähig:** `start-work.sh` bleibt reine Arbeitsbaum-Vorbereitung
-  (Worktree → Env-Datei → `pnpm install`), `db:seed` bleibt Hinweis ohne DB-Seiteneffekt; kein
-  ADR beschreibt den Mechanismus (die Einordnung „kein ADR-Trigger" hält); keine Datei unter
-  `app/` im Diff → `docs/routes.md` korrekt nicht betroffen (#145).
+  (Worktree → Env-Datei → `pnpm install`); `db:seed` bleibt Hinweis ohne DB-Seiteneffekt; kein
+  ADR beschreibt den Mechanismus; keine Datei unter `app/` im Diff → `docs/routes.md` korrekt
+  nicht betroffen (#145). Least Privilege gehalten: nur `.env.local`, Modus über `cp -p`
+  erhalten, `git add` weiterhin ausschließlich auf der Task-Datei.
 
 ## Out-of-Scope-Findings
 
-Unverändert gegenüber Runde 2, kein neuer Fund: der `#74`-Fund „`start-work.sh` erkennt einen
-wiederverwendeten Worktree nicht hinter einem Pfad-Symlink" liegt als Eintrag in
+Unverändert gegenüber Runde 2/3, **kein neuer Fund**: der `#74`-Fund „`start-work.sh` erkennt
+einen wiederverwendeten Worktree nicht hinter einem Pfad-Symlink" liegt als Eintrag in
 [`docs/factory/kleinfunde.md`](../docs/factory/kleinfunde.md) (Anker `:208`, in dieser Runde
-nachgeprüft). Klassifikation bestätigt: vorbestehend, kein Sicherheitsrisiko, kein funktionaler
-Defekt (beide Zweige sind reine `echo`-Zweige) → Sammeldatei, kein Issue.
-
-> Randnotiz: der kritische Fund oben läuft **durch** genau diesen Zweig (`:210`), ist aber
-> unabhängig davon – er greift bei jedem Nicht-Verzeichnis am Worktree-Pfad, egal welche der
-> beiden Wiederverwendungs-Meldungen erscheint.
+erneut gegengezählt; die dortigen Verweise auf `:209`/`:210`/`:211` stimmen mit dem HEAD-Stand
+überein). Klassifikation bestätigt: vorbestehend, kein Sicherheitsrisiko, kein funktionaler
+Defekt (beide Zweige sind reine `echo`-Zweige) → Sammeldatei, kein Issue. Der #291-Drift-Check
+auf den im selben PR angelegten `kleinfunde.md`-Eintrag ist damit auch nach Runde 4 erfüllt.
 
 ## Empfehlung
 
-NEEDS_REWORK (Runde 3) – **Circuit Breaker erreicht: Iteration 3 von 3.**
+APPROVED
 
-Nach `CLAUDE.md` („max. 3 Review↔Implement-Iterationen, dann eskalieren") wird hier **nicht**
-weiter automatisch iteriert. Die Eskalation geht an den Menschen mit folgendem Bild:
+Begründung: Das einzige kritische Finding der Runde 3 ist behoben, der Fix ist gegen beide
+Fehlerpfade getestet (RED-Beleg dokumentiert und plausibel), und der Regressions-Sweep über den
+Gesamtdiff findet weder in Logik noch in Testqualität, Doku-Drift oder Architektur einen
+Handlungsbedarf oberhalb der Nitpick-Schwelle. Die Findings-Kurve über vier Runden ist monoton:
+**8 → 5 → 0 wichtige (1 kritisch) → 0/0**. Suite eigenständig nachgefahren: **1029 grün / 0 rot**.
 
-- **Kein ungelöster Konflikt, keine Findings-Spirale.** Die Findings konvergieren monoton:
-  Runde 1 → 8 wichtige, Runde 2 → 5 wichtige, Runde 3 → **0 wichtige, 1 kritisches**. Das
-  kritische Finding ist keine neue Meinung über alten Code, sondern eine `set -e`-Regression in
-  der Zeile, die Runde 2 angefordert hat.
-- **Restaufwand: eine Zeile plus ein Testfall** (`rm -f … 2>/dev/null || true`, optional
-  zusätzlich `[ -d "$WORKDIR" ]` in der Eintritts-Bedingung; RED-Test mit einer regulären Datei
-  am Worktree-Pfad).
-- **Empfohlene Entscheidung:** diesen einen Fix noch zulassen (fachlich `/implement`-Rework
-  Runde 4, formal per menschlicher Freigabe des Circuit Breakers), danach ohne weiteren
-  Review-Durchlauf zu `/test`. Ein vierter Vollreview ist nach dem Befund dieser Runde nicht
-  begründbar – wohl aber die gezielte Verifikation des einen Fixes durch `/test`.
-- **Nicht empfohlen:** Merge ohne den Fix. Der Abbruchpfad hinterlässt einen halb angelegten
-  Task-Zustand (Issue existiert, Worktree/Task-Datei/PR nicht) und ist damit schlechter als das
-  Verhalten vor diesem PR.
+Nächster Schritt: `/test 236`. Die beiden offenen Nitpicks sind nicht merge-blockierend – der
+erste ist rein diagnostisch, der zweite ist bewusst dem `/refactor`-Pass zugeordnet.
