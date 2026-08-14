@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -320,6 +320,13 @@ Voller Report: [`tasks/codify-236.md`](codify-236.md). Zwei neue Regeln: Bash-Go
 Worktree-Aufräumen (`docs/factory/guidelines/git-workflow.md` → „Branch-Aufräumen"), der die
 offene Security-Review-Empfehlung nachträgt. Beides reine Doku, keine Code-Änderung.
 Testsuite danach erneut grün: 1029/0.
+
+## PR-Shepherd-Notizen
+
+PR-Shepherd 2026-08-14: Merge freigegeben – alle Gates grün. CI (lint, test, typecheck,
+Analyze/CodeQL, config-validation, factory-self-test, issue-sync, pr-closes-issue) durchweg
+`pass`; keine offenen Review-Kommentare; `reviewDecision` leer (0 Approvals erforderlich,
+ADR-029); Branch bereits Ancestor von `origin/main`, kein Rebase nötig.
 
 ---
 Branch: `chore/236-env-local-in-worktree-kopieren`
