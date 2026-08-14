@@ -52,7 +52,9 @@ ausführen (keine Seiteneffekte auf die geteilte DEV-DB).
 - [x] Kopieren schlägt fehl → Warnung, kein Abbruch (analog `pnpm install`, `start-work.sh:219`;
       `set -euo pipefail` beachten)
 - [x] Wiederverwendeter Worktree → Kopier-Schritt läuft, greift aber nur bei fehlender Zieldatei
-- [x] Quelle ist Verzeichnis/Symlink → wird wie „Quelle fehlt" (AK2) behandelt
+- [x] Quelle ist Verzeichnis / **defekter** Symlink → wird wie „Quelle fehlt" (AK2) behandelt;
+      ein Symlink auf eine vorhandene Datei wird dagegen als echte Datei-Kopie materialisiert
+      (gewollt, per Test gepinnt)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -86,12 +88,52 @@ nach diesem Schritt direkt `/implement 236`.
 - Verifikation: `bash scripts/checks/tests/run-tests.sh` → 996 grün / 0 rot (RED-Lauf vorher:
   10 rot). Keine UI-/Routen-Berührung → keine Oberflächentests nötig.
 
+### Rework-Notizen (/implement, Runde 2, 2026-08-14)
+
+Abarbeitung von [`tasks/review-236.md`](review-236.md) (Empfehlung NEEDS_REWORK). Die Runde
+davor war durch ein Pipeline-Timeout unterbrochen worden – Tests waren nachgezogen,
+`start-work.sh` selbst noch nicht.
+
+- **Meldungstext (`start-work.sh`)**: „aus dem Haupt-Baum kopiert" → `.env.local kopiert
+  (Quelle: ${FACTORY_DIR})`. `FACTORY_DIR` ist der Baum, in dem das Skript liegt – beim
+  üblichen Aufruf aus einem Worktree eben dieser, nicht der Haupt-Baum. Der Opt-out-Hinweis
+  wanderte in eine Ankündigungszeile (Vorbild: pnpm-Block).
+- **`db:seed`-Hinweis** steht jetzt als Zusatz unter Schritt 2 statt als Schritt „3." – er muss
+  vor dem ersten `pnpm test:e2e` greifen, und das passiert innerhalb von Schritt 2.
+- **`ENV_COPIED=false`-Kommentar** von „In-Place-Zweig" auf „kein Zweig erreicht die Zuweisung
+  garantiert" verallgemeinert (Opt-out, fehlende Quelle, vorhandene Zieldatei, `cp`-Fehler
+  laufen ebenfalls daran vorbei).
+- **AK3-Zweig-Anker ersetzt** (siehe Out-of-Scope-Fund unten): geprüft wird jetzt das
+  Spec-Szenario („wird wiederverwendet" + keine Neuanlage) statt einer der beiden
+  benachbarten Meldungen, dazu zwei Diskriminierungs-Assertions gegen den ersten Lauf.
+- **Doku-Drift**: Lesson `factory-workflow.md` – „nach dem **manuellen** `.env.local`-Kopieren"
+  im selben Präsens-Absatz entfernt (der Absatz war oben schon auf „heute automatisiert"
+  umgestellt), Umbruch geglättet. Spec + Task-Datei präzisiert auf „Verzeichnis / **defekter**
+  Symlink"; der Symlink-auf-Datei-Fall ist als gewolltes Verhalten benannt und per Test gepinnt.
+- Verifikation: `bash scripts/checks/tests/run-tests.sh` → **1014 grün / 0 rot**.
+
+### Out-of-Scope-Fund (nicht behoben – vorbestehend, Entscheidung offen)
+
+`scripts/start-work.sh:206` erkennt einen wiederverwendeten Worktree über einen **exakten**
+String-Vergleich gegen `git worktree list --porcelain`. Git meldet dort den **aufgelösten**
+Pfad, `$WORKDIR` ist der unaufgelöste – enthält der Pfad irgendwo einen Symlink (empirisch
+belegt: macOS `mktemp -d` unter `/var/folders` → `/private/var/folders`), greift der Vergleich
+nie und es feuert der Nachbar-Zweig „Pfad existiert bereits (kein Worktree)". Folge im
+Normalfall nur eine irreführende Meldung (beide Zweige verwenden wieder). Der Fund stammt aus
+#74, nicht aus diesem PR, und ist hier bewusst **nicht** mitgefixt (Scope). Klassifikation
+Issue vs. `kleinfunde.md` gehört in den nächsten `/review`-Lauf.
+
 ## Offene Fragen
 
 _Keine offenen Fragen._
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Runde 1: siehe [`tasks/review-236.md`](review-236.md) – keine kritischen Findings; alle
+wichtigen Findings und die umsetzbaren Nitpicks sind abgearbeitet (Checkboxen dort gesetzt).
+Bewusst **nicht** umgesetzt: der Regressions-Guard „kopierte Datei gerät nie in einen Commit"
+(vom Review selbst als hypothetischer Zustand eingestuft; strukturell durch `.gitignore:50`
+und das gezielte `git add "$TASK_FILE"` abgedeckt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

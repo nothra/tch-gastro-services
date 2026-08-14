@@ -13,7 +13,7 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] **`scripts/start-work.sh:225` · Der `|| [ -L "$WORKDIR/.env.local" ]`-Zweig ist neuer
+- [x] **`scripts/start-work.sh:225` · Der `|| [ -L "$WORKDIR/.env.local" ]`-Zweig ist neuer
       Produktionscode ohne jeden Test.** Kein Testfall legt einen (defekten) Symlink als
       *Zieldatei* an. Streicht man die `-L`-Alternative, bleiben alle 24 neuen Assertions grün –
       obwohl sich das Verhalten ändert: empirisch verifiziert liefert ein defekter Symlink
@@ -23,7 +23,7 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
       Code 100 %. → Testfall ergänzen (defekter Symlink im Worktree → bleibt Symlink, Warnung
       erscheint) **oder** den Zweig weglassen.
 
-- [ ] **`scripts/checks/tests/run-tests.sh:1976-1980` (AK4) und `2013-2019` (AK8) ·
+- [x] **`scripts/checks/tests/run-tests.sh:1976-1980` (AK4) und `2013-2019` (AK8) ·
       Abwesenheits-Assertions ohne „Lauf ist durchgelaufen"-Anker → vakuum-grün.** Beide Fälle
       prüfen ausschließlich, dass etwas *fehlt* (keine Datei, kein `db:seed`-Text), ohne
       Exit-Code oder Abschluss-Marker. Bricht `start-work.sh` vor dem Kopier-Schritt ab
@@ -34,7 +34,7 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
       es im selben Block richtig. → `RC` mitfangen bzw. `grep -q 'Bereit!'` ergänzen
       (Lesson #214: „pfadspezifisches Signal assertieren – sonst grün aus dem falschen Grund").
 
-- [ ] **`run-tests.sh:1944, 1977, 1988` · Abwesenheits-Assertion gegen hartkodierten
+- [x] **`run-tests.sh:1944, 1977, 1988` · Abwesenheits-Assertion gegen hartkodierten
       Worktree-Pfad ohne Existenz-Anker.** `[ ! -e "$TMP_SW/wt-skipenv/feature-782-demo-skipenv/.env.local" ]`
       ist auch dann wahr, wenn das Verzeichnis gar nicht existiert. Ein Tippfehler im Testpfad
       oder eine Änderung des Slug-Schemas in `start-work.sh:201`
@@ -42,7 +42,7 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
       lautlos. Nur AK1 verankert einen Pfad positiv – und zwar einen anderen.
       → Je Fall ein `[ -d "$WT" ]` (oder Task-Datei-Existenz) vorschalten.
 
-- [ ] **`run-tests.sh:2031-2044` · Vier Mehrwort-`grep -qF`-Anker gegen Markdown-Prosa, obwohl
+- [x] **`run-tests.sh:2031-2044` · Vier Mehrwort-`grep -qF`-Anker gegen Markdown-Prosa, obwohl
       der zeilenumbruch-tolerante Helper `flat_286()`/`assert_contains_286()` in derselben Datei
       existiert (`:4963`/`:4968`).** 2× gegen `lessons/factory-workflow.md`, 2× gegen
       `PROJECT-CONTEXT.md` – genau die Schwelle, die die viermal codifizierte Lesson
@@ -54,7 +54,7 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
       Follow-up-Text wieder dasteht. → Helper-Definition hochziehen (reines Verschieben) und
       nutzen.
 
-- [ ] **`run-tests.sh:2033-2034` · Abwesenheits-Guard auf die generische Phrase
+- [x] **`run-tests.sh:2033-2034` · Abwesenheits-Guard auf die generische Phrase
       `'als eigener Task ausgelagert'` läuft datei-weit über die gesamte Lesson-Sammlung.**
       Die Wendung ist die etablierte Repo-Formulierung für vertagte Arbeit und nicht
       #236-spezifisch. Legt der nächste `/codify`-Lauf ein völlig unabhängiges Learning mit
@@ -64,7 +64,7 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
       → Entweder `#236` in den Anker aufnehmen oder den `### …`-Abschnitt per `awk` isolieren
       (im File etabliertes Mittel, vgl. `ci_job_block` `:64`).
 
-- [ ] **`docs/factory/lessons/factory-workflow.md:743` · Rest-Drift im selben Absatz, den der
+- [x] **`docs/factory/lessons/factory-workflow.md:743` · Rest-Drift im selben Absatz, den der
       PR anfasst.** Zeile 738 wurde korrekt auf „wurde **damals** … nicht mitkopiert (heute
       automatisiert)" umgestellt, Zeile 743 behauptet im selben Präsens-Absatz weiter
       „für die (nach dem **manuellen** `.env.local`-Kopieren) geladenen `SEED_ADMIN_*`-…".
@@ -74,14 +74,14 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
       weiterhin „manuelles Kopieren". Lesson #176: auch Lesson-Doku im Präsens im selben PR
       nachziehen.
 
-- [ ] **`run-tests.sh:1962-1963` · AK6 hat Direktive *und* Begründung, getestet wird nur die
+- [x] **`run-tests.sh:1962-1963` · AK6 hat Direktive *und* Begründung, getestet wird nur die
       Direktive.** Die AK fordert einen `pnpm db:seed`-Hinweis „**mit Begründung**: geteilte
       lokale DB kennt die `SEED_ADMIN_*`-Daten evtl. noch nicht". Der Test greppt nur `db:seed`;
       die Begründungszeile `start-work.sh:392` ist durch keine Assertion gedeckt und könnte
       ersatzlos gelöscht werden, ohne dass die Suite es merkt. Lesson aus #117: „AC mit
       Direktive + Begründung: je separierbaren Teil eine eigene Assertion".
 
-- [ ] **`tasks/task-236-env-local-in-worktree-kopieren.md:55` (+ `docs/specs/spec-236-…md:103-105`,
+- [x] **`tasks/task-236-env-local-in-worktree-kopieren.md:55` (+ `docs/specs/spec-236-…md:103-105`,
       `scripts/start-work.sh:223`) · Symlink als *Quelle* wird kopiert, die Task-Notiz behauptet
       das Gegenteil – und kein Test deckt den Fall.** Empirisch verifiziert: `[ -f … ]`
       dereferenziert Symlinks und `cp -p` (ohne `-P`/`-d`) folgt ihnen, ein
@@ -96,60 +96,71 @@ sauber abgesichert. Alle Findings unten betreffen Test-Aussagekraft und Doku-Kon
 
 ## Nitpicks (optional)
 
-- [ ] `run-tests.sh:1959-1961` · AK5 belegt den Modus, aber **nicht** `cp -p`: bei Quellmodus
+- [x] `run-tests.sh:1959-1961` · AK5 belegt den Modus, aber **nicht** `cp -p`: bei Quellmodus
       600 liefert auch ein `cp` ohne `-p` 600 (die umask kann nur Bits entfernen). Ein
       Refactoring `cp -p` → `cp` bliebe grün, der Assertion-Text „(cp -p)" verspricht mehr.
       Diskriminierend wäre eine Quelle mit 664.
-- [ ] `run-tests.sh:1946, 1962, 1979, 2005, 2018` · `grep -q 'db:seed'` statt des
+- [x] `run-tests.sh:1946, 1962, 1979, 2005, 2018` · `grep -q 'db:seed'` statt des
       spezifischsten Strings `grep -qF 'pnpm db:seed'` – `db:seed` trifft auch `db:seed:reset`
       und jede künftige Prosa-Erwähnung.
-- [ ] `run-tests.sh:2035-2036, 2043-2044` · Die „Positiv-Kontrollen" beziehen ihren Haystack aus
+- [x] `run-tests.sh:2035-2036, 2043-2044` · Die „Positiv-Kontrollen" beziehen ihren Haystack aus
       einem handgeschriebenen `printf` statt aus dem echten Vorzustand
       (`git show origin/main:… | grep -qF …`). Sie belegen Quoting/Syntax, nicht, dass der Anker
       den alten Wortlaut *in der Datei* getroffen hätte. (Im konkreten Fall lagen beide
       Alt-Phrasen einzeilig vor – der Guard ist faktisch scharf, nur die Kontrolle zeigt es nicht.)
-- [ ] `scripts/start-work.sh:119-121` · Der WHY-Kommentar zu `ENV_COPIED=false` nennt nur einen
+- [x] `scripts/start-work.sh:119-121` · Der WHY-Kommentar zu `ENV_COPIED=false` nennt nur einen
       von vier Pfaden („weil der In-Place-Zweig den Kopier-Schritt nicht durchläuft"). Die
       Vorbelegung ist unter `set -u` genauso nötig bei `FACTORY_WT_SKIP_ENV=1`, fehlender Quelle
       und fehlgeschlagenem `cp`. Verengte Kausalkette → auf „kein Zweig setzt sie garantiert"
       verallgemeinern (Lessons #264/#268).
-- [ ] `scripts/start-work.sh:388-391` · Der `db:seed`-Hinweis ist als Schritt „3." **nach**
+- [x] `scripts/start-work.sh:388-391` · Der `db:seed`-Hinweis ist als Schritt „3." **nach**
       „2. Implementieren starten" nummeriert, muss aber zeitlich vor dem ersten `pnpm test:e2e`
       greifen, das innerhalb von Schritt 2 stattfindet. Als „2a"/unnummerierter Hinweis direkt
       unter Schritt 2 träfe es besser.
-- [ ] `scripts/start-work.sh:229` · Meldung „aus dem Haupt-Baum kopiert" ist ungenau:
+- [x] `scripts/start-work.sh:229` · Meldung „aus dem Haupt-Baum kopiert" ist ungenau:
       `FACTORY_DIR` (`:34`) ist der Baum, in dem das Skript liegt. Beim (in dieser Factory
       üblichen) Aufruf aus einem bestehenden Worktree ist die Quelle eben dieser Worktree.
       Spec-konform, aber der Text behauptet mehr. Neutraler: „aus `${FACTORY_DIR}` kopiert".
       Ebenso steht der Opt-out-Hinweis in der *Erfolgs*meldung, während das Vorbild (pnpm-Block
       `:238`) ihn in der Ankündigungszeile führt.
-- [ ] `run-tests.sh:1960` · `ls -l … | cut -c2-10` sind Magic Numbers; der Kommentar erklärt nur
+- [x] `run-tests.sh:1960` · `ls -l … | cut -c2-10` sind Magic Numbers; der Kommentar erklärt nur
       die Portabilität, nicht die Spaltenwahl. `awk '{print $1}'` gegen `-rw-------` wäre gleich
       portabel und ohne Zahlen-Anker. (Auf macOS empirisch korrekt geprüft.)
-- [ ] `run-tests.sh:1953` vs. `:1910` · Fixture-Basis `"$TMP_SW/wt-env"` von zwei unabhängigen
+- [x] `run-tests.sh:1953` vs. `:1910` · Fixture-Basis `"$TMP_SW/wt-env"` von zwei unabhängigen
       Testgruppen geteilt (#82-Aspekt-Labels vs. #236-Kopie). Heute kollisionsfrei
       (`feature-901-fff` vs. `feature-781-demo-env`), aber unnötige Kopplung – `wt-236-env`
       wäre isoliert.
-- [ ] `run-tests.sh:1930-1938` · `start_work_env` dupliziert den Rumpf von `run_create_label`
+- [x] `run-tests.sh:1930-1938` · `start_work_env` dupliziert den Rumpf von `run_create_label`
       (`:1875-1882`) mit getauschter Argumentreihenfolge (`$2 $3` vs. `$2 $1`). Vertretbar
       (andere Rückgabesemantik), lädt aber beim Bearbeiten des einen zum Vertauschen im anderen
       ein. Der Name ist zudem doppeldeutig – die Funktion startet start-work generisch,
       `run_start_work` träfe es.
-- [ ] `#236`-Block gesamt · Die vom Spec-Hinweis geforderte Reihenfolge „Kopie **vor**
+- [x] `#236`-Block gesamt · Die vom Spec-Hinweis geforderte Reihenfolge „Kopie **vor**
       `pnpm install`" ist durch keinen Test gedeckt (alle Läufe setzen
       `FACTORY_WT_SKIP_INSTALL=1`). Ein Positionsvergleich der beiden Anker-Zeilen im Skript
       wäre hier das passende Mittel. Niedrige Priorität – der Hinweis ist in der Spec als
       „nicht normativ" markiert.
-- [ ] `docs/factory/lessons/factory-workflow.md:738-739` · Nach der Umformulierung ist der
+- [x] `docs/factory/lessons/factory-workflow.md:738-739` · Nach der Umformulierung ist der
       Zeilenumbruch ausgefranst („… Die lokale Postgres-DB läuft dagegen meist" endet kurz).
       Kosmetisch, aber die Datei ist ein häufiges `grep -qF`-Ziel.
-- [ ] `run-tests.sh:1968-1972` · AK3 unterscheidet die beiden Wiederverwendungs-Zweige aus
+- [x] `run-tests.sh:1968-1972` · AK3 unterscheidet die beiden Wiederverwendungs-Zweige aus
       `start-work.sh:206/208` nicht („Worktree existiert bereits" vs. „Pfad existiert bereits").
       Für AK3 unschädlich, aber das Spec-Fehlerszenario ist nicht pfadgenau belegt.
+      → **Anders gelöst (Rework):** Ein Anker auf „Worktree existiert bereits" ist nicht
+      haltbar – `git worktree list --porcelain` meldet den *aufgelösten* Pfad, der exakte
+      Vergleich in `start-work.sh:206` scheitert an jedem Symlink im Pfad (macOS `mktemp -d`:
+      `/var/folders` → `/private/var/folders`), sodass systematisch der Nachbar-Zweig feuert.
+      Getestet wird jetzt das Spec-Szenario selbst (Wiederverwendung + keine Neuanlage) plus
+      zwei Diskriminierungs-Assertions gegen den ersten Lauf; die Spec-Prosa wurde entsprechend
+      branch-neutral gefasst (Lesson #253). Die vorbestehende Fragilität aus #74 ist in der
+      Task-Datei als Out-of-Scope-Fund vermerkt.
 - [ ] `scripts/start-work.sh:218-234` · Kein Regressions-Guard, dass die kopierte Datei nie in
       einen Commit gerät. Strukturell sicher (`:320` macht gezielt `git add "$TASK_FILE"`,
       `.gitignore:50` deckt `.env*`), aber das Fixture-Repo hat keine `.gitignore` und prüft es
       damit auch nicht implizit. Hypothetischer Zustand – bewusst hier statt als Issue vermerkt.
+      → **Bewusst offen gelassen (Rework):** vom Review selbst als hypothetisch eingestuft; der
+      Guard bräuchte eine `.gitignore` im Wegwerf-Repo, also eine neue Fixture-Dimension für
+      einen strukturell bereits ausgeschlossenen Fall (YAGNI).
 
 ## Positives
 

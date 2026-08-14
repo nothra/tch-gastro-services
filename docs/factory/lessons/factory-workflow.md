@@ -736,12 +736,12 @@ laufen statt gegen eine Temp-Kopie.
 `start-work.sh` legt jede Task standardmäßig in einem **eigenen** Worktree an (Geschwister-
 Ordner `…​.worktrees/<branch>`, siehe `git-workflow.md` → „Parallele Sessions"). `.env.local`
 ist gitignored und wurde damals dabei **nicht** mitkopiert (heute automatisiert, siehe Regel
-unten). Die lokale Postgres-DB läuft dagegen meist
-schon als **gemeinsamer** Docker-Container über alle Worktrees hinweg (fester Host-Port,
-zwei Wochen alt in #228). Ein `pnpm test:e2e e2e/auth.spec.ts` im frischen Worktree scheitert
-dadurch beim Login mit `CredentialsSignin` – nicht weil der Login-Code kaputt ist, sondern weil
-für die (nach dem manuellen `.env.local`-Kopieren) geladenen `SEED_ADMIN_*`-Zugangsdaten schlicht
-**noch kein Konto in der DB existiert**. In #228 sah das zunächst wie eine echte Regression durch
+unten). Die lokale Postgres-DB läuft dagegen meist schon als **gemeinsamer** Docker-Container
+über alle Worktrees hinweg (fester Host-Port, zwei Wochen alt in #228). Ein
+`pnpm test:e2e e2e/auth.spec.ts` im frischen Worktree scheitert dadurch beim Login mit
+`CredentialsSignin` – nicht weil der Login-Code kaputt ist, sondern weil für die aus der
+`.env.local` geladenen `SEED_ADMIN_*`-Zugangsdaten schlicht **noch kein Konto in der DB
+existiert**. In #228 sah das zunächst wie eine echte Regression durch
 den next-auth-Versions-Bump aus, war aber ein reines Umgebungs-Setup-Problem.
 
 **Smell:** „Login-E2E-Test schlägt im frisch angelegten Worktree mit `CredentialsSignin` fehl,

@@ -97,12 +97,16 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
       bestehenden Umgang mit fehlgeschlagenem `pnpm install` (`start-work.sh:219`). Wichtig
       wegen `set -euo pipefail`: der Kopierbefehl muss abgesichert sein und darf das Skript
       nicht wortlos beenden.
-- [ ] **Wiederverwendeter Worktree** (`start-work.sh` meldet „Worktree existiert bereits"): der
+- [ ] **Wiederverwendeter Worktree** (`start-work.sh` meldet „wird wiederverwendet"): der
       Kopier-Schritt läuft trotzdem, greift aber wegen AK3 nur, wenn dort noch keine
-      `.env.local` liegt.
-- [ ] **Quelle ist ein Verzeichnis oder Symlink**: kein Sonderfall-Handling – es gilt AK1
-      (regulärer Datei-Test als Vorbedingung), alles andere wird wie „Quelle fehlt" (AK2)
-      behandelt.
+      `.env.local` liegt. Welche der beiden Wiederverwendungs-Meldungen dabei erscheint
+      („Worktree existiert bereits" vs. „Pfad existiert bereits (kein Worktree)"), ist für
+      dieses Szenario unerheblich und **nicht** normativ.
+- [ ] **Quelle ist ein Verzeichnis oder defekter Symlink**: kein Sonderfall-Handling – es gilt
+      AK1 (regulärer Datei-Test als Vorbedingung), beides wird wie „Quelle fehlt" (AK2)
+      behandelt. Ein Symlink **auf eine vorhandene Datei** fällt dagegen nicht darunter: `-f`
+      dereferenziert ihn und `cp -p` folgt ihm, im Worktree entsteht also eine vollwertige
+      Datei-Kopie (gewolltes Verhalten, AK1).
 
 ## Technische Hinweise (nicht normativ)
 

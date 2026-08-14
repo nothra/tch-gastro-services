@@ -2012,10 +2012,23 @@ OUT_KEEP=$(run_start_work "$TMP_SW/wt-236-env" 781 demo-env)
 assert_true "$?" "#236 AK3: vorhandene .env.local im Worktree wird nicht überschrieben"
 printf '%s' "$OUT_KEEP" | grep -qF '.env.local existiert im Worktree bereits'
 assert_true "$?" "#236 AK3: der Output weist auf das Überspringen hin"
-# Pfadgenau: das Spec-Fehlerszenario nennt den Zweig „Worktree existiert bereits" – nicht den
-# danebenliegenden „Pfad existiert bereits (kein Worktree)".
-printf '%s' "$OUT_KEEP" | grep -qF 'Worktree existiert bereits'
-assert_true "$?" "#236 AK3: getroffen wird der Wiederverwendungs-Zweig 'Worktree existiert bereits'"
+# Pfadgenau auf das Spec-Fehlerszenario „wiederverwendeter Worktree": der zweite Lauf legt nichts
+# neu an, sondern nimmt einen der beiden Wiederverwendungs-Zweige (start-work.sh:206/208).
+# Bewusst NICHT auf „Worktree existiert bereits" festgenagelt: welcher der beiden greift, hängt an
+# einem exakten String-Vergleich gegen `git worktree list --porcelain`, und git meldet dort den
+# AUFGELÖSTEN Pfad. Unter einem symlink-behafteten Pfad (macOS: mktemp -d unter /var/folders →
+# /private/var/folders) greift deshalb der Nachbar-Zweig. Vorbestehende Fragilität aus #74,
+# außerhalb dieses Scopes (Task-Notiz #236).
+printf '%s' "$OUT_KEEP" | grep -qF 'wird wiederverwendet'
+assert_true "$?" "#236 AK3: der zweite Lauf verwendet den vorhandenen Worktree wieder"
+printf '%s' "$OUT_KEEP" | grep -qF 'Worktree + Branch angelegt'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK3: der zweite Lauf legt keinen Worktree neu an"
+# Diskriminierung beider Assertions: der ERSTE Lauf gegen dieselbe Basis meldet genau umgekehrt.
+# Ohne ihn blieben sie auch bei einem Output-Umbau grün, der beide Meldungen entfernt.
+printf '%s' "$OUT_COPY" | grep -qF 'Worktree + Branch angelegt'
+assert_true "$?" "#236 AK3: Diskriminierung – der erste Lauf meldet die Neuanlage"
+printf '%s' "$OUT_COPY" | grep -qF 'wird wiederverwendet'
+assert_true "$([ $? -ne 0 ]; echo $?)" "#236 AK3: Diskriminierung – der erste Lauf meldet keine Wiederverwendung"
 
 # Der Ziel-Guard prüft '-e ODER -L': ein DEFEKTER Symlink ist für -e unsichtbar, ist aber
 # vorhandene lokale Konfiguration. Ohne die -L-Alternative ersetzte cp ihn und zerstörte genau

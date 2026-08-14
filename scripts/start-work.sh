@@ -117,7 +117,9 @@ ISSUE_LABEL="${FACTORY_ISSUE_LABEL:-$ISSUE_LABEL}"
 if [ "${FACTORY_NO_WORKTREE:-0}" = "1" ]; then WORKTREE_MODE=false; else WORKTREE_MODE=true; fi
 
 # Wurde eine .env.local in den Worktree kopiert? Steuert den db:seed-Hinweis im Abschluss
-# (#236). Vorbelegt, weil der In-Place-Zweig den Kopier-Schritt nicht durchläuft (set -u).
+# (#236). Vorbelegt, weil kein Zweig die Zuweisung garantiert erreicht: weder der In-Place-Modus
+# noch Opt-out, fehlende Quelle, vorhandene Zieldatei oder ein fehlgeschlagenes cp kommen dort
+# vorbei – unter set -u wäre der Abschluss-Output sonst ein harter Abbruch.
 ENV_COPIED=false
 
 # ─── Uncommitted Changes prüfen (nur In-Place-Modus) ──────────────────────────
@@ -221,12 +223,17 @@ if [ "$WORKTREE_MODE" = true ]; then
   # CredentialsSignin (#228). Vor dem pnpm install, damit die Datei auch bei fehlgeschlagener
   # Installation da ist. Fail-safe: eine vorhandene Zieldatei wird nie überschrieben.
   if [ "${FACTORY_WT_SKIP_ENV:-0}" != "1" ] && [ -f "$FACTORY_DIR/.env.local" ]; then
+    # Opt-out-Hinweis in der Ankündigungszeile (wie im pnpm-Block unten), nicht in der
+    # Erfolgsmeldung – so ist er auch sichtbar, wenn der Kopier-Schritt gar nicht greift.
+    echo -e "  ${YELLOW}→${NC} .env.local in den Worktree spiegeln (FACTORY_WT_SKIP_ENV=1 überspringt)..."
     # -e ODER -L: auch ein (defekter) Symlink zählt als vorhandene lokale Konfiguration.
     if [ -e "$WORKDIR/.env.local" ] || [ -L "$WORKDIR/.env.local" ]; then
       echo -e "  ${YELLOW}⚠  .env.local existiert im Worktree bereits – wird nicht überschrieben${NC}"
     elif cp -p "$FACTORY_DIR/.env.local" "$WORKDIR/.env.local"; then
       # cp -p erhält den Modus – eine 600er-Quelle wird durch das Kopieren nicht breiter lesbar.
-      echo -e "  ${GREEN}✓${NC} .env.local aus dem Haupt-Baum kopiert (FACTORY_WT_SKIP_ENV=1 überspringt)"
+      # Quelle ist FACTORY_DIR (der Baum, in dem dieses Skript liegt) – beim üblichen Aufruf aus
+      # einem bestehenden Worktree ist das eben dieser, nicht zwingend der Haupt-Baum.
+      echo -e "  ${GREEN}✓${NC} .env.local kopiert (Quelle: ${FACTORY_DIR})"
       ENV_COPIED=true
     else
       echo -e "  ${YELLOW}⚠  .env.local konnte nicht kopiert werden – im Worktree manuell nachziehen${NC}"
@@ -386,9 +393,11 @@ echo "  1. Task-Datei mit Beschreibung und Akzeptanzkriterien befüllen"
 echo "     (oder: /requirements ${TASK_ID} in Claude Code)"
 echo "  2. Implementieren starten: /implement ${TASK_ID} in Claude Code"
 if [ "$ENV_COPIED" = true ]; then
-  # Die lokale DEV-DB ist über alle Worktrees geteilt und kennt die gerade kopierten
-  # SEED_ADMIN_*-Zugangsdaten evtl. noch nicht → sonst E2E-Login mit CredentialsSignin (#228).
-  echo "  3. Vor dem ersten 'pnpm test:e2e': pnpm db:seed"
+  # Bewusst als Zusatz UNTER Schritt 2 statt als eigener Schritt 3: der Hinweis muss vor dem
+  # ersten 'pnpm test:e2e' greifen, und das findet innerhalb von Schritt 2 statt. Die lokale
+  # DEV-DB ist über alle Worktrees geteilt und kennt die gerade kopierten SEED_ADMIN_*-
+  # Zugangsdaten evtl. noch nicht → sonst E2E-Login mit CredentialsSignin (#228).
+  echo "     Vor dem ersten 'pnpm test:e2e': pnpm db:seed"
   echo "     (.env.local wurde kopiert – die geteilte lokale DB kennt die SEED_ADMIN_*-Daten evtl. noch nicht)"
 fi
 echo ""
