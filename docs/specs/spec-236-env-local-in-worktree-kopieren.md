@@ -16,9 +16,9 @@ irreführenden `CredentialsSignin`, das wie eine echte Regression des gerade bea
 Diffs aussieht. In #228 wurde der Fehlschlag zunächst fälschlich dem next-auth-Bump
 zugeschrieben; die Lesson dazu steht in
 [`lessons/factory-workflow.md`](../factory/lessons/factory-workflow.md) („Neuer Worktree hat
-kein `.env.local` …") und hält bis heute die **manuelle** Regel fest, mit dem ausdrücklichen
-Vermerk „Root-Cause-Fix (Automatisierung in `start-work.sh`) ist als eigener Task ausgelagert:
-#236". Diese Task ist dieser Root-Cause-Fix.
+kein `.env.local` …") und hielt bis zu diesem PR die **manuelle** Regel fest, mit dem
+ausdrücklichen Vermerk, der Root-Cause-Fix (Automatisierung in `start-work.sh`) sei ein eigener,
+vertagter Task. Diese Task ist dieser Root-Cause-Fix.
 
 Der zweite Teil des #228-Problems – die geteilte lokale Postgres-DB kennt die
 `SEED_ADMIN_*`-Zugangsdaten noch nicht – bleibt bewusst **manuell**: `start-work.sh` gibt nur
@@ -28,8 +28,9 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
 
 **Inbegriffen:**
 
-- Kopieren von **`.env.local`** aus dem Haupt-Arbeitsbaum (`$FACTORY_DIR`) in einen neu
-  angelegten Worktree – als Teil der Worktree-Vorbereitung in `scripts/start-work.sh`.
+- Kopieren von **`.env.local`** aus dem Baum, in dem `start-work.sh` liegt (`$FACTORY_DIR` –
+  üblicherweise, aber nicht zwingend der Haupt-Arbeitsbaum), in einen neu angelegten Worktree –
+  als Teil der Worktree-Vorbereitung in `scripts/start-work.sh`.
 - Opt-out über einen Env-Schalter analog zum bestehenden `FACTORY_WT_SKIP_INSTALL`.
 - Hinweis im Abschluss-Output auf einen ggf. nötigen `pnpm db:seed`-Lauf.
 - Nachziehen der Doku, die den bisherigen Zustand im Präsens beschreibt bzw. #236 als
@@ -54,12 +55,13 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
 
 ## Akzeptanzkriterien
 
-- [ ] **AK1 · Kopie im Worktree-Default:** GIVEN der Haupt-Arbeitsbaum enthält eine `.env.local`
-      WHEN `start-work.sh` einen neuen Worktree anlegt THEN liegt im neuen Worktree eine
-      `.env.local` mit **byte-identischem Inhalt**, und der Output nennt das Kopieren.
-- [ ] **AK2 · Quelle fehlt → still überspringen:** GIVEN der Haupt-Arbeitsbaum enthält **keine**
-      `.env.local` WHEN `start-work.sh` läuft THEN endet das Skript mit **exit 0**, im Worktree
-      entsteht keine `.env.local`, und es wird kein Fehler gemeldet.
+- [ ] **AK1 · Kopie im Worktree-Default:** GIVEN der **Quellbaum** – der Baum, in dem
+      `start-work.sh` liegt (`$FACTORY_DIR`), üblicherweise der Haupt-Arbeitsbaum – enthält eine
+      `.env.local` WHEN `start-work.sh` einen neuen Worktree anlegt THEN liegt im neuen Worktree
+      eine `.env.local` mit **byte-identischem Inhalt**, und der Output nennt das Kopieren.
+- [ ] **AK2 · Quelle fehlt → still überspringen:** GIVEN der Quellbaum (`$FACTORY_DIR`) enthält
+      **keine** `.env.local` WHEN `start-work.sh` läuft THEN endet das Skript mit **exit 0**, im
+      Worktree entsteht keine `.env.local`, und es wird kein Fehler gemeldet.
 - [ ] **AK3 · Vorhandene Zieldatei wird nie überschrieben:** GIVEN der Ziel-Worktree existiert
       bereits und enthält eine **abweichende** `.env.local` WHEN `start-work.sh` für denselben
       Branch erneut läuft THEN bleibt der Inhalt der vorhandenen Datei **unverändert**
@@ -67,8 +69,8 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
       Überspringen hin.
 - [ ] **AK4 · Opt-out:** GIVEN `FACTORY_WT_SKIP_ENV=1` ist gesetzt WHEN `start-work.sh` einen
       neuen Worktree anlegt THEN wird **nicht** kopiert (keine `.env.local` im Worktree),
-      obwohl im Haupt-Baum eine existiert.
-- [ ] **AK5 · Dateirechte bleiben erhalten:** GIVEN die `.env.local` im Haupt-Baum hat den Modus
+      obwohl im Quellbaum eine existiert.
+- [ ] **AK5 · Dateirechte bleiben erhalten:** GIVEN die `.env.local` im Quellbaum hat den Modus
       `600` WHEN sie kopiert wird THEN hat die Kopie im Worktree ebenfalls Modus `600`
       (Secrets werden durch das Kopieren nicht breiter lesbar).
 - [ ] **AK6 · `db:seed`-Hinweis bei Kopie:** GIVEN eine `.env.local` wurde kopiert WHEN
@@ -94,9 +96,10 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
 
 - [ ] **Kopieren schlägt fehl** (z. B. Leserecht auf der Quelle fehlt, Zielverzeichnis nicht
       beschreibbar): Warnung ausgeben, **kein Abbruch** von `start-work.sh` – analog zum
-      bestehenden Umgang mit fehlgeschlagenem `pnpm install` (`start-work.sh:219`). Wichtig
+      bestehenden Umgang mit fehlgeschlagenem `pnpm install` (`start-work.sh:255`). Wichtig
       wegen `set -euo pipefail`: der Kopierbefehl muss abgesichert sein und darf das Skript
-      nicht wortlos beenden.
+      nicht wortlos beenden. Scheitert `cp` erst **nach** dem Anlegen der Zieldatei, wird der
+      eigene unvollständige Rest wieder entfernt – sonst konservierte ihn AK3 dauerhaft.
 - [ ] **Wiederverwendeter Worktree** (`start-work.sh` meldet „wird wiederverwendet"): der
       Kopier-Schritt läuft trotzdem, greift aber wegen AK3 nur, wenn dort noch keine
       `.env.local` liegt. Welche der beiden Wiederverwendungs-Meldungen dabei erscheint
@@ -111,12 +114,12 @@ einen Hinweis auf `pnpm db:seed` aus (siehe Scope).
 ## Technische Hinweise (nicht normativ)
 
 - Platzierung: im Worktree-Zweig von `scripts/start-work.sh` nach dem `worktree add`
-  (`:200-211`) und **vor** dem `pnpm install`-Block (`:214-221`) – so ist die Datei auch dann
+  (`:208-218`) und **vor** dem `pnpm install`-Block (`:249-257`) – so ist die Datei auch dann
   da, wenn die Installation scheitert.
 - Schalter-Name analog zum Bestand: `FACTORY_WT_SKIP_ENV=1`.
 - Rechte-Erhalt (AK5) über `cp -p` (portabel auf macOS/BSD und GNU).
 - Tests: bestehender Block „start-work.sh (Worktree-Isolation, #74)" in
-  `scripts/checks/tests/run-tests.sh:1799+` – die dortigen Fixtures (`gh`-Stub, Wegwerf-Repo,
+  `scripts/checks/tests/run-tests.sh:1823+` – die dortigen Fixtures (`gh`-Stub, Wegwerf-Repo,
   `FACTORY_WORKTREE_BASE`, `FACTORY_WT_SKIP_INSTALL=1`) sind wiederzuverwenden, **keine**
   parallele Fixture-Landschaft daneben aufbauen.
 - Für AK6/AK7 und AK3 gilt: gegen die **Wirkung** assertieren (Dateiinhalt bzw. Output-Text),

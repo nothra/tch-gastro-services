@@ -313,8 +313,10 @@ cd <ausgegebener-worktree-pfad>                    # dort arbeiten (eigene Sessi
 - **Env-Schalter:** `FACTORY_NO_WORKTREE=1` = altes In-Place-Verhalten (nur bewusst nutzen);
   `FACTORY_WORKTREE_BASE=<dir>` = Basisordner der Worktrees; `FACTORY_WT_SKIP_INSTALL=1` = kein
   `pnpm install` im neuen Worktree; `FACTORY_WT_SKIP_ENV=1` = die (gitignorete) `.env.local`
-  **nicht** aus dem Haupt-Baum in den neuen Worktree kopieren (Default: kopieren, #236 – eine
-  dort vorhandene Datei wird nie überschrieben).
+  **nicht** in den neuen Worktree kopieren (Default: kopieren, #236 – eine dort vorhandene Datei
+  wird nie überschrieben). **Quelle** ist der Baum, in dem `start-work.sh` liegt (`$FACTORY_DIR`) –
+  üblicherweise, aber nicht zwingend der Haupt-Baum: startet man die Task aus einem Worktree, der
+  selbst keine `.env.local` hat, wird nichts kopiert.
 - **Aufräumen nach dem Merge:** `git worktree remove <pfad>` (dann `git worktree prune`), und den
   lokalen Branch via `git gone` (siehe [Branch-Aufräumen](#branch-aufräumen)).
 - **Warum kein Hook das erzwingt:** Ein In-Repo-Hook kann einen zweiten Prozess nicht daran

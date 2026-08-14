@@ -224,7 +224,8 @@ if [ "$WORKTREE_MODE" = true ]; then
   # Installation da ist. Fail-safe: eine vorhandene Zieldatei wird nie überschrieben.
   if [ "${FACTORY_WT_SKIP_ENV:-0}" != "1" ] && [ -f "$FACTORY_DIR/.env.local" ]; then
     # Opt-out-Hinweis in der Ankündigungszeile (wie im pnpm-Block unten), nicht in der
-    # Erfolgsmeldung – so ist er auch sichtbar, wenn der Kopier-Schritt gar nicht greift.
+    # Erfolgsmeldung – so ist er auch sichtbar, wenn der Kopiervorgang selbst übersprungen
+    # wird (vorhandene Zieldatei) oder fehlschlägt.
     echo -e "  ${YELLOW}→${NC} .env.local in den Worktree spiegeln (FACTORY_WT_SKIP_ENV=1 überspringt)..."
     # -e ODER -L: auch ein (defekter) Symlink zählt als vorhandene lokale Konfiguration.
     if [ -e "$WORKDIR/.env.local" ] || [ -L "$WORKDIR/.env.local" ]; then
@@ -236,6 +237,11 @@ if [ "$WORKTREE_MODE" = true ]; then
       echo -e "  ${GREEN}✓${NC} .env.local kopiert (Quelle: ${FACTORY_DIR})"
       ENV_COPIED=true
     else
+      # Selbst erzeugten Rest wegräumen: scheitert cp erst NACH dem Anlegen des Ziels (Abbruch
+      # mitten im Schreiben, oder nur das -p misslingt), bliebe eine unvollständige Datei liegen –
+      # und der Guard oben konservierte sie bei jedem Folgelauf dauerhaft. Sicher, weil der
+      # -e/-L-Guard eine vorbestehende Zieldatei bereits ausgeschlossen hat.
+      rm -f "$WORKDIR/.env.local"
       echo -e "  ${YELLOW}⚠  .env.local konnte nicht kopiert werden – im Worktree manuell nachziehen${NC}"
     fi
   fi
