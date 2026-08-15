@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
+import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
 import { getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
@@ -48,6 +49,7 @@ const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
 const TEILNEHMER_NOT_IN_VERANSTALTUNG = "Teilnehmer gehört nicht zu dieser Veranstaltung.";
 const TEILNEHMER_INACTIVE = "Teilnehmer nicht gefunden.";
 const AUSLAGE_NOT_FOUND = "Auslage nicht gefunden.";
+const TOO_MANY_REQUESTS = "Zu viele Anfragen – bitte kurz warten.";
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
@@ -302,11 +304,16 @@ export async function adjustVerzehrAction(
 // Die `veranstaltungId` wird aus dem Token abgeleitet (self-scoping); die IDOR-Bindung in
 // `applyVerzehrAdjust` erzwingt, dass Schreibvorgänge diese Veranstaltung nicht verlassen. Ein
 // unbekannter Token liefert einen neutralen Fehler (keine Preisgabe fremder Veranstaltungen).
+// Als einzige öffentliche Schreib-Grenze ist sie zusätzlich rate-limitiert (#182, ADR-044 D3):
+// der Guard steht VOR dem Token-Lookup, damit eine gedrosselte Anfrage gar keinen DB-Zugriff
+// auslöst (FS-3) – Schlüssel ist der rohe Token, der laut ADR-034 D2 stabil bleibt.
 export async function adjustVerzehrByTokenAction(
   token: string,
   _prevState: VerzehrActionState | undefined,
   formData: FormData,
 ): Promise<VerzehrActionState> {
+  if (!selfServiceVerzehrRateLimiter.tryAcquire(token)) return { error: TOO_MANY_REQUESTS };
+
   const ziel = await getVeranstaltungByToken(token);
   if (!ziel) return { error: NOT_FOUND };
 
