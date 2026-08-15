@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -199,6 +199,23 @@ Siehe [`tasks/review-182.md`](review-182.md). Fünf optionale Nitpicks, keiner b
 - **Gates nach /test:** `pnpm lint`, `pnpm format:check`, `pnpm test` (687 passed / 59 skipped –
   einer weniger als nach Runde 2, weil das Duplikat entfernt wurde; keine anderen Zählungen
   geändert).
+
+## Refactor-Notizen (/refactor, 2026-08-15)
+
+- **Keine Code-Änderung nötig.** Checkliste (Naming, Funktionsgröße, Parameter, Duplikation,
+  Magic Numbers, Verschachtelung, Kommentare) gegen `git diff origin/main...HEAD` geprüft: der
+  Guard in `adjustVerzehrByTokenAction` ist eine einzeilige Guard-Clause vor dem bestehenden
+  Code, `TOO_MANY_REQUESTS` ist eine benannte Konstante neben den Geschwister-Konstanten,
+  `createKeyedRateLimiter`/`KeyedRateLimiter` in `lib/rate-limit.ts` sind klein und machen genau
+  eine Sache. Die drei Review-Runden und der `/test`-Schritt hatten den Diff bereits auf diesen
+  Stand gebracht (u. a. das einzige verbleibende Test-Duplikat aus Review-Runde 3 wurde schon in
+  `/test` entfernt).
+- **Verbleibende vier Nitpicks aus Review-Runde 3 bewusst unverändert:** zwei sind reine
+  Test-Redundanz ohne Risiko (explizit "keine Änderung gefordert"), zwei sind Doku-Vollständigkeit
+  (Spec-Offene-Fragen-Checkboxen, ADR-020-Runtime-Voraussetzung in ADR-044) – beides außerhalb
+  des Verhaltens-neutralen Scopes von `/refactor` und nicht blockierend laut Review.
+- **Gates:** `pnpm lint`, `pnpm format:check`, `pnpm test` (687 passed / 59 skipped) –
+  unverändert gegenüber `/test`, da keine Datei angefasst wurde.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
