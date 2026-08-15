@@ -32,11 +32,39 @@ Schwellwert 60 Anfragen/Fenster, fail-open bei Limiter-Störung, Fehlertext
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+Architektur-Entscheidung: [ADR-044](../docs/adr/044-rate-limit-selbstbedienungs-action.md).
+
+**Betroffene Dateien:**
+- `lib/rate-limit.ts` – neue Fabrikfunktion `createKeyedRateLimiter(options: RateLimiterOptions): KeyedRateLimiter`
+  (interner `Map<string, RateLimiter>`, lazy angelegt, nutzt intern `createRateLimiter`) +
+  neues Interface `KeyedRateLimiter { tryAcquire(key: string): boolean }` + Singleton-Export
+  `selfServiceVerzehrRateLimiter = createKeyedRateLimiter({ limit: 60, windowMs: 60_000 })`.
+- `lib/rate-limit.test.ts` – neue `describe("createKeyedRateLimiter", ...)`-Sektion.
+- `app/veranstaltung/actions.ts` – neue Konstante `TOO_MANY_REQUESTS = "Zu viele Anfragen – bitte kurz warten."`
+  neben `NOT_FOUND`/`NOT_OFFEN`/`ZEILE_NOT_FOUND`/`ITEM_NOT_FOUND`; Guard als **erste Zeile** in
+  `adjustVerzehrByTokenAction`, **vor** `getVeranstaltungByToken(token)` (Schlüssel = roher
+  Token-String, spart DB-Read bei Drosselung).
+- `app/veranstaltung/actions.test.ts` (bzw. bestehende Testdatei zu `adjustVerzehrByTokenAction`) –
+  Tests je AK/FS unten.
+
+**TDD-Reihenfolge (Red → Green → Refactor):**
+1. `lib/rate-limit.test.ts`: `createKeyedRateLimiter` – getrennte Fenster pro Key, Reset nach
+   Fensterablauf, gemeinsam injizierte `now` (spiegelt AK-2/AK-3/AK-4 auf Modul-Ebene).
+2. `app/veranstaltung/actions.test.ts`: `adjustVerzehrByTokenAction` mit gemocktem
+   `selfServiceVerzehrRateLimiter`/`getVeranstaltungByToken` – AK-1, AK-2, AK-5 (kein
+   `adjustMenge`/`revalidatePath` bei Drosselung), FS-1 (erster Aufruf mit neuem Token = Cold-Start
+   = nicht gedrosselt), FS-2 (zwei verschiedene Token unabhängig), FS-3 lässt sich als
+   „kein zusätzlicher awaited DB-Call vor dem Drosseln" prüfen (Spy-Reihenfolge/Aufrufzahl).
+3. AK-6 (bestehender Test zu `adjustVerzehrAction`/F5 bleibt unverändert grün – kein neuer Test
+   nötig, nur sicherstellen, dass F5 den neuen Rate-Limiter nicht importiert).
+
+**Wichtig:** Fail-open (FS-1) ist strukturell (frischer Zähler bei erstem Zugriff), **kein**
+`try/catch`-Fallback um `tryAcquire` – siehe ADR-044 „Fail-open ist strukturell, nicht defensiv
+nachgerüstet" (kein toter Coverage-Zweig, `clean-code.md`).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- [ ] Modul-/Schnittstellenwahl (Erweiterung `lib/rate-limit.ts` um Pro-Schlüssel-Variante vs. neues Modul) → `/architecture`.
-- [ ] Speicher-Hygiene der Pro-Token-Map über die Zeit (Bereinigung nötig oder YAGNI bei Vereins-Skala?) → `/architecture`.
+_Keine offenen Architektur-Fragen mehr – siehe ADR-044._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
