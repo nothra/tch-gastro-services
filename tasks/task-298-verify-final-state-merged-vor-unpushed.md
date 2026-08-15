@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `evaluate_final_state()` in `scripts/lib/verify-final-state.sh` prüft ungepushte
@@ -127,3 +127,7 @@ Lesson-Regel in diesem Umfang, siehe codify-298.md.)
 ---
 Branch: `fix/298-verify-final-state-merged-vor-unpushed`
 Erstellt: 2026-08-15 11:13
+
+PR-Shepherd [2026-08-15]: Merge freigegeben – alle Gates grün (CI vollständig grün,
+keine offenen Review-Kommentare, kein Rebase nötig – bereits `mergeStateStatus: CLEAN`,
+keine Approval-Pflicht laut ADR-029, Draft → ready gesetzt).
