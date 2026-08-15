@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -216,6 +216,38 @@ Siehe [`tasks/review-182.md`](review-182.md). Fünf optionale Nitpicks, keiner b
   des Verhaltens-neutralen Scopes von `/refactor` und nicht blockierend laut Review.
 - **Gates:** `pnpm lint`, `pnpm format:check`, `pnpm test` (687 passed / 59 skipped) –
   unverändert gegenüber `/test`, da keine Datei angefasst wurde.
+
+## Security-Notizen (/security-review, 2026-08-15)
+
+Report: [`tasks/security-182.md`](security-182.md) → **PASSED**, keine kritischen und keine
+wichtigen Findings.
+
+- **Eine Änderung im Scope übernommen:** `db/schema.ts:151-152` nannte im Präsens
+  „Länge/Rotation/**Rate-Limit** sind offen für F7/#54 & **/security-review**" – der letzte Ort im
+  Repo, der genau diesen PR noch als offenen Follow-up beschrieb (dieselbe Drift-Klasse wie W1 aus
+  Review-Runde 1 zu ADR-034 D7; Codify #211/#176). Kommentar auf „Rate-Limit nachgeliefert (#182,
+  ADR-044), Länge/Rotation bleiben offen" umgestellt – reine Kommentaränderung, kein Verhalten.
+- **Geprüft und für tragfähig befunden:** Der in ADR-044 D2/D3 als „Con" geführte Flood mit vielen
+  unbekannten Token ist praktisch kleiner als dort beschrieben – der Token ist ein serverseitig
+  gebundenes, von Next.js 16 verschlüsseltes Closure-Argument (`page.tsx:31`), und `/theke/<token>`
+  antwortet bei unbekanntem Token mit `notFound()`. Der Schlüsselraum der Map ist damit auf real
+  existierende Token begrenzt; `Map` statt Plain-Object schließt Prototype-Pollution aus. Die
+  YAGNI-Entscheidung gegen Eviction bleibt gültig – die ADR-Formulierung irrt in die sichere
+  Richtung, deshalb bewusst **keine** ADR-Änderung.
+- **Restrisiken notiert, keine Änderung gefordert:** Co-Tenant-DoS (Budget pro Token, nicht pro
+  Nutzer – gesetzte Spec-Entscheidung, Fenster läuft nach 60 s ab, kein Lockout), stumme
+  Drosselung ohne Log/Metrik (konsistent mit ADR-020, keine Logging-Infrastruktur im Projekt),
+  Best-Effort pro Instanz (`60 × M`, in ADR-044 als Trade-off dokumentiert).
+- **Out-of-Scope-Finding als Issue angelegt:**
+  [#297](https://github.com/nothra/tch-gastro-services/issues/297) – die öffentliche **GET**-Route
+  `/theke/[token]` hat kein Limit und führt für jedes beliebige Pfad-Segment einen DB-Read aus
+  (dort ist der Token frei wählbar, nicht gebunden). Keine Regression aus diesem PR, von spec-182
+  ausdrücklich ausgeschlossen, Zähl-Dimension nicht aus #182 übernehmbar → eigene
+  `/architecture`-Runde. Labels `enhancement` + `security`.
+- **Keine neuen Dependencies** im Diff (`package.json`/`pnpm-lock.yaml` unverändert) → kein
+  Advisory-Check nötig.
+- **Gates nach der Kommentaränderung:** `pnpm lint`, `pnpm format:check`, `pnpm test`
+  (687 passed / 59 skipped – unverändert).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

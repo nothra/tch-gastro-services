@@ -149,7 +149,8 @@ export const KASSEN = ["montagsrunde", "vereinskasse"] as const;
 export type Kasse = (typeof KASSEN)[number];
 
 // Zugangs-Token für die öffentliche Selbstbedienung/Theke (F7/#54). Bewusst hoch-entropisch
-// (2× UUID = 256 bit) – Länge/Rotation/Rate-Limit sind offen für F7/#54 & /security-review.
+// (2× UUID = 256 bit). Das Rate-Limit auf die token-scoped Schreib-Action ist nachgeliefert
+// (#182, ADR-044); Länge und Rotation bleiben unverändert offen (kein Rotationsmechanismus).
 function unguessableToken(): string {
   const hex = () => globalThis.crypto.randomUUID().replace(/-/g, "");
   return hex() + hex();
