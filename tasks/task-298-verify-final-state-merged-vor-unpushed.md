@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -88,7 +88,8 @@ gewordene MERGED-Block weiter unten entfernt. Funktionskopf-Kommentar (Meldungs-
 und ADR-040-Nachtrag entsprechend aktualisiert.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe `tasks/review-298.md` – APPROVED (nur 2 Nitpicks zu Test-Kombinationsabdeckung,
+kein Verhaltensrisiko).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
