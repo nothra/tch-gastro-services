@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -90,6 +90,12 @@ und ADR-040-Nachtrag entsprechend aktualisiert.
 ## Review-Findings
 Siehe `tasks/review-298.md` – APPROVED (nur 2 Nitpicks zu Test-Kombinationsabdeckung,
 kein Verhaltensrisiko).
+
+## Test-Notizen
+`/test`: Die beiden Nitpicks aus `tasks/review-298.md` (Fehlerszenario-Kombinationen aus
+spec-298 nicht als eigene Testfälle abgedeckt: CLOSED+`unpushed=NO_UPSTREAM` sowie leerer
+`pr_state`+`unpushed` nicht-numerisch) wurden ergänzt (`run-tests.sh` #298-Block). Kein
+TS/TSX im Diff → Vitest-Coverage-Schwelle nicht betroffen. Volle Suite: 1040/1040 grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

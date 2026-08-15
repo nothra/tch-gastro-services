@@ -3821,6 +3821,16 @@ assert_true "$?" "#298 Regressions-Guard: meldet 'Working Tree nicht sauber' tro
 efs clean NO_UPSTREAM true OPEN false none; assert_exit 1 "$?" "#298 Regressions-Guard: OPEN + unpushed nicht-numerisch → weiterhin fail-closed"
 printf '%s' "$(efs_msg clean NO_UPSTREAM true OPEN false none)" | grep -q 'Push-Zustand nicht verifizierbar'
 assert_true "$?" "#298 Regressions-Guard: meldet 'Push-Zustand nicht verifizierbar'"
+# spec-298 Fehlerszenario 2: geschlossener, NICHT gemergter PR + kein Upstream (Branch dennoch
+# server-seitig gelöscht) → bleibt fail-closed, kein stiller Erfolg für abgelehnte PRs.
+efs clean NO_UPSTREAM true CLOSED false none; assert_exit 1 "$?" "#298 Fehlerszenario 2: CLOSED + unpushed=NO_UPSTREAM → weiterhin fail-closed"
+printf '%s' "$(efs_msg clean NO_UPSTREAM true CLOSED false none)" | grep -q 'Push-Zustand nicht verifizierbar'
+assert_true "$?" "#298 Fehlerszenario 2: meldet 'Push-Zustand nicht verifizierbar'"
+# spec-298 Fehlerszenario 1: pr_state leer (gh-Fehler, F1) UND unpushed gleichzeitig
+# nicht-numerisch → Unpushed-Check greift zuerst (pr_state ist nicht MERGED), Meldung bleibt F2.
+efs clean NO_UPSTREAM true "" "" ""; assert_exit 1 "$?" "#298 Fehlerszenario 1: leerer pr_state + unpushed nicht-numerisch → weiterhin fail-closed"
+printf '%s' "$(efs_msg clean NO_UPSTREAM true '' '' '')" | grep -q 'Push-Zustand nicht verifizierbar'
+assert_true "$?" "#298 Fehlerszenario 1: meldet 'Push-Zustand nicht verifizierbar' (nicht 'PR-Zustand')"
 
 echo ""
 echo "#212 verify_final_state (I/O über echtes git + gestubbtes gh):"
