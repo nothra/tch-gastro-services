@@ -1119,3 +1119,25 @@ Einträge mit `Datei:Zeile`-Ankern, die im selben PR angelegt wurden**: vor dem 
 neu geschriebenen Kleinfund-Eintrag gegen den **aktuellen** Stand der zitierten Datei
 gegenprüfen (`sed -n '<n>,<m>p' <datei>` liest tatsächlich die behauptete Zeile?), nicht nur beim
 Anlegen einmalig verifizieren und dann als erledigt betrachten.
+
+### Endzustands-Verifikation prüft Unpushed-Status vor dem PR-MERGED-Kurzschluss – Fehlalarm nach Auto-Delete-Branch (aus #182, Pipeline-Selbstfund, Issue #298)
+
+`scripts/lib/verify-final-state.sh` → `evaluate_final_state()` prüft in fester Reihenfolge:
+(1) Working Tree sauber, (2) ungepushte Commits/Upstream vorhanden, (3) *nur bei
+`pr_shepherd=true`* der PR-Zustand – wobei `MERGED` laut eigenem Kommentar als Erfolg zählt
+(„dann sind Draft/Auto-Merge irrelevant", AK6). Schritt 2 läuft aber **unbedingt vor** Schritt 3.
+Da dieses Repo „Automatically delete head branches" aktiv hat (`git-workflow.md`), existiert
+`origin/<branch>` nach jedem gemergten PR nicht mehr – Schritt 2 liefert dafür fail-closed
+„Push-Zustand nicht verifizierbar" und bricht ab, **bevor** der MERGED-Kurzschluss aus Schritt 3
+je erreicht wird. Ein Task-182-Pipeline-Lauf mit `PR_SHEPHERD=true` endete dadurch trotz
+sauber gemergtem PR #296 mit `exit 1` und einem `INTERRUPT-182.md` (`INCOMPLETE_OUTCOME`).
+
+**Smell:** „Der Endzustand ist real erfolgreich (PR gemerged, Issue zu), aber die Pipeline meldet
+trotzdem ,Push-Zustand nicht verifizierbar‘/Interrupt – lohnt sich, die Prüfreihenfolge des
+Verifikations-Gates zu hinterfragen, statt den eigenen Task-Erfolg anzuzweifeln."
+
+**Regel:** Bei `pr_shepherd=true` ist ein bereits gemergter PR (`pr_state=MERGED`) unabhängig vom
+Unpushed-/Upstream-Status ein Erfolg – die Prüfung auf `MERGED` muss **vor oder unabhängig von**
+der Unpushed-Prüfung greifen, nicht danach. Nach einem Squash-Merge ist der lokale Branch ohnehin
+kein aussagekräftiger Vorfahre mehr von `origin/main`; „kein Upstream mehr" ist in diesem Fall
+kein Warnsignal, sondern der Normalfall. Fix noch offen, siehe Issue #298.

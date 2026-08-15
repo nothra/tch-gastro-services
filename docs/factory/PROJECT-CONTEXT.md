@@ -311,6 +311,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Frisch im selben PR erstellte/geänderte Spec braucht denselben Drift-Check wie ADRs/Lessons – Code gegen die eigene Spec-Prosa spiegeln, nicht die Spec unhinterfragt als Maßstab nehmen (aus #253, Review-Runde-3-Finding) → `/review` – bei Spec, die im selben PR entstanden/geändert wurde
 - „Nicht allow-gelistet" ist kein Umgebungs-Blocker, solange der Wrapper-Skript-Weg (`scripts/*.tmp.sh`, bereits erlaubt über `Bash(bash scripts/*)`) ungeprüft ist – nur eine echte Datei-Zugriffssperre (z. B. `.env*` unter Deny) ist ein echter Blocker (aus #291, zwei Rework-Runden verloren) → jeder Skill – vor dem Dokumentieren eines Umgebungs-/Berechtigungs-Blockers
 - `kleinfunde.md`-Eintrag mit `Datei:Zeile`-Ankern, im selben PR angelegt, braucht denselben Drift-Check wie ADR/Lesson/Spec (#211/#176/#253) – auch wenn die Drift-Quelle die eigenen Folge-Commits derselben Task sind (aus #291, Review-Finding) → `/review`, `/security-review` – vor Merge-Freigabe, wenn dieser PR selbst einen `kleinfunde.md`-Eintrag angelegt hat
+- Endzustands-Verifikation (`verify-final-state.sh`) prüft Unpushed-/Upstream-Status vor dem PR-MERGED-Kurzschluss – Fehlalarm (`INCOMPLETE_OUTCOME`) bei gemergtem PR + Auto-Delete-Branch (aus #182, Pipeline-Selbstfund, Issue #298 offen) → `/pipeline` (run-pipeline.sh) – bei rotem Pipeline-Endstand trotz erfolgreich gemergtem PR
 
 ---
 
