@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -106,14 +106,23 @@ wäre Gold-Plating außerhalb des Scopes von Task 298 und hätte unnötigen Blas
 die Tests. Bereits im Review (`tasks/review-298.md`) als sauber bestätigt.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-298.md`. Zwei neue Learnings dokumentiert (Volltext in
+`docs/factory/lessons/factory-workflow.md` + `docs/factory/kleinfunde.md`):
+1. Fork-Subagenten für Review-Runden können nach dem Spawn erzeugten Orchestrator-Text
+   (z. B. `ScheduleWakeup`-Wartemeldungen) in ihren eigenen Kontext aufnehmen und
+   paraphrasieren statt den Auftrag auszuführen – Gegenmaßnahme: Ergebnis bei Verdacht
+   per `TaskOutput` gegenprüfen.
+2. `.claude/commands/review.md` (drei Sub-Agenten) und `docs/factory/agents/
+   review-agent.md` (ein Reviewer, drei Perspektiven) widersprechen sich – als
+   Kleinfund vermerkt, nicht direkt gepatcht (Patch-Workflow für `.claude/**`).
 
-Hinweis für `/codify`: Reihenfolge-Bug in einer Kurzschluss-Kette – ein früherer,
-unabhängig fail-closed greifender Check (Unpushed) stand vor einem später eingeführten
-Kurzschluss (MERGED-Erfolg), der ihn eigentlich hätte überstimmen sollen. Beim Hinzufügen
-eines neuen Erfolgs-Kurzschlusses zu einer bestehenden Guard-Clause-Kette immer prüfen, ob
-er VOR (nicht nach) bereits existierenden fail-closed-Checks stehen muss, die er außer
-Kraft setzen soll.
+Ursprünglicher Hinweis für `/codify`: Reihenfolge-Bug in einer Kurzschluss-Kette – ein
+früherer, unabhängig fail-closed greifender Check (Unpushed) stand vor einem später
+eingeführten Kurzschluss (MERGED-Erfolg), der ihn eigentlich hätte überstimmen sollen.
+Beim Hinzufügen eines neuen Erfolgs-Kurzschlusses zu einer bestehenden Guard-Clause-Kette
+immer prüfen, ob er VOR (nicht nach) bereits existierenden fail-closed-Checks stehen muss,
+die er außer Kraft setzen soll. (Eingeordnet als zu generisch/einmalig für eine eigene
+Lesson-Regel in diesem Umfang, siehe codify-298.md.)
 
 ---
 Branch: `fix/298-verify-final-state-merged-vor-unpushed`
