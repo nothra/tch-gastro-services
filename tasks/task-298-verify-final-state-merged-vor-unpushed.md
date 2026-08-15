@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -96,6 +96,14 @@ kein Verhaltensrisiko).
 spec-298 nicht als eigene Testfälle abgedeckt: CLOSED+`unpushed=NO_UPSTREAM` sowie leerer
 `pr_state`+`unpushed` nicht-numerisch) wurden ergänzt (`run-tests.sh` #298-Block). Kein
 TS/TSX im Diff → Vitest-Coverage-Schwelle nicht betroffen. Volle Suite: 1040/1040 grün.
+
+## Refactor-Notizen
+`/refactor`: Checkliste (Naming, Struktur, Funktionslänge/Parameteranzahl) gegen den
+geänderten Code in `evaluate_final_state()` durchgespielt – keine Änderung nötig. Die
+Funktion hat 6 Parameter/~49 Zeilen, das ist aber die vorbestehende, unveränderte Signatur
+(nur zwei Blöcke wurden vertauscht); eine Restrukturierung (Parameter-Objekt, Aufteilen)
+wäre Gold-Plating außerhalb des Scopes von Task 298 und hätte unnötigen Blast-Radius auf
+die Tests. Bereits im Review (`tasks/review-298.md`) als sauber bestätigt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
