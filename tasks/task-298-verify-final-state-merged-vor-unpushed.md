@@ -32,9 +32,45 @@ sofort als Erfolg zählen (nur der Working-Tree-Check bleibt davor). Details sie
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
+**ADR-Entscheidung:** Kein neuer Design-Fork, kein neues ADR-Dokument. Bestehendes
+ADR-040 (`docs/adr/040-pipeline-endzustands-verifikation.md`) um einen datierten
+„Nachtrag"-Abschnitt ergänzt (Muster aus ADR-019 §Nachträge) – bereits umgesetzt.
+
+**Konkrete Änderung in `scripts/lib/verify-final-state.sh` → `evaluate_final_state()`:**
+Direkt nach dem Tree-Check (aktuell Zeile ~38) und **vor** dem `case "$unpushed" in`
+(aktuell Zeile ~42) einen neuen Kurzschluss einfügen:
+
+```sh
+# PR bereits MERGED (pr_shepherd=true) zählt sofort als Erfolg – unabhängig vom
+# Unpushed-Status (nach Squash-Merge + Branch-Auto-Delete existiert origin/<branch>
+# nicht mehr; die Unpushed-Prüfung ist dafür nicht aussagekräftig, #298).
+if [ "$pr_shepherd" = "true" ] && [ "$pr_state" = "MERGED" ]; then
+  return 0
+fi
+```
+
+Der bisherige `if [ "$pr_state" = "MERGED" ]; then return 0; fi`-Block weiter unten
+(aktuell Zeile ~62–64) wird dadurch für den `pr_shepherd=true`-Pfad unreachable und ist
+zu entfernen (kein doppelter Kurzschluss/keine tote Zeile, `clean-code.md`).
+Funktionskopf-Kommentar (Zeilen 10–26): Meldungs-Prioritätsreihenfolge im Kommentar
+aktualisieren (MERGED-Kurzschluss jetzt direkt nach dem Tree-Check).
+
+**`verify_final_state()` (I/O-Wrapper):** keine Änderung nötig – Fakten werden bereits
+unconditional erhoben, unabhängig vom späteren Gebrauch.
+
+**Tests (`scripts/checks/tests/run-tests.sh`, #212-Block):**
+- Neuer Fall auf `evaluate_final_state`-Ebene: `efs clean NO_UPSTREAM true MERGED false none` → exit 0.
+- Regressions-Guard: `efs clean NO_UPSTREAM true OPEN false none` → weiterhin exit 1, Meldung „Push-Zustand nicht verifizierbar".
+- Dirty+MERGED: `efs dirty 0 true MERGED false none` → weiterhin exit 1, Meldung „Working Tree nicht sauber".
+- I/O-Ebene: im bestehenden `VFS_REPO`-Block gezielt `origin/<branch>` löschen
+  (z. B. `git -C "$VFS_REPO" push origin --delete "$VFS_BR"`, danach lokalen
+  `$VFS_BR` unangetastet lassen) und mit `mkgh false MERGED false` +
+  `verify_final_state "$VFS_BR" true "$VFS_REPO"` → exit 0 erwarten (reproduziert
+  Branch-Auto-Delete exakt).
+
 ## Offene Fragen
-- [ ] ADR-040: reine Prosa-Korrektur oder eigener /architecture-Trigger? (Empfehlung: Prosa-Korrektur, siehe Spec)
-- [ ] Rückwirkende Metrik-Korrektur für Task #182/PR #296 – separates Issue oder kein Thema?
+- [x] ADR-040: reine Prosa-Korrektur oder eigener /architecture-Trigger? → Prosa-Korrektur (Nachtrag) umgesetzt, kein neues ADR nötig.
+- [ ] Rückwirkende Metrik-Korrektur für Task #182/PR #296 – separates Issue oder kein Thema? (bleibt offen, nicht Teil dieser Task)
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
