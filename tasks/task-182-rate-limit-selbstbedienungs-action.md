@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Rate-Limit/Missbrauchsbremse für `adjustVerzehrByTokenAction` (öffentliche, unauthentifizierte
@@ -257,6 +257,14 @@ Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweit
 (neuer Eintrag in `docs/factory/lessons/code-style.md`, Index-Zeile in `PROJECT-CONTEXT.md`).
 Alle übrigen Findings waren Anwendungsfälle bereits bestehender Lessons (#211/#176, #258/#268/#286,
 #240) – keine weitere Änderung nötig.
+
+## PR-Shepherd-Notizen (2026-08-15)
+
+PR-Shepherd [2026-08-15]: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare
+(nur der Vercel-Bot-Kommentar). Branch war bereits aktuell zu `main` (`gh pr update-branch`:
+already up-to-date). CI (Lint, Test, Typecheck via factory-self-test, CodeQL, issue-sync,
+config-validation, Vercel-Preview) durchgehend grün nach dem Codify-Nachpush. Kein Approval
+erforderlich (ADR-029, 0 Required Approvals). Draft → ready for review (`gh pr ready`).
 
 ---
 Branch: `feature/182-rate-limit-selbstbedienungs-action`
