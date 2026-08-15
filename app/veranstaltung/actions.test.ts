@@ -40,8 +40,15 @@ vi.mock("@/db/auslage", () => ({
   removeAuslage: vi.fn(),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// Der Limiter ist modul-lokaler Singleton-State (ADR-044 D1) – gemockt, damit jeder Test
+// seinen Zustand selbst setzt und keine Testreihenfolge-Abhängigkeit entsteht. Die echte
+// Fenster-Arithmetik inkl. der produktiven Parameter ist in `lib/rate-limit.test.ts` getestet.
+vi.mock("@/lib/rate-limit", () => ({
+  selfServiceVerzehrRateLimiter: { tryAcquire: vi.fn() },
+}));
 
 import { revalidatePath } from "next/cache";
+import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
 import { getCatalogItem } from "@/db/catalog";
@@ -96,6 +103,7 @@ const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
 const getCatalogItemMock = vi.mocked(getCatalogItem);
 const adjustMengeMock = vi.mocked(adjustMenge);
+const tryAcquireMock = vi.mocked(selfServiceVerzehrRateLimiter.tryAcquire);
 const getPositionMock = vi.mocked(getPosition);
 const createAuslageMock = vi.mocked(createAuslage);
 const updateAuslageMock = vi.mocked(updateAuslage);
@@ -212,6 +220,7 @@ beforeEach(() => {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+  tryAcquireMock.mockReturnValue(true);
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
@@ -784,6 +793,19 @@ describe("adjustVerzehrAction", () => {
 
     expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", -1);
   });
+
+  it("should_processNormally_when_selfServiceRateLimitExhausted", async () => {
+    // AK-6 (#182): das Rate-Limit gilt ausschließlich für den token-scoped Pfad. Der
+    // authentifizierte F5-Pfad konsultiert den Limiter nicht und läuft auch dann durch,
+    // wenn dieser jede Anfrage ablehnen würde.
+    tryAcquireMock.mockReturnValue(false);
+
+    const result = await boundAction(validAdjust);
+
+    expect(result).toEqual({ ok: true, menge: 1 });
+    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+    expect(tryAcquireMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("adjustVerzehrByTokenAction", () => {
@@ -797,6 +819,9 @@ describe("adjustVerzehrByTokenAction", () => {
     expect(result).toEqual({ ok: true, menge: 1 });
     expect(getVeranstaltungByTokenMock).toHaveBeenCalledWith("tok");
     expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+    // AK-1 (#182): unterhalb des Rate-Limit-Schwellwerts (beforeEach: tryAcquire → true) bleibt
+    // der Pfad inklusive Revalidierung unverändert.
+    expect(revalidatePathMock).toHaveBeenCalledWith("/theke/tok");
   });
 
   it("should_authorizeWithoutRole_when_tokenValid", async () => {
@@ -843,6 +868,32 @@ describe("adjustVerzehrByTokenAction", () => {
 
     expect(result.error).toBeDefined();
     expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  // Rate-Limit der öffentlichen Schreib-Grenze (#182, ADR-044 D3).
+  it("should_returnTooManyRequestsAndSkipEveryDbCall_when_rateLimited", async () => {
+    // AK-2/AK-5/FS-3: gedrosselt wird rein in-memory – kein Token-Lookup, kein Zeilen-/
+    // Artikel-Read, kein Write, kein revalidatePath, kein `ok`/`menge` im State.
+    tryAcquireMock.mockReturnValue(false);
+
+    const result = await boundAction(validAdjust);
+
+    expect(result).toEqual({ error: "Zu viele Anfragen – bitte kurz warten." });
+    expect(getVeranstaltungByTokenMock).not.toHaveBeenCalled();
+    expect(getZeileMock).not.toHaveBeenCalled();
+    expect(getCatalogItemMock).not.toHaveBeenCalled();
+    expect(adjustMengeMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+
+  it("should_passRawTokenAsRateLimitKey_when_differentTokensUsed", async () => {
+    // AK-3/FS-2: Zähl-Dimension ist der rohe Token – die Isolation zwischen Veranstaltungen
+    // entsteht genau dadurch (Fenster-Trennung selbst: lib/rate-limit.test.ts).
+    await adjustVerzehrByTokenAction("tok-a", undefined, form(validAdjust));
+    await adjustVerzehrByTokenAction("tok-b", undefined, form(validAdjust));
+
+    expect(tryAcquireMock).toHaveBeenNthCalledWith(1, "tok-a");
+    expect(tryAcquireMock).toHaveBeenNthCalledWith(2, "tok-b");
   });
 });
 
