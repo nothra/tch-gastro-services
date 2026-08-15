@@ -73,9 +73,9 @@ nachgerüstet" (kein toter Coverage-Zweig, `clean-code.md`).
 - **Testverteilung (AK → Ort):** Die Fenster-Arithmetik (AK-2 Deckelung, AK-3/FS-2 Isolation,
   AK-4 Reset, FS-1 Cold-Start) wird in `lib/rate-limit.test.ts` mit injizierter Uhr geprüft –
   deterministisch, ohne Testreihenfolge-Abhängigkeit. Zusätzlich belegt dort
-  `describe("selfServiceVerzehrRateLimiter")` die **produktiv verdrahteten Parameter** (60 erlaubt,
-  61. abgelehnt) am echten Singleton; ohne diesen Test wäre der Schwellwert nur behauptet, weil
-  die Action-Tests den Limiter mocken.
+  `describe("selfServiceVerzehrRateLimiter")` die **produktiv verdrahteten Parameter** am echten
+  Singleton – seit Review-Runde 2 beide (Schwellwert 60 **und** Fenster 60 s, mit Fake-Timern);
+  ohne diesen Test wären die Spec-Parameter nur behauptet, weil die Action-Tests den Limiter mocken.
 - **Action-Ebene (`app/veranstaltung/actions.test.ts`):** `@/lib/rate-limit` ist gemockt, weil der
   Singleton modul-lokaler State ist – ein echter Limiter würde den Zähler des Tokens `"tok"` über
   alle Tests der Datei hinweg teilen (Testreihenfolge-Abhängigkeit, `testing-standards.md`).
@@ -130,6 +130,46 @@ _Keine offenen Architektur-Fragen mehr – siehe ADR-044._
 
 **Gates nach Rework:** `pnpm lint`, `pnpm format:check`, `pnpm test` (688 passed / 59 skipped –
 einer weniger als zuvor, weil W3 den Duplikat-Test entfernt hat).
+
+### Runde 2 (/review → NEEDS_REWORK, keine kritischen Findings) – behoben in /implement 2026-08-15
+
+- [x] **W1 · Singleton-Test pinnte `windowMs` nicht** (`lib/rate-limit.test.ts:109-121`): Der
+  Kommentar sicherte „die produktiv verdrahteten Parameter (60/60 s)" zu, assertiert wurden aber
+  nur 60×`true` + 1×`false` in schneller Folge – gegenüber der Fensterlänge blind (die
+  `windowMs`-Tests darüber laufen gegen Ad-hoc-Limiter mit `windowMs: 1000`). Damit war ein mit
+  dem Auftraggeber gesetzter Spec-Parameter nirgends gegen Regression gepinnt (Codify #258:
+  Existenz-Guard ≠ Verdrahtungs-Nachweis; #268: Zusicherung ohne tatsächliche Prüfung).
+  Weg 1 des Reviews umgesetzt: Test auf `vi.useFakeTimers()` umgestellt und um den Fenster-Verlauf
+  erweitert (60 erlaubt → 61. abgelehnt → nach 59_999 ms weiter abgelehnt → nach +1 ms wieder
+  erlaubt), `afterEach` gibt die echte Uhr zurück. Damit erledigt sich der Runde-1-Nitpick
+  „Wanduhr-Test" mit – die dortige Einschätzung „bewusst ohne Änderung" ist überholt.
+  **Mutationsbeleg** (Codify #286 – derselbe Assert-Ausdruck, nicht nur derselbe Befehl):
+  `windowMs: 600_000` ⇒ rot in Zeile 134 („expected false to be true", Fenster läuft nicht ab);
+  `windowMs: 6_000` ⇒ rot in Zeile 131 („expected true to be false", Fenster läuft zu früh ab).
+  Beide Richtungen belegt, danach auf 60_000 zurückgesetzt.
+  Der Review-Hinweis, die Systemzeit vor dem ersten `tryAcquire` vorzustellen, war **nicht** nötig
+  und wurde bewusst nicht umgesetzt: `createKeyedRateLimiter` ruft `now()` nicht beim Modul-Import
+  auf – der innere Zähler entsteht lazy beim ersten `tryAcquire` des Schlüssels, der Fensterstart
+  stammt also bereits aus der eingefrorenen Fake-Zeit (im Test als WHY vermerkt).
+- [x] **Nitpick 1 · JSDoc `RateLimiterOptions.windowMs`** (`lib/rate-limit.ts:16`): „(Produktion:
+  60_000)" nannte weiter einen konkreten Wert in der geteilten Options-Schnittstelle – dieselbe
+  Drift-Klasse, die in Runde 1 eine Zeile darüber für `limit` entschärft wurde. Symmetrisch auf den
+  Verweis „die produktiven Werte stehen an den Singletons unten" umgestellt.
+- [x] **Nitpick 2 · Abgrenzung zu ADR-020** (`docs/adr/044-…` D2): ADR-020 verwarf „per Quelle"
+  u. a. wegen unbegrenzten Map-Wachstums – ADR-044 führt genau eine Schlüssel-Map ein. Absatz
+  ergänzt, der den tragenden Unterschied benennt: bei der spoofbaren IP hätte jeder gefälschte
+  Header ein frisches Budget **für denselben Angriff** gegeben (Schutz läuft leer), beim Token
+  schützt ein neuer Schlüssel nur ein anderes Token. Übrig bleibt die Speicher-Fläche, die D3
+  Option A „Con" bereits benennt und die hier akzeptiert ist – bewusst nicht stärker formuliert
+  („Schlüsselraum an existierende Veranstaltungen gebunden" wäre falsch, da der Guard vor der
+  Token-Auflösung sitzt).
+- Nitpick 3 (Wanduhr) ist durch W1 miterledigt. Nitpick 4 (Beobachtung zum Schwellwert 60/Token)
+  bleibt **ohne Änderung** – laut Review ausdrücklich nicht gefordert, der Wert ist in spec-182
+  mit dem Auftraggeber gesetzt und an einer Stelle änderbar.
+
+**Gates nach Rework Runde 2:** `pnpm lint`, `pnpm format:check`, `pnpm test`
+(688 passed / 59 skipped – unverändert, da W1 den bestehenden Test erweitert statt einen neuen
+anzulegen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

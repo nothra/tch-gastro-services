@@ -72,6 +72,16 @@ zyklisch recycelt werden (Cold-Start setzt die gesamte Map zurück – dieselbe 
 ADR-020 für den globalen Zähler als „inhärent fail-open" nutzt). Eine explizite
 TTL-/Eviction-Logik wäre zusätzliche Mechanik ohne belegten Bedarf.
 
+**Abgrenzung zu ADR-020:** Dort wurde die Zähl-Dimension „per Quelle" u. a. mit „ein Map-Zustand
+pro Quelle wächst unbegrenzt" verworfen – das ist hier bewusst anders bewertet, nicht übersehen.
+Ausschlaggebend ist der Grund, aus dem ADR-020 diese Dimension verwarf: eine spoofbare
+`X-Forwarded-For`-IP hätte dem Angreifer mit jedem gefälschten Header **ein frisches Budget für
+denselben Angriff** gegeben – der Schutz selbst wäre leergelaufen. Beim Token-Schlüssel gilt das
+nicht: ein neuer Schlüssel schützt nur ein anderes Token, das Budget gegen eine konkrete
+Veranstaltung bleibt gedeckelt. Übrig bleibt allein die Speicher-Fläche (ein Flood mit vielen
+verschiedenen, unbekannten Token legt je Token einen Eintrag an – siehe D3 Option A, „Con"),
+und die ist mit wenigen Dutzend Byte je Eintrag und dem Instanz-Recycling als Reset akzeptiert.
+
 ### D3 · Guard ganz am Anfang der Action, Schlüssel = roher Token-String
 
 ```ts

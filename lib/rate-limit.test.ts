@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   createKeyedRateLimiter,
   createRateLimiter,
@@ -107,15 +107,30 @@ describe("createKeyedRateLimiter", () => {
 });
 
 describe("selfServiceVerzehrRateLimiter", () => {
-  it("should_allow60AndThrottle61st_when_sameTokenWithinWindow", () => {
-    // AK-2: die produktiv verdrahteten Parameter (60/60 s, ADR-044 D1). Der Zähler eines
-    // Schlüssels startet beim ersten Zugriff – 61 synchrone Aufrufe liegen sicher im Fenster.
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("should_allow60ThenThrottleUntilWindowElapsed_when_sameToken", () => {
+    // AK-2/AK-4: pinnt **beide** produktiv verdrahteten Parameter (60 Anfragen je 60 s,
+    // spec-182 / ADR-044 D1) am echten Singleton. Die Fenster-Tests weiter oben laufen gegen
+    // ad-hoc erzeugte Limiter mit `windowMs: 1000` und würden ein Vertippen an
+    // `selfServiceVerzehrRateLimiter` nicht bemerken.
+    // Fake-Uhr statt Wanduhr: Der Zähler eines Schlüssels wird lazy beim ersten `tryAcquire`
+    // angelegt (ADR-044 D1) – der Fensterstart stammt also aus der bereits eingefrorenen
+    // Fake-Zeit, ein Vorstellen der Systemzeit ist dafür nicht nötig.
+    vi.useFakeTimers();
     const token = "spec-182-parameter-probe";
 
     for (let i = 0; i < 60; i++) {
       expect(selfServiceVerzehrRateLimiter.tryAcquire(token)).toBe(true);
     }
-
     expect(selfServiceVerzehrRateLimiter.tryAcquire(token)).toBe(false);
+
+    vi.advanceTimersByTime(59_999);
+    expect(selfServiceVerzehrRateLimiter.tryAcquire(token)).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(selfServiceVerzehrRateLimiter.tryAcquire(token)).toBe(true);
   });
 });

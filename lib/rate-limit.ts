@@ -13,7 +13,7 @@
 export interface RateLimiterOptions {
   /** Erlaubte Anfragen pro Fenster – die produktiven Werte stehen an den Singletons unten. */
   limit: number;
-  /** Fensterlänge in Millisekunden (Produktion: 60_000). */
+  /** Fensterlänge in Millisekunden – die produktiven Werte stehen an den Singletons unten. */
   windowMs: number;
   /** Injizierbare Uhr für deterministische Tests. Default: () => Date.now(). */
   now?: () => number;
