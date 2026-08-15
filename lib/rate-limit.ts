@@ -11,7 +11,7 @@
 // strukturell fail-open (FS-1).
 
 export interface RateLimiterOptions {
-  /** Erlaubte Anfragen pro Fenster (Produktion: 30). */
+  /** Erlaubte Anfragen pro Fenster – die produktiven Werte stehen an den Singletons unten. */
   limit: number;
   /** Fensterlänge in Millisekunden (Produktion: 60_000). */
   windowMs: number;

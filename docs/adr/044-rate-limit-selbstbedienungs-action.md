@@ -8,9 +8,10 @@ Accepted
 
 ## Kontext
 
-[ADR-034](034-selbstbedienung-token-zugang.md) D7 delegiert die Missbrauchsbremse für
-`adjustVerzehrByTokenAction` (F7, #54) ausdrücklich an einen eigenen Task (#182,
-[spec-182](../specs/spec-182-rate-limit-selbstbedienung.md)). Diese Action ist die einzige
+[ADR-034](034-selbstbedienung-token-zugang.md) D7 hält die Missbrauchsbremse für
+`adjustVerzehrByTokenAction` (F7, #54) bewusst aus jener Task heraus und verweist sie in die
+nachgelagerte Härtung (dort als **/security-review** adressiert); umgesetzt wird sie hier als
+eigener Task #182 ([spec-182](../specs/spec-182-rate-limit-selbstbedienung.md)). Diese Action ist die einzige
 öffentliche, unauthentifizierte **Schreib**-Grenze der App: der gültige Token einer offenen
 Veranstaltung ist die alleinige Autorisierung (capability-based, kein `requireRole`). Wer den
 geteilten Link/QR kennt, kann heute unbegrenzt `adjustMenge`-Writes absetzen.

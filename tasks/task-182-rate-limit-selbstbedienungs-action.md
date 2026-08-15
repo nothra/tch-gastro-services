@@ -101,7 +101,35 @@ nachgerüstet" (kein toter Coverage-Zweig, `clean-code.md`).
 _Keine offenen Architektur-Fragen mehr – siehe ADR-044._
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+### Runde 1 (/review → NEEDS_REWORK, keine kritischen Findings) – behoben in /implement 2026-08-15
+
+- [x] **W1 · ADR-034 D7-Drift** (`docs/adr/034-…:88-92`, `:146`): D7 beschrieb die Missbrauchsbremse
+  weiter im Präsens als offenen, an `/security-review` delegierten Punkt – genau das liefert dieser
+  PR (Codify #211/#176). D7 auf „nachgeliefert in #182" umgestellt (inkl. Erledigt-Absatz mit
+  Verweis auf ADR-044), Trade-off-Zeile entschärft. Nebenbefund gleicher Ursache mitgezogen:
+  ADR-044 Kontext nannte D7 als Delegation „an einen eigenen Task (#182)", während D7 selbst
+  `/security-review` adressiert – Formulierung angeglichen (Delegation an die nachgelagerte
+  Härtung, umgesetzt als Task #182).
+- [x] **W2 · JSDoc `RateLimiterOptions.limit`** (`lib/rate-limit.ts:14`): „(Produktion: 30)" war seit
+  dem zweiten Limiter (60) falsch – dieselbe Drift-Klasse, die der Modul-Header eine Ebene höher
+  bereits berücksichtigt (Codify #207). Konkreter Wert aus dem Interface entfernt, stattdessen
+  Verweis auf die Singleton-Definitionen (dort steht der jeweils gültige Wert ohnehin).
+  `windowMs` bleibt unverändert – 60_000 gilt für beide Limiter.
+- [x] **W3 · Duplizierter Testrumpf** (`app/veranstaltung/actions.test.ts`): der neue AK-1-Test
+  `should_processNormallyAndRevalidate_when_underRateLimit` war ein Rumpf-Duplikat von
+  `should_adjustAndReturnAuthoritativeMenge_when_tokenValidAndOpen`; einziger Mehrwert war die
+  `revalidatePath`-Assertion. Diese in den bestehenden Test gezogen (mit AK-1-Kommentar), das
+  Duplikat entfernt (Codify #240).
+- [x] **Nitpick übernommen:** Test `should_countPerToken_when_differentTokensUsed` →
+  `should_passRawTokenAsRateLimitKey_when_differentTokensUsed` – der Name benennt jetzt das
+  tatsächlich Geprüfte (übergebener Schlüssel); die Fenster-Isolation belegt `lib/rate-limit.test.ts`.
+- Nitpick „Wanduhr-Test am Singleton" und „Beobachtung zum Schwellwert 60/Token" bewusst **ohne
+  Änderung**: ersteres ist im Test begründet und praktisch risikofrei, letzteres ist ein mit dem
+  Auftraggeber gesetzter Spec-Parameter (spec-182) und an einer Stelle änderbar.
+
+**Gates nach Rework:** `pnpm lint`, `pnpm format:check`, `pnpm test` (688 passed / 59 skipped –
+einer weniger als zuvor, weil W3 den Duplikat-Test entfernt hat).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

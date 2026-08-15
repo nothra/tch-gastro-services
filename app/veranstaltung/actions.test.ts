@@ -819,6 +819,9 @@ describe("adjustVerzehrByTokenAction", () => {
     expect(result).toEqual({ ok: true, menge: 1 });
     expect(getVeranstaltungByTokenMock).toHaveBeenCalledWith("tok");
     expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
+    // AK-1 (#182): unterhalb des Rate-Limit-Schwellwerts (beforeEach: tryAcquire → true) bleibt
+    // der Pfad inklusive Revalidierung unverändert.
+    expect(revalidatePathMock).toHaveBeenCalledWith("/theke/tok");
   });
 
   it("should_authorizeWithoutRole_when_tokenValid", async () => {
@@ -868,15 +871,6 @@ describe("adjustVerzehrByTokenAction", () => {
   });
 
   // Rate-Limit der öffentlichen Schreib-Grenze (#182, ADR-044 D3).
-  it("should_processNormallyAndRevalidate_when_underRateLimit", async () => {
-    // AK-1: unterhalb des Schwellwerts bleibt das Verhalten unverändert.
-    const result = await boundAction(validAdjust);
-
-    expect(result).toEqual({ ok: true, menge: 1 });
-    expect(adjustMengeMock).toHaveBeenCalledWith("z1", "c1", 1);
-    expect(revalidatePathMock).toHaveBeenCalledWith("/theke/tok");
-  });
-
   it("should_returnTooManyRequestsAndSkipEveryDbCall_when_rateLimited", async () => {
     // AK-2/AK-5/FS-3: gedrosselt wird rein in-memory – kein Token-Lookup, kein Zeilen-/
     // Artikel-Read, kein Write, kein revalidatePath, kein `ok`/`menge` im State.
@@ -892,7 +886,7 @@ describe("adjustVerzehrByTokenAction", () => {
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
-  it("should_countPerToken_when_differentTokensUsed", async () => {
+  it("should_passRawTokenAsRateLimitKey_when_differentTokensUsed", async () => {
     // AK-3/FS-2: Zähl-Dimension ist der rohe Token – die Isolation zwischen Veranstaltungen
     // entsteht genau dadurch (Fenster-Trennung selbst: lib/rate-limit.test.ts).
     await adjustVerzehrByTokenAction("tok-a", undefined, form(validAdjust));

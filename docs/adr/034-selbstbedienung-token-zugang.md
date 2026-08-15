@@ -85,11 +85,16 @@ local/int/prd, ohne zusätzliche Env-Pflege); nur falls ein Header fehlt, greift
 env-Fallback (`AUTH_URL`/`NEXTAUTH_URL`). Anzeige beim **Veranstalter** auf `app/veranstaltung/[id]`
 in einem Abschnitt „Zugang teilen" (Link als Text zum Kopieren + QR-SVG).
 
-### D7 · Missbrauchsbremse (Rate-Limit) bewusst NICHT in #54
+### D7 · Missbrauchsbremse (Rate-Limit) bewusst NICHT in #54 — nachgeliefert in #182
 Die token-scoped Action ist die **einzige öffentliche Schreib-Grenze**. Eine Missbrauchsbremse
-(Rate-Limit, analog `lib/rate-limit.ts` beim Health-Endpoint, ADR-020) wird an **/security-review**
-delegiert (so von spec-54 vorgesehen). #54 liefert die fail-closed-Grundlagen (unratbarer Token,
-Status-Gate, IDOR-Bindung, neutrale Fehler); die Härtung ist additiv nachrüstbar.
+(Rate-Limit, analog `lib/rate-limit.ts` beim Health-Endpoint, ADR-020) wurde aus #54 herausgehalten
+und der nachgelagerten Härtung überlassen (so von spec-54 vorgesehen; als Adressat war dort
+**/security-review** genannt). #54 lieferte die fail-closed-Grundlagen (unratbarer Token,
+Status-Gate, IDOR-Bindung, neutrale Fehler); die Härtung war additiv nachrüstbar.
+
+**Erledigt:** Die Bremse ist in #182 als eigener Task umgesetzt – ein Fixed-Window-Limiter pro
+Token (60 Anfragen/60 s, fail-open) vor dem Token-Lookup der Action, siehe
+[ADR-044](044-rate-limit-selbstbedienungs-action.md).
 
 ## Alternatives
 
@@ -143,7 +148,8 @@ ebenso die neue Server-Dependency (`qrcode`).
 
 **Negative / Trade-offs:**
 - Zweiter Autorisierungspfad (Token neben Rolle) erweitert die Angriffsfläche um **eine** öffentliche
-  Mutation – bewusst eng gehalten; Rate-Limit ist ein offener /security-review-Punkt (D7).
+  Mutation – bewusst eng gehalten; das Rate-Limit dazu blieb aus #54 heraus (D7) und ist seit #182
+  umgesetzt (ADR-044).
 - Neue Server-Dependency `qrcode` (+ Typen).
 - Identität nur clientseitig – ein Gerätewechsel/Storage-Clear vergisst die Person (akzeptiert:
   „Person wählen" ist ein Klick).
