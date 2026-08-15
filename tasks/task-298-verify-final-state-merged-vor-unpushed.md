@@ -1,7 +1,7 @@
 # Task 298: verify-final-state-merged-vor-unpushed
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,14 +20,14 @@ sofort als Erfolg zählen (nur der Working-Tree-Check bleibt davor). Details sie
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN clean + PR_SHEPHERD=true + MERGED + unpushed=NO_UPSTREAM THEN verifiziert (exit 0)
-- [ ] GIVEN clean + PR_SHEPHERD=true + MERGED + unpushed=3 THEN ebenfalls verifiziert (exit 0)
-- [ ] GIVEN dirty + PR_SHEPHERD=true + MERGED THEN weiterhin "Working Tree nicht sauber" (Tree-Check bleibt vor dem Kurzschluss)
-- [ ] GIVEN PR_SHEPHERD=true + pr_state≠MERGED + unpushed nicht-numerisch THEN weiterhin fail-closed "Push-Zustand nicht verifizierbar" (Regressions-Guard)
-- [ ] GIVEN PR_SHEPHERD=false THEN unverändertes Verhalten (AK1/AK2/F2/F3 wie bisher)
-- [ ] GIVEN bestehende Tests AK1–AK6/F1–F4 THEN bleiben unverändert grün
-- [ ] GIVEN verify_final_state() I/O-Ebene mit echtem git-Repo (origin/<branch> gelöscht) + gestubbtem gh (MERGED) THEN verifiziert (exit 0)
-- [ ] GIVEN ADR-040 THEN Punkt 1 beschreibt den MERGED-Kurzschluss (Prosa-Abgleich)
+- [x] GIVEN clean + PR_SHEPHERD=true + MERGED + unpushed=NO_UPSTREAM THEN verifiziert (exit 0)
+- [x] GIVEN clean + PR_SHEPHERD=true + MERGED + unpushed=3 THEN ebenfalls verifiziert (exit 0)
+- [x] GIVEN dirty + PR_SHEPHERD=true + MERGED THEN weiterhin "Working Tree nicht sauber" (Tree-Check bleibt vor dem Kurzschluss)
+- [x] GIVEN PR_SHEPHERD=true + pr_state≠MERGED + unpushed nicht-numerisch THEN weiterhin fail-closed "Push-Zustand nicht verifizierbar" (Regressions-Guard)
+- [x] GIVEN PR_SHEPHERD=false THEN unverändertes Verhalten (AK1/AK2/F2/F3 wie bisher)
+- [x] GIVEN bestehende Tests AK1–AK6/F1–F4 THEN bleiben unverändert grün
+- [x] GIVEN verify_final_state() I/O-Ebene mit echtem git-Repo (origin/<branch> gelöscht) + gestubbtem gh (MERGED) THEN verifiziert (exit 0)
+- [x] GIVEN ADR-040 THEN Punkt 1 beschreibt den MERGED-Kurzschluss (Prosa-Abgleich)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -72,11 +72,33 @@ unconditional erhoben, unabhängig vom späteren Gebrauch.
 - [x] ADR-040: reine Prosa-Korrektur oder eigener /architecture-Trigger? → Prosa-Korrektur (Nachtrag) umgesetzt, kein neues ADR nötig.
 - [ ] Rückwirkende Metrik-Korrektur für Task #182/PR #296 – separates Issue oder kein Thema? (bleibt offen, nicht Teil dieser Task)
 
+## Root Cause
+Root Cause [2026-08-15]: `scripts/lib/verify-final-state.sh:42–51` (vor dem Fix) – der
+Unpushed-Check (`case "$unpushed" in ''|*[!0-9]*)`) lief **vor** dem MERGED-Kurzschluss
+(der stand erst bei Zeile ~62). Nach Squash-Merge + Branch-Auto-Delete existiert
+`origin/<branch>` nicht mehr, `unpushed` wird also `NO_UPSTREAM` (nicht-numerisch) –
+der fail-closed-Check griff dadurch fälschlich zuerst und meldete „Push-Zustand nicht
+verifizierbar", obwohl AK6 (MERGED = Erfolg) unabhängig davon hätte greifen müssen.
+
+## Fix
+`scripts/lib/verify-final-state.sh` (`evaluate_final_state()`): MERGED-Kurzschluss
+(`if [ "$pr_shepherd" = "true" ] && [ "$pr_state" = "MERGED" ]; then return 0; fi`) direkt
+nach dem Tree-Check und vor den Unpushed-Check gezogen; der alte, dadurch unreachable
+gewordene MERGED-Block weiter unten entfernt. Funktionskopf-Kommentar (Meldungs-Priorität)
+und ADR-040-Nachtrag entsprechend aktualisiert.
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Hinweis für `/codify`: Reihenfolge-Bug in einer Kurzschluss-Kette – ein früherer,
+unabhängig fail-closed greifender Check (Unpushed) stand vor einem später eingeführten
+Kurzschluss (MERGED-Erfolg), der ihn eigentlich hätte überstimmen sollen. Beim Hinzufügen
+eines neuen Erfolgs-Kurzschlusses zu einer bestehenden Guard-Clause-Kette immer prüfen, ob
+er VOR (nicht nach) bereits existierenden fail-closed-Checks stehen muss, die er außer
+Kraft setzen soll.
 
 ---
 Branch: `fix/298-verify-final-state-merged-vor-unpushed`
