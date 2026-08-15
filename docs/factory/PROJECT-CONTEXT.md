@@ -268,6 +268,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Neue Verfügbarkeits-/Capability-Prüfung (`command -v` o. ä.) gegen bereits vorhandene im selben File abgleichen, statt eine dritte Schreibweise einzuführen (aus #224, Review-Runde-1-Finding)
 - Fix für falschen WHY-Kommentar (falsche Kausalkette) per Grep auf kopierte Geschwister-Stellen im selben PR ausweiten, nicht nur die gemeldete Zeile fixen (aus #264, Review-Runde-1-Finding, Rezidiv in Runde 3)
 - „Empirisch verifiziert" im Kommentar ohne tatsächliche Prüfung in dieser Session – Rezidiv an anderer Stelle trotz Fix, plus Versionsangabe unbemerkt auf 7 Stellen kopiert (aus #268, Review-Runde 2 W3 + Runde 4 W1)
+- JSDoc auf einem geteilten Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten mit abweichendem Wert – gleiches Muster an einem Nachbarfeld derselben Struktur übersehen (aus #182, Review-Runde 1 W2 + Runde 2 Nitpick 1)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
 

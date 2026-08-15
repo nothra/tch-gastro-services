@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -251,6 +251,12 @@ wichtigen Findings.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [`tasks/codify-182.md`](codify-182.md). Eine neue Lesson-Regel: JSDoc auf einem geteilten
+Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten
+(neuer Eintrag in `docs/factory/lessons/code-style.md`, Index-Zeile in `PROJECT-CONTEXT.md`).
+Alle übrigen Findings waren Anwendungsfälle bereits bestehender Lessons (#211/#176, #258/#268/#286,
+#240) – keine weitere Änderung nötig.
 
 ---
 Branch: `feature/182-rate-limit-selbstbedienungs-action`
