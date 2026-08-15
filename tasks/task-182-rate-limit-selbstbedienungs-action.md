@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -170,6 +170,35 @@ einer weniger als zuvor, weil W3 den Duplikat-Test entfernt hat).
 **Gates nach Rework Runde 2:** `pnpm lint`, `pnpm format:check`, `pnpm test`
 (688 passed / 59 skipped – unverändert, da W1 den bestehenden Test erweitert statt einen neuen
 anzulegen).
+
+### Runde 3 (/review → APPROVED, keine kritischen/wichtigen Findings)
+
+Siehe [`tasks/review-182.md`](review-182.md). Fünf optionale Nitpicks, keiner blockierend.
+
+## Test-Notizen (/test, 2026-08-15)
+
+- **Coverage-Analyse:** `lib/rate-limit.ts` 100 % Statements/Branches/Functions/Lines (isoliert
+  gemessen, `pnpm vitest run lib/rate-limit.test.ts --coverage`). `app/veranstaltung/actions.ts`
+  99,6 % Stmts / 98,9 % Branches – die beiden einzigen ungedeckten Zeilen (119, 331) liegen in
+  `createWalkInAction` bzw. einer anderen, von diesem PR nicht berührten Funktion (verifiziert
+  gegen `git diff origin/main...HEAD -- app/veranstaltung/actions.ts`: der Diff fügt nur Import,
+  `TOO_MANY_REQUESTS`-Konstante, Kommentar und den Guard hinzu – alle vier Zeilen sind covered).
+  Beide neuen Branches in `adjustVerzehrByTokenAction` (Guard greift / Guard lässt durch) sind
+  über `actions.test.ts` abgedeckt. Weit über der 80-%-Projektschwelle.
+- **AK/FS-Vollständigkeit gegen spec-182 geprüft:** AK-1…AK-6 und FS-1…FS-3 haben je einen
+  eigenen, benannten Testfall bzw. sind Teil des Fenster-Verlaufstests am Singleton (siehe
+  Umsetzungs- und Review-Notizen oben) – keine Lücke gefunden.
+- **Ein Cleanup übernommen (Review-Runde-3-Nitpick, nicht blockierend, aber reiner
+  Test-Scope):** `lib/rate-limit.test.ts:55-61` (`should_throttleKey_when_limitExceededWithinWindow`)
+  war ein vollständiges Präfix-Duplikat von `should_countKeysIndependently_when_oneKeyExhausted`
+  (identische Optionen, identischer Schlüssel `"a"`, identische ersten drei Assertions) – ersatzlos
+  entfernt (Codify #240: keine parallele Struktur mit identischem Rumpf).
+- **Übrige vier Nitpicks aus Runde 3 bewusst unverändert gelassen** – Doku-Vollständigkeit
+  (Spec-Offene-Fragen-Checkboxen, ADR-020-Runtime-Voraussetzung) und die unveränderte,
+  Auftraggeber-gesetzte Schwellwert-Beobachtung liegen außerhalb des Test-Scopes dieses Schritts.
+- **Gates nach /test:** `pnpm lint`, `pnpm format:check`, `pnpm test` (687 passed / 59 skipped –
+  einer weniger als nach Runde 2, weil das Duplikat entfernt wurde; keine anderen Zählungen
+  geändert).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

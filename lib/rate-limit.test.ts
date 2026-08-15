@@ -52,14 +52,6 @@ describe("createKeyedRateLimiter", () => {
     expect(limiter.tryAcquire("bislang-unbekannt")).toBe(true);
   });
 
-  it("should_throttleKey_when_limitExceededWithinWindow", () => {
-    const limiter = createKeyedRateLimiter({ limit: 2, windowMs: 1000, now: () => 0 });
-
-    expect(limiter.tryAcquire("a")).toBe(true);
-    expect(limiter.tryAcquire("a")).toBe(true);
-    expect(limiter.tryAcquire("a")).toBe(false);
-  });
-
   it("should_countKeysIndependently_when_oneKeyExhausted", () => {
     // AK-3/FS-2: ein geflutetes Token darf andere Veranstaltungen nicht mitdrosseln.
     const limiter = createKeyedRateLimiter({ limit: 2, windowMs: 1000, now: () => 0 });
