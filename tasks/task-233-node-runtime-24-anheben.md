@@ -30,7 +30,7 @@ Spec: [`docs/specs/spec-233-node-runtime-24-anheben.md`](../docs/specs/spec-233-
 - [x] **AK-3** GIVEN die sechs Doku-Fundstellen („Node 20+" / „Node ≥ 20") WHEN der Task
       umgesetzt ist THEN nennt jede Node 24, und die Volltextsuche über alle drei
       Schreibweisen liefert außerhalb von Lockfile/`tasks/`/Spec-Kontext keinen Treffer.
-- [ ] **AK-4** GIVEN die Workflows auf Node 24 WHEN der PR gepusht ist THEN sind die required
+- [x] **AK-4** GIVEN die Workflows auf Node 24 WHEN der PR gepusht ist THEN sind die required
       Checks (`factory-ci` lint/test, `deploy-gate`) auf Node 24 tatsächlich gelaufen und grün.
 - [x] **AK-5** GIVEN eine lokale Node-24-Umgebung WHEN `pnpm install`, `pnpm build`,
       `pnpm test` und `pnpm test:e2e` laufen THEN terminiert jedes erfolgreich.
@@ -129,6 +129,12 @@ Siehe [`tasks/codify-233.md`](codify-233.md). Eine neue Lesson ergänzt:
 `docs/factory/lessons/factory-workflow.md` – ein Spec-AK mit Pflichtinhalt in der
 PR-Beschreibung selbst wird vom Standard-Draft-Body nicht automatisch erfüllt; Index-Zeile in
 `PROJECT-CONTEXT.md` ergänzt. Kein weiterer Regelbedarf.
+
+PR-Shepherd 2026-08-16: Merge freigegeben – alle Gates grün (lint/test/CodeQL/Vercel/
+issue-sync/config-validation/factory-self-test/pr-closes-issue durchgelaufen, `post-merge-
+verify` erwartungsgemäß `skipping` vor dem Merge auf `main`), kein Approval erforderlich
+(ADR-029), kein Rebase nötig (`main` war Ancestor). Draft → ready. AK-4 damit ebenfalls
+erfüllt (required Checks `factory-ci` lint/test liefen nachweislich unter Node 24).
 
 ---
 Branch: `chore/233-node-runtime-24-anheben`
