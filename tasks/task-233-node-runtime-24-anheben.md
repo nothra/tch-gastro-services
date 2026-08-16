@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -107,6 +107,15 @@ unverändert (`^6.9.1`).
 Siehe [`tasks/review-233.md`](review-233.md) – drei Runden (Logik, Code-Qualität, Architektur),
 ein kritisches Finding (PR-Body ohne AK-8-Hinweis, sofort behoben), zwei Nitpicks (einer
 behoben: Zahlen-Tippfehler in der Spec). Empfehlung: APPROVED.
+
+## Test-Notizen
+
+Kein Produktionscode/keine App-Logik geändert (reiner Runtime-/Doku-/CI-Sweep) – laut Scope
+entstehen dadurch bewusst **keine neuen Produkt-Tests**. `pnpm test:coverage` unter Node 24
+bestätigt die bestehende Suite unverändert grün (687 passed, 59 skipped) bei Gesamt-Coverage
+89.19 % Statements / 94.31 % Branches – oberhalb der 80 %-Schwelle aus `PROJECT-CONTEXT.md`,
+unbeeinflusst von diesem Task (keine neue Zeile Produktionscode). `pnpm test:e2e` bereits in
+`/implement` unter Node 24 grün verifiziert (siehe Technische Notizen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
