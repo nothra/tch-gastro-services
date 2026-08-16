@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -77,6 +77,13 @@ keine kritischen/wichtigen Findings, zwei Nitpicks (nicht blockierend). Empfehlu
   `package.json`, `pnpm-lock.yaml` sowie Spec-/Task-/Review-Dateien) – die Clean-Code-Checkliste
   (Naming, Funktionsgröße, Duplikation, Magic Numbers) hat keinen Angriffspunkt. Kein
   Refactoring nötig, keine Änderung vorgenommen.
+
+## Security-Review (/security-review)
+
+Siehe [`tasks/security-231.md`](security-231.md) – Ergebnis **PASSED**. Kein kritisches/
+wichtiges Finding. Ein Hinweis (`pnpm audit` zu `brace-expansion`) als False Positive der
+Audit-Anzeige verifiziert (aufgelöste Version 1.1.18 ist für beide gemeldeten CVEs bereits
+gepatcht; unverändert seit #291, kein Bezug zu den acht Bump-Paketen dieses Tasks).
 
 ---
 Branch: `chore/231-unkritische-patch-updates`
