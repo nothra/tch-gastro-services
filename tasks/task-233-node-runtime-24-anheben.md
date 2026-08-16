@@ -34,8 +34,9 @@ Spec: [`docs/specs/spec-233-node-runtime-24-anheben.md`](../docs/specs/spec-233-
       Checks (`factory-ci` lint/test, `deploy-gate`) auf Node 24 tatsächlich gelaufen und grün.
 - [ ] **AK-5** GIVEN eine lokale Node-24-Umgebung WHEN `pnpm install`, `pnpm build`,
       `pnpm test` und `pnpm test:e2e` laufen THEN terminiert jedes erfolgreich.
-- [ ] **AK-6** GIVEN die Maschine mit Node 26.3.0 WHEN AK-5 verifiziert wird THEN geschieht das
-      unter per nvm installiertem Node 24 (`node -v` meldet `v24.x` im selben Lauf).
+- [ ] **AK-6** GIVEN die Maschine mit global installiertem Node 26.3.0 WHEN AK-5 verifiziert
+      wird THEN geschieht das unter Node 24 aus der keg-only Formel `node@24` (PATH-Präfix
+      `/opt/homebrew/opt/node@24/bin`); `node -v` meldet `v24.x` im selben Lauf wie die Gates.
 - [ ] **AK-7** GIVEN die Frage nach der `@testing-library/jest-dom`-7-Blockade WHEN der Task
       abgeschlossen ist THEN steht das Prüfergebnis unten in den Notizen, und jest-dom selbst
       ist unverändert.
@@ -64,6 +65,14 @@ strukturelle Entscheidung. `/architecture` kann übersprungen werden; direkt `/i
 
 Nicht betroffen: `factory-poll.yml` und `deploy-freeze-release.yml` nutzen kein Node.
 
+**Node 24 lokal aktivieren (für AK-5/AK-6):** `node@24` ist installiert (24.19.0, keg-only) –
+das globale `node` bleibt 26.3.0. Aktivierung pro Kommando durch PATH-Präfix, damit `node -v`
+und die Gates im selben Lauf dieselbe Version sehen:
+
+```bash
+export PATH="/opt/homebrew/opt/node@24/bin:$PATH" && node -v && pnpm install && pnpm build
+```
+
 **Manueller Nachlauf nach dem Merge:** Vercel-Projekteinstellung „Node.js Version" auf 24.x
 setzen (kein Repo-Artefakt, gehört in die PR-Beschreibung).
 
@@ -74,7 +83,9 @@ setzen (kein Repo-Artefakt, gehört in die PR-Beschreibung).
 - [x] Doku-Sweep-Umfang → alle sechs Fundstellen inkl. beider ADR-Stellen.
 - [x] `engines.node`-Range → `>=24` (offene Untergrenze, lokales Node 26 bleibt gültig).
 - [x] `.nvmrc`/`.node-version` einführen? → Nein, eine kanonische Quelle.
-- [x] Lokale Verifikation → Node 24 per nvm installieren und die Gates dort fahren.
+- [x] Lokale Verifikation → Node 24 lokal installieren und die Gates dort fahren. Umgesetzt via
+      `brew install node@24` (24.19.0, keg-only) – nvm war nicht vorhanden und wurde bewusst
+      nicht nachgerüstet (Homebrew-verwaltetes Setup, kein zweiter Versionsmanager im PATH).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

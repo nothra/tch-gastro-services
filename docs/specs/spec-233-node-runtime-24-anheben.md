@@ -50,8 +50,12 @@ dort ist nichts anzupassen. Eine `.nvmrc`/`.node-version` existiert nicht.
 2. **`engines.node` wird als offene Untergrenze `>=24` gesetzt**, nicht als exakte 24er-Linie.
    Begründung: die lokale Entwicklungsmaschine läuft aktuell Node 26.3.0; eine `^24`-Range
    würde sie formal ausschließen. Unabhängig davon wird die **lokale Umgebung für die
-   Verifikation dieses Tasks per nvm auf 24 gefahren** (siehe AK-6), damit die Gates gegen
-   dieselbe Version laufen wie Vercel und CI.
+   Verifikation dieses Tasks auf 24 gefahren** (siehe AK-6), damit die Gates gegen dieselbe
+   Version laufen wie Vercel und CI. Bereitgestellt über die keg-only Homebrew-Formel
+   `node@24` (24.19.0, installiert in dieser Phase) – nicht über nvm: das Setup ist bereits
+   Homebrew-verwaltet, ein zweiter Versionsmanager würde sich im PATH überlagern. Keg-only
+   heißt: das globale `node` (26.3.0) bleibt unverändert, Node 24 wird per vorangestelltem
+   PATH `/opt/homebrew/opt/node@24/bin` aktiviert.
 
 ## Scope
 
@@ -62,7 +66,7 @@ dort ist nichts anzupassen. Eine `.nvmrc`/`.node-version` existiert nicht.
   und `test`) auf `24` anheben.
 - **Doku:** die sechs Fundstellen „Node 20+" / „Node ≥ 20" auf Node 24 anheben
   (`PROJECT-CONTEXT.md`, `README.md` 2×, `CONTRIBUTING.md`, ADR-014, ADR-036).
-- **Verifikation lokal unter Node 24** (per nvm bereitgestellt): `pnpm install`, `pnpm build`,
+- **Verifikation lokal unter Node 24** (bereitgestellt über `node@24`, keg-only): `pnpm install`, `pnpm build`,
   `pnpm test`, `pnpm test:e2e` sowie die regulären Gates.
 - **Manueller Nachlauf, dokumentiert:** die Vercel-Projekteinstellung „Node.js Version" auf
   24.x prüfen/setzen. Kein Repo-Artefakt – gehört als expliziter Schritt in die Task-Notizen
@@ -101,13 +105,15 @@ dort ist nichts anzupassen. Eine `.nvmrc`/`.node-version` existiert nicht.
 - [ ] **AK-4** GIVEN die CI-Workflows auf Node 24 WHEN der PR gepusht ist THEN sind die
       required Checks aus `factory-ci` (`lint`, `test`) und `deploy-gate` grün – also auf Node
       24 tatsächlich ausgeführt, nicht übersprungen.
-- [ ] **AK-5** GIVEN eine lokale Node-24-Umgebung (nvm) WHEN `pnpm install`, `pnpm build`,
+- [ ] **AK-5** GIVEN eine lokale Node-24-Umgebung WHEN `pnpm install`, `pnpm build`,
       `pnpm test` und `pnpm test:e2e` dort ausgeführt werden THEN terminiert jedes davon
       erfolgreich; `pnpm build` ist explizit eingeschlossen, weil Lint/Vitest keine
       Turbopack-/Build-Fehler fangen (Lesson #137/#193).
-- [ ] **AK-6** GIVEN die Entwicklungsmaschine mit Node 26.3.0 WHEN die Verifikation aus AK-5
-      läuft THEN geschieht das unter einer per `nvm` installierten Node-24-Version (Nachweis:
-      `node -v` meldet `v24.x` im selben Lauf), nicht unter der Default-Version 26.
+- [ ] **AK-6** GIVEN die Entwicklungsmaschine mit global installiertem Node 26.3.0 WHEN die
+      Verifikation aus AK-5 läuft THEN geschieht das unter Node 24 aus der keg-only Formel
+      `node@24` (PATH-Präfix `/opt/homebrew/opt/node@24/bin`), nicht unter der
+      Default-Version 26 – Nachweis: `node -v` meldet `v24.x` **im selben Lauf** wie die
+      Gates, nicht in einem separaten Kommando davor.
 - [ ] **AK-7** GIVEN die Frage aus dem Issue, ob Node 24 die `@testing-library/jest-dom`-7-
       Blockade auflöst WHEN der Task abgeschlossen ist THEN ist das Ergebnis der Prüfung in der
       Task-Datei festgehalten (aufgelöst / weiterhin blockiert, mit Begründung) – und
@@ -150,7 +156,9 @@ dort ist nichts anzupassen. Eine `.nvmrc`/`.node-version` existiert nicht.
 - [x] Wird eine `.nvmrc`/`.node-version` eingeführt? → **Nein** – eine kanonische Quelle
       (`engines.node`) statt einer dritten, eigenständig driftenden Stelle.
 - [x] Wie wird „lokal unter Node 24 grün" erfüllt, wenn die Maschine Node 26 fährt? → **Node 24
-      per nvm installieren** und die Gates dort fahren (AK-6).
+      lokal installieren** und die Gates dort fahren (AK-6). Umgesetzt in dieser Phase über
+      `brew install node@24` (24.19.0, keg-only); nvm war auf der Maschine nicht vorhanden und
+      wurde bewusst nicht nachgerüstet.
 - [ ] **Kein ADR-Trigger erkennbar.** Die Zielversion 24 und ihre Begründung stehen bereits im
       Issue und sind hier übernommen; es entsteht keine neue strukturelle Entscheidung –
       `/architecture` kann übersprungen werden. ADR-014 wird nur in seiner Versionsangabe
