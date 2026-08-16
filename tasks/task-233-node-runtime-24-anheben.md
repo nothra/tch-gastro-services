@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -116,6 +116,12 @@ bestätigt die bestehende Suite unverändert grün (687 passed, 59 skipped) bei 
 89.19 % Statements / 94.31 % Branches – oberhalb der 80 %-Schwelle aus `PROJECT-CONTEXT.md`,
 unbeeinflusst von diesem Task (keine neue Zeile Produktionscode). `pnpm test:e2e` bereits in
 `/implement` unter Node 24 grün verifiziert (siehe Technische Notizen).
+
+## Refactoring-Notizen
+
+Kein Refactoring-Bedarf: Der Diff besteht ausschließlich aus Versions-Literalen
+(`node-version: 22→24` × 3, `engines.node` neu, sechs/sieben Doku-Versionsangaben) – keine
+Funktionen, keine Duplikation, keine Magic Numbers, kein neues Verhalten zum Bereinigen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
