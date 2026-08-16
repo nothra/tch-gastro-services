@@ -20,7 +20,7 @@ alltäglicher Vorgänge – mit rollenbasiertem Zugriff.
 | **Datenbank** | **PostgreSQL** – lokal (Docker) in DEV, [Neon](https://neon.com) (EU/Frankfurt) in INT/PRD |
 | **DB-Zugriff** | [Drizzle ORM](https://orm.drizzle.team) – `node-postgres` lokal, Neon serverless HTTP auf Vercel |
 | **Auth** | [Auth.js / NextAuth v5](https://authjs.dev) – E-Mail+Passwort (bcrypt, JWT), Rollen (RBAC) |
-| **Paketmanager** | pnpm · Node ≥ 20 |
+| **Paketmanager** | pnpm · Node ≥ 24 |
 
 Produktivdaten in der EU (Neon Frankfurt + Vercel `fra1`). Alle Bausteine sind im
 Vereinsbetrieb kostenfrei. Hintergrund: [ADR-014](docs/adr/014-tech-stack-selection.md).
@@ -43,7 +43,7 @@ ein **stage-eingefärbtes Icon** (Homescreen/Tab) und ein `[DEV]`/`[INT]`-Titel-
 
 ### DEV – lokale Entwicklung
 
-**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io) (`npm i -g pnpm`), Docker mit **Docker Compose v2** (`docker compose`).
+**Voraussetzungen:** Node ≥ 24, [pnpm](https://pnpm.io) (`npm i -g pnpm`), Docker mit **Docker Compose v2** (`docker compose`).
 
 ```bash
 pnpm install

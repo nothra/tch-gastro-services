@@ -1,7 +1,7 @@
 # Task 233: node-runtime-24-anheben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -23,21 +23,21 @@ Spec: [`docs/specs/spec-233-node-runtime-24-anheben.md`](../docs/specs/spec-233-
 
 ## Akzeptanzkriterien
 
-- [ ] **AK-1** GIVEN `package.json` ohne `engines`-Feld WHEN der Task umgesetzt ist THEN
+- [x] **AK-1** GIVEN `package.json` ohne `engines`-Feld WHEN der Task umgesetzt ist THEN
       enthält es `"engines": { "node": ">=24" }`, und `pnpm install` läuft ohne Engine-Warnung.
-- [ ] **AK-2** GIVEN die drei CI-Stellen auf `node-version: 22` WHEN der Task umgesetzt ist
+- [x] **AK-2** GIVEN die drei CI-Stellen auf `node-version: 22` WHEN der Task umgesetzt ist
       THEN steht an allen drei `24`, und kein `node-version: 22` bleibt im Repo zurück.
-- [ ] **AK-3** GIVEN die sechs Doku-Fundstellen („Node 20+" / „Node ≥ 20") WHEN der Task
+- [x] **AK-3** GIVEN die sechs Doku-Fundstellen („Node 20+" / „Node ≥ 20") WHEN der Task
       umgesetzt ist THEN nennt jede Node 24, und die Volltextsuche über alle drei
       Schreibweisen liefert außerhalb von Lockfile/`tasks/`/Spec-Kontext keinen Treffer.
 - [ ] **AK-4** GIVEN die Workflows auf Node 24 WHEN der PR gepusht ist THEN sind die required
       Checks (`factory-ci` lint/test, `deploy-gate`) auf Node 24 tatsächlich gelaufen und grün.
-- [ ] **AK-5** GIVEN eine lokale Node-24-Umgebung WHEN `pnpm install`, `pnpm build`,
+- [x] **AK-5** GIVEN eine lokale Node-24-Umgebung WHEN `pnpm install`, `pnpm build`,
       `pnpm test` und `pnpm test:e2e` laufen THEN terminiert jedes erfolgreich.
-- [ ] **AK-6** GIVEN die Maschine mit global installiertem Node 26.3.0 WHEN AK-5 verifiziert
+- [x] **AK-6** GIVEN die Maschine mit global installiertem Node 26.3.0 WHEN AK-5 verifiziert
       wird THEN geschieht das unter Node 24 aus der keg-only Formel `node@24` (PATH-Präfix
       `/opt/homebrew/opt/node@24/bin`); `node -v` meldet `v24.x` im selben Lauf wie die Gates.
-- [ ] **AK-7** GIVEN die Frage nach der `@testing-library/jest-dom`-7-Blockade WHEN der Task
+- [x] **AK-7** GIVEN die Frage nach der `@testing-library/jest-dom`-7-Blockade WHEN der Task
       abgeschlossen ist THEN steht das Prüfergebnis unten in den Notizen, und jest-dom selbst
       ist unverändert.
 - [ ] **AK-8** GIVEN die Vercel-Einstellung „Node.js Version" WHEN der PR zum Merge freigegeben
@@ -65,6 +65,12 @@ strukturelle Entscheidung. `/architecture` kann übersprungen werden; direkt `/i
 
 Nicht betroffen: `factory-poll.yml` und `deploy-freeze-release.yml` nutzen kein Node.
 
+**Zusätzlicher Fund beim Implementieren (nicht in der ursprünglichen Sechser-Liste):**
+`docs/factory/OPERATING.md:82` (`| Node ≥ 20 + \`pnpm\` | Build/Test/DB-Scripts | ... |`) trug
+ebenfalls „Node ≥ 20" und wäre sonst als Treffer bei AK-3 stehen geblieben. Mitgezogen auf
+Node 24, damit die Volltextsuche tatsächlich leer ist (Lesson #144: Terminologie-Sweeps sind
+blind für nicht vorab bekannte Fundstellen).
+
 **Node 24 lokal aktivieren (für AK-5/AK-6):** `node@24` ist installiert (24.19.0, keg-only) –
 das globale `node` bleibt 26.3.0. Aktivierung pro Kommando durch PATH-Präfix, damit `node -v`
 und die Gates im selben Lauf dieselbe Version sehen:
@@ -76,7 +82,16 @@ export PATH="/opt/homebrew/opt/node@24/bin:$PATH" && node -v && pnpm install && 
 **Manueller Nachlauf nach dem Merge:** Vercel-Projekteinstellung „Node.js Version" auf 24.x
 setzen (kein Repo-Artefakt, gehört in die PR-Beschreibung).
 
-**jest-dom-7-Prüfung (AK-7):** _offen – Ergebnis hier eintragen._
+**jest-dom-7-Prüfung (AK-7):** Aufgelöst, soweit die Node-Version die Ursache war.
+`@testing-library/jest-dom@7.0.1` (aktuell neueste, installiert bleibt `6.9.1`) deklariert
+`engines.node: ">=22"` – das war die „Node-22-Blockade" aus dem Issue-Text. Mit diesem Task
+läuft die Runtime überall (CI, `package.json`, lokal via `node@24`) auf **>=24**, was die
+Node-Anforderung von jest-dom 7 überall erfüllt; die Peer-Dependencies
+(`@testing-library/dom` `^10.4.1` erfüllt `>=10 <11`, `vitest` `^4.1.10` erfüllt `>= 0.32`)
+passen ebenfalls bereits. Ein tatsächlicher Bump auf 7.x bleibt bewusst **außerhalb** dieses
+Tasks (kein Dependency-Update, s. Scope) – dafür ein eigenes Issue anlegen, das die
+Breaking-Changes von jest-dom 6→7 selbst prüft. `@testing-library/jest-dom` ist in diesem PR
+unverändert (`^6.9.1`).
 
 ## Offene Fragen
 

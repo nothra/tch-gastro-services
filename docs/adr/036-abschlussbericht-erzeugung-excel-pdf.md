@@ -22,7 +22,7 @@ Diese Entscheidung ist nötig, weil:
 - **zwei Format-Renderer** aus **derselben Datengrundlage** speisen müssen, damit die Werte
   garantiert identisch sind (spec-185 AC10) – ohne zweiten Wahrheitspfad.
 
-Rahmenbedingungen: Next.js App Router, Node 20+, Vercel Region `fra1`, EU-Datenresidenz
+Rahmenbedingungen: Next.js App Router, Node 24+, Vercel Region `fra1`, EU-Datenresidenz
 (ADR-014). Beträge sind ganzzahlige Cent (ADR-021); Einzelpreise je Position werden beim
 Abschluss eingefroren (`einzelpreis_cents`, ADR-033 D2) → die Zahlen einer abgeschlossenen
 Veranstaltung sind deterministisch reproduzierbar, ein Bericht-Snapshot ist fachlich nicht nötig.

@@ -64,7 +64,7 @@ Teilnehmer erfassen ohne Konto per Veranstaltungs-Link/QR + Namenswahl. Details 
 | Feld | Wert |
 |------|------|
 | **Primärsprache** | TypeScript |
-| **Framework / Runtime** | Next.js (App Router) / Node 20+ · Hosting: Vercel (Region fra1) |
+| **Framework / Runtime** | Next.js (App Router) / Node 24+ · Hosting: Vercel (Region fra1) |
 | **Datenbank** | PostgreSQL (Neon, Free-Tarif, Region Frankfurt/EU) |
 | **Build-Tool** | pnpm + Next.js |
 | **Weitere Technologien** | PWA (@serwist/next), Tailwind CSS + shadcn/ui, Drizzle ORM, Zod, Auth.js (NextAuth v5) |

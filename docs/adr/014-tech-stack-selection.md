@@ -34,7 +34,7 @@ Gewählter Stack (alle Bausteine im geplanten Vereinsbetrieb kostenfrei):
 | Auth + Rollen | **Auth.js (NextAuth v5)**, Nutzer/Rollen in eigener Neon-DB, RBAC serverseitig |
 | Tests | **Vitest** (Unit/Integration) + **Playwright** (E2E) |
 | Lint/Format | **ESLint + Prettier** |
-| Paketmanager | **pnpm**, Node 20+ |
+| Paketmanager | **pnpm**, Node 24+ |
 
 Datei-Storage wird erst bei Bedarf ergänzt (dann Cloudflare R2 / Vercel Blob).
 
