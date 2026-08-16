@@ -32,7 +32,7 @@ pnpm dev                            # http://localhost:3000
 und auch nachträglich ausführbar; ohne diesen Schritt hat ein frischer Clone **keine** lokalen
 Gates.
 
-Voraussetzungen (Node ≥ 20, pnpm, Docker) und die Stages DEV/INT/PRD stehen ebenfalls in der
+Voraussetzungen (Node ≥ 24, pnpm, Docker) und die Stages DEV/INT/PRD stehen ebenfalls in der
 `README.md`. Der Tech-Stack und die projektspezifischen Konventionen sind in
 [`docs/factory/PROJECT-CONTEXT.md`](docs/factory/PROJECT-CONTEXT.md) zusammengefasst.
 

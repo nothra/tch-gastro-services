@@ -64,7 +64,7 @@ Teilnehmer erfassen ohne Konto per Veranstaltungs-Link/QR + Namenswahl. Details 
 | Feld | Wert |
 |------|------|
 | **Primärsprache** | TypeScript |
-| **Framework / Runtime** | Next.js (App Router) / Node 20+ · Hosting: Vercel (Region fra1) |
+| **Framework / Runtime** | Next.js (App Router) / Node 24+ · Hosting: Vercel (Region fra1) |
 | **Datenbank** | PostgreSQL (Neon, Free-Tarif, Region Frankfurt/EU) |
 | **Build-Tool** | pnpm + Next.js |
 | **Weitere Technologien** | PWA (@serwist/next), Tailwind CSS + shadcn/ui, Drizzle ORM, Zod, Auth.js (NextAuth v5) |
@@ -313,6 +313,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - „Nicht allow-gelistet" ist kein Umgebungs-Blocker, solange der Wrapper-Skript-Weg (`scripts/*.tmp.sh`, bereits erlaubt über `Bash(bash scripts/*)`) ungeprüft ist – nur eine echte Datei-Zugriffssperre (z. B. `.env*` unter Deny) ist ein echter Blocker (aus #291, zwei Rework-Runden verloren) → jeder Skill – vor dem Dokumentieren eines Umgebungs-/Berechtigungs-Blockers
 - `kleinfunde.md`-Eintrag mit `Datei:Zeile`-Ankern, im selben PR angelegt, braucht denselben Drift-Check wie ADR/Lesson/Spec (#211/#176/#253) – auch wenn die Drift-Quelle die eigenen Folge-Commits derselben Task sind (aus #291, Review-Finding) → `/review`, `/security-review` – vor Merge-Freigabe, wenn dieser PR selbst einen `kleinfunde.md`-Eintrag angelegt hat
 - Fork-Subagent für eine Review-Runde: eigene Turns (z. B. `ScheduleWakeup`-Wartetexte) nach dem Spawn können in seinen Kontext bluten – lieferte hier statt echter Findings nur eine Paraphrase des eigenen Wartetexts zurück; Ergebnis bei Verdacht per `TaskOutput` gegenprüfen, nicht nur der kurzen `<result>`-Zusammenfassung vertrauen (aus #298, Selbstfund während `/review`) → `/review`, `/security-review` – bei Nutzung von Fork-Subagenten für Review-/Analyse-Runden
+- AK mit Pflichtinhalt in der PR-Beschreibung selbst (nicht in einer Repo-Datei) wird vom Standard-Draft-Body aus `start-work.sh` nicht automatisch erfüllt – kein Commit-Schritt zieht ihn nach, erst `/review` deckt die Lücke per `gh pr view --json body` auf; Inhalt per `gh pr edit <nr> --body "..."` explizit nachziehen, spätestens vor `/review` (aus #233, Review-Runde-1-Finding) → `/implement`, `/review` – bei einem Spec-AK, das Inhalt in der PR-Beschreibung selbst fordert
 
 ---
 
