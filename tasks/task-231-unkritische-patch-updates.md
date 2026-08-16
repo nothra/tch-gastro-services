@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -58,6 +58,18 @@ keine kritischen/wichtigen Findings, zwei Nitpicks (nicht blockierend). Empfehlu
   bereits existiert).
 - Reines Dependency-Update ohne neues Verhalten – keine neuen Produkt-Tests nötig (siehe Spec
   „Nicht inbegriffen"); alle bestehenden Unit- und E2E-Tests bleiben unverändert grün.
+
+## Test-Vollständigkeit (/test)
+
+- `git diff origin/main...HEAD` bestätigt: kein Produktionscode geändert (nur `package.json`,
+  `pnpm-lock.yaml`, Spec-/Task-/Review-Dateien) – keine neuen Codepfade, daher keine neuen Tests
+  erforderlich.
+- `pnpm test:coverage`: 687 Tests grün (59 skipped), Coverage 89,27 % Statements / 94,31 %
+  Branches / 78,63 % Funktionen / 89,27 % Lines – über der projektweiten 80 %-Schwelle.
+  Niedrig abgedeckte Dateien (`db/*.ts`) sind vorbestehend und von diesem Diff nicht berührt.
+- Alle Akzeptanzkriterien (AK-1 bis AK-6) sind Versions-/Gate-Kriterien, keine
+  Verhaltenskriterien – bereits in `/implement` per `pnpm outdated`, `pnpm install`,
+  `pnpm test`, `pnpm build` und `pnpm test:e2e` verifiziert (siehe oben).
 
 ---
 Branch: `chore/231-unkritische-patch-updates`
