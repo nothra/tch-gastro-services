@@ -3,7 +3,7 @@
 ## Kontext
 
 Node 20 ist seit **30. April 2026 End-of-Life** – es erhält keine Security-Patches mehr. Die
-Dokumentation dieses Projekts nennt an fünf Stellen weiterhin „Node 20+" bzw. „Node ≥ 20" als
+Dokumentation dieses Projekts nennt an sechs Stellen weiterhin „Node 20+" bzw. „Node ≥ 20" als
 Laufzeit-Anforderung und verweist damit auf eine tote Version.
 
 Zusätzlich besteht bereits heute ein **Drift zwischen Doku und Realität**, unabhängig vom

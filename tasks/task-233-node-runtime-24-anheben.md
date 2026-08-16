@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -40,7 +40,7 @@ Spec: [`docs/specs/spec-233-node-runtime-24-anheben.md`](../docs/specs/spec-233-
 - [x] **AK-7** GIVEN die Frage nach der `@testing-library/jest-dom`-7-Blockade WHEN der Task
       abgeschlossen ist THEN steht das Prüfergebnis unten in den Notizen, und jest-dom selbst
       ist unverändert.
-- [ ] **AK-8** GIVEN die Vercel-Einstellung „Node.js Version" WHEN der PR zum Merge freigegeben
+- [x] **AK-8** GIVEN die Vercel-Einstellung „Node.js Version" WHEN der PR zum Merge freigegeben
       wird THEN ist der manuelle Nachlauf-Schritt in der PR-Beschreibung benannt.
 
 ## Technische Notizen
@@ -104,6 +104,9 @@ unverändert (`^6.9.1`).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe [`tasks/review-233.md`](review-233.md) – drei Runden (Logik, Code-Qualität, Architektur),
+ein kritisches Finding (PR-Body ohne AK-8-Hinweis, sofort behoben), zwei Nitpicks (einer
+behoben: Zahlen-Tippfehler in der Spec). Empfehlung: APPROVED.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
