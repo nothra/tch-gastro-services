@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -40,6 +40,10 @@ keine kritischen/wichtigen Findings, zwei Nitpicks (nicht blockierend). Empfehlu
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [`tasks/codify-231.md`](codify-231.md). Eine neue Lesson ergänzt:
+`docs/factory/lessons/build-tooling.md` – `pnpm audit` kann bei Paketen mit mehreren parallel
+gepflegten Major-Linien eine irreführende Range-Gruppe zeigen; Index-Zeile in
+`PROJECT-CONTEXT.md` ergänzt. Keine weiteren Regeln nötig (Review-Nitpicks waren Einzelfälle).
 
 ## Implementierungs-Notizen
 
