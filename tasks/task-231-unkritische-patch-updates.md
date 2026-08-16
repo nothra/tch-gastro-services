@@ -1,7 +1,7 @@
 # Task 231: unkritische-patch-updates
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -17,12 +17,12 @@ aus dem Scope genommen) in [`docs/specs/spec-231-unkritische-patch-updates.md`](
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK-1 Alle acht Zielpakete auf ihrer jeweils aktuell neuesten Version, `pnpm-lock.yaml` bestätigt
-- [ ] AK-2 `eslint-config-next`/`next` bleiben unverändert (16.2.12)
-- [ ] AK-3 `pnpm install` ohne Peer-Dependency-Konflikte
-- [ ] AK-4 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` grün
-- [ ] AK-5 `pnpm test:e2e` grün
-- [ ] AK-6 Sonstige veraltete, nicht im Issue gelistete Pakete bleiben unangetastet
+- [x] AK-1 Alle acht Zielpakete auf ihrer jeweils aktuell neuesten Version, `pnpm-lock.yaml` bestätigt
+- [x] AK-2 `eslint-config-next`/`next` bleiben unverändert (16.2.12)
+- [x] AK-3 `pnpm install` ohne Peer-Dependency-Konflikte
+- [x] AK-4 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` grün
+- [x] AK-5 `pnpm test:e2e` grün
+- [x] AK-6 Sonstige veraltete, nicht im Issue gelistete Pakete bleiben unangetastet
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -38,6 +38,24 @@ Siehe Spec „Offene Fragen" – alle in dieser Phase entschieden.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+## Implementierungs-Notizen
+
+- Bump nur via `pnpm install` (react/react-dom, exakte Version in `package.json` manuell
+  angehoben) bzw. `pnpm update <paket>` (die übrigen sechs, Caret-Range) – kein `--latest`,
+  da alle Zielversionen bereits innerhalb der bestehenden Caret-Ranges liegen.
+- `pnpm update` hat dabei die Caret-Ranges der sechs Pakete in `package.json` auf die neue
+  Version nachgezogen (z. B. `^4` → `^4.3.3`), was `pnpm` automatisch tut, ohne dass dies extra
+  angestoßen wurde – bleibt weiterhin eine reine Caret-Range, kein Scope-Verstoß.
+- `pnpm exec playwright install chromium` war nötig, da der `@playwright/test`-Bump
+  (1.61.1→1.62.1) eine neue Browser-Binary-Version voraussetzt (Cache-Pfad enthielt die alte
+  Executable nicht mehr).
+- Lokale DB (`tch-gastro-db`) war bereits als Container vorhanden, aber gestoppt – per
+  `docker start tch-gastro-db` gestartet statt `pnpm db:up` (Konflikt: `docker compose up -d`
+  versucht denselben Containernamen neu anzulegen, wenn er aus einem anderen Worktree/Projekt
+  bereits existiert).
+- Reines Dependency-Update ohne neues Verhalten – keine neuen Produkt-Tests nötig (siehe Spec
+  „Nicht inbegriffen"); alle bestehenden Unit- und E2E-Tests bleiben unverändert grün.
 
 ---
 Branch: `chore/231-unkritische-patch-updates`
