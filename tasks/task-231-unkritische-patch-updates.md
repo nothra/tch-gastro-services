@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -70,6 +70,13 @@ keine kritischen/wichtigen Findings, zwei Nitpicks (nicht blockierend). Empfehlu
 - Alle Akzeptanzkriterien (AK-1 bis AK-6) sind Versions-/Gate-Kriterien, keine
   Verhaltenskriterien – bereits in `/implement` per `pnpm outdated`, `pnpm install`,
   `pnpm test`, `pnpm build` und `pnpm test:e2e` verifiziert (siehe oben).
+
+## Refactoring (/refactor)
+
+- Kein Produktionscode im Diff (`git diff origin/main...HEAD` zeigt ausschließlich
+  `package.json`, `pnpm-lock.yaml` sowie Spec-/Task-/Review-Dateien) – die Clean-Code-Checkliste
+  (Naming, Funktionsgröße, Duplikation, Magic Numbers) hat keinen Angriffspunkt. Kein
+  Refactoring nötig, keine Änderung vorgenommen.
 
 ---
 Branch: `chore/231-unkritische-patch-updates`
