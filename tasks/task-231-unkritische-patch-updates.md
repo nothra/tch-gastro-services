@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -35,6 +35,8 @@ Siehe Spec „Offene Fragen" – alle in dieser Phase entschieden.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe [`tasks/review-231.md`](review-231.md) – drei Runden (Logik, Code-Qualität, Architektur),
+keine kritischen/wichtigen Findings, zwei Nitpicks (nicht blockierend). Empfehlung: APPROVED.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
