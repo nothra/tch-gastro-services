@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -125,6 +125,10 @@ Funktionen, keine Duplikation, keine Magic Numbers, kein neues Verhalten zum Ber
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [`tasks/codify-233.md`](codify-233.md). Eine neue Lesson ergänzt:
+`docs/factory/lessons/factory-workflow.md` – ein Spec-AK mit Pflichtinhalt in der
+PR-Beschreibung selbst wird vom Standard-Draft-Body nicht automatisch erfüllt; Index-Zeile in
+`PROJECT-CONTEXT.md` ergänzt. Kein weiterer Regelbedarf.
 
 ---
 Branch: `chore/233-node-runtime-24-anheben`
