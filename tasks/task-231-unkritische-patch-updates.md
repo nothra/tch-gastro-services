@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Unkritische Patch-/Minor-Updates für acht Pakete (react, react-dom, prettier, tailwindcss,
@@ -92,3 +92,7 @@ gepatcht; unverändert seit #291, kein Bezug zu den acht Bump-Paketen dieses Tas
 ---
 Branch: `chore/231-unkritische-patch-updates`
 Erstellt: 2026-08-16 10:33
+
+PR-Shepherd 2026-08-16: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare,
+Branch bereits auf aktuellem `main`, CI vollständig grün, keine Approval-Pflicht (ADR-029),
+PR aus Draft geholt (`gh pr ready`).
