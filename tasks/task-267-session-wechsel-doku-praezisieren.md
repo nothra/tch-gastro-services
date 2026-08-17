@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -105,6 +105,13 @@ Mutationsbelegen) reimplementierten die Logik der bereits vorhandenen Helfer
 `assert_true`/`assert_true`-Negation) statt sie aufzurufen. Auf die Helfer umgestellt – 12
 Zeilen weniger, gleiche Assertions. Volle Suite danach identisch grün (1062/0), Prosa-Dateien
 unverändert gelassen (keine weiteren Refactoring-Kandidaten dort gefunden).
+
+## Security-Review-Notizen
+
+Siehe [`tasks/security-267.md`](security-267.md). Ergebnis: PASSED, keine Findings. Reine
+Prozess-Doku + interner Test-Code, kein App-Code/Dependencies/Secrets betroffen; die neuen
+`grep`-Aufrufe in `run-tests.sh` verarbeiten ausschließlich fest verdrahtete String-Literale und
+skript-eigene Pfade, keine externe/Fremd-Eingabe.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
