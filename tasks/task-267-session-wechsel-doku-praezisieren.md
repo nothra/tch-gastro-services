@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -95,6 +95,16 @@ Akzeptanzkriterien sowie F1–F3 mutationsbelegt ab; F4 war ein einmaliger Doku-
 1062 grün/0 rot. `pnpm test:coverage`: 89.27% Statements (über der 80%-Schwelle), keine
 Verschiebung ggü. dem Vor-Task-Stand, da kein App-Code geändert wurde. Keine fehlenden Tests
 identifiziert, kein neuer Testcode nötig.
+
+## Refactoring-Notizen
+
+Kein neues Verhalten – nur Code-Duplikation in `scripts/checks/tests/run-tests.sh` beseitigt:
+sechs Stellen im `#267`-Testcode (2× in der AK5-Positiv-Prüfung, 4× in den AK1/AK2/AK3/AK4-
+Mutationsbelegen) reimplementierten die Logik der bereits vorhandenen Helfer
+`assert_contains_286`/`assert_absent` inline (`printf ... | grep -qF ...` +
+`assert_true`/`assert_true`-Negation) statt sie aufzurufen. Auf die Helfer umgestellt – 12
+Zeilen weniger, gleiche Assertions. Volle Suite danach identisch grün (1062/0), Prosa-Dateien
+unverändert gelassen (keine weiteren Refactoring-Kandidaten dort gefunden).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

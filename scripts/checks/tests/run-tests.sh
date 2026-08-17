@@ -2294,10 +2294,10 @@ echo ""
 echo "#267 AK5: start-work.sh Abschluss-Output trennt Worktree-Fakt und Session-Empfehlung:"
 
 OUT_267=$(run_start_work "$TMP_SW/wt-267" 792 demo-267)
-printf '%s' "$OUT_267" | grep -qF "kein geteilter HEAD"
-assert_true "$?" "AK5: der Worktree-Fakt (kein geteilter HEAD) steht weiterhin im Output"
-printf '%s' "$OUT_267" | grep -qF "Empfehlung (keine Pflicht)"
-assert_true "$?" "AK5: die Session-Empfehlung ist explizit als 'keine Pflicht' markiert"
+assert_contains_286 "$OUT_267" "kein geteilter HEAD" \
+  "AK5: der Worktree-Fakt (kein geteilter HEAD) steht weiterhin im Output"
+assert_contains_286 "$OUT_267" "Empfehlung (keine Pflicht)" \
+  "AK5: die Session-Empfehlung ist explizit als 'keine Pflicht' markiert"
 
 # Getrennte Aussagen: keine einzelne Zeile nennt HEAD-Teilen UND Claude-Session zugleich.
 head_session_same_line_267=$(printf '%s\n' "$OUT_267" | grep -F "kein geteilter HEAD" | grep -c "Claude-Session")
@@ -5633,8 +5633,7 @@ assert_contains_286 "$gw_flat_267" "kein technisches Gate" \
   "AK1: git-workflow.md benennt das Fehlen eines technischen Gates für die Session-Empfehlung"
 # Mutation (Negativ-Kontrolle): die alte, unqualifizierte Fassung erfüllt den Gate-Check nicht –
 # belegt, dass der Guard nicht durch jede beliebige Session-Erwähnung grün wird.
-printf '%s' "$OLD_PHRASE_267" | grep -qF "kein technisches Gate"
-assert_true "$([ $? -ne 0 ]; echo $?)" \
+assert_absent "$OLD_PHRASE_267" "kein technisches Gate" \
   "AK1 (Mutation): die alte, unqualifizierte Session-Zeile erfüllt den Gate-Guard nicht"
 
 # AK2: legitime Ausnahme (start-work.sh + /requirements in derselben, noch task-freien Session)
@@ -5645,8 +5644,7 @@ assert_contains_286 "$gw_flat_267" "Grenze:" \
   "AK2: git-workflow.md benennt explizit eine Grenze"
 assert_contains_286 "$gw_flat_267" "die nächste Task in derselben Session beginnen" \
   "AK2: git-workflow.md nennt die Grenze (keine Folge-Task in derselben Session)"
-printf '%s' "$OLD_PHRASE_267" | grep -qF "noch task-freien Session"
-assert_true "$([ $? -ne 0 ]; echo $?)" \
+assert_absent "$OLD_PHRASE_267" "noch task-freien Session" \
   "AK2 (Mutation): die alte Fassung kennt weder Ausnahme noch Grenze"
 
 # F3: die Worktree-Pflicht bleibt unverändert unverhandelbar (Negativ-Richtung von AK1)
@@ -5661,9 +5659,8 @@ assert_contains_286 "$claude_flat_267" "Kanonische Quelle für Ausnahmen und Gre
   "AK3: CLAUDE.md verweist auf eine kanonische Quelle für Ausnahmen/Grenzen"
 assert_contains_286 "$claude_flat_267" "guidelines/git-workflow.md" \
   "AK3: der Verweis zeigt auf git-workflow.md"
-printf 'Jede neue Task in einer neuen Claude-Session starten. start-work.sh erinnert daran.' \
-  | grep -qF "Kanonische Quelle"
-assert_true "$([ $? -ne 0 ]; echo $?)" \
+assert_absent "Jede neue Task in einer neuen Claude-Session starten. start-work.sh erinnert daran." \
+  "Kanonische Quelle" \
   "AK3 (Mutation): die alte Guardrail-Zeile ohne Quellverweis erfüllt den Guard nicht"
 
 # AK4: OPERATING.md widerspruchsfrei zu git-workflow.md/Abschnitt 1.1 (Empfehlung statt Pflicht)
@@ -5672,8 +5669,7 @@ assert_contains_286 "$operating_flat_267" "Empfohlen: eine Task = eine Claude-Se
   "AK4: Abschnitt 2 formuliert die Session-Regel als Empfehlung"
 assert_contains_286 "$operating_flat_267" "kein technisches Gate" \
   "AK4: Abschnitt 2 nennt explizit das Fehlen eines technischen Gates"
-printf '%s' "**Eine Task = eine Claude-Session.**" | grep -qF "kein technisches Gate"
-assert_true "$([ $? -ne 0 ]; echo $?)" \
+assert_absent "**Eine Task = eine Claude-Session.**" "kein technisches Gate" \
   "AK4 (Mutation): die alte imperative Fassung erfüllt den Guard nicht"
 
 # AK7: wo die alte imperative Wortfolge (ohne Präzisierung) weiterhin exakt vorkommt, muss sie
