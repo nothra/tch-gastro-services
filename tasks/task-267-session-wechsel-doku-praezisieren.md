@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -114,7 +114,14 @@ Prozess-Doku + interner Test-Code, kein App-Code/Dependencies/Secrets betroffen;
 skript-eigene Pfade, keine externe/Fremd-Eingabe.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [`tasks/codify-267.md`](codify-267.md). Zwei Lesson-Ergänzungen (jeweils Volltext +
+Index-Zeile): Rezidiv des #298-Fork-Kontamination-Learnings in `factory-workflow.md` (Resume
+verschlimmerte die Konfusion – Regel jetzt „einmaliger Versuch, kein Retry-Loop") und 4.
+Vorkommnis des #240/#224/#251-Duplikat-Smells in `testing.md`, jetzt auf Einzel-Assertion-Ebene
+(`assert_contains_286`/`assert_absent` inline reimplementiert statt aufgerufen). Kein neuer
+automatisierbarer Check, kein Out-of-Scope-Finding oberhalb der ADR-018/043-Schwelle. Volle
+Suite nach den Edits erneut grün (1062/0).
 
 ---
 Branch: `docs/267-session-wechsel-doku-praezisieren`
