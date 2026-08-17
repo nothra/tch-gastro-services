@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -85,6 +85,16 @@ Siehe [`tasks/review-267.md`](review-267.md). Empfehlung: APPROVED. 1 Wichtig- u
 Nitpick-Finding (Grammatik-Fix in `git-workflow.md`:293, Pfeil-Konsistenz in `start-work.sh`:419)
 noch in derselben Session behoben, alle Gates danach erneut grün (1062 grün/0 rot, Vitest 687
 grün).
+
+## Test-Vollständigkeit
+
+Siehe [`tasks/coverage-267.md`](coverage-267.md). Keine App-Code-Änderung in dieser Task – die
+Regressions-Guards für AK1–AK7 wurden bereits während `/implement` geschrieben und decken alle
+Akzeptanzkriterien sowie F1–F3 mutationsbelegt ab; F4 war ein einmaliger Doku-Drift-Grep vor
+`/review`. `run-tests.sh` zweimal unabhängig ausgeführt (Determinismus-Check): beide Male
+1062 grün/0 rot. `pnpm test:coverage`: 89.27% Statements (über der 80%-Schwelle), keine
+Verschiebung ggü. dem Vor-Task-Stand, da kein App-Code geändert wurde. Keine fehlenden Tests
+identifiziert, kein neuer Testcode nötig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
