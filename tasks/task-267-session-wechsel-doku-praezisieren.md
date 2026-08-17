@@ -123,6 +123,13 @@ Vorkommnis des #240/#224/#251-Duplikat-Smells in `testing.md`, jetzt auf Einzel-
 automatisierbarer Check, kein Out-of-Scope-Finding oberhalb der ADR-018/043-Schwelle. Volle
 Suite nach den Edits erneut grün (1062/0).
 
+## PR-Shepherd-Notiz
+
+PR-Shepherd 2026-08-17: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare
+(nur Vercel-Deploy-Bot), Branch enthielt bereits den vollständigen `main` (kein Rebase nötig,
+`mergeStateStatus: CLEAN`), alle CI-Checks grün (`gh pr checks` PR #304), kein Approval
+erforderlich (`reviewDecision` leer, ADR-029). Draft → Ready über `gh pr ready`.
+
 ---
 Branch: `docs/267-session-wechsel-doku-praezisieren`
 Erstellt: 2026-08-17 05:36
