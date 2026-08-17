@@ -1,7 +1,7 @@
 # Task 267: session-wechsel-doku-praezisieren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -25,23 +25,23 @@ Spec: [`docs/specs/spec-267-session-wechsel-empfehlung-praezisieren.md`](../docs
 
 ## Akzeptanzkriterien
 
-- [ ] **AK1** – GIVEN Abschnitt „Eine Task = Eine Session" in `git-workflow.md` WHEN gelesen
+- [x] **AK1** – GIVEN Abschnitt „Eine Task = Eine Session" in `git-workflow.md` WHEN gelesen
       THEN trennt er Pflicht (Worktree/Git-Sicherheit) von Empfehlung (Session/Kontext-Hygiene)
       und benennt, dass für die Session-Empfehlung kein technisches Gate existiert.
-- [ ] **AK2** – GIVEN derselbe Abschnitt WHEN nach Abweichungen gesucht wird THEN nennt er die
+- [x] **AK2** – GIVEN derselbe Abschnitt WHEN nach Abweichungen gesucht wird THEN nennt er die
       legitime Ausnahme (`start-work.sh` → `/requirements` in derselben, noch task-freien Session)
       und die Grenze (nach Task-Abschluss nicht die nächste Task in derselben Session).
-- [ ] **AK3** – GIVEN Guardrail-Liste in `CLAUDE.md` WHEN die Session-Zeile gelesen wird
+- [x] **AK3** – GIVEN Guardrail-Liste in `CLAUDE.md` WHEN die Session-Zeile gelesen wird
       THEN ist sie Empfehlung statt Pflicht und verweist auf `git-workflow.md` als kanonische Quelle.
-- [ ] **AK4** – GIVEN `docs/factory/OPERATING.md` WHEN „Eine Task = eine Claude-Session."
+- [x] **AK4** – GIVEN `docs/factory/OPERATING.md` WHEN „Eine Task = eine Claude-Session."
       (Abschnitt 2) gelesen wird THEN steht sie widerspruchsfrei zu `git-workflow.md` und zur
       Empfehlungs-Formulierung in Abschnitt 1.1.
-- [ ] **AK5** – GIVEN ein `start-work.sh`-Aufruf WHEN der Hinweistext ausgegeben wird
+- [x] **AK5** – GIVEN ein `start-work.sh`-Aufruf WHEN der Hinweistext ausgegeben wird
       THEN sind Worktree-Isolation und Session-Empfehlung zwei getrennte Aussagen, und die
       Session-Empfehlung wird nicht mehr mit „kein geteilter HEAD" begründet.
-- [ ] **AK6** – GIVEN `scripts/checks/tests/run-tests.sh` WHEN sie läuft THEN prüft sie AK1–AK5
+- [x] **AK6** – GIVEN `scripts/checks/tests/run-tests.sh` WHEN sie läuft THEN prüft sie AK1–AK5
       als Regressions-Guard, je Guard per Mutation als wirksam belegt.
-- [ ] **AK7** – GIVEN die vier angepassten Dateien WHEN nach der alten imperativen Formulierung
+- [x] **AK7** – GIVEN die vier angepassten Dateien WHEN nach der alten imperativen Formulierung
       gesucht wird THEN weist keine Fundstelle sie mehr als unbedingte Pflicht aus
       (`tasks/**` und historische Vorfall-Narrative ausgenommen).
 
@@ -63,6 +63,21 @@ Spec: [`docs/specs/spec-267-session-wechsel-empfehlung-praezisieren.md`](../docs
 ## Offene Fragen
 
 _Keine – alle drei Entscheidungsfragen des Issues sind beantwortet (siehe Spec, Abschnitt Kontext)._
+
+## Implementierungs-Notizen
+
+- F4-Grep vor Abgabe: `docs/factory/lessons/` und `docs/adr/` durchsucht – einziger Treffer war
+  ADR-008 (`Ein async-getriggerter Lauf = 6+ Claude-Sessions`, Kostenaussage zur Pipeline-Automatik,
+  keine Aussage zur Ein-Task-eine-Session-Regel) → kein Drift, keine Änderung nötig.
+- AK6-Guards liegen in zwei Blöcken in `run-tests.sh`: AK5 direkt vor dem `TMP_SW`-Cleanup
+  (braucht die dortigen gh-Stub-/Worktree-Fixtures aus dem #74/#236-Block), AK1–AK4/AK7 am
+  Dateiende (reine Doku-Content-Checks, keine Fixtures nötig).
+- Stolperstein: Pfad-Konstanten für den AK7-Guard erst als space-getrennten String zusammengefasst
+  – der Worktree-Pfad dieses Repos enthält selbst ein Leerzeichen
+  (`TCH Gastro Services.worktrees/…`), unquoted Word-Splitting zerriss die Pfade und der Guard
+  fand keine Treffer. Fix: Bash-Array statt String.
+- Alle Gates lokal grün: `run-tests.sh` (1062 grün/0 rot), `pre-commit.sh`, `pre-push.sh`
+  (Vitest 687 grün, Typecheck, Prettier, Routen-Doku-Drift).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
