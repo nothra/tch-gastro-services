@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -80,7 +80,11 @@ _Keine – alle drei Entscheidungsfragen des Issues sind beantwortet (siehe Spec
   (Vitest 687 grün, Typecheck, Prettier, Routen-Doku-Drift).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Siehe [`tasks/review-267.md`](review-267.md). Empfehlung: APPROVED. 1 Wichtig- und 1
+Nitpick-Finding (Grammatik-Fix in `git-workflow.md`:293, Pfeil-Konsistenz in `start-work.sh`:419)
+noch in derselben Session behoben, alle Gates danach erneut grün (1062 grün/0 rot, Vitest 687
+grün).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

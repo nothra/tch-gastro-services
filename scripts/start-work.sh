@@ -416,5 +416,5 @@ fi
 echo ""
 echo -e "${YELLOW}⚡ Eigener Arbeitsbaum: parallele Sessions kollidieren nicht (kein geteilter HEAD).${NC}"
 echo "   Empfehlung (keine Pflicht): Starte für Task ${TASK_ID} zusätzlich eine neue Claude-Session"
-echo "   in diesem Worktree – Kontext-Hygiene, siehe git-workflow.md -> 'Eine Task = Eine Session'."
+echo "   in diesem Worktree – Kontext-Hygiene, siehe git-workflow.md → 'Eine Task = Eine Session'."
 echo ""

@@ -290,7 +290,7 @@ Gemergte Branches werden weitgehend automatisch entfernt – dreistufig:
   brauchen bewusst kein Gesprächsgedächtnis (Output in Dateien) – eine Fortsetzung funktioniert
   technisch, kostet aber Fokus und Token, nicht Korrektheit.
 
-Trotzdem gilt: **Jede neue Task dringend empfohlen in einer neuen Claude-Session starten.**
+Trotzdem gilt die **dringende Empfehlung**: Jede neue Task in einer neuen Claude-Session starten.
 
 **Warum:**
 - Kleiner Kontext → KI bleibt fokussiert auf die aktuelle Task
