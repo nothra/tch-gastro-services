@@ -3,8 +3,8 @@
 ## Status
 
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -82,6 +82,13 @@ Spec: [`docs/specs/spec-310-report-guard-frische-pruefung.md`](../docs/specs/spe
 - **Keine UI-Berührung:** Die Task ändert ausschließlich Shell-Skripte und Doku – kein
   Oberflächentest und keine E2E-/Dev-Server-Verifikation erforderlich.
 
+### Test-Verifikation (`/test`, 2026-08-27)
+
+Unabhängiger Testing-Agent hat AK1–AK12 einzeln gegen die #310-Testblöcke in
+`scripts/checks/tests/run-tests.sh` verifiziert (jeweils per Zeilenreferenz, Verhalten am
+echten Skript geprüft, nicht nur Textvorhandensein) – keine Lücke gefunden, keine Ergänzung
+nötig. Suite erneut ausgeführt: **1120 grün, 0 rot**. Keine Produktionsdatei angefasst.
+
 ## Offene Fragen
 
 _Keine – Mechanik, Scope, Fehlerpfad und Turn-Budget sind entschieden (siehe Spec)._
@@ -117,6 +124,14 @@ Nitpicks. Rework in `/implement` (2026-08-27), Details je Finding im Bericht unt
 - **Out-of-Scope-Fund des Reviews:** Issue **#312** – der Verdict-Konsum in Phase 2/5 prüft die
   Frische nicht, wenn `claude` mit Exit 0 endet, ohne den Report neu zu schreiben. Eigene Spec
   nötig (berührt die Konsumenten, nicht den Guard).
+
+Runde 2 (`/review`, Verdict `APPROVED`, Bericht: [`tasks/review-310.md`](review-310.md)) –
+keine kritischen und keine wichtigen Findings; W1–W3 aus Runde 1 als behoben verifiziert.
+Fünf Nitpicks bleiben offen (ADR-019-Artefaktliste `:165-166`, fehlender `interrupt-check.sh`
+im Stale-Zweig `run-pipeline.sh:283-285`, totes `raise-interrupt.sh`-Scaffolding,
+doppelte Verneinung in einer Assertion, Zahlendrift „56" statt 58 in den Gates-Notizen oben).
+Kein neuer Out-of-Scope-Fund. Gates in der Review-Session: Bash-Suite **1120 grün, 0 rot**,
+`pre-commit.sh` grün, Arbeitsbaum sauber.
 
 ## Codify-Notizen
 
