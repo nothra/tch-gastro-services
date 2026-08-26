@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -182,7 +182,12 @@ Aktion im öffentlichen Weg wurden unabhängig gegen den Code verifiziert (nicht
 gelesen).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe `tasks/codify-308.md`. Kern-Learning: Der Pipeline-Report-Guard (ADR-019 §4) hat in
+Review-Iteration 2 und 3 jeweils einen stehengebliebenen Verdict aus Iteration 1 als frisch
+gewertet (Turn-Limit vor Report-Update) und den Circuit Breaker fälschlich ausgelöst, obwohl der
+Rework längst fertig war. Lesson erweitert (`lessons/factory-workflow.md`), Fix als eigenständige
+Task ausgelagert: **Issue #310**.
 
 ---
 Branch: `feature/308-personenbezogener-wechsel-verzehr-kassieren`
