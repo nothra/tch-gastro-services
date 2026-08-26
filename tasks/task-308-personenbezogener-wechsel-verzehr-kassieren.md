@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -173,6 +173,13 @@ als maßgeblich; die Checkbox „Review bestanden" wurde daraufhin manuell geset
   die einzigen niedrig abgedeckten Dateien liegen in `.../db/` (Drizzle-Data-Layer,
   benötigt echte DB, unabhängig von dieser Task).
 - Keine neuen Tests nötig, keine Produktionscode-Änderung in diesem Schritt.
+
+## Security-Review
+
+`tasks/security-308.md` – Ergebnis **PASSED**, keine kritischen oder wichtigen Findings. Query-
+Parameter-Validierung, Autorisierungsreihenfolge und die strukturelle Abwesenheit der Kassieren-
+Aktion im öffentlichen Weg wurden unabhängig gegen den Code verifiziert (nicht nur die Tests
+gelesen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
