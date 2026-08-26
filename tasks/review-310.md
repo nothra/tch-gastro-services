@@ -1,13 +1,20 @@
 # Review: Task 310
 
-Grundlage: `git diff origin/main...HEAD` (10 Dateien, +983/−36),
+Grundlage: `git diff origin/main...HEAD` (10 Dateien, +1115/−39),
 `docs/specs/spec-310-report-guard-frische-pruefung.md`,
 `tasks/task-310-report-guard-stale-verdict-within-run.md`, ADR-019 §4.
 
-**Runde 2** (nach dem Rework aus Runde 1 – Verlauf und Rework-Notizen der ersten Runde stehen
-unten unter „Historie Runde 1"). Gate-Nachlauf in dieser Session:
-`bash scripts/checks/tests/run-tests.sh` → **1120 grün, 0 rot** (davon 58 grüne
-#310-Assertions), `bash scripts/checks/pre-commit.sh` grün (inkl. Lint), `git status` sauber.
+**Runde 3** – Anlass ist der Nitpick-Nachlauf-Commit `904d635` nach dem `APPROVED` der Runde 2.
+Er enthält den einzigen Code-Fix seit der Freigabe (`interrupt-check.sh` im Stale-Zweig) und
+wurde damit noch von keiner Review-Runde geprüft. Verlauf der Runden 1 und 2 steht unten unter
+„Historie". Gate-Nachlauf in dieser Session: `bash scripts/checks/tests/run-tests.sh` →
+**1127 grün, 0 rot** (davon 65 #310-Assertions, gezählt), `git status` sauber, PR #311 trägt
+`Closes #310`.
+
+> **Circuit Breaker:** Formal ist dies die dritte Review-Anwendung. Der Abbruch-Fall aus
+> `.claude/commands/review.md` (Review↔Implement konvergiert nicht) liegt **nicht** vor – Runde 2
+> endete mit `APPROVED`, Runde 3 prüft nur den danach entstandenen Nachlauf-Commit. Keine
+> Eskalation nötig.
 
 ## Kritische Findings (müssen behoben werden)
 
@@ -15,144 +22,112 @@ _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-_Keine._ Die drei wichtigen Findings aus Runde 1 sind belegbar behoben:
+_Keine._ Der Nachlauf-Commit ist an allen drei Prüfachsen sauber:
 
-- **W1** – `report-verdict.sh:75` lautet jetzt `cksum 2>/dev/null < "$file"`, mit WHY-Kommentar
-  zur Links-nach-rechts-Auswertung. Zusätzlich behavioral gepinnt (stderr leer) **plus**
-  Mutant mit getauschter Reihenfolge, der den Leak reproduziert.
-- **W2** – der `UNREADABLE`-Zweig ist über zwei unabhängige Zugänge getestet (fehlendes
-  Werkzeug via `PATH=/nonexistent-dir`, unlesbare Datei via `chmod 000` mit Root-Skip) und
-  trägt die Verhaltensaussage „fortbestehender Lesefehler = identischer Fingerprint = stale"
-  sowie die Nicht-Kollision mit einer echten Prüfsumme.
-- **W3** – `scaffold_310()` setzt auf `_mk_pipe_repo` auf und ergänzt nur die Differenz; die
-  Abhängigkeit zum `HAS_YQ`-Zweig ist im Kommentar benannt und stimmt (Definition bei 3675,
-  alle Aufrufe im Zweig ab 5898).
-
-Eigene Nachprüfung dieser Runde, ohne neuen Befund:
-
-- Die Guard-Bedingung selbst ist über alle Zustandsübergänge sauber: `ABSENT` → Prüfsumme
-  zählt als Veränderung, leere Datei liefert eine echte Prüfsumme (kein `UNREADABLE`-Fehlalarm),
-  die Marker kollidieren nicht mit `cksum`-Ausgaben, und für nicht report-erzeugende Skills ist
-  `verdict` ohnehin leer – die zweite Bedingung ist dort folgenlos.
-- `report_fingerprint_before` liegt vor der Retry-Schleife **und** hinter dem `--dry-run`-Return;
-  ein Dry-Run erhebt also gar keinen Fingerprint (Spec-Fehlerszenario „`--dry-run`").
-- Die `Datei:Zeile`-Anker des in Runde 1 angelegten `kleinfunde.md`-Eintrags sind nach dem
-  Rework-Commit noch exakt (`run-tests.sh:241`, `:1379`, `:3681`, `:3966`, `:4012` – alle
-  nachgeprüft). Der Drift-Check aus dem #291-Learning greift hier also ins Leere: kein Defekt.
-- Das in Runde 1 als Out-of-Scope ausgelagerte Issue **#312** (Verdict-Konsum in Phase 2/5 prüft
-  die Frische nicht, wenn `claude` mit Exit 0 endet) besteht unverändert – die AK5-E2E-Fixture
-  nutzt genau diesen Pfad, um überhaupt bis Phase 5 zu kommen. Das ist korrekt so: Spec-AK1
-  begrenzt #310 explizit auf den **non-zero**-Exit.
+- **Logik/Korrektheit:** `run-pipeline.sh:290` stellt genau die Stopp-Bedingung wieder her, die
+  vor #310 über den (damals erfolgreichen) Verdict-Zweig griff. Der Zweig bleibt ein
+  Fehlversuch (kein `return 0`), `interrupt-check.sh` liefert bei fehlendem Sentinel Exit 0 und
+  ändert am Retry-Pfad nichts – AK6 (`exit 1` nach 3 Versuchen, nie `exit 2`) ist durch
+  `run-tests.sh:5919-5928` weiterhin behavioral gepinnt und grün.
+- **Kein neuer Fail-open-Pfad:** `interrupt-check.sh` kann nur 0 (kein Sentinel) oder 1
+  (Sentinel, nach Blocker-Eintrag) liefern; Exit 2 setzt eine leere Task-ID voraus, die hier
+  nicht auftreten kann. Der Sentinel wird nicht konsumiert, der Blocker-Eintrag ist idempotent
+  (`grep -qF`) – ein Aufruf pro Fehlversuch erzeugt keine Doppel-Einträge.
+- **Testqualität:** Der neue E2E-Test nutzt den echten `raise-interrupt.sh`-Aufruf im Stub statt
+  eines nachgebauten Sentinels (divergenzerzeugende Aktion, Lesson #253) und assertiert
+  pfadspezifisch – `[INTERRUPT] ADR: …`, Abwesenheit von „failed after 3 attempts" **und** der
+  Blocker-Eintrag in der Task-Datei. Der Mutant entfernt gezielt nur diese eine Aufrufzeile;
+  beide Aussagen kippen. `assert_contains_286`/`assert_absent` arbeiten mit `grep -qF`, das
+  Literal `[INTERRUPT]` wird also nicht als Zeichenklasse gelesen (kein vakuum-grüner
+  Abwesenheits-Guard).
+- **Mutationsbeleg kausal:** Der Wirksamkeits-Guard zählt dieselbe exakte Zeichenkette
+  (`IC_CALL_310`), die die Mutation löscht – die im Codify-Kandidaten beschriebene
+  Fragment-Falle (#114, siebtes Vorkommnis) ist damit tatsächlich geschlossen und nicht nur
+  beschrieben.
+- **Doku im Gleichschritt:** Spec-Fehlerpfad-Bullet, ADR-019 §4 und die Task-Notizen sind im
+  **selben** Commit nachgezogen (Lesson #253: die im selben PR entstandene Spec bekommt denselben
+  Drift-Check). Code und Spec-Prosa decken sich wörtlich.
+- **`kleinfunde.md`-Drift (#291-Lesson):** Die in Runde 1 angelegten `Datei:Zeile`-Anker
+  (`run-tests.sh:241`, `:1379`, `:3675`/`:3681`, `:3966`, `:4012`) sind nach dem Nachlauf-Commit
+  erneut nachgeprüft und alle noch exakt – der Commit hängt ausschließlich unterhalb an.
+- **Zahlendrift:** Die korrigierte Gates-Notiz („1127 grün, 65 #310-Assertions") stimmt mit dem
+  Lauf dieser Session überein (68 `#310`-Zeilen minus 3 Abschnitts-Überschriften).
 
 ## Nitpicks (optional)
 
-- [x] `docs/adr/019-stage3-commit-seam-report-guard.md:165-166` – die „Betroffene
-      Artefakte"-Liste wird in diesem PR als **Ist-Stand** gepflegt (`:159` bekam „inkl.
-      Frische-Fingerprint pro Aufruf (#310)", `:161` ist neu für die Lib). Der Eintrag zu
-      `run-tests.sh` beschreibt den Guard aber weiter als „(Verdict da → Erfolg; ohne →
-      Fehlschlag)" – seit diesem PR ist „Verdict da" allein nicht mehr hinreichend, und genau
-      diese Tests hat der PR erweitert. Entweder das Klammer-Kürzel um „und frisch" ergänzen
-      oder die Liste bewusst als historische #91-Liste lesen – dann wäre allerdings `:159`
-      die Ausnahme. Gleiche Klasse wie der §4-Einleitungssatz aus Runde 1 (Aussage stimmt auf
-      Lesetiefe „Sektion", nicht auf Lesetiefe „Stichzeile").
-- [x] `scripts/run-pipeline.sh:283-285` – im neuen Stale-Zweig läuft **kein**
-      `interrupt-check.sh`. Vor #310 wäre ein Aufruf, der einen Interrupt signalisiert **und**
-      danach non-zero endet, bei vorhandenem Verdict über den Erfolgs-Zweig sofort gestoppt
-      worden; jetzt folgen zwei weitere Heavy-Versuche desselben Skills, und der Blocker-Eintrag
-      in der Task-Datei (den `interrupt-check.sh` schreibt) entfällt. Ausdrücklich **kein**
-      Merge-Blocker: das Verhalten ist spec-konform („stale Verdict = regulärer Fehlversuch im
-      bestehenden Retry-Pfad"), für den viel häufigeren Fall „gar kein Verdict" galt es schon
-      vorher, und die Label-Vergabe bleibt korrekt, weil `factory-poll.sh:180` am **Sentinel**
-      hängt, nicht am Exit-Code. Wer es dennoch schließen will: eine Zeile
-      `bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?` im
-      Stale-Zweig – das bleibt ein Fehlversuch und stoppt trotzdem hart bei signalisiertem
-      Interrupt.
-- [x] `scripts/checks/tests/run-tests.sh:5867` – `scaffold_310()` kopiert
-      `raise-interrupt.sh` ins Wegwerf-Repo, obwohl kein #310-Stub einen Interrupt auslöst;
-      nur `interrupt-check.sh` wird von `run_skill()` wirklich aufgerufen. Eine Zeile
-      totes Scaffolding.
-- [ ] `scripts/checks/tests/run-tests.sh:5799` –
-      `assert_true "$(! [ -z "$(fp310_stderr …)" ]; echo $?)"` prüft doppelt verneint, was
-      `[ -n … ]` direkt sagt. Die Gegenprobe bei `:5787` nutzt korrekt `[ -z … ]` – die
-      Mutations-Assertion wäre als `[ -n … ]` symmetrisch lesbar.
-- [x] `tasks/task-310-…​.md` (Umsetzungs-Notizen, „Gates") – die Notiz nennt „56
-      #310-Assertions – 48 aus der ersten Runde, 8 aus dem Review-Rework"; der Lauf in dieser
-      Session zählt **58** grüne #310-Zeilen. Reine Zahlendrift in der Notiz, kein Testproblem.
+- [ ] `scripts/run-pipeline.sh:283-291` – die neue Ausnahme ist **asymmetrisch**:
+      `interrupt-check.sh` läuft im Fehlversuch nur, wenn ein Verdict vorliegt. Der WHY-Kommentar
+      begründet sie aber allgemein („Auch ein Fehlversuch darf einen signalisierten Interrupt
+      nicht verschlucken") – und genau dieses Argument gilt wortgleich für den Fall *ohne*
+      Verdict (fehlender/unvollständiger Report, und für jedes nicht report-erzeugende Skill,
+      also auch `/implement`, das nach ADR-004 der wahrscheinlichste Interrupt-Auslöser ist).
+      Dort folgen weiterhin zwei zusätzliche Heavy-Versuche ohne Blocker-Eintrag. Das ist ein
+      **vorbestehender** Zustand, kein Regress dieses PRs – die Label-Vergabe bleibt korrekt
+      (`factory-poll.sh` hängt am Sentinel), und den Aufruf aus dem `if [ -n "$verdict" ]`
+      herauszuziehen wäre eine Verhaltensänderung jenseits des Spec-Scopes. Vorschlag für diesen
+      PR: den Kommentar auf den Stale-Fall verengen (statt allgemein zu argumentieren), damit die
+      Begründung nicht mehr weiter trägt als die Implementierung.
+- [ ] `scripts/run-pipeline.sh:265,280,290` – die identische Zeile
+      `bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?` steht jetzt
+      **dreimal** in `run_skill()`. Kandidat für `/refactor` (ein Einzeiler-Helper; `exit` wirkt
+      aus einer Funktion heraus weiterhin auf das Skript, da keine Subshell). **Wichtig für den
+      Refactor-Schritt:** `run-tests.sh:6114-6132` ankert auf genau diesem Literal (`IC_CALL_310`)
+      und vergleicht Vorkommens-**Zahlen** – eine Extraktion muss den Mutations-Guard im selben
+      Commit mitziehen, sonst wird er lautlos wirkungslos (#114-Klasse).
+- [ ] `docs/adr/019-stage3-commit-seam-report-guard.md:82-84` und `:92-94` – die Interrupt-
+      Ausnahme steht in §4 **zweimal** („Ein im Versuch signalisierter Interrupt stoppt … der
+      Stale-Zweig ruft `interrupt-check.sh` ebenso auf" und zwei Absätze später „Nach dem
+      als-Erfolg-gewerteten Abbruch – und ebenso im Stale-Zweig – läuft `interrupt-check.sh`").
+      Beide Sätze sind korrekt, aber eine spätere Änderung an der Mechanik muss beide finden –
+      genau die Doku-Drift-Klasse, die dieses Projekt wiederholt getroffen hat. Eine der beiden
+      Stellen genügt (die zweite ist der ältere, allgemeinere Satz).
 
-## Rework Runde 2 (`/implement`, 2026-08-27)
-
-Vier der fünf Nitpicks sind umgesetzt, einer bewusst nicht:
-
-- **ADR-019 `:165-166` behoben** – der `run-tests.sh`-Eintrag der Artefaktliste liest jetzt
-  „Verdict da **und** frisch → Erfolg; stale oder fehlend → Fehlschlag". Die Liste bleibt damit
-  durchgängig Ist-Stand, ohne Ausnahme bei `:159`.
-- **`run-pipeline.sh:283-285` behoben** – der Stale-Zweig ruft `interrupt-check.sh` auf. Damit
-  bleibt eine Stopp-Bedingung erhalten, die vor #310 (über den damals erfolgreichen
-  Verdict-Zweig) griff: signalisierter Interrupt + non-zero Exit stoppt sofort statt zwei
-  weitere Heavy-Versuche zu starten, und der Blocker-Eintrag in der Task-Datei entsteht wieder.
-  Abgesichert über einen E2E-Test (echter `raise-interrupt.sh`-Aufruf im `claude`-Stub) plus
-  Mutant, der nur diese Zeile entfernt. ADR-019 §4 und die Spec-Zeile zum Fehlerpfad sind
-  mitgezogen.
-- **Totes Scaffolding behoben** – `raise-interrupt.sh` ist im Wegwerf-Repo jetzt echt genutzt
-  (der Stub des neuen Tests ruft es auf), statt ungenutzt kopiert zu werden.
-- **Zahlendrift behoben** – die Gates-Notiz der Task-Datei nennt jetzt den gezählten Stand.
-- **Bewusst nicht umgesetzt:** `run-tests.sh:5799` von `! [ -z … ]` auf `[ -n … ]` umzustellen.
-  Die doppelte Verneinung ist hier Absicht: der Mutationsbeleg soll **denselben**
-  Assert-Ausdruck wie die Original-Assertion ausführen, nur negiert (Lesson `testing.md`, #286).
-  `[ -n … ]` wäre ein anderer Operator und damit ein schwächerer Kausalbeleg; die Datei nutzt
-  dasselbe Muster bereits bei `:5843` (`! [ … -lt … ]`).
-
-Neu dabei aufgefallen (siehe Codify-Notizen der Task-Datei): der erste Anlauf des
-Mutations-`awk` ankerte auf dem Dateinamen `interrupt-check.sh` und löschte dadurch die
-Erwähnung im WHY-Kommentar über der Aufrufzeile – siebtes Vorkommnis von „Kommando ≠
-Prosa-Erwähnung" (#114), diesmal ausgelöst vom eigenen, im selben Commit geschriebenen
-Kommentar. Der Guard ankert jetzt auf der vollen Aufrufzeile.
+Aus Runde 2 bewusst offen gelassen und in dieser Runde bestätigt: die doppelte Verneinung in
+`run-tests.sh:5799`. Der Mutationsbeleg soll denselben Assert-Ausdruck negiert ausführen
+(Lesson `testing.md`, #286); `[ -n … ]` wäre ein anderer Operator und damit ein schwächerer
+Kausalbeleg. Kein Handlungsbedarf – der Nitpick gilt als abgeschlossen, nicht als offen.
 
 ## Positives
 
-- **Der Rework hat die Findings nicht nur abgehakt, sondern kausal belegt.** W1 war ein reines
-  Log-Hygiene-Finding – trotzdem gibt es dazu jetzt einen Mutanten, der den Leak reproduziert,
-  statt nur die neue Zeichenfolge zu greppen. Das ist genau die Korrektur aus dem
-  #286-Learning („Mutationsbeleg muss denselben Assert-Ausdruck ausführen"), angewandt auf
-  einen Fund, bei dem man sich den Aufwand leicht gespart hätte.
-- **Der `UNREADABLE`-Test hat zwei unabhängige Zugänge statt eines fragilen.** Der
-  `PATH=/nonexistent-dir`-Weg läuft überall (auch als root, auch in CI), der `chmod 000`-Weg
-  deckt zusätzlich die echte Rechte-Situation ab und meldet seinen Skip explizit, statt still
-  durchzurutschen. Dass beide Zugänge dieselbe Aussage („zweimal derselbe Fingerprint = stale")
-  tragen, macht den Zweig erst wertvoll – ein reiner `= "UNREADABLE"`-Check hätte den
-  fail-closed-Sinn nicht belegt.
-- **W3 ist die richtige Auflösung des wiederkehrenden Duplikat-Smells.** `scaffold_310` delegiert
-  an `_mk_pipe_repo` und ergänzt nur die Differenz; die #212-Inline-Blöcke bleiben als
-  Fremd-Code unberührt, und die dabei entdeckte `DEFAULTS`/`DEFAULTS_YML`-Doppelung landet mit
-  verifizierten Zeilenankern und Aufwandsschätzung in `kleinfunde.md` statt als sechstes
-  Factory-Issue – exakt die Schwelle aus ADR-043.
-- **Die AK9-Guards decken jetzt beide Seiten ab.** Zwei Präsenz-Guards auf die echten
-  `report_file`-Aufrufzeilen in `pipeline_summary()` **plus** ein ERE-Negativ-Guard, der auch
-  `$task_id`/`${TASK_ID}` erfasst. Der projektweite Gegen-Grep bestätigt: in
-  `run-pipeline.sh` steht kein Report-Pfad mehr selbstgebaut (nur noch `task-`, `codify-` und
-  `INTERRUPT-`, die nicht zur Lib gehören).
-- **Der Fix trifft weiterhin die Ursache und nicht das Symptom** – kein Eingriff in
-  `circuit_breaker_check()`, `MAX_REVIEW_ITERATIONS` oder das Turn-Budget; der Snapshot sitzt
-  einmal pro `run_skill`-Aufruf oberhalb der Retry-Schleife und hinter dem `--dry-run`-Return.
-  Positionell per Zeilennummern-Vergleich **plus** `awk`-Mutant gepinnt, behavioral über AK1/AK2.
-- **Der Doku-Nachzug ist vollständig und im Tempus ehrlich:** ADR-019 §4 mit Nachtrag, die
-  Lesson von Präsens auf Vergangenheit plus „In #310 umgesetzt", die aufgelöste
-  Übergangsanweisung (mit Absenz-Guard), der PROJECT-CONTEXT-Index und die #264-Querverweiszeile.
-  Ein Repo-weiter Grep über `Report-Guard`/`report_verdict` findet außerhalb historischer
-  Task-/Spec-Dateien keine weitere Stelle, die die alte Mechanik im Präsens beschreibt.
-- Keine Routen-Änderung (`app/**` unberührt) → `docs/routes.md` korrekt nicht angefasst; kein
-  ADR-Trigger, mit Begründung gegen alle vier Kategorien in der Task-Notiz; PR-Body enthält
-  `Closes #310`.
+- **Der Nachlauf hat einen echten Verhaltensverlust abgefangen, nicht nur einen Kommentar.**
+  Der Nitpick der Runde 2 war ausdrücklich als „kein Merge-Blocker" markiert; trotzdem wurde er
+  mit E2E-Test **und** Mutant umgesetzt, statt ihn als akzeptiertes Restrisiko zu notieren. Ohne
+  ihn hätte #310 eine vor dem PR bestehende Stopp-Bedingung stillschweigend entfernt – die
+  unangenehmste Regressionsklasse, weil sie erst im nächsten unbeaufsichtigten Lauf auffällt.
+- **Der Selbstfund im Mutations-`awk` ist der wertvollste Teil dieses Commits.** Der erste Anlauf
+  ankerte auf dem Dateinamen und löschte damit die Erwähnung im eigenen, im selben Commit
+  geschriebenen WHY-Kommentar – der echte Aufruf blieb stehen, und der Wirksamkeits-Guard war nur
+  deshalb grün, weil er dieselbe Fragment-Zählung nutzte. Dass das **vor** dem Review bemerkt,
+  behoben und als Codify-Kandidat mit konkreter Regelverschärfung („Anker = vollständige
+  Aufrufzeile, Zählung = dieselbe Zeichenkette wie die Mutation") festgehalten wurde, ist genau
+  die Selbstkorrektur, die die Lesson-Serie #114/#284 einfordert.
+- **Der Doku-Nachzug ist diesmal Teil desselben Commits, nicht eines Nachläufers.** Spec, ADR-019
+  und Task-Datei ändern sich zusammen mit der Codezeile – die Ausnahme ist damit dokumentiert
+  statt implizit, und ein späterer Leser findet die Begründung an der kanonischen Stelle.
+- **Die Gesamtlösung bleibt an der Ursache.** Kein Eingriff in `circuit_breaker_check()`,
+  `MAX_REVIEW_ITERATIONS` oder das Turn-Budget; der Snapshot sitzt einmal pro `run_skill`-Aufruf
+  oberhalb der Retry-Schleife und hinter dem `--dry-run`-Return; die Skill→Datei-Zuordnung liegt
+  an einem Ort und ist über beide Seiten des Kopplungs-Guards abgesichert.
+- Keine Routen-Änderung (`app/**` unberührt) → `docs/routes.md` korrekt nicht angefasst; keine
+  `.claude/**`-Änderung (kein Patch-Workflow nötig); kein ADR-Trigger, mit Begründung gegen alle
+  vier Kategorien in der Task-Notiz.
+- Kein neuer Out-of-Scope-Fund oberhalb der ADR-043-Schwelle in dieser Runde. Der einzige
+  Kandidat (Interrupt-Asymmetrie) betrifft Code, den dieser PR angefasst hat, und bleibt daher
+  als In-Scope-Nitpick hier stehen statt als Issue/`kleinfunde.md`-Eintrag. Der Out-of-Scope-Fund
+  der Runde 1 (Issue **#312**) besteht unverändert und ist korrekt ausgelagert.
 
-## Historie Runde 1
+## Historie
 
-Runde 1 endete mit `NEEDS_REWORK`: keine kritischen Findings, drei wichtige (W1
-Redirection-Reihenfolge, W2 ungetesteter `UNREADABLE`-Zweig, W3 paralleles Scaffolding) und
-vier Nitpicks (ADR-019 §4-Einleitungssatz, einseitige AK9-Guards, Subshell in
-`report_verdict`, ungetrackte `.issue-body-310.tmp.md`). Alle drei wichtigen Findings und drei
-der vier Nitpicks sind im Rework-Commit `aac62bc` umgesetzt; die Subshell wurde bewusst nicht
-angefasst (Begründung in den Rework-Notizen der Task-Datei). Out-of-Scope-Fund der Runde 1:
-Issue **#312**.
+- **Runde 1** (`NEEDS_REWORK`): keine kritischen, drei wichtige Findings (W1 Redirection-
+  Reihenfolge in `report_fingerprint`, W2 ungetesteter `UNREADABLE`-Zweig, W3 paralleles
+  Scaffolding statt `_mk_pipe_repo`) und vier Nitpicks. Rework in `aac62bc`; die Subshell in
+  `report_verdict` blieb bewusst unangetastet. Out-of-Scope-Fund: Issue **#312**.
+- **Runde 2** (`APPROVED`): W1–W3 belegbar behoben, keine kritischen und keine wichtigen
+  Findings; fünf Nitpicks. Vier davon im Nachlauf-Commit `904d635` umgesetzt (ADR-019-
+  Artefaktliste, `interrupt-check.sh` im Stale-Zweig, totes `raise-interrupt.sh`-Scaffolding,
+  Zahlendrift), einer mit Begründung offen gelassen (doppelte Verneinung `:5799`).
+- **Runde 3** (diese Runde): prüft `904d635`. Keine kritischen, keine wichtigen Findings; drei
+  Nitpicks, alle rein kosmetisch bzw. für `/refactor` vorgemerkt.
 
 ## Empfehlung
 APPROVED

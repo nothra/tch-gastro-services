@@ -90,6 +90,16 @@ Unabhängiger Testing-Agent hat AK1–AK12 einzeln gegen die #310-Testblöcke in
 echten Skript geprüft, nicht nur Textvorhandensein) – keine Lücke gefunden, keine Ergänzung
 nötig. Suite erneut ausgeführt: **1120 grün, 0 rot**. Keine Produktionsdatei angefasst.
 
+### Re-Verifikation nach Nitpick-Nachlauf (`/test`, 2026-08-27)
+
+Nachlauf-Commit `904d635` (Interrupt-Stopp im Stale-Zweig) war zum Zeitpunkt der vorigen
+Test-Verifikation noch nicht entstanden. Erneute Prüfung gegen den aktuellen Stand: alle zwölf
+AKs tragen weiterhin dedizierte `#310 AK<n>`-Assertionsblöcke in `run-tests.sh` (per Grep
+gegengezählt, nicht geschätzt), der neue Interrupt-Pfad ist bereits mit E2E-Test **und**
+kausalem Mutationsbeleg abgedeckt (siehe Nitpick-Nachlauf-Notiz oben). Suite erneut ausgeführt:
+**1127 grün, 0 rot**; `bash scripts/checks/pre-commit.sh` (inkl. Lint) grün. Keine
+Produktions- oder Testdatei angefasst – keine Lücke gefunden.
+
 ## Offene Fragen
 
 _Keine – Mechanik, Scope, Fehlerpfad und Turn-Budget sind entschieden (siehe Spec)._
