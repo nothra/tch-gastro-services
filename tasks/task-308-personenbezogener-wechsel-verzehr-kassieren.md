@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -145,6 +145,14 @@ Doku-/Test-Nachzügen. Am Produktionsverhalten des Features wurde nichts geände
       (Positions-Freeze + Zielzeilen-Hervorhebung); der Modul-Header ist mitgepflegt, der Name nicht.
       Der Review nennt ausdrücklich „kein Rename-Zwang" – ein Rename berührt Komponente, Test und
       beide Konsumenten und gehört damit in den `/refactor`-Pass, nicht in die Rework-Runde.
+
+**Runde 2/3 – manuelle Freigabe nach Circuit Breaker:** `/review 308` hat in Iteration 2 und 3
+jeweils das Turn-Limit (30) erreicht, bevor ein aktualisierter Report geschrieben wurde – die
+Pipeline hat `NEEDS_REWORK` nur als Turn-Limit-Fallback gewertet, ohne neue Findings.
+`tasks/review-308.md` spiegelt weiterhin den Stand aus Iteration 1 (die einzige vollständige
+Review-Runde). Der Rework-Lauf nach Iteration 2 bestätigte zusätzlich, dass am Code nichts mehr
+zu tun war (Gates grün, 736 Tests). Nach Rücksprache mit dem Menschen gilt der Report aus Runde 1
+als maßgeblich; die Checkbox „Review bestanden" wurde daraufhin manuell gesetzt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
