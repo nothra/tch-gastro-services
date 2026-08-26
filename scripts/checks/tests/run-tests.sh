@@ -2692,9 +2692,13 @@ SECURITY_MD214="$FACTORY_ROOT/.claude/commands/security-review.md"
 # report_verdict-case-Zeile aus dem echten Parser-Skript (AC6: nicht im Test dupliziert).
 extract_verdict_header() {
   local skill="$1" lib="$2"
+  # Die Lib hat seit #310 mehrere case-Blöcke über dieselben Skill-Namen (report_file für den
+  # Pfad, report_verdict für Anker + Tokens). Der `header='`-Filter wählt den Parser-Block –
+  # ohne ihn liefert `head -n1` die Pfad-Zeile aus report_file und der Guard wird falsch rot.
   # Der Pipeline-Exit wird bewusst nicht ausgewertet (nur der String zählt, kein `set -e`):
   # `head -n1` kann unter pipefail SIGPIPE(141) erzeugen, ist hier aber folgenlos.
-  grep -E "^[[:space:]]*${skill}\)" "$lib" | sed -E "s/.*header='([^']*)'.*/\1/" | head -n1
+  grep -E "^[[:space:]]*${skill}\)" "$lib" | grep -F "header='" \
+    | sed -E "s/.*header='([^']*)'.*/\1/" | head -n1
 }
 
 # extract_section_headers <run-pipeline.sh> – liest die distinct "## …"-Sektions-Muster, die
@@ -5688,6 +5692,362 @@ for ak7_f in "${ak7_files_267[@]}"; do
 done
 assert_true "$([ -z "$ak7_unqualified_267" ]; echo $?)" \
   "AK7: jede Fundstelle der alten Wortfolge ist als Empfehlung qualifiziert${ak7_unqualified_267:+ – unqualifiziert:\n${ak7_unqualified_267}}"
+
+# ─── #310: Report-Guard honoriert nur einen frischen Verdict (Spec-310) ──────
+# Der Guard in run_skill() wertete einen non-zero Exit als Erfolg, sobald die Report-Datei
+# IRGENDEINEN gültigen Verdict enthielt – auch einen aus einer früheren Review-Iteration
+# desselben Laufs (#310, Task 308) oder aus einem früheren Pipeline-Lauf (#91). Der Fix
+# vergleicht einen Fingerprint der Report-Datei von VOR dem ersten Versuch des Aufrufs.
+echo ""
+echo "#310 report_fingerprint (Frische-Fingerprint der Report-Datei):"
+
+RV_LIB310="$SCRIPTS_DIR/lib/report-verdict.sh"
+TMP_FP310="$(mktemp -d)"; mkdir -p "$TMP_FP310/tasks"
+# fp310 <skill> <task_id> – report_fingerprint aus der gesourcten Lib (tasks_dir = 3. Arg).
+fp310() { bash -c 'source "$1"; report_fingerprint "$2" "$3" "$4"' _ "$RV_LIB310" "$1" "$2" "$TMP_FP310/tasks"; }
+# rf310 <skill> <task_id> – report_file aus derselben Lib (AK9: eine Skill→Datei-Zuordnung).
+rf310() { bash -c 'source "$1"; report_file "$2" "$3" "$4"' _ "$RV_LIB310" "$1" "$2" "$TMP_FP310/tasks"; }
+
+# AK9: die Zuordnung Skill → Report-Datei kommt aus der Lib, nicht aus run-pipeline.sh.
+assert_true "$([ "$(rf310 review 310)" = "$TMP_FP310/tasks/review-310.md" ]; echo $?)" \
+  "#310 AK9: report_file(review) liefert tasks/review-<id>.md"
+assert_true "$([ "$(rf310 security-review 310)" = "$TMP_FP310/tasks/security-310.md" ]; echo $?)" \
+  "#310 AK9: report_file(security-review) liefert tasks/security-<id>.md"
+assert_true "$([ -z "$(rf310 implement 310)" ]; echo $?)" \
+  "#310 AK9: report_file(implement) liefert leer (kein report-erzeugendes Skill)"
+
+# AK3-Grundlage: „Datei fehlt" ist ein eigener Wert – sonst wäre der Übergang fehlt → vorhanden
+# keine erkennbare Veränderung und ein neu geschriebener Report gälte als stale.
+fp310_absent="$(fp310 review 310)"
+assert_true "$([ -n "$fp310_absent" ]; echo $?)" \
+  "#310: fehlende Report-Datei liefert einen Marker (nicht leer)"
+printf '## Empfehlung\nNEEDS_REWORK\n' > "$TMP_FP310/tasks/review-310.md"
+fp310_first="$(fp310 review 310)"
+assert_true "$([ "$fp310_first" != "$fp310_absent" ]; echo $?)" \
+  "#310 AK3: Übergang fehlt → vorhanden ändert den Fingerprint"
+
+# Stabil bei unverändertem Inhalt (kein Zeitstempel/mtime) – sonst gälte jeder Report als frisch.
+assert_true "$([ "$(fp310 review 310)" = "$fp310_first" ]; echo $?)" \
+  "#310 AK1: unveränderte Datei liefert denselben Fingerprint (stale erkennbar)"
+
+# Verdict inhaltlich identisch, Text neu → frisch (Fehlerszenario der Spec: die Iteration zählt).
+printf '## Empfehlung\nNEEDS_REWORK\nneuer Text, gleicher Verdict\n' > "$TMP_FP310/tasks/review-310.md"
+assert_true "$([ "$(fp310 review 310)" != "$fp310_first" ]; echo $?)" \
+  "#310: geänderter Report-Text ändert den Fingerprint (auch bei gleichem Verdict)"
+
+# AK5/AK9: security-review liest ausschließlich die eigene Datei (keine Kreuz-Wirkung).
+printf '## Ergebnis\nPASSED\n' > "$TMP_FP310/tasks/security-310.md"
+fp310_sec="$(fp310 security-review 310)"
+printf '## Empfehlung\nAPPROVED\n' > "$TMP_FP310/tasks/review-310.md"
+assert_true "$([ "$(fp310 security-review 310)" = "$fp310_sec" ]; echo $?)" \
+  "#310 AK5: Änderung an review-<id>.md lässt den security-Fingerprint unberührt"
+
+# AK10: nicht report-erzeugende Skills haben keinen Report – konstanter Wert, unabhängig
+# von vorhandenen Report-Dateien (der Guard greift für sie ohnehin nie).
+fp310_impl="$(fp310 implement 310)"
+printf '## Empfehlung\nAPPROVED\nnoch eine Änderung\n' > "$TMP_FP310/tasks/review-310.md"
+assert_true "$([ "$(fp310 implement 310)" = "$fp310_impl" ]; echo $?)" \
+  "#310 AK10: Fingerprint eines nicht report-erzeugenden Skills ist von Report-Dateien unabhängig"
+
+# AK8: die Prüfung liest nur – der Inhalt bleibt byte-identisch.
+fp310_before_read="$(cksum < "$TMP_FP310/tasks/review-310.md")"
+fp310 review 310 >/dev/null
+assert_true "$([ "$(cksum < "$TMP_FP310/tasks/review-310.md")" = "$fp310_before_read" ]; echo $?)" \
+  "#310 AK8: report_fingerprint verändert die Report-Datei nicht"
+
+rm -rf "$TMP_FP310"
+
+# AK9 (Drift-Guard): das Pfadmuster darf nicht zusätzlich in run-pipeline.sh stehen, sonst
+# driften Guard, Frische-Prüfung und Summary wieder auseinander.
+assert_true "$(! grep -qF 'tasks/review-${task_id}.md' "$PIPELINE"; echo $?)" \
+  "#310 AK9: run-pipeline.sh baut den review-Report-Pfad nicht selbst"
+assert_true "$(! grep -qF 'tasks/security-${task_id}.md' "$PIPELINE"; echo $?)" \
+  "#310 AK9: run-pipeline.sh baut den security-Report-Pfad nicht selbst"
+
+# AK7 (Snapshot-Zeitpunkt): Der Fingerprint wird EINMAL VOR dem ersten Versuch erhoben – die
+# Zuweisung steht also oberhalb der Retry-Schleife, nicht in ihr. Die E2E-Tests unten pinnen
+# die beiden anderen Hälften von AK7 behavioral (AK2: vor dem claude-Aufruf, sonst gälte nie
+# etwas als frisch; AK1: pro run_skill-Aufruf neu, sonst würde Iteration 1 die Iteration 2
+# durchwinken); nur „vor der Schleife statt je Versuch" ist rein positionell. Verglichen werden
+# Zeilennummern zweier exakter Zeilen, keine zwei isolierten Präsenz-Checks (Lesson #286).
+ak7_snapshot_line_310() { grep -n 'report_fingerprint_before=' "$1" | head -1 | cut -d: -f1; }
+ak7_loop_line_310()     { grep -n 'for attempt in 1 2 3; do' "$1" | head -1 | cut -d: -f1; }
+assert_true "$([ "$(ak7_snapshot_line_310 "$PIPELINE")" -lt "$(ak7_loop_line_310 "$PIPELINE")" ]; echo $?)" \
+  "#310 AK7: Fingerprint-Snapshot steht vor der Retry-Schleife (einmal pro run_skill-Aufruf)"
+
+# Mutationsbeleg zu AK7: dieselbe Zeilennummern-Assertion gegen eine run-pipeline.sh, in der die
+# Zuweisung IN die Schleife gewandert ist (= je Versuch neu erhoben). Ohne ihn belegte der Check
+# oben nur, dass beide Zeilen existieren.
+TMP_AK7_310="$(mktemp -d)"
+awk '/report_fingerprint_before=/ { snapshot = $0; next }
+     { print }
+     /for attempt in 1 2 3; do/ && snapshot { print snapshot; snapshot = "" }' \
+  "$PIPELINE" > "$TMP_AK7_310/mutant.sh"
+assert_true "$([ "$(ak7_snapshot_line_310 "$TMP_AK7_310/mutant.sh")" -gt "$(ak7_loop_line_310 "$TMP_AK7_310/mutant.sh")" ]; echo $?)" \
+  "#310 AK7: Mutation greift wirklich (Snapshot-Zuweisung in die Schleife verschoben)"
+assert_true "$(! [ "$(ak7_snapshot_line_310 "$TMP_AK7_310/mutant.sh")" -lt "$(ak7_loop_line_310 "$TMP_AK7_310/mutant.sh")" ]; echo $?)" \
+  "#310 AK7 (Mutation): per-Versuch erhobener Snapshot macht die Positions-Assertion rot"
+rm -rf "$TMP_AK7_310"
+
+echo ""
+echo "#310 E2E: Report-Guard honoriert nur einen im Aufruf entstandenen Verdict:"
+
+# scaffold_310 <dir> <task_id> – Wegwerf-Repo mit der ECHTEN run-pipeline.sh, Skill-Mocks und
+# no-op-`sleep` (der Retry-Backoff aus run_skill würde die Suite sonst 30 s pro Fehl-Lauf
+# blockieren). Die Skill-Dateien tragen einen SKILL-<name>-Marker: daran erkennt der
+# `claude`-Stub im Prompt, welches Skill gerade läuft ('SKILL-review' ist kein Teilstring von
+# 'SKILL-security-review'). Der Aufrufer legt danach Report-Dateien + Stub an und committet.
+scaffold_310() {
+  local dir="$1" task_id="$2" s
+  mkdir -p "$dir/scripts/checks" "$dir/scripts/lib" "$dir/tasks" \
+           "$dir/docs/factory" "$dir/.claude/commands" "$dir/bin"
+  cp "$PIPELINE" "$dir/scripts/"
+  cp "$CHECKS_DIR/config-validation-check.sh" "$CHECKS_DIR/interrupt-check.sh" "$dir/scripts/checks/"
+  cp "$SCRIPTS_DIR/raise-interrupt.sh" "$dir/scripts/"
+  cp "$SCRIPTS_DIR/lib/report-verdict.sh" "$SCRIPTS_DIR/lib/tier-select.sh" \
+     "$SCRIPTS_DIR/lib/verify-final-state.sh" "$dir/scripts/lib/"
+  cp "$DEFAULTS_YML" "$dir/"
+  echo "# ctx" > "$dir/docs/factory/PROJECT-CONTEXT.md"
+  for s in implement review test refactor security-review codify; do
+    printf '# SKILL-%s mock\n' "$s" > "$dir/.claude/commands/$s.md"
+  done
+  printf '# Task %s: report-guard\n' "$task_id" > "$dir/tasks/task-${task_id}-guard.md"
+  printf '#!/bin/sh\nexit 0\n' > "$dir/bin/sleep"; chmod +x "$dir/bin/sleep"
+}
+
+# commit_310 <dir> – Wegwerf-Repo committen (preflight_checks verlangt einen sauberen Baum).
+# Explizite git-Identität: ohne sie schlägt der Commit in einer identitätslosen Umgebung
+# fehl (Lesson testing.md, #265).
+commit_310() {
+  git -C "$1" init -q
+  git -C "$1" -c user.email=t@t -c user.name=t add . >/dev/null 2>&1
+  git -C "$1" -c user.email=t@t -c user.name=t commit -q -m init
+}
+
+# run_310 <dir> <task_id> – echter Pipeline-Lauf im Wegwerf-Repo; Ausgabe in OUT_310,
+# Exit-Code in RC_310 (Globals, weil eine Command Substitution den Exit-Code verschluckt).
+# env -u: siehe #264 – kein Testblock entscheidet aus der Env der aufrufenden Shell.
+run_310() {
+  local dir="$1" task_id="$2"
+  OUT_310=$(cd "$dir" && PATH="$dir/bin:$PATH" \
+    FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
+    env -u PR_SHEPHERD -u FACTORY_STAGE \
+    bash "$dir/scripts/run-pipeline.sh" "$task_id" 2>&1); RC_310=$?
+}
+
+STALE_MSG_310='stammt aus einem früheren Aufruf'
+FRESH_MSG_310='Turn-Limit toleriert'
+
+if [ "$HAS_YQ" = 1 ]; then
+  # ── AK1/AK6/AK7 (Kern #310): Verdict aus Review-Iteration 1, Iteration 2 reißt das
+  # Turn-Limit, ohne den Report zu berühren. Der Stub schreibt den Report genau beim
+  # ERSTEN review-Aufruf (danach existiert die Datei → exit 1 ohne Schreiben) – damit ist
+  # die Iteration-1-Datei die divergenzerzeugende Aktion (Lesson #253) und der Fingerprint
+  # muss pro run_skill-Aufruf neu erhoben werden, nicht einmal pro Pipeline-Lauf (AK7).
+  TMP_A310="$(mktemp -d)"
+  scaffold_310 "$TMP_A310" 310
+  cat > "$TMP_A310/bin/claude" <<'STUB_A310'
+#!/bin/sh
+case "$*" in
+  *SKILL-review*)
+    [ -f "$PWD/tasks/review-310.md" ] && exit 1
+    printf '## Empfehlung\nNEEDS_REWORK\nIteration 1\n' > "$PWD/tasks/review-310.md"
+    exit 0 ;;
+  *) exit 0 ;;
+esac
+STUB_A310
+  chmod +x "$TMP_A310/bin/claude"
+  commit_310 "$TMP_A310"
+  run_310 "$TMP_A310" 310
+  assert_exit 1 "$RC_310" \
+    "#310 AK1/AK6: stale Verdict aus Iteration 1 → exit 1 nach 3 Versuchen (kein Circuit-Breaker-2)"
+  assert_contains_286 "$OUT_310" "failed after 3 attempts" \
+    "#310 AK6: Abbruch über den bestehenden Retry-Pfad (failed after 3 attempts)"
+  assert_contains_286 "$OUT_310" "$STALE_MSG_310" \
+    "#310 AK1: Meldung benennt den stale Verdict als Grund"
+  assert_absent "$OUT_310" "$FRESH_MSG_310" \
+    "#310 AK1: stale Verdict wird NICHT als fertiger Report toleriert"
+  assert_absent "$OUT_310" "Circuit Breaker ausgelöst" \
+    "#310 AK6: der Circuit Breaker wird nicht mehr durch Scheinerfolge hochgezählt"
+
+  # ── AK11 (Mutationsbeleg): dieselben Assert-Ausdrücke gegen eine run-pipeline.sh, in der
+  # NUR der Frische-Vergleich entfernt ist. Erwartung: der stale Verdict gilt wieder als
+  # Erfolg, die Iteration zählt und der Circuit Breaker bricht mit exit 2 ab – exakt die
+  # Symptomatik aus Task 308. Ohne diesen Beleg wäre der Test oben auch aus dem falschen
+  # Grund grün (z. B. wenn der Stub gar keinen Verdict schreibt).
+  TMP_M310="$(mktemp -d)"
+  scaffold_310 "$TMP_M310" 310
+  sed 's/ && \[ "\$report_fingerprint_now" != "\$report_fingerprint_before" \]//' \
+    "$PIPELINE" > "$TMP_M310/scripts/run-pipeline.sh"
+  cmp -s "$PIPELINE" "$TMP_M310/scripts/run-pipeline.sh"
+  assert_true "$([ $? -ne 0 ]; echo $?)" \
+    "#310 AK11: Mutation greift wirklich (Frische-Vergleich aus der Guard-Bedingung entfernt)"
+  cp "$TMP_A310/bin/claude" "$TMP_M310/bin/claude"
+  commit_310 "$TMP_M310"
+  run_310 "$TMP_M310" 310
+  assert_exit 2 "$RC_310" \
+    "#310 AK11 (Mutation): ohne Frische-Vergleich zählt der Scheinerfolg → Circuit Breaker (exit 2)"
+  assert_contains_286 "$OUT_310" "$FRESH_MSG_310" \
+    "#310 AK11 (Mutation): ohne Frische-Vergleich gilt der stale Verdict als fertiger Report"
+  assert_absent "$OUT_310" "failed after 3 attempts" \
+    "#310 AK11 (Mutation): ohne Frische-Vergleich kein Fehlversuch – der Test oben ist kausal"
+  rm -rf "$TMP_M310"
+  rm -rf "$TMP_A310"
+
+  # ── AK2 (Regression ADR-019 §4): Report im Aufruf neu geschrieben, DANACH non-zero
+  # (Turn-Limit) → weiterhin Erfolg, die Pipeline arbeitet mit dem Verdict weiter.
+  TMP_B310="$(mktemp -d)"
+  scaffold_310 "$TMP_B310" 311
+  printf '## Empfehlung\nNEEDS_REWORK\nalte Iteration\n' > "$TMP_B310/tasks/review-311.md"
+  cat > "$TMP_B310/bin/claude" <<'STUB_B310'
+#!/bin/sh
+case "$*" in
+  *SKILL-review*)
+    printf '## Empfehlung\nAPPROVED\nin diesem Aufruf geschrieben\n' > "$PWD/tasks/review-311.md"
+    exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB_B310
+  chmod +x "$TMP_B310/bin/claude"
+  commit_310 "$TMP_B310"
+  run_310 "$TMP_B310" 311
+  assert_contains_286 "$OUT_310" "$FRESH_MSG_310" \
+    "#310 AK2: frisch geschriebener Report + Turn-Limit bleibt Erfolg"
+  assert_absent "$OUT_310" "$STALE_MSG_310" \
+    "#310 AK2: kein Stale-Verdikt bei verändertem Report"
+  assert_contains_286 "$OUT_310" "Phase 3" \
+    "#310 AK2: die Pipeline arbeitet mit dem frischen Verdict weiter (Phase 3 erreicht)"
+  rm -rf "$TMP_B310"
+
+  # ── AK3 (Neuanlage): vorher KEINE Report-Datei, im Aufruf geschrieben → frisch.
+  # Identischer Stub wie AK2, nur ohne vorbestehende Datei – der Übergang „fehlt →
+  # vorhanden" ist die einzige Änderung an der Ausgangslage.
+  TMP_C310="$(mktemp -d)"
+  scaffold_310 "$TMP_C310" 312
+  cat > "$TMP_C310/bin/claude" <<'STUB_C310'
+#!/bin/sh
+case "$*" in
+  *SKILL-review*)
+    printf '## Empfehlung\nAPPROVED\nerstmals geschrieben\n' > "$PWD/tasks/review-312.md"
+    exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB_C310
+  chmod +x "$TMP_C310/bin/claude"
+  commit_310 "$TMP_C310"
+  run_310 "$TMP_C310" 312
+  assert_contains_286 "$OUT_310" "$FRESH_MSG_310" \
+    "#310 AK3: zuvor fehlende, im Aufruf neu geschriebene Report-Datei zählt als frisch"
+  assert_contains_286 "$OUT_310" "Phase 3" \
+    "#310 AK3: die Pipeline arbeitet mit dem neuen Verdict weiter"
+  rm -rf "$TMP_C310"
+
+  # ── AK4/AK8 (#91, Re-Lauf): committeter Report aus einem früheren Lauf, erster Versuch
+  # scheitert sofort ohne die Datei zu berühren → Fehlversuch statt fail-open. AK8 hängt an
+  # genau diesem Fall: hier schreibt niemand, der Report muss byte-identisch bleiben.
+  TMP_D310="$(mktemp -d)"
+  scaffold_310 "$TMP_D310" 313
+  printf '## Empfehlung\nAPPROVED\naus einem früheren Pipeline-Lauf\n' > "$TMP_D310/tasks/review-313.md"
+  cat > "$TMP_D310/bin/claude" <<'STUB_D310'
+#!/bin/sh
+case "$*" in
+  *SKILL-review*) exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB_D310
+  chmod +x "$TMP_D310/bin/claude"
+  commit_310 "$TMP_D310"
+  cksum_d310_before="$(cksum < "$TMP_D310/tasks/review-313.md")"
+  run_310 "$TMP_D310" 313
+  assert_exit 1 "$RC_310" "#310 AK4: committeter Report aus früherem Lauf → Fehlversuch (exit 1)"
+  # Pfadspezifisches Signal, nicht nur der Exit-Code: ohne die Frische-Prüfung liefe die
+  # Pipeline weiter und scheiterte erst an der Endzustands-Verifikation – ebenfalls exit 1.
+  assert_contains_286 "$OUT_310" "failed after 3 attempts" \
+    "#310 AK4: Abbruch im Retry-Pfad von run_skill (nicht erst am Pipeline-Ende)"
+  assert_absent "$OUT_310" "Phase 3" \
+    "#310 AK4: die Pipeline verlässt den Review-Loop nicht mit dem alten Verdict"
+  assert_contains_286 "$OUT_310" "$STALE_MSG_310" "#310 AK4: Meldung benennt den früheren Aufruf"
+  assert_absent "$OUT_310" "$FRESH_MSG_310" "#310 AK4: kein fail-open beim Re-Lauf"
+  assert_true "$([ "$(cksum < "$TMP_D310/tasks/review-313.md")" = "$cksum_d310_before" ]; echo $?)" \
+    "#310 AK8: Report-Datei bleibt inhaltlich unverändert (kein rm/Truncate)"
+  assert_true "$([ -z "$(git -C "$TMP_D310" status --porcelain -- tasks/review-313.md)" ]; echo $?)" \
+    "#310 AK8: die Prüfung verändert den git status der Report-Datei nicht"
+  rm -rf "$TMP_D310"
+
+  # ── AK5 (security-review identisch): review läuft regulär durch (exit 0), das
+  # Security-Gate trifft auf einen committeten PASSED aus einem früheren Aufruf.
+  TMP_E310="$(mktemp -d)"
+  scaffold_310 "$TMP_E310" 314
+  printf '## Empfehlung\nAPPROVED\n' > "$TMP_E310/tasks/review-314.md"
+  printf '## Ergebnis\nPASSED\naus einem früheren Aufruf\n' > "$TMP_E310/tasks/security-314.md"
+  cat > "$TMP_E310/bin/claude" <<'STUB_E310'
+#!/bin/sh
+case "$*" in
+  *SKILL-security-review*) exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB_E310
+  chmod +x "$TMP_E310/bin/claude"
+  commit_310 "$TMP_E310"
+  run_310 "$TMP_E310" 314
+  assert_exit 1 "$RC_310" "#310 AK5: stale PASSED im security-Report → Fehlversuch (exit 1)"
+  # Wie bei AK4: der Exit-Code allein unterscheidet den Guard nicht von einem späteren
+  # Abbruch – 'failed after 3 attempts' und das nie erreichte Phase 6 tun es.
+  assert_contains_286 "$OUT_310" "failed after 3 attempts" \
+    "#310 AK5: Abbruch im Retry-Pfad von run_skill (security-review)"
+  assert_absent "$OUT_310" "Phase 6" \
+    "#310 AK5: Codify wird mit dem alten Security-Verdict nicht erreicht"
+  assert_contains_286 "$OUT_310" "$STALE_MSG_310" \
+    "#310 AK5: Meldung benennt den stale Security-Verdict"
+  assert_absent "$OUT_310" "$FRESH_MSG_310" \
+    "#310 AK5: alter PASSED wird nicht als Ergebnis dieses Laufs gewertet"
+  rm -rf "$TMP_E310"
+
+  # ── AK10 (andere Skills unberührt): `implement` scheitert, obwohl ein gültiger Review-Report
+  # vorliegt → unverändert Fehlversuch → exit 1, ohne Guard-Meldung in beide Richtungen.
+  TMP_F310="$(mktemp -d)"
+  scaffold_310 "$TMP_F310" 315
+  printf '## Empfehlung\nAPPROVED\n' > "$TMP_F310/tasks/review-315.md"
+  cat > "$TMP_F310/bin/claude" <<'STUB_F310'
+#!/bin/sh
+case "$*" in
+  *SKILL-implement*) exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB_F310
+  chmod +x "$TMP_F310/bin/claude"
+  commit_310 "$TMP_F310"
+  run_310 "$TMP_F310" 315
+  assert_exit 1 "$RC_310" "#310 AK10: nicht report-erzeugendes Skill → Verhalten unverändert (exit 1)"
+  assert_contains_286 "$OUT_310" "failed after 3 attempts" \
+    "#310 AK10: Abbruch weiterhin über den Retry-Pfad"
+  assert_absent "$OUT_310" "$FRESH_MSG_310" \
+    "#310 AK10: vorhandener Review-Report macht /implement nicht erfolgreich"
+  assert_absent "$OUT_310" "$STALE_MSG_310" \
+    "#310 AK10: keine Guard-Meldung für nicht report-erzeugende Skills"
+  rm -rf "$TMP_F310"
+else
+  skip_yq "#310 E2E: Report-Guard Frische-Prüfung (AK1–AK6, AK8, AK10, AK11)"
+fi
+
+# ─── #310 AK12: Doku-Nachzug (ADR-019 §4 + Lesson-Absätze #91/#310) ──────────
+echo ""
+echo "#310 AK12: ADR-019 §4 und die Lesson-Absätze beschreiben die Frische-Bedingung:"
+
+ADR019_310="$FACTORY_ROOT/docs/adr/019-stage3-commit-seam-report-guard.md"
+adr019_flat_310=$(flat_286 "$ADR019_310")
+assert_contains_286 "$adr019_flat_310" "seit dem Beginn dieses Skill-Aufrufs verändert" \
+  "#310 AK12: ADR-019 §4 nennt die Frische-Bedingung des Guards"
+assert_contains_286 "$adr019_flat_310" "report_fingerprint" \
+  "#310 AK12: ADR-019 §4 nennt den Fingerprint-Helper namentlich"
+
+workflow_flat_310=$(flat_286 "$WORKFLOW_LESSON")
+assert_contains_286 "$workflow_flat_310" "In #310 umgesetzt" \
+  "#310 AK12: Lesson nennt den Erledigt-Stand des Report-Guard-Fixes"
+assert_absent "$workflow_flat_310" "Bis dahin: Pipeline-Re-Läufe" \
+  "#310 AK12: die Übergangsanweisung 'bis dahin manuell prüfen' ist aufgelöst"
+assert_absent "$workflow_flat_310" "muss also **zusätzlich** vor jedem Schleifendurchlauf greifen" \
+  "#310 AK12: die Within-Run-Regel steht nicht mehr als offene Forderung"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

@@ -245,6 +245,13 @@ run_skill() {
   printf -v prompt '%s\n\n---\n\n# Task-Datei: %s\n\n%s\n' \
     "$skill_body" "$(basename "$TASK_FILE")" "$(cat "$TASK_FILE")"
 
+  # Frische-Referenz für den Report-Guard (#310): Fingerprint der Report-Datei EINMAL vor
+  # dem ersten Versuch DIESES Aufrufs. Jeder Durchlauf der Review-Schleife in Phase 2 erhebt
+  # ihn dadurch neu – sonst würde ein in Iteration 1 geschriebener Report die Iteration 2
+  # (Turn-Limit vor dem Report) als vermeintlichen Erfolg durchwinken.
+  local report_fingerprint_before
+  report_fingerprint_before="$(report_fingerprint "$skill" "$task_id")"
+
   # Retry mit exponentiellem Backoff (z.B. bei Rate-Limit-Fehlern)
   # FACTORY_STAGE=3 signalisiert dem Agenten den nicht-interaktiven Modus:
   # statt eine Entscheidung zu erfragen, löst er einen Interrupt aus (ADR-004).
@@ -261,15 +268,20 @@ run_skill() {
 
     # Report-Guard (ADR-019 §4): review/security-review schreiben ihren Report und
     # reißen bisweilen DANACH das Turn-Limit (non-zero Exit, „Reached max turns").
-    # Ein bereits geschriebener, gültiger Verdict zählt als Erfolg – NUR für diese
-    # zwei report-erzeugenden Skills; für alle anderen bleibt non-zero ein Fehlversuch.
-    local verdict
+    # Ein gültiger Verdict zählt als Erfolg – NUR für diese zwei report-erzeugenden
+    # Skills, und NUR wenn er in diesem Aufruf entstanden ist (veränderter Fingerprint,
+    # #310). Für alle anderen Skills bleibt non-zero ein Fehlversuch.
+    local verdict report_fingerprint_now
     verdict="$(report_verdict "$skill" "$task_id")"
-    if [ -n "$verdict" ]; then
-      echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '${verdict}' – Turn-Limit nach fertigem Report toleriert)"
+    report_fingerprint_now="$(report_fingerprint "$skill" "$task_id")"
+    if [ -n "$verdict" ] && [ "$report_fingerprint_now" != "$report_fingerprint_before" ]; then
+      echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '${verdict}' – Report in diesem Aufruf geschrieben, Turn-Limit toleriert)"
       # Auch hier: ein signalisierter Interrupt stoppt hart (kein stiller Übergang).
       bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?
       return 0
+    fi
+    if [ -n "$verdict" ]; then
+      echo -e "${YELLOW}⚠${NC} /${skill}: Verdict '${verdict}' stammt aus einem früheren Aufruf (Report in diesem Aufruf unverändert) – kein Erfolg."
     fi
 
     if [ "$attempt" -lt 3 ]; then
@@ -326,9 +338,13 @@ pipeline_summary() {
   local task_id="$1"
   local review_iter="$2"
   local task_file="$FACTORY_DIR/tasks/task-${task_id}.md"
-  local review_file="$FACTORY_DIR/tasks/review-${task_id}.md"
-  local security_file="$FACTORY_DIR/tasks/security-${task_id}.md"
   local codify_file="$FACTORY_DIR/tasks/codify-${task_id}.md"
+  # Report-Pfade über den geteilten Helper (#310 AK9): die Skill→Datei-Zuordnung steht
+  # ausschließlich in scripts/lib/report-verdict.sh, damit Guard, Frische-Prüfung und
+  # Summary nicht auseinanderdriften.
+  local review_file security_file
+  review_file="$(report_file review "$task_id")"
+  security_file="$(report_file security-review "$task_id")"
 
   echo ""
   echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
