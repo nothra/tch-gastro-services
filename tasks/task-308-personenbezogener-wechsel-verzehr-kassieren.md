@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -145,6 +145,11 @@ Doku-/Test-Nachzügen. Am Produktionsverhalten des Features wurde nichts geände
       (Positions-Freeze + Zielzeilen-Hervorhebung); der Modul-Header ist mitgepflegt, der Name nicht.
       Der Review nennt ausdrücklich „kein Rename-Zwang" – ein Rename berührt Komponente, Test und
       beide Konsumenten und gehört damit in den `/refactor`-Pass, nicht in die Rework-Runde.
+      **Erledigt in `/refactor`:** umbenannt zu `KassierZeilenListe` (Typ `KassierZeile`), Datei
+      + Test + der eine Produktions-Konsument (`kassieren/page.tsx`) mitgezogen. Der interne
+      Freeze-Helfer `ordneNachEingefrorenerReihenfolge` behält seinen Namen – er beschreibt weiter
+      korrekt nur den Freeze-Teil. Historische Doku (`review-253.md`, `lessons/testing.md` u. a.)
+      bewusst unverändert gelassen (Vorfall-Narrativ, kein Präsens-Mechanik-Text).
 
 **Runde 2/3 – manuelle Freigabe nach Circuit Breaker:** `/review 308` hat in Iteration 2 und 3
 jeweils das Turn-Limit (30) erreicht, bevor ein aktualisierter Report geschrieben wurde – die

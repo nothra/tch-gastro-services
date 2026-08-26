@@ -16,7 +16,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 // personenbezogenen Aufrufs (#308): `hervorgehobeneZeileId` markiert genau eine Zeile und holt sie
 // in den Sichtbereich. Das ist reine Anzeige – Reihenfolge, Inhalt und Status bleiben unberührt.
 
-export type EingefroreneZeile = {
+export type KassierZeile = {
   id: string;
   inhalt: ReactNode;
 };
@@ -26,11 +26,11 @@ export type EingefroreneZeile = {
 const HERVORHEBUNG_CLASS = "border-cyan-600 bg-cyan-50 dark:border-cyan-500 dark:bg-cyan-950";
 const NORMAL_CLASS = "border-zinc-200 dark:border-zinc-800";
 
-export function EingefroreneZeilenListe({
+export function KassierZeilenListe({
   zeilen,
   hervorgehobeneZeileId = null,
 }: {
-  zeilen: EingefroreneZeile[];
+  zeilen: KassierZeile[];
   hervorgehobeneZeileId?: string | null;
 }) {
   const [eingefroreneReihenfolge] = useState(() => zeilen.map((zeile) => zeile.id));
@@ -76,9 +76,9 @@ export function EingefroreneZeilenListe({
 // eingefrorene Position in Server-Reihenfolge – so wird eine unbekannte Zeile angehängt statt
 // stillschweigend ausgeblendet. Inzwischen entfallene Ids werden übersprungen.
 function ordneNachEingefrorenerReihenfolge(
-  zeilen: EingefroreneZeile[],
+  zeilen: KassierZeile[],
   eingefroreneReihenfolge: string[],
-): EingefroreneZeile[] {
+): KassierZeile[] {
   const zeilenNachId = new Map(zeilen.map((zeile) => [zeile.id, zeile]));
   const eingefroreneIds = new Set(eingefroreneReihenfolge);
 

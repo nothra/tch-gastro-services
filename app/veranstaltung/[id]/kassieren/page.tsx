@@ -14,7 +14,7 @@ import { gesamtabrechnung, kassierTagessummen, kassierZeilen } from "../../kassi
 import { auslagenSummen } from "../../auslagenSummen";
 import { StatusToggle } from "../../StatusToggle";
 import { KassiereZeileForm } from "../../KassiereZeileForm";
-import { EingefroreneZeilenListe } from "../../EingefroreneZeilenListe";
+import { KassierZeilenListe } from "../../KassierZeilenListe";
 import { VerzehrAufschluesselung } from "../../VerzehrAufschluesselung";
 import {
   AUSLAGE_KATEGORIE_LABEL,
@@ -82,7 +82,7 @@ export default async function KassierenPage({
   // liefert bereits alphabetisch und `Array.prototype.sort` ist stabil → die Alphabetik bleibt je
   // Gruppe erhalten; kein zweites Sortierkriterium nötig.
   // Diese Sortierung gilt für jeden Seitenaufruf; innerhalb einer laufenden Sitzung hält
-  // `EingefroreneZeilenListe` die zuerst gerenderte Reihenfolge fest, damit eine gerade kassierte
+  // `KassierZeilenListe` die zuerst gerenderte Reihenfolge fest, damit eine gerade kassierte
   // Zeile nicht sofort nach unten springt (#253).
   const zeilenMitKassier = zeilen
     .map((zeile, index) => ({
@@ -133,7 +133,7 @@ export default async function KassierenPage({
         {zeilen.length === 0 ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
         ) : (
-          <EingefroreneZeilenListe
+          <KassierZeilenListe
             hervorgehobeneZeileId={zielZeileId}
             zeilen={zeilenMitKassier.map(({ zeile, kassier, positionen: zeilenPositionen }) => ({
               id: zeile.id,

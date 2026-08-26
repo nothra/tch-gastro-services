@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
-import { EingefroreneZeilenListe, type EingefroreneZeile } from "./EingefroreneZeilenListe";
+import { KassierZeilenListe, type KassierZeile } from "./KassierZeilenListe";
 
 // Baut die Props so, wie sie die Kassier-Seite liefert: pro Zeile ihre id plus den (server-seitig
 // gerenderten) Inhalt. Der Inhalt trägt Name + Status, damit sich Reihenfolge (Position) und
 // Inhalt (Badge) getrennt prüfen lassen.
-function zeile(id: string, name: string, status = "offen"): EingefroreneZeile {
+function zeile(id: string, name: string, status = "offen"): KassierZeile {
   return {
     id,
     inhalt: (
@@ -46,10 +46,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("EingefroreneZeilenListe", () => {
+describe("KassierZeilenListe", () => {
   it("should_renderZeilenInServerOrder_when_firstRendered", () => {
     render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
       />,
     );
@@ -59,14 +59,14 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_keepFrozenOrder_when_serverReordersOnRerender", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
       />,
     );
 
     // Server sortiert die mittlere Zeile (Bernd) nach dem Kassieren ans Ende.
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
       />,
     );
@@ -76,12 +76,12 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_showCurrentServerContent_when_zeileStaysAtFrozenPosition", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
+      <KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
     );
     expect(screen.getByTestId("status-z-2")).toHaveTextContent("offen");
 
     rerender(
-      <EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd", "bezahlt")]} />,
+      <KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd", "bezahlt")]} />,
     );
 
     // Eingefroren wird nur die Position, nicht der Inhalt: der Status folgt den Server-Daten.
@@ -90,7 +90,7 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_keepEveryFrozenPosition_when_severalZeilenKassiertInSequence", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[
           zeile("z-1", "Anna"),
           zeile("z-2", "Bernd"),
@@ -101,7 +101,7 @@ describe("EingefroreneZeilenListe", () => {
     );
 
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[
           zeile("z-1", "Anna"),
           zeile("z-3", "Carla"),
@@ -111,7 +111,7 @@ describe("EingefroreneZeilenListe", () => {
       />,
     );
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[
           zeile("z-1", "Anna"),
           zeile("z-4", "Dora"),
@@ -127,7 +127,7 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_keepFrozenPositionAndStatus_when_subsequentKassierenFails", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
       />,
     );
@@ -135,7 +135,7 @@ describe("EingefroreneZeilenListe", () => {
     // Bernd wird erfolgreich kassiert – das erzeugt die Divergenz zwischen Server- und
     // eingefrorener Reihenfolge, gegen die die folgende Assertion erst diskriminierend ist.
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
       />,
     );
@@ -143,7 +143,7 @@ describe("EingefroreneZeilenListe", () => {
     // Das Kassieren von Carla schlägt fehl: der Server liefert dieselben (bereits divergierten)
     // Daten unverändert zurück.
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
       />,
     );
@@ -154,13 +154,13 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_useServerOrder_when_mountedFreshAfterReload", () => {
     const { unmount } = render(
-      <EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
+      <KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
     );
     unmount();
 
     // Neuer Seitenaufruf (Reload) → neue Instanz, die Reihenfolge des Servers gilt wieder.
     render(
-      <EingefroreneZeilenListe zeilen={[zeile("z-2", "Bernd", "bezahlt"), zeile("z-1", "Anna")]} />,
+      <KassierZeilenListe zeilen={[zeile("z-2", "Bernd", "bezahlt"), zeile("z-1", "Anna")]} />,
     );
 
     expect(namenInReihenfolge()).toEqual(["Bernd", "Anna"]);
@@ -168,11 +168,11 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_appendZeile_when_idIsNotInFrozenOrder", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
+      <KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />,
     );
 
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-9", "Neuling"), zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
       />,
     );
@@ -183,14 +183,14 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_skipFrozenId_when_serverNoLongerDeliversThatZeile", () => {
     const { rerender } = render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
       />,
     );
 
     // Die mittlere Zeile ist entfallen – die eingefrorene Position wird übersprungen, die
     // verbleibenden Zeilen behalten ihre relative Reihenfolge (keine Lücke, kein Absturz).
-    rerender(<EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla")]} />);
+    rerender(<KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla")]} />);
 
     expect(namenInReihenfolge()).toEqual(["Anna", "Carla"]);
   });
@@ -199,7 +199,7 @@ describe("EingefroreneZeilenListe", () => {
     // #308 AK2: die Zielzeile ist von den übrigen unterscheidbar – semantisch (aria-current) und
     // optisch (Rahmen + Fläche in Akzentfarbe, Light und Dark).
     render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
         hervorgehobeneZeileId="z-2"
       />,
@@ -217,7 +217,7 @@ describe("EingefroreneZeilenListe", () => {
   });
 
   it("should_highlightNoZeile_when_hervorgehobeneZeileIdOmitted", () => {
-    render(<EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />);
+    render(<KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />);
 
     expect(hervorgehobeneNamen()).toEqual([]);
     expect(listenEintrag("Anna")).toHaveClass("border-zinc-200");
@@ -226,7 +226,7 @@ describe("EingefroreneZeilenListe", () => {
   it("should_highlightNoZeile_when_hervorgehobeneZeileIdIsUnknown", () => {
     // F1: unbekannter Personenbezug → Standardzustand, kein Fehler.
     render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
         hervorgehobeneZeileId="z-fremd"
       />,
@@ -239,7 +239,7 @@ describe("EingefroreneZeilenListe", () => {
 
   it("should_scrollTargetIntoViewAfterLayout_when_hervorgehobeneZeileIdGiven", () => {
     render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
         hervorgehobeneZeileId="z-2"
       />,
@@ -258,14 +258,14 @@ describe("EingefroreneZeilenListe", () => {
     // (#253) bleibt gültig. Der erste Rerender erzeugt die Divergenz, gegen die das erst
     // diskriminierend ist.
     const { rerender } = render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
         hervorgehobeneZeileId="z-2"
       />,
     );
 
     rerender(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
         hervorgehobeneZeileId="z-2"
       />,
@@ -278,7 +278,7 @@ describe("EingefroreneZeilenListe", () => {
   it("should_keepHighlight_when_mountedFreshAfterReload", () => {
     // #308 AK11: die Hervorhebung kommt aus dem Aufruf (Prop), nicht aus flüchtigem Zustand.
     const { unmount } = render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
         hervorgehobeneZeileId="z-2"
       />,
@@ -286,7 +286,7 @@ describe("EingefroreneZeilenListe", () => {
     unmount();
 
     render(
-      <EingefroreneZeilenListe
+      <KassierZeilenListe
         zeilen={[zeile("z-2", "Bernd", "bezahlt"), zeile("z-1", "Anna")]}
         hervorgehobeneZeileId="z-2"
       />,

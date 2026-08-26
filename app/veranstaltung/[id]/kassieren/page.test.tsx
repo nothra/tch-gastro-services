@@ -271,7 +271,7 @@ let raf: ReturnType<typeof stubRequestAnimationFrame>;
 
 beforeEach(() => {
   vi.resetAllMocks();
-  // jsdom implementiert scrollIntoView nicht; EingefroreneZeilenListe ruft es guarded im
+  // jsdom implementiert scrollIntoView nicht; KassierZeilenListe ruft es guarded im
   // rAF-Callback auf (#308 AK2).
   Element.prototype.scrollIntoView = vi.fn();
   raf = stubRequestAnimationFrame();
@@ -661,7 +661,7 @@ describe("KassierenPage", () => {
     rerender(await KassierenPage(seite("v-1")));
 
     // Der Statuswechsel darf weder umsortieren noch den Freeze verlieren: ein statusabhängiger
-    // `key` an <EingefroreneZeilenListe> würde die Komponente remounten und Bernd nach unten
+    // `key` an <KassierZeilenListe> würde die Komponente remounten und Bernd nach unten
     // springen lassen – diese Assertion färbt das rot (Server sortierte [Dora, Anna, Bernd, Carla]).
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
     expect(screen.queryAllByTestId("kassiere-form")).toHaveLength(0);
