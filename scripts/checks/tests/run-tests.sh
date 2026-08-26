@@ -5755,14 +5755,69 @@ fp310 review 310 >/dev/null
 assert_true "$([ "$(cksum < "$TMP_FP310/tasks/review-310.md")" = "$fp310_before_read" ]; echo $?)" \
   "#310 AK8: report_fingerprint verändert die Report-Datei nicht"
 
+# UNREADABLE-Zweig (Fehlerszenario der Spec: „Fingerprint nicht ermittelbar → fail-closed").
+# Deterministisch und ohne chmod-/Root-Abhängigkeit über ein PATH ohne `cksum`: die Datei
+# bleibt lesbar, nur das Werkzeug fehlt.
+fp310_nocksum() {
+  bash -c 'source "$1"; PATH=/nonexistent-dir report_fingerprint "$2" "$3" "$4"' \
+    _ "$RV_LIB310" "$1" "$2" "$TMP_FP310/tasks"
+}
+fp310_unreadable="$(fp310_nocksum review 310)"
+assert_true "$([ "$fp310_unreadable" = "UNREADABLE" ]; echo $?)" \
+  "#310: nicht ermittelbare Prüfsumme liefert den UNREADABLE-Marker statt eines leeren Werts"
+# Erst diese Aussage macht den Zweig wertvoll: bleibt der Lesefehler bestehen, sind Vorher und
+# Nachher gleich → stale → Fehlversuch, nie ein stiller Erfolg.
+assert_true "$([ "$(fp310_nocksum review 310)" = "$fp310_unreadable" ]; echo $?)" \
+  "#310: fortbestehender Lesefehler liefert zweimal denselben Fingerprint (stale, kein Erfolg)"
+# Und der Marker kollidiert nicht mit einer echten Prüfsumme – sonst könnte ein Lesefehler wie
+# ein unveränderter Inhalt aussehen (oder umgekehrt).
+assert_true "$([ "$fp310_unreadable" != "$(fp310 review 310)" ]; echo $?)" \
+  "#310: UNREADABLE ist von der echten Prüfsumme derselben Datei unterscheidbar"
+
+# W1 (Log-Hygiene): der Lesefehler selbst darf nicht ins Pipeline-Log bluten. Nur als
+# Nicht-root sinnvoll – root liest eine Datei mit Modus 000 trotzdem.
+if [ "$(id -u)" != 0 ]; then
+  printf '## Empfehlung\nAPPROVED\n' > "$TMP_FP310/tasks/review-320.md"
+  chmod 000 "$TMP_FP310/tasks/review-320.md"
+  # fp310_stderr <lib> – stdout verworfen, nur stderr des Aufrufs eingesammelt.
+  fp310_stderr() {
+    bash -c 'source "$1"; report_fingerprint review 320 "$2" >/dev/null' \
+      _ "$1" "$TMP_FP310/tasks" 2>&1
+  }
+  assert_true "$([ -z "$(fp310_stderr "$RV_LIB310")" ]; echo $?)" \
+    "#310: unlesbare Report-Datei erzeugt keine Fehlermeldung auf stderr (Log-Hygiene)"
+  assert_true "$([ "$(bash -c 'source "$1"; report_fingerprint review 320 "$2"' \
+    _ "$RV_LIB310" "$TMP_FP310/tasks" 2>/dev/null)" = "UNREADABLE" ]; echo $?)" \
+    "#310: unlesbare Report-Datei bleibt trotzdem fail-closed (UNREADABLE)"
+  # Mutationsbeleg: dieselbe stderr-Assertion gegen eine Lib mit getauschter
+  # Redirection-Reihenfolge (Eingabe-Umleitung vor der stderr-Umleitung).
+  sed 's#.*checksum="$(cksum.*#  checksum="$(cksum < "$file" 2>/dev/null)" || checksum=""#' \
+    "$RV_LIB310" > "$TMP_FP310/mutant-lib.sh"
+  cmp -s "$RV_LIB310" "$TMP_FP310/mutant-lib.sh"
+  assert_true "$([ $? -ne 0 ]; echo $?)" \
+    "#310 W1: Mutation greift wirklich (Redirection-Reihenfolge getauscht)"
+  assert_true "$(! [ -z "$(fp310_stderr "$TMP_FP310/mutant-lib.sh")" ]; echo $?)" \
+    "#310 W1 (Mutation): getauschte Reihenfolge lässt den Lesefehler ins Log – der Check oben ist kausal"
+  chmod 644 "$TMP_FP310/tasks/review-320.md"
+else
+  echo "  • #310 W1: Log-Hygiene bei unlesbarer Report-Datei – übersprungen (root liest Modus 000)"
+fi
+
 rm -rf "$TMP_FP310"
 
-# AK9 (Drift-Guard): das Pfadmuster darf nicht zusätzlich in run-pipeline.sh stehen, sonst
-# driften Guard, Frische-Prüfung und Summary wieder auseinander.
-assert_true "$(! grep -qF 'tasks/review-${task_id}.md' "$PIPELINE"; echo $?)" \
-  "#310 AK9: run-pipeline.sh baut den review-Report-Pfad nicht selbst"
-assert_true "$(! grep -qF 'tasks/security-${task_id}.md' "$PIPELINE"; echo $?)" \
-  "#310 AK9: run-pipeline.sh baut den security-Report-Pfad nicht selbst"
+# AK9 (Kopplungs-Guard, beide Seiten – Lesson testing.md „je Seite ein eigener Negativtest"):
+# Positiv-Seite = pipeline_summary() zieht seine Report-Pfade wirklich aus dem Helper (Anker ist
+# die exakte Aufrufzeile, kein Kommando-Fragment, Lesson #114); Negativ-Seite = das Pfadmuster
+# steht nicht zusätzlich in run-pipeline.sh, sonst driften Guard, Frische-Prüfung und Summary
+# wieder auseinander. Der Negativ-Check deckt auch die Schreibvarianten ohne Klammern und mit
+# GROSS-Variable ab – das exakte Literal allein ließe ein wiedereingeführtes
+# `tasks/review-$task_id.md` durch.
+assert_true "$(grep -qF 'review_file="$(report_file review "$task_id")"' "$PIPELINE"; echo $?)" \
+  "#310 AK9: pipeline_summary() holt den review-Report-Pfad über report_file"
+assert_true "$(grep -qF 'security_file="$(report_file security-review "$task_id")"' "$PIPELINE"; echo $?)" \
+  "#310 AK9: pipeline_summary() holt den security-Report-Pfad über report_file"
+assert_true "$(! grep -Eq 'tasks/(review|security)-[$][{]?(task_id|TASK_ID)[}]?[.]md' "$PIPELINE"; echo $?)" \
+  "#310 AK9: run-pipeline.sh baut keinen Report-Pfad selbst (auch nicht in Variantenschreibweise)"
 
 # AK7 (Snapshot-Zeitpunkt): Der Fingerprint wird EINMAL VOR dem ersten Versuch erhoben – die
 # Zuweisung steht also oberhalb der Retry-Schleife, nicht in ihr. Die E2E-Tests unten pinnen
@@ -5797,17 +5852,19 @@ echo "#310 E2E: Report-Guard honoriert nur einen im Aufruf entstandenen Verdict:
 # blockieren). Die Skill-Dateien tragen einen SKILL-<name>-Marker: daran erkennt der
 # `claude`-Stub im Prompt, welches Skill gerade läuft ('SKILL-review' ist kein Teilstring von
 # 'SKILL-security-review'). Der Aufrufer legt danach Report-Dateien + Stub an und committet.
+#
+# Die Repo-Kopie selbst kommt aus `_mk_pipe_repo` (oben, #197-Block) – dort steht die
+# kanonische Liste der Dateien, die run-pipeline.sh zum Starten braucht; hier wird nur die
+# Differenz ergänzt (Interrupt-Pfad, Skill-Mocks, Task-Datei, sleep-Stub). Kein paralleler
+# Zweitaufbau derselben Struktur (Lesson testing.md, #240/#267).
+# Abhängigkeit: `_mk_pipe_repo` wird im `if [ "$HAS_YQ" = 1 ]`-Zweig definiert – wie alle
+# Aufrufstellen von scaffold_310 unten.
 scaffold_310() {
   local dir="$1" task_id="$2" s
-  mkdir -p "$dir/scripts/checks" "$dir/scripts/lib" "$dir/tasks" \
-           "$dir/docs/factory" "$dir/.claude/commands" "$dir/bin"
-  cp "$PIPELINE" "$dir/scripts/"
-  cp "$CHECKS_DIR/config-validation-check.sh" "$CHECKS_DIR/interrupt-check.sh" "$dir/scripts/checks/"
+  _mk_pipe_repo "$dir"
+  mkdir -p "$dir/.claude/commands" "$dir/bin"
+  cp "$CHECKS_DIR/interrupt-check.sh" "$dir/scripts/checks/"
   cp "$SCRIPTS_DIR/raise-interrupt.sh" "$dir/scripts/"
-  cp "$SCRIPTS_DIR/lib/report-verdict.sh" "$SCRIPTS_DIR/lib/tier-select.sh" \
-     "$SCRIPTS_DIR/lib/verify-final-state.sh" "$dir/scripts/lib/"
-  cp "$DEFAULTS_YML" "$dir/"
-  echo "# ctx" > "$dir/docs/factory/PROJECT-CONTEXT.md"
   for s in implement review test refactor security-review codify; do
     printf '# SKILL-%s mock\n' "$s" > "$dir/.claude/commands/$s.md"
   done

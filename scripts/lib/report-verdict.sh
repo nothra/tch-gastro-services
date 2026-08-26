@@ -67,7 +67,12 @@ report_fingerprint() {
   file="$(report_file "$skill" "$task_id" "$tasks_dir")"
   [ -n "$file" ] || { printf 'NO_REPORT_SKILL\n'; return 0; }
   [ -f "$file" ] || { printf 'ABSENT\n'; return 0; }
-  checksum="$(cksum < "$file" 2>/dev/null)" || checksum=""
+  # Reihenfolge der Redirections: die stderr-Umleitung steht VOR der Eingabe-Umleitung. Bash
+  # wertet Redirections von links nach rechts aus – stünde sie danach, schriebe eine
+  # scheiternde Eingabe-Umleitung ihre „Permission denied"-Meldung noch ins Pipeline-Log,
+  # obwohl der Zweig sie schlucken will (#310 Review-Finding W1; das Ergebnis war schon
+  # vorher fail-closed).
+  checksum="$(cksum 2>/dev/null < "$file")" || checksum=""
   [ -n "$checksum" ] || { printf 'UNREADABLE\n'; return 0; }
   printf '%s\n' "$checksum"
 }

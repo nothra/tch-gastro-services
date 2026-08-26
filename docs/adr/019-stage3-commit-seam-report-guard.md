@@ -57,8 +57,9 @@ server-seitig durch CI **und** menschliches Approval gated – Auto-Merge vollzi
 grüne Gates.
 
 **4 · Report-Guard in `run_skill()`.** Ein non-zero Exit (inkl. „Reached max turns") gilt als
-**Erfolg**, wenn der zugehörige Report bereits mit gültigem Verdict geschrieben wurde – **nur**
-für die zwei report-erzeugenden Skills:
+**Erfolg**, wenn der zugehörige Report **in diesem Skill-Aufruf** mit gültigem Verdict
+geschrieben wurde (Frische-Bedingung, siehe Nachtrag #310 unten) – **nur** für die zwei
+report-erzeugenden Skills:
 - `review` → `tasks/review-<id>.md` enthält `APPROVED` oder `NEEDS_REWORK`.
 - `security-review` → `tasks/security-<id>.md` enthält `PASSED` oder `NEEDS_FIXES`.
 

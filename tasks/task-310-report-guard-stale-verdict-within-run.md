@@ -60,7 +60,10 @@ Spec: [`docs/specs/spec-310-report-guard-frische-pruefung.md`](../docs/specs/spe
 - **AK9 erweitert um `report_file`:** Damit die Frische-Prüfung dieselbe Skill→Datei-Zuordnung
   nutzt, ist der Pfad aus `report_verdict` in eine dritte Lib-Funktion `report_file` gezogen.
   `pipeline_summary()` baut seine Report-Pfade jetzt ebenfalls darüber – sonst hätte das
-  Pfadmuster weiter in `run-pipeline.sh` gestanden. Zwei Abwesenheits-Guards sichern das.
+  Pfadmuster weiter in `run-pipeline.sh` gestanden. Gesichert über beide Seiten des
+  Kopplungs-Guards: zwei Präsenz-Guards auf die `report_file`-Aufrufzeilen in
+  `pipeline_summary()` und ein Abwesenheits-Guard gegen selbst gebaute Report-Pfade (ERE, deckt
+  `${task_id}`/`$task_id`/`${TASK_ID}` ab – Rework nach Review-Nitpick).
 - **AK7 dreigeteilt belegt:** „vor dem `claude`-Aufruf" folgt aus AK2 (sonst gälte nie etwas als
   frisch), „pro `run_skill`-Aufruf statt pro Pipeline-Lauf" aus AK1 (sonst würde der in
   Iteration 1 geschriebene Report die Iteration 2 durchwinken). Nur „vor der Schleife statt je
@@ -74,8 +77,8 @@ Spec: [`docs/specs/spec-310-report-guard-frische-pruefung.md`](../docs/specs/spe
   (ein zusätzlicher Review-Versuch), nie ein falscher Erfolg. Der #92-Vorschlag ist in der
   Lesson als „zunächst angedacht" historisiert.
 - **Gates:** `bash scripts/checks/pre-commit.sh` grün (inkl. Lint); Bash-Suite
-  `scripts/checks/tests/run-tests.sh` **1112 grün, 0 rot** (davon 48 neue #310-Assertions,
-  `yq` vorhanden – kein `skip_yq`-Pfad).
+  `scripts/checks/tests/run-tests.sh` **1120 grün, 0 rot** (davon 56 #310-Assertions – 48 aus
+  der ersten Runde, 8 aus dem Review-Rework; `yq` vorhanden, kein `skip_yq`-Pfad).
 - **Keine UI-Berührung:** Die Task ändert ausschließlich Shell-Skripte und Doku – kein
   Oberflächentest und keine E2E-/Dev-Server-Verifikation erforderlich.
 
@@ -85,7 +88,35 @@ _Keine – Mechanik, Scope, Fehlerpfad und Turn-Budget sind entschieden (siehe S
 
 ## Review-Findings
 
-<!-- Wird durch /review befüllt -->
+Runde 1 (`/review`, Verdict `NEEDS_REWORK`, Bericht:
+[`tasks/review-310.md`](review-310.md)) – keine kritischen Findings, drei wichtige, vier
+Nitpicks. Rework in `/implement` (2026-08-27), Details je Finding im Bericht unter
+„Rework":
+
+- **W1 behoben:** `report_fingerprint` nutzt jetzt `cksum 2>/dev/null < "$file"`. Bash wertet
+  Redirections links→rechts aus – mit der stderr-Umleitung *hinter* der Eingabe-Umleitung
+  landete die „Permission denied"-Meldung trotzdem im Pipeline-Log. Reine Log-Hygiene, das
+  Ergebnis war schon vorher fail-closed.
+- **W2 behoben:** der `UNREADABLE`-Zweig ist getestet. Deterministischer Zugang über
+  `PATH=/nonexistent-dir` (kein `chmod`/Root-Bezug), plus die Verhaltensaussage
+  „fortbestehender Lesefehler = identischer Fingerprint = stale" und die Nicht-Kollision mit
+  einer echten Prüfsumme. Die W1-Log-Hygiene ist zusätzlich behavioral gepinnt (stderr leer)
+  **mit** Mutationsbeleg gegen eine Lib mit getauschter Reihenfolge; nur dieser
+  `chmod 000`-Block läuft unter `id -u != 0` (root liest Modus 000) und meldet den Skip.
+- **W3 behoben:** `scaffold_310()` setzt auf `_mk_pipe_repo` auf und ergänzt nur die Differenz
+  (Interrupt-Pfad, Skill-Marker-Mocks, Task-Datei, `sleep`-Stub) – fünftes Vorkommnis des
+  Duplikat-Smells aus `lessons/testing.md` (#240/#267), diesmal als *paralleler* statt
+  erweiterter Helfer. Die #212-Inline-Blöcke bleiben unberührt (Fremd-Code); ihr
+  `DEFAULTS`/`DEFAULTS_YML`-Doppel steht als Out-of-Scope-Fund in `kleinfunde.md`.
+- **Nitpicks:** ADR-019 §4-Einleitungssatz um „in diesem Skill-Aufruf" ergänzt (§4 ist damit
+  auf jeder Lesetiefe korrekt); AK9-Guards auf beide Seiten erweitert; `.issue-body-310.tmp.md`
+  entfernt (Inhalt liegt als Issue #312).
+- **Bewusst nicht umgesetzt:** die Subshell in `report_verdict` (`report-verdict.sh:79`) hinter
+  das `case` zu ziehen. Sie fällt nur bei nicht report-erzeugenden Skills an und hat dort
+  keinen messbaren Effekt; die Symmetrie zu `report_fingerprint` (Pfad in Zeile 1) wiegt mehr.
+- **Out-of-Scope-Fund des Reviews:** Issue **#312** – der Verdict-Konsum in Phase 2/5 prüft die
+  Frische nicht, wenn `claude` mit Exit 0 endet, ohne den Report neu zu schreiben. Eigene Spec
+  nötig (berührt die Konsumenten, nicht den Guard).
 
 ## Codify-Notizen
 
