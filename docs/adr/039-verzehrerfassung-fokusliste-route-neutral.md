@@ -38,6 +38,14 @@ Zu klären: (D1) wie `FokusListe` token-/persistenzfrei und route-neutral wird, 
 ## Entscheidung
 
 ### D1 · `FokusListe` wird route-neutral und persistenzfrei; Persistenz wird injiziert
+
+> **Ergänzt durch #308:** Die Prop-Aufzählung ist nicht mehr vollständig – `FokusListe` trägt
+> zusätzlich `aktionJeZeile?: Readonly<Record<string, ReactNode>>`: je Zeile ein **fertiger**
+> Baustein des Konsumenten, den die Karte ausschließlich rendert, wenn ihr Körper sichtbar ist
+> (also nur in der geöffneten). Die Grenze aus D1 bleibt unberührt, weil die Prop generisch ist
+> (`ReactNode`) – die Komponente kennt weder Route noch Semantik der Aktion. F5 reicht darüber den
+> personenbezogenen Wechsel-Link ins Kassieren herein, F7 lässt sie weg (spec-308 AK7/AK9).
+
 `FokusListe` verliert die Props `token` und den direkten `writeZielId`-Aufruf. An deren Stelle
 tritt ein **optionaler Callback** `onFokusWechsel?: (zeileId: string) => void`, den die Komponente
 aufruft, wann immer eine Karte zur offenen (fokussierten) wird – aus der Chip-Leiste **und** beim
@@ -69,6 +77,14 @@ die rAF-Logik dort ihren Ursprung hat; `IdentityGate.test.tsx` (bleibt in `theke
 dann aus `@/app/_verzehr/raf-stub` (kein Duplikat, Codify #194).
 
 ### D3 · F5-Seite rendert `FokusListe` direkt (Startzustand: keine Karte offen)
+
+> **Geändert durch #308:** F5 rendert nicht mehr fest `initialOpenId={null}`, sondern
+> `initialOpenId = Personenbezug ?? null`. Trägt der Aufruf den Suchparameter `?zeile=<zeileId>`
+> (spec-308), startet die Karte **dieser** Person geöffnet und kommt beim Mounten in den
+> Sichtbereich. **Ohne** Personenbezug – und das ist der Regelfall des direkten Seitenaufrufs –
+> gilt D3 unverändert: keine Karte offen. Ein unbekannter Wert wird gegen die Zeilen dieser
+> Veranstaltung verworfen und ergibt ebenfalls den Startzustand aus D3.
+
 `app/veranstaltung/[id]/verzehr/page.tsx` ersetzt `<VerzehrErfassung … />` durch
 `<FokusListe … initialOpenId={null} />` **ohne** `onFokusWechsel` (keine Persistenz, Nutzer-
 Entscheidung). `editable` bleibt an `status === "offen"` gebunden. Header, „← Zur Veranstaltung"-
@@ -76,6 +92,12 @@ Link und RBAC-Guard bleiben unverändert. Damit erscheint F5 mit sticky Chip-Lei
 eingeklappt – identisch zur F7-Fokusliste.
 
 ### D4 · Read-only konsistent + Empty-State beim Konsumenten
+
+> **Geändert durch #308:** Der Personenbezug aus D3 gilt auch für die **abgeschlossene**
+> Veranstaltung – der Wechsel ist reine Navigation und hängt nicht am `editable`-Flag
+> (spec-308 AK10). Die Lesesicht bleibt Lesesicht (`editable={false}`, `MengeControl` disabled),
+> nur der Startzustand ist personenbezugs-abhängig statt fest `initialOpenId={null}`.
+
 - **Read-only:** Eine abgeschlossene Veranstaltung nutzt auf beiden Wegen dieselbe `FokusListe` mit
   `editable={false}`, `initialOpenId={null}` (ADR-035 D5) – Akkordeon eingeklappt, `MengeControl`
   disabled, Chip-Leiste zum Ansehen nutzbar. F5 wechselt damit von „flach, alles offen" auf das
@@ -142,6 +164,13 @@ Entscheidungen schnell treffen). Kein Datenmodell, keine Migration, kein Auth-Pf
   konsistente Verhaltensänderung (spec-187).
 - `import`-Pfad-Anpassung in `IdentityGate` (`./FokusListe` → `@/app/_verzehr/FokusListe`) und im
   geteilten Test-Stub-Import.
+- **Nachträglich durch #308 (spec-308):** `initialOpenId` ist auf F5 personenbezugs-abhängig
+  (Drift-Hinweise an D3/D4), `FokusListe` bekommt die generische Prop `aktionJeZeile` (D1), und die
+  **initial** offene Karte wird beim Mounten in den Sichtbereich gescrollt. Letzteres wirkt auch auf
+  F7: eine aus der geräte-lokalen Ziel-Merkung (ADR-035 D1) vorgewählte Karte springt beim Laden in
+  den Sichtbereich, statt ggf. unterhalb des Viewports zu liegen. Bewusst **ohne** Opt-out-Prop –
+  „initial offen" heißt auf beiden Wegen „fokussiert", und dieselbe Zusage gilt bereits für die
+  Chip-Auswahl (`waehleZiel`).
 - **`docs/routes.md`:** keine Routen-/Zugriffsänderung; nur die Funktionsbeschreibung der F5-Route
   ggf. präzisieren (Darstellung). Der Drift-Check prüft Struktur, nicht Text – trotzdem im PR mitpflegen.
 

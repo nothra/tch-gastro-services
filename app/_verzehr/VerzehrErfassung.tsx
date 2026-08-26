@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import type { ReactNode, Ref } from "react";
 import { CATEGORY_LABEL } from "./category-labels";
 import { formatCents } from "@/lib/money";
 import type { VerzehrPositionRow } from "@/db/verzehr";
@@ -71,6 +71,10 @@ export function VerzehrErfassung({
 // `className` wird auf das Wurzel-`<li>` gelegt: so steuert der Konsument layoutseitige Belange
 // seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky Chip-Leiste vor), ohne dass die
 // route-neutrale Karte diese Fremd-Layouts kennen muss.
+// `aktion` ist ein vom Konsumenten gelieferter Baustein am Fuß des Körpers – die Karte kennt weder
+// Route noch Semantik (ADR-039 D1). Er hängt am sichtbaren Körper, erscheint bei `collapsible` also
+// nur in der geöffneten Karte (#308 AK7); ein Weg, der keine Aktion anbietet, reicht nichts herein
+// (Selbstbedienung F7, #308 AK9).
 export function ZeileKarte({
   zeile,
   artikel,
@@ -81,6 +85,7 @@ export function ZeileKarte({
   open = true,
   onToggle,
   className,
+  aktion,
   ref,
 }: {
   zeile: VerzehrZeile;
@@ -92,6 +97,7 @@ export function ZeileKarte({
   open?: boolean;
   onToggle?: () => void;
   className?: string;
+  aktion?: ReactNode;
   ref?: Ref<HTMLLIElement>;
 }) {
   const mengeJeArtikel = new Map(
@@ -203,6 +209,8 @@ export function ZeileKarte({
           </ul>
         </section>
       )}
+
+      {koerperSichtbar && aktion}
     </li>
   );
 }
