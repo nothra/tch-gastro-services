@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -188,6 +188,9 @@ Review-Iteration 2 und 3 jeweils einen stehengebliebenen Verdict aus Iteration 1
 gewertet (Turn-Limit vor Report-Update) und den Circuit Breaker fälschlich ausgelöst, obwohl der
 Rework längst fertig war. Lesson erweitert (`lessons/factory-workflow.md`), Fix als eigenständige
 Task ausgelagert: **Issue #310**.
+
+PR-Shepherd 2026-08-26: Merge freigegeben – alle Gates grün, CI lief zum Freigabezeitpunkt noch
+(Auto-Merge wartet serverseitig darauf). Kein Approval erforderlich (0-Approvals-Policy, ADR-029).
 
 ---
 Branch: `feature/308-personenbezogener-wechsel-verzehr-kassieren`
