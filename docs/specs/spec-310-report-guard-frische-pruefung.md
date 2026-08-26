@@ -38,7 +38,10 @@ hat.
   ersten `claude`-Versuch eines Aufrufs; Verdict gilt nur bei verändertem Fingerprint.
   Nicht-destruktiv – die Report-Datei wird nicht gelöscht oder verändert.
 - Fehlerpfad: Ein stale Verdict ist ein **Fehlversuch** im bestehenden Retry-Pfad
-  (3 Versuche mit Backoff, danach `exit 1`). Kein neuer Interrupt-Typ.
+  (3 Versuche mit Backoff, danach `exit 1`). Kein neuer Interrupt-Typ. Ausnahme, damit der
+  Fix keine bestehende Stopp-Bedingung schluckt: hat der Versuch einen Interrupt
+  **signalisiert**, stoppt die Pipeline auch im Stale-Zweig sofort (`interrupt-check.sh`, wie
+  in den Erfolgs-Zweigen) statt zwei weitere Versuche zu starten.
 - Skill→Report-Datei-Zuordnung bleibt an **einer** Stelle (`scripts/lib/report-verdict.sh`);
   die Frische-Prüfung nutzt dieselbe Quelle.
 - Doku-Nachzug im selben PR: ADR-019 §4 (beschreibt die Guard-Mechanik namentlich) und

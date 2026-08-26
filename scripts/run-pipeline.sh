@@ -282,6 +282,12 @@ run_skill() {
     fi
     if [ -n "$verdict" ]; then
       echo -e "${YELLOW}⚠${NC} /${skill}: Verdict '${verdict}' stammt aus einem früheren Aufruf (Report in diesem Aufruf unverändert) – kein Erfolg."
+      # Auch ein Fehlversuch darf einen signalisierten Interrupt nicht verschlucken: vor #310
+      # lief dieser Fall in den (damals erfolgreichen) Verdict-Zweig und stoppte dort hart.
+      # Ohne diese Zeile folgten zwei weitere Heavy-Versuche desselben Skills, und der
+      # Blocker-Eintrag in der Task-Datei entfiele (#310 Review-Runde-2-Nitpick). Liegt kein
+      # Interrupt vor, bleibt es beim regulären Fehlversuch (Exit 0 aus interrupt-check.sh).
+      bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?
     fi
 
     if [ "$attempt" -lt 3 ]; then

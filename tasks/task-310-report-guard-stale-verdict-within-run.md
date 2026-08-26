@@ -77,8 +77,9 @@ Spec: [`docs/specs/spec-310-report-guard-frische-pruefung.md`](../docs/specs/spe
   (ein zusätzlicher Review-Versuch), nie ein falscher Erfolg. Der #92-Vorschlag ist in der
   Lesson als „zunächst angedacht" historisiert.
 - **Gates:** `bash scripts/checks/pre-commit.sh` grün (inkl. Lint); Bash-Suite
-  `scripts/checks/tests/run-tests.sh` **1120 grün, 0 rot** (davon 56 #310-Assertions – 48 aus
-  der ersten Runde, 8 aus dem Review-Rework; `yq` vorhanden, kein `skip_yq`-Pfad).
+  `scripts/checks/tests/run-tests.sh` **1127 grün, 0 rot** (davon 65 #310-Assertions – 48 aus
+  der ersten Runde, 10 aus dem Rework der Review-Runde 1, 7 aus dem Nitpick-Nachlauf der
+  Runde 2; `yq` vorhanden, kein `skip_yq`-Pfad). Zahlen jeweils gezählt, nicht geschätzt.
 - **Keine UI-Berührung:** Die Task ändert ausschließlich Shell-Skripte und Doku – kein
   Oberflächentest und keine E2E-/Dev-Server-Verifikation erforderlich.
 
@@ -133,9 +134,42 @@ doppelte Verneinung in einer Assertion, Zahlendrift „56" statt 58 in den Gates
 Kein neuer Out-of-Scope-Fund. Gates in der Review-Session: Bash-Suite **1120 grün, 0 rot**,
 `pre-commit.sh` grün, Arbeitsbaum sauber.
 
+Nitpick-Nachlauf zu Runde 2 (`/implement`, 2026-08-27) – vier der fünf umgesetzt, Details je
+Nitpick im Bericht unter „Rework Runde 2":
+
+- **Verhaltensrelevant (der einzige Code-Fix dieser Runde):** Der Stale-Zweig in
+  `run_skill()` ruft jetzt `interrupt-check.sh` auf. Ohne die Zeile hätte dieser PR eine vor
+  #310 bestehende Stopp-Bedingung verloren – ein Aufruf, der einen Interrupt signalisiert und
+  danach non-zero endet, lief zuvor über den (damals erfolgreichen) Verdict-Zweig in den harten
+  Stopp; seit der Frische-Prüfung wären zwei weitere Heavy-Versuche gefolgt, ohne
+  Blocker-Eintrag in der Task-Datei. Neu abgesichert: E2E-Test mit echtem
+  `raise-interrupt.sh`-Aufruf im `claude`-Stub (Interrupt erkannt, kein „failed after 3
+  attempts", Blocker-Eintrag vorhanden) **plus** Mutant, der ausschließlich diese Aufrufzeile
+  entfernt. Spec (Fehlerpfad-Bullet) und ADR-019 §4 sind im selben Commit nachgezogen – die
+  Ausnahme ist damit dokumentiert, nicht implizit.
+- **Doku/Test-Hygiene:** ADR-019-Artefaktliste auf „Verdict da **und** frisch" korrigiert;
+  `raise-interrupt.sh` im Wegwerf-Repo ist durch den neuen Stub echt genutzt (kein totes
+  Scaffolding mehr); Assertions-Zahl in den Gates-Notizen auf den gezählten Stand gebracht.
+- **Bewusst offen gelassen:** die doppelte Verneinung in `run-tests.sh:5799`. Sie führt den
+  Original-Assert-Ausdruck negiert aus, wie das #286-Learning es für Mutationsbelege verlangt;
+  `[ -n … ]` wäre ein anderer Operator und damit ein schwächerer Beleg (gleiches Muster
+  bereits bei `:5843`).
+
 ## Codify-Notizen
 
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Kandidat aus dem Nitpick-Nachlauf (2026-08-27, Selbstfund): **Siebtes Vorkommnis von
+„Kommando ≠ Prosa-Erwähnung" (#114)** – das Mutations-`awk` des neuen Interrupt-Tests ankerte
+auf dem Dateinamen `interrupt-check.sh` und löschte damit die Erwähnung im WHY-Kommentar
+**direkt über** der Aufrufzeile; der echte Aufruf blieb stehen, die Mutation war wirkungslos,
+und der „Mutation greift"-Guard war nur deshalb grün, weil er dieselbe Fragment-Zählung nutzte.
+Wie beim sechsten Vorkommnis (#284) war die Kollisionsquelle der eigene, im selben Commit
+geschriebene Kommentar – und wie dort blieb der Mutationsbeleg dadurch stumm statt rot.
+Verschärfung fürs Regelwerk: Bei Mutations-Guards ist der Anker die **vollständige
+Aufrufzeile** (hier `bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh"`), und die
+Wirksamkeits-Zählung muss dieselbe exakte Zeichenkette zählen wie die Mutation löscht –
+sonst belegen beide nur, dass irgendeine Zeile verschwand.
 
 ---
 

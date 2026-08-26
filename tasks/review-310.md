@@ -46,7 +46,7 @@ Eigene Nachprüfung dieser Runde, ohne neuen Befund:
 
 ## Nitpicks (optional)
 
-- [ ] `docs/adr/019-stage3-commit-seam-report-guard.md:165-166` – die „Betroffene
+- [x] `docs/adr/019-stage3-commit-seam-report-guard.md:165-166` – die „Betroffene
       Artefakte"-Liste wird in diesem PR als **Ist-Stand** gepflegt (`:159` bekam „inkl.
       Frische-Fingerprint pro Aufruf (#310)", `:161` ist neu für die Lib). Der Eintrag zu
       `run-tests.sh` beschreibt den Guard aber weiter als „(Verdict da → Erfolg; ohne →
@@ -55,7 +55,7 @@ Eigene Nachprüfung dieser Runde, ohne neuen Befund:
       oder die Liste bewusst als historische #91-Liste lesen – dann wäre allerdings `:159`
       die Ausnahme. Gleiche Klasse wie der §4-Einleitungssatz aus Runde 1 (Aussage stimmt auf
       Lesetiefe „Sektion", nicht auf Lesetiefe „Stichzeile").
-- [ ] `scripts/run-pipeline.sh:283-285` – im neuen Stale-Zweig läuft **kein**
+- [x] `scripts/run-pipeline.sh:283-285` – im neuen Stale-Zweig läuft **kein**
       `interrupt-check.sh`. Vor #310 wäre ein Aufruf, der einen Interrupt signalisiert **und**
       danach non-zero endet, bei vorhandenem Verdict über den Erfolgs-Zweig sofort gestoppt
       worden; jetzt folgen zwei weitere Heavy-Versuche desselben Skills, und der Blocker-Eintrag
@@ -67,7 +67,7 @@ Eigene Nachprüfung dieser Runde, ohne neuen Befund:
       `bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?` im
       Stale-Zweig – das bleibt ein Fehlversuch und stoppt trotzdem hart bei signalisiertem
       Interrupt.
-- [ ] `scripts/checks/tests/run-tests.sh:5867` – `scaffold_310()` kopiert
+- [x] `scripts/checks/tests/run-tests.sh:5867` – `scaffold_310()` kopiert
       `raise-interrupt.sh` ins Wegwerf-Repo, obwohl kein #310-Stub einen Interrupt auslöst;
       nur `interrupt-check.sh` wird von `run_skill()` wirklich aufgerufen. Eine Zeile
       totes Scaffolding.
@@ -75,9 +75,38 @@ Eigene Nachprüfung dieser Runde, ohne neuen Befund:
       `assert_true "$(! [ -z "$(fp310_stderr …)" ]; echo $?)"` prüft doppelt verneint, was
       `[ -n … ]` direkt sagt. Die Gegenprobe bei `:5787` nutzt korrekt `[ -z … ]` – die
       Mutations-Assertion wäre als `[ -n … ]` symmetrisch lesbar.
-- [ ] `tasks/task-310-…​.md` (Umsetzungs-Notizen, „Gates") – die Notiz nennt „56
+- [x] `tasks/task-310-…​.md` (Umsetzungs-Notizen, „Gates") – die Notiz nennt „56
       #310-Assertions – 48 aus der ersten Runde, 8 aus dem Review-Rework"; der Lauf in dieser
       Session zählt **58** grüne #310-Zeilen. Reine Zahlendrift in der Notiz, kein Testproblem.
+
+## Rework Runde 2 (`/implement`, 2026-08-27)
+
+Vier der fünf Nitpicks sind umgesetzt, einer bewusst nicht:
+
+- **ADR-019 `:165-166` behoben** – der `run-tests.sh`-Eintrag der Artefaktliste liest jetzt
+  „Verdict da **und** frisch → Erfolg; stale oder fehlend → Fehlschlag". Die Liste bleibt damit
+  durchgängig Ist-Stand, ohne Ausnahme bei `:159`.
+- **`run-pipeline.sh:283-285` behoben** – der Stale-Zweig ruft `interrupt-check.sh` auf. Damit
+  bleibt eine Stopp-Bedingung erhalten, die vor #310 (über den damals erfolgreichen
+  Verdict-Zweig) griff: signalisierter Interrupt + non-zero Exit stoppt sofort statt zwei
+  weitere Heavy-Versuche zu starten, und der Blocker-Eintrag in der Task-Datei entsteht wieder.
+  Abgesichert über einen E2E-Test (echter `raise-interrupt.sh`-Aufruf im `claude`-Stub) plus
+  Mutant, der nur diese Zeile entfernt. ADR-019 §4 und die Spec-Zeile zum Fehlerpfad sind
+  mitgezogen.
+- **Totes Scaffolding behoben** – `raise-interrupt.sh` ist im Wegwerf-Repo jetzt echt genutzt
+  (der Stub des neuen Tests ruft es auf), statt ungenutzt kopiert zu werden.
+- **Zahlendrift behoben** – die Gates-Notiz der Task-Datei nennt jetzt den gezählten Stand.
+- **Bewusst nicht umgesetzt:** `run-tests.sh:5799` von `! [ -z … ]` auf `[ -n … ]` umzustellen.
+  Die doppelte Verneinung ist hier Absicht: der Mutationsbeleg soll **denselben**
+  Assert-Ausdruck wie die Original-Assertion ausführen, nur negiert (Lesson `testing.md`, #286).
+  `[ -n … ]` wäre ein anderer Operator und damit ein schwächerer Kausalbeleg; die Datei nutzt
+  dasselbe Muster bereits bei `:5843` (`! [ … -lt … ]`).
+
+Neu dabei aufgefallen (siehe Codify-Notizen der Task-Datei): der erste Anlauf des
+Mutations-`awk` ankerte auf dem Dateinamen `interrupt-check.sh` und löschte dadurch die
+Erwähnung im WHY-Kommentar über der Aufrufzeile – siebtes Vorkommnis von „Kommando ≠
+Prosa-Erwähnung" (#114), diesmal ausgelöst vom eigenen, im selben Commit geschriebenen
+Kommentar. Der Guard ankert jetzt auf der vollen Aufrufzeile.
 
 ## Positives
 

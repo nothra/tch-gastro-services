@@ -79,6 +79,9 @@ damit die Neuanlage als Veränderung zählt, und `UNREADABLE` als fail-closed-Fa
 Fingerprint nach dem Fehlversuch unverändert, stammt der Verdict aus einem früheren Aufruf und
 gilt **nicht** als Erfolg – der Versuch bleibt ein regulärer Fehlversuch im bestehenden
 Retry-Pfad (3 Versuche, dann `exit 1`; kein neuer Interrupt-Typ, kein Löschen des Reports).
+Ein im Versuch **signalisierter** Interrupt stoppt die Pipeline trotzdem sofort: der
+Stale-Zweig ruft `interrupt-check.sh` ebenso auf wie die Erfolgs-Zweige – sonst folgten zwei
+weitere Heavy-Versuche, und der Blocker-Eintrag in der Task-Datei entfiele.
 Ohne diese Bedingung galt ein stehengebliebener Verdict als frischer Erfolg: innerhalb eines
 Laufs in der Review-Iterationsschleife (#310, Task 308 – der Circuit Breaker brach bei
 fertigem Rework mit `exit 2` ab) und über Läufe hinweg bei bereits committetem Report (#91 –
@@ -86,8 +89,9 @@ fail-open ohne jedes Review). Weil `run_skill()` den Fingerprint pro Aufruf erhe
 Prüfung beide Fälle mit derselben Mechanik ab. Die Skill→Report-Datei-Zuordnung liegt dazu
 ebenfalls nur in der Lib (`report_file`); `run-pipeline.sh` baut keinen Report-Pfad mehr selbst.
 
-Für alle anderen Skills bleibt non-zero = Fehlversuch. Nach dem als-Erfolg-gewerteten Abbruch
-läuft weiterhin `interrupt-check.sh` (kein stiller Übergang bei signalisiertem Interrupt).
+Für alle anderen Skills bleibt non-zero = Fehlversuch. Nach dem als-Erfolg-gewerteten Abbruch –
+und ebenso im Stale-Zweig – läuft `interrupt-check.sh` (kein stiller Übergang bei
+signalisiertem Interrupt).
 
 **5 · Budget-Puffer.** `factory.defaults.yml`: `max_turns` von `8` auf **14** für `review` und
 `security-review` (mit `@reason`) – zusätzlich zum Guard, nicht als Ersatz.
@@ -163,7 +167,8 @@ Permissions-Grenze und die Erfolgssemantik der Orchestrierung dauerhaft prägen.
 - `factory.defaults.yml` – `review`/`security-review` `max_turns: 8 → 14` (mit `@reason`).
 - Skill-Dateien `implement`/`test`/`refactor`/`bug-fix` – committen/pushen über `factory-commit.sh`.
 - `scripts/checks/tests/run-tests.sh` – Tests für Wrapper (Happy-Path/main-Verweigerung/leer) und
-  Report-Guard (Verdict da → Erfolg; ohne → Fehlschlag), git-Stub-Muster (#80).
+  Report-Guard (Verdict da **und** frisch → Erfolg; stale oder fehlend → Fehlschlag),
+  git-Stub-Muster (#80).
 
 ## Implementierungs-Hinweise (für den Coding-Agenten)
 - **TDD:** Wrapper und Guard sind reine Shell-Logik → Self-Tests in `run-tests.sh` zuerst

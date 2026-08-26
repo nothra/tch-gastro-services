@@ -6083,8 +6083,66 @@ STUB_F310
   assert_absent "$OUT_310" "$STALE_MSG_310" \
     "#310 AK10: keine Guard-Meldung für nicht report-erzeugende Skills"
   rm -rf "$TMP_F310"
+
+  # ── Interrupt-Stopp im Stale-Zweig (#310 Review-Runde-2-Nitpick): Ein Aufruf, der einen
+  # Interrupt signalisiert UND danach non-zero endet, wurde vor #310 über den (damals
+  # erfolgreichen) Verdict-Zweig sofort gestoppt. Ohne `interrupt-check.sh` im neuen
+  # Stale-Zweig folgten stattdessen zwei weitere Heavy-Versuche desselben Skills, und der
+  # Blocker-Eintrag in der Task-Datei entfiel. Divergenzerzeugende Aktion ist der echte
+  # `raise-interrupt.sh`-Aufruf im Stub – kein nachgebautes Sentinel.
+  TMP_G310="$(mktemp -d)"
+  scaffold_310 "$TMP_G310" 316
+  printf '## Empfehlung\nAPPROVED\naus einem früheren Aufruf\n' > "$TMP_G310/tasks/review-316.md"
+  cat > "$TMP_G310/bin/claude" <<'STUB_G310'
+#!/bin/sh
+case "$*" in
+  *SKILL-review*)
+    bash "$PWD/scripts/raise-interrupt.sh" 316 ADR "Trigger-Kategorie 1: Testfall" >/dev/null
+    exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB_G310
+  chmod +x "$TMP_G310/bin/claude"
+  commit_310 "$TMP_G310"
+  run_310 "$TMP_G310" 316
+  assert_exit 1 "$RC_310" \
+    "#310 Interrupt/Stale: signalisierter Interrupt stoppt die Pipeline (exit 1)"
+  assert_contains_286 "$OUT_310" "[INTERRUPT] ADR: Trigger-Kategorie 1: Testfall" \
+    "#310 Interrupt/Stale: der Interrupt wird auch im Stale-Zweig erkannt"
+  assert_absent "$OUT_310" "failed after 3 attempts" \
+    "#310 Interrupt/Stale: kein Weiterlaufen über zwei zusätzliche Heavy-Versuche"
+  assert_true "$(grep -qF 'Pipeline pausiert – ADR: Trigger-Kategorie 1: Testfall' \
+    "$TMP_G310/tasks/task-316-guard.md"; echo $?)" \
+    "#310 Interrupt/Stale: Blocker-Eintrag landet in der Task-Datei"
+
+  # ── Mutationsbeleg dazu: dieselben Assert-Ausdrücke gegen eine run-pipeline.sh, in der NUR
+  # der `interrupt-check.sh`-Aufruf des Stale-Zweigs fehlt (awk löscht die erste solche Zeile
+  # NACH der Stale-Meldung – die beiden Erfolgs-Zweige bleiben unberührt).
+  # Anker ist die exakte AUFRUF-Zeile, nicht der Dateiname: gegen ein Fragment gematcht
+  # erwischte die Mutation zuerst die Erwähnung im WHY-Kommentar darüber und ließ den echten
+  # Aufruf stehen (Lesson factory-workflow.md, #114 – „Kommando ≠ Prosa-Erwähnung").
+  IC_CALL_310='bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh"'
+  TMP_H310="$(mktemp -d)"
+  scaffold_310 "$TMP_H310" 316
+  awk -v call="$IC_CALL_310" '
+       /stammt aus einem früheren Aufruf/ { seen = 1 }
+       seen && index($0, call) > 0 { seen = 0; next }
+       { print }' "$PIPELINE" > "$TMP_H310/scripts/run-pipeline.sh"
+  assert_true "$([ "$(grep -cF -- "$IC_CALL_310" "$TMP_H310/scripts/run-pipeline.sh")" \
+    -eq "$(($(grep -cF -- "$IC_CALL_310" "$PIPELINE") - 1))" ]; echo $?)" \
+    "#310 Interrupt/Stale: Mutation greift wirklich (genau ein interrupt-check-Aufruf entfernt)"
+  printf '## Empfehlung\nAPPROVED\naus einem früheren Aufruf\n' > "$TMP_H310/tasks/review-316.md"
+  cp "$TMP_G310/bin/claude" "$TMP_H310/bin/claude"
+  commit_310 "$TMP_H310"
+  run_310 "$TMP_H310" 316
+  assert_contains_286 "$OUT_310" "failed after 3 attempts" \
+    "#310 Interrupt/Stale (Mutation): ohne den Aufruf laufen alle drei Versuche – der Check oben ist kausal"
+  assert_absent "$OUT_310" "[INTERRUPT] ADR: Trigger-Kategorie 1: Testfall" \
+    "#310 Interrupt/Stale (Mutation): ohne den Aufruf bleibt der Interrupt unbemerkt"
+  rm -rf "$TMP_H310"
+  rm -rf "$TMP_G310"
 else
-  skip_yq "#310 E2E: Report-Guard Frische-Prüfung (AK1–AK6, AK8, AK10, AK11)"
+  skip_yq "#310 E2E: Report-Guard Frische-Prüfung (AK1–AK6, AK8, AK10, AK11, Interrupt/Stale)"
 fi
 
 # ─── #310 AK12: Doku-Nachzug (ADR-019 §4 + Lesson-Absätze #91/#310) ──────────
