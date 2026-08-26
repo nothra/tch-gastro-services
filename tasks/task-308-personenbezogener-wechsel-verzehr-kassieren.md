@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -153,6 +153,21 @@ Pipeline hat `NEEDS_REWORK` nur als Turn-Limit-Fallback gewertet, ohne neue Find
 Review-Runde). Der Rework-Lauf nach Iteration 2 bestätigte zusätzlich, dass am Code nichts mehr
 zu tun war (Gates grün, 736 Tests). Nach Rücksprache mit dem Menschen gilt der Report aus Runde 1
 als maßgeblich; die Checkbox „Review bestanden" wurde daraufhin manuell gesetzt.
+
+## Test-Vervollständigung (`/test`)
+
+- Coverage der 8 durch diese Task geänderten/neuen Produktionsdateien: **100%**
+  (Statements/Branches/Funktionen/Zeilen) für `personenbezug.ts`, `FokusListe.tsx`,
+  `VerzehrErfassung.tsx`, `EingefroreneZeilenListe.tsx`, `KassiereZeileForm.tsx`,
+  `kassieren/page.tsx`, `verzehr/page.tsx`. `IdentityGate.tsx` blieb in dieser Task
+  unverändert (nur der Test wurde ergänzt) – die zwei unabgedeckten Zeilen dort sind
+  vorbestehende `useSyncExternalStore`-SSR-Snapshot-Stubs, die in jsdom nie laufen.
+- Alle 12 Akzeptanzkriterien und alle 4 Fehlerszenarien sind über Unit-/Komponenten-Tests
+  sowie die E2E-Spec referenziert und benannt – keine Lücke gefunden.
+- Gesamt-Repo-Coverage 89,56 % Statements / 94,45 % Branches – über der 80%-Schwelle;
+  die einzigen niedrig abgedeckten Dateien liegen in `.../db/` (Drizzle-Data-Layer,
+  benötigt echte DB, unabhängig von dieser Task).
+- Keine neuen Tests nötig, keine Produktionscode-Änderung in diesem Schritt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
