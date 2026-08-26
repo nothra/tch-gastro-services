@@ -267,6 +267,22 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
     // nicht nur durch Codelesen.
     expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
   });
+
+  it("should_offerNoKassierenAction_when_focusViewShownInPublicWeg", () => {
+    // #308 AK9: der öffentliche Selbstbedienungs-Weg bekommt KEINE Wechsel-Aktion – auch nicht in
+    // der geöffneten Karte. Belegt die Abwesenheit an der echten Route, nicht nur an der Prop:
+    // IdentityGate reicht `aktionJeZeile` gar nicht herein.
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+    window.localStorage.setItem(ZIEL_KEY, "z2");
+
+    renderGate();
+
+    // Vorbedingung: die Fokus-Ansicht ist da und eine Karte ist offen – sonst wäre die
+    // Abwesenheits-Assertion trivial erfüllt.
+    expect(screen.getAllByTestId("menge")).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: /Kassieren/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
 });
 
 describe("IdentityGate – Legacy-Adoption (#54, D6)", () => {

@@ -602,4 +602,24 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
 
     expect(container.querySelector("li")).not.toHaveClass("scroll-mt-16");
   });
+
+  it("should_renderAktion_when_bodyVisible", () => {
+    // Die Aktion des Konsumenten (#308: Wechsel ins Kassieren) hängt am sichtbaren Körper.
+    renderKarte({ collapsible: true, open: true, aktion: <a href="/ziel">Kassieren</a> });
+
+    expect(screen.getByRole("link", { name: "Kassieren" })).toHaveAttribute("href", "/ziel");
+  });
+
+  it("should_hideAktion_when_collapsibleAndClosed", () => {
+    // #308 AK7: eingeklappte Karte zeigt keine Wechsel-Aktion – auch nicht, wenn sie übergeben wird.
+    renderKarte({ collapsible: true, open: false, aktion: <a href="/ziel">Kassieren</a> });
+
+    expect(screen.queryByRole("link", { name: "Kassieren" })).not.toBeInTheDocument();
+  });
+
+  it("should_renderNoAktion_when_aktionOmitted", () => {
+    renderKarte({ collapsible: true, open: true });
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
 });

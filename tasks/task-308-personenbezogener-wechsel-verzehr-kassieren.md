@@ -1,7 +1,7 @@
 # Task 308: personenbezogener-wechsel-verzehr-kassieren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,22 +20,22 @@ Navigation – keine Änderung an Summen, Zeilenstatus oder Abschluss-Gate.
 **Spec:** [`docs/specs/spec-308-personenbezogener-wechsel-verzehr-kassieren.md`](../docs/specs/spec-308-personenbezogener-wechsel-verzehr-kassieren.md)
 
 ## Akzeptanzkriterien
-- [ ] AK1 – Hinweg: Aktion „Kassieren" in der geöffneten Karte führt personenbezogen in die Kassieransicht
-- [ ] AK2 – Zielzeile ist hervorgehoben und im Sichtbereich (sticky Kopf verdeckt sie nicht)
-- [ ] AK3 – `Erhalten`-Feld der Zielzeile hat den Tastaturfokus (offene Veranstaltung)
-- [ ] AK4 – Listen-Reihenfolge unberührt: Sortierung #223 und Positions-Freeze #253 bleiben gültig
-- [ ] AK5 – Rückweg: Aktion „Verzehr erfassen" in jeder Kassierzeile führt personenbezogen zurück
-- [ ] AK6 – Zielkarte initial geöffnet (alle anderen zu) und im Sichtbereich
-- [ ] AK7 – „Kassieren"-Aktion nur in der geöffneten Karte, nicht in eingeklappten
-- [ ] AK8 – Wechsel beliebig oft in beide Richtungen, ohne Umweg über die Detailseite
-- [ ] AK9 – Öffentlicher Weg `/theke/[token]` zeigt keine „Kassieren"-Aktion
-- [ ] AK10 – Abgeschlossene Veranstaltung: Wechsel-Links bleiben, Lesesicht bleibt Lesesicht
-- [ ] AK11 – Personenbezug übersteht ein Neuladen der Zielseite
-- [ ] AK12 – Summen, Erhalten, Spende, Zeilenstatus und Gesamtabrechnung unverändert
-- [ ] F1 – Unbekannter Personenbezug: Standardzustand, keine Fehlermeldung, kein 404, kein Leck
-- [ ] F2 – Abgeschlossen ohne `Erhalten`-Feld: Hervorhebung ja, Fokus nein, kein Laufzeitfehler
-- [ ] F3 – Veranstaltung ohne Teilnehmer: Leer-Hinweis unverändert, kein Fehler
-- [ ] F4 – Nutzer ohne Rolle `veranstalter`: bestehendes „Kein Zugriff"-Verhalten unverändert
+- [x] AK1 – Hinweg: Aktion „Kassieren" in der geöffneten Karte führt personenbezogen in die Kassieransicht
+- [x] AK2 – Zielzeile ist hervorgehoben und im Sichtbereich (sticky Kopf verdeckt sie nicht)
+- [x] AK3 – `Erhalten`-Feld der Zielzeile hat den Tastaturfokus (offene Veranstaltung)
+- [x] AK4 – Listen-Reihenfolge unberührt: Sortierung #223 und Positions-Freeze #253 bleiben gültig
+- [x] AK5 – Rückweg: Aktion „Verzehr erfassen" in jeder Kassierzeile führt personenbezogen zurück
+- [x] AK6 – Zielkarte initial geöffnet (alle anderen zu) und im Sichtbereich
+- [x] AK7 – „Kassieren"-Aktion nur in der geöffneten Karte, nicht in eingeklappten
+- [x] AK8 – Wechsel beliebig oft in beide Richtungen, ohne Umweg über die Detailseite
+- [x] AK9 – Öffentlicher Weg `/theke/[token]` zeigt keine „Kassieren"-Aktion
+- [x] AK10 – Abgeschlossene Veranstaltung: Wechsel-Links bleiben, Lesesicht bleibt Lesesicht
+- [x] AK11 – Personenbezug übersteht ein Neuladen der Zielseite
+- [x] AK12 – Summen, Erhalten, Spende, Zeilenstatus und Gesamtabrechnung unverändert
+- [x] F1 – Unbekannter Personenbezug: Standardzustand, keine Fehlermeldung, kein 404, kein Leck
+- [x] F2 – Abgeschlossen ohne `Erhalten`-Feld: Hervorhebung ja, Fokus nein, kein Laufzeitfehler
+- [x] F3 – Veranstaltung ohne Teilnehmer: Leer-Hinweis unverändert, kein Fehler
+- [x] F4 – Nutzer ohne Rolle `veranstalter`: bestehendes „Kein Zugriff"-Verhalten unverändert
 
 ## Technische Notizen
 
@@ -48,6 +48,66 @@ Navigation – keine Änderung an Summen, Zeilenstatus oder Abschluss-Gate.
   `initialOpenId: string | null`; die Kassierliste rendert über `EingefroreneZeilenListe`.
   `scroll-margin-top` wegen der sticky Köpfe beachten (vgl. #188).
 - `docs/routes.md` braucht **keine** Änderung (keine neue Route, kein geänderter Zugriff).
+
+### Umsetzungsentscheidungen (`/implement`)
+
+- **Trägermechanik = Query-Parameter `?zeile=<zeileId>`** in einem eigenen Modul
+  `app/veranstaltung/personenbezug.ts`. Beide Href-Bauer (`kassierenHref`/`verzehrHref`) und der
+  Leser (`personenbezogeneZeileId`) hängen an derselben Konstante `PERSONENBEZUG_PARAM`, damit Hin-
+  und Rückweg nicht auseinanderdriften; ein Round-Trip-Test sichert das ab. Query-Parameter statt
+  Komponentenzustand, weil der Bezug ein Neuladen überstehen muss (AK11).
+- **Kein Zod-Schema für den Parameter.** Die einzige gültige Wertemenge sind die Zeilen-Ids der
+  geladenen Veranstaltung – die Mengenprüfung gegen `zeilen` ist strenger als jedes Formatschema.
+  Alles andere (fehlend, mehrfach übergeben → Array, unbekannt, aus fremder Veranstaltung) ergibt
+  `null` und damit den Standardzustand: fail-soft ohne Fehlermeldung und ohne Aussage darüber, ob
+  der Wert woanders existiert (F1). Der Auflösungspunkt liegt **hinter** dem Rollen-Gate, deshalb
+  verschafft ein geratener Wert weder Zugang noch Information (F4).
+- **Route-Neutralität gewahrt (ADR-039 D1).** `ZeileKarte` bekommt eine generische
+  `aktion?: ReactNode`-Prop und kennt weder Route noch Semantik; `FokusListe` reicht sie über
+  `aktionJeZeile` je Zeile hinein. Die Aktion hängt am **sichtbaren Körper** – dadurch erscheint
+  sie strukturell nur in der geöffneten Karte (AK7), statt über eine zusätzliche Bedingung. Der
+  öffentliche Weg (`IdentityGate`) reicht die Prop gar nicht herein → AK9 ist eine Abwesenheit
+  durch Nicht-Verdrahtung, nicht durch ein Flag.
+- **Hervorhebung in `EingefroreneZeilenListe`**, weil diese Komponente die `<li>`-Elemente besitzt.
+  Sie markiert genau eine Zeile (`aria-current` + Akzentfarbe, Light/Dark) und scrollt sie an;
+  Reihenfolge, Inhalt und Status bleiben unberührt (AK4/AK12). Kein Verblassen-Timer – bewusst so
+  in der Spec entschieden (zeitabhängige Tests wären flaky).
+- **Scroll-Timing** in beiden Listen im `requestAnimationFrame`-Callback, also erst gegen das
+  fertige Layout (Muster aus #188). Auf der Verzehrseite hält das vorhandene `scroll-mt-16` der
+  Karte den Kopf frei von der sticky Chip-Leiste; die Kassierseite hat keinen sticky Kopf, dort
+  genügt `block: "start"` ohne scroll-margin.
+- **`autoFocus` nur in der Zielzeile** (`autoFocusErhalten`, Default `false`) – ohne Personenbezug
+  fordert keine Zeile den Fokus an, sonst zöge ihn bei vielen Teilnehmern die letzte gerenderte
+  Zeile an sich. In der Lesesicht existiert das Feld nicht, der Fokus entfällt ohne Sonderfall (F2).
+- **Wechsel-Links auch bei abgeschlossener Veranstaltung** (AK10), weil sie reine Navigation sind –
+  sie hängen nicht am `editable`/`offen`-Flag.
+
+### Oberflächen-Verifikation
+
+Zusätzlich zu den Unit-/Seiten-Tests gegen einen **echten lokalen Dev-Server** verifiziert
+(Unit-grün ≠ UI-grün): neue Opt-in-Spec `e2e/wechsel-verzehr-kassieren.spec.ts`, **2 Tests grün**.
+Belegt am echten DOM/Router, was jsdom nicht kann: Router-Übergang mit `?zeile=`, Hervorhebung
+inkl. `toBeInViewport()`, echter Tastaturfokus im `Erhalten`-Feld, Neuladen (AK11), Rundlauf in
+beide Richtungen (AK8) und F1 auf beiden Seiten.
+
+Bewusst **nicht** im Standard-`pnpm test:e2e`-Lauf (Schalter `E2E_WECHSEL_308=1`, analog
+`anleitung-veranstalter.spec.ts`): die Spec legt Daten an, und CI fährt E2E gegen die **persistente
+INT-Umgebung** (`deploy-gate.yml`) – die dortigen Specs sind rein lesend. Lokal ausführen:
+
+```bash
+pnpm db:up && pnpm db:seed
+E2E_WECHSEL_308=1 pnpm exec dotenv -e .env.local -- playwright test e2e/wechsel-verzehr-kassieren.spec.ts
+```
+
+Notiz zum Erstlauf: der erste Lauf war rot, weil beide Tests parallel dieselbe Veranstaltungs-
+Bezeichnung anlegten und der Link-Zuwachs-Vergleich dadurch 2 statt 1 zählte – ein
+Fixture-Artefakt, kein Produktbefund. Behoben durch eine je Test eindeutige Bezeichnung
+(Begründung steht am Helper, damit sie nicht wieder eingebaut wird).
+
+### Gates
+
+`scripts/checks/pre-push.sh` vollständig grün: Tests **735 passed / 59 skipped**, Typecheck,
+Prettier, Routen-Doku-Drift (unverändert synchron – keine Routenänderung), Hooks, Branch-Check.
 
 ## Offene Fragen
 - Keine offenen fachlichen Fragen (siehe Spec → „Offene Fragen" für die bewusst dort

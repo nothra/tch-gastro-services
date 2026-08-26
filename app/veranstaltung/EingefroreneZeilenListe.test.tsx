@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
 import { EingefroreneZeilenListe, type EingefroreneZeile } from "./EingefroreneZeilenListe";
 
 // Baut die Props so, wie sie die Kassier-Seite liefert: pro Zeile ihre id plus den (server-seitig
@@ -20,6 +21,30 @@ function zeile(id: string, name: string, status = "offen"): EingefroreneZeile {
 function namenInReihenfolge(): string[] {
   return screen.getAllByRole("listitem").map((li) => li.querySelector("span")?.textContent ?? "");
 }
+
+// Die hervorgehobene Zeile ist über aria-current auffindbar (Hervorhebung = Semantik + Optik).
+function hervorgehobeneNamen(): string[] {
+  return screen
+    .getAllByRole("listitem")
+    .filter((li) => li.getAttribute("aria-current") === "true")
+    .map((li) => li.querySelector("span")?.textContent ?? "");
+}
+
+function listenEintrag(name: string): HTMLElement {
+  return screen.getByText(name).closest("li")!;
+}
+
+let raf: ReturnType<typeof stubRequestAnimationFrame>;
+
+beforeEach(() => {
+  // jsdom implementiert scrollIntoView nicht; die Komponente ruft es guarded im rAF-Callback auf.
+  Element.prototype.scrollIntoView = vi.fn();
+  raf = stubRequestAnimationFrame();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("EingefroreneZeilenListe", () => {
   it("should_renderZeilenInServerOrder_when_firstRendered", () => {
@@ -168,5 +193,105 @@ describe("EingefroreneZeilenListe", () => {
     rerender(<EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla")]} />);
 
     expect(namenInReihenfolge()).toEqual(["Anna", "Carla"]);
+  });
+
+  it("should_highlightOnlyTargetZeile_when_hervorgehobeneZeileIdGiven", () => {
+    // #308 AK2: die Zielzeile ist von den übrigen unterscheidbar – semantisch (aria-current) und
+    // optisch (Rahmen + Fläche in Akzentfarbe, Light und Dark).
+    render(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
+        hervorgehobeneZeileId="z-2"
+      />,
+    );
+
+    expect(hervorgehobeneNamen()).toEqual(["Bernd"]);
+    expect(listenEintrag("Bernd")).toHaveClass(
+      "border-cyan-600",
+      "bg-cyan-50",
+      "dark:border-cyan-500",
+      "dark:bg-cyan-950",
+    );
+    expect(listenEintrag("Anna")).toHaveClass("border-zinc-200", "dark:border-zinc-800");
+    expect(listenEintrag("Anna")).not.toHaveClass("border-cyan-600");
+  });
+
+  it("should_highlightNoZeile_when_hervorgehobeneZeileIdOmitted", () => {
+    render(<EingefroreneZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />);
+
+    expect(hervorgehobeneNamen()).toEqual([]);
+    expect(listenEintrag("Anna")).toHaveClass("border-zinc-200");
+  });
+
+  it("should_highlightNoZeile_when_hervorgehobeneZeileIdIsUnknown", () => {
+    // F1: unbekannter Personenbezug → Standardzustand, kein Fehler.
+    render(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
+        hervorgehobeneZeileId="z-fremd"
+      />,
+    );
+    raf.flush();
+
+    expect(hervorgehobeneNamen()).toEqual([]);
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("should_scrollTargetIntoViewAfterLayout_when_hervorgehobeneZeileIdGiven", () => {
+    render(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
+        hervorgehobeneZeileId="z-2"
+      />,
+    );
+    const scrollSpy = vi.spyOn(listenEintrag("Bernd"), "scrollIntoView");
+
+    // Erst nach dem Layout-Aufbau scrollen (analog #188), nicht synchron im Render-Tick.
+    expect(scrollSpy).not.toHaveBeenCalled();
+
+    raf.flush();
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
+  });
+
+  it("should_keepFrozenOrder_when_zeileIsHervorgehoben", () => {
+    // #308 AK4: die Hervorhebung findet die Zeile, sie verschiebt sie nicht – der Positions-Freeze
+    // (#253) bleibt gültig. Der erste Rerender erzeugt die Divergenz, gegen die das erst
+    // diskriminierend ist.
+    const { rerender } = render(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
+        hervorgehobeneZeileId="z-2"
+      />,
+    );
+
+    rerender(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-3", "Carla"), zeile("z-2", "Bernd", "bezahlt")]}
+        hervorgehobeneZeileId="z-2"
+      />,
+    );
+
+    expect(namenInReihenfolge()).toEqual(["Anna", "Bernd", "Carla"]);
+    expect(hervorgehobeneNamen()).toEqual(["Bernd"]);
+  });
+
+  it("should_keepHighlight_when_mountedFreshAfterReload", () => {
+    // #308 AK11: die Hervorhebung kommt aus dem Aufruf (Prop), nicht aus flüchtigem Zustand.
+    const { unmount } = render(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]}
+        hervorgehobeneZeileId="z-2"
+      />,
+    );
+    unmount();
+
+    render(
+      <EingefroreneZeilenListe
+        zeilen={[zeile("z-2", "Bernd", "bezahlt"), zeile("z-1", "Anna")]}
+        hervorgehobeneZeileId="z-2"
+      />,
+    );
+
+    expect(hervorgehobeneNamen()).toEqual(["Bernd"]);
   });
 });

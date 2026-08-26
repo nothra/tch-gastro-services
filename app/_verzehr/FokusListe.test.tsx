@@ -184,6 +184,69 @@ describe("FokusListe (#183/ADR-035, route-neutral #187/ADR-039)", () => {
     expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
   });
 
+  it("should_scrollInitiallyOpenCardIntoViewAfterLayout_when_initialOpenIdSet", () => {
+    // #308 AK6: die initial offene Karte ist die fokussierte – sie kommt in den Sichtbereich,
+    // mit derselben rAF-Zusage wie bei der Chip-Auswahl (#188): erst nach dem Layout-Aufbau.
+    renderListe({ initialOpenId: "z1" });
+    const karte = cardHead("Anna").closest("li")!;
+    const scrollSpy = vi.spyOn(karte, "scrollIntoView");
+
+    expect(scrollSpy).not.toHaveBeenCalled();
+
+    raf.flush();
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
+  });
+
+  it("should_scrollNoCard_when_initialOpenIdNull", () => {
+    renderListe({ initialOpenId: null });
+    const scrollSpy = Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>;
+    scrollSpy.mockClear();
+
+    raf.flush();
+
+    expect(scrollSpy).not.toHaveBeenCalled();
+  });
+
+  it("should_renderAktionOnlyInOpenCard_when_aktionJeZeileGiven", () => {
+    // #308 AK7: die vom Konsumenten gelieferte Aktion erscheint ausschließlich in der geöffneten
+    // Karte – eingeklappte Karten zeigen sie nicht.
+    renderListe({
+      initialOpenId: "z1",
+      aktionJeZeile: {
+        z1: <a href="/kassieren-anna">Kassieren</a>,
+        z2: <a href="/kassieren-bernd">Kassieren</a>,
+      },
+    });
+
+    const links = screen.getAllByRole("link", { name: "Kassieren" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/kassieren-anna");
+    expect(cardHead("Anna").closest("li")).toContainElement(links[0]);
+  });
+
+  it("should_moveAktionToNewlyOpenedCard_when_focusSwitched", () => {
+    renderListe({
+      initialOpenId: "z1",
+      aktionJeZeile: {
+        z1: <a href="/kassieren-anna">Kassieren</a>,
+        z2: <a href="/kassieren-bernd">Kassieren</a>,
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Bernd" }));
+
+    const links = screen.getAllByRole("link", { name: "Kassieren" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/kassieren-bernd");
+  });
+
+  it("should_renderNoAktion_when_aktionJeZeileOmitted", () => {
+    // Weg ohne Wechsel-Aktion (F7/Selbstbedienung, #308 AK9): auch die geöffnete Karte bleibt frei.
+    renderListe({ initialOpenId: "z1" });
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("should_collapseAllAndRenderDisabled_when_readOnly", () => {
     // Read-only (D5): alle Karten zu, kein Callback (der Konsument merkt sich bei read-only nichts).
     // Chip klappt lokal auf, die aufgeklappte Karte ist nicht bearbeitbar.

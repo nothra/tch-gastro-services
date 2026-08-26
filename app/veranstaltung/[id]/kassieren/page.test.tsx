@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
 import type { Veranstaltung, VeranstaltungEreignis, VeranstaltungZeile } from "@/db/schema";
 import type { AuslageRow } from "@/db/auslage";
 import type { VerzehrPositionRow } from "@/db/verzehr";
@@ -39,16 +40,25 @@ vi.mock("next/link", () => ({
 // lassen, und `initialErhalten` als Attribut (nicht als Text, sonst bräche die Text-Assertion der
 // Formular-Reihenfolge). Ohne diesen Durchgriff bliebe unbelegt, dass eine an eingefrorener
 // Position stehende Zeile den **aktuellen** Erhalten-Betrag ins Formular bekommt (#253, AC5).
+// `autoFocusErhalten` liegt aus demselben Grund als Attribut vor: dass GENAU die Zeile des
+// Personenbezugs den Eingabefokus anfordert, ist eine Entscheidung dieser Seite (#308 AK3) – den
+// Fokus selbst setzt und testet die Formular-Komponente.
 vi.mock("../../StatusToggle", () => ({ StatusToggle: () => null }));
 vi.mock("../../KassiereZeileForm", () => ({
   KassiereZeileForm: ({
     zeileId,
     initialErhalten,
+    autoFocusErhalten,
   }: {
     zeileId: string;
     initialErhalten: string;
+    autoFocusErhalten?: boolean;
   }) => (
-    <div data-testid="kassiere-form" data-initial-erhalten={initialErhalten}>
+    <div
+      data-testid="kassiere-form"
+      data-initial-erhalten={initialErhalten}
+      data-autofocus-erhalten={String(autoFocusErhalten ?? false)}
+    >
       {zeileId}
     </div>
   ),
@@ -164,8 +174,47 @@ const ereignisse: VeranstaltungEreignis[] = [
   },
 ];
 
-function params(id: string) {
-  return Promise.resolve({ id });
+// Props eines Seitenaufrufs; `zeile` ist der optionale Personenbezug des Aufrufs (#308).
+function seite(id: string, zeile?: string) {
+  return {
+    params: Promise.resolve({ id }),
+    searchParams: Promise.resolve(zeile === undefined ? {} : { zeile }),
+  };
+}
+
+// Die Zielzeile eines personenbezogenen Aufrufs ist über aria-current auffindbar (#308 AK2).
+function hervorgehobeneNamen(): string[] {
+  const section = screen.getByRole("heading", { name: /^Teilnehmer/ }).closest("section")!;
+  return within(section)
+    .getAllByRole("listitem")
+    .filter((li) => li.getAttribute("aria-current") === "true")
+    .map((li) => li.querySelector("span")?.textContent ?? "");
+}
+
+function verzehrLinks() {
+  return screen.queryAllByRole("link", { name: /Verzehr erfassen/ });
+}
+
+function teilnehmerEintrag(name: string): HTMLElement {
+  return screen.getByText(name).closest("li")!;
+}
+
+// Alle zahlen- und statusführenden Texte der Seite: je Teilnehmerzeile (Beträge, Badge, Erhalten)
+// plus Tagessummen und Gesamtabrechnung. Grundlage des AK12-Vergleichs „Navigation ändert nichts".
+function betragsrelevanteTexte(): string[] {
+  const teilnehmer = screen.getByRole("heading", { name: /^Teilnehmer/ }).closest("section")!;
+  const zeilenTexte = within(teilnehmer)
+    .getAllByRole("listitem")
+    .map(
+      (li) => `${li.querySelector("span")?.textContent} | ${li.querySelector("dl")?.textContent}`,
+    );
+  const summenTexte = ["Tagessummen", "Gesamtabrechnung (Kasse: Montagsrunde)"].map(
+    (heading) => screen.getByText(heading).closest("section")!.textContent ?? "",
+  );
+  const badges = within(teilnehmer)
+    .getAllByRole("listitem")
+    .map((li) => (li.textContent?.includes("bezahlt") ? "bezahlt" : "offen"));
+  return [...zeilenTexte, ...badges, ...summenTexte];
 }
 
 // Reihenfolge der Teilnehmer-Anzeigenamen in der Kassier-Liste (erster Span je <li> = Anzeigename).
@@ -218,15 +267,25 @@ function arrangeVierZeilen(erhalten: {
   ]);
 }
 
+let raf: ReturnType<typeof stubRequestAnimationFrame>;
+
 beforeEach(() => {
   vi.resetAllMocks();
+  // jsdom implementiert scrollIntoView nicht; EingefroreneZeilenListe ruft es guarded im
+  // rAF-Callback auf (#308 AK2).
+  Element.prototype.scrollIntoView = vi.fn();
+  raf = stubRequestAnimationFrame();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("KassierenPage", () => {
   it("should_denyAccess_when_userIsNotVeranstalter", async () => {
     authMock.mockResolvedValue(session(["verwalter"]));
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText(/Kein Zugriff/)).toBeInTheDocument();
     expect(getVeranstaltungMock).not.toHaveBeenCalled();
@@ -240,13 +299,13 @@ describe("KassierenPage", () => {
     listAuslagenMock.mockResolvedValue([]);
     listEreignisseMock.mockResolvedValue([]);
 
-    await expect(KassierenPage({ params: params("v-1") })).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(KassierenPage(seite("v-1"))).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
   it("should_linkBackToDetail_when_rendered", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByRole("link", { name: /Zur Veranstaltung/ })).toHaveAttribute(
       "href",
@@ -257,7 +316,7 @@ describe("KassierenPage", () => {
   it("should_renderResolvedCategoriesPerZeile_when_positionsPresent", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText("Anna Beispiel")).toBeInTheDocument();
     expect(screen.getByText("Bernd Beispiel")).toBeInTheDocument();
@@ -276,7 +335,7 @@ describe("KassierenPage", () => {
   it("should_showAllThreeCategoriesWithZero_when_onlyGetraenke", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Bernd hat nur ein Getränk (2,50 €) → Essen und Kaffee dennoch sichtbar mit 0,00 €.
     const berndLi = screen.getByText("Bernd Beispiel").closest("li")!;
@@ -289,7 +348,7 @@ describe("KassierenPage", () => {
   it("should_renderCollapsedVerzehrBreakdownPerZeile_when_rendered", async () => {
     arrangeHappyPath();
 
-    const { container } = render(await KassierenPage({ params: params("v-1") }));
+    const { container } = render(await KassierenPage(seite("v-1")));
 
     const disclosures = container.querySelectorAll("details");
     expect(disclosures.length).toBe(2);
@@ -305,7 +364,7 @@ describe("KassierenPage", () => {
   it("should_matchBreakdownSumToVerzehrGesamt_when_expanded", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Positionsbeträge der z-1 aufsummiert = Verzehr-Gesamt (800): Cola 2×250 + Schnitzel 1×300.
     // Annas Zeile explizit wählen – die Liste sortiert offene Vorgänge (Bernd) nach oben (#223).
@@ -328,7 +387,7 @@ describe("KassierenPage", () => {
       pos({ zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk", name: "Cola" }),
     ]);
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     const berndLi = screen.getByText("Bernd Beispiel").closest("li")!;
     expect(within(berndLi).getByText("Kein Verzehr erfasst")).toBeInTheDocument();
@@ -349,7 +408,7 @@ describe("KassierenPage", () => {
       pos({ zeileId: "z-2", menge: 1, priceCents: 250, category: "getraenk", name: "Cola" }),
     ]);
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Soft-gelöschter Artikel (COALESCE-Name/-Preis) bleibt in der Aufschlüsselung sichtbar.
     const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
@@ -359,7 +418,7 @@ describe("KassierenPage", () => {
   it("should_markPaidLineAsBezahlt_when_erhaltenCoversVerzehr", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText("bezahlt")).toBeInTheDocument();
   });
@@ -367,17 +426,166 @@ describe("KassierenPage", () => {
   it("should_renderKassiereForm_forEachZeile_when_offen", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     const forms = screen.getAllByTestId("kassiere-form");
     // Sortierung (Spec-223): offene Zeilen zuerst → Bernd (offen, z-2) vor Anna (bezahlt, z-1).
     expect(forms.map((form) => form.textContent)).toEqual(["z-2", "z-1"]);
   });
 
+  it("should_highlightAndScrollReferencedZeile_when_personenbezugGiven", async () => {
+    // #308 AK2: die Zielzeile des Aufrufs ist von den übrigen unterscheidbar und kommt in den
+    // Sichtbereich – erst nach dem Layout-Aufbau (analog #188), nicht synchron im Render-Tick.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+
+    render(await KassierenPage(seite("v-1", "z-c")));
+    const scrollSpy = vi.spyOn(teilnehmerEintrag("Carla"), "scrollIntoView");
+
+    expect(hervorgehobeneNamen()).toEqual(["Carla"]);
+    expect(scrollSpy).not.toHaveBeenCalled();
+
+    raf.flush();
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
+  });
+
+  it("should_focusErhaltenOfReferencedZeileOnly_when_offenAndPersonenbezugGiven", async () => {
+    // #308 AK3: nur das Formular der gemeinten Person fordert den Eingabefokus an.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+
+    render(await KassierenPage(seite("v-1", "z-c")));
+
+    const fokussierteZeilen = screen
+      .getAllByTestId("kassiere-form")
+      .filter((form) => form.getAttribute("data-autofocus-erhalten") === "true")
+      .map((form) => form.textContent);
+    expect(fokussierteZeilen).toEqual(["z-c"]);
+  });
+
+  it("should_requestNoFocus_when_calledWithoutPersonenbezug", async () => {
+    // Ohne Personenbezug zieht keine der vielen Zeilen den Fokus an sich.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+
+    render(await KassierenPage(seite("v-1")));
+
+    const werte = screen
+      .getAllByTestId("kassiere-form")
+      .map((form) => form.getAttribute("data-autofocus-erhalten"));
+    expect(werte).toEqual(["false", "false", "false", "false"]);
+    expect(hervorgehobeneNamen()).toEqual([]);
+  });
+
+  it("should_keepServerOrder_when_personenbezugPointsToLaterZeile", async () => {
+    // #308 AK4: der Wechsel FINDET die Zeile, er verschiebt sie nicht – Sortierung #223 unberührt.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+
+    render(await KassierenPage(seite("v-1", "z-c")));
+
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+  });
+
+  it("should_offerVerzehrLinkForEveryZeile_when_rendered", async () => {
+    // #308 AK5/AK8: der Rückweg steht in JEDER Kassierzeile und trägt deren Personenbezug.
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    const links = verzehrLinks();
+    // Reihenfolge wie die Liste: offen (Bernd, z-2) vor bezahlt (Anna, z-1).
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/veranstaltung/v-1/verzehr?zeile=z-2",
+      "/veranstaltung/v-1/verzehr?zeile=z-1",
+    ]);
+    expect(teilnehmerEintrag("Bernd Beispiel")).toContainElement(links[0]);
+  });
+
+  it("should_offerReturnToSamePerson_when_calledWithPersonenbezug", async () => {
+    // #308 AK8: der Kreis schließt sich – die Zielzeile eines Hinwegs bietet den Rückweg auf
+    // DIESELBE Person an, sodass beliebig oft gewechselt werden kann (ohne Detailseite).
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1", "z-2")));
+
+    const berndLi = teilnehmerEintrag("Bernd Beispiel");
+    expect(within(berndLi).getByRole("link", { name: /Verzehr erfassen/ })).toHaveAttribute(
+      "href",
+      "/veranstaltung/v-1/verzehr?zeile=z-2",
+    );
+  });
+
+  it("should_highlightNothingAndNotScroll_when_personenbezugIsUnknown", async () => {
+    // F1: getilgte Zeile, Zeile einer anderen Veranstaltung oder Zufallswert → Standardzustand,
+    // keine Fehlermeldung, kein notFound, keine Aussage über den unbekannten Wert.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+
+    render(await KassierenPage(seite("v-1", "z-fremd")));
+    raf.flush();
+
+    expect(hervorgehobeneNamen()).toEqual([]);
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    expect(notFoundMock).not.toHaveBeenCalled();
+    expect(screen.queryByText(/z-fremd/)).not.toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("kassiere-form")
+        .map((form) => form.getAttribute("data-autofocus-erhalten")),
+    ).toEqual(["false", "false", "false", "false"]);
+  });
+
+  it("should_highlightWithoutFocus_when_abgeschlossenAndPersonenbezugGiven", async () => {
+    // F2/AK10: ohne Erhalten-Eingabefeld greift nur die Hervorhebung – der Rückweg bleibt, die
+    // Lesesicht bleibt Lesesicht (kein Kassier-Formular).
+    arrangeHappyPath();
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+
+    render(await KassierenPage(seite("v-1", "z-2")));
+    const scrollSpy = vi.spyOn(teilnehmerEintrag("Bernd Beispiel"), "scrollIntoView");
+    raf.flush();
+
+    expect(hervorgehobeneNamen()).toEqual(["Bernd Beispiel"]);
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
+    expect(screen.queryAllByTestId("kassiere-form")).toHaveLength(0);
+    expect(verzehrLinks()[0]).toHaveAttribute("href", "/veranstaltung/v-1/verzehr?zeile=z-2");
+  });
+
+  it("should_keepHighlight_when_pageIsRenderedAgainAfterReload", async () => {
+    // #308 AK11: der Personenbezug hängt am Aufruf (Query-Parameter), nicht an flüchtigem Zustand.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { unmount } = render(await KassierenPage(seite("v-1", "z-c")));
+    unmount();
+
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    render(await KassierenPage(seite("v-1", "z-c")));
+
+    expect(hervorgehobeneNamen()).toEqual(["Carla"]);
+  });
+
+  it("should_showEmptyStateWithoutError_when_noZeilenButPersonenbezugGiven", async () => {
+    // F3: Veranstaltung ohne Teilnehmer – Leer-Hinweis unverändert, kein Fehler.
+    arrangeHappyPath();
+    listZeilenMock.mockResolvedValue([]);
+    listPositionenMock.mockResolvedValue([]);
+
+    render(await KassierenPage(seite("v-1", "z-1")));
+
+    expect(screen.getByText("Noch keine Teilnehmer erfasst.")).toBeInTheDocument();
+    expect(verzehrLinks()).toHaveLength(0);
+  });
+
+  it("should_denyAccess_when_notVeranstalterEvenWithPersonenbezug", async () => {
+    // F4: der Personenbezug verschafft keinen Zugang und keine Information.
+    authMock.mockResolvedValue(session(["verwalter"]));
+
+    render(await KassierenPage(seite("v-1", "z-1")));
+
+    expect(screen.getByText(/Kein Zugriff/)).toBeInTheDocument();
+    expect(getVeranstaltungMock).not.toHaveBeenCalled();
+    expect(verzehrLinks()).toHaveLength(0);
+  });
+
   it("should_listOffenParticipantsAboveBezahlt_when_rendered", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Offen-Gruppe (Bernd, Dora) oben – je Gruppe stabil alphabetisch; bezahlt (Anna, Carla) unten.
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
@@ -385,13 +593,13 @@ describe("KassierenPage", () => {
 
   it("should_keepKassierteZeileAtItsPosition_when_serverReordersWithinSameSession", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
-    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+    const { rerender } = render(await KassierenPage(seite("v-1")));
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
 
     // Bernd wird kassiert: `revalidatePath` rendert die Server-Komponente neu, deren Sortierung ihn
     // in die Bezahlt-Gruppe schöbe (Dora, Anna, Bernd, Carla) – die eingefrorene Position hält (#253).
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
 
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
     // Nur die Position ist eingefroren – das Badge folgt sofort den aktuellen Server-Daten.
@@ -401,12 +609,12 @@ describe("KassierenPage", () => {
 
   it("should_keepEveryPosition_when_severalZeilenKassiertInSequence", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
-    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+    const { rerender } = render(await KassierenPage(seite("v-1")));
 
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: 250 });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
 
     // Kein kumulatives Nachrutschen: auch nach dem zweiten Kassieren steht jede Zeile unverändert.
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
@@ -414,17 +622,17 @@ describe("KassierenPage", () => {
 
   it("should_keepPositionAndEditableForm_when_erhaltenOfKassierteZeileIsCorrected", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
-    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+    const { rerender } = render(await KassierenPage(seite("v-1")));
 
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
     expect(
       within(screen.getByText("Bernd").closest("li")!).getByTestId("kassiere-form"),
     ).toHaveAttribute("data-initial-erhalten", "2,50");
 
     // Korrektur des Erhalten-Betrags derselben, bereits kassierten Zeile (2,50 € → 3,00 €).
     arrangeVierZeilen({ anna: 250, bernd: 300, carla: 250, dora: null });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
 
     expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
     // Das Formular bleibt editierbar – keine Umschaltung auf reine Anzeige nach dem Kassieren.
@@ -439,18 +647,18 @@ describe("KassierenPage", () => {
 
   it("should_hideKassiereFormsAndLeaveOrderUntouched_when_veranstaltungIsAbgeschlossenViaStatusToggle", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
-    const { rerender } = render(await KassierenPage({ params: params("v-1") }));
+    const { rerender } = render(await KassierenPage(seite("v-1")));
 
     // Bernd kassieren – ab hier weicht die Server-Sortierung ([Dora, Anna, Bernd, Carla]) von der
     // eingefrorenen ab. Ohne diesen Schritt wäre die Reihenfolge-Assertion unten vakuum.
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
 
     // Abschluss über den StatusToggle lädt die Seite neu, ändert aber keinen Bezahlt-Status →
     // unverändertes Sortierverhalten dieser Aktion (nicht Teil von #253); Formulare entfallen.
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    rerender(await KassierenPage({ params: params("v-1") }));
+    rerender(await KassierenPage(seite("v-1")));
 
     // Der Statuswechsel darf weder umsortieren noch den Freeze verlieren: ein statusabhängiger
     // `key` an <EingefroreneZeilenListe> würde die Komponente remounten und Bernd nach unten
@@ -461,12 +669,12 @@ describe("KassierenPage", () => {
 
   it("should_reapplyServerOrder_when_pageIsRenderedAgainAfterReload", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
-    const { unmount } = render(await KassierenPage({ params: params("v-1") }));
+    const { unmount } = render(await KassierenPage(seite("v-1")));
     unmount();
 
     // Reload nach dem Kassieren von Bernd → neue Instanz, die Sortierung aus spec-223 gilt wieder.
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(teilnehmerNamesInOrder()).toEqual(["Dora", "Anna", "Bernd", "Carla"]);
   });
@@ -483,7 +691,7 @@ describe("KassierenPage", () => {
     ]);
     listPositionenMock.mockResolvedValue([pos({ zeileId: "z-be", menge: 1, priceCents: 250 })]);
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Null-Verzehr sortiert nach unten (bezahlt) – trotz alphabetisch erstem Namen.
     expect(teilnehmerNamesInOrder()).toEqual(["Berta", "Aaron"]);
@@ -492,7 +700,7 @@ describe("KassierenPage", () => {
   it("should_emphasizeVerzehrGesamtWithSemibold_when_rendered", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
     const dt = within(annaLi).getByText("Verzehr-Gesamt");
@@ -507,7 +715,7 @@ describe("KassierenPage", () => {
   it("should_keepOtherCategoriesInMutedSecondary_when_rendered", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
     // Gedämpfte Sekundärfarbe auf dem umschließenden dl, in Light und Dark.
@@ -522,10 +730,27 @@ describe("KassierenPage", () => {
     }
   });
 
+  it("should_keepAllAmountsAndStates_when_calledWithPersonenbezug", async () => {
+    // #308 AK12: der Personenbezug ist reine Navigation – Zeilenbeträge, Zeilenstatus, Tagessummen
+    // und Gesamtabrechnung sind Zeichen für Zeichen dieselben wie beim Aufruf ohne ihn.
+    arrangeHappyPath();
+    const { unmount } = render(await KassierenPage(seite("v-1")));
+    const ohneBezug = betragsrelevanteTexte();
+    unmount();
+
+    arrangeHappyPath();
+    render(await KassierenPage(seite("v-1", "z-2")));
+
+    expect(betragsrelevanteTexte()).toEqual(ohneBezug);
+    // Gegenkontrolle: der Aufruf war wirklich personenbezogen – sonst verglichen wir zwei
+    // identische Standardaufrufe und die Gleichheit wäre nichtssagend.
+    expect(hervorgehobeneNamen()).toEqual(["Bernd Beispiel"]);
+  });
+
   it("should_showTagessummen_when_rendered", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText("Tagessummen")).toBeInTheDocument();
     // Σ Verzehr-Gesamt = 800 + 250 = 1050 → 10,50 €; genau eine offene Zeile (z-2).
@@ -553,7 +778,7 @@ describe("KassierenPage", () => {
   it("should_showGesamtabrechnungForAssignedKasse_when_rendered", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Kasse-Bezug im Titel; Kassenveränderung = Σ Erhalten (1000) − Σ erstattete Auslagen (550) = 450.
     expect(screen.getByText("Gesamtabrechnung (Kasse: Montagsrunde)")).toBeInTheDocument();
@@ -566,7 +791,7 @@ describe("KassierenPage", () => {
   it("should_renderProtokoll_when_ereignissePresent", async () => {
     arrangeHappyPath();
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText("Abgeschlossen")).toBeInTheDocument();
     expect(screen.getByText(/Vera Veranstalter/)).toBeInTheDocument();
@@ -577,7 +802,7 @@ describe("KassierenPage", () => {
     arrangeHappyPath();
     listEreignisseMock.mockResolvedValue([{ ...ereignisse[0], akteurName: null }]);
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(
       screen.getByText(
@@ -590,7 +815,7 @@ describe("KassierenPage", () => {
     arrangeHappyPath();
     listEreignisseMock.mockResolvedValue([]);
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(
       screen.getByText(/Noch kein Abschluss oder Wiederöffnen protokolliert/),
@@ -601,7 +826,7 @@ describe("KassierenPage", () => {
     arrangeHappyPath();
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     // Schreibgeschützt: kein Erfassungsformular, stattdessen der erhaltene Betrag als Text.
     expect(screen.queryByTestId("kassiere-form")).not.toBeInTheDocument();
@@ -615,7 +840,7 @@ describe("KassierenPage", () => {
     listZeilenMock.mockResolvedValue([]);
     listPositionenMock.mockResolvedValue([]);
 
-    render(await KassierenPage({ params: params("v-1") }));
+    render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText("Noch keine Teilnehmer erfasst.")).toBeInTheDocument();
   });

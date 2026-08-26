@@ -25,6 +25,11 @@ import {
   formatDatum,
   formatZeitpunkt,
 } from "../../labels";
+import {
+  personenbezogeneZeileId,
+  verzehrHref,
+  type SeitenSuchparameter,
+} from "../../personenbezug";
 
 // Authentifizierte Kassier-Seite (F8, #55, ADR-033 D6): kassiert je Teilnehmerzeile den vollen
 // Verzehr-Gesamt bar (`Erhalten`), zeigt die abgeleitete Spende + den Zeilenstatus (bezahlt/offen),
@@ -32,7 +37,15 @@ import {
 // Wiederöffnen (mit fail-closed Ablehnung bei offener Zeile) über den StatusToggle. Nur
 // Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter dem bereits von
 // `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
-export default async function KassierenPage({ params }: { params: Promise<{ id: string }> }) {
+// Der Aufruf kann einen Personenbezug tragen (#308): dann wird die Zeile dieser Person hervorgehoben,
+// angescrollt und ihr `Erhalten`-Feld fokussiert; jede Zeile bietet den Rückweg in die Erfassung an.
+export default async function KassierenPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SeitenSuchparameter>;
+}) {
   const { id } = await params;
   const session = await auth();
   if (!hasRole(session?.user?.roles, "veranstalter")) {
@@ -85,6 +98,15 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
   // liefert die veranstaltungId nie im Formular.
   const kassiereAction = kassiereZeileAction.bind(null, id);
 
+  // Personenbezug des Aufrufs (#308 AK2/AK3/AK11), aufgelöst gegen die Zeilen DIESER Veranstaltung –
+  // ein unbekannter Wert ergibt `null` und damit den Standardzustand der Seite (F1). Er steuert
+  // ausschließlich Hervorhebung, Anscrollen und Eingabefokus: Reihenfolge (#223/#253), Summen und
+  // Zeilenstatus bleiben unberührt (AK4/AK12).
+  const zielZeileId = personenbezogeneZeileId(
+    await searchParams,
+    zeilen.map((zeile) => zeile.id),
+  );
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
@@ -111,6 +133,7 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
         ) : (
           <EingefroreneZeilenListe
+            hervorgehobeneZeileId={zielZeileId}
             zeilen={zeilenMitKassier.map(({ zeile, kassier, positionen: zeilenPositionen }) => ({
               id: zeile.id,
               inhalt: (
@@ -163,6 +186,9 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
                           ? ""
                           : centsToEuroInput(kassier.erhaltenCents)
                       }
+                      // Nur die Zeile des Personenbezugs fordert den Fokus an (#308 AK3) – sonst
+                      // zöge ihn bei vielen Teilnehmern die letzte gerenderte Zeile an sich.
+                      autoFocusErhalten={zeile.id === zielZeileId}
                     />
                   ) : (
                     <p className="text-sm">
@@ -172,6 +198,15 @@ export default async function KassierenPage({ params }: { params: Promise<{ id: 
                       </span>
                     </p>
                   )}
+
+                  {/* Rückweg in die Erfassung DIESER Person (#308 AK5) – reine Navigation, deshalb
+                      auch in der Lesesicht der abgeschlossenen Veranstaltung (AK10). */}
+                  <Link
+                    href={verzehrHref(id, zeile.id)}
+                    className="self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400"
+                  >
+                    ← Verzehr erfassen
+                  </Link>
                 </>
               ),
             }))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 import { ZeileKarte, type VerzehrArtikel, type VerzehrZeile } from "./VerzehrErfassung";
 import type { VerzehrFormAction } from "./types";
@@ -23,6 +23,7 @@ export function FokusListe({
   editable,
   initialOpenId,
   onFokusWechsel,
+  aktionJeZeile,
 }: {
   zeilen: readonly VerzehrZeile[];
   artikel: readonly VerzehrArtikel[];
@@ -31,9 +32,23 @@ export function FokusListe({
   editable: boolean;
   initialOpenId: string | null;
   onFokusWechsel?: (zeileId: string) => void;
+  aktionJeZeile?: Readonly<Record<string, ReactNode>>;
 }) {
   const [openId, setOpenId] = useState<string | null>(initialOpenId);
   const kartenRefs = useRef(new Map<string, HTMLLIElement>());
+
+  // Auch die INITIAL offene Karte ist die fokussierte – sie kommt beim Mounten in den Sichtbereich,
+  // damit ein Aufruf mit Personenbezug (F5, #308 AK6) bzw. ein gemerktes Ziel (F7) nicht unterhalb
+  // des Viewports liegt. Dieselbe Zusage wie `waehleZiel`, deshalb auch dasselbe rAF-Timing (#188):
+  // erst nachdem das Layout mit der offenen Karte steht. Das scroll-margin-top der Karte hält den
+  // Kopf frei von der sticky Chip-Leiste.
+  useEffect(() => {
+    if (initialOpenId === null) return;
+    const frame = requestAnimationFrame(() => {
+      kartenRefs.current.get(initialOpenId)?.scrollIntoView?.({ block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [initialOpenId]);
 
   // Fokus wählen: Karte öffnen (andere zu), den Konsumenten benachrichtigen (onFokusWechsel) und in
   // den Sichtbereich holen. Vom Chip UND vom Aufklappen einer eingeklappten Karte genutzt.
@@ -108,6 +123,10 @@ export function FokusListe({
             className="scroll-mt-16"
             open={openId === zeile.id}
             onToggle={() => toggle(zeile.id)}
+            // Wechsel-Aktion des Konsumenten je Zeile (#308): die Karte rendert sie nur, wenn ihr
+            // Körper sichtbar ist – also nur in der geöffneten (AK7). Ein Weg ohne Aktion (F7)
+            // reicht die Prop gar nicht herein (AK9).
+            aktion={aktionJeZeile?.[zeile.id]}
           />
         ))}
       </ul>

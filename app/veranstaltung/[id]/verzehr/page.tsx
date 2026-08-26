@@ -11,12 +11,25 @@ import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrErfassung";
 import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
+import {
+  kassierenHref,
+  personenbezogeneZeileId,
+  type SeitenSuchparameter,
+} from "../../personenbezug";
 
 // Authentifizierte Erfassungs-Seite (F5, ADR-025 D5): lädt Zeilen, Katalog und Positionen und
 // reicht die an diese Veranstaltung gebundene Veranstalter-Action in die route-neutrale UI
 // (app/_verzehr). Nur Veranstalter (serverseitig auch in der Action durchgesetzt). Solange die
 // Veranstaltung offen ist, ist die Erfassung editierbar; abgeschlossen → nur Lesesicht.
-export default async function VerzehrPage({ params }: { params: Promise<{ id: string }> }) {
+// Der Aufruf kann einen Personenbezug tragen (#308): dann ist die Karte dieser Person initial
+// geöffnet, und sie bietet den Weiterweg ins Kassieren derselben Person an.
+export default async function VerzehrPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SeitenSuchparameter>;
+}) {
   const { id } = await params;
   const session = await auth();
   if (!hasRole(session?.user?.roles, "veranstalter")) {
@@ -39,6 +52,29 @@ export default async function VerzehrPage({ params }: { params: Promise<{ id: st
   ]);
   const offen = veranstaltung.status === "offen";
   const verzehrZeilen = toVerzehrZeilen(zeilen);
+
+  // Personenbezug des Aufrufs (#308 AK6/AK11), aufgelöst gegen die Zeilen DIESER Veranstaltung –
+  // ein unbekannter Wert ergibt `null` und damit den Standardzustand (F1).
+  const fokusZeileId = personenbezogeneZeileId(
+    await searchParams,
+    zeilen.map((zeile) => zeile.id),
+  );
+
+  // Weiterweg ins Kassieren je Zeile (#308 AK1/AK8). Die route-neutrale Karte bekommt den fertigen
+  // Baustein und kennt die Route nicht (ADR-039 D1); sie zeigt ihn nur in der geöffneten Karte
+  // (AK7). Der Link ist reine Navigation und bleibt daher auch in der Lesesicht (AK10).
+  const kassierenAktionJeZeile = Object.fromEntries(
+    verzehrZeilen.map((zeile) => [
+      zeile.id,
+      <Link
+        key={zeile.id}
+        href={kassierenHref(id, zeile.id)}
+        className="self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400"
+      >
+        Kassieren →
+      </Link>,
+    ]),
+  );
 
   // Die veranstaltungId ist ein serverseitig gebundenes, vertrauenswürdiges Argument der Action
   // (route-neutral, ADR-025 D5/D6) – der Client liefert sie nicht.
@@ -67,15 +103,17 @@ export default async function VerzehrPage({ params }: { params: Promise<{ id: st
         // Konsumenten, weil die Meldung wegabhängig ist (F5 verweist auf das Anlegen von Teilnehmern).
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{KEIN_TEILNEHMER_HINWEIS}</p>
       ) : (
-        // Fokus-Akkordeon wie im Link-Weg (ADR-039 D3): keine Karte offen initial, kein
-        // onFokusWechsel (F5 merkt sich kein Ziel geräte-lokal). editable an den Status gebunden.
+        // Fokus-Akkordeon wie im Link-Weg (ADR-039 D3): initial offen ist nur die Karte des
+        // Personenbezugs (ohne ihn keine), kein onFokusWechsel (F5 merkt sich kein Ziel
+        // geräte-lokal). editable an den Status gebunden.
         <FokusListe
           zeilen={verzehrZeilen}
           artikel={toVerzehrArtikelListe(artikel)}
           positionen={positionen}
           action={action}
           editable={offen}
-          initialOpenId={null}
+          initialOpenId={fokusZeileId}
+          aktionJeZeile={kassierenAktionJeZeile}
         />
       )}
     </main>

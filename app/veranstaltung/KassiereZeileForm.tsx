@@ -22,10 +22,12 @@ export function KassiereZeileForm({
   action,
   zeileId,
   initialErhalten,
+  autoFocusErhalten = false,
 }: {
   action: BoundKassiereAction;
   zeileId: string;
   initialErhalten: string;
+  autoFocusErhalten?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   return (
@@ -37,6 +39,10 @@ export function KassiereZeileForm({
         inputMode="decimal"
         aria-label="Erhalten (EUR)"
         defaultValue={initialErhalten}
+        // Tastaturfokus nur, wenn die Seite personenbezogen auf GENAU diese Zeile aufgerufen wurde
+        // (#308 AK3): der Betrag ist ohne weiteren Tap eingebbar. Ohne Personenbezug bleibt der
+        // Fokus, wo er ist – sonst zöge ihn jede der vielen Zeilen an sich.
+        autoFocus={autoFocusErhalten}
         placeholder="0,00"
         className={inputClass}
       />

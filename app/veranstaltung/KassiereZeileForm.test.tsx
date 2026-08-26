@@ -57,6 +57,22 @@ describe("KassiereZeileForm", () => {
     expect(screen.getByText(/gespeichert/i)).toBeInTheDocument();
   });
 
+  it("should_focusErhalten_when_autoFocusErhaltenSet", () => {
+    // #308 AK3: nach personenbezogenem Wechsel lässt sich der Betrag ohne weiteren Tap eintippen.
+    render(
+      <KassiereZeileForm action={noopAction} zeileId="z-1" initialErhalten="" autoFocusErhalten />,
+    );
+
+    expect(screen.getByLabelText(/Erhalten/i)).toHaveFocus();
+  });
+
+  it("should_notFocusErhalten_when_autoFocusErhaltenOmitted", () => {
+    // Ohne Personenbezug bleibt der Fokus, wo er ist – sonst würde jede Zeile ihn an sich ziehen.
+    render(<KassiereZeileForm action={noopAction} zeileId="z-1" initialErhalten="" />);
+
+    expect(screen.getByLabelText(/Erhalten/i)).not.toHaveFocus();
+  });
+
   it("should_disableButtonWithPendingText_when_pending", () => {
     withState(undefined, true);
     render(<KassiereZeileForm action={noopAction} zeileId="z-1" initialErhalten="" />);
