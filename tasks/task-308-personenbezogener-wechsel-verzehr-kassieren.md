@@ -81,6 +81,14 @@ Navigation – keine Änderung an Summen, Zeilenstatus oder Abschluss-Gate.
   Zeile an sich. In der Lesesicht existiert das Feld nicht, der Fokus entfällt ohne Sonderfall (F2).
 - **Wechsel-Links auch bei abgeschlossener Veranstaltung** (AK10), weil sie reine Navigation sind –
   sie hängen nicht am `editable`/`offen`-Flag.
+- **Der Mount-Scroll in `FokusListe` wirkt bewusst auch auf den öffentlichen Weg F7.** Der neue
+  Effekt scrollt *jede* initial offene Karte in den Sichtbereich – auf `/theke/[token]` ist das die
+  aus der geräte-lokalen Ziel-Merkung vorgewählte Karte (ADR-035 D1), die vorher beim Laden liegen
+  blieb. Bewusst **ohne** Opt-out-Prop: „initial offen" heißt auf beiden Wegen „fokussiert", und
+  dieselbe Zusage gilt bereits für die Chip-Auswahl (`waehleZiel`) – eine Prop wäre Fläche ohne
+  Gewinn. Festgehalten in ADR-039 § Konsequenzen und gegen Regression gesichert durch
+  `should_scrollRememberedZielCardIntoViewAfterLayout_when_bothStored` (`IdentityGate.test.tsx`).
+  Der Test ist per Mutation belegt (Mount-Effekt invertiert → rot).
 
 ### Oberflächen-Verifikation
 
@@ -106,15 +114,37 @@ Fixture-Artefakt, kein Produktbefund. Behoben durch eine je Test eindeutige Beze
 
 ### Gates
 
-`scripts/checks/pre-push.sh` vollständig grün: Tests **735 passed / 59 skipped**, Typecheck,
-Prettier, Routen-Doku-Drift (unverändert synchron – keine Routenänderung), Hooks, Branch-Check.
+`scripts/checks/pre-push.sh` vollständig grün: Tests **736 passed / 59 skipped**, Typecheck,
+Prettier, Routen-Doku-Drift (synchron – kein Pfad-/Zugriffswechsel; nach Rework-Runde 1 nennt die
+Funktionsspalte beider Routen zusätzlich den Aufruf-Vertrag `?zeile=`, was der strukturelle
+Drift-Check nicht prüft), Hooks, Branch-Check.
 
 ## Offene Fragen
 - Keine offenen fachlichen Fragen (siehe Spec → „Offene Fragen" für die bewusst dort
   entschiedenen Punkte).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Runde 1 (`tasks/review-308.md`): keine kritischen Findings, Empfehlung `NEEDS_REWORK` wegen zwei
+Doku-/Test-Nachzügen. Am Produktionsverhalten des Features wurde nichts geändert.
+
+- [x] **W1 – ADR-039-Drift.** D3/D4 beschrieben `initialOpenId={null}` als feste F5-Mechanik, D1
+      zählte die Props ohne `aktionJeZeile` auf. Drift-Hinweise an D1, D3 und D4 ergänzt (Stil wie
+      der bestehende Hinweis in ADR-035 D2) plus ein Trade-off-Punkt unter § Konsequenzen. Ohne
+      Personenbezug gelten D3/D4 unverändert – genau das steht jetzt dort.
+- [x] **W2 – F7-Verhaltensänderung nicht festgehalten/abgesichert.** Der Mount-Scroll trifft auch
+      den öffentlichen Weg. Entscheidung jetzt unter „Umsetzungsentscheidungen" + ADR-039
+      § Konsequenzen, Regressionsschutz durch einen neuen Test in `IdentityGate.test.tsx`.
+- [x] **N1** – Identitätsfunktion `suchparameter(...)` in `personenbezug.test.ts` entfernt, die
+      Aufrufstellen übergeben das Objektliteral direkt (der Parametertyp greift ohnehin).
+- [x] **N2** – Klassenkette beider Wechsel-Links als `WECHSEL_LINK_CLASS` neben
+      `PERSONENBEZUG_PARAM` zusammengezogen; sie gehört zum selben „ein Bedienmuster"-Versprechen.
+- [x] **N4** – `docs/routes.md`: Funktionsspalte beider Routen nennt den Aufruf-Vertrag
+      `?zeile=<zeileId>` (kein Pfad-/Zugriffswechsel, Drift-Check bleibt strukturell grün).
+- [ ] **N3 (bewusst offen)** – `EingefroreneZeilenListe` trägt seit diesem PR zwei Zuständigkeiten
+      (Positions-Freeze + Zielzeilen-Hervorhebung); der Modul-Header ist mitgepflegt, der Name nicht.
+      Der Review nennt ausdrücklich „kein Rename-Zwang" – ein Rename berührt Komponente, Test und
+      beide Konsumenten und gehört damit in den `/refactor`-Pass, nicht in die Rework-Runde.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

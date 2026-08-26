@@ -12,6 +12,7 @@ import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-p
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 import {
+  WECHSEL_LINK_CLASS,
   kassierenHref,
   personenbezogeneZeileId,
   type SeitenSuchparameter,
@@ -66,11 +67,7 @@ export default async function VerzehrPage({
   const kassierenAktionJeZeile = Object.fromEntries(
     verzehrZeilen.map((zeile) => [
       zeile.id,
-      <Link
-        key={zeile.id}
-        href={kassierenHref(id, zeile.id)}
-        className="self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400"
-      >
+      <Link key={zeile.id} href={kassierenHref(id, zeile.id)} className={WECHSEL_LINK_CLASS}>
         Kassieren →
       </Link>,
     ]),

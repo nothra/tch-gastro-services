@@ -41,6 +41,17 @@ function renderGate(overrides: Partial<Parameters<typeof IdentityGate>[0]> = {})
   );
 }
 
+// Das <li> der Teilnehmer-Karte. Der Karten-Kopf ist der Button mit aria-expanded (der gleichnamige
+// Chip trägt aria-current, kein aria-expanded) – dieselbe Unterscheidung wie in FokusListe.test.tsx.
+function karteVon(name: string): HTMLElement {
+  const kopf = screen
+    .getAllByRole("button", { name: new RegExp(name) })
+    .find((button) => button.hasAttribute("aria-expanded"));
+  const karte = kopf?.closest("li");
+  if (!karte) throw new Error(`Keine Karte für ${name}`);
+  return karte;
+}
+
 let raf: ReturnType<typeof stubRequestAnimationFrame>;
 
 beforeEach(() => {
@@ -239,6 +250,30 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
     const menge = screen.getAllByTestId("menge");
     expect(menge).toHaveLength(1);
     expect(menge[0]).toHaveAttribute("data-editable", "true");
+  });
+
+  it("should_scrollRememberedZielCardIntoViewAfterLayout_when_bothStored", () => {
+    // Seit #308 scrollt `FokusListe` auch die INITIAL offene Karte in den Sichtbereich. Auf dem
+    // öffentlichen Weg ist das die aus der geräte-lokalen Ziel-Merkung vorgewählte Karte (ADR-035
+    // D1) – eine bewusst mitgenommene Verhaltensänderung (ADR-039 § Konsequenzen), die hier gegen
+    // Regression gesichert wird statt nur im Code begründet zu stehen.
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+    window.localStorage.setItem(ZIEL_KEY, "z2");
+
+    // Ein Spy auf der Prototyp-Methode statt zweier Element-Spies: `vi.spyOn(element,
+    // "scrollIntoView")` fällt hier auf `Element.prototype` zurück (die Elemente haben die Methode
+    // nicht selbst), zwei Element-Spies wären also derselbe Spy und könnten nicht unterscheiden.
+    const scrollSpy = Element.prototype.scrollIntoView as unknown as ReturnType<typeof vi.fn>;
+    renderGate();
+
+    // Erst nach dem Layout-Aufbau, nicht synchron beim Mounten (Codify #188).
+    expect(scrollSpy).not.toHaveBeenCalled();
+
+    raf.flush();
+
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
+    // Diskriminierend: es springt die GEMERKTE Karte in den Sichtbereich, nicht irgendeine.
+    expect(scrollSpy.mock.contexts).toEqual([karteVon("Bernd")]);
   });
 
   it("should_clearBothAndReAskErfasser_when_erfasserWechseln", () => {

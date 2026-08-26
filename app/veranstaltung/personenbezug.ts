@@ -2,9 +2,16 @@
 // EIN Suchparameter je Zielseite, der die gemeinte Teilnehmerzeile benennt. Als Query-Parameter
 // ist der Personenbezug Teil des Aufrufs und übersteht damit ein Neuladen (spec-308 AK11) – anders
 // als flüchtiger Komponentenzustand. Beide Href-Bauer und der Leser hängen an derselben Konstante,
-// damit Hin- und Rückweg nicht auseinanderdriften.
+// damit Hin- und Rückweg nicht auseinanderdriften. Aus demselben Grund liegt hier auch das
+// Erscheinungsbild der beiden Wechsel-Links: Hin- und Rückweg sollen als EIN Bedienmuster
+// auftreten, eine zweite Copy-Paste-Klassenkette würde genau daran vorbeidriften.
 
 export const PERSONENBEZUG_PARAM = "zeile";
+
+// Gemeinsames Erscheinungsbild der Wechsel-Links auf beiden Seiten (Hinweg „Kassieren →" in der
+// Verzehrkarte, Rückweg „← Verzehr erfassen" in der Kassierzeile).
+export const WECHSEL_LINK_CLASS =
+  "self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400";
 
 // Suchparameter einer Seite, wie sie der App Router liefert (mehrfach übergebene Parameter als Array).
 export type SeitenSuchparameter = Record<string, string | string[] | undefined>;

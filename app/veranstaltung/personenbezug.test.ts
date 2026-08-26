@@ -6,11 +6,6 @@ import {
   verzehrHref,
 } from "./personenbezug";
 
-// Suchparameter einer Seite, wie Next.js sie liefert – hier direkt als Objekt aufgebaut.
-function suchparameter(werte: Record<string, string | string[] | undefined>) {
-  return werte;
-}
-
 // Liest die Suchparameter aus einem von den Href-Bauern erzeugten Link zurück – so prüft der
 // Round-Trip-Test beide Seiten (Bauen + Lesen) gegen dieselbe Parameter-Konstante.
 function suchparameterAusHref(href: string): Record<string, string> {
@@ -37,26 +32,26 @@ describe("personenbezug", () => {
   });
 
   it("should_returnZeileId_when_paramMatchesKnownZeile", () => {
-    expect(personenbezogeneZeileId(suchparameter({ zeile: "z-2" }), ["z-1", "z-2"])).toBe("z-2");
+    expect(personenbezogeneZeileId({ zeile: "z-2" }, ["z-1", "z-2"])).toBe("z-2");
   });
 
   it("should_returnNull_when_paramMissing", () => {
-    expect(personenbezogeneZeileId(suchparameter({}), ["z-1"])).toBeNull();
+    expect(personenbezogeneZeileId({}, ["z-1"])).toBeNull();
   });
 
   it("should_returnNull_when_zeileIsUnknown", () => {
     // F1: getilgte Zeile, Zeile einer anderen Veranstaltung oder Zufallswert – fail-soft.
-    expect(personenbezogeneZeileId(suchparameter({ zeile: "z-fremd" }), ["z-1"])).toBeNull();
+    expect(personenbezogeneZeileId({ zeile: "z-fremd" }, ["z-1"])).toBeNull();
   });
 
   it("should_returnNull_when_paramGivenSeveralTimes", () => {
     // `?zeile=z-1&zeile=z-2` liefert ein Array – kein Personenbezug statt „erster gewinnt".
-    expect(personenbezogeneZeileId(suchparameter({ zeile: ["z-1", "z-2"] }), ["z-1"])).toBeNull();
+    expect(personenbezogeneZeileId({ zeile: ["z-1", "z-2"] }, ["z-1"])).toBeNull();
   });
 
   it("should_returnNull_when_noZeilenExist", () => {
     // F3: Veranstaltung ohne Teilnehmer.
-    expect(personenbezogeneZeileId(suchparameter({ zeile: "z-1" }), [])).toBeNull();
+    expect(personenbezogeneZeileId({ zeile: "z-1" }, [])).toBeNull();
   });
 
   it("should_useOneParamNameForBuildingAndReading", () => {

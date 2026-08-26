@@ -26,6 +26,7 @@ import {
   formatZeitpunkt,
 } from "../../labels";
 import {
+  WECHSEL_LINK_CLASS,
   personenbezogeneZeileId,
   verzehrHref,
   type SeitenSuchparameter,
@@ -201,10 +202,7 @@ export default async function KassierenPage({
 
                   {/* Rückweg in die Erfassung DIESER Person (#308 AK5) – reine Navigation, deshalb
                       auch in der Lesesicht der abgeschlossenen Veranstaltung (AK10). */}
-                  <Link
-                    href={verzehrHref(id, zeile.id)}
-                    className="self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400"
-                  >
+                  <Link href={verzehrHref(id, zeile.id)} className={WECHSEL_LINK_CLASS}>
                     ← Verzehr erfassen
                   </Link>
                 </>
