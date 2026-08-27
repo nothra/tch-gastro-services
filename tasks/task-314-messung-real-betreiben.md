@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -121,7 +121,10 @@ der CI-Gate `factory-self-test` rot – alle anderen Änderungen (`scripts/metri
   (Lint/Tests/Typecheck/Format/Routen-Doku/Hooks).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+Siehe [`tasks/review-314.md`](review-314.md) – **APPROVED**, 0 kritische/wichtige Findings,
+5 optionale Nitpicks (u. a. eine widerlegte Verdachts-Findung zum `return`-Statement im
+EXIT-Trap, empirisch in zwei Runden gegengeprüft). Iteration 1/2.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
