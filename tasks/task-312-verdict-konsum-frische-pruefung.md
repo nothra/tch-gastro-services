@@ -8,7 +8,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -261,6 +261,10 @@ Länge/Struktur unangetastet – ein Umbau hätte die in drei Review-Runden veri
 Mutationsanker (`FRESH_CMP_PIPE`/`GUARD_CALL_PIPE`/`IC_CALL_PIPE`/`GATE_CMP_312`) verschoben,
 ohne fachlichen Nutzen (Review-Runde-2-Nitpick N4, bewusst nicht umgesetzt). Volle Bash-Suite
 weiterhin 1203 grün / 0 rot, Pre-Push (Vitest, Typecheck, Format, Routen-Doku) grün.
+
+PR-Shepherd 2026-08-27: Merge freigegeben – alle Gates grün (Implement, Review, Test,
+Refactoring, Security-Review, Codify abgeschlossen; volle Bash-Suite 1203/0, Vitest 736
+passed/59 skipped, Typecheck/Format/Routen-Doku grün).
 
 ## Codify-Notizen
 
