@@ -301,20 +301,23 @@ run_skill() {
     # beide Richtungen ab: ein Turn-Limit NACH fertigem Report ist Erfolg (#91), ein
     # stehengebliebener Verdict ist keiner – weder bei non-zero Exit (#310) noch bei Exit 0
     # (#312). Für alle anderen Skills entscheidet unverändert der Exit-Code.
-    if [ -n "$(report_file "$skill" "$task_id")" ]; then
+    if is_report_skill "$skill" "$task_id"; then
+      # Verdict EINMAL pro Versuch lesen: Erfolgsmeldung und Stale-Meldung benennen denselben
+      # Wert, und drei awk-Subprozesse pro Versuch sind für dieselbe Information zu viel. Die
+      # Bedingung selbst bleibt an ihrem einen Ort (report_is_fresh_and_valid, AK9).
+      local verdict
+      verdict="$(report_verdict "$skill" "$task_id")"
       if report_is_fresh_and_valid "$skill" "$task_id" "$report_fingerprint_before"; then
         if [ "$rc" -eq 0 ]; then
           echo -e "${GREEN}✓${NC} /${skill} abgeschlossen"
         else
-          echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '$(report_verdict "$skill" "$task_id")' – Report in diesem Aufruf geschrieben, Turn-Limit toleriert)"
+          echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '${verdict}' – Report in diesem Aufruf geschrieben, Turn-Limit toleriert)"
           # Auch hier: ein signalisierter Interrupt stoppt hart (kein stiller Übergang).
           stop_if_interrupted "$task_id"
         fi
         return 0
       fi
 
-      local verdict
-      verdict="$(report_verdict "$skill" "$task_id")"
       if [ -n "$verdict" ]; then
         echo -e "${YELLOW}⚠${NC} /${skill}: Verdict '${verdict}' stammt aus einem früheren Aufruf (Report in diesem Aufruf unverändert) – kein Erfolg."
         # Auch der Stale-Fall darf einen signalisierten Interrupt nicht verschlucken: vor #310
@@ -324,7 +327,13 @@ run_skill() {
         # oben bereits gegriffen; hier deckt sie den non-zero-Pfad ab.
         stop_if_interrupted "$task_id"
       else
-        echo -e "${YELLOW}⚠${NC} /${skill}: kein eindeutiger Verdict im Report dieses Aufrufs – kein Erfolg."
+        # Wortlaut deckt bewusst zwei Lagen ab: Report frisch geschrieben, aber ohne
+        # auswertbaren Anker – und Report gar nicht vorhanden (non-zero Exit, das Skill kam
+        # nie zum Schreiben). Anders als der Stale-Fall darüber hat dieser Zweig KEIN
+        # stop_if_interrupted: auf dem Exit-0-Pfad hat die Prüfung oben schon gegriffen, auf
+        # dem non-zero-Pfad ist das der vorbestehende Zustand seit #91 (in #310 bewusst nicht
+        # mitgeändert – kein Scope des Fixes, #310 Review-Runde-3-Nitpick).
+        echo -e "${YELLOW}⚠${NC} /${skill}: kein eindeutiger Verdict aus diesem Aufruf – kein Erfolg."
       fi
     elif [ "$rc" -eq 0 ]; then
       echo -e "${GREEN}✓${NC} /${skill} abgeschlossen"

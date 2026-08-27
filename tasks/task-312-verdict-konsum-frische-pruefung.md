@@ -122,7 +122,47 @@ _Keine._
 
 ## Review-Findings
 
-<!-- Wird durch /review befüllt -->
+**Runde 1** (`tasks/review-312.md`, `NEEDS_REWORK`): keine kritischen, zwei wichtige Findings,
+fünf Nitpicks. Rework in dieser Session – alle sieben umgesetzt:
+
+- **W1** `scripts/lib/report-verdict.sh` – der Modul-Header beschrieb weiterhin die alte,
+  einseitige Guard-Mechanik („ein non-zero Exit gilt als ERFOLG, wenn …"). Das ist die dritte
+  Kopie derselben Prosa, die AK13 in ADR-019 §4 und der Lesson schon nachgezogen hatte – und die,
+  die jeder Nutzer der Funktionen zuerst liest. Auf die symmetrische Bedingung umgeschrieben.
+- **W2** `docs/factory/OPERATING.md` – „Security-Gate: `NEEDS_FIXES` → Abbruch vor Merge" in der
+  Eigenschaften-Liste (`:214`) und die Lesart in §4.2 beschrieben die alte, fail-open Polarität.
+  Beide auf „nur ein eindeutiges `PASSED` passiert" + Dry-Run-Ausnahme nachgezogen.
+- **N1** Verdict wird jetzt **einmal** pro Versuch in `verdict` gelesen und von Erfolgs- wie
+  Stale-Meldung genutzt (vorher bis zu drei `awk`-Subprozesse). Die Bedingung selbst bleibt in
+  `report_is_fresh_and_valid` – AK9 unberührt.
+- **N2** Meldung „kein eindeutiger Verdict **aus diesem Aufruf**" statt „im Report dieses
+  Aufrufs" – der Zweig feuert auch, wenn gar kein Report existiert.
+- **N3** Neues benanntes Prädikat `is_report_skill()` in der Lib ersetzt das
+  `[ -n "$(report_file …)" ]` an der Verzweigungsstelle, das sich wie eine Datei-Existenz-Prüfung
+  las. AK9 („kein Report-Pfad in `run-pipeline.sh`") wird dadurch strenger erfüllt, nicht
+  schwächer. Modul-Header von „DREI" auf „VIER Funktionen" mitgepflegt (Lesson `code-style.md`).
+- **N4** Der in #310 begründete WHY-Satz, warum der **verdictlose** Zweig bewusst kein
+  `stop_if_interrupted` hat, ist zurück – der Zweig ist seit dem Fix sichtbar, die Antwort war
+  beim Umbau verloren gegangen.
+- **N5** Direkter Anker für die Dry-Run-Ausnahme des Security-Gates (vorher nur transitiv über
+  den #212-F4-Erfolgs-Check abgesichert).
+
+### Verifikation des Reworks
+
+- Volle Bash-Suite: **1193 grün / 0 rot** (vorher 1182; +11 Assertions).
+- **RED-vor-GREEN:** Quellen (`run-pipeline.sh`, `report-verdict.sh`, `OPERATING.md`) auf den
+  Stand vor dem Rework zurückgedreht, neue Tests behalten → genau **10 rot**, alle neu, keine
+  Kollateral-Rotfärbung.
+- **Mutationsbeleg N5:** der `if [ "$DRY_RUN" = true ]`-Zweig unmittelbar vor der
+  Security-Gate-Meldung auf `if false` gedreht (per `awk`-Ein-Zeilen-Puffer genau diese Stelle,
+  nicht die drei anderen `DRY_RUN`-Zweige) → neue Assertion rot. Rot wurden dabei zusätzlich
+  sechs `#261 AC2/AC3`-Assertions und zwei `#212 F4`-Assertions: beide Blöcke fahren ebenfalls
+  eine `--dry-run`-Pipeline und prüfen Ausgaben **nach** Phase 5, die das dann greifende
+  fail-closed-Gate abschneidet. Das ist genau die transitive Absicherung, die der Review
+  beschrieben hat – der neue Anker benennt die Absicht jetzt direkt.
+- `is_report_skill(implement) → falsch` bleibt beim Entfernen der Funktion grün (fehlendes
+  Kommando → Exit ≠ 0). Die Existenz pinnen die beiden Positiv-Assertions daneben, die im
+  RED-Lauf rot waren; die Abwesenheits-Assertion trägt allein die Diskriminierung.
 
 ## Codify-Notizen
 

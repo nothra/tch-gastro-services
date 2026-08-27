@@ -1443,6 +1443,11 @@ if [ "$HAS_YQ" = 1 ]; then
   # Verifikation als übersprungen, statt sie auszuführen/abzubrechen.
   printf '%s' "$dry91_out" | grep -q 'DRY-RUN.*Endzustands-Verifikation übersprungen'
   assert_true "$?" "#212 F4: --dry-run markiert Endzustands-Verifikation als übersprungen (kein Abbruch)"
+  # #312: dieselbe Dry-Run-Ausnahme für das jetzt fail-closed Security-Gate. Ohne sie blockierte
+  # jeder --dry-run ab Phase 5 – dort läuft kein Skill, also entsteht nie ein Security-Report.
+  # Direkte Assertion statt bloß transitiver Absicherung über die Erfolgs-Ausgabe darunter.
+  printf '%s' "$dry91_out" | grep -q 'DRY-RUN.*Security-Gate übersprungen'
+  assert_true "$?" "#312: --dry-run markiert das Security-Gate als übersprungen (kein Abbruch)"
   printf '%s' "$dry91_out" | grep -q 'Pipeline erfolgreich abgeschlossen'
   assert_true "$?" "#212 F4: --dry-run erreicht die Erfolgs-Ausgabe (Verifikation blockiert nicht)"
   rm -rf "$TMP_DRY91"
@@ -5732,6 +5737,16 @@ assert_true "$([ "$(rf310 security-review 310)" = "$TMP_FP310/tasks/security-310
 assert_true "$([ -z "$(rf310 implement 310)" ]; echo $?)" \
   "#310 AK9: report_file(implement) liefert leer (kein report-erzeugendes Skill)"
 
+# is_report_skill (#312 Review-Nitpick): benanntes Prädikat statt `[ -n "$(report_file …)" ]` an
+# der Verzweigungsstelle in run_skill(). Beide Richtungen, damit es diskriminiert.
+irs312() { bash -c 'source "$1"; is_report_skill "$2" "$3" "$4"' _ "$RV_LIB310" "$1" "$2" "$TMP_FP310/tasks"; }
+assert_true "$(irs312 review 310; echo $?)" \
+  "#312: is_report_skill(review) → wahr"
+assert_true "$(irs312 security-review 310; echo $?)" \
+  "#312: is_report_skill(security-review) → wahr"
+assert_true "$(! irs312 implement 310; echo $?)" \
+  "#312: is_report_skill(implement) → falsch (Diskriminierung in der Gegenrichtung)"
+
 # AK3-Grundlage: „Datei fehlt" ist ein eigener Wert – sonst wäre der Übergang fehlt → vorhanden
 # keine erkennbare Veränderung und ein neu geschriebener Report gälte als stale.
 fp310_absent="$(fp310 review 310)"
@@ -6219,6 +6234,17 @@ assert_true "$([ "$(grep -c 'report_fingerprint_before=' "$PIPELINE")" -eq 1 ]; 
   "#312 AK9: nur EIN Fingerprint-Snapshot pro run_skill-Aufruf (kein zweiter im Exit-0-Zweig)"
 assert_true "$(! grep -q 'report_fingerprint_now' "$PIPELINE"; echo $?)" \
   "#312 AK9: keine zweite Schreibweise der Bedingung im non-zero-Zweig mehr"
+# AK9 („kein Report-Pfad in run-pipeline.sh"): der Report-Guard verzweigt über das benannte
+# Prädikat aus der Lib. Zweite Assertion in der Gegenrichtung – die frühere Schreibweise
+# `[ -n "$(report_file …)" ]` las sich wie eine Datei-Existenz-Prüfung (#312 Review-Nitpick).
+assert_true "$(grep -qF -- 'if is_report_skill "$skill" "$task_id"; then' "$PIPELINE"; echo $?)" \
+  "#312 AK9: run_skill() verzweigt über is_report_skill aus der Lib"
+assert_true "$(! grep -qF -- '[ -n "$(report_file "$skill" "$task_id")" ]' "$PIPELINE"; echo $?)" \
+  "#312 AK9: keine als Existenz-Prüfung lesbare report_file-Verzweigung mehr"
+# Verdict wird pro Versuch einmal gelesen: die Erfolgsmeldung nutzt die Variable, keine
+# eingebettete Command Substitution mehr (#312 Review-Nitpick).
+assert_true "$(! grep -q "Verdict '\$(report_verdict" "$PIPELINE"; echo $?)" \
+  "#312: die Turn-Limit-Erfolgsmeldung liest den Verdict nicht erneut per Command Substitution"
 
 # AK5 (Reihenfolge): Die Interrupt-Prüfung des Exit-0-Pfads steht VOR der Frische-/
 # Verdict-Auswertung – verglichen werden Zeilennummern zweier exakter Zeilen, keine zwei
@@ -6249,7 +6275,7 @@ rm -rf "$TMP_GATE_312"
 echo ""
 echo "#312 E2E: Exit 0 mit stale oder verdictlosem Report ist kein Erfolg:"
 
-NOVERDICT_MSG_312='kein eindeutiger Verdict im Report dieses Aufrufs'
+NOVERDICT_MSG_312='kein eindeutiger Verdict aus diesem Aufruf'
 SEC_GATE_MSG_312='Kritische Security-Findings müssen manuell behoben werden'
 
 if [ "$HAS_YQ" = 1 ]; then
@@ -6502,6 +6528,22 @@ assert_contains_286 "$workflow_flat_312" "In #312 auf den Exit-0-Pfad ausgeweite
   "#312 AK13: Lesson nennt den Erledigt-Stand der Exit-0-Ausweitung"
 assert_contains_286 "$workflow_flat_312" "auf allen Rückkehrpfaden, nicht nur im Fehlerpfad" \
   "#312 AK13: die Lesson-Regel ist um alle Rückkehrpfade geschärft"
+
+# Dieselbe Prosa steht an zwei weiteren Orten, die der erste Sweep übersehen hatte (#312
+# Review-Runde-1-Findings): im Modul-Header der Lib – der Datei, die jeder Nutzer der drei
+# Funktionen zuerst liest – und in OPERATING.md, das CLAUDE.md als kanonische Quelle des
+# prozeduralen Ablaufs benennt. Beide beschrieben weiter die alte, einseitige Mechanik.
+rvlib_flat_312=$(flat_286 "$RV_LIB310")
+assert_contains_286 "$rvlib_flat_312" "auf BEIDEN Rückkehrpfaden" \
+  "#312 AK13: der Lib-Modul-Header beschreibt die Bedingung symmetrisch"
+assert_contains_286 "$rvlib_flat_312" "VIER Funktionen" \
+  "#312: der zähl-nennende Modul-Header ist beim Hinzufügen von is_report_skill mitgepflegt"
+
+operating_flat_312=$(flat_286 "$OPERATING_MD")
+assert_contains_286 "$operating_flat_312" 'nur ein eindeutiges `PASSED`' \
+  "#312 AK13: OPERATING.md nennt die neue Gate-Polarität in der Eigenschaften-Liste"
+assert_contains_286 "$operating_flat_312" 'ein fehlender oder mehrdeutiger Verdict stoppt genauso' \
+  "#312 AK13: OPERATING.md §4.2 nennt den fehlenden/mehrdeutigen Verdict als Stopp-Grund"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
