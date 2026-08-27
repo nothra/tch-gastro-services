@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -116,9 +116,22 @@ der CI-Gate `factory-self-test` rot – alle anderen Änderungen (`scripts/metri
 - `run-tests.sh`: `_mk_pipe_repo` kopiert jetzt zusätzlich `metrics.sh` (echter Dependency von
   `run-pipeline.sh`); neue Testgruppe „Task 314 (ADR-045)" deckt AK1–AK11, AK14, AK15 über echte
   Läufe ab (kein Wiring-Grep), inkl. Mutationsbeleg für die Trap-Registrierung (AK2).
-- Lokal verifiziert: `bash scripts/checks/tests/run-tests.sh` (1249 grün / 2 rot – beide rot nur
+- Lokal verifiziert: `bash scripts/checks/tests/run-tests.sh` (1252 grün / 2 rot – beide rot nur
   wegen des offenen `.claude/**`-Patches oben), `pre-commit.sh` grün, `pre-push.sh` grün
   (Lint/Tests/Typecheck/Format/Routen-Doku/Hooks).
+
+## Test-Vervollständigung (`/test`)
+
+- Lücke gegen die Spec-314-Fehlerszenarien gefunden und geschlossen: „`gh issue comment`
+  schlägt fehl (Netzwerk, fehlendes Recht, gelöschte Issue)" war ungetestet – bisher nur
+  „gh fehlt komplett" (AK9) und „gh-Aufruf gelingt" (AK6) abgedeckt, nicht der Fall
+  gh-verfügbar-aber-Kommentar-Aufruf-scheitert. Neuer Test in `run-tests.sh` (gh-Stub, der
+  `auth status` mit 0, `issue comment` mit 1 beantwortet): Exit 0, Fehlschlag wird ausgewiesen,
+  Report-Datei bleibt unverändert erhalten – 3 neue Assertionen, alle grün.
+- `pnpm test:coverage` gegengeprüft: unverändert ggü. `main` (kein App-Code in diesem Diff),
+  Gesamt-Statements 89.56 % (Schwelle 80 %) – keine Coverage-Regression.
+- Finaler Lauf: `bash scripts/checks/tests/run-tests.sh` → 1252 grün / 2 rot (unverändert die
+  zwei erwarteten AK12-Assertionen aus dem offenen `.claude/**`-Patch-Blocker).
 
 ## Review-Findings
 

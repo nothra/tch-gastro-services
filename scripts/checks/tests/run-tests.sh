@@ -6718,6 +6718,26 @@ grep -qF -- '--body-file' "$GHLOG_314" 2>/dev/null
 assert_true "$?" "#314: Body wird über --body-file übergeben, nicht als Argument-String"
 assert_contains_286 "$ak6_out" "Issue #42 gepostet" "#314 AK6: Erfolg wird ausgewiesen"
 
+# Fehlerszenario (Spec-314): `gh issue comment` selbst schlägt fehl (Netzwerk, fehlendes Recht,
+# gelöschte Issue) – gh ist verfügbar+authentifiziert (anders als AK9), aber der Kommentar-
+# Aufruf scheitert. Hinweis, kein Abbruch, Report-Datei bleibt unverändert erhalten.
+cat > "$TMP_314M/bin/gh" <<'EOF'
+#!/bin/sh
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "issue comment") exit 1 ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$TMP_314M/bin/gh"
+report_before_314=$(cat "$report_314" 2>/dev/null)
+ghfail_out=$(cd "$TMP_314M" && PATH="$TMP_314M/bin:$PATH" env -u GITHUB_STEP_SUMMARY \
+  FACTORY_DIR="$TMP_314M" FACTORY_METRICS_ISSUE="42" bash "$SCRIPTS_DIR/metrics.sh" --no-api --quiet --publish 2>&1); ghfail_rc=$?
+assert_exit 0 "$ghfail_rc" "#314: fehlschlagender gh-issue-comment-Aufruf bricht den Lauf nicht ab"
+assert_contains_286 "$ghfail_out" "Issue-Kommentar an #42 fehlgeschlagen" "#314: Fehlschlag wird ausgewiesen"
+assert_true "$([ "$(cat "$report_314" 2>/dev/null)" = "$report_before_314" ]; echo $?)" \
+  "#314: Report-Datei bleibt bei fehlschlagendem Kommentar-Versuch unverändert erhalten"
+
 # AK10 (manuell, gleiche Wege): ohne --publish bleibt das heutige Verhalten unverändert - kein
 # gh-/Summary-Versuch, auch wenn beide Ziele gesetzt sind. AK4-AK9 selbst laufen oben bereits
 # über denselben Code-Pfad, den auch der manuelle Aufruf nutzt (eine Implementierung, ADR-045).
