@@ -1,7 +1,8 @@
 # Spec: Prozess-Messung real betreiben – metrics.sh als fester Bestandteil jedes Pipeline-Laufs
 
 > Issue: [#314](https://github.com/nothra/tch-gastro-services/issues/314) ·
-> Mess-Ebene: **Prozess** (ADR-006) · Branch-Typ: `chore`
+> Mess-Ebene: **Prozess** (ADR-006) · Branch-Typ: `chore` ·
+> Architektur: [ADR-045](../adr/045-prozess-messung-je-pipeline-lauf.md)
 
 ## Kontext
 
@@ -110,6 +111,15 @@ auswertbar – das ist der Grund, warum er Teil dieser Spec ist.
       sie läuft, THEN prüfen echte Läufe gegen ein temporäres Repo mindestens AK2, AK3, AK7 und
       AK8 – je Negativfall isoliert (nur der Ziel-Pfad darf greifen) und mit pfadspezifischem
       Signal, nicht per Wiring-Grep auf ein Kommando-Fragment.
+- [ ] **AK14 (Exit-Code von `--quiet`):** GIVEN `bash scripts/metrics.sh --quiet`, WHEN der
+      Report erfolgreich geschrieben wurde, THEN endet das Skript mit Exit **0** – festgenagelt
+      durch einen eigenen Test. Heute endet es mit 1 (die letzte Zeile ist der `QUIET`-Test, und
+      das Skript läuft ohne `set -e`); ohne diesen Fix wäre der fail-open-Zweig aus AK3 der
+      Normalfall und damit blind für echte Fehler (ADR-045 §7).
+- [ ] **AK15 (CI-Rechte für die API-Kennzahlen):** GIVEN ein Pipeline-Lauf in CI über
+      `factory-poll.yml`, WHEN die Messung läuft, THEN gewährt der Job `pull-requests: read` und
+      `actions: read`, damit Lead-Time (`gh pr list`) und CI-Quote (`gh run list`) dort nicht
+      dauerhaft „übersprungen" melden (ADR-045 §8).
 
 ## Fehlerszenarien
 

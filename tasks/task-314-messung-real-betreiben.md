@@ -38,9 +38,33 @@ Kosten/Tokens pro Skill ernten. Der Aufruf in `run-pipeline.sh:290` nutzt kein
 - [ ] AK11 `--dry-run` veröffentlicht nichts und weist die übersprungene Messung aus
 - [ ] AK12 Doku ohne Drift: `CLAUDE.md`, `.claude/commands/daily-metrics.md`, `OPERATING.md`
 - [ ] AK13 Verhaltenstests in `run-tests.sh` für AK2/AK3/AK7/AK8 (echte Läufe, kein Wiring-Grep)
+- [ ] AK14 `bash scripts/metrics.sh --quiet` endet mit Exit 0 (Vorbefund aus /architecture, ADR-045 §7)
+- [ ] AK15 `factory-poll.yml` gewährt `pull-requests: read` + `actions: read`, damit Lead-Time
+      und CI-Quote in CI nicht dauerhaft „übersprungen" melden (ADR-045 §8)
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+
+**ADR: [ADR-045 – Prozess-Messung je Pipeline-Lauf](../docs/adr/045-prozess-messung-je-pipeline-lauf.md)**
+(Status `Proposed` → beim Implementieren auf `Accepted` flippen).
+
+Entschiedene Architektur (Kurzfassung, Begründung + Alternativen A–E in der ADR):
+1. Auslöser = `trap … EXIT` in `run-pipeline.sh`, registriert **nach** `preflight_checks`.
+2. Fail-open und exit-code-neutral (`$?` als erste Anweisung sichern, alles `|| true`).
+3. **Genau ein Aufrufort** – kein zusätzlicher expliziter Aufruf am regulären Ende, kein Flag.
+4. Veröffentlichungs-Logik gehört in `metrics.sh` hinter `--publish`; die Pipeline ruft nur
+   `metrics.sh --quiet --publish` und kennt weder `gh` noch `$GITHUB_STEP_SUMMARY`.
+5. Ziel-Issue aus `FACTORY_METRICS_ISSUE` (Env/Repository-Variable), Integer-Guard fail-closed.
+6. `--dry-run` misst und veröffentlicht nichts.
+7. **Zusätzlicher Fix (Vorbefund, siehe unten):** Exit-Code von `metrics.sh --quiet`.
+8. `factory-poll.yml` um `pull-requests: read` + `actions: read` ergänzen.
+
+**Vorbefund aus /architecture (empirisch geprüft, gehört in diese Task):**
+`bash scripts/metrics.sh --quiet` endet **heute mit Exit 1**, obwohl der Report korrekt
+geschrieben wird – die letzte Skriptzeile ist `[ "$QUIET" = false ] && …`, und ohne `set -e`
+wird deren Wahrheitswert zum Exit-Status. `/daily-metrics` empfiehlt genau `--quiet` für die
+Automatisierung; ohne Fix wäre der fail-open-Zweig der Normalfall und könnte echte Fehler
+nicht mehr von diesem Pseudo-Fehler unterscheiden. Fix braucht einen Test, der Exit **0**
+bei `--quiet` festnagelt.
 
 Geprüfter Ausgangszustand (für /implement):
 - `scripts/metrics.sh` – kennt bereits `--no-api` und `--quiet`; schreibt
