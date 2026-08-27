@@ -6,7 +6,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -250,6 +250,17 @@ abgedeckt (gleiche Assert-Ausdrücke wie im Positivtest, echte Guard-Zeilen als 
 Review-Historie oben). Kein TS-Produktionscode betroffen (nur `scripts/`/`docs/`) – `pnpm
 test:coverage` liefert für diesen Diff keine zusätzliche Aussage. Keine Lücke gefunden, keine
 neuen Tests nötig.
+
+### /refactor-Verifikation
+
+Kein neues Verhalten. Einziger Änderungspunkt: **N2** (Review-Runde-3-Nitpick) – das
+Erfolgsmeldungs-Literal `✓ /${skill} abgeschlossen` stand seit #312 an zwei Stellen in
+`run_skill()`; auf die neue Hilfsfunktion `print_skill_done()` vereinheitlicht (kein Test
+ankerte an der Duplizierung, Drift wäre sonst stumm geblieben). `run_skill()` selbst bleibt in
+Länge/Struktur unangetastet – ein Umbau hätte die in drei Review-Runden verifizierten
+Mutationsanker (`FRESH_CMP_PIPE`/`GUARD_CALL_PIPE`/`IC_CALL_PIPE`/`GATE_CMP_312`) verschoben,
+ohne fachlichen Nutzen (Review-Runde-2-Nitpick N4, bewusst nicht umgesetzt). Volle Bash-Suite
+weiterhin 1203 grün / 0 rot, Pre-Push (Vitest, Typecheck, Format, Routen-Doku) grün.
 
 ## Codify-Notizen
 

@@ -221,6 +221,13 @@ stop_if_interrupted() {
   bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$1" || exit $?
 }
 
+# Erfolgsmeldung von run_skill() an einem Ort (Review-Runde-3-Nitpick N2, #312): stand vor
+# #312 einmal im Code, seither an zwei Stellen (report-erzeugender Exit-0-Pfad, Exit-0-Pfad
+# der übrigen Skills) – eine reine Textänderung müsste sonst an beiden nachgezogen werden.
+print_skill_done() {
+  echo -e "${GREEN}✓${NC} /${1} abgeschlossen"
+}
+
 # Erfolgsbedingung der zwei report-erzeugenden Skills (ADR-019 §4): Nicht der Exit-Code
 # entscheidet, sondern das Artefakt – der Report muss IN DIESEM AUFRUF verändert worden sein
 # (Fingerprint gegen den Snapshot von vor dem ersten Versuch, #310) UND einen eindeutigen
@@ -311,7 +318,7 @@ run_skill() {
       verdict="$(report_verdict "$skill" "$task_id")"
       if report_is_fresh_and_valid "$skill" "$task_id" "$report_fingerprint_before"; then
         if [ "$rc" -eq 0 ]; then
-          echo -e "${GREEN}✓${NC} /${skill} abgeschlossen"
+          print_skill_done "$skill"
         else
           echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '${verdict}' – Report in diesem Aufruf geschrieben, Turn-Limit toleriert)"
           # Auch hier: ein signalisierter Interrupt stoppt hart (kein stiller Übergang).
@@ -338,7 +345,7 @@ run_skill() {
         echo -e "${YELLOW}⚠${NC} /${skill}: kein eindeutiger Verdict aus diesem Aufruf – kein Erfolg."
       fi
     elif [ "$rc" -eq 0 ]; then
-      echo -e "${GREEN}✓${NC} /${skill} abgeschlossen"
+      print_skill_done "$skill"
       return 0
     fi
 
