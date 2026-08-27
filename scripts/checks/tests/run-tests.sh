@@ -6725,7 +6725,13 @@ assert_contains_286 "$gwf_flat_315" \
   "#315 AK3: der Mischfall ist einseitig fail-safe aufgelöst"
 assert_contains_286 "$gwf_flat_315" \
   'Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`' \
-  "#315 AK3: die Zweifelsregel benennt die von beiden Anker-Listen ungedeckten Pfade"
+  "#315 AK3: die Zweifelsregel benennt die ungedeckten Pfade (Repo-Wurzel, ADR, tasks, e2e)"
+# Eigene Assertion für `docs/specs/` (Runde-5-Review-Finding W1): die vorige Assertion prüft
+# nur bis `e2e/`, während `docs/specs/` erst auf der nächsten Blockquote-Zeile steht – ein
+# Rückfall auf den Zustand vor dem W1-Fix (Runde 4) bliebe sonst unbemerkt grün.
+assert_contains_286 "$gwf_flat_315" \
+  '`docs/specs/` (Ablagekonvention statt Subsystem-Grenze' \
+  "#315 AK3: die Zweifelsregel nennt auch docs/specs/ als ungedeckten Pfad"
 assert_contains_286 "$gwf_flat_315" \
   '`bug` + `tech-debt` + `factory-pipeline` für einen Pipeline-Defekt' \
   "#315 AK4: der Faustregel-Absatz nennt factory-pipeline mit"

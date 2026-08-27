@@ -1,155 +1,174 @@
 # Review: Task 315
 
-> **Runde 4** (nach dem Rework-Commit `3d0b512` zu den Runde-3-Findings).
-> Gegenstand: `git diff origin/main...HEAD` = **11 Dateien**, Commits `9ac7466`, `2436a94`,
-> `87bf67f`, `87432f5`, `3d0b512`. Spec:
-> `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`. PR **#317** (Draft, Body
-> enthält `Closes #315`). Drei Blickwinkel (Backend/Logik · Code-Qualität · Architektur/Patterns)
-> im Orchestrator-Kontext gefahren – ohne Fork-Delegation (Lesson #298/#267).
+> **Runde 5** (nach dem W1-Fix + den `/security-review`-/`/codify`-Artefakten, Commit `7b4d288`).
+> Gegenstand: `git diff origin/main...HEAD` = **16 Dateien**, Commits `9ac7466`, `2436a94`,
+> `87bf67f`, `87432f5`, `3d0b512`, `7b4d288`, **plus eine uncommittete Änderung an der
+> Task-Datei**. Spec: `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`.
+> PR **#317** (Draft, Body enthält `Closes #315`). Drei Blickwinkel (Backend/Logik ·
+> Code-Qualität · Architektur/Patterns) im Orchestrator-Kontext gefahren – ohne
+> Fork-Delegation (Lesson #298/#267).
 >
-> **Verifikationsbasis dieser Runde (alles selbst gemessen, nichts aus Runde 3 übernommen):**
+> **Verifikationsbasis dieser Runde (alles selbst gemessen, nichts aus Runde 4 übernommen):**
 > - Bash-Self-Test-Suite ohne exportierte `PR_SHEPHERD`/`FACTORY_STAGE` (Lesson #262):
->   **1254 grün, 0 rot** (53 davon `#315`-Assertions).
+>   **1254 grün, 0 rot**.
 > - `scripts/checks/pre-push.sh` **grün**: Vitest 736 passed/59 skipped, Typecheck, Prettier
 >   („All matched files use Prettier code style!"), Routen-Doku-Drift, Hooks-Check, Branch-Guard.
-> - `git status --ignored`: vor dem Lauf sauber – das in Runde 3 gemeldete
->   `scripts/revrun.tmp.sh` ist weg (Lesson #312).
-> - **AK1:** `gh label list` führt `factory-pipeline` (`#7583cf`); ein Label `factory_pipeline`
->   existiert nicht mehr (`gh issue list --label factory_pipeline` läuft ins Leere).
-> - **AK11:** Titel und Body von #315 nennen den alten Namen **0×**, den neuen 6×.
-> - **Unabhängiger Sweep** mit zwei anderen Begriffen als Runde 3 (`git grep -F 'Aspekt-Label'`
->   und `git grep -F tech-debt` über alle getrackten Dateien, plus Sichtung des `.github/`-Baums
->   auf Issue-Templates – es gibt keine): **keine weitere Present-Tense-Aufzählung** ohne das
->   Label. `ADR-018:30` und `spec-82:18,39` bleiben belegbar historisches Narrativ.
+> - `git status --ignored`: keine Scratch-Artefakte im Baum (Lesson #312); die vier
+>   `scripts/rev4*.tmp.*` aus Runde 4 sind entfernt. Einzige Abweichung: die uncommittete
+>   Task-Datei (→ W3).
+> - **AK1 live:** `gh label list` führt `factory-pipeline` (`#7583cf`); ein Label mit
+>   Unterstrich existiert nicht mehr.
+> - **AK11 live:** Issue #315 heißt „factory-pipeline in die kanonische Label-Konvention
+>   aufnehmen …" und trägt `documentation` + `tech-debt` + `factory-pipeline`.
+> - **AK10 live:** Der alte Name (mit Unterstrich) steht nur noch in `docs/specs/spec-315-*`
+>   und `tasks/*315*` – vollständig von der Allowlist gedeckt.
+> - **Vierter unabhängiger Sweep**, diesmal über `tech-debt` als Suchbegriff über alle
+>   getrackten Dateien außerhalb der Papierspur: **keine achte Fundstelle**. `ADR-018:30`
+>   bleibt historisches Narrativ, die `create_issue_idempotent`-Codebeispiele in den
+>   Skill-Dokus bleiben Beispiele.
 >
-> **Status der Runde-3-Findings – alle drei geschlossen, einzeln nachgemessen:**
->
-> | Runde-3-Finding | Status in Runde 4 |
-> |---|---|
-> | W1 – Spec kennt weder Allowlist noch Zweifelsregel | **behoben** – `spec-315:83-88` (AK3) und `:120-126` (AK10) tragen beides; Code und Spec sagen jetzt dasselbe |
-> | W2 – `CONTRIBUTING.md` dupliziert die Pfad-Anker | **behoben** – `CONTRIBUTING.md:88-90` verweist statt zu kopieren; `assert_absent` + Positivkontrolle mit derselben Phrase gegen `git-workflow.md` (`run-tests.sh:6750-6754`) |
-> | W3 – Fixture-Assertions ohne Fail-closed | **behoben und per eigener Mutation belegt**: `tracked_repo_315` ohne `git add` nachgestellt → `assert_scan_clean_315` wird rot (`✗ … trägt … wirklich getrackt`), während die Abwesenheits-Assertion allein grün bliebe. Genau die Divergenz, die W3 gefordert hat |
-> | N3 – stale `#316`-Randnotiz | **behoben** in Spec, Task-Datei und AK1-Nachweis (letzterer mit Stichtag – heute stehen 16 Issues am Label, die Stichtags-Formulierung fängt das korrekt ab) |
+> **Status des Runde-4-Findings W1** (`docs/specs/` als App-Anker): **geschlossen und
+> nachgeprüft.** `git-workflow.md:148` führt die App-Seite jetzt nur mit `app/`, `db/`, `lib/`;
+> `:154` listet `docs/specs/` unter den ungedeckten Pfaden mit der Begründung
+> „Ablagekonvention statt Subsystem-Grenze". Spec (`AK3`) und Task-Datei sind mitgezogen. Die
+> App-Anker-Assertion (`run-tests.sh:6717-6719`) endet auf einem terminierenden Punkt – ein
+> Rückfall (`docs/specs/` wieder in der App-Liste) macht sie rot. Nachgemessen, nicht geglaubt.
 
 ## Kritische Findings (müssen behoben werden)
 
-_Keine._ Alle elf Akzeptanzkriterien sind erfüllt und nachgemessen, alle Gates grün, der Branch
-ist gepusht, der PR-Body trägt `Closes #315`. Kein Merge-Blocker.
+_Keine._ Alle elf Akzeptanzkriterien sind erfüllt, beide Gates sind grün, der PR-Body trägt
+`Closes #315`. Kein Merge-Blocker.
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [x] **`docs/factory/guidelines/git-workflow.md:148` – `docs/specs/` ist als Pfad-Anker der
-      *Applikations*-Seite gelistet, obwohl rund die Hälfte dieses Verzeichnisses
-      Factory-Harness-Arbeit dokumentiert – die Spec dieses PRs eingeschlossen.** *(Behoben
-      2026-08-27: `docs/specs/` aus dem App-Anker in die „ungedeckt"-/Zweifelsregel-Liste
-      verschoben – `git-workflow.md:148/153`, `spec-315` AK3, `run-tests.sh` Assertion
-      mitgezogen. Suite 1254/0, `pre-push.sh` grün.)* (Neu in
-      Runde 4; die drei Vorrunden haben die Anker-Listen auf Vollständigkeit und
-      Nicht-Duplizierung geprüft, aber nie gegen den realen Repo-Inhalt.)
-      Gemessen am 2026-08-27:
-      - `docs/specs/` enthält **78** Specs; **40** davon referenzieren Factory-Artefakte
-        (`run-pipeline.sh`, `.claude/commands`, `scripts/checks`, `factory-poll.sh`,
-        `pr-shepherd`). Kein anderes Verzeichnis der beiden Anker-Listen ist annähernd so
-        gemischt – `app/`, `db/`, `lib/`, `docs/factory/`, `.github/workflows/` sind es nicht.
-      - Von den **16** Issues, die das Label heute tragen, haben **4** ihre Spec dort
-        (#267, #310, #312, **#315**). `/requirements` legt jede Spec unter `docs/specs/` ab,
-        unabhängig davon, ob die Task Werkzeug oder Produkt betrifft – der Anker beschreibt
-        also eine Ablagekonvention, keine Subsystem-Grenze.
-      **Warum das nicht kritisch ist:** Die Zweifelsregel fängt jeden real vorkommenden Fall.
-      Eine Factory-Task berührt praktisch immer zusätzlich `scripts/`, `.claude/` oder
-      `docs/factory/` → „berührt beide Seiten" → Label wird gesetzt. Für #315 selbst greift
-      genau das.
-      **Warum es trotzdem zählt:** AK3 verlangt eine Zuordnung *ohne Rückfrage*, und der Text
-      lehrt hier eine falsche Regel („Specs sind App"). Der Fall, in dem sie durchschlägt, ist
-      konstruierbar und im Repo plausibel: ein Issue, das **nur** eine Factory-Spec anfasst
-      (z. B. „spec-284 auf den Stand nach der Stilllegung ziehen"). Dort matcht ausschließlich
-      der App-Anker, es entsteht **kein** Zweifel – und das Label fällt weg. Genau die
-      Unsichtbarkeit im Backlog, die diese Task abschaffen soll.
-      **Fix (klein, aber dreistellig verteilt):** `docs/specs/` aus der App-Liste nehmen und in
-      die „von keiner Liste gedeckt"-Aufzählung in `:150-153` verschieben – dann fällt der
-      Fall unter „Im Zweifel Label setzen", was die fachlich richtige Auflösung ist. Mitzuziehen
-      sind `spec-315:82-83` (AK3 zählt den Anker wörtlich auf) und die Assertion
-      `run-tests.sh:6717-6719`. Drei Stellen, je eine Zeile – **kein** `/implement`-Lauf nötig.
+- [x] **`scripts/checks/tests/run-tests.sh:6726-6728` – genau der Eintrag, den Runde 4 erkämpft
+      hat, ist der einzige der Zweifelsregel-Liste ohne Guard.** Die Assertion prüft die Phrase
+      `Repo-Wurzel (…), `docs/adr/`, `tasks/`, `e2e/`` und endet dort; `docs/specs/` steht in
+      `git-workflow.md:154` auf der **nächsten** Blockquote-Zeile und ist damit von keiner
+      Assertion gedeckt. Das Assertion-Label behauptet aber „die Zweifelsregel benennt die von
+      beiden Anker-Listen ungedeckten Pfade" – es deckt 4 von 5. Das ist wörtlich das Muster
+      aus der eigenen #312-Lesson („das Label darf nur behaupten, was das Prüffenster
+      abdeckt"), und es trifft die Stelle, deren Fehlen vier Runden gekostet hat: Wer den
+      Halbsatz streicht, fällt lautlos auf den Zustand vor dem W1-Fix zurück, während die
+      Suite grün bleibt. Der ganze Zweck dieser Task ist Drift-Schutz für genau solche
+      Aufzählungen.
+      **Fix (zwei Zeilen):** zweite Assertion auf
+      ``'`docs/specs/` (Ablagekonvention statt Subsystem-Grenze'`` – diese Phrase steht
+      vollständig auf `git-workflow.md:154`, ist also `flat_286`-tauglich – und das Label der
+      bestehenden Assertion auf „…ungedeckten Pfade (Repo-Wurzel, ADR, tasks, e2e)" verengen.
+      *(Behoben 2026-08-27 im `/test`-Schritt: genau dieser Fix angewandt, `run-tests.sh:6726-
+      6733`. Suite 1255/0, `pre-push.sh` grün. W2/W4 bleiben offen – Produktionsdoku-Änderungen
+      außerhalb des `/test`-Scopes.)*
+- [ ] **`docs/factory/guidelines/git-workflow.md:155` – „siehe z. B. diese Spec selbst" ist in
+      der kanonischen Guideline ein Verweis ins Nichts.** Der Halbsatz ist beim W1-Fix aus dem
+      Spec-/Review-Text mitkopiert worden; dort war „diese Spec" `spec-315`. In
+      `git-workflow.md` liest ein Mensch eine Guideline, keine Spec – der Verweis hat kein
+      Antezedens. Einzige Fundstelle im Repo (`grep -rn "diese Spec selbst"`). Der Satz steht
+      ausgerechnet in der Begründung, die der Leser für die Zuordnung braucht.
+      **Fix:** „siehe z. B. `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`" oder
+      den Halbsatz streichen.
+- [ ] **Der AK3-Nachzug an der Task-Datei ist uncommittet – die Pipeline hat dafür schon einen
+      Interrupt geschrieben** (`tasks/interrupt-log.jsonl:5`,
+      `INCOMPLETE_OUTCOME · Working Tree nicht sauber`). Betroffen ist genau das AK3, das
+      `docs/specs/` von der App-Seite in die Zweifelsregel-Liste zieht. Wird der Branch so
+      gemergt, liegt auf `main` eine Task-Datei, deren AK3 der kanonischen Quelle, der Spec und
+      dem Guard widerspricht – und laut Guardrail („Task-Datei final auf dem Feature-Branch
+      abschließen") ließe sich das danach nur über einen neuen PR korrigieren.
+      **Fix:** committen (Lesson #251: Fix zwischen zwei Runden sofort committen, nicht am Ende
+      bündeln).
+- [ ] **`docs/factory/lessons/factory-workflow.md:1303-1305` – die neue Lesson schreibt eine
+      Regel vor, die die kanonische Quelle desselben PR nicht erfüllt.** Die Lesson verlangt,
+      Anker „als **Repo-Wurzel-Präfix** ausweisen (z. B. ‚ab Repo-Wurzel gelesen'), sonst
+      matcht ein freier Teilstring wie `lib/` auch innerhalb eines Pfads der anderen Seite
+      (`scripts/lib/create-issue.sh`)" – `git-workflow.md:147-148` listet die Anker weiterhin
+      ohne diesen Zusatz. Damit codifiziert der PR eine Regel und liefert im selben Commit das
+      Gegenbeispiel; `scripts/lib/create-issue.sh` matcht real beide Seiten (Factory `scripts/`
+      **und** App `lib/`) und ist eindeutig Factory. Runde 4 hatte das als Nitpick geführt und
+      bewusst offen gelassen – mit der Erhebung zur Lesson ist das nicht mehr konsistent
+      (Muster aus Lesson #176/#211: Präsens-Prosa im selben PR nachziehen).
+      **Fix:** ein Halbsatz in `git-workflow.md` („Pfad-Anker, jeweils ab der Repo-Wurzel
+      gelesen:") – und dann greift auch die neue Lesson auf ihr eigenes Beispiel.
 
 ## Nitpicks (optional)
 
-- [ ] `scripts/checks/tests/run-tests.sh:6788` – der WHY-Kommentar verweist auf „ADR-018 §30".
-      Gemeint ist `docs/adr/018-central-issue-seam.md:**30**` (Zeilennummer), nicht ein
-      Paragraf 30 – die ADR hat keinen. Spec und Task-Datei schreiben an derselben Stelle
-      korrekt `docs/adr/018-central-issue-seam.md:30`.
-- [ ] `git-workflow.md:147-148` – die Anker sind nicht als **Repo-Wurzel-Präfixe** ausgewiesen.
-      Als freier Teilstring gelesen matcht `scripts/lib/create-issue.sh` sowohl den
-      Factory-Anker `scripts/` als auch den App-Anker `lib/`. Ein Halbsatz („jeweils ab der
-      Repo-Wurzel") räumt das ab.
-- [ ] `git-workflow.md:153` – `e2e/` steht unter „von keiner der beiden Listen gedeckt", ist
-      aber Playwright-Abdeckung der **App** und damit nicht wirklich zweifelhaft. Die
-      Zweifelsregel labelt eine reine E2E-Task damit als Factory-Arbeit. Bewusst in Kauf
-      genommene Kosten der Fail-safe-Richtung („kostet einen Filterklick") – erwähnenswert nur,
-      weil `e2e/` neben echten Grenzfällen wie `docs/adr/` und der Repo-Wurzel steht.
-- [ ] `scripts/checks/tests/run-tests.sh:6855` und `:6881` – `assert_scan_clean_315` läuft
-      zweimal gegen dasselbe `REPO_NEW_315`, die Fail-closed-Zeile erscheint doppelt im
-      Protokoll. Korrekt, aber die zweite Prüfung ist redundant (die Datei kann zwischen den
-      beiden Aufrufen nicht ungetrackt werden).
-- [ ] Unverändert offen aus Runde 3, dort bewusst so entschieden und hier bestätigt: der
-      Mutations-Anker ist bei 3 der 7 Fundstellen ein Teilstring der geprüften Phrase
-      (`CONTRIBUTING.md`, `OPERATING.md`, `start-work.sh`), das Mutations-Label steht im
-      Singular, und `tasks/*315*` ist breiter als `tasks/*-315.md`. Alle drei ohne Wirkung im
-      aktuellen Repo-Zustand.
-- [ ] Aufräumen: `scripts/rev4run.tmp.sh`, `scripts/rev4mut.tmp.sh`, `scripts/rev4anchor.tmp.sh`
-      und `scripts/rev4out.tmp.txt` stammen aus dieser Runde (Suite-Lauf ohne
-      `/tmp`-Redirection, Mutationsprobe, Anker-Messung). Gitignoret, kein CI-Problem – werden
-      am Ende dieser Runde entfernt (Lesson #312).
+- [ ] `tasks/codify-315.md:39-44` behauptet, W1 sei offen und die Entscheidung liege „beim
+      Menschen vor dem Merge" – der **gleiche** Commit `7b4d288` enthält den W1-Fix.
+      `tasks/review-315.md` und die Task-Datei sind nachgezogen, der Codify-Report nicht
+      (Lesson #176). Ein Nachtrag-Satz genügt; Report-Artefakte sind Snapshots, deshalb nur
+      Nitpick.
+- [ ] `scripts/checks/tests/run-tests.sh:6788` – „ADR-018 §30" meint die **Zeilennummer** 30,
+      nicht einen Paragrafen (die ADR hat keinen). Unverändert offen aus Runde 4, von `/codify`
+      bewusst als nicht-codify-würdig eingestuft.
+- [ ] `scripts/checks/tests/run-tests.sh:6750-6754` – die Anti-Duplikat-Absicherung für
+      `CONTRIBUTING.md` deckt nur die **Factory**-Anker. Eine wörtliche Kopie der App-Anker
+      (`app/`, `db/`, `lib/`) nach `CONTRIBUTING.md` bliebe unbemerkt – asymmetrischer Guard
+      (Lesson #197: Guard symmetrisch auf alle Inputs).
+- [ ] PR **#317** trägt **keine** Labels, obwohl `git-workflow.md` „Issues **und** PRs"
+      klassifiziert – ausgerechnet der PR, der das Label dokumentiert, trägt es nicht.
+      `gh pr edit 317 --add-label documentation,tech-debt,factory-pipeline`. (Repo-weite
+      Praxis-Lücke, nicht von dieser Task verursacht.)
+- [ ] Offene Checkboxen der Task-Datei: „Review bestanden", „Tests vollständig",
+      „Refactoring abgeschlossen", „Fertig / PR erstellt". `/test` und `/refactor` sind noch
+      nicht gelaufen, `/codify` lief vorgezogen – vor dem Merge nachziehen (Guardrail „keine
+      offenen Checkboxen → kein Done").
+- [ ] Unverändert offen aus Runde 4 und dort bewusst akzeptiert, hier bestätigt: `e2e/` in der
+      Zweifelsliste (labelt eine reine E2E-Task als Factory-Arbeit – Kosten der Fail-safe-
+      Richtung), die doppelte `assert_scan_clean_315`-Prüfung gegen dasselbe `REPO_NEW_315`
+      (`:6855`/`:6881`), der Teilstring-Mutations-Anker bei 3 von 7 Fundstellen, der Singular
+      im Mutationslabel und `tasks/*315*` als breiterer Pfadspec als nötig. Alle ohne Wirkung
+      im aktuellen Repo-Zustand.
 
 ## Positives
 
-- **Alle drei Runde-3-Findings sind wirklich geschlossen, nicht nur als geschlossen erklärt.**
-  Bei W3 habe ich die behauptete Wirksamkeit nachgestellt statt sie zu glauben: `git add` aus
-  `tracked_repo_315` entfernt → die neue Kontrolle wird rot, die Abwesenheits-Assertion allein
-  bliebe grün. Genau die Divergenz, um die es ging (Lesson #286: derselbe Assert-Ausdruck,
-  negiert).
-- **Der W2-Fix behandelt die Ursache statt das Symptom.** `CONTRIBUTING.md` verweist jetzt auf
-  die kanonische Quelle, statt die Anker zu kopieren – und die Absicherung ist symmetrisch
-  gebaut: dieselbe Phrase als Positivkontrolle gegen `git-workflow.md`, als Abwesenheits-
-  Assertion gegen `CONTRIBUTING.md`. Ein umformulierter Anker-Satz macht die Kontrolle rot,
-  bevor die Abwesenheits-Assertion falsch-grün werden kann.
-- **Spec und Implementierung sind wieder deckungsgleich** (Lesson #253/#211/#176). AK3 und AK10
-  tragen jetzt Zweifelsregel, Allowlist-Ausnahme, Beidseitigkeits-Kontrolle und die
-  Fail-closed-Forderung – die Guards nageln keinen Sollzustand mehr fest, der nirgends
-  geschrieben steht.
-- **Der Fundstellen-Sweep hält einer dritten, unabhängigen Suche stand.** Mit `Aspekt-Label` als
-  Suchbegriff und einer Sichtung des `.github/`-Baums (keine Issue-Templates vorhanden) findet
-  sich keine achte Fundstelle. Die drei `create_issue_idempotent`-Codebeispiele in den
-  Skill-Dokus bleiben korrekt Beispiele – dieselbe Disziplin wie bei der `--labels`-Usage-Zeile
-  in AK7.
-- **Die Selbstreferenz-Falle bleibt elegant gelöst** (`printf '\137'`), und der AK10-Scan liest
-  über `git grep` ausschließlich getrackte Dateien – meine vier Scratch-Artefakte in `scripts/`
-  haben ihn nicht rot gefärbt, obwohl eines davon den alten Namen im Klartext enthält. Das ist
-  Lesson #312 in Aktion, nicht nur zitiert.
-- **Kein ADR-Trigger, `docs/routes.md` unberührt** (keine Routen-Änderung), keine
-  Schicht-Verletzung, `scripts/lib/create-issue.sh` bleibt validierungsfrei (ADR-018 §3) – es
-  ist keine zweite kanonische Label-Liste im Code entstanden. Die Scope-Grenze der Spec hält.
+- **Der W1-Fix behandelt die Ursache, nicht das Symptom.** `docs/specs/` ist nicht in eine
+  Sonderregel gewandert, sondern in die Zweifelsregel – dort, wo eine Ablagekonvention ohne
+  Vorhersagekraft hingehört. Die drei Fundstellen (kanonische Quelle, Spec-AK3,
+  App-Anker-Assertion) sagen dasselbe; die Assertion terminiert die App-Liste mit einem Punkt
+  und macht damit den Rückfall rot. Der Nachzug an der Task-Datei (vierte Fundstelle, die die
+  Review-Empfehlung nicht genannt hatte) ist selbst gefunden und in der Task-Datei als Muster
+  festgehalten – genau die Papierspur-Blindheit aus Lesson #211/#176/#253.
+- **Beide Gates diese Runde selbst gemessen, nicht übernommen:** Suite 1254/0, `pre-push.sh`
+  vollständig grün. Die 53 `#315`-Assertions laufen inkl. aller Mutations-, Fail-closed- und
+  Diskriminierungs-Kontrollen.
+- **Der Fundstellen-Sweep hält einer vierten, unabhängigen Suche stand** (Suchbegriff
+  `tech-debt` über den getrackten Baum ohne Papierspur): keine achte Aufzählung. Die
+  Abgrenzung „Aufzählung vs. Beispiel" ist konsistent durchgehalten – Kopfkommentar in
+  `start-work.sh` = Vollmenge, `--labels`-Usage und die Seam-Codebeispiele = Beispiele, per
+  `assert_absent` festgenagelt.
+- **Der Rename ist live sauber:** kein Label mit Unterstrich mehr, Zuordnungen und
+  Beschreibung erhalten, Issue-Titel und -Labels gezogen. Der Live-Scan findet den alten Namen
+  ausschließlich in der Papierspur.
+- **`/codify` hat das richtige Abstraktionsniveau gewählt:** die neue Lesson beschreibt das
+  *Erkenntnismuster* (Anker-Liste ohne Verteilungs-Check), nicht den Einzelfall, und der
+  Bericht trennt sauber zwischen codify-würdigem Muster und Einzel-Nitpick. Sie zitiert den
+  alten Label-Namen bewusst nicht – sonst würde der eigene AK10-Guard rot (die Allowlist deckt
+  `lessons/` absichtlich nicht).
+- **Keine Schicht-/Scope-Verletzung:** `scripts/lib/create-issue.sh` bleibt validierungsfrei
+  (ADR-018 §3), es entsteht keine zweite kanonische Label-Liste im Code, kein ADR-Trigger,
+  `docs/routes.md` unberührt (keine Routen-Änderung), Working Tree bis auf die Task-Datei
+  sauber.
 
 ## Empfehlung
 
 APPROVED
 
-**Begründung der Einstufung – bewusst nicht `NEEDS_REWORK`:** Es gibt kein kritisches Finding,
-alle elf AKs sind erfüllt, beide Gates sind grün und der PR ist mergefähig. Der
-Circuit Breaker ist mit Runde 3 gezogen worden; ein weiteres `NEEDS_REWORK` würde die
-Iterationsschleife nur formal weiterdrehen, obwohl der verbleibende Punkt eine
-Drei-Zeilen-Doku-Korrektur ist. Runde 3 hat `NEEDS_REWORK` mit dem Zusatz „bedeutet hier nicht
-zurück an `/implement`" vergeben – dieses maschinengelesene Feld so zu überschreiben ist
-schlechter als eine ehrliche Freigabe mit offener Notiz.
+**Einstufung und Eskalation (Circuit Breaker).** Dies ist die **fünfte** Review-Runde auf
+denselben Code; der Circuit Breaker („max. 3 Iterationen") ist längst gezogen. Es gibt kein
+kritisches Finding, alle elf AKs sind erfüllt, beide Gates sind grün – deshalb `APPROVED`
+statt eines formalen `NEEDS_REWORK`, das nur die Schleife weiterdrehen würde. **Ein weiterer
+`/implement`-Lauf ist nicht angebracht.** Die vier offenen Punkte sind zusammen fünf Zeilen und
+gehören dem Menschen zur Entscheidung:
 
-**Entscheidung für den Menschen (W1):** zwei vertretbare Wege –
+1. **W3 zwingend vor dem Merge:** die Task-Datei committen. Alles andere ist optional, das
+   nicht – ohne Commit landet ein widersprüchliches AK3 auf `main`.
+2. **W1 empfohlen** (zwei Zeilen in `run-tests.sh`): Der ungeguardete `docs/specs/`-Eintrag ist
+   die Wiederholungsgefahr dieser Task in Reinform. Danach Suite + `pre-push.sh`.
+3. **W2 empfohlen** (ein Halbsatz in `git-workflow.md:155`): Dangling-Verweis in der
+   kanonischen Quelle.
+4. **W4 zur Wahl:** Halbsatz „ab der Repo-Wurzel gelesen" in `git-workflow.md:147` – oder die
+   entsprechende Forderung aus der neuen Lesson streichen. Beides ist konsistent; der jetzige
+   Zustand (Lesson fordert, Quelle liefert nicht) ist es nicht.
 
-1. **Empfohlen: die drei Zeilen jetzt ziehen.** `docs/specs/` aus dem App-Anker in die
-   „ungedeckt"-Liste verschieben, `spec-315` AK3 und die Assertion `run-tests.sh:6717-6719`
-   mitziehen. Reine Doku-/Test-Edits, kein `/implement`. Danach Suite + `pre-push.sh`,
-   committen, weiter zu `/test`.
-2. **Als Schuld akzeptieren:** W1 als eigenes Issue führen (`documentation` + `tech-debt` +
-   `factory-pipeline`) und sofort zu `/test`. Vertretbar – die Zweifelsregel deckt jeden heute
-   existierenden Fall. Für `kleinfunde.md` ist der Fund zu wirksam: er betrifft die kanonische
-   Quelle selbst.
-
-**In beiden Fällen vorher:** die vier `scripts/rev4*.tmp.*`-Artefakte entfernen (Lesson #312).
+Als Schuld akzeptierbar sind W1, W2 und W4 gemeinsam über ein Issue
+(`documentation` + `tech-debt` + `factory-pipeline`) – für `kleinfunde.md` sind sie zu wirksam,
+sie betreffen die kanonische Quelle und ihren Guard.

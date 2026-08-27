@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [x] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [x] Codify ausgeführt
@@ -34,9 +34,9 @@ Spec mit Kontext, Scope-Grenzen und den vier Phase-1-Entscheidungen:
       Factory-Harness vs. TCH-Applikation.
 - [x] **AK3** GIVEN der neue Zeilen-/Begleittext, WHEN ein Leser ein Issue einordnen muss,
       THEN benennt der Text beide Seiten der Grenze mit Pfad-Ankern (Factory: `scripts/`,
-      `.claude/`, `.github/workflows/`, `docs/factory/` – App: `app/`, `db/`, `lib/`,
-      `docs/specs/`), löst den Mischfall einseitig fail-safe auf („Im Zweifel Label setzen",
-      inkl. der ungedeckten Pfade) und bleibt die einzige Stelle mit der Anker-Liste.
+      `.claude/`, `.github/workflows/`, `docs/factory/` – App: `app/`, `db/`, `lib/`), löst
+      den Mischfall einseitig fail-safe auf („Im Zweifel Label setzen", inkl. der ungedeckten
+      Pfade – u. a. `docs/specs/`) und bleibt die einzige Stelle mit der Anker-Liste.
 - [x] **AK4** GIVEN die zwei abgeleiteten Aufzählungen in `git-workflow.md` selbst
       (Faustregel-Absatz, `start-work.sh`-Absatz), WHEN sie gelesen werden, THEN nennen beide
       `factory-pipeline` mit.
@@ -156,6 +156,20 @@ Circuit-Breaker-Hinweis) – Rework am 2026-08-27 nach Weg 1 der Review-Empfehlu
 | W3 | Fail-closed-Härtung nur am Live-Scan, nicht an den vier auf Leere prüfenden Fixture-Assertions | behoben: neuer Helfer `assert_scan_clean_315` prüft je Aufruf zuerst, dass genau die Fixture-Datei getrackt ist; Mutationsbeleg über ein initialisiertes, aber uncommittetes Repo, in dem die Datei mit dem verbotenen Namen im Baum liegt – dort divergieren die beiden Prädikate nachweislich |
 | N1–N5 | Nitpicks | N3 (stale `#316`-Randnotiz, Lesson #176) behoben – in Spec, Task-Datei und AK1-Nachweis, letzterer mit Stichtag. Ebenfalls behoben: der `/codify`-Hinweis nennt jetzt auch `kleinfunde.md` – ein Eintrag dort, der den alten Namen zitiert, kippt die Suite genauso, und `/codify` läuft in dieser Pipeline noch. Bewusst offen gelassen: Teilstring-Anker (4 von 7 tragen), Singular im Mutationslabel, `tasks/*315*` breiter als nötig – ohne Wirkung im aktuellen Repo-Zustand |
 
+Runde 5 (`tasks/review-315.md`, Empfehlung **APPROVED**, Circuit Breaker gezogen –
+kein weiterer `/implement`-Lauf) – Fixes am 2026-08-27 im `/test`-Schritt:
+
+| # | Finding | Status |
+|---|---------|--------|
+| W1 | `run-tests.sh:6726-6728`: die Zweifelsregel-Assertion deckt nur bis `` `e2e/` ``, die neue `docs/specs/`-Phrase (Runde-4-W1-Fix) steht ungeguardet auf der nächsten Blockquote-Zeile – ein Rückfall bliebe grün | behoben (im `/test`-Scope, reiner Test-Fix): eigene Assertion auf die `docs/specs/`-Phrase ergänzt, bestehendes Assertion-Label auf die vier tatsächlich geprüften Pfade (Repo-Wurzel, ADR, tasks, e2e) verengt; Suite 1255/0, `pre-push.sh` grün |
+| W2 | `git-workflow.md:155` „siehe z. B. diese Spec selbst" ist in der kanonischen Guideline ein Verweis ins Nichts (aus dem Spec-Text mitkopiert) | **offen** – Produktionsdoku-Änderung, außerhalb des `/test`-Scopes („kein Produktionscode ändern in diesem Schritt"); vor dem Merge zu entscheiden |
+| W3 | AK3-Nachzug an der Task-Datei war uncommittet, Pipeline hatte bereits `INCOMPLETE_OUTCOME` interrupted | behoben: mit diesem Commit zusammen mit dem W1-Testfix committet |
+| W4 | Pfad-Anker ohne „ab der Repo-Wurzel gelesen"-Zusatz, im Widerspruch zur neuen Codify-Lesson | **offen** – Produktionsdoku-Änderung, außerhalb des `/test`-Scopes |
+
+Nitpicks aus Runde 5 unverändert offen (Details in `tasks/review-315.md`): stale W1-Stand in
+`codify-315.md:39-44`, PR #317 trägt keine Labels, `CONTRIBUTING.md`-Anti-Duplikat-Guard nur
+für die Factory-Anker.
+
 ## Codify-Notizen
 
 **Ausgeführt am 2026-08-27** – vollständiger Report in [`tasks/codify-315.md`](codify-315.md).
@@ -170,6 +184,14 @@ bleibt beim Menschen (siehe Review-Empfehlung, Runde 4).
 App-Anker in die „ungedeckt"-/Zweifelsregel-Liste verschoben (`git-workflow.md:148/153`),
 `spec-315` AK3 mitgezogen, Assertion in `run-tests.sh` angepasst. Suite 1254/0,
 `pre-push.sh` grün. W1 in `tasks/review-315.md` auf erledigt gesetzt.
+
+**Nachzug 2026-08-27 (`/implement`):** Die Fundstellen-Liste der Review-Empfehlung (Weg 1)
+nannte drei Dateien – die **Task-Datei selbst** stand nicht darauf, und ihr AK3 führte
+`docs/specs/` weiter auf der App-Seite. Damit widersprach die Task-Datei der kanonischen
+Quelle, der Spec und dem Guard. AK3 hier nachgezogen. Muster für künftige Sweeps: Eine
+Fundstellen-Liste, die ein Review für einen Fix aufstellt, deckt die **eigene Papierspur**
+(Task-/Review-/Spec-Datei) nicht automatisch mit ab – nach dem Fix denselben Grep über
+`tasks/` laufen lassen (verwandt mit Lesson #211/#176/#253).
 
 **Hinweis an `/codify` (Konsequenz aus Review-Finding K3):** Die AK10-Allowlist nimmt bewusst
 nur `docs/specs/spec-315-*` und `tasks/*315*` aus. `docs/factory/lessons/*`,
