@@ -371,11 +371,11 @@ klären. In Stage 2 fragt der Agent interaktiv; in Stage 3 löst er den `ADR`-In
 
 ### 4.2 Security-Freigabe
 
-`/security-review` ist das **letzte Gate vor Merge**. Es ist fail-closed: weiter geht es nur mit
-einem eindeutigen `PASSED` – ein fehlender oder mehrdeutiger Verdict stoppt genauso (#312).
-Ergebnis `NEEDS_FIXES` = **Stopp**:
-kritische/wichtige Findings werden behoben (nicht wegdiskutiert). Bewusst akzeptierte Rest-Punkte
-gehören **begründet** in den Report und als Backlog-Issue heraus – nie stillschweigend.
+`/security-review` ist das **letzte Gate vor Merge**. Ergebnis `NEEDS_FIXES` = **Stopp**:
+kritische/wichtige Findings werden behoben (nicht wegdiskutiert). Allgemeiner gilt seit #312
+fail-closed: weiter geht es nur mit einem eindeutigen `PASSED` – ein fehlender oder mehrdeutiger
+Verdict stoppt genauso. Bewusst akzeptierte Rest-Punkte gehören **begründet** in den Report und
+als Backlog-Issue heraus – nie stillschweigend.
 
 ### 4.3 Destruktive Produktions-Migrationen
 

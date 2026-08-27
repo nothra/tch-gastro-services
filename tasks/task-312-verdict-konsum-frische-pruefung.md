@@ -164,6 +164,56 @@ fünf Nitpicks. Rework in dieser Session – alle sieben umgesetzt:
   Kommando → Exit ≠ 0). Die Existenz pinnen die beiden Positiv-Assertions daneben, die im
   RED-Lauf rot waren; die Abwesenheits-Assertion trägt allein die Diskriminierung.
 
+**Runde 2** (`tasks/review-312.md`, `NEEDS_REWORK`): keine kritischen Findings, ein wichtiges
+(Testlücke), fünf Nitpicks – zwei davon bewusst ausgelagert. Rework in dieser Session:
+
+- **W1 (blockierend)** `scripts/checks/tests/run-tests.sh` – AK12 verlangt beide erreichbaren
+  Gate-Richtungen behavioral; belegt war nur `PASSED` (TMP_B312) und der leere Verdict am
+  **mutierten** Skript. Neues Fixture **TMP_F312** (Task-ID 335) auf demselben #310-Harness:
+  `security-review` schreibt im Aufruf einen eindeutigen `NEEDS_FIXES`, das **unmutierte** Gate
+  blockiert mit `exit 1` + Security-Meldung + „Security Review: NEEDS_FIXES", `Phase 6` wird nicht
+  erreicht. Divergenzerzeugende Ausgangslage ist der vorbestehende Report mit dem
+  **gegenteiligen** Verdict (Lesson #253) – sonst könnte der Lauf aus einer stehengebliebenen
+  Datei blockieren. Zusätzlich `assert_absent "failed after 3 attempts"`: belegt, dass der Abbruch
+  vom Gate kommt und nicht aus dem Retry-Pfad von `run_skill()`.
+- **W1-Kausalitätsbeleg statt RED-vor-GREEN:** Die Richtung *funktionierte* schon – es fehlte die
+  Abdeckung, ein RED-Lauf ist deshalb per Definition nicht herstellbar. An seine Stelle tritt der
+  Mutant **TMP_MF312**: die Gate-Bedingung wird über den bereits vorhandenen Anker
+  `$GATE_CMP_312` auf `if false; then` gedreht (ersetzt statt gelöscht, wie beim AK5-Mutanten –
+  eine Löschung belegte nur einen Syntaxfehler); dieselben Assert-Ausdrücke kippen dann in die
+  Gegenrichtung (keine Meldung, `Phase 6` erreicht).
+- **N3 (Fragment-Falle)** Der Abwesenheits-Guard auf `Verdict '$(report_verdict` koppelte
+  Meldungstext und Code-Konstrukt: eine umformulierte Meldung mit erneut eingebetteter Command
+  Substitution wäre grün geblieben (#114 in der Abwesenheits-Richtung). Ersetzt durch eine
+  **Zählung der `report_verdict`-Aufrufe im Rumpf von `run_skill()`** (awk-Extraktion von
+  `run_skill() {` bis zum schließenden `}`) – fail-closed in beide Richtungen: zu kurze Extraktion
+  → 0 Treffer, über das Funktionsende hinaus → >1. Eine zweite Assertion belegt, dass die
+  Extraktion wirklich `run_skill()` trifft (Retry-Schleife enthalten). Mutationsbeleg lokal
+  gefahren: Erfolgsmeldung wieder auf `$(report_verdict …)` umgestellt → 3 statt 1 Treffer, Guard
+  rot.
+- **N2 (ADR-Dreifachkopie)** Der Absatz „Symmetrie beider Rückkehrpfade" im #310-Nachtrag von
+  ADR-019 war die dritte gleichlautende Kopie der Bedingung. Auf einen Ein-Satz-Verweis auf den
+  #312-Nachtrag eingedampft; der dort fehlende Halbsatz „nur die **Meldung** hängt noch am
+  Exit-Code" ist in den #312-Nachtrag (Punkt 1) gewandert, damit die Information nicht mit dem
+  Absatz verschwindet. §4-Körper und #312-Nachtrag bleiben als die zwei Orte, die die
+  AK13-Assertions pinnen.
+- **N5 (Leserichtung)** `docs/factory/OPERATING.md` §4.2: der Spezialfall (`NEEDS_FIXES` = Stopp)
+  steht wieder vor der allgemeineren fail-closed-Regel, die ihn seit #312 einschließt.
+- **Nicht umgesetzt, bewusst:** `.claude/commands/pipeline.md` (Nitpick 1 – Patch-Workflow,
+  Umfang über „unter zehn Zeilen", ausgelagert als **Issue #316**) und die Länge von `run_skill()`
+  (Nitpick 4 – Kandidat für `/refactor`, kein Verhaltensproblem; ein Umbau hier würde die gerade
+  verifizierten Mutationsanker verschieben).
+
+### Verifikation Runde 2
+
+- Volle Bash-Suite: **1203 grün / 0 rot** (vorher 1193; +12 neue, −1 ersetzter Guard).
+- Ein **vorbestehender** roter Lauf war Umgebungs-Rauschen, keine Regression: ein liegengebliebenes
+  Suite-Log einer früheren Session (`scripts/review312-out.tmp.txt`, gitignored) enthielt die
+  Gotcha-Muster, die der Anti-Regressions-Guard in `scripts/` verbietet – der Guard scannt das
+  Verzeichnis inhaltlich, nicht nur die getrackten Dateien. Nach dem Entfernen des Logs grün.
+- Kein Produktionscode geändert (nur Tests + Doku) → Gate-Polarität, Guard-Bedingung und alle
+  #310-/#312-Anker unverändert.
+
 ## Codify-Notizen
 
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -92,11 +92,9 @@ fail-open ohne jedes Review). Weil `run_skill()` den Fingerprint pro Aufruf erhe
 Prüfung beide Fälle mit derselben Mechanik ab. Die Skill→Report-Datei-Zuordnung liegt dazu
 ebenfalls nur in der Lib (`report_file`); `run-pipeline.sh` baut keinen Report-Pfad mehr selbst.
 
-**Symmetrie beider Rückkehrpfade (Nachtrag #312).** Die Frische-Bedingung wertet `run_skill()`
-in **beiden** Rückkehrpfaden aus – der Exit-0-Pfad sah den Fingerprint zunächst gar nicht an
-(siehe Nachtrag #312 unten). Beide Zweige rufen dazu **eine** Hilfsfunktion
-(`report_is_fresh_and_valid`) mit demselben Snapshot auf; nur die **Meldung** hängt noch am
-Exit-Code („Turn-Limit toleriert" gibt es weiterhin ausschließlich im non-zero-Fall).
+Die hier für den Fehlerpfad formulierte Bedingung („nach dem Fehlversuch") wertet `run_skill()`
+seit #312 auf **beiden** Rückkehrpfaden aus – Mechanik und Begründung im Nachtrag #312 unten,
+damit sie nicht in zwei Absätzen parallel gepflegt werden muss.
 
 Für alle anderen Skills entscheidet unverändert allein der Exit-Code (non-zero = Fehlversuch),
 unabhängig davon, ob Report-Dateien existieren, fehlen oder stale sind.
@@ -257,9 +255,10 @@ getroffenen Entscheidung „Erfolg = fertiger Report, nicht sauberer Exit":
    verändertem Fingerprint **und** eindeutigem Verdict. Die Bedingung steht genau einmal im
    Code (`report_is_fresh_and_valid` in `run-pipeline.sh`, Pfad-/Fingerprint-/Verdict-Wissen
    weiterhin nur in `scripts/lib/report-verdict.sh`), und der Snapshot bleibt einer pro
-   `run_skill()`-Aufruf. `run_skill()` kann damit per Konstruktion nie mit einem stale oder
-   verdictlosen Report zurückkehren; die Konsumenten in Phase 2 und 5 brauchen keine eigene
-   Prüfstelle.
+   `run_skill()`-Aufruf. Nur die **Meldung** hängt noch am Exit-Code („Turn-Limit toleriert"
+   gibt es weiterhin ausschließlich im non-zero-Fall). `run_skill()` kann damit per Konstruktion
+   nie mit einem stale oder verdictlosen Report zurückkehren; die Konsumenten in Phase 2 und 5
+   brauchen keine eigene Prüfstelle.
 2. **Strenge.** Auch ein frisch geschriebener Report ohne eindeutigen Verdict ist ein
    Fehlversuch – das schließt die oben genannte Phase-5-Lücke mit.
 3. **Fehlerpfad.** Ein Exit-0-Aufruf ohne frischen, gültigen Report ist ein regulärer
