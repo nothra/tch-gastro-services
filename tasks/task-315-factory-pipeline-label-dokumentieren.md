@@ -7,7 +7,11 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd 2026-08-27: Merge freigegeben – alle Gates grün (CI vollständig grün,
+`mergeStateStatus: CLEAN`, 0 erforderliche Approvals gemäß ADR-029). PR #317 mit
+`documentation`/`tech-debt`/`factory-pipeline` gelabelt.
 
 ## Beschreibung
 
