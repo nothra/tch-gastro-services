@@ -2,7 +2,7 @@
 
 ## Status
 
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -34,30 +34,30 @@ fehlenden Report durchwinkt.
 
 ## Akzeptanzkriterien
 
-- [ ] AK1 (Kern, Phase 2): Exit 0 + unveränderter Report mit altem `APPROVED` → Fehlversuch, kein
+- [x] AK1 (Kern, Phase 2): Exit 0 + unveränderter Report mit altem `APPROVED` → Fehlversuch, kein
       `return 0`, Meldung benennt den stale Verdict, Review-Loop wird nicht verlassen.
-- [ ] AK2 (Regression Erfolgs-Pfad): Exit 0 + im Aufruf geschriebener Report mit gültigem Verdict
+- [x] AK2 (Regression Erfolgs-Pfad): Exit 0 + im Aufruf geschriebener Report mit gültigem Verdict
       → weiterhin Erfolg, Pipeline arbeitet mit diesem Verdict weiter.
-- [ ] AK3 (gültiger Verdict verlangt): Exit 0 + frisch geschriebener Report **ohne** eindeutigen
+- [x] AK3 (gültiger Verdict verlangt): Exit 0 + frisch geschriebener Report **ohne** eindeutigen
       Verdict-Anker → Fehlversuch (schließt die Phase-5-Lücke „leerer Verdict passiert").
-- [ ] AK4 (`security-review` stale): Exit 0 + unveränderter Report mit altem `PASSED` →
+- [x] AK4 (`security-review` stale): Exit 0 + unveränderter Report mit altem `PASSED` →
       Fehlversuch.
-- [ ] AK5 (Interrupt hat Vorrang): signalisierter Interrupt + Exit 0 ohne frischen Report →
+- [x] AK5 (Interrupt hat Vorrang): signalisierter Interrupt + Exit 0 ohne frischen Report →
       sofortiger harter Stopp über `interrupt-check.sh`, kein Retry.
-- [ ] AK6 (Retry-Semantik): drei Exit-0-Versuche ohne frischen, gültigen Report → `exit 1` mit
+- [x] AK6 (Retry-Semantik): drei Exit-0-Versuche ohne frischen, gültigen Report → `exit 1` mit
       „failed after 3 attempts", nicht Circuit Breaker (`exit 2`).
-- [ ] AK7 (andere Skills unberührt): `implement`/`test`/`refactor`/`codify`/`pr-shepherd` mit
+- [x] AK7 (andere Skills unberührt): `implement`/`test`/`refactor`/`codify`/`pr-shepherd` mit
       Exit 0 → unverändert Erfolg, unabhängig von Report-Dateien.
-- [ ] AK8 (Gate-Polarität Phase 5): Gate blockiert alles außer einem eindeutigen `PASSED`.
-- [ ] AK9 (eine Bedingung, ein Ort): „frisch UND gültig" steht genau einmal im Code (gemeinsame
+- [x] AK8 (Gate-Polarität Phase 5): Gate blockiert alles außer einem eindeutigen `PASSED`.
+- [x] AK9 (eine Bedingung, ein Ort): „frisch UND gültig" steht genau einmal im Code (gemeinsame
       Hilfsfunktion), gleicher Snapshot, gleiche Lib, kein Report-Pfad in `run-pipeline.sh`.
-- [ ] AK10 (Meldungen unterscheidbar): Exit-0-Erfolgsmeldung bleibt von „Turn-Limit toleriert"
+- [x] AK10 (Meldungen unterscheidbar): Exit-0-Erfolgsmeldung bleibt von „Turn-Limit toleriert"
       unterscheidbar; alle bestehenden #310-Assertions bleiben grün.
-- [ ] AK11 (E2E + Mutationsbeleg): E2E-Tests am echten Skript für beide Richtungen, aufgebaut auf
+- [x] AK11 (E2E + Mutationsbeleg): E2E-Tests am echten Skript für beide Richtungen, aufgebaut auf
       dem vorhandenen #310-Harness; Mutation des echten Guard-Ausdrucks macht sie rot.
-- [ ] AK12 (Gate-Polarität getestet): `PASSED` → weiter, `NEEDS_FIXES` → `exit 1`; die
+- [x] AK12 (Gate-Polarität getestet): `PASSED` → weiter, `NEEDS_FIXES` → `exit 1`; die
       unerreichbar gewordene dritte Richtung per Vergleichs-Anker + Mutationsbeleg gepinnt.
-- [ ] AK13 (Doku-Nachzug): ADR-019 §4 und der Report-Guard-Absatz in
+- [x] AK13 (Doku-Nachzug): ADR-019 §4 und der Report-Guard-Absatz in
       `docs/factory/lessons/factory-workflow.md` beschreiben die symmetrische Bedingung, die
       Verdict-Gültigkeit und die neue Gate-Polarität; Lesson-Regel um „alle Rückkehrpfade"
       geschärft.
@@ -85,6 +85,36 @@ Umsetzungshinweise (Volltext in der Spec, Abschnitt „Technische Hinweise"):
   Zweitaufbau (Lesson `testing.md`, 5. Vorkommnis des Duplikat-Scaffold-Smells). Fixture-IDs
   `310`–`313` sind belegt – für die neuen Tests andere IDs wählen.
 - `--dry-run` kehrt vor jedem `claude`-Aufruf zurück; die neue Prüfung darf dort nicht greifen.
+
+### Umsetzungsnotizen (/implement, 2026-08-27)
+
+- **`--dry-run` und das umgedrehte Security-Gate:** Das fail-closed-Gate braucht einen Report,
+  den `--dry-run` per Definition nie erzeugt (dort läuft kein Skill). Es wird deshalb im
+  Dry-Run **übersprungen** statt abgeschwächt – dieselbe Ausnahme, die die
+  Endzustands-Verifikation (ADR-040) direkt darunter schon hat. Ohne diese Ausnahme hätte
+  jeder `--dry-run` ab Phase 5 blockiert.
+- **Vorbestehender E2E-Block (Task-Fixture 78) musste mitziehen:** Sein `claude`-Stub legte den
+  `APPROVED` **vorab** ab und war ein No-op. Seit dem Fix ist genau das ein stale Report – der
+  Lauf wäre in Phase 2 gestorben. Der Stub schreibt die Reports jetzt **im Aufruf** und
+  variiert ihren Inhalt über einen Aufrufzähler, damit auch der zweite/dritte Lauf gegen
+  dasselbe Scaffold eine echte Veränderung sieht. Die Skill-Erkennung läuft über die
+  `SKILL-<name>`-Marker aus dem #310-Harness (`SKILL-review` ist kein Teilstring von
+  `SKILL-security-review`).
+- **AK5-Mutant ersetzt statt löscht:** Der Exit-0-`interrupt-check`-Aufruf ist der einzige
+  Rumpf seines `if`. Gelöscht ergäbe das `if …; then` + `fi` → Syntaxfehler, und der
+  Mutationsbeleg belegte nur Parsing statt Kausalität. Er wird darum durch `:` ersetzt.
+  Dass die Mutation den **Exit-0**-Aufruf trifft (nicht einen der beiden anderen), belegt eine
+  Positions-Assertion, nicht nur die Anzahl.
+- **Zeilen-Anker gemeinsam definiert:** `FRESH_CMP_PIPE`/`VERDICT_CHK_PIPE`/`GUARD_CALL_PIPE`/
+  `IC_CALL_PIPE` stehen einmal oberhalb des #310-Blocks – #310 und #312 mutieren nach dem Fix
+  dieselben Zeilen, zwei gleichlautende Literale wären eine Drift-Quelle.
+- **Fixture-IDs 330–334** (die Spec weist darauf hin, dass `310`–`313` und `316` belegt sind).
+- **Über AK13 hinaus nachgezogen:** die Index-Zeile des Report-Guard-Learnings in
+  `docs/factory/PROJECT-CONTEXT.md` – sie nannte „umgesetzt in #310" als Endstand
+  (Doku-Drift-Regel aus #176/#211).
+- **Kein UI/keine Routen berührt** → keine Oberflächentests, `docs/routes.md` unverändert.
+- **Gates:** `scripts/checks/tests/run-tests.sh` = 1182 grün / 0 rot (vorher gezielt rot in
+  genau den zwei AK13-Lesson-Assertions → RED-vor-GREEN belegt).
 
 ## Offene Fragen
 

@@ -86,7 +86,7 @@ Workflow-YAML: `gh api repos/<owner>/<repo>/commits/<pr-head-sha>/check-runs --j
 Post-Merge-/Deploy-Gates gehören in `/post-merge-verify` bzw. das Deploy-Gate, nicht in die
 required-Checks-Liste. Kanonische Entscheidung: [ADR-029](../../adr/029-branch-protection-main-ruleset.md).
 
-### Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf und Review-Iteration (aus #91/#310, in #310 behoben)
+### Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf und Review-Iteration (aus #91/#310, in #310 behoben, in #312 auf den Exit-0-Pfad ausgeweitet)
 
 Der `run_skill()`-Report-Guard in `run-pipeline.sh` las bei non-zero Exit die Report-Datei
 (`tasks/review-<id>.md` / `tasks/security-<id>.md`) und akzeptierte den Verdict **ohne zu prüfen,
@@ -115,9 +115,34 @@ stale Verdict ist ein regulärer Fehlversuch im bestehenden Retry-Pfad (3 Versuc
 angedacht. Der Übergang „Datei fehlt → vorhanden" zählt als Veränderung; ein nicht ermittelbarer
 Fingerprint gilt fail-closed als nicht belegbar frisch. Kanonische Beschreibung: ADR-019 §4.
 
+**Exit-0-Variante (Issue #312):** Die #310-Prüfung saß ausschließlich im **non-zero-Exit-Zweig**.
+Endete `claude --print` mit **Exit 0**, kehrte `run_skill()` mit `return 0` zurück, ohne den
+erhobenen Fingerprint je anzusehen – derselbe fail-open-Mechanismus wie #91/#310, nur über den
+Erfolgs- statt den Fehlerpfad: ein `/review`, das mit Exit 0 endete, ohne seinen Report zu
+schreiben, ließ Phase 2 den stehengebliebenen `APPROVED` lesen und den Review-Loop verlassen,
+ohne dass in diesem Lauf ein Review stattfand. Ein Guard, der nur einen von zwei Rückkehrpfaden
+absichert, ist damit kein Guard – der ungeprüfte Pfad ist die ganze Lücke.
+
+**In #312 auf den Exit-0-Pfad ausgeweitet:** Beide Rückkehrpfade werten dieselbe Bedingung über
+**eine** Hilfsfunktion (`report_is_fresh_and_valid`) mit demselben Snapshot aus – Erfolg nur bei
+**verändertem** Fingerprint **und** **eindeutigem Verdict**. Die zweite Hälfte ist kein Beiwerk:
+ein frisch geschriebener Report ohne auswertbaren Verdict-Anker war zuvor ebenfalls ein Erfolg.
+Nur die **Meldung** hängt noch am Exit-Code („Turn-Limit toleriert" gibt es weiterhin
+ausschließlich im non-zero-Fall). Ein signalisierter Interrupt wird **vor** der Frische-/
+Verdict-Prüfung ausgewertet, damit der Blocker-Eintrag nicht durch zwei weitere Heavy-Versuche
+entfällt. Zusätzlich ist das **Security-Gate in Phase 5 auf fail-closed umgedreht**: es passiert
+nur ein eindeutiges `PASSED`, statt wie zuvor nur bei eindeutigem `NEEDS_FIXES` zu blockieren
+(und damit einen fehlenden oder verdictlosen Report durchzuwinken). `run_skill()` kann seitdem
+per Konstruktion nie mit einem stale oder verdictlosen Report zurückkehren; die Konsumenten in
+Phase 2 und 5 brauchen keine eigene Prüfstelle.
+
 **Regel für neue Guards dieser Art:** Ein Guard, der Erfolg an einem **Artefakt** statt am
 Exit-Code misst, braucht immer zusätzlich einen Frische-Nachweis für dieses Artefakt – sonst
-belegt er nur, dass die Datei existiert, nicht dass der aktuelle Aufruf sie erzeugt hat.
+belegt er nur, dass die Datei existiert, nicht dass der aktuelle Aufruf sie erzeugt hat. Dieser
+Nachweis gehört **auf allen Rückkehrpfaden, nicht nur im Fehlerpfad** ausgewertet: der
+Erfolgspfad ist der wahrscheinlichere Weg zum stale Artefakt, weil dort der saubere Exit-Code
+die Prüfung „überflüssig" wirken lässt (#312). Und er verlangt zusätzlich, dass das Artefakt
+**auswertbar** ist – frisch, aber inhaltlich leer, ist genauso wenig ein Beleg.
 
 ### `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91)
 
