@@ -1,8 +1,16 @@
 # Security Review: Task 315
 
-**Scope:** `git diff origin/main...HEAD` (11 Dateien, +838/−14) – Doku-Konvention +
+**Scope:** `git diff origin/main...HEAD` (16 Dateien, +1052/−14) – Doku-Konvention +
 Test-Guard, kein Applikations-Laufzeitcode.
 **Durchgeführt:** 2026-08-27 · Persona `docs/factory/agents/security-agent.md`
+
+**Nachtrag (2026-08-27, nach Review-Runde 5 + Refactor):** Seither drei weitere Commits –
+der W1-Fix (`docs/specs/`-Anker, reiner Text in `git-workflow.md`/Spec), eine zusätzliche
+`run-tests.sh`-Assertion für dieselbe Zweifelsregel-Phrase, und die Refactor-Nachträge
+(symmetrische App-Anker-Kontrolle für `CONTRIBUTING.md`, Codify-Report-Korrektur). Alle neuen
+Assertionen folgen demselben bereits geprüften Muster (`assert_contains_286`/`assert_absent`
+gegen `flat_286`-Literale, kein `eval`, keine Interpolation in eine Shell-Zeile) – keine neue
+Angriffsfläche, `app/`/`db/`/`lib/` weiterhin unberührt. Bewertung unverändert **PASSED**.
 
 ## Kritische Findings (Blocker)
 
