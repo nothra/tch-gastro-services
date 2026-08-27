@@ -108,6 +108,11 @@ committet), dann Doku + Guard im selben PR.
   Phase-1-Fragen wurde nicht blind ersetzt, sondern als *entschieden* umformuliert – ein
   Blind-Replace hätte daraus die falsche Aussage „kebab-case mit Unterstrich" gemacht.
 
+- **Abschluss-Gate-Lauf (2026-08-27, nach dem `git apply`):** Bash-Self-Test-Suite **1246 grün,
+  0 rot**; `scripts/checks/pre-push.sh` grün (Vitest 736 passed/59 skipped, Typecheck, Prettier,
+  Routen-Doku-Drift, Hooks-Check, Branch-Guard). Scratch-Artefakte vor dem Lauf entfernt
+  (Lesson #312), `PR_SHEPHERD`/`FACTORY_STAGE` unset (Lesson #262).
+
 **Blocker 2026-08-27: erledigt.** `.claude/**` ist für den Agenten hard denied
 (`Edit(.claude/**)`, #88-Grenze) – die drei Skill-Doku-Änderungen lagen deshalb als Patch
 bereit. Der Mensch hat `git apply tasks/patch-315.diff` ausgeführt; die vier zuvor roten
@@ -124,7 +129,7 @@ Runde 1 (`tasks/review-315.md`, Empfehlung **NEEDS_REWORK**) – Rework am 2026-
 | # | Finding | Status |
 |---|---------|--------|
 | K1 | AK8 nicht angewandt → Suite/CI rot | behoben: Patch am 2026-08-27 durch den Menschen via `git apply` angewandt, Suite 1246/0 |
-| K2 | Implementierung unkommittiert, Folge-Skills sähen leeren Diff | wird mit dem Rework-Commit geschlossen (direkt nach K1) |
+| K2 | Implementierung unkommittiert, Folge-Skills sähen leeren Diff | behoben: Rework-Commit `87bf67f` committet **und** nach `origin/docs/315-…` gepusht (2026-08-27); `git diff origin/main...HEAD` zeigt alle elf Dateien |
 | K3 | AK10-Allowlist deckt nur zwei der #315-Papierspuren → Falle für die eigene Pipeline | behoben: Pfadspec auf `tasks/*315*` geweitet (deckt Review-/Security-/Coverage-/Codify-Report), Begründung im WHY-Kommentar; je Ausnahme-Pfadspec eine Kontrolle in beide Richtungen |
 | W1 | AK10-Live-Scan fail-open (`2>/dev/null` + leerer Output = grün) | behoben: `2>/dev/null` entfernt, Positivkontrolle mit derselben Aufrufform auf den **neuen** Namen läuft **vor** der Abwesenheits-Assertion |
 | W2 | Mutationsbeleg je Fundstelle tautologisch (`grep -v X` → `grep X`) | behoben: Mutations-Anker ist jetzt die **beschreibende** Zeile (ohne Label-Name), geprüft wird die Phrase, die Label **an** Beschreibung bindet – verschiedene Prädikate; „Mutation greift wirklich" misst die Zeilenzahl statt das Suchmuster |
