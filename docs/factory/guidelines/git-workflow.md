@@ -142,7 +142,8 @@ viele *Aspekt*-Labels"**.
 
 > **`factory-pipeline` trennt Werkzeug von Produkt** (aus #315): Das Label beantwortet – anders
 > als die übrigen Aspekt-Labels – nicht „welche Dimension zusätzlich", sondern „welches
-> Subsystem". Es entscheidet sich an den berührten Pfaden:
+> Subsystem". Es entscheidet sich an den berührten Pfaden (Anker jeweils ab der Repo-Wurzel
+> gelesen):
 >
 > - **Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.
 > - **TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.
@@ -152,7 +153,8 @@ viele *Aspekt*-Labels"**.
 > sind u. a.:
 > Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`,
 > `docs/specs/` (Ablagekonvention statt Subsystem-Grenze – enthält sowohl Produkt- als auch
-> Factory-Harness-Specs, siehe z. B. diese Spec selbst).
+> Factory-Harness-Specs, siehe z. B.
+> `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`).
 > Die Regel ist einseitig fail-safe – genau wie „im Zweifel Issue" im Abschnitt „Schwelle:
 > Issue oder Sammeldatei": ein zu viel gesetztes Label kostet einen Filterklick, ein fehlendes
 > macht Factory-Arbeit im Backlog unsichtbar. Genau darin liegt der Nutzen – ohne das Label ist
