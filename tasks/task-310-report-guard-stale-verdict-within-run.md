@@ -5,7 +5,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -190,6 +190,24 @@ Behebt die drei kosmetischen Nitpicks aus Review-Runde 3 (kein neues Verhalten):
 - **Gates:** Bash-Suite **1127 grün, 0 rot** (unverändert zur Vor-Refactor-Zahl – reine
   Struktur-/Doku-Änderung, keine neue Assertion nötig); `bash scripts/checks/pre-commit.sh`
   (inkl. Lint) grün.
+
+### Security-Review (`/security-review`, 2026-08-27)
+
+Verdict **PASSED** (Bericht: [`tasks/security-310.md`](security-310.md)) – keine kritischen
+Findings, keine im Scope dieses PR zu behebenden Findings. Ein wichtiges Finding ist
+**vorbestehend und außerhalb des Scopes**: der Verdict-**Konsum** in Phase 5
+(`run-pipeline.sh:504`) läuft fail-open, wenn `claude` mit Exit 0 endet, ohne den Report zu
+schreiben – ein leeres oder stales Verdict passiert das Security-Gate. Ein Backstop existiert
+dafür nicht (`lib/verify-final-state.sh` prüft weder Report-Existenz noch Verdict). Bereits als
+**#312** getrackt; dort wurde in dieser Review das fehlende Aspekt-Label **`security`** ergänzt
+(vorher nur `bug` + `tech-debt`). Kein neues Issue, kein `kleinfunde.md`-Eintrag.
+
+Positiv vermerkt: Der PR schließt die Fail-open-Richtung im Guard selbst (#91: committeter
+`security-<id>.md` mit `PASSED` galt als frischer Erfolg), hält alle neuen Zweige fail-closed
+(`ABSENT`/`UNREADABLE`/`NO_REPORT_SKILL`), erhält die Interrupt-Stopp-Bedingung im Stale-Zweig
+und lässt keinen agenten-erzeugten Text in das neue `echo -e` gelangen (`report_verdict` druckt
+nur die vier Literale). Kein `eval`, keine ungequoteten Expansionen, keine Secrets, keine
+Dependency-Änderung.
 
 ## Codify-Notizen
 
