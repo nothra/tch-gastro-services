@@ -6617,6 +6617,248 @@ assert_contains_286 "$operating_flat_312" 'nur ein eindeutiges `PASSED`' \
 assert_contains_286 "$operating_flat_312" 'ein fehlender oder mehrdeutiger Verdict stoppt genauso' \
   "#312 AK13: OPERATING.md §4.2 nennt den fehlenden/mehrdeutigen Verdict als Stopp-Grund"
 
+# ─── #315: Aspekt-Label factory-pipeline in allen Label-Aufzählungen ─────────
+# Warum ein Grep-Guard: Der Seam scripts/lib/create-issue.sh validiert Labels bewusst nicht
+# gegen eine eigene Liste (ADR-018 §3) – die Doku ist damit die EINZIGE Instanz, die ein Label
+# überhaupt anbietet. Fällt eine der Aufzählungen zurück, vergibt weder Mensch noch Skill das
+# Label mehr (beobachtet an #314, das manuell nachgelabelt werden musste).
+echo ""
+echo "#315: Aspekt-Label factory-pipeline in allen sieben Fundstellen (AK2–AK9):"
+
+NEW_LABEL_315="factory-pipeline"
+# Der ALTE Name wird zur Laufzeit zusammengesetzt (\137 = Unterstrich), damit diese Datei ihn
+# nicht selbst im Klartext trägt. Sonst müsste der Regressions-Scan aus AK10 run-tests.sh
+# allowlisten – und wäre gerade für die Datei blind, die ihn ausführt.
+OLD_LABEL_315="factory$(printf '\137')pipeline"
+
+# Die sieben Fundstellen der Label-Konvention: eine kanonische (git-workflow.md) und sechs
+# abgeleitete (die letzten drei sind die AK8-Skill-Dokus). Reihenfolge = Sweep-Reihenfolge der
+# Task, damit ein Rot direkt zeigt, welche Ebene zurückgefallen ist.
+#
+# Drei parallel indizierte Arrays je Fundstelle:
+#   FILES   – die Datei.
+#   PHRASES – geprüft wird die Phrase, die das Label AN SEINE BESCHREIBUNG bindet, nicht der
+#             nackte Label-Name: ein Ganzdatei-Grep bliebe grün, wenn `factory-pipeline`
+#             irgendwo sonst in der Datei steht statt in der Aspekt-Aufzählung. Geprüft wird
+#             gegen flat_286, die Phrase darf also über Zeilenumbrüche laufen – aber nicht über
+#             Blockquote-Präfixe und nicht über Mehrfach-Leerzeichen (flat_286 squeezt sie).
+#   ANCHORS – Ankerzeile der Mutation. Bewusst die BESCHREIBENDE Hälfte der Fundstelle, in der
+#             der Label-Name selbst nicht vorkommt. Damit sind Mutations-Prädikat und
+#             Assertions-Prädikat verschieden – eine Mutation über den Suchbegriff selbst wäre
+#             nur die Negation ihrer eigenen Definition und belegte nichts
+#             (testing-standards.md → „nicht gegen das Objekt-under-Test selbst", Lesson #286).
+LABEL_DOC_FILES_315=(
+  "docs/factory/guidelines/git-workflow.md"
+  "CONTRIBUTING.md"
+  "docs/factory/OPERATING.md"
+  "scripts/start-work.sh"
+  ".claude/commands/codify.md"
+  ".claude/commands/review.md"
+  ".claude/commands/security-review.md"
+)
+LABEL_DOC_PHRASES_315=(
+  '| `factory-pipeline` | Arbeit am **Factory-Harness**'
+  'Aspekt-Label: `factory-pipeline`.'
+  '**null bis mehrere Aspekt-Labels** (`security` · `tech-debt` · `test` · `factory-pipeline`)'
+  'FACTORY_ASPECT_LABELS=… optionale Aspekt-Labels (CSV: security,tech-debt,test,factory-pipeline)'
+  '**Aspekt-Labels** (`security`/`tech-debt`/`test`/`factory-pipeline`)'
+  '**Aspekt-Labels** (`security`/`tech-debt`/`test`/`factory-pipeline`)'
+  '`security` – dazu `factory-pipeline`, wenn der Fund den Factory-Harness'
+)
+LABEL_DOC_ANCHORS_315=(
+  'Arbeit am **Factory-Harness** (Pipeline'
+  'Aspekt-Label: '
+  'null bis mehrere Aspekt-Labels'
+  'FACTORY_ASPECT_LABELS=…   optionale Aspekt-Labels'
+  '+ passende **Aspekt-Labels**'
+  '+ passende **Aspekt-Labels**'
+  'wenn der Fund den Factory-Harness und nicht die App'
+)
+
+TMP_315="$(mktemp -d)"
+
+i_315=0
+while [ "$i_315" -lt "${#LABEL_DOC_FILES_315[@]}" ]; do
+  rel_315="${LABEL_DOC_FILES_315[$i_315]}"
+  phrase_315="${LABEL_DOC_PHRASES_315[$i_315]}"
+  anchor_315="${LABEL_DOC_ANCHORS_315[$i_315]}"
+  src_315="$FACTORY_ROOT/$rel_315"
+  i_315=$((i_315 + 1))
+
+  # Gelesen wird die committete Live-Datei, auch bei den drei .claude/**-Dateien, die per
+  # Patch-Workflow geliefert wurden – nicht das transiente Patch-Artefakt (Lesson #212).
+  assert_contains_286 "$(flat_286 "$src_315")" "$phrase_315" \
+    "#315 AK9: $rel_315 bindet das Label an seine Beschreibung"
+
+  # Mutationsbeleg je Fundstelle: die beschreibende Zeile fällt weg, geprüft wird die Bindung.
+  mut_315="$TMP_315/mut-$(printf '%s' "$rel_315" | tr '/' '_')"
+  grep -vF -- "$anchor_315" "$src_315" > "$mut_315"
+  # Positivkontrolle, dass die Mutation überhaupt greift – gemessen an der Zeilenzahl und
+  # damit unabhängig von beiden Suchmustern. Ohne sie bliebe ein ins Leere laufender Anker
+  # (Zeile umformuliert) unbemerkt und die Abwesenheits-Assertion darunter grün aus dem
+  # falschen Grund (Lesson #214).
+  assert_true "$([ "$(wc -l < "$mut_315")" -lt "$(wc -l < "$src_315")" ]; echo $?)" \
+    "#315 AK9: Mutation greift wirklich ($rel_315 verliert die beschreibende Zeile)"
+  assert_absent "$(flat_286 "$mut_315")" "$phrase_315" \
+    "#315 AK9 (Mutation): ohne sie ist die Aspekt-Aufzählung in $rel_315 rot"
+done
+
+# ── AK2/AK3/AK4: die kanonische Quelle trägt Abgrenzungskriterium, Pfad-Anker (beide Seiten),
+# die Zweifelsregel für den Mischfall und beide abgeleiteten Aufzählungen derselben Datei.
+# Die Tabellenzeile selbst deckt bereits die Schleife oben ab (Fundstelle 1).
+gwf_flat_315=$(flat_286 "$GITWF")
+assert_contains_286 "$gwf_flat_315" 'statt an der TCH-Applikation' \
+  "#315 AK2: die Tabellenzeile nennt das Abgrenzungskriterium Harness vs. Applikation"
+# Je Seite EINE Phrase auf EINER Zeile: der Begleittext steht im Blockquote, und `> `-Präfixe
+# überleben flat_286 nicht (der Helper toleriert nur Leerzeichen-Einrückung).
+assert_contains_286 "$gwf_flat_315" \
+  '**Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.' \
+  "#315 AK3: die Factory-Seite der Grenze ist mit Pfad-Ankern benannt"
+assert_contains_286 "$gwf_flat_315" \
+  '**TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`, `docs/specs/`.' \
+  "#315 AK3: die Applikations-Seite der Grenze ist mit Pfad-Ankern benannt"
+# Ohne Auflösung des Mischfalls wäre die Zuordnung genau dort zirkulär, wo sie gebraucht wird
+# („entscheidet die Seite, auf der die Änderung landet" – wenn sie auf beiden landet, sagt der
+# Satz nichts). AK3 verlangt aber eine Zuordnung ohne Rückfrage.
+assert_contains_286 "$gwf_flat_315" \
+  '**Im Zweifel Label setzen.**' \
+  "#315 AK3: der Mischfall ist einseitig fail-safe aufgelöst"
+assert_contains_286 "$gwf_flat_315" \
+  'Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`' \
+  "#315 AK3: die Zweifelsregel benennt die von beiden Anker-Listen ungedeckten Pfade"
+assert_contains_286 "$gwf_flat_315" \
+  '`bug` + `tech-debt` + `factory-pipeline` für einen Pipeline-Defekt' \
+  "#315 AK4: der Faustregel-Absatz nennt factory-pipeline mit"
+assert_contains_286 "$gwf_flat_315" \
+  '(`security`/`tech-debt`/`test`/`factory-pipeline`) gibt' \
+  "#315 AK4: der start-work.sh-Absatz nennt factory-pipeline mit"
+
+# ── AK5: CONTRIBUTING.md nennt die Beitragsart – und behält den Verweis auf die kanonische
+# Quelle (keine zweite kanonische Liste).
+contrib_flat_315=$(flat_286 "$CONTRIBUTING_MD")
+assert_contains_286 "$contrib_flat_315" '**🏭 Factory / Harness**' \
+  "#315 AK5: CONTRIBUTING.md führt Factory-/Harness-Beiträge als Beitragsart"
+assert_contains_286 "$contrib_flat_315" \
+  '[`docs/factory/guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) beschrieben;' \
+  "#315 AK5: der Verweis auf die kanonische Quelle bleibt bestehen"
+
+# ── AK6: OPERATING.md §1.1 Schritt 3 trennt die beiden Achsen (vorbestehende Drift: die
+# frühere flache Liste führte „genau eins" über Art- UND Aspekt-Labels).
+operating_flat_315=$(flat_286 "$OPERATING_MD")
+assert_contains_286 "$operating_flat_315" \
+  '**genau ein Art-Label** (`bug` · `enhancement` · `documentation`)' \
+  "#315 AK6: Schritt 3 führt „genau eines\" nur noch über die Art-Achse"
+# Die Aspekt-Achse („null bis mehrere", inkl. factory-pipeline) deckt Fundstelle 3 der
+# Schleife oben ab.
+
+# ── AK7: die --labels-Usage-Meldung bleibt ein explizit gekennzeichnetes Beispiel und wird
+# NICHT zur Vollmenge aufgebläht (die Vollmenge steht im Kopfkommentar – Fundstelle 4 oben).
+SW_315="$FACTORY_ROOT/scripts/start-work.sh"
+usage_msg_315="$(grep -F -- '--labels erwartet einen Wert' "$SW_315")"
+assert_contains_286 "$usage_msg_315" 'CSV, z. B. security,test)' \
+  "#315 AK7: die --labels-Usage-Meldung bleibt als Beispiel unverändert"
+assert_absent "$usage_msg_315" "$NEW_LABEL_315" \
+  "#315 AK7: das Usage-Beispiel wird nicht zur vollständigen Menge aufgebläht"
+
+# (Die AK8-Fundstellen selbst – codify.md, review.md, security-review.md – sind die
+# Fundstellen 5–7 der Schleife oben.)
+
+# ── AK10: Regressions-Scan gegen den ALTEN Label-Namen über die getrackten Dateien.
+echo ""
+echo "#315 AK10: der alte Label-Name kommt in keiner getrackten Datei mehr vor:"
+
+# `git grep` liest per Definition nur getrackte Dateien im Arbeitsbaum – damit erbt der Scan
+# die AK10-Forderung „über git ls-files, nicht über das Verzeichnis" und färbt sich nicht an
+# einem ungetrackten Scratch-Artefakt rot (Lesson #312).
+#
+# Ausgenommen ist die vollständige Papierspur DIESER Task: Spec plus alles unter `tasks/`, das
+# die Task-ID trägt (Task-Datei, Review-, Security-, Coverage-, Codify-Report – alle werden am
+# Ende mitcommittet). Sie halten den Rename selbst fest und müssen den alten Namen deshalb im
+# Klartext nennen dürfen – dieselbe Begründung, mit der die Spec ADR-018 §30 und spec-82 als
+# historisches Narrativ unangetastet lässt. Wäre die Ausnahme enger, würde der Guard die eigene
+# Pipeline blockieren, sobald ein Folge-Skill seinen Report schreibt.
+# NICHT ausgenommen sind `docs/factory/lessons/*` und `PROJECT-CONTEXT.md`: das sind lebende
+# Konventions-Dokumente: eine `/codify`-Lesson zu dieser Task verweist auf Task/Spec, statt den
+# alten Namen selbst zu buchstabieren.
+name_hits_315() {
+  git -C "$1" grep -lI -F -e "$2" -- \
+    ':(exclude)docs/specs/spec-315-*' ':(exclude)tasks/*315*'
+}
+
+# Fail-closed-Kontrolle VOR der Abwesenheits-Assertion: dieselbe Aufrufform muss den NEUEN
+# Namen finden. Liest `git grep` nichts (falsches Verzeichnis, kein Repo, kaputtes git), ist
+# seine Ausgabe leer – und eine Abwesenheits-Assertion darauf wäre grün, ohne dass je eine
+# Datei gelesen wurde (Lesson #214: fail-closed bei unlesbarer Quelle).
+assert_true "$([ -n "$(name_hits_315 "$FACTORY_ROOT" "$NEW_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: der Scan liest wirklich getrackte Dateien (findet den neuen Namen)"
+
+hits_315="$(name_hits_315 "$FACTORY_ROOT" "$OLD_LABEL_315")"
+assert_true "$([ -z "$hits_315" ]; echo $?)" \
+  "#315 AK10: keine getrackte Datei außerhalb der #315-Papierspur nennt den alten Namen"
+
+# tracked_repo_315 <name> <datei> <inhalt> → Wegwerf-Repo mit genau einer getrackten Datei.
+# Bewusst NICHT über _mk_pipe_repo/scaffold_310 (die bauen ein vollständiges Factory-Repo für
+# run-pipeline.sh-E2E und hängen an HAS_YQ) und nicht über hi_repo: dessen Repos liegen unter
+# der hartkodierten Basis $TMP_HI, die oberhalb (nach dem #268-Block) bereits per `rm -rf`
+# abgeräumt ist. Lokale Identität, weil ohne sie in einer identitätslosen Umgebung schon der
+# Commit scheitert (Lesson #265).
+tracked_repo_315() {
+  local wt="$TMP_315/$1" rel="$2" content="$3"
+  mkdir -p "$wt/$(dirname "$rel")"
+  printf '%s\n' "$content" > "$wt/$rel"
+  git init -q -b main "$wt" >/dev/null 2>&1
+  git -C "$wt" config user.email t@t
+  git -C "$wt" config user.name t
+  git -C "$wt" add -A >/dev/null 2>&1
+  git -C "$wt" commit -q -m init >/dev/null 2>&1
+  printf '%s\n' "$wt"
+}
+
+# Mutationsbeleg: derselbe Assert-Ausdruck gegen ein Repo, in dem eine getrackte, NICHT
+# allowlistete Datei den alten Namen trägt.
+REPO_OLD_315="$(tracked_repo_315 old-name docs/factory/guidelines/git-workflow.md \
+  "| \`$OLD_LABEL_315\` | Arbeit am Factory-Harness |")"
+hits_mut_315="$(name_hits_315 "$REPO_OLD_315" "$OLD_LABEL_315")"
+assert_true "$([ -n "$hits_mut_315" ]; echo $?)" \
+  "#315 AK10 (Mutation): der alte Name in einer getrackten Doku-Datei macht den Scan rot"
+assert_contains_286 "$hits_mut_315" "docs/factory/guidelines/git-workflow.md" \
+  "#315 AK10 (Mutation): der Scan benennt die Fundstelle"
+
+# Diskriminierungs-Kontrolle: dasselbe Repo ohne den alten Namen bleibt grün – der Scan
+# reagiert auf den Namen, nicht auf die Existenz der Datei.
+REPO_NEW_315="$(tracked_repo_315 new-name docs/factory/guidelines/git-workflow.md \
+  "| \`$NEW_LABEL_315\` | Arbeit am Factory-Harness |")"
+assert_true "$([ -z "$(name_hits_315 "$REPO_NEW_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: derselbe Inhalt mit dem NEUEN Namen bleibt grün"
+
+# Allowlist-Kontrolle in beide Richtungen, je Ausnahme-Pfadspec eine: in der #315-Papierspur
+# darf der alte Name stehen, in einer fremden Spec bzw. einem fremden Task-Report nicht (sonst
+# wäre die Ausnahme ein Loch über ganz docs/specs/ bzw. tasks/).
+REPO_ALLOW_315="$(tracked_repo_315 allow "docs/specs/spec-315-x.md" \
+  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
+assert_true "$([ -z "$(name_hits_315 "$REPO_ALLOW_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: der alte Name im #315-Anforderungsdokument bleibt zulässig"
+REPO_OTHER_315="$(tracked_repo_315 other-spec "docs/specs/spec-999-x.md" \
+  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
+assert_true "$([ -n "$(name_hits_315 "$REPO_OTHER_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: derselbe Satz in einer FREMDEN Spec macht den Scan rot (Allowlist ist kein Loch)"
+REPO_REPORT_315="$(tracked_repo_315 report "tasks/review-315.md" \
+  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
+assert_true "$([ -z "$(name_hits_315 "$REPO_REPORT_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: der alte Name in einem #315-Pipeline-Report bleibt zulässig"
+REPO_OTHERTASK_315="$(tracked_repo_315 other-task "tasks/review-999.md" \
+  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
+assert_true "$([ -n "$(name_hits_315 "$REPO_OTHERTASK_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: derselbe Satz in einem FREMDEN Task-Report macht den Scan rot"
+
+# Lesson #312: ein ungetracktes Scratch-Artefakt mit dem alten Namen darf den Scan nicht
+# rot färben – genau deshalb liest er getrackte Dateien statt das Verzeichnis.
+printf '%s\n' "$OLD_LABEL_315" > "$REPO_NEW_315/scratch.tmp.md"
+assert_true "$([ -z "$(name_hits_315 "$REPO_NEW_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10: ein ungetracktes Scratch-Artefakt mit dem alten Namen lässt den Scan grün"
+
+rm -rf "$TMP_315"
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
