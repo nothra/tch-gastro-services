@@ -1305,3 +1305,20 @@ Repo-Wurzel gelesen"), sonst matcht ein freier Teilstring wie `lib/` auch innerh
 Pfads der anderen Seite (`scripts/lib/create-issue.sh`).
 → `/implement`, `/review` – bei neuem oder geprüftem Pfad-Anker in einer Fail-safe-
 Klassifizierungs-/Tie-Break-Regel
+
+### Wörtlich übernommene Fix-Vorschläge tragen die Deixis ihrer Quelle mit
+
+Review-Runde 4 hatte für Finding W1 einen Fix-Text formuliert, der aus der Sicht des
+Review-Reports geschrieben war und deshalb „siehe z. B. diese Spec selbst" sagte (gemeint:
+`spec-315`, die im Review gerade besprochen wurde). Der Mensch hat diesen Halbsatz beim Fix
+wörtlich in `docs/factory/guidelines/git-workflow.md` übernommen – dort liest ein Mensch aber
+eine Guideline, keine Spec, und „diese Spec selbst" hat kein Antezedens mehr. Review-Runde 5
+fand den Verweis ins Leere.
+
+**Regel:** Wird ein von einem Review/Report vorformulierter Fix-Text wörtlich in eine andere
+Zieldatei übernommen (Guideline, Lesson, Code-Kommentar), vor dem Einfügen jedes deiktische
+Wort („diese/hier/oben/dieser PR") gegen die **Zieldatei-Perspektive** prüfen, nicht gegen die
+Perspektive, in der der Vorschlag geschrieben wurde. Im Zweifel den Bezug explizit machen
+(Dateiname/Pfad statt „diese(r) X").
+→ `/implement`, `/review` – beim wörtlichen Übernehmen eines Fix-Vorschlags aus einem
+Review-/Security-/Codify-Report in eine andere Zieldatei

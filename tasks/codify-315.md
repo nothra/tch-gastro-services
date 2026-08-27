@@ -15,6 +15,13 @@
   Pfad-Anker in einer Fail-safe-Klassifizierungs-/Tie-Break-Regel. Zusätzlich in derselben
   Regel mitgezogen: Anker sollten explizit als Repo-Wurzel-Präfix ausgewiesen sein (Nitpick aus
   derselben Runde – `lib/` matcht sonst als freier Teilstring auch in `scripts/lib/`).
+- **`docs/factory/lessons/factory-workflow.md`** (+ Index-Zeile): „Wörtlich übernommene
+  Fix-Vorschläge tragen die Deixis ihrer Quelle mit" – wegen: der W1-Fix hat den von
+  Review-Runde 4 vorformulierten Halbsatz „siehe z. B. diese Spec selbst" wörtlich in
+  `git-workflow.md` übernommen; dort ohne Antezedens, weil „diese Spec" aus der Perspektive
+  des Review-Reports geschrieben war, nicht der Guideline. Review-Runde 5 fand den Verweis ins
+  Leere. Trigger: `/implement`, `/review` – beim wörtlichen Übernehmen eines Fix-Vorschlags aus
+  einem Review-/Security-/Codify-Report in eine andere Zieldatei.
 
 ### Keine Änderungen nötig (geprüft, aber verworfen)
 
