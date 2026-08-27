@@ -6116,12 +6116,14 @@ STUB_G310
     "#310 Interrupt/Stale: Blocker-Eintrag landet in der Task-Datei"
 
   # ── Mutationsbeleg dazu: dieselben Assert-Ausdrücke gegen eine run-pipeline.sh, in der NUR
-  # der `interrupt-check.sh`-Aufruf des Stale-Zweigs fehlt (awk löscht die erste solche Zeile
-  # NACH der Stale-Meldung – die beiden Erfolgs-Zweige bleiben unberührt).
-  # Anker ist die exakte AUFRUF-Zeile, nicht der Dateiname: gegen ein Fragment gematcht
+  # der Stop-bei-Interrupt-Aufruf des Stale-Zweigs fehlt (awk löscht die erste solche Zeile
+  # NACH der Stale-Meldung – die beiden Erfolgs-Zweige bleiben unberührt). Seit /refactor steht
+  # der Aufruf über die Helper-Funktion stop_if_interrupted() (Dedup der zuvor dreifachen
+  # Aufrufzeile, #310 Review-Runde-3-Nitpick).
+  # Anker ist die exakte AUFRUF-Zeile, nicht der Funktionsname: gegen ein Fragment gematcht
   # erwischte die Mutation zuerst die Erwähnung im WHY-Kommentar darüber und ließ den echten
   # Aufruf stehen (Lesson factory-workflow.md, #114 – „Kommando ≠ Prosa-Erwähnung").
-  IC_CALL_310='bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh"'
+  IC_CALL_310='stop_if_interrupted "$task_id"'
   TMP_H310="$(mktemp -d)"
   scaffold_310 "$TMP_H310" 316
   awk -v call="$IC_CALL_310" '

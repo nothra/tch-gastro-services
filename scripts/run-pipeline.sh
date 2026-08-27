@@ -214,6 +214,13 @@ MAX_TURNS="${MAX_TURNS:-}"                          # Optional: globaler Overrid
 MAX_REVIEW_ITERATIONS="${MAX_REVIEW_ITERATIONS:-2}"  # Überschreibbar: MAX_REVIEW_ITERATIONS=3 bash scripts/run-pipeline.sh 42
 REVIEW_ITERATION=0
 
+# Stoppt die Pipeline hart, wenn für die Task ein Interrupt signalisiert wurde (ADR-004) –
+# run_skill() braucht denselben Aufruf an drei Stellen (Erfolg, frischer Verdict, stale
+# Verdict). Kein signalisierter Interrupt → Exit 0, Rückkehr zum Aufrufer.
+stop_if_interrupted() {
+  bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$1" || exit $?
+}
+
 run_skill() {
   local skill="$1"
   local task_id="$2"
@@ -262,7 +269,7 @@ run_skill() {
         --max-turns "$turns" 2>&1; then
       echo -e "${GREEN}✓${NC} /${skill} abgeschlossen"
       # Hat der Agent einen Interrupt signalisiert? Dann hart stoppen.
-      bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?
+      stop_if_interrupted "$task_id"
       return 0
     fi
 
@@ -277,17 +284,20 @@ run_skill() {
     if [ -n "$verdict" ] && [ "$report_fingerprint_now" != "$report_fingerprint_before" ]; then
       echo -e "${GREEN}✓${NC} /${skill} abgeschlossen (Verdict '${verdict}' – Report in diesem Aufruf geschrieben, Turn-Limit toleriert)"
       # Auch hier: ein signalisierter Interrupt stoppt hart (kein stiller Übergang).
-      bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?
+      stop_if_interrupted "$task_id"
       return 0
     fi
     if [ -n "$verdict" ]; then
       echo -e "${YELLOW}⚠${NC} /${skill}: Verdict '${verdict}' stammt aus einem früheren Aufruf (Report in diesem Aufruf unverändert) – kein Erfolg."
-      # Auch ein Fehlversuch darf einen signalisierten Interrupt nicht verschlucken: vor #310
-      # lief dieser Fall in den (damals erfolgreichen) Verdict-Zweig und stoppte dort hart.
-      # Ohne diese Zeile folgten zwei weitere Heavy-Versuche desselben Skills, und der
-      # Blocker-Eintrag in der Task-Datei entfiele (#310 Review-Runde-2-Nitpick). Liegt kein
-      # Interrupt vor, bleibt es beim regulären Fehlversuch (Exit 0 aus interrupt-check.sh).
-      bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$task_id" || exit $?
+      # Auch der Stale-Fall darf einen signalisierten Interrupt nicht verschlucken: vor #310
+      # lief er in den (damals erfolgreichen) Verdict-Zweig und stoppte dort hart. Ohne diese
+      # Zeile folgten zwei weitere Heavy-Versuche desselben Skills, und der Blocker-Eintrag in
+      # der Task-Datei entfiele (#310 Review-Runde-2-Nitpick). Liegt kein Interrupt vor, bleibt
+      # es beim regulären Fehlversuch (Exit 0 aus interrupt-check.sh). Der allgemeine Fall ohne
+      # Verdict (fehlender/unvollständiger Report, nicht report-erzeugende Skills) bleibt hier
+      # bewusst außen vor – vorbestehender Zustand, kein Scope dieses Fixes (#310
+      # Review-Runde-3-Nitpick).
+      stop_if_interrupted "$task_id"
     fi
 
     if [ "$attempt" -lt 3 ]; then

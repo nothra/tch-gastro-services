@@ -89,9 +89,7 @@ fail-open ohne jedes Review). Weil `run_skill()` den Fingerprint pro Aufruf erhe
 Prüfung beide Fälle mit derselben Mechanik ab. Die Skill→Report-Datei-Zuordnung liegt dazu
 ebenfalls nur in der Lib (`report_file`); `run-pipeline.sh` baut keinen Report-Pfad mehr selbst.
 
-Für alle anderen Skills bleibt non-zero = Fehlversuch. Nach dem als-Erfolg-gewerteten Abbruch –
-und ebenso im Stale-Zweig – läuft `interrupt-check.sh` (kein stiller Übergang bei
-signalisiertem Interrupt).
+Für alle anderen Skills bleibt non-zero = Fehlversuch.
 
 **5 · Budget-Puffer.** `factory.defaults.yml`: `max_turns` von `8` auf **14** für `review` und
 `security-review` (mit `@reason`) – zusätzlich zum Guard, nicht als Ersatz.

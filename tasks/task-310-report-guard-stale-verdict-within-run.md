@@ -6,7 +6,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -164,6 +164,32 @@ Nitpick im Bericht unter „Rework Runde 2":
   Original-Assert-Ausdruck negiert aus, wie das #286-Learning es für Mutationsbelege verlangt;
   `[ -n … ]` wäre ein anderer Operator und damit ein schwächerer Beleg (gleiches Muster
   bereits bei `:5843`).
+
+### Refactoring (`/refactor`, 2026-08-27)
+
+Behebt die drei kosmetischen Nitpicks aus Review-Runde 3 (kein neues Verhalten):
+
+- **Dreifache Aufrufzeile dedupliziert (Nitpick 2):** `bash "$FACTORY_DIR/scripts/checks/
+  interrupt-check.sh" "$task_id" || exit $?` stand identisch an drei Stellen in `run_skill()`
+  (Erfolg, frischer Verdict, stale Verdict). Neue Helper-Funktion `stop_if_interrupted()`
+  (`scripts/run-pipeline.sh`, vor `run_skill()`) bündelt sie; `exit` darin wirkt weiterhin aufs
+  ganze Skript, da kein Subshell-Aufruf. Der Mutationsbeleg in `run-tests.sh` (#310
+  Interrupt/Stale) ankert jetzt auf der neuen Aufrufzeile (`IC_CALL_310='stop_if_interrupted
+  "$task_id"'`) statt auf der alten Roh-Zeile – im selben Commit mitgezogen, wie von der
+  Review-Notiz gefordert (sonst #114-Klasse: Guard wird lautlos wirkungslos).
+- **WHY-Kommentar verengt (Nitpick 1):** der Kommentar im Stale-Zweig argumentierte allgemein
+  ("Auch ein Fehlversuch darf …"), obwohl die Ausnahme nur für den Verdict-vorhanden-Fall gilt.
+  Umformuliert auf "Auch der Stale-Fall …" plus expliziter Satz, dass der allgemeine Fall ohne
+  Verdict bewusst außen vor bleibt (vorbestehender Zustand, kein Scope dieses Fixes).
+- **ADR-019 §4 Doppelnennung entfernt (Nitpick 3):** die Interrupt-Ausnahme stand zweimal; der
+  ältere, allgemeinere Satz am Absatzende ist auf seinen Kernsatz ("Für alle anderen Skills
+  bleibt non-zero = Fehlversuch.") reduziert, die Erklärung bleibt einmalig im #310-Absatz.
+- **Bewusst unangetastet:** die Subshell in `report_verdict` (Review-Runde-1-Entscheidung) und
+  die doppelte Verneinung in `run-tests.sh:5799` (Review-Runde-2/3-Entscheidung, Mutationsbeleg
+  braucht denselben negierten Ausdruck).
+- **Gates:** Bash-Suite **1127 grün, 0 rot** (unverändert zur Vor-Refactor-Zahl – reine
+  Struktur-/Doku-Änderung, keine neue Assertion nötig); `bash scripts/checks/pre-commit.sh`
+  (inkl. Lint) grün.
 
 ## Codify-Notizen
 
