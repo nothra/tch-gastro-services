@@ -6758,6 +6758,13 @@ assert_contains_286 "$gwf_flat_315" "$anchors_315" \
   "#315 AK5 (Kontrolle): die Anker-Liste ist über genau diesen Ausdruck auffindbar"
 assert_absent "$contrib_flat_315" "$anchors_315" \
   "#315 AK5: CONTRIBUTING.md verweist auf die Pfad-Anker, statt sie zu kopieren"
+# Symmetrisch für die App-Seite (Lesson #197: Guard symmetrisch auf alle Inputs) – eine
+# wörtliche Kopie der App-Anker nach CONTRIBUTING.md wäre sonst unbemerkt geblieben.
+app_anchors_315='`app/`, `db/`, `lib/`'
+assert_contains_286 "$gwf_flat_315" "$app_anchors_315" \
+  "#315 AK5 (Kontrolle): die App-Anker-Liste ist über genau diesen Ausdruck auffindbar"
+assert_absent "$contrib_flat_315" "$app_anchors_315" \
+  "#315 AK5: CONTRIBUTING.md verweist auch bei den App-Ankern, statt sie zu kopieren"
 
 # ── AK6: OPERATING.md §1.1 Schritt 3 trennt die beiden Achsen (vorbestehende Drift: die
 # frühere flache Liste führte „genau eins" über Art- UND Aspekt-Labels).

@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -202,6 +202,12 @@ sonst wird die Suite rot.
 
 Randnotiz (nicht Scope): #285 sowie ggf. #166 sind Factory-Arbeit ohne das Label (Stand
 2026-08-27; #316 ist inzwischen unabhängig von dieser Task gelabelt).
+
+**Refactoring (2026-08-27):** Diff ist überwiegend Prosa + ein sorgfältig kommentierter
+Bash-Test-Block – kein neues Verhalten eingeführt. Zwei Review-Runde-5-Nitpicks behoben:
+symmetrische Anti-Duplikat-Kontrolle für die App-Anker in `CONTRIBUTING.md` (Lesson #197,
+`run-tests.sh`) ergänzt, sowie die veraltete „W1 offen"-Aussage in `tasks/codify-315.md`
+nachgezogen. Suite 1257/0, `pre-push.sh` grün.
 
 ---
 Branch: `docs/315-factory-pipeline-label-dokumentieren`

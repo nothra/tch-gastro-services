@@ -40,8 +40,10 @@ Review-Runde 4 (Empfehlung **APPROVED**) hat ein „wichtiges" Finding (W1: `doc
 falsch der App-Seite zugeordnet) offen gelassen und dem Menschen zwei Wege zur Wahl gestellt
 (Drei-Zeilen-Fix jetzt vs. Issue als Schuld). Das ist eine Review-Entscheidung, keine
 Codify-Aufgabe – die hier neu geschriebene Lesson dokumentiert das *Muster*, das den Fund erst
-in Runde 4 sichtbar machte, behebt aber nicht den Fund selbst. Diese Entscheidung bleibt beim
-Menschen vor dem Merge.
+in Runde 4 sichtbar machte, behebt aber nicht den Fund selbst.
+
+**Nachtrag:** Der Mensch hat sich für Option 1 entschieden – W1 ist behoben (Commit `7b4d288`,
+nachgeprüft in Review-Runde 5).
 
 ### Empfehlung für nächste Features
 
