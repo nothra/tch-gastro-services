@@ -1253,3 +1253,27 @@ Diese Korrektur ist reine PR-Metadaten-Pflege (kein Code-/Dokuänderung im Branc
 rechtfertigt für sich allein **keinen** vollen `/implement`-Rücksprung, wenn sie sofort
 nachgezogen wird – sie sollte aber nicht erst `/pr-shepherd` überlassen werden, da dessen
 Merge-Freigabe sonst auf einer unvollständigen Task-Datei aufsetzt.
+
+### Content-scannender Anti-Regressions-Guard in run-tests.sh ist blind für Tracked-Status (aus #312, zweimal in derselben Task)
+
+Der Gotcha-Guard „kein `grep -c … || echo`-Muster in scripts/" (`run-tests.sh`, Zeile ~1269)
+durchsucht `$SCRIPTS_DIR` **inhaltlich per `grep -r`** – nicht nur `git ls-files`. Während der
+Review-Runden 2 **und** 3 derselben Task blieben gitignorete Wegwerf-Dateien
+(`scripts/review312*.tmp.sh`, `scripts/review312r3-out.tmp.txt` – Konvention aus
+[[throwaway-scripts-and-redirection]]) im Arbeitsbaum liegen. Eine davon war ein geloggtes
+Test-Output, das die verbotene Muster-**Beschreibung** selbst als Text enthielt (die Meldung
+„kein 'grep -c … || echo'-Muster …" der bestandenen Assertion) – der Guard schlug dadurch fälsch
+rot, obwohl kein getrackter Code das Muster enthielt. `git status` blieb währenddessen sauber,
+weil die Dateien ignoriert sind – der rote Testlauf sah zunächst wie eine echte Regression aus.
+
+**Regel:** Schlägt ein **inhaltlich über ein ganzes Verzeichnis grep-ender** Anti-Regressions-
+Guard (nicht nur Wiring-/Anker-Checks auf einzelne Zieldateien) unerwartet fehl, **zuerst**
+`git status --ignored` im betroffenen Verzeichnis prüfen, bevor der Fund als Code-Regression
+behandelt wird – ein gitignoretes Scratch-/Log-Artefakt aus einer vorherigen Session kann
+das verbotene Muster rein textuell enthalten (auch als Log-Zeile einer **bestandenen**
+Assertion, die das Muster nur beschreibt). Gefundene `*.tmp.*`-Reste vor dem nächsten
+Suite-Lauf entfernen, nicht den Guard abschwächen oder auf getrackte Dateien einschränken
+(der Schutzzweck – kein Wildwuchs des Gotchas irgendwo im Arbeitsbaum – bleibt bestehen).
+→ `/review`, `/test`, `/refactor`, `/security-review` – bei unerwartetem Rot eines
+verzeichnisweiten Content-Scan-Guards in `run-tests.sh`, obwohl `git status` (ohne `--ignored`)
+sauber ist
