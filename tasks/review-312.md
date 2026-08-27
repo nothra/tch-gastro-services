@@ -1,176 +1,211 @@
 # Review: Task 312
 
-Grundlage: `git diff origin/main...HEAD` (10 Dateien, +1073/−64),
+Grundlage: `git diff origin/main...HEAD` (10 Dateien, +1268/−65),
 `docs/specs/spec-312-verdict-konsum-frische-pruefung.md`,
 `tasks/task-312-verdict-konsum-frische-pruefung.md`, ADR-019 §4.
 
-**Runde 2** – Anlass ist der Rework-Commit `b2e211b` (zwei wichtige Findings + fünf Nitpicks aus
-Runde 1). Er enthält Code-Änderungen (`run-pipeline.sh`, `report-verdict.sh`: neues Prädikat
-`is_report_skill`, einmaliges Verdict-Lesen, neuer Dry-Run-Anker) und war damit von keiner
-Review-Runde geprüft. Verlauf der Runde 1 steht unten unter „Historie".
+**Runde 3** – Anlass ist der Commit `fece557` (AK12-`NEEDS_FIXES`-Richtung am unmutierten Gate +
+Doku-Entdopplung in ADR-019/OPERATING.md) aus dem Rework der Runde 2. Er ist reine Test- und
+Doku-Änderung; Produktionscode ist seit `b2e211b` unverändert. Verlauf der Runden 1 und 2 steht
+unten unter „Historie".
 
-Gate-Nachlauf in dieser Session: `env -u PR_SHEPHERD -u FACTORY_STAGE bash
-scripts/checks/tests/run-tests.sh` → **1193 grün, 0 rot** (111 s, Lesson #262/#264),
-`git status` sauber, PR #313 trägt `Closes #312`.
+Gate-Nachlauf in dieser Session: `unset PR_SHEPHERD FACTORY_STAGE` + volle Bash-Suite
+(`scripts/checks/tests/run-tests.sh`) → **1203 grün, 0 rot**, Exit 0 (Lesson #262/#264);
+`git status` sauber (die Wegwerf-Skripte liegen unter `scripts/*.tmp.*` und sind gitignored).
 
-> **Circuit Breaker:** Dies ist die zweite Review-Anwendung von drei. Kein Abbruch-Fall –
-> Runde 1 endete mit `NEEDS_REWORK`, alle sieben Findings sind umgesetzt, und der eine offene
-> Punkt unten ist ein neuer Fund am nachgezogenen Stand, keine ungelöste Kontroverse.
+> **Circuit Breaker:** Dies ist die **dritte und damit letzte** Review-Anwendung
+> (CLAUDE.md: „max. 3 Review↔Implement-Iterationen, dann eskalieren"). Es liegt **kein**
+> ungelöster Konflikt vor – die Findings der Runden 1 und 2 sind umgesetzt und in dieser Runde
+> nachgeprüft. Der eine offene Punkt unten ist ein **neuer** Fund am nachgezogenen Stand, und
+> zwar an einer Zeile, die der Rework der Runde 1 selbst geschrieben hat. Er ist textlich
+> (Kommentar + ein Assertion-Label), ändert kein Verhalten und braucht keine vierte
+> Implement-Runde im Sinne des Breakers – siehe „Empfehlung".
 
 ## Kritische Findings (müssen behoben werden)
 
-_Keine._ Der Guard selbst ist korrekt und vollständig:
+_Keine._ Guard, Gate-Polarität und Retry-Semantik sind in dieser Runde erneut gegen den Code
+geprüft, nicht gegen die Task-Notizen:
 
-- **Symmetrie hält per Konstruktion.** `run-pipeline.sh:279-341`: der Exit-Code wird
-  `set -e`-sicher eingesammelt (`if … then rc=0; else rc=$?; fi`), beide Rückkehrpfade laufen
-  durch **denselben** `report_is_fresh_and_valid`-Aufruf mit **demselben** Snapshot
-  (`report_fingerprint_before`, weiterhin genau einmal oberhalb der Retry-Schleife). Es gibt
-  keinen Pfad mehr, auf dem `run_skill()` mit `return 0` zurückkehrt, ohne den Fingerprint
-  angesehen zu haben – `:318` ist der einzige `return 0` für report-erzeugende Skills und liegt
-  hinter der Bedingung.
-- **Reihenfolge Interrupt → Frische ist richtig herum** (`:295-297` vor `:310`): AK5 verlangt
-  Vorrang des harten Stopps, und die zweite `stop_if_interrupted`-Stelle im Stale-Zweig (`:328`)
-  ist auf dem Exit-0-Pfad damit nachweislich unerreichbar (der erste Aufruf hätte schon
-  `exit`iert) – kein Doppel-Blocker-Eintrag in der Task-Datei.
-- **Gate-Polarität fail-closed und ohne Loch** (`:549-558`): `run_skill()` garantiert einen
-  frischen, eindeutigen Verdict, das Gate blockiert zusätzlich alles außer `PASSED`; die
-  Dry-Run-Ausnahme ist die einzige Abschwächung und spiegelt die bereits bestehende Ausnahme
-  der Endzustands-Verifikation (ADR-040).
-- **AK7 ist jetzt explizit statt implizit:** vor dem Fix trug die leere `report_verdict`-Ausgabe
-  die Unterscheidung, jetzt trennt `is_report_skill` die beiden Welten sichtbar – und die
-  ADR-Zusage „für alle anderen Skills entscheidet allein der Exit-Code" ist am Code ablesbar.
+- **Symmetrie hält per Konstruktion.** `run-pipeline.sh:279-341`: Exit-Code wird `set -e`-sicher
+  eingesammelt, **beide** Rückkehrpfade laufen durch denselben `report_is_fresh_and_valid`-Aufruf
+  (`:310`) mit demselben Snapshot (`:273`, weiterhin genau einmal oberhalb der Retry-Schleife).
+  `:318` ist der einzige `return 0` für report-erzeugende Skills und liegt hinter der Bedingung;
+  `:340` gilt per `elif` nur für nicht report-erzeugende Skills.
+- **AK5-Vorrang ist strukturell, nicht nur getestet:** `:295-297` liegt vor `:310`, und der
+  Mutant belegt das per Positions-Assertion, nicht per Anzahl.
+- **Gate fail-closed:** `:549-558` – Dry-Run-Ausnahme zuerst, danach passiert ausschließlich ein
+  eindeutiges `PASSED`. Der `${SECURITY_VERDICT:-kein eindeutiger Verdict}`-Fallback ist trotz
+  der `run_skill()`-Garantie richtig: die Spec verlangt das Gate ausdrücklich unabhängig von
+  dieser Garantie (defense in depth), und der TMP_MC312-Mutant fährt genau diesen Zweig.
+- **Neu in dieser Runde geprüft (Runde-2-Rework):** TMP_F312 fährt die `NEEDS_FIXES`-Richtung am
+  **unmutierten** Gate mit gegenteiligem Vorbestand (Lesson #253), `assert_absent "failed after
+  3 attempts"` trennt Gate-Abbruch von Retry-Abbruch, und TMP_MF312 dreht die Bedingung über den
+  vorhandenen Anker auf `if false` (ersetzt statt gelöscht). Die ADR-019-Entdopplung hat die
+  Information nicht verloren: der Halbsatz „nur die **Meldung** hängt noch am Exit-Code" steht
+  jetzt im #312-Nachtrag Punkt 1, und beide AK13-Assertionsorte (§4-Körper, #312-Nachtrag) sind
+  weiterhin gepinnt.
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] `scripts/checks/tests/run-tests.sh:6255-6272, 6337-6371` – **AK12 verlangt beide
-      erreichbaren Gate-Richtungen behavioral, belegt ist nur `PASSED`.** Der Wortlaut ist
-      eindeutig: „belegen Tests beide erreichbaren Richtungen behavioral (PASSED → Pipeline läuft
-      weiter; **NEEDS_FIXES → `exit 1` mit der Security-Meldung**)"; die Spec führt denselben Fall
-      zusätzlich als Fehlerszenario („Polaritätswechsel darf diesen Fall nicht verändern").
-      Vorhanden sind:
-      (a) `PASSED` → „Phase 6" erreicht + `assert_absent $SEC_GATE_MSG_312` (TMP_B312, `:6356-6366`),
-      (b) leerer Verdict → `exit 1` + Meldung, aber **auf dem mutierten Skript** (TMP_MC312,
-      `:6400-6420`), und
-      (c) ein Grep-Anker auf `[ "$SECURITY_VERDICT" != "PASSED" ]` samt Mutationsbeleg (`:6262-6272`).
-      Ein Lauf, in dem `security-review` einen **frischen, eindeutigen `NEEDS_FIXES`** schreibt
-      und das **unmutierte** Gate mit `exit 1` + `$SEC_GATE_MSG_312` blockiert, existiert nicht –
-      `grep -n 'Kritische Security-Findings'` findet in der ganzen Suite nur die
-      `SEC_GATE_MSG_312`-Definition und die zwei Stellen aus (a)/(b). Die Richtung **funktioniert**
-      (`!= "PASSED"` deckt sie ab, gelesen an `:553`); es fehlt die Abdeckung, nicht das
-      Verhalten. Genau das macht den Fund wichtig statt kritisch – aber AK12 ist in der
-      Task-Datei als erledigt abgehakt, und das ist die AK-Ehrlichkeit, die ein Review halten
-      muss. Fix: ein weiteres Fixture auf demselben Harness (`scaffold_310` + Stub schreibt
-      `## Ergebnis\nNEEDS_FIXES` im Aufruf, review-Report frisch `APPROVED`) mit
-      `assert_exit 1`, `assert_contains_286 … "$SEC_GATE_MSG_312"`, `assert_contains_286 …
-      "Security Review: NEEDS_FIXES"` und `assert_absent … "Phase 6"` – ca. 20 Zeilen, keine
-      Retry-Wartezeit (alle Skills enden erfolgreich, `bin/sleep` ist ohnehin gestubbt).
+- [ ] **W1** `scripts/run-pipeline.sh:305-307` + `scripts/checks/tests/run-tests.sh:6256-6257` –
+      Der WHY-Kommentar behauptet „Verdict **EINMAL** pro Versuch lesen … drei awk-Subprozesse
+      pro Versuch sind für dieselbe Information zu viel". Das ist faktisch falsch:
+      `report_is_fresh_and_valid` liest den Verdict selbst noch einmal
+      (`run-pipeline.sh:233`), also **zwei** `report_verdict`-Aufrufe pro Versuch im
+      report-erzeugenden Zweig. Auf dem **Exit-0-Erfolgspfad** war es vor dem Runde-1-Rework
+      (`e88439f`) genau **einer** – dort hat die Änderung den Aufwand also verdoppelt und
+      dokumentiert das Gegenteil; auf dem Stale-Pfad war und bleibt es zwei. Der Kommentar
+      gehört damit in dieselbe Klasse wie die W-Findings der Runden 1/2 (falsche Kausalkette,
+      Lesson `code-style.md` – „empirisch verifiziert ohne Prüfung").
+      **Empirisch belegt** (nicht aus dem Code gelesen): die echte Hilfsfunktion per `awk` aus
+      `run-pipeline.sh` extrahiert, `report_verdict` mit einem Zähler umwickelt, einen Versuch
+      nachgebaut → `report_verdict`-Aufrufe pro Versuch: **2**.
+      Zweite Hälfte des Findings: die pinnende Assertion
+      „*run_skill() liest den Verdict genau einmal pro Versuch*" (`:6257`) zählt nur
+      **textuelle** `report_verdict`-Vorkommen im per `awk` extrahierten **Rumpf von
+      `run_skill()`** – die Hilfsfunktion steht außerhalb und ist für sie unsichtbar. Sie bliebe
+      grün, wenn die Lib den Verdict fünfmal läse. Genau diese Blindheit hat dazu geführt, dass
+      Runde 2 „der Verdict wird einmal pro Versuch gelesen" als *nachgeprüft* in die Positives
+      geschrieben hat (und Runde 1 bereits „bis zu dreimal" – auch das waren drei Code**stellen**,
+      von denen pro Versuch nie mehr als zwei liefen).
+      **Zwei gleichwertige Fixes, beide klein:** (a) Aussage an die Realität anpassen – Kommentar
+      und Assertion-Label auf das formulieren, was wirklich gilt und belegt wird („Verdict-String
+      für die Meldungen **einmal materialisieren**, keine eingebettete Command Substitution im
+      Meldungstext"); oder (b) die Aussage wahr machen – den bereits gelesenen `verdict` in die
+      Hilfsfunktion durchreichen, sodass tatsächlich ein Aufruf pro Versuch bleibt (AK9 bleibt
+      unberührt, die Bedingung behält ihren einen Ort). Variante (b) ist zusätzlich messbar
+      abzusichern, sonst wiederholt sich die Blindheit der Assertion.
+      **Kein Verhaltensfehler** – reine Aussage-/Beleg-Genauigkeit.
 
 ## Nitpicks (optional)
 
-- [ ] `.claude/commands/pipeline.md:38-41` – die dritte Doku-Stelle, die das Security-Gate
-      namentlich beschreibt („Ergebnis: PASSED oder NEEDS_FIXES / NEEDS_FIXES: zurück zu
-      Phase 1"), ist nach dem Polaritätswechsel ebenfalls falsch. **Bewusst kein blockierendes
-      Finding:** die Zeile war schon vor #312 falsch (das Skript springt nicht zurück, es
-      `exit 1`t), die Datei driftet in fast jeder Zeile (Phasen 4/5 vertauscht, Circuit Breaker
-      mit 3 statt 2 Iterationen, versprochener `WIP:`-Commit, fehlende Phase 7), und sie liegt
-      unter `.claude/**` (Patch-Workflow, #91). Umfang deutlich über „unter zehn Zeilen" →
-      als eigener Task angelegt: **Issue #316** (`documentation`, `tech-debt`).
-
-- [ ] `docs/adr/019-stage3-commit-seam-report-guard.md:59-64, 95-101, 253-262` – die symmetrische
-      Bedingung steht nun **dreimal** in derselben Datei: im §4-Körper, als Absatz „Symmetrie
-      beider Rückkehrpfade (Nachtrag #312)" im #310-Nachtrag und als Punkt 1 des #312-Nachtrags.
-      Inhaltlich deckungsgleich, aber drei Kopien sind drei Drift-Stellen beim nächsten Fix an
-      dieser Mechanik – genau die Klasse, die Runde 1 in zwei anderen Dateien gemeldet hat. Der
-      Absatz im #310-Nachtrag könnte auf einen Ein-Satz-Verweis („in #312 auf beide
-      Rückkehrpfade ausgeweitet, siehe Nachtrag unten") eindampfen.
-
-- [ ] `scripts/checks/tests/run-tests.sh:6250-6252` – der Abwesenheits-Guard
-      `! grep -q "Verdict '\$(report_verdict" "$PIPELINE"` koppelt **Meldungstext** und
-      **Code-Konstrukt** in einem Fragment. Wird die Meldung umformuliert (ohne das Präfix
-      `Verdict '`), aber der Verdict erneut inline per Command Substitution gelesen, bleibt der
-      Guard grün, obwohl genau das Verhalten zurück ist, das er verbieten soll – die
-      Fragment-Falle aus Lesson `factory-workflow.md` (#114), diesmal in der
-      Abwesenheits-Richtung. Ein Anker auf die volle Zeile oder eine Zählung der
-      `report_verdict`-Aufrufe in `run_skill()` wäre robuster. (Nur Nitpick: die Aussage ist eine
-      Stil-Regel aus Runde 1, kein Guard über korrektes Verhalten.)
-
-- [ ] `scripts/run-pipeline.sh:237-352` – `run_skill()` ist mit dem Fix auf 116 Zeilen und vier
-      Verschachtelungsebenen gewachsen (`for` → `if is_report_skill` → `if fresh` → `if rc`).
-      Die Guideline nennt ~20 Zeilen als Orientierung; die Funktion war vorher schon lang, aber
-      die neue Ebene macht den Kern (Aufruf, Bewertung, Retry) schwerer als nötig lesbar. Kein
-      Verhaltensproblem – Kandidat für den `/refactor`-Schritt (z. B. ein
-      `evaluate_report_attempt`-Helfer, der Meldung + Rückgabewert kapselt), nicht für diesen
-      Rework.
-
-- [ ] `docs/factory/OPERATING.md:373-377` – der eingefügte Satz („Es ist fail-closed: weiter geht
-      es nur mit einem eindeutigen `PASSED` …") steht **vor** dem älteren „Ergebnis `NEEDS_FIXES`
-      = **Stopp**:", das damit als Spezialfall hinter der allgemeineren Regel nachklappt. Inhalt
-      korrekt, Leserichtung leicht verdreht – ein Umstellen läse sich flüssiger.
+- [ ] **N1** `scripts/run-pipeline.sh:507-509` – Der Phase-2-Kommentar beschreibt
+      „Fehlender/uneindeutiger Anker → nicht bestanden → Rework-Loop (fail-closed)" weiter als
+      **lebende** Mechanik. Seit #312 kann `run_skill()` nicht mehr mit leerem Verdict
+      zurückkehren; der Fall ist per Konstruktion unerreichbar (die Prüfung selbst bleibt zu
+      Recht als defense in depth stehen). Es ist der vierte Ort derselben Prosa – ADR-019 §4,
+      die Lesson, OPERATING.md und der Lib-Modul-Header sind nachgezogen, dieser In-Code-Satz
+      nicht (#211/#176-Muster).
+- [ ] **N2** `scripts/run-pipeline.sh:312` und `:339` – das Erfolgsmeldungs-Literal
+      `✓ /${skill} abgeschlossen` steht jetzt zweimal (vor dem Fix einmal). Eine Änderung am
+      Text muss an zwei Stellen erfolgen; kein Test ankert daran, der Drift bliebe also stumm.
+- [ ] **N3** `scripts/checks/tests/run-tests.sh:6275-6283` (TMP_GATE_312) – zwei Punkte an
+      derselben Stelle: (a) Die Mutation wird per `sed` mit **re-eskapiertem** Literal erzeugt
+      (`\[ "\$SECURITY_VERDICT" != "PASSED" \]`), während der ganze übrige #312-Block dieselbe
+      Zeile über `awk -v cmp="$GATE_CMP_312"` trifft – also eine zweite Schreibweise für
+      denselben Anker, genau die Drift-Quelle, gegen die die gemeinsamen `*_PIPE`-Anker
+      eingeführt wurden (Lesson `code-style.md`, „dritte Schreibweise"). (b) Die
+      `cmp -s`-Assertion (`:6278-6280`) ist redundant: die folgende
+      `! grep -qF -- "$GATE_CMP_312"`-Assertion (`:6281`) impliziert „Datei verändert" strikt –
+      und es ist dasselbe schwache Idiom, das **dieser PR** beim #310-Mutanten (`:5980`) bewusst
+      auf eine exakte Trefferzählung umgestellt hat.
+- [ ] **N4** `scripts/run-pipeline.sh:231-235` – `report_is_fresh_and_valid` liegt im
+      Pipeline-Skript, während alle drei Primitive (`report_file`/`is_report_skill`,
+      `report_verdict`, `report_fingerprint`) in `scripts/lib/report-verdict.sh` stehen. Ein
+      zweiter Konsument der Regel müsste sie neu komponieren. Bewusst so entschieden und in
+      ADR-019 §4 (#312-Nachtrag Punkt 1) namentlich festgehalten – deshalb nur Nitpick, nicht
+      Finding.
+- [ ] **N5** `docs/specs/spec-312-…md:150-152` – Das Restrisiko „byte-identisch neu geschriebener
+      Report gilt als stale" ist als „aus #310 übernommen" notiert. Mit #312 wandert es aber vom
+      seltenen non-zero-Pfad auf **jeden** `review`/`security-review`-Aufruf: ein Skill, das
+      einen inhaltsgleichen Report neu schreibt, kostet drei Heavy-Versuche und endet mit
+      `exit 1`. Die Fehlrichtung bleibt fail-closed (richtig), aber die Amplifikation der
+      Eintrittswahrscheinlichkeit steht nirgends – ein Halbsatz in der Spec bzw. im
+      ADR-Nachtrag würde sie festhalten.
 
 ## Positives
 
-- **Alle sieben Findings aus Runde 1 sind umgesetzt, keines nur behauptet.** Nachgeprüft:
-  Lib-Modul-Header beschreibt die symmetrische Bedingung („auf BEIDEN Rückkehrpfaden",
-  `report-verdict.sh:22-32`), OPERATING.md nennt an beiden Stellen die neue Polarität, der
-  Verdict wird einmal pro Versuch gelesen, die Meldung heißt „kein eindeutiger Verdict **aus
-  diesem Aufruf**" (deckt „Report existiert gar nicht" mit ab), der #310-WHY-Satz zum
-  verdictlosen Zweig ist zurück, und der Dry-Run-Anker existiert direkt statt transitiv. Jedes
-  dieser sechs Prosa-/Struktur-Versprechen ist zusätzlich durch eine Assertion gepinnt – der
-  Rework hat sich nicht auf „steht jetzt da" verlassen.
-- **`is_report_skill` ist die richtige Antwort auf N3, nicht die bequeme.** Das Prädikat liegt in
-  der Lib (Zuordnung bleibt an einem Ort, AK9 wird strenger erfüllt), es wird in **beide**
-  Richtungen getestet (`:5740-5749`), und die Gegenrichtung ist als
-  Diskriminierungs-Assertion ausgewiesen (Lesson #172). Der zähl-nennende Modul-Header ist von
-  „DREI" auf „VIER Funktionen" mitgepflegt und **das** ist ebenfalls assertiert (Lesson
-  `code-style.md`) – genau der Nachzug, der in #207 vergessen wurde.
-- **Die Mutationsbelege sind kausal, nicht dekorativ.** Jede Mutation trifft die **volle** echte
-  Zeile über die gemeinsamen Anker `FRESH_CMP_PIPE`/`VERDICT_CHK_PIPE`/`GUARD_CALL_PIPE`/
-  `IC_CALL_PIPE`, und jeder Beleg führt **dieselben** Assert-Ausdrücke aus wie der Positivtest
-  (Lessons #114/#286). Der AK5-Mutant **ersetzt** den einzigen `if`-Rumpf durch `:` statt ihn zu
-  löschen (sonst Syntaxfehler = Beleg nur für Parsing), und eine **Positions**-Assertion beweist,
-  dass er den Exit-0-Aufruf trifft und nicht einen der beiden anderen. Der #310-Mutant wurde im
-  selben Zug vom brüchigen `sed`-Muster auf denselben Anker umgestellt – eine echte
-  Konsolidierung statt einer zweiten Kopie.
-- **AK5 ist auf den Zielpfad isoliert** (bewusst der „kein Verdict"-Zweig, weil nur er keinen
-  eigenen interrupt-check hat – Lesson #214), **AK2 hat eine divergenzerzeugende Ausgangslage**
-  (vorbestehende Reports mit dem *gegenteiligen* Verdict, Lesson #253), **AK4 belegt zusätzlich
-  die Nicht-Destruktivität** per `cksum`-Vergleich, und der AK1-Stub bedient `security-review`
-  mit, damit der Mutant nicht an einer zweiten Ursache scheitert.
-- **Der vorbestehende Task-78-E2E-Block wurde mitgezogen statt der Guard abgeschwächt:** sein
-  Stub schreibt die Reports jetzt **im** Aufruf und variiert sie über einen Aufrufzähler, die
-  Skill-Erkennung nutzt die `SKILL-<name>`-Marker (kein Teilstring-Konflikt `review` ↔
-  `security-review`). Nachgeprüft: `bin/sleep` ist im Harness gestubbt, die drei neuen
-  Fehlversuch-Fixtures kosten deshalb keine 30 s Backoff – die Suite bleibt bei 111 s.
-- **`--dry-run` mitgedacht und begründet:** das umgedrehte Gate hätte jeden Dry-Run ab Phase 5
-  blockiert; die Ausnahme spiegelt ADR-040 statt das Gate zu verwässern, und der Anker dafür
-  ist seit dem Rework direkt (nicht mehr transitiv über den #212-F4-Erfolgs-Check).
-- **Doku-Nachzug über AK13 hinaus:** die Index-Zeile in `docs/factory/PROJECT-CONTEXT.md` nannte
-  „#310" als Endstand und wurde ungefragt nachgezogen (#176/#211). Der Sweep ist nach Runde 1
-  vollständig – die einzige verbleibende Fundstelle liegt unter `.claude/**` und ist als #316
-  ausgelagert.
+- **Der Runde-2-Fund ist geschlossen, und zwar so, wie er gemeldet war:** TMP_F312 belegt die
+  `NEEDS_FIXES`-Richtung am **unmutierten** Gate behavioral (nicht am Mutanten), mit
+  divergenzerzeugendem Vorbestand (gegenteiliger Verdict, Lesson #253) und mit
+  `assert_absent "failed after 3 attempts"`, das Gate-Abbruch von Retry-Abbruch trennt. Dass
+  RED-vor-GREEN hier per Definition unmöglich ist (das Verhalten existierte, die Abdeckung
+  fehlte), ist offen benannt und durch einen echten Mutanten ersetzt – keine stillschweigende
+  Lücke.
+- **N3 der Runde 2 ist die schwerere, richtige Lösung geworden:** statt den Abwesenheits-Guard
+  auf ein Meldungs-/Code-Fragment umzuformulieren, zählt er jetzt Vorkommen im per `awk`
+  extrahierten Funktionsrumpf, in beide Richtungen fail-closed, plus eine Assertion, die belegt,
+  dass die Extraktion wirklich `run_skill()` trifft. Nachgeprüft: das `awk`-Fenster endet am
+  ersten spaltenbündigen `}` – innerhalb von `run_skill()` gibt es keins. (Dass das *Label* dieser
+  Assertion mehr behauptet als sie messen kann, ist W1 – die Konstruktion selbst ist gut.)
+- **Die ADR-Entdopplung hat nichts verloren.** Der eingedampfte #310-Absatz verweist auf den
+  #312-Nachtrag, und der zuvor nur dort stehende Halbsatz („nur die Meldung hängt am Exit-Code")
+  ist mitgewandert statt zu verschwinden – der übliche Fehler bei Entdopplungen.
+- **Mutationsbelege bleiben kausal:** jede Mutation trifft die **volle** echte Zeile über die
+  gemeinsamen Anker (`FRESH_CMP_PIPE`/`VERDICT_CHK_PIPE`/`GUARD_CALL_PIPE`/`IC_CALL_PIPE`,
+  `GATE_CMP_312`), jeder Beleg führt **dieselben** Assert-Ausdrücke aus wie der Positivtest
+  (Lessons #114/#286), und die zwei Mutanten an Einzel-`if`-Rümpfen **ersetzen** statt zu löschen
+  (AK5: `:`; AK12: `if false; then`) – sonst belegten sie nur einen Syntaxfehler.
+- **Suite-Kosten im Blick behalten:** `bin/sleep` ist im #310-Harness gestubbt (`:5903`), die
+  vier neuen Fehlversuch-Fixtures kosten deshalb keine 30 s Backoff. Nachgeprüft, nicht
+  übernommen.
+- **`--dry-run` mitgedacht und begründet** (`:549-551`): das umgedrehte Gate hätte jeden Dry-Run
+  ab Phase 5 blockiert; die Ausnahme spiegelt ADR-040 statt das Gate zu verwässern, mit direktem
+  Anker statt transitiver Absicherung.
+- **Doku-Sweep vollständig:** ADR-019 §4 + #312-Nachtrag, Lesson (inkl. verschärfter Regel „auf
+  allen Rückkehrpfaden"), OPERATING.md (Eigenschaften-Liste **und** §4.2, dort in der richtigen
+  Leserichtung Spezialfall → Allgemeinregel), Lib-Modul-Header („VIER Funktionen" mitgepflegt),
+  PROJECT-CONTEXT-Index. Eigener Gegen-Sweep in dieser Runde über `NEEDS_FIXES` /
+  „Security-Gate" / „Report-Guard" in `docs/` und `.claude/`: die einzige verbleibende Fundstelle
+  ist `.claude/commands/pipeline.md:39-40` – bewusst als **Issue #316** ausgelagert
+  (Patch-Workflow). Historische Specs (#91/#211/#310) bleiben zu Recht unangetastet.
 - Keine Routen/UI berührt → `docs/routes.md` zu Recht unverändert; keine `.claude/**`-Datei im
-  Diff (kein Patch-Workflow nötig); kein neuer Interrupt-Typ → OPERATING.md-Interrupt-Tabelle
-  zu Recht unberührt.
+  Diff; kein neuer Interrupt-Typ → OPERATING.md-Interrupt-Tabelle zu Recht unberührt.
 
 ## Empfehlung
 
 NEEDS_REWORK
 
-Der Code ist aus meiner Sicht merge-reif – der Guard ist symmetrisch, das Gate fail-closed, die
-Belege kausal. Offen ist genau eine Testlücke: die von AK12 wörtlich verlangte
-`NEEDS_FIXES`-Richtung am **unmutierten** Gate. Rund 20 Zeilen auf dem vorhandenen Harness;
-danach APPROVED-fähig. Die fünf Nitpicks sind optional, zwei davon bewusst nach `/refactor`
-(Funktionslänge) bzw. in Issue #316 (`.claude/**`-Doku) ausgelagert.
+Ein Punkt, textlich, ohne Verhaltensänderung: W1 (falsche Rationale im WHY-Kommentar
+`run-pipeline.sh:305-307` **plus** das Label der Assertion `run-tests.sh:6257`, das eine
+Laufzeit-Eigenschaft behauptet, die es nicht messen kann). Beides gehört in dieselbe
+Finding-Klasse, die die Runden 1 und 2 als blockierend behandelt haben, und beides ist in
+wenigen Zeilen erledigt – entweder die Aussage korrigieren oder sie wahr machen (Details im
+Finding).
+
+**Zum Circuit Breaker:** Dies ist die dritte Review-Runde, ein `NEEDS_REWORK` erreicht damit die
+Grenze aus CLAUDE.md. Ein voller `/implement`-Durchlauf ist für diesen Fix nicht angemessen und
+inhaltlich auch nicht nötig – kein Konflikt, keine offene Design-Frage, keine Code-Änderung.
+Zwei vertretbare Wege für den Menschen:
+
+1. **Direkt beheben** (empfohlen): Kommentar + Assertion-Label anpassen, Suite laufen lassen,
+   dann ist der PR aus meiner Sicht merge-reif. Kein Review-Rundgang mehr nötig – der Fix ist
+   verifizierbar ohne Urteil.
+2. **Als Kleinfund merken und mergen:** W1 ist Doku-/Beleg-Drift unter zehn Zeilen und würde die
+   Schwelle aus ADR-043 (`docs/factory/kleinfunde.md`) erfüllen. Dann sollte der Kommentar aber
+   nicht in seiner heutigen, falschen Form stehen bleiben – mindestens der eine Satz „Verdict
+   EINMAL pro Versuch lesen" ist zu streichen.
+
+Die fünf Nitpicks sind optional; N4 ist eine bewusst dokumentierte Entscheidung, und die in
+Runde 2 nach `/refactor` ausgelagerte Länge von `run_skill()` bleibt dort (ein Umbau würde die
+gerade verifizierten Mutationsanker verschieben).
 
 ---
 
 ## Historie
 
+### Runde 2 – `NEEDS_REWORK`, alle blockierenden Findings umgesetzt (Commit `fece557`)
+
+Reviewt wurde der Stand nach `b2e211b` (Suite damals 1193 grün / 0 rot). Keine kritischen
+Findings, ein wichtiges (Testlücke), fünf Nitpicks:
+
+- **W1** AK12 verlangt beide erreichbaren Gate-Richtungen behavioral; belegt war nur `PASSED`
+  und der leere Verdict am **mutierten** Skript. → Fixture TMP_F312 (Task-ID 335) auf dem
+  #310-Harness + Mutant TMP_MF312 als Kausalitätsbeleg. **In dieser Runde nachgeprüft.**
+- **N3** Abwesenheits-Guard auf `Verdict '$(report_verdict` koppelte Meldungstext und
+  Code-Konstrukt (Fragment-Falle #114 in der Abwesenheits-Richtung). → Zählung der
+  `report_verdict`-Vorkommen im `awk`-extrahierten Rumpf von `run_skill()` + Extraktions-Beleg.
+  Umgesetzt; das **Label** der neuen Assertion ist jetzt Runde-3-W1.
+- **N2** Dritte gleichlautende Kopie der Bedingung im #310-Nachtrag von ADR-019. → auf einen
+  Verweis eingedampft, der zuvor exklusive Halbsatz in den #312-Nachtrag verschoben.
+- **N5** OPERATING.md §4.2: Leserichtung Spezialfall vor Allgemeinregel wiederhergestellt.
+- **Bewusst nicht umgesetzt:** `.claude/commands/pipeline.md` (Patch-Workflow, Umfang über „unter
+  zehn Zeilen" → **Issue #316**) und die Länge von `run_skill()` (Kandidat für `/refactor`).
+
 ### Runde 1 – `NEEDS_REWORK`, alle Findings umgesetzt (Commit `b2e211b`)
 
 Reviewt wurde `git diff origin/main...HEAD` (7 Dateien, +839/−56); Suite damals 1182 grün / 0 rot.
-Keine kritischen Findings, zwei wichtige, fünf Nitpicks – in dieser Runde 2 alle als erledigt
-nachgeprüft:
+Keine kritischen Findings, zwei wichtige, fünf Nitpicks:
 
 - **W1** `scripts/lib/report-verdict.sh:22-26` – Modul-Header beschrieb weiterhin die alte,
   einseitige Guard-Mechanik („ein non-zero Exit gilt als ERFOLG, wenn …"); dritte Kopie derselben
@@ -178,8 +213,10 @@ nachgeprüft:
   assertiert.
 - **W2** `docs/factory/OPERATING.md:214` und §4.2 – kanonische Prozess-Doku nannte die alte
   Gate-Polarität („`NEEDS_FIXES` → Abbruch vor Merge"). → beide Stellen nachgezogen + assertiert.
-- **N1** `report_verdict` wurde bis zu dreimal pro Versuch aufgerufen. → einmal in `verdict`
-  gelesen, Bedingung bleibt an ihrem einen Ort (AK9 unberührt).
+- **N1** `report_verdict` wurde „bis zu dreimal pro Versuch" aufgerufen. → einmal in `verdict`
+  gelesen, Bedingung bleibt an ihrem einen Ort (AK9 unberührt). **Nachtrag Runde 3:** sowohl die
+  Ausgangsdiagnose („dreimal") als auch das Ergebnis („einmal") waren Zählungen von
+  Code**stellen**, nicht von Aufrufen – tatsächlich zwei pro Versuch, siehe Runde-3-W1.
 - **N2** Meldung „kein eindeutiger Verdict **im Report** dieses Aufrufs" unterstellte einen
   vorhandenen Report. → „aus diesem Aufruf".
 - **N3** `[ -n "$(report_file …)" ]` als Skill-Prädikat las sich wie eine Datei-Existenz-Prüfung.

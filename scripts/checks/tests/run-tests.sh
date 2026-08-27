@@ -6241,20 +6241,23 @@ assert_true "$(grep -qF -- 'if is_report_skill "$skill" "$task_id"; then' "$PIPE
   "#312 AK9: run_skill() verzweigt über is_report_skill aus der Lib"
 assert_true "$(! grep -qF -- '[ -n "$(report_file "$skill" "$task_id")" ]' "$PIPELINE"; echo $?)" \
   "#312 AK9: keine als Existenz-Prüfung lesbare report_file-Verzweigung mehr"
-# Verdict wird pro Versuch einmal gelesen: die Erfolgsmeldung nutzt die Variable, keine
-# eingebettete Command Substitution mehr (#312 Review-Runde-1-Nitpick N1). Gezählt werden die
-# report_verdict-Aufrufe IM Rumpf von run_skill() – ein Abwesenheits-Guard auf das Fragment
-# `Verdict '$(report_verdict` koppelte Meldungstext und Code-Konstrukt: eine umformulierte
-# Meldung mit erneut eingebetteter Command Substitution wäre grün geblieben (Fragment-Falle
-# aus Lesson factory-workflow.md, #114, in der Abwesenheits-Richtung; #312
-# Review-Runde-2-Nitpick). Die Zählung ist in beide Richtungen fail-closed: eine zu kurze
-# Extraktion liefert 0 Treffer, eine über das Funktionsende hinausreichende mehr als einen.
+# Die Erfolgsmeldung materialisiert den Verdict einmal im Rumpf von run_skill(), statt ihn per
+# eingebetteter Command Substitution im Meldungstext neu zu lesen (#312 Review-Runde-1-Nitpick
+# N1). Gezählt werden die report_verdict-Aufrufe IM per awk extrahierten Rumpf von run_skill() –
+# ein Abwesenheits-Guard auf das Fragment `Verdict '$(report_verdict` koppelte Meldungstext und
+# Code-Konstrukt: eine umformulierte Meldung mit erneut eingebetteter Command Substitution wäre
+# grün geblieben (Fragment-Falle aus Lesson factory-workflow.md, #114, in der
+# Abwesenheits-Richtung; #312 Review-Runde-2-Nitpick). Die Zählung ist in beide Richtungen
+# fail-closed für diesen Rumpf-Ausschnitt: eine zu kurze Extraktion liefert 0 Treffer, eine über
+# das Funktionsende hinausreichende mehr als einen. Sie ist blind für report_is_fresh_and_valid()
+# außerhalb von run_skill() – die liest den Verdict für die Bedingung separat noch einmal, macht
+# zwei report_verdict-Aufrufe pro Versuch insgesamt (#312 Review-Runde-3-Finding W1).
 run_skill_body_312() { awk '/^run_skill\(\) \{/ { inside = 1 } inside { print } inside && /^\}/ { exit }' "$1"; }
 runskill_body_312="$(run_skill_body_312 "$PIPELINE")"
 assert_true "$(printf '%s\n' "$runskill_body_312" | grep -qF 'for attempt in 1 2 3; do'; echo $?)" \
   "#312: die Rumpf-Extraktion trifft wirklich run_skill() (Retry-Schleife enthalten)"
 assert_true "$([ "$(printf '%s\n' "$runskill_body_312" | grep -c 'report_verdict')" -eq 1 ]; echo $?)" \
-  "#312: run_skill() liest den Verdict genau einmal pro Versuch (keine zweite Command Substitution)"
+  "#312: run_skill() materialisiert den Verdict im eigenen Rumpf genau einmal (keine zweite Command Substitution im Meldungstext; report_is_fresh_and_valid() liest ihn separat)"
 
 # AK5 (Reihenfolge): Die Interrupt-Prüfung des Exit-0-Pfads steht VOR der Frische-/
 # Verdict-Auswertung – verglichen werden Zeilennummern zweier exakter Zeilen, keine zwei

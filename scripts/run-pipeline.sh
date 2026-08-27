@@ -302,9 +302,11 @@ run_skill() {
     # stehengebliebener Verdict ist keiner – weder bei non-zero Exit (#310) noch bei Exit 0
     # (#312). Für alle anderen Skills entscheidet unverändert der Exit-Code.
     if is_report_skill "$skill" "$task_id"; then
-      # Verdict EINMAL pro Versuch lesen: Erfolgsmeldung und Stale-Meldung benennen denselben
-      # Wert, und drei awk-Subprozesse pro Versuch sind für dieselbe Information zu viel. Die
-      # Bedingung selbst bleibt an ihrem einen Ort (report_is_fresh_and_valid, AK9).
+      # Verdict-String für die Meldungen einmal materialisieren, statt ihn per eingebetteter
+      # Command Substitution in jeder Meldung neu zu lesen. report_is_fresh_and_valid() liest
+      # den Verdict für die Bedingung separat noch einmal (AK9, ihr einziger Ort) – macht zwei
+      # Verdict-Abfragen pro Versuch im report-erzeugenden Zweig, nicht eine (Review-Runde-3-
+      # Finding #312).
       local verdict
       verdict="$(report_verdict "$skill" "$task_id")"
       if report_is_fresh_and_valid "$skill" "$task_id" "$report_fingerprint_before"; then
