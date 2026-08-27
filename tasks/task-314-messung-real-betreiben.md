@@ -1,7 +1,7 @@
 # Task 314: messung-real-betreiben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -25,21 +25,23 @@ Kosten/Tokens pro Skill ernten. Der Aufruf in `run-pipeline.sh:290` nutzt kein
 (Option B abgelehnt) → eigene Issue + eigene ADR. #319 wartet auf jene Issue.
 
 ## Akzeptanzkriterien
-- [ ] AK1 Messung läuft genau einmal bei jedem regulären Pipeline-Lauf
-- [ ] AK2 Messung läuft auch bei Abbruch (Interrupt/non-zero Exit); Exit-Code bleibt unverändert
-- [ ] AK3 Fail-open: fehlschlagende Messung färbt einen grünen Lauf nicht rot
-- [ ] AK4 Report wird an `$GITHUB_STEP_SUMMARY` angehängt, wenn gesetzt
-- [ ] AK5 Ohne `$GITHUB_STEP_SUMMARY` kein Schreibversuch, Lauf bleibt fehlerfrei
-- [ ] AK6 Kommentar an die Issue aus `FACTORY_METRICS_ISSUE`, wenn gesetzt und `gh` authentifiziert
-- [ ] AK7 Ohne `FACTORY_METRICS_ISSUE` kein `gh`-Aufruf und kein Ausweichen auf die Task-Issue
-- [ ] AK8 Nicht-numerischer `FACTORY_METRICS_ISSUE` wird fail-closed abgelehnt (kein `gh`-Aufruf)
-- [ ] AK9 `gh` fehlt/nicht authentifiziert → Kommentar übersprungen und ausgewiesen (local-first)
-- [ ] AK10 Manueller `metrics.sh`-Aufruf mit Veröffentlichungs-Schalter erfüllt AK4–AK9 identisch
-- [ ] AK11 `--dry-run` veröffentlicht nichts und weist die übersprungene Messung aus
-- [ ] AK12 Doku ohne Drift: `CLAUDE.md`, `.claude/commands/daily-metrics.md`, `OPERATING.md`
-- [ ] AK13 Verhaltenstests in `run-tests.sh` für AK2/AK3/AK7/AK8 (echte Läufe, kein Wiring-Grep)
-- [ ] AK14 `bash scripts/metrics.sh --quiet` endet mit Exit 0 (Vorbefund aus /architecture, ADR-045 §7)
-- [ ] AK15 `factory-poll.yml` gewährt `pull-requests: read` + `actions: read`, damit Lead-Time
+- [x] AK1 Messung läuft genau einmal bei jedem regulären Pipeline-Lauf
+- [x] AK2 Messung läuft auch bei Abbruch (Interrupt/non-zero Exit); Exit-Code bleibt unverändert
+- [x] AK3 Fail-open: fehlschlagende Messung färbt einen grünen Lauf nicht rot
+- [x] AK4 Report wird an `$GITHUB_STEP_SUMMARY` angehängt, wenn gesetzt
+- [x] AK5 Ohne `$GITHUB_STEP_SUMMARY` kein Schreibversuch, Lauf bleibt fehlerfrei
+- [x] AK6 Kommentar an die Issue aus `FACTORY_METRICS_ISSUE`, wenn gesetzt und `gh` authentifiziert
+- [x] AK7 Ohne `FACTORY_METRICS_ISSUE` kein `gh`-Aufruf und kein Ausweichen auf die Task-Issue
+- [x] AK8 Nicht-numerischer `FACTORY_METRICS_ISSUE` wird fail-closed abgelehnt (kein `gh`-Aufruf)
+- [x] AK9 `gh` fehlt/nicht authentifiziert → Kommentar übersprungen und ausgewiesen (local-first)
+- [x] AK10 Manueller `metrics.sh`-Aufruf mit Veröffentlichungs-Schalter erfüllt AK4–AK9 identisch
+- [x] AK11 `--dry-run` veröffentlicht nichts und weist die übersprungene Messung aus
+- [~] AK12 Doku ohne Drift: `CLAUDE.md`, `.claude/commands/daily-metrics.md`, `OPERATING.md` –
+      `CLAUDE.md`/`OPERATING.md` erledigt; `daily-metrics.md` als Patch geliefert, Mensch wendet
+      an (siehe Blocker unten, `.claude/**` ist Agenten-hard-denied)
+- [x] AK13 Verhaltenstests in `run-tests.sh` für AK2/AK3/AK7/AK8 (echte Läufe, kein Wiring-Grep)
+- [x] AK14 `bash scripts/metrics.sh --quiet` endet mit Exit 0 (Vorbefund aus /architecture, ADR-045 §7)
+- [x] AK15 `factory-poll.yml` gewährt `pull-requests: read` + `actions: read`, damit Lead-Time
       und CI-Quote in CI nicht dauerhaft „übersprungen" melden (ADR-045 §8)
 
 ## Technische Notizen
@@ -85,6 +87,38 @@ Geprüfter Ausgangszustand (für /implement):
       anlegen) und in `OPERATING.md` dokumentieren. Bis dahin: Kommentar-Weg inaktiv, Rest läuft.
 - [ ] Soll `FACTORY_METRICS_ISSUE` als GitHub-Repository-Variable gesetzt werden (für CI-Läufe
       über `factory-poll`)?
+
+## Blocker
+
+**Blocker [2026-08-27]:** `.claude/commands/daily-metrics.md` ist für Agenten-Edits hard-denied
+(`Edit(.claude/**)`, Lesson `factory-workflow.md` → „.claude/**-Änderungen erfordern
+Patch-Workflow", aus #91). Die AK12-Doku-Anpassung an dieser Datei liegt als geprüfter Patch
+unter [`tasks/patch-314-daily-metrics.diff`](patch-314-daily-metrics.diff) (`git apply --check`
+bestanden; die zwei AK12-Assertions aus `run-tests.sh` gegen den gepatchten Dateiinhalt separat
+nachgerechnet – beide matchen, kein voller Suite-Lauf gegen eine gepatchte Kopie).
+**Aktion Mensch:** `git apply tasks/patch-314-daily-metrics.diff`, Ergebnis prüfen, dann committen
+und `tasks/patch-314-daily-metrics.diff` entfernen (Lesson-Vorgabe: Patch-Datei ist nach dem
+Anwenden ein totes Artefakt). Bis dahin bleiben zwei `run-tests.sh`-Assertions (AK12) und damit
+der CI-Gate `factory-self-test` rot – alle anderen Änderungen (`scripts/metrics.sh`,
+`scripts/run-pipeline.sh`, `.github/workflows/factory-poll.yml`, `CLAUDE.md`, `OPERATING.md`,
+`ADR-045`) sind vollständig committet und lokal grün (siehe Ergebnis unten).
+
+## Umsetzungs-Notizen
+
+- `scripts/metrics.sh`: `--publish`-Schalter (Job-Summary + Issue-Kommentar,
+  Integer-Guard fail-closed vor `gh`), Exit-Code-Fix für `--quiet` (AK14).
+- `scripts/run-pipeline.sh`: `trap measure_process_metrics_on_exit EXIT`, registriert direkt
+  nach `preflight_checks`; `$?` wird als erste Anweisung gesichert, jeder Trap-Befehl bleibt
+  `|| true`-geschützt (ADR-045 Implementierungs-Hinweis, empirisch gegen `set -e`-Verhalten
+  verifiziert).
+- `.github/workflows/factory-poll.yml`: `pull-requests: read` + `actions: read` ergänzt (AK15).
+- ADR-045: Status `Proposed` → `Accepted` geflippt.
+- `run-tests.sh`: `_mk_pipe_repo` kopiert jetzt zusätzlich `metrics.sh` (echter Dependency von
+  `run-pipeline.sh`); neue Testgruppe „Task 314 (ADR-045)" deckt AK1–AK11, AK14, AK15 über echte
+  Läufe ab (kein Wiring-Grep), inkl. Mutationsbeleg für die Trap-Registrierung (AK2).
+- Lokal verifiziert: `bash scripts/checks/tests/run-tests.sh` (1249 grün / 2 rot – beide rot nur
+  wegen des offenen `.claude/**`-Patches oben), `pre-commit.sh` grün, `pre-push.sh` grün
+  (Lint/Tests/Typecheck/Format/Routen-Doku/Hooks).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
