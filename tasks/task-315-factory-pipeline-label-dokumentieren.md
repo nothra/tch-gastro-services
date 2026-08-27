@@ -4,9 +4,9 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -157,7 +157,19 @@ Circuit-Breaker-Hinweis) – Rework am 2026-08-27 nach Weg 1 der Review-Empfehlu
 | N1–N5 | Nitpicks | N3 (stale `#316`-Randnotiz, Lesson #176) behoben – in Spec, Task-Datei und AK1-Nachweis, letzterer mit Stichtag. Ebenfalls behoben: der `/codify`-Hinweis nennt jetzt auch `kleinfunde.md` – ein Eintrag dort, der den alten Namen zitiert, kippt die Suite genauso, und `/codify` läuft in dieser Pipeline noch. Bewusst offen gelassen: Teilstring-Anker (4 von 7 tragen), Singular im Mutationslabel, `tasks/*315*` breiter als nötig – ohne Wirkung im aktuellen Repo-Zustand |
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**Ausgeführt am 2026-08-27** – vollständiger Report in [`tasks/codify-315.md`](codify-315.md).
+Neue Lesson: „Anker-Liste einer Fail-safe-Klassifizierungsregel braucht einen Verteilungs-Check
+gegen den echten Repo-Inhalt" (`docs/factory/lessons/factory-workflow.md`, Index-Zeile in
+`PROJECT-CONTEXT.md`) – aus Review-Runde-4-Finding W1 (`docs/specs/`-Anker fälschlich der
+App-Seite zugeordnet). Der Fund selbst (W1) ist damit **nicht** behoben, nur das
+Erkenntnismuster festgehalten – die Entscheidung zwischen Sofort-Fix und Issue-als-Schuld
+bleibt beim Menschen (siehe Review-Empfehlung, Runde 4).
+
+**Entscheidung des Menschen (2026-08-27): Option 1 – sofort fixen.** `docs/specs/` aus dem
+App-Anker in die „ungedeckt"-/Zweifelsregel-Liste verschoben (`git-workflow.md:148/153`),
+`spec-315` AK3 mitgezogen, Assertion in `run-tests.sh` angepasst. Suite 1254/0,
+`pre-push.sh` grün. W1 in `tasks/review-315.md` auf erledigt gesetzt.
 
 **Hinweis an `/codify` (Konsequenz aus Review-Finding K3):** Die AK10-Allowlist nimmt bewusst
 nur `docs/specs/spec-315-*` und `tasks/*315*` aus. `docs/factory/lessons/*`,

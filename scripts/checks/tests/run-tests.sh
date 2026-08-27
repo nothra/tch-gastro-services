@@ -6715,7 +6715,7 @@ assert_contains_286 "$gwf_flat_315" \
   '**Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.' \
   "#315 AK3: die Factory-Seite der Grenze ist mit Pfad-Ankern benannt"
 assert_contains_286 "$gwf_flat_315" \
-  '**TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`, `docs/specs/`.' \
+  '**TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.' \
   "#315 AK3: die Applikations-Seite der Grenze ist mit Pfad-Ankern benannt"
 # Ohne Auflösung des Mischfalls wäre die Zuordnung genau dort zirkulär, wo sie gebraucht wird
 # („entscheidet die Seite, auf der die Änderung landet" – wenn sie auf beiden landet, sagt der

@@ -80,10 +80,11 @@ Label-Konvention ist selbst kanonische Quelle in `git-workflow.md`; ADR-018 §3
       Begleittext in `git-workflow.md`, WHEN ein Leser ein Issue einordnen muss, THEN benennt
       der Text **beide** Seiten der Grenze mit konkreten Pfad-Ankern – Factory:
       `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`; Applikation: `app/`,
-      `db/`, `lib/`, `docs/specs/` – sodass die Zuordnung ohne Rückfrage fällt. UND er löst den
+      `db/`, `lib/` – sodass die Zuordnung ohne Rückfrage fällt. UND er löst den
       **Mischfall** einseitig fail-safe auf („Im Zweifel Label setzen") und benennt die von
-      beiden Anker-Listen ungedeckten Pfade (Repo-Wurzel, `docs/adr/`, `tasks/`, `e2e/`) –
-      ohne diese Auflösung bliebe die Zuordnung genau dort zirkulär, wo sie gebraucht wird.
+      beiden Anker-Listen ungedeckten Pfade (Repo-Wurzel, `docs/adr/`, `tasks/`, `e2e/`,
+      `docs/specs/` – Ablagekonvention statt Subsystem-Grenze) – ohne diese Auflösung bliebe
+      die Zuordnung genau dort zirkulär, wo sie gebraucht wird.
       Die Pfad-Anker stehen **nur** in dieser kanonischen Quelle; abgeleitete Dokumente
       verweisen darauf, statt die Liste zu kopieren.
 - [ ] **AK4 – Aufzählungen derselben Datei mitgezogen.** GIVEN die beiden abgeleiteten

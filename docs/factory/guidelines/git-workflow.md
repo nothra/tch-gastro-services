@@ -145,12 +145,14 @@ viele *Aspekt*-Labels"**.
 > Subsystem". Es entscheidet sich an den berührten Pfaden:
 >
 > - **Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.
-> - **TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`, `docs/specs/`.
+> - **TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.
 >
 > **Im Zweifel Label setzen.** Berührt ein Issue beide Seiten, oder liegen die berührten Pfade
 > außerhalb beider Anker-Listen, wird das Label gesetzt. Von keiner der beiden Listen gedeckt
 > sind u. a.:
-> Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`.
+> Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`,
+> `docs/specs/` (Ablagekonvention statt Subsystem-Grenze – enthält sowohl Produkt- als auch
+> Factory-Harness-Specs, siehe z. B. diese Spec selbst).
 > Die Regel ist einseitig fail-safe – genau wie „im Zweifel Issue" im Abschnitt „Schwelle:
 > Issue oder Sammeldatei": ein zu viel gesetztes Label kostet einen Filterklick, ein fehlendes
 > macht Factory-Arbeit im Backlog unsichtbar. Genau darin liegt der Nutzen – ohne das Label ist

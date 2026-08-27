@@ -1277,3 +1277,31 @@ Suite-Lauf entfernen, nicht den Guard abschwächen oder auf getrackte Dateien ei
 → `/review`, `/test`, `/refactor`, `/security-review` – bei unerwartetem Rot eines
 verzeichnisweiten Content-Scan-Guards in `run-tests.sh`, obwohl `git status` (ohne `--ignored`)
 sauber ist
+
+### Anker-Liste einer Fail-safe-Klassifizierungsregel braucht einen Verteilungs-Check gegen den echten Repo-Inhalt (aus #315, Review-Runde-4-Finding)
+
+Drei Review-Runden haben die zweiseitige Pfad-Anker-Liste für das Aspekt-Label
+`factory-pipeline` (`git-workflow.md` → „GitHub-Labels") ausschließlich auf **Vollständigkeit**
+und **Nicht-Überlappung** geprüft: Ist jeder relevante Präfix auf genau einer Seite genannt,
+taucht keiner doppelt auf? Keine der drei Runden hat gemessen, ob ein gelisteter Anker in der
+Praxis tatsächlich **vorhersagt**, zu welcher Seite ein Treffer gehört. Erst Runde 4 zählte
+nach: `docs/specs/` stand als App-Anker in der Liste, enthält aber 78 Specs, von denen 40
+Factory-Artefakte referenzieren – der Anker liegt nahe am Münzwurf statt an einer klaren
+Trennlinie. Grund: `/requirements` legt **jede** Spec unter `docs/specs/` ab, unabhängig davon,
+ob die Task Werkzeug oder Produkt betrifft – der Anker kodierte eine Ablagekonvention, keine
+Subsystem-Grenze. Die Zweifelsregel („im Zweifel Label setzen") fing zwar jeden real
+existierenden Fall ab, aber genau der Fall, für den AK3 eine Zuordnung **ohne Rückfrage**
+versprach (ein Issue, das ausschließlich eine Factory-Spec anfasst), hätte über diesen einen
+Anker die falsche Antwort bekommen.
+
+**Regel:** Bei jeder Anker-basierten Tie-Break-/Klassifizierungsregel (welcher Pfad-Präfix
+gehört zu welcher Seite) zusätzlich zur Vollständigkeits-/Überlappungsprüfung einen
+**Stichproben-Zähl-Check gegen den echten Repo-Inhalt** fahren, bevor die Liste als kanonisch
+gilt: Wie viele Dateien unter dem Anker gehören inhaltlich wirklich zur behaupteten Seite (z. B.
+per Grep auf ein Diskriminierungsmerkmal), wie viele zur anderen? Ein Anker, der nahe 50/50
+zwischen beiden Seiten streut, gehört nicht auf die „ohne Rückfrage"-Liste, sondern explizit in
+die „im Zweifel"-Auflösung. Zusätzlich: Anker als **Repo-Wurzel-Präfix** ausweisen (z. B. „ab
+Repo-Wurzel gelesen"), sonst matcht ein freier Teilstring wie `lib/` auch innerhalb eines
+Pfads der anderen Seite (`scripts/lib/create-issue.sh`).
+→ `/implement`, `/review` – bei neuem oder geprüftem Pfad-Anker in einer Fail-safe-
+Klassifizierungs-/Tie-Break-Regel
