@@ -3,8 +3,8 @@
 ## Status
 
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -213,6 +213,43 @@ fünf Nitpicks. Rework in dieser Session – alle sieben umgesetzt:
   Verzeichnis inhaltlich, nicht nur die getrackten Dateien. Nach dem Entfernen des Logs grün.
 - Kein Produktionscode geändert (nur Tests + Doku) → Gate-Polarität, Guard-Bedingung und alle
   #310-/#312-Anker unverändert.
+
+### Runde 3 – Circuit Breaker, manuell behoben (Commit `2069cbb`)
+
+Review-Runde 3 erreichte die Grenze aus CLAUDE.md (3 Review↔Implement-Iterationen ohne
+Konvergenz) – Circuit Breaker ausgelöst, Pipeline gestoppt. Einziger offener Punkt war **W1**
+(textlich, keine Verhaltensänderung): der WHY-Kommentar in `run-pipeline.sh:305-307` behauptete,
+`run_skill()` lese den Verdict „einmal pro Versuch" – tatsächlich liest
+`report_is_fresh_and_valid()` ihn für die Bedingung separat noch einmal (zwei Aufrufe pro
+Versuch im report-erzeugenden Zweig). Das zugehörige Assertion-Label in
+`run-tests.sh:6257` behauptete dieselbe, nicht gemessene Eigenschaft.
+
+Auf Anweisung direkt behoben (kein vierter `/implement`-Durchlauf, wie vom Reviewer selbst
+empfohlen): Kommentar und Assertion-Label auf das beschränkt, was der Guard tatsächlich zeigt –
+dass die Erfolgsmeldung den Verdict im eigenen Rumpf nur einmal materialisiert.
+
+**Rezidiv beim Fix:** Der neue Kommentartext enthielt zunächst selbst das Wortfragment
+`report_verdict`, das die Zähl-Assertion (`grep -c 'report_verdict'` im per `awk` extrahierten
+Rumpf von `run_skill()`) mitzählt – erste Fassung machte den Test dadurch rot. Umformuliert ohne
+den literalen Funktionsnamen.
+
+**Zweites Rezidiv des Runde-2-Umgebungsfundes:** wieder lagen liegengebliebene, gitignorete
+`scripts/*.tmp.*`-Dateien aus vorangegangenen Review-Sessions im Baum und lösten denselben
+Anti-Regressions-Gotcha-Guard aus (Text „grep -c … || echo" in einem geloggten Testoutput).
+Entfernt; danach **1203 grün / 0 rot**. Zweites Vorkommnis dieses Musters in derselben Task –
+Kandidat für `/codify`.
+
+Nach dem Fix: volle Bash-Suite grün (1203/0), `pnpm test`/`typecheck`/`format:check`/
+Routen-Doku-Check (Pre-Push) grün, committet und gepusht.
+
+### /test-Verifikation
+
+Kein Produktionscode in diesem Schritt geändert (Vorgabe eingehalten). AK1–AK13 sind bereits aus
+den drei Review-Runden heraus mit E2E-Verhaltenstests **und** kausalen Mutationsbelegen
+abgedeckt (gleiche Assert-Ausdrücke wie im Positivtest, echte Guard-Zeilen als Anker – siehe
+Review-Historie oben). Kein TS-Produktionscode betroffen (nur `scripts/`/`docs/`) – `pnpm
+test:coverage` liefert für diesen Diff keine zusätzliche Aussage. Keine Lücke gefunden, keine
+neuen Tests nötig.
 
 ## Codify-Notizen
 
