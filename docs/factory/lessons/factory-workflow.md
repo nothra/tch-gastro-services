@@ -431,6 +431,26 @@ Env-Var, Permission) prüft, bekommt einen Block-Anker (`awk`-Block-Extraktion),
 PR ein WHY-Kommentar in der Nähe entsteht, der dieselbe Zeichenfolge zitiert – unabhängig davon,
 ob ein Test das aktuell schon nachweist.
 
+**Nachtrag 6 (aus #310, /implement-Selbstfund – siebtes Rezidiv, diesmal ein Mutations- statt
+ein Präsenz-/Reihenfolge-Guard):** Task #310 sicherte einen neuen Interrupt-Aufruf in
+`run-pipeline.sh` per Mutationsbeleg ab: ein `awk`-Skript entfernt die Aufrufzeile, ein
+Wirksamkeits-Guard zählt danach die Vorkommen der Zeichenkette `interrupt-check.sh` und erwartet
+einen Rückgang. Der erste Anlauf war wirkungslos, weil derselbe WHY-Kommentar **direkt über** der
+Aufrufzeile den Dateinamen `interrupt-check.sh` in Prosa nannte – das `awk`-Muster matchte auf
+den Dateinamen statt auf die volle Aufrufzeile, löschte also den Kommentar, während der echte
+Aufruf stehen blieb. Der „Mutation greift"-Guard war trotzdem grün, weil er dieselbe
+Fragment-Zeichenkette zählte wie die Mutation entfernte – beide maßen denselben falschen Proxy.
+Wie beim sechsten Rezidiv (#284) war die Kollisionsquelle der eigene, im selben Commit
+geschriebene Kommentar; hier vor dem Review bemerkt und behoben, nicht erst danach.
+
+**Regel (Mutationsbeleg-Variante):** Bei einem Mutations-Guard ist der Lösch-Anker die
+**vollständige Aufrufzeile** (hier `bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh"`), nie
+ein Dateiname- oder Kommando-Fragment – und die begleitende Wirksamkeits-Zählung muss exakt
+dieselbe Zeichenkette zählen, die die Mutation löscht. Zählt sie stattdessen ein kürzeres
+Fragment (das auch in einem benachbarten Kommentar vorkommen kann), belegen Mutation und
+Zählung nur gegenseitig denselben blinden Fleck, nicht die Kausalität zwischen Codezeile und
+Testverhalten.
+
 ### App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145)
 
 Beim Erstellen der Routen-Übersicht (`docs/routes.md`) und des Drift-Checks

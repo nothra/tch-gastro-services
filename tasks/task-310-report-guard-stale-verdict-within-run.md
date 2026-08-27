@@ -7,8 +7,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -211,19 +211,20 @@ Dependency-Änderung.
 
 ## Codify-Notizen
 
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Report: [`tasks/codify-310.md`](codify-310.md).
 
-Kandidat aus dem Nitpick-Nachlauf (2026-08-27, Selbstfund): **Siebtes Vorkommnis von
-„Kommando ≠ Prosa-Erwähnung" (#114)** – das Mutations-`awk` des neuen Interrupt-Tests ankerte
-auf dem Dateinamen `interrupt-check.sh` und löschte damit die Erwähnung im WHY-Kommentar
-**direkt über** der Aufrufzeile; der echte Aufruf blieb stehen, die Mutation war wirkungslos,
-und der „Mutation greift"-Guard war nur deshalb grün, weil er dieselbe Fragment-Zählung nutzte.
-Wie beim sechsten Vorkommnis (#284) war die Kollisionsquelle der eigene, im selben Commit
-geschriebene Kommentar – und wie dort blieb der Mutationsbeleg dadurch stumm statt rot.
-Verschärfung fürs Regelwerk: Bei Mutations-Guards ist der Anker die **vollständige
-Aufrufzeile** (hier `bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh"`), und die
-Wirksamkeits-Zählung muss dieselbe exakte Zeichenkette zählen wie die Mutation löscht –
-sonst belegen beide nur, dass irgendeine Zeile verschwand.
+Zwei Lessons ergänzt (Volltext + Index-Zeile in `docs/factory/PROJECT-CONTEXT.md`):
+
+- **`lessons/factory-workflow.md` Nachtrag 6** – siebtes Rezidiv von „Kommando ≠
+  Prosa-Erwähnung" (#114), diesmal an einem Mutationsbeleg: Lösch-Anker und
+  Wirksamkeits-Zählung müssen dieselbe vollständige Aufrufzeile treffen, nicht denselben
+  Dateinamen-/Kommando-Fragment. Vor dem Review als `/implement`-Selbstfund behoben (siehe
+  Kandidat aus dem Nitpick-Nachlauf, 2026-08-27).
+- **`lessons/testing.md`** (5. Vorkommnis der Duplikat-Smell-Lesson #240/#267) – Review-Finding
+  W3: parallele Test-Scaffold-Funktion statt Aufruf + Differenz-Ergänzung auf `_mk_pipe_repo`.
+
+Keine neuen Issues/`kleinfunde.md`-Einträge nötig – das einzige offene Security-Finding ist
+bereits als Issue #312 getrackt.
 
 ---
 
