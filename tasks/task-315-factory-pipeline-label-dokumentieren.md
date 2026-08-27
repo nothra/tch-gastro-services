@@ -35,7 +35,8 @@ Spec mit Kontext, Scope-Grenzen und den vier Phase-1-Entscheidungen:
 - [x] **AK3** GIVEN der neue Zeilen-/Begleittext, WHEN ein Leser ein Issue einordnen muss,
       THEN benennt der Text beide Seiten der Grenze mit Pfad-Ankern (Factory: `scripts/`,
       `.claude/`, `.github/workflows/`, `docs/factory/` – App: `app/`, `db/`, `lib/`,
-      `docs/specs/`).
+      `docs/specs/`), löst den Mischfall einseitig fail-safe auf („Im Zweifel Label setzen",
+      inkl. der ungedeckten Pfade) und bleibt die einzige Stelle mit der Anker-Liste.
 - [x] **AK4** GIVEN die zwei abgeleiteten Aufzählungen in `git-workflow.md` selbst
       (Faustregel-Absatz, `start-work.sh`-Absatz), WHEN sie gelesen werden, THEN nennen beide
       `factory-pipeline` mit.
@@ -57,7 +58,9 @@ Spec mit Kontext, Scope-Grenzen und den vier Phase-1-Entscheidungen:
       wirksam belegt.
 - [x] **AK10** GIVEN dieselbe Suite, WHEN sie läuft, THEN schlägt sie fehl, sobald der alte
       Name `factory_pipeline` in einer **getrackten** Datei auftaucht (Scan über
-      `git ls-files`, nicht über das Verzeichnis).
+      `git ls-files`, nicht über das Verzeichnis) – ausgenommen die Papierspur dieser Task
+      (`docs/specs/spec-315-*`, `tasks/*315*`), je Ausnahme mit einer Kontrolle in beide
+      Richtungen und fail-closed gegen still gescheitertes Fixture-Scaffolding.
 - [x] **AK11** GIVEN Titel und Body von Issue #315 nennen den alten Namen, WHEN der Rename
       erfolgt ist, THEN sind beide auf `factory-pipeline` gezogen.
 
@@ -93,8 +96,10 @@ committet), dann Doku + Guard im selben PR.
 ### Nachweise (2026-08-27)
 
 - **AK1:** `gh label list` führt `factory-pipeline` und kein `factory_pipeline` mehr;
-  `gh issue list --label factory-pipeline --state all` liefert **13** Issues – die Zuordnungen
-  hat GitHub beim Rename mitgezogen.
+  `gh issue list --label factory-pipeline --state all` liefert **13** Issues (Stichtag der
+  Messung: 2026-08-27 vormittags) – die Zuordnungen hat GitHub beim Rename mitgezogen. Eine
+  spätere Zählung kann höher liegen, weil unabhängig von dieser Task weiter gelabelt wird
+  (#316 kam so hinzu).
 - **AK9/AK10:** Suite-Lauf ohne exportierte `PR_SHEPHERD`/`FACTORY_STAGE` (Lesson #262) und
   nach dem Entfernen der Scratch-Artefakte (Lesson #312): **1242 grün, 4 rot** – die vier roten
   sind ausschließlich die `.claude/**`-Assertions, die auf das `git apply` warten (AK8). Alle
@@ -140,16 +145,29 @@ Runde 1 (`tasks/review-315.md`, Empfehlung **NEEDS_REWORK**) – Rework am 2026-
 | N4 | Kommentar sagt „gitignoret", der Fixture stellt nur „ungetrackt" her | behoben |
 | N5 | Scratch-Artefakte `scripts/*315*.tmp.*` färben den #312-Guard lokal rot | behoben: entfernt; Suite jetzt 1242/4 statt 1241/5 |
 
+Runde 3 (`tasks/review-315.md`, Empfehlung **NEEDS_REWORK** ohne kritisches Finding,
+Circuit-Breaker-Hinweis) – Rework am 2026-08-27 nach Weg 1 der Review-Empfehlung:
+
+| # | Finding | Status |
+|---|---------|--------|
+| K–  | keine kritischen Findings | – |
+| W1 | Spec kennt weder die AK10-Allowlist noch die Zweifelsregel → Guard widerspricht dem eigenen Anforderungsdokument (Lesson #253/#211/#176) | behoben: AK3 um Zweifelsregel + „Anker nur in der kanonischen Quelle", AK10 um Allowlist-Ausnahme, Beidseitigkeits-Kontrolle und Fail-closed-Forderung ergänzt; dieselben zwei AKs in der Task-Datei mitgezogen |
+| W2 | `CONTRIBUTING.md:88` kopiert die Factory-Pfad-Anker wörtlich, ungeschützt gegen Drift | behoben: Kopie durch Verweis auf `git-workflow.md` ersetzt; neue Assertion sichert die Abwesenheit ab, eine Positivkontrolle mit **derselben** Phrase gegen `git-workflow.md` belegt, dass der Ausdruck überhaupt findet (RED-vor-GREEN gemessen: genau diese eine Assertion war vor dem Fix rot) |
+| W3 | Fail-closed-Härtung nur am Live-Scan, nicht an den vier auf Leere prüfenden Fixture-Assertions | behoben: neuer Helfer `assert_scan_clean_315` prüft je Aufruf zuerst, dass genau die Fixture-Datei getrackt ist; Mutationsbeleg über ein initialisiertes, aber uncommittetes Repo, in dem die Datei mit dem verbotenen Namen im Baum liegt – dort divergieren die beiden Prädikate nachweislich |
+| N1–N5 | Nitpicks | N3 (stale `#316`-Randnotiz, Lesson #176) behoben – in Spec, Task-Datei und AK1-Nachweis, letzterer mit Stichtag. Ebenfalls behoben: der `/codify`-Hinweis nennt jetzt auch `kleinfunde.md` – ein Eintrag dort, der den alten Namen zitiert, kippt die Suite genauso, und `/codify` läuft in dieser Pipeline noch. Bewusst offen gelassen: Teilstring-Anker (4 von 7 tragen), Singular im Mutationslabel, `tasks/*315*` breiter als nötig – ohne Wirkung im aktuellen Repo-Zustand |
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
 **Hinweis an `/codify` (Konsequenz aus Review-Finding K3):** Die AK10-Allowlist nimmt bewusst
-nur `docs/specs/spec-315-*` und `tasks/*315*` aus. `docs/factory/lessons/*` und
-`PROJECT-CONTEXT.md` sind **nicht** ausgenommen – sie sind lebende Konventions-Dokumente. Eine
-Lesson zu dieser Task verweist deshalb auf Task/Spec, statt den alten Label-Namen selbst zu
-buchstabieren; sonst wird die Suite rot.
+nur `docs/specs/spec-315-*` und `tasks/*315*` aus. `docs/factory/lessons/*`,
+`PROJECT-CONTEXT.md` und `docs/factory/kleinfunde.md` sind **nicht** ausgenommen – sie sind
+lebende Konventions- bzw. Sammel-Dokumente. Eine Lesson oder ein Kleinfunde-Eintrag zu dieser
+Task verweist deshalb auf Task/Spec, statt den alten Label-Namen selbst zu buchstabieren;
+sonst wird die Suite rot.
 
-Randnotiz (nicht Scope): #316 und #285 sowie ggf. #166 sind Factory-Arbeit ohne das Label.
+Randnotiz (nicht Scope): #285 sowie ggf. #166 sind Factory-Arbeit ohne das Label (Stand
+2026-08-27; #316 ist inzwischen unabhängig von dieser Task gelabelt).
 
 ---
 Branch: `docs/315-factory-pipeline-label-dokumentieren`

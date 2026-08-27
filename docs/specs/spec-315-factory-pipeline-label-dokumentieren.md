@@ -28,7 +28,7 @@ filterbar, was das Produkt und was das Werkzeug betrifft.
 |-------|--------------|------------|
 | Aspekt-Label oder dritte Schema-Achse? | **Aspekt-Label** – eine Zeile in der bestehenden Tabelle | Das Label ist optional und nicht-exklusiv, verhält sich also mechanisch exakt wie ein Aspekt-Label. Eine dritte Achse für genau ein Label wäre Schema-Aufwand ohne Gegenwert (YAGNI) und müsste in jeder abgeleiteten Liste mitgeführt werden. Die semantische Besonderheit („welches Subsystem", nicht „welche Dimension") trägt der Zeilentext. |
 | Namensform `factory_pipeline`? | **Rename auf `factory-pipeline`** | Konsistenz mit `tech-debt` (kebab-case) und Wegfall der optischen Nähe zum reservierten Maschinen-Präfix `factory::`. GitHub überträgt bestehende Zuordnungen beim Rename automatisch; der Guard `_cri_is_reserved_label` weist nur `factory::*` ab, `factory-pipeline` bleibt über den Seam vergebbar. |
-| Rückwirkende Vergabe? | **Nicht Teil dieser Task** | Der Bestand ist bereits zu ~80 % gelabelt (13 Issues, u. a. #312, #290, #288, #275, #198, #178, #177, #131). Offen sind nur #316, #285 und ggf. #166 – Datenpflege, die nicht in einen Doku-PR gehört. |
+| Rückwirkende Vergabe? | **Nicht Teil dieser Task** | Der Bestand ist bereits zu ~80 % gelabelt (13 Issues, u. a. #312, #290, #288, #275, #198, #178, #177, #131). Offen sind nur #285 und ggf. #166 – Datenpflege, die nicht in einen Doku-PR gehört. (#316 war zum Zeitpunkt dieser Entscheidung ebenfalls offen und ist inzwischen unabhängig von dieser Task gelabelt.) |
 | Absicherung gegen künftige Drift? | **Grep-Guard in der Bash-Suite** | Deterministisch, offline, Präzedenz vorhanden. Ein generischer `gh label list`-gegen-Doku-Check wäre die Ursachenbehandlung, braucht aber Netz + Token und ist damit eine eigene Task. |
 
 **Kein ADR-Trigger:** Keine Technologie-, Schnittstellen- oder irreversible Entscheidung. Die
@@ -80,7 +80,12 @@ Label-Konvention ist selbst kanonische Quelle in `git-workflow.md`; ADR-018 §3
       Begleittext in `git-workflow.md`, WHEN ein Leser ein Issue einordnen muss, THEN benennt
       der Text **beide** Seiten der Grenze mit konkreten Pfad-Ankern – Factory:
       `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`; Applikation: `app/`,
-      `db/`, `lib/`, `docs/specs/` – sodass die Zuordnung ohne Rückfrage fällt.
+      `db/`, `lib/`, `docs/specs/` – sodass die Zuordnung ohne Rückfrage fällt. UND er löst den
+      **Mischfall** einseitig fail-safe auf („Im Zweifel Label setzen") und benennt die von
+      beiden Anker-Listen ungedeckten Pfade (Repo-Wurzel, `docs/adr/`, `tasks/`, `e2e/`) –
+      ohne diese Auflösung bliebe die Zuordnung genau dort zirkulär, wo sie gebraucht wird.
+      Die Pfad-Anker stehen **nur** in dieser kanonischen Quelle; abgeleitete Dokumente
+      verweisen darauf, statt die Liste zu kopieren.
 - [ ] **AK4 – Aufzählungen derselben Datei mitgezogen.** GIVEN die beiden abgeleiteten
       Aufzählungen in `git-workflow.md` (Faustregel-Absatz und `start-work.sh`-Absatz, die
       heute `security`/`tech-debt`/`test` als geschlossene Menge nennen), WHEN sie gelesen
@@ -112,6 +117,13 @@ Label-Konvention ist selbst kanonische Quelle in `git-workflow.md`; ADR-018 §3
       läuft, THEN schlägt sie fehl, sobald der alte Name `factory_pipeline` in einer
       **getrackten** Datei auftaucht; der Scan liest ausschließlich `git ls-files`, nicht das
       Verzeichnis, damit gitignorete Scratch-Artefakte ihn nicht rot färben.
+      **Ausgenommen ist die Papierspur dieser Task selbst** (`docs/specs/spec-315-*` und
+      `tasks/*315*`): sie hält den Rename fest und muss den alten Namen im Klartext nennen
+      dürfen – ohne die Ausnahme blockierte der Guard die eigene Pipeline, sobald ein
+      Folge-Skill seinen Report schreibt. Je Ausnahme-Pfadspec ist eine Kontrolle in **beide**
+      Richtungen zu führen (Papierspur zulässig / fremde Spec bzw. fremder Task-Report rot),
+      UND jede auf Leere prüfende Kontrolle ist fail-closed abgesichert: ein still
+      gescheitertes Fixture-Scaffolding darf sie nicht grün werden lassen.
 - [ ] **AK11 – Issue #315 ohne stale Referenz.** GIVEN Titel und Body von Issue #315 nennen
       den alten Namen `factory_pipeline`, WHEN der Rename erfolgt ist, THEN sind Titel und
       Body auf `factory-pipeline` gezogen – die Issue, die die Konvention festschreibt,
@@ -139,5 +151,5 @@ Label-Konvention ist selbst kanonische Quelle in `git-workflow.md`; ADR-018 §3
 
 _Keine._ Alle vier Phase-1-Entscheidungen sind oben getroffen.
 
-> Randnotiz für `/codify` (nicht Teil dieser Task): Die Factory-Issues **#316** und **#285**
-> sowie ggf. **#166** tragen das Label noch nicht.
+> Randnotiz für `/codify` (nicht Teil dieser Task): Die Factory-Issues **#285** sowie ggf.
+> **#166** tragen das Label noch nicht (Stand 2026-08-27).

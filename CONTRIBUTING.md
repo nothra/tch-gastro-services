@@ -85,7 +85,8 @@ Beiträge beziehen sich auf das **TCH-Produkt** oder auf den **Factory-Harness**
 - **📖 Dokumentation** – README, ADRs, Specs, Kommentare verbessern. Label: `documentation`.
 - **🧪 Tests** – Unit-/Integration- (Vitest) oder E2E-Abdeckung (Playwright) ergänzen. Aspekt-Label: `test`.
 - **🏭 Factory / Harness** – Arbeit am Werkzeug statt am Produkt: Pipeline, Skills, Gates,
-  Factory-Doku (`scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`).
+  Factory-Doku. Die Abgrenzung zur App entscheidet sich an den Pfad-Ankern beider Seiten –
+  kanonisch in [`git-workflow.md`](docs/factory/guidelines/git-workflow.md) → „GitHub-Labels".
   Aspekt-Label: `factory-pipeline`.
 
 Die Label-Konvention („genau ein Art-Label + beliebig viele Aspekt-Labels") ist in

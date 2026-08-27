@@ -6741,6 +6741,17 @@ assert_contains_286 "$contrib_flat_315" '**🏭 Factory / Harness**' \
 assert_contains_286 "$contrib_flat_315" \
   '[`docs/factory/guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) beschrieben;' \
   "#315 AK5: der Verweis auf die kanonische Quelle bleibt bestehen"
+# „Keine zweite kanonische Liste" gilt auch für die PFAD-ANKER der Grenze, nicht nur für die
+# Label-Menge: eine wörtliche zweite Kopie driftet still, sobald die Anker-Liste in der
+# kanonischen Quelle wächst oder schrumpft – genau die Fehlerklasse, die diese Task für die
+# Label-Aufzählungen gerade abschafft. Dieselbe Phrase gegen beide Dateien: die Kontrolle
+# belegt, dass der Ausdruck überhaupt findet, die Abwesenheits-Assertion, dass er es nur an
+# der kanonischen Stelle tut.
+anchors_315='`scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`'
+assert_contains_286 "$gwf_flat_315" "$anchors_315" \
+  "#315 AK5 (Kontrolle): die Anker-Liste ist über genau diesen Ausdruck auffindbar"
+assert_absent "$contrib_flat_315" "$anchors_315" \
+  "#315 AK5: CONTRIBUTING.md verweist auf die Pfad-Anker, statt sie zu kopieren"
 
 # ── AK6: OPERATING.md §1.1 Schritt 3 trennt die beiden Achsen (vorbestehende Drift: die
 # frühere flache Liste führte „genau eins" über Art- UND Aspekt-Labels).
@@ -6814,6 +6825,19 @@ tracked_repo_315() {
   printf '%s\n' "$wt"
 }
 
+# assert_scan_clean_315 <repo> <erwartete getrackte datei> <beschreibung>
+# Fail-closed-Kontrolle für jede auf LEERE prüfende Fixture-Assertion – symmetrisch zu der des
+# Live-Scans oben (Lesson #197: Guard symmetrisch auf alle Inputs; #214: fail-closed bei
+# unlesbarer Quelle). tracked_repo_315 schluckt in jedem git-Kommando stderr: scheitert das
+# Scaffolding still, liefert name_hits_315 leeren Output und die Abwesenheits-Assertion wäre
+# grün, ohne dass je eine Datei gelesen wurde. Geprüft wird deshalb zuerst, dass genau die
+# Fixture-Datei getrackt ist, und erst danach die Abwesenheit des alten Namens.
+assert_scan_clean_315() {
+  assert_true "$([ -n "$(git -C "$1" ls-files -- "$2")" ]; echo $?)" \
+    "#315 AK10 (fail-closed): das Fixture-Repo trägt $2 wirklich getrackt"
+  assert_true "$([ -z "$(name_hits_315 "$1" "$OLD_LABEL_315")" ]; echo $?)" "$3"
+}
+
 # Mutationsbeleg: derselbe Assert-Ausdruck gegen ein Repo, in dem eine getrackte, NICHT
 # allowlistete Datei den alten Namen trägt.
 REPO_OLD_315="$(tracked_repo_315 old-name docs/factory/guidelines/git-workflow.md \
@@ -6828,7 +6852,7 @@ assert_contains_286 "$hits_mut_315" "docs/factory/guidelines/git-workflow.md" \
 # reagiert auf den Namen, nicht auf die Existenz der Datei.
 REPO_NEW_315="$(tracked_repo_315 new-name docs/factory/guidelines/git-workflow.md \
   "| \`$NEW_LABEL_315\` | Arbeit am Factory-Harness |")"
-assert_true "$([ -z "$(name_hits_315 "$REPO_NEW_315" "$OLD_LABEL_315")" ]; echo $?)" \
+assert_scan_clean_315 "$REPO_NEW_315" docs/factory/guidelines/git-workflow.md \
   "#315 AK10: derselbe Inhalt mit dem NEUEN Namen bleibt grün"
 
 # Allowlist-Kontrolle in beide Richtungen, je Ausnahme-Pfadspec eine: in der #315-Papierspur
@@ -6836,7 +6860,7 @@ assert_true "$([ -z "$(name_hits_315 "$REPO_NEW_315" "$OLD_LABEL_315")" ]; echo 
 # wäre die Ausnahme ein Loch über ganz docs/specs/ bzw. tasks/).
 REPO_ALLOW_315="$(tracked_repo_315 allow "docs/specs/spec-315-x.md" \
   "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
-assert_true "$([ -z "$(name_hits_315 "$REPO_ALLOW_315" "$OLD_LABEL_315")" ]; echo $?)" \
+assert_scan_clean_315 "$REPO_ALLOW_315" "docs/specs/spec-315-x.md" \
   "#315 AK10: der alte Name im #315-Anforderungsdokument bleibt zulässig"
 REPO_OTHER_315="$(tracked_repo_315 other-spec "docs/specs/spec-999-x.md" \
   "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
@@ -6844,7 +6868,7 @@ assert_true "$([ -n "$(name_hits_315 "$REPO_OTHER_315" "$OLD_LABEL_315")" ]; ech
   "#315 AK10: derselbe Satz in einer FREMDEN Spec macht den Scan rot (Allowlist ist kein Loch)"
 REPO_REPORT_315="$(tracked_repo_315 report "tasks/review-315.md" \
   "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
-assert_true "$([ -z "$(name_hits_315 "$REPO_REPORT_315" "$OLD_LABEL_315")" ]; echo $?)" \
+assert_scan_clean_315 "$REPO_REPORT_315" "tasks/review-315.md" \
   "#315 AK10: der alte Name in einem #315-Pipeline-Report bleibt zulässig"
 REPO_OTHERTASK_315="$(tracked_repo_315 other-task "tasks/review-999.md" \
   "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
@@ -6854,8 +6878,21 @@ assert_true "$([ -n "$(name_hits_315 "$REPO_OTHERTASK_315" "$OLD_LABEL_315")" ];
 # Lesson #312: ein ungetracktes Scratch-Artefakt mit dem alten Namen darf den Scan nicht
 # rot färben – genau deshalb liest er getrackte Dateien statt das Verzeichnis.
 printf '%s\n' "$OLD_LABEL_315" > "$REPO_NEW_315/scratch.tmp.md"
-assert_true "$([ -z "$(name_hits_315 "$REPO_NEW_315" "$OLD_LABEL_315")" ]; echo $?)" \
+assert_scan_clean_315 "$REPO_NEW_315" docs/factory/guidelines/git-workflow.md \
   "#315 AK10: ein ungetracktes Scratch-Artefakt mit dem alten Namen lässt den Scan grün"
+
+# Mutationsbeleg für die Fail-closed-Kontrolle selbst: ein Repo, in dem `add`/`commit` still
+# gescheitert sind (hier nachgestellt: initialisiert, aber nichts getrackt), während die Datei
+# mit dem VERBOTENEN Namen im Baum liegt. Genau dort laufen die beiden Prädikate auseinander –
+# der Scan bleibt leer (die Abwesenheits-Assertion allein wäre grün), die Kontrolle wird rot.
+REPO_UNSCAFFOLDED_315="$TMP_315/kein-commit"
+mkdir -p "$REPO_UNSCAFFOLDED_315/docs/factory/guidelines"
+printf '%s\n' "$OLD_LABEL_315" > "$REPO_UNSCAFFOLDED_315/docs/factory/guidelines/git-workflow.md"
+git init -q -b main "$REPO_UNSCAFFOLDED_315" >/dev/null 2>&1
+assert_true "$([ -z "$(name_hits_315 "$REPO_UNSCAFFOLDED_315" "$OLD_LABEL_315")" ]; echo $?)" \
+  "#315 AK10 (Mutation): ohne getrackte Datei bliebe die Abwesenheits-Assertion grün – obwohl der alte Name im Baum liegt"
+assert_true "$([ -z "$(git -C "$REPO_UNSCAFFOLDED_315" ls-files -- docs/factory/guidelines/git-workflow.md)" ]; echo $?)" \
+  "#315 AK10 (Mutation): genau dort wird die Fail-closed-Kontrolle rot"
 
 rm -rf "$TMP_315"
 
