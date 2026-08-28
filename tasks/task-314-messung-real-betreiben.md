@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -155,6 +155,17 @@ Kein neues Verhalten – nur interne Struktur/Klarheit, adressiert Nitpicks aus 
   (verifiziert sicher, kein etabliertes Alternativmuster in der Suite vorhanden).
 - Verifiziert: `bash scripts/checks/tests/run-tests.sh` vor und nach dem Refactoring identisch
   1252 grün / 2 rot (dieselben zwei erwarteten AK12-Assertionen) – kein Verhalten geändert.
+
+## Security-Review (`/security-review`)
+
+Siehe [`tasks/security-314.md`](security-314.md) – **PASSED**, keine kritischen/wichtigen
+Findings. Sechs Hinweise dokumentiert (alle als Beleg, keine Korrektur nötig): Integer-Guard +
+`--body-file` gegen Command-/Argument-Injection, ADR-045-„kein neuer Freitext-Kanal"-Invariante
+empirisch gegen den Code verifiziert (nur `createdAt`/`mergedAt`/`conclusion` aus der
+GitHub-API, keine PR-/Commit-Freitextfelder), Patch-Inhalt für `daily-metrics.md` auf
+Prompt-Injection geprüft (unauffällig), Least-Privilege der zwei neuen
+`factory-poll.yml`-Scopes bestätigt, keine Secrets/Stack-Traces in Fehlerpfaden, Fail-open-
+Mechanik durch Mutationstest belegt.
 
 ## Review-Findings
 
