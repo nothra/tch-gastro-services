@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -174,7 +174,13 @@ Siehe [`tasks/review-314.md`](review-314.md) – **APPROVED**, 0 kritische/wicht
 EXIT-Trap, empirisch in zwei Runden gegengeprüft). Iteration 1/2.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [`tasks/codify-314.md`](codify-314.md) – 3 neue Regeln: EXIT-Trap-Exit-Code-Semantik
+(`bash-gotchas.md` #12), Review-Sub-Agent-Verhaltensbehauptungen verifizieren
+(`lessons/factory-workflow.md`), externes-CLI-Stub in geteilten Test-Scaffolds
+(`lessons/testing.md`) – alle drei aus derselben Beobachtung während `/review`: ein
+Sub-Agent behauptete fälschlich, ein `return`-Statement im EXIT-Trap sei für den
+Exit-Code-Erhalt tragend; zwei unabhängige Gegenproben widerlegten das.
 
 ---
 Branch: `chore/314-messung-real-betreiben`
