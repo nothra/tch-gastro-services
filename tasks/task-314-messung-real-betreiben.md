@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -132,6 +132,29 @@ der CI-Gate `factory-self-test` rot – alle anderen Änderungen (`scripts/metri
   Gesamt-Statements 89.56 % (Schwelle 80 %) – keine Coverage-Regression.
 - Finaler Lauf: `bash scripts/checks/tests/run-tests.sh` → 1252 grün / 2 rot (unverändert die
   zwei erwarteten AK12-Assertionen aus dem offenen `.claude/**`-Patch-Blocker).
+
+## Refactoring (`/refactor`)
+
+Kein neues Verhalten – nur interne Struktur/Klarheit, adressiert Nitpicks aus `review-314.md`:
+
+- `scripts/metrics.sh`: `case "$issue" in ''|*[!0-9]*)` → `*[!0-9]*)` – die `''`-Alternative war
+  unerreichbar (der vorangehende `[ -z "$issue" ]`-Guard fängt den leeren Wert bereits ab).
+- `scripts/run-pipeline.sh`: WHY-Kommentar über der Trap-Funktion um einen Satz ergänzt, der
+  klarstellt, dass die `return "$_exit_code"`-Zeilen defensiv sind (Absicherung gegen einen
+  künftigen Branch ohne `|| true`-Schutz als letzten Befehl) und nicht der eigentliche
+  Erhaltungsmechanismus – vermeidet die in Review-Runde 1 aufgetretene Fehleinschätzung.
+- `scripts/checks/tests/run-tests.sh`: `scaffold_310()` legt jetzt einen fehlschlagenden
+  `bin/gh`-Stub an (überschattet einen ambienten System-`gh` über den bereits bestehenden
+  `PATH`-Vorrang in `run_310()`/`run_314()`). Entkoppelt alle echten, nicht-`--dry-run`
+  Pipeline-Läufe (inkl. der neuen Task-314-E2E-Tests) von der lokalen `gh`-Installation/
+  -Authentifizierung – vorher funktionierte das nur zufällig, weil ein ambienter `gh` gegen den
+  Bare-Remote der Wegwerf-Repos ohnehin sofort scheitert.
+- Bewusst NICHT geändert (siehe `review-314.md`-Nitpicks): `commit_314_pushed()` ist erst das
+  dritte inline-Vorkommen des Bare-Origin-Push-Musters – Extraktion erst beim vierten
+  Vorkommnis, wie in Review-Runde 2 empfohlen. AK9-Tests `PATH="/usr/bin:/bin"`-Isolation bleibt
+  (verifiziert sicher, kein etabliertes Alternativmuster in der Suite vorhanden).
+- Verifiziert: `bash scripts/checks/tests/run-tests.sh` vor und nach dem Refactoring identisch
+  1252 grün / 2 rot (dieselben zwei erwarteten AK12-Assertionen) – kein Verhalten geändert.
 
 ## Review-Findings
 

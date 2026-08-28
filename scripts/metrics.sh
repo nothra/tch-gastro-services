@@ -172,9 +172,10 @@ publish_issue_comment() {
     return 0
   fi
   # Config-/nutzerkontrollierten Wert als Daten behandeln (clean-code.md), fail-closed:
-  # nicht-numerische Werte erreichen gh nie (ADR-045 Entscheidung 5).
+  # nicht-numerische Werte erreichen gh nie (ADR-045 Entscheidung 5). Der leere String ist
+  # hier bereits durch den [ -z "$issue" ]-Guard oben ausgeschlossen, kein eigenes Pattern nötig.
   case "$issue" in
-    ''|*[!0-9]*)
+    *[!0-9]*)
       echo "⚠ Issue-Kommentar abgelehnt: FACTORY_METRICS_ISSUE ist keine Zahl ('${issue}')"
       return 0
       ;;

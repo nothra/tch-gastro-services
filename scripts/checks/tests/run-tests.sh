@@ -5902,6 +5902,13 @@ scaffold_310() {
   done
   printf '# Task %s: report-guard\n' "$task_id" > "$dir/tasks/task-${task_id}-guard.md"
   printf '#!/bin/sh\nexit 0\n' > "$dir/bin/sleep"; chmod +x "$dir/bin/sleep"
+  # gh immer fehlschlagen lassen (#314-Nitpick, Review-Runde-1-Finding): run_310() setzt
+  # "$dir/bin" vor den Rest von PATH, damit reicht ein Stub, um den ambienten System-`gh`
+  # zu überschatten. Ohne ihn hinge der EXIT-Trap-Aufruf von `metrics.sh --quiet --publish`
+  # (ADR-045) an der lokalen gh-Installation/-Authentifizierung – heute folgenlos, weil der
+  # Bare-Remote dieser Wegwerf-Repos keinen bekannten GitHub-Host hat (gh scheitert sofort),
+  # aber eine unausgesprochene Umgebungsannahme statt einer deterministischen Fixture.
+  printf '#!/bin/sh\nexit 1\n' > "$dir/bin/gh"; chmod +x "$dir/bin/gh"
 }
 
 # commit_310 <dir> – Wegwerf-Repo committen (preflight_checks verlangt einen sauberen Baum).

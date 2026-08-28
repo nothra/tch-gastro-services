@@ -500,7 +500,9 @@ preflight_checks
 # Fail-open und exit-code-neutral: `$?` wird als erste Anweisung gesichert, jeder
 # nachfolgende Befehl bleibt `|| true`-geschützt. Ohne `exit` im Trap behält die Shell
 # unter `set -e` den auslösenden Exit-Code – ein ungeschützter Fehlschlag im Trap würde
-# ihn sonst überschreiben (empirisch geprüft, Präzedenz K-1/#261).
+# ihn sonst überschreiben (empirisch geprüft, Präzedenz K-1/#261). Die `return
+# "$_exit_code"`-Zeilen sind bewusst defensiv (Absicherung gegen einen künftigen Branch
+# ohne `|| true`-Schutz als letzten Befehl), nicht der eigentliche Erhaltungsmechanismus.
 measure_process_metrics_on_exit() {
   local _exit_code=$?
   if [ "$DRY_RUN" = true ]; then
