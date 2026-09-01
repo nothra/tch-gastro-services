@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -178,6 +178,24 @@ Siehe [`tasks/codify-314.md`](codify-314.md) – 3 neue Regeln: EXIT-Trap-Exit-C
 (`lessons/testing.md`) – alle drei aus derselben Beobachtung während `/review`: ein
 Sub-Agent behauptete fälschlich, ein `return`-Statement im EXIT-Trap sei für den
 Exit-Code-Erhalt tragend; zwei unabhängige Gegenproben widerlegten das.
+
+## PR-Shepherd
+
+**Merge-Konflikt [2026-09-01]:** `gh pr update-branch` schlug fehl – origin/main war um Commit
+`e273698` (PR #315/#317 „factory pipeline label dokumentieren") vorangeschritten, der dieselben
+Dateien anfasst (`docs/factory/OPERATING.md`, `docs/factory/PROJECT-CONTEXT.md`,
+`docs/factory/lessons/factory-workflow.md`, `scripts/checks/tests/run-tests.sh`). Interrupt
+signalisiert (`MERGE_CONFLICT`, im interrupt-log erhalten), dann mit Nutzer-Freigabe lokal
+aufgelöst: `git merge origin/main`, drei echte Konflikte (`PROJECT-CONTEXT.md`,
+`run-tests.sh`, `interrupt-log.jsonl`) – in allen Fällen unabhängige Ergänzungen beider PRs am
+selben Anker, beide Inhalte behalten (kein inhaltlicher Widerspruch). `OPERATING.md` und
+`lessons/factory-workflow.md` wurden von Git automatisch sauber gemerged. Verifiziert: volle
+Testsuite nach dem Merge **1308 grün / 0 rot** (1254 aus #314 + 54 aus #315, keine roten).
+Merge-Commit normal gepusht (kein Force-Push).
+
+**PR-Shepherd [2026-09-01]:** Merge freigegeben – alle Gates grün (Review APPROVED, Tests
+vollständig, Security PASSED, Refactoring ohne Verhaltensänderung, Codify ausgeführt,
+Merge-Konflikt mit #315 aufgelöst, `mergeable: MERGEABLE`). Draft → Ready for Review.
 
 ---
 Branch: `chore/314-messung-real-betreiben`
