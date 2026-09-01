@@ -76,7 +76,7 @@ Wir arbeiten **Issue-first** und über die Factory-Pipeline. Die verbindlichen D
 
 ## Beitragsarten
 
-Beiträge beziehen sich auf das **TCH-Produkt**:
+Beiträge beziehen sich auf das **TCH-Produkt** oder auf den **Factory-Harness**, der es baut:
 
 - **✨ Features** – neue fachliche Funktionen (siehe Fachdomäne in
   [`docs/factory/PROJECT-CONTEXT.md`](docs/factory/PROJECT-CONTEXT.md) und die Specs unter
@@ -84,6 +84,10 @@ Beiträge beziehen sich auf das **TCH-Produkt**:
 - **🐛 Bugfixes** – Fehlverhalten in der App beheben. Label: `bug`.
 - **📖 Dokumentation** – README, ADRs, Specs, Kommentare verbessern. Label: `documentation`.
 - **🧪 Tests** – Unit-/Integration- (Vitest) oder E2E-Abdeckung (Playwright) ergänzen. Aspekt-Label: `test`.
+- **🏭 Factory / Harness** – Arbeit am Werkzeug statt am Produkt: Pipeline, Skills, Gates,
+  Factory-Doku. Die Abgrenzung zur App entscheidet sich an den Pfad-Ankern beider Seiten –
+  kanonisch in [`git-workflow.md`](docs/factory/guidelines/git-workflow.md) → „GitHub-Labels".
+  Aspekt-Label: `factory-pipeline`.
 
 Die Label-Konvention („genau ein Art-Label + beliebig viele Aspekt-Labels") ist in
 [`docs/factory/guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) beschrieben;

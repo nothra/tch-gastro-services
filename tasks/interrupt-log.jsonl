@@ -2,4 +2,5 @@
 {"ts":"2026-07-24T15:55:04","task_id":"201","type":"INCOMPLETE_OUTCOME","message":"Working Tree nicht sauber (uncommittete Änderungen)"}
 {"ts":"2026-07-24T16:11:14","task_id":"201","type":"INCOMPLETE_OUTCOME","message":"PR noch Draft"}
 {"ts":"2026-08-03T14:50:51","task_id":"258","type":"INCOMPLETE_OUTCOME","message":"PR noch Draft"}
+{"ts":"2026-08-27T19:42:15","task_id":"315","type":"INCOMPLETE_OUTCOME","message":"Working Tree nicht sauber (uncommittete Änderungen)"}
 {"ts":"2026-08-28T10:04:38","task_id":"314","type":"MERGE_CONFLICT","message":"gh pr update-branch schlägt fehl: 'Cannot update PR branch due to conflicts'. origin/main ist um genau 1 Commit vorangeschritten (e273698, PR #315/#317 'factory pipeline label dokumentieren'), der dieselben Dateien wie Task 314 anfasst: docs/factory/OPERATING.md, docs/factory/PROJECT-CONTEXT.md, docs/factory/lessons/factory-workflow.md, scripts/checks/tests/run-tests.sh."}
