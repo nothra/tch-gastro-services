@@ -125,7 +125,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
 
   const buffer = await rendere(format, umfang, modell);
-  const filename = berichtDateiname(veranstaltung.datum, veranstaltung.bezeichnung, format, umfang);
+  const filename = berichtDateiname({
+    datum: veranstaltung.datum,
+    bezeichnung: veranstaltung.bezeichnung,
+    format,
+    umfang,
+  });
 
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,

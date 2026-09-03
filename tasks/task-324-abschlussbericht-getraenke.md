@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -48,6 +48,11 @@ _Keine – alle drei Architekturfragen aus spec-324 sind in ADR-046 entschieden.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+Drei-Runden-Review (`tasks/review-324.md`): keine kritischen Findings. Ein Wichtig-Finding
+(Runde 2 – 4-Parameter-Verstoß in `berichtDateiname`) direkt behoben (Parameter-Objekt
+`BerichtDateinameInput`). Drei Nitpicks belassen (Duplikation Auslagen-Abschnitt/Test-Helfer –
+in ADR-046 als bewusster Trade-off dokumentiert; eine lange Zeile). Gesamtempfehlung: APPROVED.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

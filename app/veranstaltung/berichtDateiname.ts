@@ -37,16 +37,24 @@ function isoDatum(datum: Date): string {
   return datum.toISOString().slice(0, 10);
 }
 
+export type BerichtDateinameInput = {
+  datum: Date | null;
+  bezeichnung: string;
+  format: BerichtFormat;
+  umfang?: BerichtUmfang;
+};
+
 // Baut `abschlussbericht-[getraenke-]<YYYY-MM-DD>-<slug>.<ext>`. Fehlt das Datum oder ergibt die
 // Bezeichnung keinen Slug, entfällt das jeweilige Segment (kein doppelter/hängender Bindestrich).
-// `umfang` steht bewusst als vierter Parameter mit Default `"voll"` (ADR-046 D4) statt als
-// Parameter-Objekt: so bleiben die bestehenden Aufrufer des vollständigen Berichts unverändert.
-export function berichtDateiname(
-  datum: Date | null,
-  bezeichnung: string,
-  format: BerichtFormat,
-  umfang: BerichtUmfang = "voll",
-): string {
+// Parameter-Objekt statt Einzelparameter (clean-code.md: max. 3) – `umfang` ist seit #324
+// (ADR-046 D4) optional mit Default `"voll"`, damit bestehende Aufrufer des vollständigen
+// Berichts unverändert bleiben.
+export function berichtDateiname({
+  datum,
+  bezeichnung,
+  format,
+  umfang = "voll",
+}: BerichtDateinameInput): string {
   const segmente = [
     "abschlussbericht",
     umfang === "getraenke" ? "getraenke" : "",

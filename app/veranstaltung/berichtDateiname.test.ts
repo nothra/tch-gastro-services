@@ -32,43 +32,46 @@ describe("berichtSlug", () => {
 });
 
 describe("berichtDateiname", () => {
+  const datum = new Date("2026-07-14");
+  const bezeichnung = "Montagsrunde Juli";
+
   it("should_composeDateAndSlug_when_xlsx", () => {
-    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "xlsx")).toBe(
+    expect(berichtDateiname({ datum, bezeichnung, format: "xlsx" })).toBe(
       "abschlussbericht-2026-07-14-montagsrunde-juli.xlsx",
     );
   });
 
   it("should_usePdfExtension_when_pdf", () => {
-    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "pdf")).toBe(
+    expect(berichtDateiname({ datum, bezeichnung, format: "pdf" })).toBe(
       "abschlussbericht-2026-07-14-montagsrunde-juli.pdf",
     );
   });
 
   it("should_omitSlug_when_bezeichnungHasNoAlnum", () => {
-    expect(berichtDateiname(new Date("2026-07-14"), "!!!", "xlsx")).toBe(
+    expect(berichtDateiname({ datum, bezeichnung: "!!!", format: "xlsx" })).toBe(
       "abschlussbericht-2026-07-14.xlsx",
     );
   });
 
   it("should_omitDate_when_datumMissing", () => {
-    expect(berichtDateiname(null, "Montagsrunde Juli", "pdf")).toBe(
+    expect(berichtDateiname({ datum: null, bezeichnung, format: "pdf" })).toBe(
       "abschlussbericht-montagsrunde-juli.pdf",
     );
   });
 
   // Umfangs-Segment der Getränke-Variante (#324, ADR-046 D4).
   it("should_insertGetraenkeSegment_when_umfangGetraenke", () => {
-    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "xlsx", "getraenke")).toBe(
+    expect(berichtDateiname({ datum, bezeichnung, format: "xlsx", umfang: "getraenke" })).toBe(
       "abschlussbericht-getraenke-2026-07-14-montagsrunde-juli.xlsx",
     );
-    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "pdf", "getraenke")).toBe(
+    expect(berichtDateiname({ datum, bezeichnung, format: "pdf", umfang: "getraenke" })).toBe(
       "abschlussbericht-getraenke-2026-07-14-montagsrunde-juli.pdf",
     );
   });
 
   it("should_omitUmfangSegment_when_umfangVoll", () => {
     // Explizit „voll" muss denselben Namen erzeugen wie der Default (bestandssicher).
-    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "xlsx", "voll")).toBe(
+    expect(berichtDateiname({ datum, bezeichnung, format: "xlsx", umfang: "voll" })).toBe(
       "abschlussbericht-2026-07-14-montagsrunde-juli.xlsx",
     );
   });
