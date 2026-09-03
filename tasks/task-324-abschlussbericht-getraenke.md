@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -53,6 +53,16 @@ Drei-Runden-Review (`tasks/review-324.md`): keine kritischen Findings. Ein Wicht
 (Runde 2 – 4-Parameter-Verstoß in `berichtDateiname`) direkt behoben (Parameter-Objekt
 `BerichtDateinameInput`). Drei Nitpicks belassen (Duplikation Auslagen-Abschnitt/Test-Helfer –
 in ADR-046 als bewusster Trade-off dokumentiert; eine lange Zeile). Gesamtempfehlung: APPROVED.
+
+## Refactoring-Notizen
+
+`/refactor`-Pass gegen die Clean-Code-Checkliste (Naming, Funktionslänge, Parameter,
+Duplikation, Verschachtelung): keine weitere Code-Änderung nötig. Das einzige
+Wichtig-Finding aus dem Review (4-Parameter-Verstoß `berichtDateiname`) wurde bereits im
+Review-Rework behoben. Die verbleibende Struktur-Ähnlichkeit zwischen `auslagenAbschnitt`/
+`getraenkeAuslagenAbschnitt` (Xlsx/PDF) ist in ADR-046 D3 bewusst als Trade-off dokumentiert
+("bei Bedarf extrahierbar") – eine Extraktion ohne dritte Kategorie-Variante wäre Premature
+Abstraction (clean-code.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
