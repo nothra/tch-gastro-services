@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Zusätzliche Abschlussbericht-Variante „nur Getränke" für abgeschlossene Veranstaltungen:
@@ -75,3 +75,6 @@ generalisieren. (2) `.gitignore`-Lücke bei Wegwerf-E2E-Specs/Screenshot-Ordnern
 ---
 Branch: `feature/324-abschlussbericht-getraenke`
 Erstellt: 2026-09-03 10:27
+
+PR-Shepherd 2026-09-03: Merge freigegeben – Review/Test/Security/Refactor/Codify grün,
+keine offenen Review-Konflikte, kein Rebase nötig (Branch vor `origin/main`). PR #325.
