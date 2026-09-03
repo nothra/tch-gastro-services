@@ -55,4 +55,21 @@ describe("berichtDateiname", () => {
       "abschlussbericht-montagsrunde-juli.pdf",
     );
   });
+
+  // Umfangs-Segment der Getränke-Variante (#324, ADR-046 D4).
+  it("should_insertGetraenkeSegment_when_umfangGetraenke", () => {
+    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "xlsx", "getraenke")).toBe(
+      "abschlussbericht-getraenke-2026-07-14-montagsrunde-juli.xlsx",
+    );
+    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "pdf", "getraenke")).toBe(
+      "abschlussbericht-getraenke-2026-07-14-montagsrunde-juli.pdf",
+    );
+  });
+
+  it("should_omitUmfangSegment_when_umfangVoll", () => {
+    // Explizit „voll" muss denselben Namen erzeugen wie der Default (bestandssicher).
+    expect(berichtDateiname(new Date("2026-07-14"), "Montagsrunde Juli", "xlsx", "voll")).toBe(
+      "abschlussbericht-2026-07-14-montagsrunde-juli.xlsx",
+    );
+  });
 });

@@ -23,6 +23,10 @@ import {
 // `gesamtabrechnung`, `auslagenSummen`) und die Pro-Artikel-Aufbereitung (`verzehrPositionen`) –
 // kein zweiter Wahrheitspfad. Beträge sind ganzzahlige Cent (ADR-021); die Renderer formatieren
 // (de-DE, 2 Nachkommastellen).
+//
+// Seit #324 (spec-324, ADR-046 D2) liegt hier zusätzlich die reine Projektion
+// `berichtModellGetraenke` auf die Variante „nur Getränke" – abgeleitet aus demselben vollen
+// Modell, damit die Getränke-Werte beider Berichte per Konstruktion übereinstimmen.
 
 // `artikelBezeichnung` (Name + Größe) lebt route-neutral in `_verzehr/positionen` (SINGLE SOURCE
 // mit der Kassier-Aufschlüsselung, #206) – hier als Fassade re-exportiert, weil beide Renderer
@@ -129,6 +133,62 @@ export function gesamtabrechnungsZeilen(g: BerichtGesamtabrechnung): [string, nu
     ["Auslagenerstattung gesamt", g.auslagenErstattung.gesamtCents],
     ["Kassenveränderung", g.kassenveraenderungCents],
   ];
+}
+
+// ── Getränke-Variante (#324, spec-324, ADR-046 D2) ────────────────────────────────────────────
+
+// Ein Teilnehmer in der Getränke-Sicht: nur die Getränke-Positionen und deren Summe. Die
+// kategorieübergreifenden Größen (Sonstige, Verzehr-Gesamt, Erhalten, Spende) fehlen bewusst.
+export type BerichtGetraenkeTeilnehmer = {
+  anzeigename: string;
+  positionen: BerichtPosition[];
+  getraenkeCents: number;
+};
+
+// Reduzierte Bericht-Sicht mit genau zwei Ergebnis-Summen (spec-324 AC4). Spende,
+// Kassenveränderung und Erhalten/Einnahmen sind kategorieübergreifend definiert und daher
+// bewusst KEIN Feld dieses Typs – eine auf Getränke heruntergerechnete Fassung wäre eine neue,
+// fachlich nicht gedeckte Größe (spec-324 „Nur kategoriescharfe Werte").
+export type BerichtGetraenkeModell = {
+  kopf: BerichtKopf;
+  teilnehmer: BerichtGetraenkeTeilnehmer[];
+  getraenkeGesamtCents: number; // Σ Verzehr-Umsatz Getränke
+  auslagen: BerichtAuslage[]; // nur Kategorie Getränke
+  auslagenerstattungGetraenkeCents: number; // Σ Auslagenerstattung Getränke (erstattet)
+};
+
+// Die zwei Ergebnis-Zeilen der Getränke-Variante (AC4) als Label/Betrag-Paare – analog zu
+// `gesamtabrechnungsZeilen` von beiden Format-Renderern genutzt, damit Beschriftung und Werte in
+// Excel und PDF identisch sind (AC8).
+export function getraenkeErgebnisZeilen(modell: BerichtGetraenkeModell): [string, number][] {
+  return [
+    ["Verzehr-Umsatz Getränke", modell.getraenkeGesamtCents],
+    ["Auslagenerstattung Getränke", modell.auslagenerstattungGetraenkeCents],
+  ];
+}
+
+// Reine Projektion des fertigen vollen Modells auf die Getränke-Sicht (ADR-046 D2): filtert
+// Positionen und Auslagen auf Getränke und übernimmt die zwei Summen unverändert. Kein zweiter
+// Wahrheitspfad – dadurch stimmen die Getränke-Werte beider Berichte per Konstruktion (AC7).
+export function berichtModellGetraenke(modell: BerichtModell): BerichtGetraenkeModell {
+  const teilnehmer: BerichtGetraenkeTeilnehmer[] = modell.teilnehmer
+    .map((eintrag) => ({
+      anzeigename: eintrag.anzeigename,
+      positionen: eintrag.positionen.filter((position) => position.category === "getraenk"),
+      getraenkeCents: eintrag.getraenkeCents,
+    }))
+    // Teilnehmer ohne Getränke-Position fallen ganz weg – keine 0,00-€-Zeile (AC12).
+    .filter((eintrag) => eintrag.positionen.length > 0);
+
+  return {
+    kopf: modell.kopf,
+    teilnehmer,
+    getraenkeGesamtCents: modell.tagessummen.getraenkeCents,
+    auslagen: modell.auslagen.filter(
+      (auslage) => auslage.kategorie === AUSLAGE_KATEGORIE_LABEL.getraenke,
+    ),
+    auslagenerstattungGetraenkeCents: modell.gesamtabrechnung.auslagenErstattung.getraenkeCents,
+  };
 }
 
 export function berichtModell(input: {

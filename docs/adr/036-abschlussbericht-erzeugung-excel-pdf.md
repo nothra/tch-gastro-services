@@ -44,6 +44,11 @@ schlank (eine Zeile) und teilt die komplette Lade-/Autorisierungs-Logik.
 Die Detailseite (`app/veranstaltung/[id]/page.tsx`) verlinkt bei Status `abgeschlossen` beide
 Downloads (`…/bericht?format=xlsx` / `…/bericht?format=pdf`).
 
+> **Erweitert durch [ADR-046](046-abschlussbericht-getraenke-variante.md) (#324):** Derselbe
+> Handler nimmt zusätzlich `?umfang=voll|getraenke` entgegen (ebenfalls Whitelist, fail-closed;
+> **fehlender** Parameter → Default `voll`, damit die hier beschriebenen Links unverändert
+> gültig bleiben). Die Detailseite verlinkt seither vier Downloads – beide Formate je Umfang.
+
 ### D2 – Runtime: Node.js
 
 `export const runtime = "nodejs"` im Route Handler. `exceljs` und `pdfmake` benötigen Node-APIs
@@ -120,6 +125,11 @@ wird: lowercase, Umlaute transliteriert (ä→ae …), alles außerhalb `[a-z0-9
 zusammengefasst, gekürzt (z. B. 60 Zeichen). Leere/entfallende Slugs → nur Datum. Die Ableitung
 liegt in einer eigenen reinen Funktion (testbar) und wird nur für den `filename` verwendet.
 
+> **Erweitert durch [ADR-046](046-abschlussbericht-getraenke-variante.md) D4 (#324):** Die
+> Getränke-Variante schiebt das Segment `getraenke` zwischen `abschlussbericht` und das Datum
+> (`abschlussbericht-getraenke-<YYYY-MM-DD>-<slug>.{xlsx,pdf}`); der vollständige Bericht behält
+> das hier beschriebene Muster unverändert.
+
 ### D10 – Orphan-sichere Auslagen
 
 Der Auslagen-Einzelnachweis nutzt `listAuslagen` (LEFT JOIN + `COALESCE` auf einen stabilen
@@ -190,7 +200,8 @@ ohne den Informationsgehalt zu spalten.
 - **Neue Module:** `berichtModell.ts` (rein, getestet), `berichtXlsx.ts`/`berichtPdf.ts`
   (Renderer, smoke-getestet), eine Slug-Funktion; ggf. kleine Erweiterung von `kassierSummen`
   um die getrennte Essen-/Kaffee-Summe (D7).
-- **UI:** Detailseite zeigt die beiden Download-Links nur bei Status `abgeschlossen`.
+- **UI:** Detailseite zeigt die Download-Links nur bei Status `abgeschlossen` – seit #324
+  (ADR-046) gruppiert in „Vollständig" und „Nur Getränke" statt als zwei einzelne Links.
 - **Kein** Persistenz-/Archiv-Konzept (On-demand), **kein** Protokoll-Abschnitt (spec-185 Scope).
 - Reproduzierbarkeit statt Snapshot bleibt gültig, solange Einzelpreise beim Abschluss eingefroren
   werden (ADR-033 D2) – Voraussetzung für stabile, wiederholbar identische Berichte.

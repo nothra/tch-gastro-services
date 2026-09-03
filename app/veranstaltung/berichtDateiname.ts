@@ -3,6 +3,10 @@
 
 export type BerichtFormat = "xlsx" | "pdf";
 
+// Umfang des Berichts (#324, ADR-046 D4): der vollständige Bericht oder die Variante „nur
+// Getränke". Benannter Domänen-Typ statt Boolean-Flag, damit der Aufruf lesbar bleibt.
+export type BerichtUmfang = "voll" | "getraenke";
+
 const SLUG_MAX_LENGTH = 60;
 
 // Deutsche Umlaute/ß werden transliteriert (ä→ae …), alles andere außerhalb [a-z0-9] wird zu "-".
@@ -33,13 +37,21 @@ function isoDatum(datum: Date): string {
   return datum.toISOString().slice(0, 10);
 }
 
-// Baut `abschlussbericht-<YYYY-MM-DD>-<slug>.<ext>`. Fehlt das Datum oder ergibt die Bezeichnung
-// keinen Slug, entfällt das jeweilige Segment (kein doppelter/hängender Bindestrich).
+// Baut `abschlussbericht-[getraenke-]<YYYY-MM-DD>-<slug>.<ext>`. Fehlt das Datum oder ergibt die
+// Bezeichnung keinen Slug, entfällt das jeweilige Segment (kein doppelter/hängender Bindestrich).
+// `umfang` steht bewusst als vierter Parameter mit Default `"voll"` (ADR-046 D4) statt als
+// Parameter-Objekt: so bleiben die bestehenden Aufrufer des vollständigen Berichts unverändert.
 export function berichtDateiname(
   datum: Date | null,
   bezeichnung: string,
   format: BerichtFormat,
+  umfang: BerichtUmfang = "voll",
 ): string {
-  const segmente = ["abschlussbericht", datum ? isoDatum(datum) : "", berichtSlug(bezeichnung)];
+  const segmente = [
+    "abschlussbericht",
+    umfang === "getraenke" ? "getraenke" : "",
+    datum ? isoDatum(datum) : "",
+    berichtSlug(bezeichnung),
+  ];
   return `${segmente.filter(Boolean).join("-")}.${format}`;
 }

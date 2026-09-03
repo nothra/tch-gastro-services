@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Veranstaltung } from "@/db/schema";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
@@ -162,15 +162,58 @@ describe("VeranstaltungDetailPage", () => {
 
     render(await VeranstaltungDetailPage({ params: params("v-1") }));
 
-    // AC1: Excel- UND PDF-Download aus der Detailansicht einer abgeschlossenen Veranstaltung.
-    expect(screen.getByRole("link", { name: /Excel .* herunterladen/ })).toHaveAttribute(
+    // AC1 (#185): Excel- UND PDF-Download des vollständigen Berichts aus der Detailansicht einer
+    // abgeschlossenen Veranstaltung – unverändert ohne `umfang` (Default `voll`, spec-324 AC14).
+    const vollstaendig = within(screen.getByRole("group", { name: "Vollständig" }));
+    expect(vollstaendig.getByRole("link", { name: /Excel .* herunterladen/ })).toHaveAttribute(
       "href",
       "/api/veranstaltung/v-1/bericht?format=xlsx",
     );
-    expect(screen.getByRole("link", { name: /PDF herunterladen/ })).toHaveAttribute(
+    expect(vollstaendig.getByRole("link", { name: /PDF herunterladen/ })).toHaveAttribute(
       "href",
       "/api/veranstaltung/v-1/bericht?format=pdf",
     );
+  });
+
+  it("should_showGetraenkeBerichtDownloads_when_veranstaltungAbgeschlossen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    // spec-324 AC14: zweite Gruppe „Nur Getränke" mit denselben zwei Formaten, beide Links auf
+    // dieselbe Route mit `umfang=getraenke`.
+    const nurGetraenke = within(screen.getByRole("group", { name: "Nur Getränke" }));
+    expect(nurGetraenke.getByRole("link", { name: /Excel .* herunterladen/ })).toHaveAttribute(
+      "href",
+      "/api/veranstaltung/v-1/bericht?format=xlsx&umfang=getraenke",
+    );
+    expect(nurGetraenke.getByRole("link", { name: /PDF herunterladen/ })).toHaveAttribute(
+      "href",
+      "/api/veranstaltung/v-1/bericht?format=pdf&umfang=getraenke",
+    );
+  });
+
+  it("should_groupBothBerichtVariantsUnderOneSection_when_veranstaltungAbgeschlossen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    // spec-324 AC14: EINE gemeinsame Sektion „Abschlussbericht", darin genau die zwei Gruppen –
+    // und insgesamt genau vier Downloads (nicht mehr).
+    const sektion = screen.getByRole("heading", { name: "Abschlussbericht" }).closest("section")!;
+    expect(within(sektion).getAllByRole("group")).toHaveLength(2);
+    expect(
+      within(sektion)
+        .getAllByRole("heading", { level: 3 })
+        .map((ueberschrift) => ueberschrift.textContent),
+    ).toEqual(["Vollständig", "Nur Getränke"]);
+    expect(within(sektion).getAllByRole("link", { name: /herunterladen/ })).toHaveLength(4);
   });
 
   it("should_hideBerichtDownloads_when_veranstaltungOffen", async () => {

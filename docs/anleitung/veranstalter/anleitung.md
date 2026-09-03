@@ -184,11 +184,20 @@ auf **„Abschließen"**. Ist noch eine Zeile offen, weist die App Sie darauf hi
 ## Schritt 7 – Abschlussbericht herunterladen
 
 **Was tue ich?** Nach dem Abschließen erscheint auf der Veranstaltungs-Seite der Bereich
-**„Abschlussbericht"**. Tippen Sie auf **„Excel (.xlsx) herunterladen"** oder
-**„PDF herunterladen"**.
+**„Abschlussbericht"**. Darin stehen **zwei Gruppen** – wählen Sie zuerst die Gruppe, dann das
+Format:
+
+- **„Vollständig"** – der komplette Bericht mit allem: Getränke, Essen, Kaffee, Spenden, dem
+  Erhaltenen und der Kassenveränderung.
+- **„Nur Getränke"** – der Bericht für die Theke: ausschließlich der Getränke-Umsatz und die
+  erstatteten Auslagen für Getränke. Spende, Erhaltenes und Kassenveränderung stehen **nicht**
+  darin, weil sie sich nicht auf die Getränke allein aufteilen lassen.
+
+In beiden Gruppen tippen Sie auf **„Excel (.xlsx) herunterladen"** oder **„PDF herunterladen"**.
 
 **Was passiert?** Der fertige Bericht der Veranstaltung wird heruntergeladen – zum Archivieren,
-Ausdrucken oder Weitergeben.
+Ausdrucken oder Weitergeben. Bei der Getränke-Fassung steht **„nur Getränke"** oben im Bericht
+und `getraenke` im Dateinamen, damit Sie die beiden Fassungen nicht verwechseln.
 
 ![Veranstaltungs-Seite nach dem Abschließen mit den Download-Schaltflächen für Excel und PDF.](bilder/12-abschluss-bericht.png)
 

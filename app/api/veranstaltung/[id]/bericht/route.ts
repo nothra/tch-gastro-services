@@ -5,13 +5,22 @@ import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listPositionen } from "@/db/verzehr";
 import { listAuslagen } from "@/db/auslage";
-import { berichtModell } from "@/app/veranstaltung/berichtModell";
-import { berichtXlsx } from "@/app/veranstaltung/berichtXlsx";
-import { berichtPdf } from "@/app/veranstaltung/berichtPdf";
-import { berichtDateiname, type BerichtFormat } from "@/app/veranstaltung/berichtDateiname";
+import {
+  berichtModell,
+  berichtModellGetraenke,
+  type BerichtModell,
+} from "@/app/veranstaltung/berichtModell";
+import { berichtXlsx, berichtXlsxGetraenke } from "@/app/veranstaltung/berichtXlsx";
+import { berichtPdf, berichtPdfGetraenke } from "@/app/veranstaltung/berichtPdf";
+import {
+  berichtDateiname,
+  type BerichtFormat,
+  type BerichtUmfang,
+} from "@/app/veranstaltung/berichtDateiname";
 
 // Abschlussbericht-Download (F9, #185, ADR-036 D1–D4). GET-Route-Handler mit `?format=xlsx|pdf`
-// (Whitelist, fail-closed). Node-Runtime, weil exceljs/pdfmake Node-APIs brauchen (ADR-036 D2).
+// und – seit #324 (ADR-046 D1) – `?umfang=voll|getraenke` (beides Whitelist, fail-closed).
+// Node-Runtime, weil exceljs/pdfmake Node-APIs brauchen (ADR-036 D2).
 // Die Route liegt bewusst UNTER dem `proxy.ts`-Matcher (authentifiziert, KEINE Ausnahme wie
 // api/health) – Codify #63. Zusätzlich wird die Rolle serverseitig hier geprüft (ADR-036 D3).
 export const runtime = "nodejs";
@@ -26,18 +35,48 @@ function parseFormat(value: string | null): BerichtFormat | null {
   return value === "xlsx" || value === "pdf" ? value : null;
 }
 
+// Fail-closed Whitelist wie `parseFormat`, mit einem Unterschied (ADR-046 D1): ein FEHLENDER
+// Parameter ist erlaubt und bedeutet `voll` – so liefern bestehende Links ohne `umfang`
+// unverändert den vollständigen Bericht. Ein unbekannter Wert → null → 400 (spec-324 AC13).
+function parseUmfang(value: string | null): BerichtUmfang | null {
+  if (value === null) return "voll";
+  return value === "voll" || value === "getraenke" ? value : null;
+}
+
+// Format × Umfang → passender Renderer (ADR-046 D3/D5). Das volle Modell wird immer gebaut; die
+// Getränke-Sicht entsteht erst hier als reine Projektion darüber – dadurch stimmen die
+// Getränke-Werte beider Berichte per Konstruktion (spec-324 AC7).
+function rendere(
+  format: BerichtFormat,
+  umfang: BerichtUmfang,
+  modell: BerichtModell,
+): Promise<Buffer> {
+  if (umfang === "getraenke") {
+    const getraenke = berichtModellGetraenke(modell);
+    return format === "xlsx" ? berichtXlsxGetraenke(getraenke) : berichtPdfGetraenke(getraenke);
+  }
+  return format === "xlsx" ? berichtXlsx(modell) : berichtPdf(modell);
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Reihenfolge (ADR-036 D4): Rolle → Format → getVeranstaltung (404) → Status (409) → Render.
+  // Reihenfolge (ADR-046 D5, erweitert ADR-036 D4): Rolle → Format → Umfang →
+  // getVeranstaltung (404) → Status (409) → Render.
   const session = await auth();
   if (!hasRole(session?.user?.roles, "veranstalter")) {
     return NextResponse.json({ error: "Zugriff verweigert." }, { status: 403 });
   }
 
-  const format = parseFormat(new URL(request.url).searchParams.get("format"));
+  const parameter = new URL(request.url).searchParams;
+  const format = parseFormat(parameter.get("format"));
   if (!format) {
     return NextResponse.json({ error: "Unbekanntes Format." }, { status: 400 });
+  }
+
+  const umfang = parseUmfang(parameter.get("umfang"));
+  if (!umfang) {
+    return NextResponse.json({ error: "Unbekannter Umfang." }, { status: 400 });
   }
 
   const veranstaltung = await getVeranstaltung(id);
@@ -85,8 +124,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     })),
   });
 
-  const buffer = format === "xlsx" ? await berichtXlsx(modell) : await berichtPdf(modell);
-  const filename = berichtDateiname(veranstaltung.datum, veranstaltung.bezeichnung, format);
+  const buffer = await rendere(format, umfang, modell);
+  const filename = berichtDateiname(veranstaltung.datum, veranstaltung.bezeichnung, format, umfang);
 
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
