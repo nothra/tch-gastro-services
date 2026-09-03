@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -66,6 +66,11 @@ Abstraction (clean-code.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe `tasks/codify-324.md`. Zwei Lessons ergänzt: (1) Turn-Limit-Exhaustion tritt auch bei
+`/implement` auf, nicht nur `/refactor` – Issue #275 kommentiert, um dessen Fix zu
+generalisieren. (2) `.gitignore`-Lücke bei Wegwerf-E2E-Specs/Screenshot-Ordnern geschlossen
+(`*.tmp.spec.ts`, `.verify-*/`).
 
 ---
 Branch: `feature/324-abschlussbericht-getraenke`

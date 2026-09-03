@@ -254,7 +254,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
-- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67)
+- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67); wiederholt bei Wegwerf-E2E-Verifikation + unverifizierter „ist gitignoret"-Behauptung im Dateikommentar (aus #324)
 - Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
 - pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
 - Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)
@@ -294,7 +294,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Doku über „die Gates": required CI-Checks ≠ lokale pre-push-Gates nicht vermischen (aus #160) → Doku über CI/Gates
 - Review-Diff-Scope: `git diff main...HEAD` zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (aus #161; Skill-Vorlagen seit #176 auf `origin/main...HEAD`) → `/review`, `/security-review`, `/refactor` – Diff-Scope
 - ADR nach Review-Rework auf Drift prüfen – nicht nur `docs/routes.md` (aus #55, Review-Runde-2-Finding) → `/review`, `/implement` – bei ADR-Änderung
-- `/refactor` Turn-Limit-Exhaustion: Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185); tritt auch ohne Code-Diff auf, Orchestrator prüft vor Retry nicht auf `git status` (aus #264, Härtung ausgelagert: #275) → `/pipeline`, `/refactor` – bei Turn-Limit
+- Turn-Limit-Exhaustion (ursprünglich `/refactor`): Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185); tritt auch ohne Code-Diff auf, Orchestrator prüft vor Retry nicht auf `git status` (aus #264, Härtung ausgelagert: #275); drittes Vorkommnis bei `/implement` bestätigt – Defekt ist orchestrator-weit, nicht `/refactor`-spezifisch (aus #324) → `/pipeline`, jeder code-schreibende Skill – bei Turn-Limit
 - Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196) → `/implement` – bei Doku-Migration/Split
 - ADR-Status beim Implementieren einer frisch erstellten ADR auf Accepted flippen (aus #197, Review-Finding) → `/implement`, `/review` – bei ADR-Umsetzung
 - PR ändert die von einer ADR namentlich beschriebene Mechanik → ADR-Beschreibung im selben PR mitpflegen (ergänzt #55; triggert auch ohne ADR-Datei-Änderung) (aus #211, Review-Finding) → `/implement`, `/review` – bei Code-Änderung, die eine ADR beschreibt

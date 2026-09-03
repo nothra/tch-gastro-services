@@ -18,7 +18,10 @@ tasks/pipeline-stuck-*.md
 *.tmp.txt
 *.tmp.sh
 *.tmp.py
+*.tmp.spec.ts
+*.tmp.spec.tsx
 coverage-*-tmp/
+.verify-*/
 
 # Generierte Metrik-Reports (Snapshots, jederzeit regenerierbar via /daily-metrics).
 # Das append-only tasks/interrupt-log.jsonl ist BEWUSST nicht ignoriert –
