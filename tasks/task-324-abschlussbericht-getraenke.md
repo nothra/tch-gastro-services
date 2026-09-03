@@ -25,13 +25,26 @@ Erhalten, Wegfall von Teilnehmerzeilen ohne Getränke, gruppierte UI-Sektion, fa
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+Siehe [ADR-046](../docs/adr/046-abschlussbericht-getraenke-variante.md). Kurzfassung:
+- **Route:** kein neuer Endpunkt – bestehende `.../bericht`-Route bekommt zusätzlichen
+  Query-Parameter `umfang=voll|getraenke` (Whitelist, fail-closed; Default `voll`).
+- **Modell:** `berichtModell()` bleibt unverändert. Neue reine Projektions-Funktion
+  `berichtModellGetraenke(modell: BerichtModell): BerichtGetraenkeModell` im selben Modul
+  filtert Teilnehmer-Positionen auf `category === "getraenk"` (leere Teilnehmer weggelassen,
+  AC12), Auslagen auf Kategorie Getränke, und übernimmt die zwei Summen unverändert aus dem
+  vollen Modell (`tagessummen.getraenkeCents`,
+  `gesamtabrechnung.auslagenErstattung.getraenkeCents`).
+- **Renderer:** eigene `berichtXlsxGetraenke`/`berichtPdfGetraenke`-Funktionen statt Verzweigung
+  in den bestehenden Renderern.
+- **Dateiname:** `berichtDateiname` um `BerichtUmfang`-Parameter (Default `"voll"`) erweitert →
+  Segment `getraenke` im Dateinamen.
+- **UI:** eine Sektion „Abschlussbericht", zwei Gruppen „Vollständig"/„Nur Getränke", vier Links
+  auf dieselbe Route mit unterschiedlichen Query-Parametern.
+- `docs/routes.md`: bestehende Zeile um den `umfang`-Parameter ergänzen, kein neuer Eintrag.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-Für `/architecture` (siehe spec-324 → „Offene Fragen"):
-- Aufruf-Mechanik: Query-Parameter an bestehender Route vs. eigene Route
-- Modell-Schnitt: `berichtModell` um Umfangs-Parameter erweitern vs. abgeleitete Projektion
-- Renderer-Anpassung (`berichtXlsx`/`berichtPdf`) für den reduzierten Umfang
+_Keine – alle drei Architekturfragen aus spec-324 sind in ADR-046 entschieden._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

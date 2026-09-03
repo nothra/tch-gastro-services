@@ -136,18 +136,18 @@ Getränke** und **Σ Auslagenerstattung Getränke**.
 
 ## Offene Fragen (für /architecture)
 
-- [ ] **Aufruf-Mechanik:** zusätzlicher Query-Parameter an der bestehenden Route (z. B.
-      `?format=xlsx&umfang=getraenke`, Whitelist fail-closed) vs. eigene Route. Bei einer
-      neuen/geänderten Route: `docs/routes.md` mitpflegen (AC15).
-- [ ] **Modell-Schnitt:** `berichtModell` um einen Umfangs-Parameter erweitern (Filter auf
-      Positionen/Auslagen, reduzierte `BerichtGesamtabrechnung`) vs. eine abgeleitete Projektion
-      über dem vollen Modell. Ziel bleibt eine Single Source für beide Formate (ADR-036 D6).
-      `gesamtabrechnungsZeilen` liefert heute zehn feste Label/Betrag-Paare, von denen in der
-      Variante nur zwei bleiben (Σ Verzehr-Umsatz Getränke, Σ Auslagenerstattung Getränke) –
-      Filterung der leeren Teilnehmerzeilen (AC12) gehört ebenfalls in diesen Schnitt.
-- [ ] **Renderer-Anpassung:** wie `berichtXlsx`/`berichtPdf` zwischen vollem und
-      Getränke-Umfang unterscheiden (Spalten/Abschnitte weglassen), ohne die Struktur für den
-      vollständigen Bericht zu verändern (AC6).
+Entschieden in [ADR-046](../adr/046-abschlussbericht-getraenke-variante.md):
+
+- [x] **Aufruf-Mechanik:** zusätzlicher Query-Parameter `umfang=voll|getraenke` an der
+      bestehenden Route (Whitelist, fail-closed, Default `voll`) – keine eigene Route.
+      `docs/routes.md` wird um den Parameter ergänzt (AC15).
+- [x] **Modell-Schnitt:** abgeleitete Projektion `berichtModellGetraenke(modell)` über dem
+      vollen `BerichtModell` (keine Änderung an `berichtModell()` selbst). Filtert
+      Teilnehmer-Positionen auf `category === "getraenk"` (leere Teilnehmer weggelassen, AC12)
+      und Auslagen auf Kategorie Getränke; übernimmt die zwei verbleibenden Summen unverändert.
+- [x] **Renderer-Anpassung:** eigene `berichtXlsxGetraenke`/`berichtPdfGetraenke`-Funktionen
+      statt Verzweigung in den bestehenden Renderern – der vollständige Bericht (AC6) bleibt
+      dadurch unberührt.
 
 ## Betroffene Stellen (Orientierung)
 
