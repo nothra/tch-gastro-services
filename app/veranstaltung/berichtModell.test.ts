@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { berichtModell, type BerichtPositionInput } from "./berichtModell";
+import {
+  berichtModell,
+  berichtModellGetraenke,
+  getraenkeErgebnisZeilen,
+  type BerichtPositionInput,
+} from "./berichtModell";
 
 // Reines, DB-freies Bericht-Modell (F9, #185, ADR-036 D6): SINGLE SOURCE für beide Format-Renderer
 // (Excel/PDF). Nutzt die bestehenden reinen Summen-Funktionen – kein zweiter Wahrheitspfad.
@@ -275,5 +280,174 @@ describe("berichtModell – leere Veranstaltung (AC13)", () => {
     expect(modell.tagessummen.erhaltenCents).toBe(0);
     expect(modell.gesamtabrechnung.einnahmenCents).toBe(0);
     expect(modell.gesamtabrechnung.kassenveraenderungCents).toBe(0);
+  });
+});
+
+// ── Getränke-Variante (#324, spec-324, ADR-046 D2) ────────────────────────────────────────────
+
+// Volles Modell mit genau dem, was die Variante ausblenden muss (spec-324 AC5): Spende
+// (Anna: Erhalten 1500 > Verzehr 1300), Essen-/Kaffee-Verzehr und Auslagen aller drei Kategorien.
+const vollesModellMitAllenKategorien = berichtModell({
+  veranstaltung,
+  zeilen,
+  positionen,
+  auslagen: [
+    ...auslagen,
+    {
+      anzeigename: "Anna",
+      kategorie: "essen" as const,
+      betragCents: 250,
+      status: "erstattet" as const,
+    },
+    {
+      anzeigename: "Bert",
+      kategorie: "getraenke" as const,
+      betragCents: 400,
+      status: "offen" as const,
+    },
+  ],
+});
+
+describe("berichtModellGetraenke – Kopf (AC9)", () => {
+  it("should_reuseKopfOfFullReport_when_projected", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    expect(getraenke.kopf).toEqual(vollesModellMitAllenKategorien.kopf);
+  });
+});
+
+describe("berichtModellGetraenke – Teilnehmerzeilen (AC2/AC12)", () => {
+  it("should_keepOnlyGetraenkPositionen_when_projected", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    // Anna hat Bier (getraenk) UND Schnitzel (essen) – nur das Bier bleibt übrig.
+    expect(getraenke.teilnehmer[0].anzeigename).toBe("Anna");
+    expect(getraenke.teilnehmer[0].positionen).toEqual([
+      {
+        name: "Bier",
+        size: "0,5l",
+        category: "getraenk",
+        menge: 2,
+        einzelpreisCents: 250,
+        zeilenbetragCents: 500,
+      },
+    ]);
+    expect(getraenke.teilnehmer[0].getraenkeCents).toBe(500);
+  });
+
+  it("should_dropTeilnehmer_when_noGetraenkPosition", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    // AC12: Bert hat nur Kaffee – keine 0,00-€-Zeile, er fällt ganz weg.
+    expect(vollesModellMitAllenKategorien.teilnehmer.map((t) => t.anzeigename)).toEqual([
+      "Anna",
+      "Bert",
+    ]);
+    expect(getraenke.teilnehmer.map((t) => t.anzeigename)).toEqual(["Anna"]);
+  });
+});
+
+describe("berichtModellGetraenke – Auslagen (AC3)", () => {
+  it("should_keepOnlyGetraenkeAuslagenWithAllFields_when_projected", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    expect(getraenke.auslagen).toEqual([
+      { anzeigename: "Anna", kategorie: "Getränke", betragCents: 300, status: "erstattet" },
+      {
+        anzeigename: "Bert",
+        kategorie: "Getränke",
+        betragCents: 400,
+        status: "offen zu erstatten",
+      },
+    ]);
+  });
+});
+
+describe("berichtModellGetraenke – zwei Summen (AC4/AC7)", () => {
+  it("should_exposeExactlyTheTwoGetraenkeSums_when_projected", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    expect(getraenke.getraenkeGesamtCents).toBe(500);
+    // Nur die ERSTATTETE Getränke-Auslage (300) zählt, nicht die offene (400).
+    expect(getraenke.auslagenerstattungGetraenkeCents).toBe(300);
+  });
+
+  it("should_matchTheFullReportValues_when_projected", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    // AC7: dieselben Getränke-Werte wie im vollständigen Bericht (per Konstruktion, ADR-046 D2).
+    expect(getraenke.getraenkeGesamtCents).toBe(
+      vollesModellMitAllenKategorien.gesamtabrechnung.verzehrGetraenkeCents,
+    );
+    expect(getraenke.auslagenerstattungGetraenkeCents).toBe(
+      vollesModellMitAllenKategorien.gesamtabrechnung.auslagenErstattung.getraenkeCents,
+    );
+  });
+});
+
+describe("berichtModellGetraenke – kategorieübergreifende Werte entfallen (AC5)", () => {
+  it("should_omitSpendeErhaltenAndKassenveraenderung_when_projected", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    // Die Variante trägt die drei Größen nicht als Feld – sie sind kategorieübergreifend
+    // definiert und bleiben dem vollständigen Bericht vorbehalten (spec-324 Kontext).
+    expect(Object.keys(getraenke).sort()).toEqual([
+      "auslagen",
+      "auslagenerstattungGetraenkeCents",
+      "getraenkeGesamtCents",
+      "kopf",
+      "teilnehmer",
+    ]);
+    expect(Object.keys(getraenke.teilnehmer[0]).sort()).toEqual([
+      "anzeigename",
+      "getraenkeCents",
+      "positionen",
+    ]);
+  });
+});
+
+describe("berichtModellGetraenke – Veranstaltung ohne Getränke (AC11)", () => {
+  it("should_projectEmptyTablesAndNullSums_when_noGetraenkeAtAll", () => {
+    const nurEssen = berichtModell({
+      veranstaltung,
+      zeilen: [{ id: "z1", anzeigename: "Anna", erhaltenCents: 800 }],
+      positionen: [
+        {
+          zeileId: "z1",
+          name: "Schnitzel",
+          size: "",
+          menge: 1,
+          priceCents: 800,
+          category: "essen",
+        },
+      ],
+      auslagen: [
+        {
+          anzeigename: "Anna",
+          kategorie: "essen" as const,
+          betragCents: 250,
+          status: "erstattet" as const,
+        },
+      ],
+    });
+
+    const getraenke = berichtModellGetraenke(nurEssen);
+
+    expect(getraenke.kopf.bezeichnung).toBe("Montagsrunde Juli");
+    expect(getraenke.teilnehmer).toEqual([]);
+    expect(getraenke.auslagen).toEqual([]);
+    expect(getraenke.getraenkeGesamtCents).toBe(0);
+    expect(getraenke.auslagenerstattungGetraenkeCents).toBe(0);
+  });
+});
+
+describe("getraenkeErgebnisZeilen (AC4)", () => {
+  it("should_returnExactlyTwoLabelledSums_when_called", () => {
+    const getraenke = berichtModellGetraenke(vollesModellMitAllenKategorien);
+
+    expect(getraenkeErgebnisZeilen(getraenke)).toEqual([
+      ["Verzehr-Umsatz Getränke", 500],
+      ["Auslagenerstattung Getränke", 300],
+    ]);
   });
 });
