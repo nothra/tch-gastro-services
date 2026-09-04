@@ -218,3 +218,20 @@
   wenn die Datei ohnehin in diesem Bereich angefasst wird.
 - **Herkunft:** `/review` zu #310 (Out-of-Scope-Fund neben dem `scaffold_310`-Duplikat).
   Fundstellen verifiziert am 2026-08-27.
+
+### Branch-Präfix-Tabelle nennt `claude/` nicht, der Enforcer erlaubt es
+
+- **Wo:** [`scripts/checks/branch-name-check.sh:25`](../../scripts/checks/branch-name-check.sh)
+  – `VALID_PREFIXES="^(feature|fix|improvement|hotfix|chore|docs|test|refactor|claude)/"` gegen
+  die Tabelle in [`docs/factory/guidelines/git-workflow.md:22-32`](guidelines/git-workflow.md),
+  die acht Präfixe **ohne** `claude/` auflistet (verifiziert am 2026-09-04).
+- **Was:** Der Enforcer erlaubt einen neunten Präfix, den die kanonische Doku nicht kennt; im
+  Skript ist er nur als Kommentar erklärt (`:10` „Claude-interne Branches (claude/) werden
+  ebenfalls toleriert."). Wer die Tabelle als vollständig liest, hält `claude/…` für ungültig –
+  und wer die Tabelle als Quelle für einen Guard nutzt, baut ihn zu streng. Vorbestehende Drift,
+  nicht von #319 eingeführt; dort nur aufgefallen, weil die Präfix-Liste als Kern-Kurzregel eine
+  dritte Kopie bekam.
+- **Fix:** Eine Zeile in der Tabelle („`claude/<beschreibung>` | Claude-interne Branches, vom
+  Check toleriert") – unter zehn Zeilen. Mitnehmen, wenn `git-workflow.md` → „Branches" oder
+  `branch-name-check.sh` ohnehin angefasst wird.
+- **Herkunft:** `/review` zu #319 (Out-of-Scope-Fund neben den Kern-Kurzregeln).
