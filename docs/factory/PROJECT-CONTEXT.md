@@ -251,6 +251,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Positivkontrolle für einen Mutations-Fixture (belegt Datei-Existenz/Parsbarkeit gegen einen Fail-closed-Pfad wie AK6) darf keinen bereits vorhandenen Mutanten wiederverwenden, der selbst eine Fail-closed-Vorbedingung des Kontroll-Guards verletzt – RED-vor-GREEN gilt auch für die Kontrolle selbst (aus #284, Review-Runde-2-Nitpick + /test-Selbstfund)
 - Zähl-Assertion in einem per `awk` extrahierten Funktionsrumpf: das Label darf nur behaupten, was das Extraktionsfenster abdeckt – ruft die als isoliert behandelte Funktion denselben Wert über eine externe Hilfsfunktion außerhalb des Fensters erneut ab, gehört das explizit ins Label, sonst übernimmt eine spätere Review-Runde die falsche Zusammenfassung ungeprüft (aus #312, Review-Runde-3-Finding W1)
 - Neuer EXIT-Trap/Hook, der ein externes CLI aufruft, aus einem von mehreren bestehenden echten Pipeline-Tests geteilten Scaffold heraus: Stub fürs CLI ins Scaffold selbst legen, nicht auf ambientes Fail-Fast der Testmaschine verlassen (aus #314, Review-Runde-2-Finding)
+- Zeilen-Gap-Assertion auf deterministischem Output: Ist-Wert exakt prüfen (`-eq`), keine unbegründete Toleranz (`-ge`/`-le`) ohne Kommentar zur Variabilitätsquelle (aus #322, Review-Runde-2-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -274,6 +275,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Fix für falschen WHY-Kommentar (falsche Kausalkette) per Grep auf kopierte Geschwister-Stellen im selben PR ausweiten, nicht nur die gemeldete Zeile fixen (aus #264, Review-Runde-1-Finding, Rezidiv in Runde 3)
 - „Empirisch verifiziert" im Kommentar ohne tatsächliche Prüfung in dieser Session – Rezidiv an anderer Stelle trotz Fix, plus Versionsangabe unbemerkt auf 7 Stellen kopiert (aus #268, Review-Runde 2 W3 + Runde 4 W1)
 - JSDoc auf einem geteilten Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten mit abweichendem Wert – gleiches Muster an einem Nachbarfeld derselben Struktur übersehen (aus #182, Review-Runde 1 W2 + Runde 2 Nitpick 1)
+- TL;DR-Merksatz über einem umformulierten Detail-Absatz im selben Abschnitt nicht mitgezogen – Widerspruch existiert rein innerhalb der eigenen, im selben PR neu verfassten Prosa, keine externe Referenz nötig, um ihn zu finden (aus #322, Review-Runde-3-Finding)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
 

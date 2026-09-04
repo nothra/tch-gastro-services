@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -108,6 +108,9 @@ wurden noch in derselben Runde behoben, keine Kritischen Findings.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [`tasks/codify-322.md`](codify-322.md). Zwei neue Lessons ergänzt (Zeilen-Gap-Toleranz in
+`testing.md`, TL;DR-Merksatz-Drift in `code-style.md`), jeweils mit Index-Zeile in
+`docs/factory/PROJECT-CONTEXT.md`.
 
 ---
 Branch: `feature/322-session-empfehlung-worktree-requirements`
