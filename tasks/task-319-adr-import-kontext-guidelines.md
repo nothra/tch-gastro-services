@@ -17,11 +17,11 @@ Spec: [`docs/specs/spec-319-adr-import-kontext-guidelines.md`](../docs/specs/spe
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AC1 – Lademechanismus für alle 5 Guidelines entschieden (einer der 4 Issue-Kandidaten oder begründete Kombination)
-- [ ] AC2 – Begründung stützt sich primär auf Aufgaben-/Rollen-Relevanz, nicht auf fehlende OTEL-Kostenmessung
+- [ ] AC1 – @import-Umgang (Mechanismus und/oder Umfang) für alle 5 Guidelines entschieden (einer der 4 Issue-Kandidaten oder begründete Kombination)
+- [ ] AC2 – Begründung ohne Kosten-Messwerte prüfbar, je Kandidat mit dessen eigener Argumentationsart; keine Option vorab ausgeschlossen
 - [ ] AC3 – Risiko "Gate-Regel wird durch Nicht-Laden still verletzt" explizit adressiert
 - [ ] AC4 – Zusatzbefund "Lessons-Index wächst zurück" (PROJECT-CONTEXT.md) in derselben ADR mitentschieden
-- [ ] AC5 – Fachlicher Inhalt der 5 Guidelines bleibt unverändert
+- [ ] AC5 – Normativer Gehalt bleibt gültig; Prosa-/Narrativ-Kürzung (Kandidat 3) ausdrücklich erlaubt, Regelverlust nicht
 - [ ] AC6 – Umsetzung explizit als Folge-Task (neues Issue) benannt, nicht hier umgesetzt
 
 ## Technische Notizen
@@ -29,7 +29,8 @@ Spec: [`docs/specs/spec-319-adr-import-kontext-guidelines.md`](../docs/specs/spe
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- Granularität rollen-spezifischer Zuschnitte, falls Option 2 gewählt wird → /architecture
+- Granularität rollen-spezifischer Zuschnitte, falls Kandidat 2 gewählt wird → /architecture
+- Grenze "geltende Regel" vs. "Vorfall-Narrativ", falls Kandidat 3 gewählt wird (Narrative sind teils die Regel-Begründung) → /architecture
 - Governance-Mechanismus gegen erneutes Zurückwachsen → /architecture
 
 ## Review-Findings
