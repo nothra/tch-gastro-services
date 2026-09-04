@@ -9,6 +9,9 @@
 - [x] Codify ausgeführt
 - [x] Fertig / PR erstellt ([PR #326](https://github.com/nothra/tch-gastro-services/pull/326))
 
+PR-Shepherd 2026-09-04: Merge freigegeben – alle Gates grün (CI grün, keine offenen
+Review-Kommentare, keine Approval-Pflicht laut Ruleset, Branch bereits `mergeStateStatus: CLEAN`).
+
 ## Beschreibung
 `start-work.sh` wird fast immer bereits in einer frischen, task-freien Claude-Session
 ausgeführt. Die Abschluss-Ausgabe empfiehlt aktuell trotzdem pauschal, zusätzlich eine neue
