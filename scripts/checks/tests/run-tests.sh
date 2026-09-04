@@ -7689,6 +7689,92 @@ assert_absent "$ADR047_FLAT_319" "Reflex\", \`token-efficiency.md\`" \
   "#319: ADR-047 zitiert die YAGNI-Regel nicht bei der falschen Quelle"
 assert_contains_286 "$ADR047_FLAT_319" "OPERATING.md" \
   "#319: ADR-047 nennt OPERATING.md als Quelle der YAGNI-Regel"
+# ─── #319 (/test): Lücken aus der AK-Abdeckungsmatrix ────────────────────────
+echo ""
+echo "#319 AK-Abdeckung (/test):"
+
+# AC4 – „Index-Wachstum mitentschieden" hängt allein daran, dass PROJECT-CONTEXT.md (der
+# Lessons-Index, der nach ADR-037 von ~80 auf 341 Zeilen gewachsen ist) Teil der gedeckelten
+# Summe IST. Verschwände die @import-Zeile, liefe der Index wieder unbegrenzt – und alle
+# übrigen Deckel-Tests blieben grün, weil sie nur die Guidelines betrachten.
+grep -qE '^@docs/factory/PROJECT-CONTEXT\.md$' "$FACTORY_ROOT/CLAUDE.md"
+assert_true "$?" "#319 AC4: PROJECT-CONTEXT.md ist Teil des gedeckelten @import-Sets"
+# Mutationsbeleg mit demselben Assert-Ausdruck: ohne die Zeile wird der Guard rot.
+IC_AC4_MUT_319="$(mktemp)"
+grep -vE '^@docs/factory/PROJECT-CONTEXT\.md$' "$FACTORY_ROOT/CLAUDE.md" > "$IC_AC4_MUT_319"
+grep -qE '^@docs/factory/PROJECT-CONTEXT\.md$' "$IC_AC4_MUT_319"
+assert_true "$([ $? -ne 0 ]; echo $?)" "#319 AC4 (Mutation): ohne die Import-Zeile wird derselbe Guard rot"
+rm -f "$IC_AC4_MUT_319"
+
+# AC5 – „jede geltende Regel bleibt gültig und auffindbar". Die zwei verdichteten Guidelines
+# behalten ihre Regel-Abschnitte; eine spätere, zu eifrige Verdichtung würde sonst unbemerkt
+# eine Regelgruppe kappen (die vorhandenen Tests prüfen nur die drei VERSCHOBENEN Abschnitte).
+ic_has_sections_319() {  # $1 = Datei, $2… = erwartete Abschnitts-Überschriften
+  local f="$1" fehlend="" titel
+  shift
+  for titel in "$@"; do
+    grep -qF -- "## $titel" "$f" || fehlend="$fehlend '$titel'"
+  done
+  printf '%s' "$fehlend"
+}
+IC_TDD_319="$FACTORY_ROOT/docs/factory/guidelines/tdd-principles.md"
+IC_TST_319="$FACTORY_ROOT/docs/factory/guidelines/testing-standards.md"
+assert_true "$([ -z "$(ic_has_sections_319 "$IC_TDD_319" \
+  'Der Zyklus: Red → Green → Refactor' 'Test-Granularität' 'Was TDD nicht bedeutet' 'Wenn TDD schwer fällt')" ]; echo $?)" \
+  "#319 AC5: tdd-principles.md trägt nach der Verdichtung alle Regel-Abschnitte"
+assert_true "$([ -z "$(ic_has_sections_319 "$IC_TST_319" \
+  'Test-Aufbau: Arrange-Act-Assert' 'Test-Namen' 'Was testen? Was nicht?' 'Mocking-Regeln' \
+  'Test-Isolation' 'Flaky Tests: Zero Tolerance' 'Coverage-Anforderungen')" ]; echo $?)" \
+  "#319 AC5: testing-standards.md trägt nach der Verdichtung alle Regel-Abschnitte"
+# Diskriminierungs-Kontrolle: der Helfer meldet eine fehlende Überschrift auch wirklich –
+# sonst wäre die Abwesenheit von Fehlern oben nicht aussagekräftig.
+assert_true "$([ -n "$(ic_has_sections_319 "$IC_TDD_319" 'Ein Abschnitt, den es nicht gibt')" ]; echo $?)" \
+  "#319 AC5 (Kontrolle): der Abschnitts-Helfer meldet eine fehlende Überschrift"
+
+# AC8 – „kein Verweis zeigt ins Leere". In dieser Task sind zweimal tote relative Links
+# entstanden (ein geratener ADR-Dateiname, ein Pfad ohne `../` aus tasks/) – beide erst durch
+# einen Ad-hoc-Lauf gefunden. Der Check gehört damit in die Suite, begrenzt auf die Dateien,
+# die dieser Task besitzt.
+ic_dead_links_319() {  # $1 = Markdown-Datei → gibt "datei → ziel" je totem relativen Link aus
+  local f="$1" d ziel
+  d="$(dirname "$f")"
+  grep -oE '\]\([^)#][^)]*\)' "$f" 2>/dev/null | sed 's/^](//; s/)$//; s/#.*//' | while read -r ziel; do
+    case "$ziel" in http*|"") continue ;; esac
+    [ -e "$d/$ziel" ] || printf '%s → %s\n' "$f" "$ziel"
+  done
+}
+# Positiv-/Negativ-Kontrolle des Helfers gegen ein eigenes Fixture (clean-code.md: ein
+# Gate-Regex braucht beide Richtungen) – unabhängig vom Repo-Inhalt.
+TMP_LNK_319="$(mktemp -d)"
+printf 'Ziel\n' > "$TMP_LNK_319/ziel.md"
+printf 'Ein [guter Link](ziel.md) und sonst nichts.\n' > "$TMP_LNK_319/doc.md"
+assert_true "$([ -z "$(ic_dead_links_319 "$TMP_LNK_319/doc.md")" ]; echo $?)" \
+  "#319 AC8 (Kontrolle): ein auflösender Link wird nicht gemeldet"
+printf 'Ein [toter Link](gibt-es-nicht.md).\n' >> "$TMP_LNK_319/doc.md"
+assert_true "$([ -n "$(ic_dead_links_319 "$TMP_LNK_319/doc.md")" ]; echo $?)" \
+  "#319 AC8 (Kontrolle): ein toter Link wird gemeldet"
+rm -rf "$TMP_LNK_319"
+# Der eigentliche Guard über die Dateien dieses Tasks.
+ic_tote_links_319=""
+for f in CLAUDE.md CONTRIBUTING.md docs/factory/PROJECT-CONTEXT.md docs/factory/OPERATING.md \
+         docs/factory/kleinfunde.md docs/factory/lessons/testing.md \
+         docs/factory/lessons/code-style.md docs/factory/lessons/frontend-react.md \
+         docs/factory/guidelines/tdd-principles.md docs/factory/guidelines/testing-standards.md \
+         docs/factory/guidelines/token-efficiency.md \
+         docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md \
+         docs/adr/037-lessons-auslagern-aus-import-kontext.md \
+         docs/specs/spec-319-adr-import-kontext-guidelines.md \
+         tasks/task-319-adr-import-kontext-guidelines.md tasks/review-319.md; do
+  ic_tote_links_319="$ic_tote_links_319$(ic_dead_links_319 "$FACTORY_ROOT/$f")"
+done
+assert_true "$([ -z "$ic_tote_links_319" ]; echo $?)" \
+  "#319 AC8: kein toter relativer Link in den Dateien dieses Tasks"
+[ -z "$ic_tote_links_319" ] || printf '%s\n' "$ic_tote_links_319" | sed 's/^/      /'
+
+# ADR-Status: eine im selben PR umgesetzte ADR steht auf `Accepted`, nicht auf `Proposed`
+# (Lesson factory-workflow.md, aus #197 – beim Implementieren mitzuziehen).
+assert_contains_286 "$ADR047_FLAT_319" "## Status Accepted" \
+  "#319: ADR-047 steht auf Accepted (Umsetzung im selben PR)"
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"

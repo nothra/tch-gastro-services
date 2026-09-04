@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -96,7 +96,7 @@ angepasst werden muss, `tasks/patch-319.diff` + Human-Apply.
 **Reihenfolge:** Doku-Umstellung zuerst (der Ist-Stand danach ist die Grundlage der
 Deckel-Konstante), dann TDD für den Check: Test-Block in `run-tests.sh` → RED (19 rot, alle
 skript-abhängig) → `import-context-limit-check.sh` + `pre-push.sh`-Verdrahtung → GREEN
-(am Ende der Rework-Runden: 1421 grün, 0 rot).
+(am Ende der Rework-Runden 1421 grün, nach den `/test`-Ergänzungen 1430 grün, 0 rot).
 
 ### AC7 – @import-Stand vorher/nachher (gemessen im Worktree)
 
@@ -174,7 +174,7 @@ unter „Rework-Notizen" und im Skript-Header.
 
 `pnpm lint`/`pnpm typecheck`/`pnpm test` (Vitest) sind unberührt: die Änderung besteht aus
 Markdown und zwei Bash-Skripten, kein TypeScript. Gelaufen ist die zuständige Suite
-`scripts/checks/tests/run-tests.sh` (Stand nach den Rework-Runden: 1421 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
+`scripts/checks/tests/run-tests.sh` (Endstand nach `/test`: 1430 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
 UI-Berührung → keine Oberflächentests.
 
 ## Rework-Notizen (Runde 1 nach `/review`)
@@ -386,6 +386,35 @@ Anker wurde als Option gelesen. Der Helfer-Defekt selbst ist als Kleinfund erfas
 - **Ein gemeinsamer `mk_prepush_repo`-Helfer** für die zwei pre-push-E2E-Scaffolds wäre der
   nächste Schritt; das eigene Scaffold ist berechtigt (die vorhandenen Repo-Helfer liegen im
   yq-Zweig und hätten eine yq-Abhängigkeit in den Deckel-Test getragen).
+
+## /test-Notizen
+
+Report: [`tasks/coverage-319.md`](coverage-319.md).
+
+**Instrument:** Der Diff enthält 18 Markdown-Dateien und 3 Shell-Skripte, **keine** `.ts`/`.tsx`.
+Die 80 %-Vitest-Schwelle misst Produktcode, den dieser Task nicht berührt – sie ist hier nicht
+anwendbar, nicht verfehlt. Zuständig ist `scripts/checks/tests/run-tests.sh`; `pnpm test` und
+`pnpm typecheck` laufen weiter über das pre-push-Gate mit (Regressionsnachweis).
+
+**Vier Abdeckungslücken gefunden und geschlossen** (nur Tests geändert, kein Produktionscode):
+
+1. **AC4 war praktisch ungetestet.** Dass der Deckel auch das Index-Wachstum begrenzt, hängt
+   allein an der `@import`-Zeile für `PROJECT-CONTEXT.md`. Verschwände sie, liefe der Index wieder
+   ungedeckelt – und **alle** bisherigen Deckel-Tests wären grün geblieben, weil sie nur die
+   Guidelines betrachten. Jetzt Guard + Mutationsbeleg.
+2. **AC5 deckte nur die verschobenen Abschnitte ab**, nicht die zwei verdichteten Dateien. Eine
+   spätere, zu eifrige Verdichtung hätte eine ganze Regelgruppe kappen können. Jetzt ein
+   Abschnitts-Guard je Datei, mit Diskriminierungs-Kontrolle (der Helfer muss eine fehlende
+   Überschrift auch melden).
+3. **AC8 hatte gar keinen Test** – ich habe die toten Links in jeder Runde per Ad-hoc-Lauf
+   gesucht, und in dieser Task sind zweimal welche entstanden. Jetzt ein Dead-Link-Guard über die
+   16 Dateien dieses Tasks, mit Positiv- und Negativ-Kontrolle des Helfers.
+4. **ADR-Status** (`Accepted` statt `Proposed`) war ungeprüft – Lesson aus #197.
+
+Bewusst nicht getestet und je begründet: AC2/AC7 (Prosa-Aussagen; ein Zahlen-Guard wäre
+tautologisch oder bräche bei jeder legitimen Änderung), Vollständigkeit der Einbettungsformen
+(nicht beweisbar – deshalb steht die Restgrenze im Header statt einer Vollständigkeitsbehauptung),
+und ein repo-weiter Dead-Link-Check (eigenes Gate, eigener Task).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

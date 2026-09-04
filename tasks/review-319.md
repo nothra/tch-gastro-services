@@ -289,7 +289,7 @@ Begründungen je in den Rework-Notizen der Task-Datei.
 
 Der Follow-up zum eigenen CI-Required-Check ist Issue
 [#328](https://github.com/nothra/tch-gastro-services/issues/328). Suite danach: **1421 grün,
-0 rot**. @import-Kontext: **863 von 1100 Zeilen** (Deckel-Lauf 0,08 s statt 2,9 s).
+0 rot** (vor den `/test`-Ergänzungen, die neun weitere Assertions hinzugefügt haben). @import-Kontext: **863 von 1100 Zeilen** (Deckel-Lauf 0,08 s statt 2,9 s).
 
 Zwei Defekte in den **eigenen neuen Guards** fielen erst im GREEN-Lauf auf und sind behoben: ein
 selbstreferenzieller Content-Scan (die Suchphrase stand als Literal in der gescannten Datei, der
