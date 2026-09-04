@@ -9,7 +9,7 @@
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] **[`scripts/checks/import-context-limit-check.sh:70`] Der Deckel ist per Inline-`@import`
+- [x] **[`scripts/checks/import-context-limit-check.sh:70`] Der Deckel ist per Inline-`@import`
   in Prosa lautlos umgehbar – und ADR-047 §4 verspricht das Gegenteil.** Der `sed`-Ausdruck
   erkennt nur Zeilen, die **ausschließlich** aus `@<pfad>` bestehen. Ein `@pfad` mitten in einem
   Satz wird von Claude Code trotzdem geladen, vom Deckel aber nicht gezählt; ein Pfad mit
@@ -34,7 +34,7 @@
   antwortete `XYLOPHON-4711`. Negativkontrolle mit derselben Zeile **ohne** `@` → `NICHT_GELADEN`.
   Zweite Probe: `@docs/mit datei.md` (5 Zeilen) → Check meldet „✓ 1 von 1100 Zeilen", exit 0.
 
-- [ ] **[`CLAUDE.md:134`, `docs/adr/047-…md:67`] Zwei falsche Erzwingungs-Behauptungen – im
+- [x] **[`CLAUDE.md:134`, `docs/adr/047-…md:67`] Zwei falsche Erzwingungs-Behauptungen – im
   immer geladenen Kontext und im tragenden ADR-Kriterium.** (a) Kurzregel 1 schreibt
   „(pre-push-Hook lokal, Ruleset `protect-main` serverseitig, **beide fail-closed**)". Die
   kanonische Quelle sagt das Gegenteil: `git-workflow.md` → „Dieser Hook ist jedoch nur
@@ -56,7 +56,7 @@
   *Verifiziert:* beide Quelltexte gelesen (`git-workflow.md` zeilenumbruch-tolerant über
   `tr '\n' ' '`), `commit-msg-check.sh:11-12,78` gelesen.
 
-- [ ] **[`docs/adr/047-…md:84-90` ↔ `CLAUDE.md:128-143`, `docs/adr/018-…md`,
+- [x] **[`docs/adr/047-…md:84-90` ↔ `CLAUDE.md:128-143`, `docs/adr/018-…md`,
   `docs/adr/043-…md`] ADR/Repo-Drift in beide Richtungen: §3 nennt fünf Kern-Kurzregeln,
   umgesetzt sind zehn – und vier davon verletzen ein „ein Ort je Regel", das zwei andere ADRs
   ausdrücklich entschieden haben.** §3 enumeriert „nie direkt auf `main`, Rebase statt Merge,
@@ -90,7 +90,7 @@
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [`CLAUDE.md:106-108` ↔ `:116`; `docs/adr/047-…md` §1] Der neu formulierte TL;DR-Satz
+- [x] [`CLAUDE.md:106-108` ↔ `:116`; `docs/adr/047-…md` §1] Der neu formulierte TL;DR-Satz
   („Eine Guideline verlässt den Dauerkontext, wenn ein Gate/Hook/Ruleset ihre Regeln fail-closed
   erzwingt") trägt die eigene Entscheidung nicht: `architecture-principles.md` wird ausgelagert,
   obwohl ADR-047 §2 in derselben Zeile „– (nicht erzwungen)" einträgt und mit einem **zweiten**
@@ -100,7 +100,7 @@
   Klassifizierungsregel ohne Vorhersagekraft; Lesson #322: TL;DR widerspricht dem Detail-Absatz
   im selben, im PR neu verfassten Text). Fix ohne Entscheidungswechsel: §1 und den
   `CLAUDE.md`-Satz auf zwei Bedingungen erweitern.
-- [ ] [`scripts/checks/tests/run-tests.sh:7399`] Die „Laden bei"-Assertion des Referenz-Guards
+- [x] [`scripts/checks/tests/run-tests.sh:7399`] Die „Laden bei"-Assertion des Referenz-Guards
   ist **vakuös**: sie steht in der Schleife über beide Dateien, prüft aber einen
   dateiunabhängigen Ausdruck (`grep -qF "Laden bei"` über ganz `CLAUDE.md`) und läuft zweimal
   mit identischem Label. ADR-047 §3 verlangt einen Trigger **je** ausgelagerter Datei und nennt
@@ -109,14 +109,14 @@
   Vorkommen 5 → 4, dieselbe Assertion bleibt **grün**. Fix: Phrase an den zusammenhängenden
   Bullet binden (`guidelines/$g.md` … `Laden bei:` als **eine** Phrase über den geflachten
   Text) + Mutationsbeleg je Datei.
-- [ ] [`scripts/checks/tests/run-tests.sh:7286`] Test-Label überclaimt: „Konstante trägt eine
+- [x] [`scripts/checks/tests/run-tests.sh:7286`] Test-Label überclaimt: „Konstante trägt eine
   Herleitung im Kommentar" prüft nur, ob das Wort „Herleitung" irgendwo im geflachten Skript
   steht – es steht auch in der Remediation-Ausgabe (`import-context-limit-check.sh:85`).
   *Verifiziert (Mutation):* kompletten Herleitungs-Kommentar gelöscht (`sed '24,28d'`) →
   Assertion bleibt grün, während „849"/„25 %" rot gehen. Lesson #312 (das Label darf nur
   behaupten, was der Prüfausdruck abdeckt). Fix: Anker wählen, der nur im Kommentarblock
   existiert.
-- [ ] [`scripts/checks/tests/run-tests.sh` #319-Block] Es fehlt der **E2E-Verhaltenstest**, dass
+- [x] [`scripts/checks/tests/run-tests.sh` #319-Block] Es fehlt der **E2E-Verhaltenstest**, dass
   ein rotes Check-Ergebnis den Push wirklich blockiert. Test 9 prüft die Aufrufzeile (inkl.
   saubere Mutation), aber `FAILED=1` in `pre-push.sh:143` könnte wegfallen, ohne dass die Suite
   rot wird. Lesson „deterministisches Gate braucht E2E-Verhaltenstest, nicht nur Wiring-Grep"
@@ -124,7 +124,7 @@
   *Verifiziert:* Probe extern nachgestellt (Kopie von `pre-push.sh` + Check in ein Temp-Root,
   `CLAUDE.md` mit 1200 Zeilen, Test-/Typecheck-/Format-Kommandos auf `true`) → exit 1 mit
   korrekter Meldung. Das Verhalten ist richtig; nur der Test fehlt (~10 Zeilen).
-- [ ] [`scripts/checks/import-context-limit-check.sh:60-64`, `:77`] Kein eigener Guard für
+- [x] [`scripts/checks/import-context-limit-check.sh:60-64`, `:77`] Kein eigener Guard für
   Einstiegsdatei und Projektwurzel: fehlt `CLAUDE.md` oder existiert `FACTORY_DIR` nicht, fällt
   der Fall in den *Referenz*-Zweig und die Remediation lautet „Referenz in CLAUDE.md …
   korrigieren" – für eine fehlende `CLAUDE.md` unbrauchbar, und „Projektwurzel nicht erreichbar"
@@ -132,44 +132,44 @@
   (`routes-doc-check.sh:23-31`, `hooks-installed-check.sh:48-51`) – hier entsteht eine dritte
   Schreibweise (Lesson aus #224). Der Test `:7360` prüft nur `exit 1` und würde die Verbesserung
   nicht bemerken; er sollte die Meldung mitprüfen.
-- [ ] [`scripts/checks/pre-push.sh`] Unbeabsichtigte Modus-Änderung **100755 → 100644**
+- [x] [`scripts/checks/pre-push.sh`] Unbeabsichtigte Modus-Änderung **100755 → 100644**
   (Nebenwirkung des Datei-Rewrites im Implement-Schritt). Kein AC verlangt das; `pre-push.sh`
   ist damit neben `commit-msg-check.sh` das einzige nicht ausführbare Gate-Skript, ein
   Direktaufruf `./scripts/checks/pre-push.sh` schlägt fehl. Bricht aktuell nichts
   (`install-hooks.sh` ruft `bash scripts/checks/pre-push.sh`).
   *Verifiziert:* `git diff --summary origin/main...HEAD` zeigt die Mode-Change-Zeile; `ls -l`
   bestätigt `-rw-r--r--`. Fix: `git update-index --chmod=+x scripts/checks/pre-push.sh`.
-- [ ] [`docs/factory/guidelines/git-workflow.md:69`] Die kanonische `pre-push`-Check-Liste in der
+- [x] [`docs/factory/guidelines/git-workflow.md:69`] Die kanonische `pre-push`-Check-Liste in der
   Hook-Tabelle ist nicht mitgepflegt – Check 6 (Deckel) fehlt. Genau diese Zeile wurde bei
   #265/#268 beim Hinzufügen eines Checks mitgezogen, sie ist die etablierte Enumeration
   (Lesson #211/#176). Pikanterweise hat der Sweep sie übersehen, weil dieser PR die Datei selbst
   aus dem Dauerkontext genommen hat.
-- [ ] [`docs/factory/lessons/testing.md:712`] Der byte-identisch übernommene Satz „Coverage-Ziele
+- [x] [`docs/factory/lessons/testing.md:712`] Der byte-identisch übernommene Satz „Coverage-Ziele
   (100 % bei neuem Code, **siehe unten**) werden verfehlt" verliert sein Antezedens: in
   `testing-standards.md` zeigte „unten" auf „Coverage-Anforderungen", in der Lesson steht darunter
   nur noch der ADR-040-Abschnitt. Deixis-Falle aus Lesson #315 – verlustfreie Byte-Migration ist
   genau dort **nicht** verlustfrei, wo der Text auf seinen alten Kontext zeigt. Fix: „siehe
   `testing-standards.md` → Coverage-Anforderungen".
-- [ ] [`scripts/checks/tests/run-tests.sh:7303,7307,7322,7354,7387,7372`] Vorhandene Helfer
+- [x] [`scripts/checks/tests/run-tests.sh:7303,7307,7322,7354,7387,7372`] Vorhandene Helfer
   inline reimplementiert – **6. Vorkommnis** eines mehrfach codifizierten Smells (#240/#267/#310):
   vier Stellen schreiben den Rumpf von `assert_contains_286` (`:66-69`) aus, `:7387` den von
   `assert_absent` (`:76-79`, dessen Doc-Kommentar genau diese ausgeschriebene Form als Grund für
   die Kapselung nennt), `:7372` den von `assert_exit` (`:27`). Ausnahme mit Berechtigung:
   `:7403` braucht `grep -qE` mit `^…$`-Ankern – das gehört als einzeiliger WHY dazu.
-- [ ] [`scripts/checks/tests/run-tests.sh:7372`] Unbegründete Toleranz auf deterministischem
+- [x] [`scripts/checks/tests/run-tests.sh:7372`] Unbegründete Toleranz auf deterministischem
   Output: `[ "$ic_rc" -le 1 ]` im Zyklus-Test. *Verifiziert:* dasselbe Fixture liefert
   deterministisch „✓ 52 von 1100 Zeilen", exit **0**. `-le 1` bliebe auch grün, wenn der
   Zyklus-Schutz bräche und die Doppelzählung die Grenze reißt – der Test verschenkt genau die
   Aussage, die sein Label behauptet. Lesson #322 (`PROJECT-CONTEXT.md:254`). Fix:
   `assert_exit 0 "$ic_rc" "… terminiert und zählt CLAUDE.md nur einmal (52 Zeilen)"`.
-- [ ] [`docs/factory/guidelines/testing-standards.md:23-29`] Das verdichtete „Gut"-Beispiel hat
+- [x] [`docs/factory/guidelines/testing-standards.md:23-29`] Das verdichtete „Gut"-Beispiel hat
   seinen Beleg verloren: die gelöschte Zeile `const result = z.object({ name: z.string({ error:
   "Name fehlt" }) })…` war die Quelle des Literals „Name fehlt"; der Kommentar „hier via
   deterministische Custom-Message" verweist jetzt auf etwas, das im Snippet nicht mehr steht, und
   `result` ist in beiden Snippets undefiniert. Die Regel steht, ihr Beleg fehlt – in einer
   **dauerhaft geladenen** Datei. Fix: die Zeile wieder aufnehmen (eine Zeile) oder den Kommentar
   anpassen.
-- [ ] [`CLAUDE.md:174` ff. (Guardrails)] Das neue Push-Gate ist im immer geladenen Kontext nicht
+- [x] [`CLAUDE.md:174` ff. (Guardrails)] Das neue Push-Gate ist im immer geladenen Kontext nicht
   dokumentiert: der Deckel steht in aktiver Doku nur in `token-efficiency.md:58` – also in der
   Datei, die `CLAUDE.md:117-119` ausdrücklich als „bewusst nie automatisch" geladen ausweist. Für
   den Routen-Doku-Drift-Check steht „blockiert einen Push fail-closed" direkt in den Guardrails
@@ -180,70 +180,70 @@
 
 ## Nitpicks (optional)
 
-- [ ] [`CLAUDE.md:137`] Kurzregel 4 sagt „vor dem Start **und** vor dem Push `git fetch origin` +
+- [x] [`CLAUDE.md:137`] Kurzregel 4 sagt „vor dem Start **und** vor dem Push `git fetch origin` +
   `git rebase origin/main`". Kanonisch ist vor dem Start `git checkout main && git pull --rebase
   origin main` (auf `main`, nicht als Rebase eines noch nicht existierenden Branches). Außerdem
   fehlt der #249-Vorbehalt (auf einem bereits gepushten Branch rebast kein Zwischenschritt
   eigenständig – das bleibt bei `/pr-shepherd`), der in einer immer geladenen Kurzregel besonders
   relevant ist.
-- [ ] [`CLAUDE.md:143`] Kurzregel 10 lässt `git worktree prune` weg (kanonisch: „`git worktree
+- [x] [`CLAUDE.md:143`] Kurzregel 10 lässt `git worktree prune` weg (kanonisch: „`git worktree
   remove <pfad>` (dann `git worktree prune`)").
-- [ ] [`CLAUDE.md:135`] Kurzregel 2 behauptet „(erzwungen von `branch-name-check.sh`)", der
+- [x] [`CLAUDE.md:135`] Kurzregel 2 behauptet „(erzwungen von `branch-name-check.sh`)", der
   Enforcer erlaubt aber einen neunten Präfix (`claude/`), den die Liste nicht nennt. Die
   vorbestehende Doku-Drift ist als Out-of-Scope-Fund in `docs/factory/kleinfunde.md` erfasst; in
   diesem PR bleibt zu entscheiden, ob die Kurzregel die Deckungs-Behauptung so tragen soll.
-- [ ] [`docs/adr/047-…md` §Alternativen] Spec-Fehlerszenario 1 verlangt alle **vier** Kandidaten
+- [x] [`docs/adr/047-…md` §Alternativen] Spec-Fehlerszenario 1 verlangt alle **vier** Kandidaten
   × **beide** Achsen (Gate-Risiko, Skalierung). Kandidat 2 (Rollen-Zuschnitt) steht nur in
   §Begründung und nur auf der Gate-Achse; Optionen C und D sind auf der Skalierungs-Achse nicht
   bewertet. Inhaltlich ist die Abwägung vorhanden, formal fehlt sie an zwei Stellen.
-- [ ] [`scripts/checks/tests/run-tests.sh:7276-7280`] Die Herleitungs-Tests prüfen nur, dass
+- [x] [`scripts/checks/tests/run-tests.sh:7276-7280`] Die Herleitungs-Tests prüfen nur, dass
   „849" und „25 %" im Kommentar stehen. Ein Bump von `MAX_IMPORT_LINES` auf 5000 bliebe grün,
   obwohl die Herleitung dann falsch ist. Eine Konsistenz-Assertion (`849*125/100`, auf 50
   aufgerundet, `== $IC_LIMIT`) wäre eine Zeile.
 - [ ] [`docs/adr/047-…md` §4] Der Puffer beträgt 251 Zeilen; das Zurückwachsen, das diesen Task
   ausgelöst hat, war +261 Zeilen (Index ~80 → 341). Der Deckel feuert also erst nach etwa
   demselben Wildwuchs – „ohne den nächsten Wildwuchs zu decken" ist optimistisch formuliert.
-- [ ] [`scripts/checks/import-context-limit-check.sh:70`] Eine `@pfad`-Zeile in einem Code-Fence
+- [x] [`scripts/checks/import-context-limit-check.sh:70`] Eine `@pfad`-Zeile in einem Code-Fence
   oder ein absoluter/`~`-Pfad macht den Check **rot** (fail-closed, also unkritisch), obwohl
   Claude Code Fence-Imports ignoriert bzw. absolute Pfade auflöst. Ein Doku-Beispiel in
   `CLAUDE.md` würde damit den Push mit irreführender Meldung blockieren.
-- [ ] [`scripts/checks/import-context-limit-check.sh:66`] `wc -l` zählt Newlines: eine Datei ohne
+- [x] [`scripts/checks/import-context-limit-check.sh:66`] `wc -l` zählt Newlines: eine Datei ohne
   Schluss-Newline wird um 1 unterzählt (Undercount-Richtung). Praktisch vom Prettier-Gate für
   `*.md` abgedeckt, aber der Header verspricht „Summiert die Zeilen".
-- [ ] [`scripts/checks/import-context-limit-check.sh:59`] Geschachtelte `@`-Pfade werden gegen
+- [x] [`scripts/checks/import-context-limit-check.sh:59`] Geschachtelte `@`-Pfade werden gegen
   die Projektwurzel aufgelöst, nicht gegen die importierende Datei. Heute latent (keine
   geschachtelten Imports im Repo) und fail-closed – gehört als Header-Zeile dokumentiert.
-- [ ] [`scripts/checks/import-context-limit-check.sh:85`] `MAX_IMPORT_LINES in $0` gibt beim
+- [x] [`scripts/checks/import-context-limit-check.sh:85`] `MAX_IMPORT_LINES in $0` gibt beim
   Aufruf aus `pre-push.sh` einen absoluten Worktree-Pfad aus; die Nachbar-Checks nennen stabile
   relative Pfade. Literal `scripts/checks/import-context-limit-check.sh` verwenden.
-- [ ] [`scripts/checks/pre-push.sh:142`] Die Headline „@import-Dauerkontext über der Grenze –
+- [x] [`scripts/checks/pre-push.sh:142`] Die Headline „@import-Dauerkontext über der Grenze –
   push blockiert" ist im Fail-closed-Zweig (nicht lesbare Referenz) unwahr; die echte Ursache
   steht erst in der eingerückten Rohausgabe. Analog Check 5 neutral formulieren.
-- [ ] [`scripts/checks/tests/run-tests.sh:7275`] Die Kopplungs-Assertion an den realen Repo-Stand
+- [x] [`scripts/checks/tests/run-tests.sh:7275`] Die Kopplungs-Assertion an den realen Repo-Stand
   verwirft die Ausgabe (`>/dev/null 2>&1`). Schlägt sie fehl, fehlt genau die
   `breakdown`-Liste, die sagt, welche Datei zu groß wurde – bei Fehlschlag durchreichen.
-- [ ] [`scripts/checks/tests/run-tests.sh:7390-7404`] Der Referenz-Guard existiert jetzt in zwei
+- [x] [`scripts/checks/tests/run-tests.sh:7390-7404`] Der Referenz-Guard existiert jetzt in zwei
   Schreibweisen (alt `:1261-1264` direkt auf der Datei, neu `flat_286` + Schleife), und für
   `token-efficiency.md` – ebenfalls nur referenziert, nie importiert – existiert **gar kein**
   Guard. Die neue Schleife auf `git-workflow architecture-principles bash-gotchas
   token-efficiency` erweitern und den Altguard darauf zurückführen.
-- [ ] [`scripts/checks/tests/run-tests.sh:7293-7295`] Namen ohne Issue-Suffix (`ic()`,
+- [x] [`scripts/checks/tests/run-tests.sh:7293-7295`] Namen ohne Issue-Suffix (`ic()`,
   `mklines()`, `IC_CALL`) in einem Flachskript, dessen Konvention Suffixe nutzt (`flat_286`,
   `scaffold_310`, `name_hits_315`); `IC_CALL` kollidiert semantisch mit `IC_CALL_PIPE` (`:6016`,
   dort „Interrupt-Check"). Zudem begründet der Kommentar „awk statt Bash-Loop (Laufzeit)", während
   die Suite für denselben Zweck bereits `seq 1 N` nutzt (`:3721`, `:3776`).
-- [ ] [`docs/factory/guidelines/testing-standards.md:5-8`] Die Auslagerungs-Notiz nennt alle drei
+- [x] [`docs/factory/guidelines/testing-standards.md:5-8`] Die Auslagerungs-Notiz nennt alle drei
   Abschnitte als „ausgelagert"; die ADR-040-Regel bleibt aber (absichtlich) als Bullet unter
   „Coverage-Anforderungen" im File. Das sollte die Notiz sagen, sonst sucht der Leser am falschen
   Ort.
-- [ ] [`docs/factory/guidelines/testing-standards.md:8` ↔ `PROJECT-CONTEXT.md:224`] Zwei
+- [x] [`docs/factory/guidelines/testing-standards.md:8` ↔ `PROJECT-CONTEXT.md:224`] Zwei
   divergierende „Laden bei"-Trigger für dieselbe Datei (neu: `/implement`, `/test`, `/review`;
   Index: `/implement`, `/test`). Zweite Quelle für denselben Trigger = Drift-Kandidat.
-- [ ] [`docs/adr/009-factory-configuration.md:33`, `:185`] „Welche Guidelines gelten | `@import`
+- [x] [`docs/adr/009-factory-configuration.md:33`, `:185`] „Welche Guidelines gelten | `@import`
   in `CLAUDE.md`" ist nach der Umstellung nur halb richtig, und der dort vorgesehene Punkt
   „`@import`-Block aus der Config speisen" bekommt durch handkuratierte Kurzregeln eine neue
   Wechselwirkung. Ein Satz in ADR-047 §Konsequenzen genügt.
-- [ ] [`docs/adr/047-…md` §2] Zielgrößen „865 → ~250" / „1.410 → ~800" gegen tatsächlich
+- [x] [`docs/adr/047-…md` §2] Zielgrößen „865 → ~250" / „1.410 → ~800" gegen tatsächlich
   275 / 849 – §2 verweist für die exakte Zahl korrekt auf AC7, die Richtwerte lesen sich nur
   ~6 % optimistisch.
 
@@ -294,3 +294,22 @@
 ## Empfehlung
 
 NEEDS_REWORK
+
+---
+
+## Rework-Stand (Runde 1, nach dem Report)
+
+Alle 3 Kritisch- und alle 12 Wichtig-Findings behoben, 17 von 18 Nitpicks. Details und die zwei
+bewusst getroffenen Weichenstellungen (K1: Muster erweitern statt Behauptung einschränken; K3:
+Kurzregeln zurückschneiden statt achte Kopie registrieren) stehen in
+[`tasks/task-319-adr-import-kontext-guidelines.md`](task-319-adr-import-kontext-guidelines.md)
+unter „Rework-Notizen". Suite danach: **1390 grün, 0 rot**.
+
+**Bewusst offen** (einziger nicht abgehakter Punkt): die Formulierung „ohne den nächsten
+Wildwuchs zu decken" für den 240-Zeilen-Puffer in ADR-047 §4. Ein engerer Puffer würde legitime
+Regel-Ergänzungen blockieren; der Deckel soll den nächsten Wildwuchs **melden**, nicht jede
+Zeile verhandeln. Der Punkt ist eine Kalibrierungs-Einschätzung, kein Defekt.
+
+Beim Rework selbst gefunden und behoben: der erste Mutationsbeleg der Trigger-Assertion
+scheiterte still, weil BSD-`sed` das Muster `**Laden bei:**` als Repetition-Operator ablehnt –
+ersetzt durch literales `awk index()`. Genau die Fehlerklasse, die Wichtig-Finding 2 adressiert.

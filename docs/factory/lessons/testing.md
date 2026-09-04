@@ -709,7 +709,7 @@ it("should_throw_when_categoryIsUnknown", () => {
 });
 ```
 Ohne diesen Test bleibt der Guard-Zweig als einzige ungetestete Zeile zurück – Coverage-Ziele
-(100 % bei neuem Code, siehe unten) werden verfehlt, ohne dass es beim Schreiben auffällt,
+(100 % bei neuem Code, siehe `testing-standards.md` → „Coverage-Anforderungen") werden verfehlt, ohne dass es beim Schreiben auffällt,
 weil der Zweig „offensichtlich sicher" wirkt.
 
 ### Mock-Default mit leerem Array verdeckt Mapping-Code (verschoben aus `testing-standards.md`, #319)

@@ -102,17 +102,19 @@ skript-abhängig) → `import-context-limit-check.sh` + `pre-push.sh`-Verdrahtun
 
 | Datei | vorher | nachher |
 |-------|-------:|--------:|
-| `CLAUDE.md` | 204 | 230 |
+| `CLAUDE.md` | 204 | 238 |
 | `docs/factory/PROJECT-CONTEXT.md` | 341 | 344 |
 | `guidelines/clean-code.md` (bleibt geladen) | 131 | 131 |
 | `guidelines/tdd-principles.md` (verdichtet) | 84 | 54 |
-| `guidelines/testing-standards.md` (verdichtet) | 181 | 90 |
+| `guidelines/testing-standards.md` (verdichtet) | 181 | 93 |
 | `guidelines/architecture-principles.md` (**raus**) | 79 | – |
 | `guidelines/git-workflow.md` (**raus**) | 390 | – |
-| **Summe @import-Kontext** | **1.410 Zeilen / 10.401 Wörter** | **849 Zeilen / 7.443 Wörter** |
+| **Summe @import-Kontext** | **1.410 Zeilen / 10.401 Wörter** | **860 Zeilen / 7.627 Wörter** |
 
-**−561 Zeilen (−39,8 %), −2.958 Wörter (−28,4 %).** Guidelines-Block: 865 → 275 Zeilen
-(−68 %), Zielrichtwert der ADR war ~250. Der Ausgangswert der Spec (1.376 / 9.812) ist die
+**−550 Zeilen (−39,0 %), −2.774 Wörter (−26,7 %).** Guidelines-Block: 865 → 278 Zeilen
+(−68 %), Zielrichtwert der ADR war ~250. (Stand nach Review-Rework-Runde 1; direkt nach der
+Umstellung waren es 849 / 7.443 – die Kurzregel-Korrekturen und der Guardrail-Eintrag haben
+`CLAUDE.md` um 8 und `testing-standards.md` um 3 Zeilen wachsen lassen.) Der Ausgangswert der Spec (1.376 / 9.812) ist die
 Messung aus dem Issue; im Worktree lag der Stand vor der Umstellung bei 1.410 / 10.401 (die
 Dateien sind zwischen Issue-Anlage und Task-Start gewachsen) – beide Werte hier genannt, damit
 die Differenz nachvollziehbar bleibt.
@@ -173,6 +175,104 @@ und ein zusätzlicher Token-Scanner hätte gegen Prosa-Vorkommen wie `@serwist/n
 Markdown und zwei Bash-Skripten, kein TypeScript. Gelaufen ist die zuständige Suite
 `scripts/checks/tests/run-tests.sh` (1358 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
 UI-Berührung → keine Oberflächentests.
+
+## Rework-Notizen (Runde 1 nach `/review`)
+
+Report: [`tasks/review-319.md`](review-319.md) – 3 Kritisch, 12 Wichtig, 18 Nitpicks,
+Empfehlung NEEDS_REWORK. Alle drei Kritisch-Findings behoben, alle Wichtig behoben, Nitpicks
+größtenteils.
+
+### K1 – Deckel war per Inline-`@import` in Prosa umgehbar (fail-open)
+
+Zwei Optionen standen zur Wahl (Muster erweitern vs. Wirkungsbehauptung einschränken);
+**gewählt: erweitern.** Begründung: Ein Gate, das nur alleinstehende `@`-Zeilen zählt, hängt
+selbst an einer Prosa-Konvention – genau der Mechanismus, an dem ADR-037 gescheitert ist.
+
+`import-context-limit-check.sh` erkennt jetzt zwei Formen, bewusst unterschiedlich behandelt:
+
+| Form | Behandlung | Fail-closed? |
+|------|-----------|--------------|
+| Alleinstehende Zeile `@<pfad>` (kein weiteres `@`) | Rest der Zeile **ist** der Pfad – darf Leerzeichen enthalten; immer gezählt | **ja** (unlesbar → rot) |
+| Inline-`@pfad` in Prosa | gezählt, **wenn** er auf eine lesbare Datei auflöst; angehängte Satzzeichen werden abgeschnitten | nein (dokumentierte Restgrenze) |
+
+Das Resolve-Sieb ist notwendig, nicht kosmetisch: `PROJECT-CONTEXT.md` nennt real
+`@serwist/next`, `@neondatabase/serverless` und `@types/node`. Ohne das Sieb wäre der Check
+gegen das eigene Repo rot – Test 10 hält genau diese Gegenrichtung fest.
+
+Beleg für die Notwendigkeit (empirisch, im Review verifiziert): Fixture-`CLAUDE.md` mit
+„Siehe @docs/geheim.md fuer das Codewort." + Marker-Datei → `claude --print` gab
+`XYLOPHON-4711` zurück; dieselbe Zeile **ohne** `@` → `NICHT_GELADEN`.
+
+### K2 – zwei falsche Erzwingungs-Behauptungen (Sweep, nicht nur die gemeldete Zeile)
+
+- Kurzregel 1: „beide fail-closed" → der pre-push-Hook ist jetzt ausdrücklich als lokales,
+  **umgehbares** Feedback benannt, fail-closed ist allein das Ruleset `protect-main`.
+- ADR-047 §2: der `commit-msg`-Hook stand als Erzwinger in der Spalte „Erzwungen durch" – er
+  lehnt ausschließlich `--help`/`-h` ab (`commit-msg-check.sh` §Scope). Zelle korrigiert, die
+  Nicht-Erzwingung des Commit-Formats ausdrücklich vermerkt, und Kurzregel 5 sagt es jetzt
+  selbst mit.
+
+Zwei Abwesenheits-Guards halten das fest (Test 19).
+
+### K3 – ADR/Repo-Drift: §3 nannte 5 Kurzregeln, umgesetzt waren 10
+
+Gewählt: **Kurzregeln zurückschneiden** (nicht: achte Kopie im #315-Registry-Guard
+nachregistrieren). Die Label-Konvention und die Schwellen-Tabelle sind aus `CLAUDE.md`
+verschwunden; Kurzregel 7 ist jetzt ein **Verweis** auf die kanonische Quelle. Damit bleiben
+`git-workflow.md` („Die kanonische Label-Liste bleibt allein in diesem Abschnitt"), ADR-018 und
+ADR-043 („ein Ort je Regel") wahr, **ohne** sie anzufassen – die Alternative hätte drei
+ADR-Texte, den #315-Guard und dessen Zähl-Echo geändert. ADR-047 §3 nennt jetzt die
+tatsächlichen acht Kurzregeln **und** was bewusst nicht gespiegelt wird, mit Begründung.
+Drei Abwesenheits-Guards + ein Verweis-Guard halten das fest (Test 18).
+
+### Weitere behobene Wichtig-Findings
+
+- **Vakuöse Trigger-Assertion:** prüfte „Laden bei" dateiunabhängig; jetzt Dateiname + Trigger
+  als **eine** Phrase je Datei, mit Mutation je Datei. Dabei fiel auf, dass der erste
+  Mutationsversuch per `sed` still scheiterte (BSD-sed lehnt `**Laden bei:**` als
+  Repetition-Operator ab) – ersetzt durch literales `awk index()`; der WHY steht am Test.
+- **Überclaimtes Label:** „Herleitung im Kommentar" traf auch die Remediation-Ausgabe; Anker
+  jetzt `Herleitung (ADR-047 §4`. Zusätzlich eine **rechnerische** Assertion: die Konstante muss
+  der dokumentierten Herleitung entsprechen (860 + 25 %, auf 50 aufgerundet = 1.100) – ein Bump
+  auf 5.000 wäre vorher grün geblieben.
+- **E2E-Verhaltenstest:** Kopie von Gate + Check in ein Temp-Root (pre-push.sh leitet
+  `FACTORY_DIR` aus dem Skript-Pfad ab, nicht aus der Env), teure Gates per Env auf `true`.
+  Beweist Blockade **und** Durchlass, plus Mutation: ohne das `FAILED=1` des Check-6-Blocks
+  lässt derselbe rote Deckel den Push durch.
+- **Guards für Einstiegsdatei und Projektwurzel** mit eigenen Meldungen (Muster
+  `routes-doc-check.sh`) – „Referenz in CLAUDE.md korrigieren" war als Remediation unbrauchbar,
+  wenn genau diese Datei fehlt. Drei Fälle jetzt unterscheidbar und je assertiert.
+- **exec-Bit** von `pre-push.sh` wiederhergestellt (100644 → 100755; Nebenwirkung des
+  Datei-Rewrites in Runde 1).
+- **Hook-Tabelle** in `git-workflow.md` nennt den Deckel-Check (Guard: Test 17).
+- **Deixis:** „siehe unten" im verschobenen Abschnitt zeigte in der Lesson ins Leere → expliziter
+  Verweis (Guard: Abwesenheits-Assertion in Test 16).
+- **Helfer-Duplikation:** `assert_contains_286`/`assert_absent`/`assert_exit` statt
+  ausgeschriebener Rümpfe; `seq` statt eigener `awk`-Füllfunktion; `_319`-Suffixe wie in den
+  Nachbar-Blöcken; die einzige verbleibende ausgeschriebene Form (`grep -qE` mit `^…$`-Ankern)
+  trägt ihren WHY.
+- **`-le 1` → `assert_exit 0`** im Zyklus-Test (deterministischer Output, Lesson #322).
+- **Verdichtetes „Gut"-Beispiel** in `testing-standards.md` hat seine `const result = …`-Zeile
+  zurück – ohne sie hatte das Literal „Name fehlt" keine sichtbare Quelle mehr.
+- **Guardrail-Eintrag** in `CLAUDE.md`: der Deckel war nur in `token-efficiency.md` dokumentiert
+  – also in der Datei, die ausdrücklich nie automatisch geladen wird.
+- **Referenz-Guard** deckt jetzt auch `bash-gotchas.md` und `token-efficiency.md` ab (vorher gar
+  kein Guard für letztere) – eine Schreibweise statt zweier.
+
+### Bewusst nicht geändert (Nitpicks)
+
+- **Code-Fence-`@pfad` macht den Check rot:** fail-closed und im Header dokumentiert; ein
+  Doku-Beispiel muss einen existierenden Pfad nennen. Eine Fence-Erkennung wäre mehr Zustand im
+  Skript als der Fall wert ist.
+- **`wc -l` unterzählt eine Datei ohne Schluss-Newline um 1:** für die @import-Dateien
+  irrelevant, weil `format:check` (Prettier) die Schluss-Newline erzwingt – jetzt im Header
+  vermerkt.
+- **Puffer von 240 Zeilen ist in derselben Größenordnung wie das historische Zurückwachsen
+  (+261):** bewusst so – ein engerer Puffer würde legitime Regel-Ergänzungen blockieren, und der
+  Deckel soll den nächsten Wildwuchs **melden**, nicht jede Zeile verhandeln.
+- **`claude/`-Präfix fehlt in der Branch-Tabelle:** vorbestehende Doku-Drift gegen
+  `branch-name-check.sh:25`, out-of-scope → Eintrag in `docs/factory/kleinfunde.md`. Kurzregel 2
+  behauptet jetzt nur noch, dass der Check die Präfixe prüft, und nennt die Tabelle als kanonisch.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

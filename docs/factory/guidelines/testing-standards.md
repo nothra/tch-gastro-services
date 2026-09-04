@@ -5,8 +5,10 @@ Regeln für Test-Qualität und Test-Aufbau in diesem Projekt.
 > **Ausgelagert nach [`lessons/testing.md`](../lessons/testing.md)** (ADR-047, #319): die drei
 > `/codify`-artigen Einträge „Exhaustiveness-Guards (`never`-Check)", „Mock-Default mit leerem
 > Array verdeckt Mapping-Code" und „Coverage-Ausgabe nur in ignorierte Pfade (ADR-040)".
-> Sie gelten unverändert weiter – **Laden bei:** `/implement`, `/test`, `/review` beim
-> Testschreiben/Coverage.
+> Sie gelten unverändert weiter; „Laden bei" steht kanonisch im Lessons-Index
+> (`PROJECT-CONTEXT.md` → `lessons/testing.md`), nicht hier. Die ADR-040-Regel selbst bleibt
+> zusätzlich als Kurzregel unter „Coverage-Anforderungen" in dieser Datei – nur ihre Begründung
+> und der Vorfall stehen in der Lesson.
 
 ---
 
@@ -24,7 +26,8 @@ das Verhalten nicht:
 // Schlecht: liest den Soll-Wert aus dem Objekt, das getestet wird
 expect(firstIssueMessage(result.error)).toBe(result.error.issues[0].message);
 
-// Gut: fixe, unabhängig erwartete Meldung (hier via deterministische Custom-Message)
+// Gut: fixe, unabhängig erwartete Meldung – das Literal stammt aus der Custom-Message
+const result = z.object({ name: z.string({ error: "Name fehlt" }) }).safeParse({ name: 123 });
 expect(firstIssueMessage(result.error)).toBe("Name fehlt");
 ```
 

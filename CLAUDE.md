@@ -104,9 +104,12 @@ Skills sind für beide Stufen designed: kein Gesprächsgedächtnis nötig, Outpu
 @docs/factory/guidelines/testing-standards.md
 
 > **Bedarfsgesteuert laden statt `@import` (ADR-047).** Eine Guideline verlässt den Dauerkontext,
-> wenn ein Gate/Hook/Ruleset ihre Regeln fail-closed erzwingt; wo sie **nur** durch Gelesenwerden
-> wirkt (Clean Code, TDD, Testing-Standards), bleibt sie oben geladen. „Laden bei" nennt Skill +
-> Situation, im Format des Lessons-Index in `docs/factory/PROJECT-CONTEXT.md`:
+> wenn ein Gate/Hook/Ruleset ihre Regeln fail-closed erzwingt – **oder** wenn ihr Adressatenkreis
+> so eng und namentlich benennbar ist, dass ein „Laden bei"-Trigger genügt (so
+> `architecture-principles.md`: nicht erzwungen, aber nur von zwei Skills gebraucht, ADR-047 §2).
+> Wo eine nicht erzwungene Regel **jeden** Schritt treffen kann (Clean Code, TDD,
+> Testing-Standards), bleibt sie oben geladen. „Laden bei" nennt Skill + Situation, im Format des
+> Lessons-Index in `docs/factory/PROJECT-CONTEXT.md`:
 >
 > - [`guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) – Branches, PR/Issue,
 >   Labels, Commits, Worktrees, Hook-Installation, Branch-Aufräumen · **Laden bei:**
@@ -129,18 +132,18 @@ Skills sind für beide Stufen designed: kein Gesprächsgedächtnis nötig, Outpu
 
 > Die Regeln aus `git-workflow.md`, die **jeden** Pipeline-Schritt treffen können – damit kein
 > Agent sie durch Nicht-Laden still verletzt (ADR-047 §3). Volltext, Begründung und
-> Vorfall-Historie stehen in der Datei selbst; sie bleibt die kanonische Quelle.
+> Vorfall-Historie stehen in der Datei selbst; sie bleibt die kanonische Quelle. Bewusst **nicht**
+> hier gespiegelt sind Regeln mit eigener kanonischer Quelle und eigenem Drift-Guard (Regel 7) –
+> eine zweite normative Kopie im Dauerkontext wäre die einzige, die kein Guard bewacht.
 
-1. **Nie direkt auf `main`/`master`** committen oder pushen – jede Änderung über Feature-Branch + PR (pre-push-Hook lokal, Ruleset `protect-main` serverseitig, beide fail-closed).
-2. **Branch-Typ aus der festen Liste:** `feature/` `fix/` `improvement/` `hotfix/` `refactor/` `docs/` `test/` `chore/` (erzwungen von `branch-name-check.sh`).
+1. **Nie direkt auf `main`/`master`** committen oder pushen – jede Änderung über Feature-Branch + PR. Der pre-push-Hook ist dabei nur lokales, **umgehbares** Feedback (`--no-verify`, zweiter Clone); fail-closed ist allein das serverseitige Ruleset `protect-main` (auch für Admins).
+2. **Branch-Typ aus der Tabelle in `git-workflow.md`:** `feature/` `fix/` `improvement/` `hotfix/` `refactor/` `docs/` `test/` `chore/` – geprüft von `branch-name-check.sh` (kanonisch ist die Tabelle, nicht diese Liste).
 3. **`Closes #<id>` im PR-Body** – eine bloße Erwähnung (`(#<id>)`, „Behebt #<id>") schließt das Issue nicht.
-4. **Rebase statt Merge:** vor dem Start und vor dem Push `git fetch origin` + `git rebase origin/main` – nie `git merge origin/main` in den Feature-Branch.
-5. **Commit-Message:** `<typ>: <kurze Beschreibung im Imperativ>` mit `typ` ∈ `feat` `fix` `docs` `refactor` `test` `chore`. Kein „WIP", kein „asdf".
+4. **Rebase statt Merge:** vor dem Start `git checkout main && git pull --rebase origin main`, vor dem Push `git fetch origin` + `git rebase origin/main` – nie `git merge origin/main` in den Feature-Branch. Auf einem **bereits gepushten** Branch rebast kein Zwischenschritt eigenständig gegen `main`; das bleibt bei `/pr-shepherd` (sonst erzwingt es einen Force-Push, #249).
+5. **Commit-Message:** `<typ>: <kurze Beschreibung im Imperativ>` mit `typ` ∈ `feat` `fix` `docs` `refactor` `test` `chore`. Kein „WIP", kein „asdf". (Kein Hook prüft das Format – der `commit-msg`-Hook lehnt nur `--help`/`-h` als Message ab.)
 6. **Task-ID = GitHub-Issue-Nummer** (ADR-013): jede `tasks/task-<id>-*.md` hat ein Issue #`<id>`; Anlage Issue-first über `scripts/start-work.sh`.
-7. **Labels:** genau **ein** Art-Label (`bug` | `enhancement` | `documentation`) + beliebig viele Aspekt-Labels (`security`, `tech-debt`, `test`, `factory-pipeline`). `factory-pipeline` = Arbeit am Harness (`scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`) statt an der Applikation (`app/`, `db/`, `lib/`) – im Zweifel setzen. `factory::run` setzt **nur der Mensch**: Pipeline-Eintritts-Trigger, kein Klassifizierungs-Label.
-8. **Issue-Anlage nur über den Seam** `scripts/lib/create-issue.sh` (ADR-018) – kein eigenes `gh issue create` an neuen Stellen.
-9. **Schwelle für Out-of-Scope-Funde** (ADR-043): Merge-Blocker im aktuellen PR sofort beheben; echtes Sicherheitsrisiko oder funktionaler Defekt mit reproduzierbarem Auslöser → Issue; alles andere → `docs/factory/kleinfunde.md`. Im Zweifel Issue.
-10. **Nach dem Merge aufräumen:** `git worktree remove <pfad>` + `git gone` – der Worktree enthält eine Kopie von `.env.local` (Secret-Hygiene, nicht nur Plattenplatz).
+7. **Labels, Issue-Anlage und die Schwelle „Issue oder `kleinfunde.md`" nie aus dem Gedächtnis** – sie stehen **kanonisch in** `git-workflow.md` → „GitHub-Labels" bzw. „Zentraler Anlage-Weg (ADR-018)" (Schwelle: ADR-043) und werden dort von einem Drift-Guard bewacht. Vor jeder Issue-Anlage dort nachlesen; hier steht bewusst keine Kopie.
+8. **Nach dem Merge aufräumen:** `git worktree remove <pfad>` + `git worktree prune`, lokale Branches via `git gone` – der Worktree enthält eine Kopie von `.env.local` (Secret-Hygiene, nicht nur Plattenplatz).
 
 ---
 
@@ -191,6 +194,11 @@ Jeder Agent bekommt nur die Tools, die er braucht:
   unverifiziert in CI, bis #258 ihn zusammengezogen hat. Gleiches Muster für weitere
   Fremd-Binaries, die CI herunterlädt: gepinnter, verifizierter Seam statt Inline-Download.
 - Keine offenen Checkboxen in der Task-Datei → kein Done
+- **Der `@import`-Dauerkontext ist gedeckelt.** `scripts/checks/import-context-limit-check.sh`
+  blockiert einen Push fail-closed, wenn `CLAUDE.md` + alle `@`-eingebundenen Dateien die Grenze
+  reißen ([ADR-047](docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md) §4). Neue Regeln
+  also verdichten oder als Lesson auslagern (`docs/factory/lessons/` + Index-Zeile), nicht
+  anhängen – ADR-037 wollte das per Konvention erreichen und lief von ~80 auf 341 Zeilen.
 - **Routen-Doku bei jeder Routen-Änderung aktualisieren.** Wird eine Seite (`app/**/page.tsx`)
   oder ein API-Route-Handler (`app/api/**/route.ts`) hinzugefügt, entfernt oder in Pfad/Zugriff
   geändert, ist [`docs/routes.md`](docs/routes.md) im selben PR mitzupflegen (Pfad, Funktion,

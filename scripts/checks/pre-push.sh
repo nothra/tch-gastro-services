@@ -139,7 +139,7 @@ if [ -f "$IMPORT_CONTEXT_CHECK" ]; then
     # wie viel Luft bis zum Deckel bleibt, bevor er blockiert.
     echo "$IMPORT_CONTEXT_OUTPUT" | sed 's/^/  /'
   else
-    echo -e "  ${RED}✗${NC} @import-Dauerkontext über der Grenze – push blockiert"
+    echo -e "  ${RED}✗${NC} @import-Kontext-Deckel rot – push blockiert"
     echo "$IMPORT_CONTEXT_OUTPUT" | sed 's/^/     /'
     FAILED=1
   fi

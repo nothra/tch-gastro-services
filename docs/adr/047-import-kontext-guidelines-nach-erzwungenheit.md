@@ -53,25 +53,37 @@ höher. Sie gehört in diese Entscheidung, nicht in eine dritte Runde.
 
 ### 1 · Unterscheidungskriterium: technisch erzwungen vs. nur durch Kontext wirksam
 
-Eine Guideline darf den Dauerkontext verlassen, wenn ihre Verbindlichkeit **nicht** vom Gelesenwerden
-abhängt – weil ein Gate, Hook oder Ruleset sie fail-closed erzwingt. Wo die Regel **nur** dadurch
-wirkt, dass der Agent sie im Kontext hat, bleibt sie geladen. Begründung: Bei Lessons ist
-Nicht-Laden folgenlos (man findet die Lesson später), bei einer Gate-Regel ist es eine stille
-Verletzung – und still verletzte Clean-Code-/TDD-Regeln fallen erst im Review auf, also nach der
-Arbeit.
+Eine Guideline darf den Dauerkontext verlassen, wenn **eine** der beiden Bedingungen gilt:
+
+1. **Erzwungen:** Ihre Verbindlichkeit hängt nicht vom Gelesenwerden ab, weil ein Gate, Hook oder
+   Ruleset sie fail-closed erzwingt.
+2. **Enger Adressatenkreis:** Ihre Regeln betreffen nur namentlich benennbare Skills, für die ein
+   „Laden bei"-Trigger existiert oder geschaffen wird – dann trägt der Trigger die Zustellung,
+   auch ohne technische Erzwingung.
+
+Wo die Regel **nur** dadurch wirkt, dass der Agent sie im Kontext hat, **und** jeden Schritt
+treffen kann, bleibt sie geladen. Begründung: Bei Lessons ist Nicht-Laden folgenlos (man findet
+die Lesson später), bei einer Gate-Regel ist es eine stille Verletzung – und still verletzte
+Clean-Code-/TDD-Regeln fallen erst im Review auf, also nach der Arbeit.
+
+Bedingung 2 ist die schwächere und trägt allein den Fall `architecture-principles.md` (§2). Sie
+ist bewusst an „namentlich benennbar" gebunden: sobald der Adressatenkreis „jeder Schritt" ist,
+greift sie nicht mehr, sonst wäre jede Datei auslagerbar.
 
 ### 2 · Der Schnitt je Datei
 
 | Datei | Entscheidung | Erzwungen durch | Begründung |
 |-------|--------------|-----------------|------------|
-| `git-workflow.md` (390) | **raus** aus `@import`; ~10 Kern-Kurzregeln + „Laden bei"-Trigger inline | `pre-push`-Hook (main-Push), Ruleset `protect-main` (serverseitig, auch für Admins), `branch-name-check.sh`, `commit-msg`-Hook, `issue-sync`-Gate | Größter Block, geringstes Risiko: die harten Grenzen stoppen einen unwissenden Agenten fail-closed. Zudem ist ein großer Teil Mensch-/Setup-Doku (`git gone`-Alias, Hook-Installation, Worktree-Aufräumen, Secret-Hygiene) oder Label-Nachschlagewerk, das nur `review`/`security-review`/`codify` punktuell brauchen |
+| `git-workflow.md` (390) | **raus** aus `@import`; 8 Kern-Kurzregeln + „Laden bei"-Trigger inline (§3) | Ruleset `protect-main` (serverseitig fail-closed, auch für Admins) – der `pre-push`-Hook ist daneben nur lokales, umgehbares Feedback; `branch-name-check.sh` (Branch-Typ), `issue-sync`-Gate (Task↔Issue), `pr-closes-issue`-Job (`Closes #<id>`). **Nicht** erzwungen ist das Commit-Message-Format: der `commit-msg`-Hook lehnt ausschließlich `--help`/`-h` ab (`commit-msg-check.sh` §Scope) – dafür trägt Kurzregel 5 | Größter Block, geringstes Risiko: die harten Grenzen stoppen einen unwissenden Agenten fail-closed. Zudem ist ein großer Teil Mensch-/Setup-Doku (`git gone`-Alias, Hook-Installation, Worktree-Aufräumen, Secret-Hygiene) oder Label-Nachschlagewerk, das nur `review`/`security-review`/`codify` punktuell brauchen |
 | `architecture-principles.md` (79) | **raus** aus `@import`; Trigger `/architecture`, `/review` | – (nicht erzwungen) | Trotz fehlender Erzwingung ausgelagert, weil der Adressatenkreis eng und scharf ist: generische Prinzipien (SOLID, SoC, DI), die nur zwei Skills brauchen. `architecture.md:26` referenziert die Datei bereits im Aufgabenteil – der Trigger existiert praktisch schon |
 | `clean-code.md` (131) | **bleibt** geladen | – (kein Linter prüft Namensgüte, Funktionslänge, Kommentar-Ort) | Betrifft jede code-schreibende Task; Nicht-Laden = stille Verletzung. Prinzip 2 in `CLAUDE.md` („Clean Code. Kein Kompromiss") |
 | `tdd-principles.md` (84) | **bleibt** geladen, **verdichtet** | – (kein Gate prüft „Test zuerst geschrieben") | Prinzip 1 in `CLAUDE.md` („Tests zuerst"). Verdichtbar, weil ~40 % Didaktik-Prosa sind („Warum Test-First", „Wenn TDD schwer fällt", „Was TDD nicht bedeutet") – der normative Kern ist Red→Green→Refactor + Granularität |
 | `testing-standards.md` (181) | **bleibt** geladen, **verdichtet**; Lessons-artige Teile nach `lessons/testing.md` | Coverage-Gate (80 %) nur für die Coverage-Zahl, nicht für AAA/Mocking/Guard-Tests | Die Abschnitte „Exhaustiveness-Guards", „Mock-Default mit leerem Array" und „Coverage-Ausgabe nur in ignorierte Pfade" sind der Form nach `/codify`-Learnings (Smell → Regel → Beispiel, mit Herkunfts-Issue) und liegen damit am nach ADR-037 falschen Ort. Sie wandern in die Lesson; der regelharte Kern (AAA, Test-Namen, Isolation, Flaky-Toleranz, Coverage-Anforderung) bleibt inline |
 
-**Zielgröße:** Guidelines-Block 865 → ~250 Zeilen, `@import`-Kontext gesamt 1.410 → ~800. Die
-exakte Zahl wird im PR dokumentiert (spec-319 AC7), nicht hier vorweggenommen.
+**Zielgröße (Richtwert, nicht Zusage):** Guidelines-Block 865 → ~250 Zeilen, `@import`-Kontext
+gesamt 1.410 → ~800. Die exakte Zahl wird im PR dokumentiert (spec-319 AC7), nicht hier
+vorweggenommen – sie liegt erfahrungsgemäß leicht über dem Richtwert, weil die Kurzregeln und die
+Trigger in `CLAUDE.md` zurückwachsen, was der Guidelines-Block abgibt.
 
 ### 3 · Absicherung des Gate-Risikos für die ausgelagerten Dateien
 
@@ -79,8 +91,19 @@ Für `git-workflow.md` und `architecture-principles.md` gilt – analog ADR-037 
 umgekehrter Beweislast:
 
 - **Kern-Kurzregeln inline** in `CLAUDE.md`: je ausgelagerter Datei die Regeln, die einen
-  beliebigen Pipeline-Schritt betreffen können (für `git-workflow.md`: nie direkt auf `main`,
-  Rebase statt Merge, Commit-Message-Format, Branch-Typ-Konvention, `Closes #<id>` im PR-Body).
+  beliebigen Pipeline-Schritt betreffen können. Für `git-workflow.md` sind das acht: (1) nie
+  direkt auf `main`, (2) Branch-Typ-Konvention, (3) `Closes #<id>` im PR-Body, (4) Rebase statt
+  Merge, (5) Commit-Message-Format, (6) Task-ID = Issue-Nummer, (7) der **Verweis** auf
+  Labels/Issue-Anlage/Schwelle, (8) Aufräumen nach dem Merge.
+- **Was ausdrücklich NICHT gespiegelt wird:** die Label-Konvention, der Issue-Seam und die
+  Schwelle „Issue oder `kleinfunde.md`". Sie haben eine eigene kanonische Quelle **mit eigenem
+  Drift-Guard**: `git-workflow.md` sagt „Die kanonische Label-Liste bleibt allein in diesem
+  Abschnitt", [ADR-018](018-central-issue-seam.md) wiederholt es, und
+  [ADR-043](043-schwelle-fuer-autonome-issue-anlage.md) entscheidet „ein Ort je Regel, drei dünne
+  Referenzen". Der Registry-Guard aus #315 (`run-tests.sh`, `LABEL_DOC_FILES_315`) bewacht sieben
+  Fundstellen – eine achte in `CLAUDE.md` wäre die einzige unbewachte, und zwar die, die jeder
+  Agent immer im Kontext hat. Kurzregel 7 ist deshalb ein Verweis, keine Kopie; ein Test hält das
+  fest (Abwesenheits-Guard auf die Label-/Schwellen-Formulierungen).
 - **„Laden bei"-Trigger** je Datei, im Format des bestehenden Lessons-Index
   (`PROJECT-CONTEXT.md` → „Bedarfsgesteuertes Laden"): Skill + Situation.
 - **Referenz-Guard**: Ein Test sichert, dass jede nicht-importierte Guideline in `CLAUDE.md`
@@ -107,6 +130,14 @@ alle `@`-eingebundenen Dateien) auf eine Obergrenze:
   Puffer muss legitime Regel-Ergänzungen tragen, ohne den nächsten Wildwuchs zu decken.
 - **Fail-closed:** Ist eine `@`-referenzierte Datei nicht lesbar, ist der Check rot (nicht
   „überspringen") – sonst umgeht eine Umbenennung den Deckel lautlos.
+- **Beide Referenz-Formen zählen:** die alleinstehende `@pfad`-Zeile **und** ein `@pfad` mitten in
+  Prosa. Dass Claude Code auch die zweite Form lädt, ist empirisch belegt (Review zu #319:
+  Fixture-`CLAUDE.md` mit `@docs/…` in einem Satz gab den Marker zurück, dieselbe Zeile ohne `@`
+  nicht) – ein Deckel, der nur Zeilen-Imports zählt, wäre per Prosa-Zeile lautlos umgehbar und
+  hätte damit dieselbe Konventions-Abhängigkeit, an der ADR-037 gescheitert ist. **Restgrenze:**
+  Inline-Referenzen werden nur gezählt, wenn sie auf eine lesbare Datei auflösen – anders sind sie
+  von Prosa wie `@serwist/next` oder „@importiert" nicht zu unterscheiden. Für diese Form ist der
+  Check daher nicht fail-closed; die alleinstehende Zeile bleibt es.
 
 ## Alternativen
 
@@ -137,8 +168,21 @@ keine Sonderfälle.
 Nachteile: Verlegt Clean Code und TDD – die beiden nicht verhandelbaren Prinzipien 1 und 2 aus
 `CLAUDE.md` – in Dateien, die kein Gate erzwingt und die heute kein Skill lädt (Befund 1). Der
 wahrscheinliche Ausgang ist stille Erosion: Code entsteht ohne Test-First, und es fällt erst im
-Review auf. Verworfen: der Gewinn von 170 Zeilen rechtfertigt das Risiko am Kern des Harness
-nicht.
+Review auf. Auf der Skalierungs-Achse ist C dagegen so gut wie A: der Dauerkontext ist minimal,
+und alles Wachstum landet in nicht geladenen Dateien. Verworfen trotzdem: der Gewinn von
+170 Zeilen gegenüber A rechtfertigt das Risiko am Kern des Harness nicht.
+
+### Option C2: Rollen-spezifische Zuschnitte (Kandidat 2 des Issues)
+
+Vorteile: Maximale Relevanz je Schritt – jeder Agent bekäme genau seine Guidelines. Auf der
+Skalierungs-Achse die stärkste Option: neue Regeln wachsen in eine Rollen-Datei, nicht in den
+gemeinsamen Dauerkontext.
+Nachteile: Auf der Gate-Achse die schwächste. Personas werden weder per `@import` geladen noch von
+einem Skript zugestellt – `run_skill()` gibt nur den Pfad im Prompt mit, und keine Persona
+referenziert heute eine Guideline. Eine Zustellung, die davon abhängt, dass der Agent die
+Persona-Datei von sich aus liest, ist für Gate-relevante Regeln zu unzuverlässig; zudem entstünde
+eine zweite Zuordnungsquelle neben der Rollen-Tabelle in `CLAUDE.md`, die driften kann. Verworfen –
+siehe §Begründung.
 
 ### Option D: Nichts ändern (Cache-Argument)
 
@@ -147,8 +191,9 @@ identischer Präfix über die ~7 Sessions, der Prompt-Cache greift (Befund 2).
 Nachteile: Widerlegt nur die Geld-, nicht die **Relevanz**-Kosten. Irrelevanter Kontext bleibt
 irrelevant, auch wenn er billig ist: eine Server-Action-Task trägt 390 Zeilen Git-/Label-/
 Worktree-Doku mit, eine CI-Task 84 Zeilen TDD-Didaktik. Verdrängung und Fokusverlust sind vom
-Cache unberührt. Verworfen – aber die ADR übernimmt daraus, dass die Begründung **nicht** auf
-Token-Preise gestützt wird.
+Cache unberührt. Auf der Skalierungs-Achse ist D die schlechteste Option: sie ist genau der
+Status quo, dessen unbegrenztes Wachstum diesen Task ausgelöst hat. Verworfen – aber die ADR
+übernimmt daraus, dass die Begründung **nicht** auf Token-Preise gestützt wird.
 
 ## Begründung
 
@@ -185,6 +230,11 @@ zu unzuverlässig; zudem entstünde eine zweite Zuordnungsquelle neben der Rolle
   Entscheidung (konsolidieren oder Grenze mit Begründung anheben), statt lautlos zu wachsen.
 - **`/codify` bleibt inhaltlich unberührt**, arbeitet aber künftig gegen einen harten Deckel:
   wächst der Index weiter, wird der Push rot. Das ist der Mechanismus, der ADR-037 fehlte.
+- **Wechselwirkung mit ADR-009:** Dort ist als mögliche Arbeit vermerkt, den `@import`-Block aus
+  der Config zu speisen. Das ist nicht umgesetzt, und diese ADR macht den Block handkuratierter
+  (Kurzregeln + Trigger inline) – ein späterer Config-Ansatz müsste diesen Teil ausnehmen oder
+  mit abbilden. Zugleich stimmt die ADR-009-Zeile „Welche Guidelines gelten | `@import` in
+  `CLAUDE.md`" nur noch für die drei geladenen; zwei kommen über Trigger.
 - **Kein Produktverhalten betroffen** – reine Kontext-/Doku-Umschichtung am Factory-Harness.
 - **Fachlich gilt unverändert alles:** Verdichtung reduziert Prosa, Vorfall-Narrativ und
   Redundanz, keine geltende Regel (spec-319 AC5). Beleg über ein Regel-Inventar vorher/nachher.

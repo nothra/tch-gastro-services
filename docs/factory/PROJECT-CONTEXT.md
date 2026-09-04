@@ -221,7 +221,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Orphan-sichere Joins: Snapshot-Referenz kann verschwinden, auch wenn die Business-Entity bleibt (aus #53, Review-Finding K1)
 - Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
 
-**[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test` beim Testschreiben/Coverage
+**[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test`, `/review` beim Testschreiben/Coverage
 
 - Vitest + Testing Library ohne `globals: true` (aus #48)
 - Guard-Clause-Branches in Server Actions brauchen dedizierte Tests (aus #51, Review-Finding)
