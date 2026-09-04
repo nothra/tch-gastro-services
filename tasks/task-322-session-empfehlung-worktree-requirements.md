@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -85,6 +85,16 @@ Entscheidung) – `/architecture` kann übersprungen werden, direkt mit `/implem
 - Keine app-Code-Änderung in diesem Task (nur `scripts/`/`docs/`/`CLAUDE.md`) – die
   Vitest-Coverage-Schwelle ist unberührt, da kein `app/`/`lib/`/`db/`-Code betroffen ist.
 - Suite nach Review-Fixes + Test-Ergänzung: 1322/1322 grün (`run-tests.sh`), `pre-commit.sh` grün.
+
+**Umsetzung (/refactor):**
+- Diff erneut gegen die Clean-Code-Checkliste geprüft (Naming, Länge, Duplikation, Magic
+  Numbers, Kommentar-WHY): keine neuen Verstöße gefunden – die einzige echte Magic-Number
+  wurde bereits im Review-Schritt behoben (`-eq 1` statt Toleranzbereich).
+- Die beiden verbliebenen Nitpicks aus dem Review (fehlendes `rm -f` für die Wegwerf-Fixture,
+  gebündelte 4-Bedingungen-Assertion) entsprechen nachweislich dem bestehenden Stil derselben
+  Datei (mehrere andere `mktemp`-Aufrufe ohne Aufräumen, mehrere andere Blöcke mit gebündelten
+  Bedingungen, z. B. #314) – keine Abweichung einführen, die inkonsistent zum Rest der Datei
+  wäre. Keine Code-Änderung in diesem Schritt nötig.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
