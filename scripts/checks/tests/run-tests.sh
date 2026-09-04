@@ -2351,6 +2351,30 @@ old_rec_line_322=$(printf '%s\n' "$OLD_TAIL_322" | grep -n 'Empfehlung (keine Pf
 assert_true "$([ -n "$old_head_line_322" ] && [ -n "$old_rec_line_322" ] && [ "$old_head_line_322" -lt "$old_rec_line_322" ]; echo $?)" \
   "#322 (Mutation): die alte Reihenfolge (Fakt vor Empfehlung) hätte die neue Bindungs-Prüfung nicht erfüllt"
 
+# ─── #322 Fehlerszenario 1 (Spec): FACTORY_NO_WORKTREE=1 – Formulierung bleibt sinnvoll ──────
+# Nutzt den bereits geklonten In-Place-Baum $REPO_IP (siehe #74/#236-Block oben) für einen
+# zweiten start-work.sh-Lauf mit anderer Task-ID – start-work.sh checkt vorher $DEFAULT_BRANCH
+# aus, ein zweiter Lauf auf demselben Klon ist damit unproblematisch.
+echo ""
+echo "#322 Fehlerszenario 1: start-work.sh im In-Place-Modus (FACTORY_NO_WORKTREE=1):"
+
+OUT_NOWT_322=$( cd "$REPO_IP" && PATH="$TMP_SW/bin:$PATH" \
+    FACTORY_DIR="$REPO_IP" FACTORY_REPO="acme/demo" FACTORY_NO_WORKTREE=1 \
+    bash "$SW" 793 demo-nowt-322 2>&1 )
+
+assert_absent "$OUT_NOWT_322" "In den isolierten Worktree wechseln" \
+  "#322 Fehlerszenario 1: im In-Place-Modus wird kein Worktree-Wechsel genannt, der nicht stattfindet"
+
+step2_line_nowt_322=$(printf '%s\n' "$OUT_NOWT_322" | grep -n '2\. Implementieren starten' | head -1 | cut -d: -f1)
+rec_line_nowt_322=$(printf '%s\n' "$OUT_NOWT_322" | grep -n 'Empfehlung (keine Pflicht)' | head -1 | cut -d: -f1)
+assert_true "$([ -n "$step2_line_nowt_322" ] && [ -n "$rec_line_nowt_322" ] \
+    && [ "$((rec_line_nowt_322 - step2_line_nowt_322))" -eq 1 ]; echo $?)" \
+  "#322 Fehlerszenario 1: die Session-Empfehlung bleibt auch ohne Worktree-Modus unmittelbar an Schritt 2 (/implement) gebunden"
+
+no_claude_session_before_step2_nowt_322=$(printf '%s\n' "$OUT_NOWT_322" | head -n "$((step2_line_nowt_322 - 1))" | grep -c "Claude-Session")
+assert_true "$([ "$no_claude_session_before_step2_nowt_322" -eq 0 ]; echo $?)" \
+  "#322 Fehlerszenario 1: vor Schritt 2 wird auch ohne Worktree-Modus keine Claude-Session empfohlen"
+
 rm -rf "$TMP_SW"
 
 # ─── #66: Deploy-Gate liest Secrets über env:, nicht inline im run: ──────────

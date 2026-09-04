@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -73,6 +73,18 @@ Entscheidung) – `/architecture` kann übersprungen werden, direkt mit `/implem
   im Abschluss-Output von `start-work.sh`, inkl. Mutationskontrolle gegen die alte Reihenfolge.
 - Alle Gates grün: `scripts/checks/tests/run-tests.sh` (1319/1319), `pre-commit.sh`, `pre-push.sh`
   (Unit-Tests, Typecheck, Format, Routen-Doku-Drift, Hooks).
+
+**Review-Findings behoben (siehe unten) + Umsetzung (/test):**
+- Alle 8 Akzeptanzkriterien haben dedizierte automatisierte Guards in
+  `scripts/checks/tests/run-tests.sh` (AK1–AK7/F3, #322-Ordnungsblock).
+- Lücke gefunden: Fehlerszenario 1 aus der Spec (`FACTORY_NO_WORKTREE=1`) war nicht durch einen
+  Test abgedeckt – die bestehende NO_WORKTREE-Fixture prüfte nur den Branch-Wechsel, nicht die
+  Abschluss-Ausgabe. Ergänzt: neuer Test-Block nutzt denselben In-Place-Klon für einen zweiten
+  `start-work.sh`-Lauf und prüft, dass kein Worktree-Wechsel-Hinweis erscheint und die
+  Session-Empfehlung weiterhin unmittelbar an Schritt 2 gebunden ist.
+- Keine app-Code-Änderung in diesem Task (nur `scripts/`/`docs/`/`CLAUDE.md`) – die
+  Vitest-Coverage-Schwelle ist unberührt, da kein `app/`/`lib/`/`db/`-Code betroffen ist.
+- Suite nach Review-Fixes + Test-Ergänzung: 1322/1322 grün (`run-tests.sh`), `pre-commit.sh` grün.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
