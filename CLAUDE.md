@@ -181,7 +181,7 @@ Jeder Agent bekommt nur die Tools, die er braucht:
   `/architecture`) laufen dagegen im Regelfall in derselben, noch task-freien Session –
   `start-work.sh` erinnert an der passenden Stelle daran. Grund: Kleiner Kontext = fokussierte
   Arbeit, weniger Token-Verbrauch, kein Übersprechen zwischen Tasks. Kanonische Quelle für
-  Ausnahmen und Grenzen: `docs/factory/guidelines/git-workflow.md` → „Eine Task = Eine Session".
+  Regelfall und Grenze: `docs/factory/guidelines/git-workflow.md` → „Eine Task = Eine Session".
 - **Vor jeder neuen Task `bash scripts/start-work.sh` aufrufen** – nie manuell branchen.
   Das Skript stellt sicher: main ist aktuell, Branch existiert, Push ist erfolgt, Draft-PR ist angelegt.
 - **Parallele Sessions arbeiten in getrennten git-Worktrees.** `start-work.sh` legt jede neue Task

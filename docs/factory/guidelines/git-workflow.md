@@ -306,11 +306,11 @@ Gemergte Branches werden weitgehend automatisch entfernt – dreistufig:
 **Zwei unabhängige Maßnahmen, nicht dieselbe:**
 - **Eigener Worktree je Task ist Pflicht** – strukturelle Git-Sicherheit gegen Session-
   Kollisionen (technisch erzwungen, siehe „Parallele Sessions: eigener Worktree" unten).
-- **Neue Claude-Session je Task ist Empfehlung** – Kontext-Hygiene, keine
-  Git-Sicherheitsmaßnahme. Dafür existiert **kein technisches Gate**: kein Hook, kein Check in
-  `scripts/checks/`, kein Test verhindert eine Fortsetzung in derselben Session. Die Skills
-  brauchen bewusst kein Gesprächsgedächtnis (Output in Dateien) – eine Fortsetzung funktioniert
-  technisch, kostet aber Fokus und Token, nicht Korrektheit.
+- **Neue Claude-Session ist Empfehlung** – Kontext-Hygiene, keine Git-Sicherheitsmaßnahme
+  (wann genau, siehe Regelfall/Grenze unten). Dafür existiert **kein technisches Gate**: kein
+  Hook, kein Check in `scripts/checks/`, kein Test verhindert eine Fortsetzung in derselben
+  Session. Die Skills brauchen bewusst kein Gesprächsgedächtnis (Output in Dateien) – eine
+  Fortsetzung funktioniert technisch, kostet aber Fokus und Token, nicht Korrektheit.
 
 **Regelfall:** `start-work.sh` und das anschließende `/requirements` (ggf. `/architecture`)
 sollen in derselben, noch task-freien Session laufen – die Anforderung wird hier interaktiv

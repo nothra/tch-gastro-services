@@ -2331,9 +2331,11 @@ assert_true "$([ -n "$step1_line_322" ] && [ -n "$step2_line_322" ] && [ -n "$re
     && [ "$step2_line_322" -lt "$rec_line_322" ] && [ "$rec_line_322" -lt "$head_fact_line_322" ]; echo $?)" \
   "#322: Reihenfolge im Abschluss-Output ist Schritt 1 (/requirements) → Schritt 2 (/implement) → Session-Empfehlung → Worktree-Fakt (nicht mehr umgekehrt)"
 
+# Exakt 1: die Empfehlungszeile ist die unmittelbar nächste Zeile nach Schritt 2 (kein
+# unbegründeter Toleranzbereich – die Zeile folgt in start-work.sh direkt auf die Schritt-2-Zeile).
 rec_gap_322=$((rec_line_322 - step2_line_322))
-assert_true "$([ "$rec_gap_322" -ge 1 ] && [ "$rec_gap_322" -le 3 ]; echo $?)" \
-  "#322: die Session-Empfehlung steht unmittelbar bei Schritt 2 (/implement), nicht als entkoppelter Schlussabsatz"
+assert_true "$([ "$rec_gap_322" -eq 1 ]; echo $?)" \
+  "#322: die Session-Empfehlung steht in der unmittelbar nächsten Zeile nach Schritt 2 (/implement), nicht als entkoppelter Schlussabsatz"
 
 no_claude_session_before_step2_322=$(printf '%s\n' "$OUT_267" | head -n "$((step2_line_322 - 1))" | grep -c "Claude-Session")
 assert_true "$([ "$no_claude_session_before_step2_322" -eq 0 ]; echo $?)" \
@@ -5686,7 +5688,7 @@ gw_flat_267=$(flat_286 "$GW_267")
 # AK1: der Abschnitt trennt Pflicht (Worktree) von Empfehlung (Session) und nennt das fehlende Gate
 assert_contains_286 "$gw_flat_267" "Eigener Worktree je Task ist Pflicht" \
   "AK1: git-workflow.md nennt den Worktree explizit als Pflicht"
-assert_contains_286 "$gw_flat_267" "Neue Claude-Session je Task ist Empfehlung" \
+assert_contains_286 "$gw_flat_267" "Neue Claude-Session ist Empfehlung" \
   "AK1: git-workflow.md nennt die Session explizit als Empfehlung"
 assert_contains_286 "$gw_flat_267" "kein technisches Gate" \
   "AK1: git-workflow.md benennt das Fehlen eines technischen Gates für die Session-Empfehlung"
@@ -5723,8 +5725,8 @@ assert_contains_286 "$gw_flat_267" "Parallele Sessions: eigener Worktree (nicht 
 claude_flat_267=$(flat_286 "$CLAUDE_MD_267")
 assert_contains_286 "$claude_flat_267" "Empfehlung (keine Pflicht): Für den \`/implement\`-Schritt einer Task eine neue Claude-Session öffnen" \
   "AK3: CLAUDE.md bindet die Guardrail-Empfehlung explizit an den /implement-Schritt"
-assert_contains_286 "$claude_flat_267" "Kanonische Quelle für Ausnahmen und Grenzen:" \
-  "AK3: CLAUDE.md verweist auf eine kanonische Quelle für Ausnahmen/Grenzen"
+assert_contains_286 "$claude_flat_267" "Kanonische Quelle für Regelfall und Grenze:" \
+  "AK3: CLAUDE.md verweist auf eine kanonische Quelle für Regelfall/Grenze"
 assert_contains_286 "$claude_flat_267" "guidelines/git-workflow.md" \
   "AK3: der Verweis zeigt auf git-workflow.md"
 assert_absent "$claude_flat_267" "$OLD_PHRASE_267" \

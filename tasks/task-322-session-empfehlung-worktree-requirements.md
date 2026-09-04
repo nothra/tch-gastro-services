@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -80,6 +80,9 @@ Entscheidung) – `/architecture` kann übersprungen werden, direkt mit `/implem
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe [`tasks/review-322.md`](review-322.md). Empfehlung: APPROVED. Zwei Wichtig-Findings
+(Magic-Number-Toleranz im #322-Gap-Check; „je Task"-Widerspruch in git-workflow.md/CLAUDE.md)
+wurden noch in derselben Runde behoben, keine Kritischen Findings.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
