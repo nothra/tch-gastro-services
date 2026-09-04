@@ -102,19 +102,45 @@ Skills sind für beide Stufen designed: kein Gesprächsgedächtnis nötig, Outpu
 @docs/factory/guidelines/clean-code.md
 @docs/factory/guidelines/tdd-principles.md
 @docs/factory/guidelines/testing-standards.md
-@docs/factory/guidelines/architecture-principles.md
-@docs/factory/guidelines/git-workflow.md
 
-> Token- & Kosten-Effizienz: siehe `docs/factory/guidelines/token-efficiency.md`.
-> Bewusst **nicht** per `@import` eingebunden – die Datei selbst rät, immer
-> geladenen Kontext schlank zu halten. Bei Bedarf gezielt lesen.
+> **Bedarfsgesteuert laden statt `@import` (ADR-047).** Eine Guideline verlässt den Dauerkontext,
+> wenn ein Gate/Hook/Ruleset ihre Regeln fail-closed erzwingt; wo sie **nur** durch Gelesenwerden
+> wirkt (Clean Code, TDD, Testing-Standards), bleibt sie oben geladen. „Laden bei" nennt Skill +
+> Situation, im Format des Lessons-Index in `docs/factory/PROJECT-CONTEXT.md`:
 >
-> Bash-Gotchas (beim Schreiben/Reviewen von Shell-Skripten): siehe
-> `docs/factory/guidelines/bash-gotchas.md` – ebenfalls nicht @importiert.
->
-> Ausgelagerte `/codify`-Learnings (Stolpersteine, Volltext) liegen thematisch getrennt unter
-> `docs/factory/lessons/` – **nicht** @importiert (ADR-037). Der schlanke Index + die
-> Kern-Kurzregeln stehen in `docs/factory/PROJECT-CONTEXT.md`; die passende Lesson bei Bedarf lesen.
+> - [`guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) – Branches, PR/Issue,
+>   Labels, Commits, Worktrees, Hook-Installation, Branch-Aufräumen · **Laden bei:**
+>   `/pr-shepherd` (immer); `/review`, `/security-review`, `/codify` bei Issue-Anlage oder
+>   Out-of-Scope-Funden; jedem Skill, sobald Branch-/Rebase-/Merge-/Label-Arbeit über die
+>   Kern-Kurzregeln unten hinausgeht
+> - [`guidelines/architecture-principles.md`](docs/factory/guidelines/architecture-principles.md) –
+>   SOLID, Separation of Concerns, Dependency Rule, Fehlerbehandlung, API-Design · **Laden bei:**
+>   `/architecture` (immer); `/review` bei Schichtungs-/Kopplungs-Findings
+> - [`guidelines/token-efficiency.md`](docs/factory/guidelines/token-efficiency.md) – Token- &
+>   Kosten-Effizienz · **Laden bei:** bewusst nie automatisch – die Datei rät selbst, geladenen
+>   Kontext schlank zu halten
+> - [`guidelines/bash-gotchas.md`](docs/factory/guidelines/bash-gotchas.md) – Bash-Fallstricke ·
+>   **Laden bei:** `/implement`, `/review`, `/refactor` beim Schreiben/Reviewen von Shell-Skripten
+> - Ausgelagerte `/codify`-Learnings (Stolpersteine, Volltext): `docs/factory/lessons/` – **nicht**
+>   @importiert (ADR-037). Der Index + die Kern-Kurzregeln stehen in
+>   `docs/factory/PROJECT-CONTEXT.md`; die passende Lesson bei Bedarf lesen
+
+### Kern-Kurzregeln Git-Workflow (immer geladen)
+
+> Die Regeln aus `git-workflow.md`, die **jeden** Pipeline-Schritt treffen können – damit kein
+> Agent sie durch Nicht-Laden still verletzt (ADR-047 §3). Volltext, Begründung und
+> Vorfall-Historie stehen in der Datei selbst; sie bleibt die kanonische Quelle.
+
+1. **Nie direkt auf `main`/`master`** committen oder pushen – jede Änderung über Feature-Branch + PR (pre-push-Hook lokal, Ruleset `protect-main` serverseitig, beide fail-closed).
+2. **Branch-Typ aus der festen Liste:** `feature/` `fix/` `improvement/` `hotfix/` `refactor/` `docs/` `test/` `chore/` (erzwungen von `branch-name-check.sh`).
+3. **`Closes #<id>` im PR-Body** – eine bloße Erwähnung (`(#<id>)`, „Behebt #<id>") schließt das Issue nicht.
+4. **Rebase statt Merge:** vor dem Start und vor dem Push `git fetch origin` + `git rebase origin/main` – nie `git merge origin/main` in den Feature-Branch.
+5. **Commit-Message:** `<typ>: <kurze Beschreibung im Imperativ>` mit `typ` ∈ `feat` `fix` `docs` `refactor` `test` `chore`. Kein „WIP", kein „asdf".
+6. **Task-ID = GitHub-Issue-Nummer** (ADR-013): jede `tasks/task-<id>-*.md` hat ein Issue #`<id>`; Anlage Issue-first über `scripts/start-work.sh`.
+7. **Labels:** genau **ein** Art-Label (`bug` | `enhancement` | `documentation`) + beliebig viele Aspekt-Labels (`security`, `tech-debt`, `test`, `factory-pipeline`). `factory-pipeline` = Arbeit am Harness (`scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`) statt an der Applikation (`app/`, `db/`, `lib/`) – im Zweifel setzen. `factory::run` setzt **nur der Mensch**: Pipeline-Eintritts-Trigger, kein Klassifizierungs-Label.
+8. **Issue-Anlage nur über den Seam** `scripts/lib/create-issue.sh` (ADR-018) – kein eigenes `gh issue create` an neuen Stellen.
+9. **Schwelle für Out-of-Scope-Funde** (ADR-043): Merge-Blocker im aktuellen PR sofort beheben; echtes Sicherheitsrisiko oder funktionaler Defekt mit reproduzierbarem Auslöser → Issue; alles andere → `docs/factory/kleinfunde.md`. Im Zweifel Issue.
+10. **Nach dem Merge aufräumen:** `git worktree remove <pfad>` + `git gone` – der Worktree enthält eine Kopie von `.env.local` (Secret-Hygiene, nicht nur Plattenplatz).
 
 ---
 

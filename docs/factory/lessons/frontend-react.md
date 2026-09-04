@@ -86,7 +86,7 @@ echten Fokus-Trap im `keydown`-Handler, keine reine ARIA-Annotation. Beim Implem
 4. Tab/Shift+Tab, während der Fokus komplett aus dem Container entwichen ist (z. B.
    Screenreader-Navigation auf ein verdecktes Element dahinter) → zurück ins Containment.
 Jeder Branch bekommt einen eigenen Test (analog zur Exhaustiveness-Guard-Regel in
-`testing-standards.md`) – sonst bleibt die Lücke bis zur Coverage-Analyse in `/test` unsichtbar,
+[`lessons/testing.md`](testing.md), bis #319 in `testing-standards.md`) – sonst bleibt die Lücke bis zur Coverage-Analyse in `/test` unsichtbar,
 wie hier geschehen.
 
 ### Schreib-Gate darf die Lese-Ansicht nicht mitverstecken – vorhandenes `editable`-Flag nutzen (aus #54, Review-Runde-1-Finding)

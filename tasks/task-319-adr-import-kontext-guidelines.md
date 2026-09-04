@@ -1,7 +1,7 @@
 # Task 319: adr-import-kontext-guidelines
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -19,17 +19,17 @@ Spec: [`docs/specs/spec-319-adr-import-kontext-guidelines.md`](../docs/specs/spe
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
 Entscheidung:
-- [ ] AC1 – @import-Umgang (Mechanismus und/oder Umfang) für alle 5 Guidelines entschieden (einer der 4 Issue-Kandidaten oder begründete Kombination)
-- [ ] AC2 – Begründung ohne Kosten-Messwerte prüfbar, je Kandidat mit dessen eigener Argumentationsart; keine Option vorab ausgeschlossen
-- [ ] AC3 – Risiko "Gate-Regel wird durch Nicht-Laden still verletzt" explizit adressiert
-- [ ] AC4 – Zusatzbefund "Lessons-Index wächst zurück" (PROJECT-CONTEXT.md) in derselben ADR mitentschieden
-- [ ] AC5 – Normativer Gehalt bleibt gültig; Prosa-/Narrativ-Kürzung (Kandidat 3) ausdrücklich erlaubt, Regelverlust nicht
+- [x] AC1 – @import-Umgang (Mechanismus und/oder Umfang) für alle 5 Guidelines entschieden (einer der 4 Issue-Kandidaten oder begründete Kombination)
+- [x] AC2 – Begründung ohne Kosten-Messwerte prüfbar, je Kandidat mit dessen eigener Argumentationsart; keine Option vorab ausgeschlossen
+- [x] AC3 – Risiko "Gate-Regel wird durch Nicht-Laden still verletzt" explizit adressiert
+- [x] AC4 – Zusatzbefund "Lessons-Index wächst zurück" (PROJECT-CONTEXT.md) in derselben ADR mitentschieden
+- [x] AC5 – Normativer Gehalt bleibt gültig; Prosa-/Narrativ-Kürzung (Kandidat 3) ausdrücklich erlaubt, Regelverlust nicht
 
 Umsetzung (in diesem Task):
-- [ ] AC6 – Gewählter Mechanismus im Repo tatsächlich angewandt, nicht nur beschrieben
-- [ ] AC7 – Neuer @import-Zeilen-/Wortstand gegen Ausgangswert (1.376 / 9.812) im PR dokumentiert
-- [ ] AC8 – Verweise konsistent, kanonische Quelle je Regel eindeutig, keine toten Links
-- [ ] AC9 – `.claude/**`-Anteil (falls nötig) als `tasks/patch-319.diff`, `git apply --check` grün
+- [x] AC6 – Gewählter Mechanismus im Repo tatsächlich angewandt, nicht nur beschrieben
+- [x] AC7 – Neuer @import-Zeilen-/Wortstand gegen Ausgangswert (1.376 / 9.812) im PR dokumentiert
+- [x] AC8 – Verweise konsistent, kanonische Quelle je Regel eindeutig, keine toten Links
+- [x] AC9 – `.claude/**`-Anteil (falls nötig) als `tasks/patch-319.diff`, `git apply --check` grün
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -90,6 +90,89 @@ bleiben gültig, weil die Datei bestehen bleibt. Vor Abschluss gegenprüfen – 
 angepasst werden muss, `tasks/patch-319.diff` + Human-Apply.
 
 **Nicht betroffen:** `docs/routes.md` (keine Routen), Produktcode, `lessons/`-Mechanismus selbst.
+
+## Umsetzungs-Notizen (/implement)
+
+**Reihenfolge:** Doku-Umstellung zuerst (der Ist-Stand danach ist die Grundlage der
+Deckel-Konstante), dann TDD für den Check: Test-Block in `run-tests.sh` → RED (19 rot, alle
+skript-abhängig) → `import-context-limit-check.sh` + `pre-push.sh`-Verdrahtung → GREEN
+(1358 grün, 0 rot).
+
+### AC7 – @import-Stand vorher/nachher (gemessen im Worktree)
+
+| Datei | vorher | nachher |
+|-------|-------:|--------:|
+| `CLAUDE.md` | 204 | 230 |
+| `docs/factory/PROJECT-CONTEXT.md` | 341 | 344 |
+| `guidelines/clean-code.md` (bleibt geladen) | 131 | 131 |
+| `guidelines/tdd-principles.md` (verdichtet) | 84 | 54 |
+| `guidelines/testing-standards.md` (verdichtet) | 181 | 90 |
+| `guidelines/architecture-principles.md` (**raus**) | 79 | – |
+| `guidelines/git-workflow.md` (**raus**) | 390 | – |
+| **Summe @import-Kontext** | **1.410 Zeilen / 10.401 Wörter** | **849 Zeilen / 7.443 Wörter** |
+
+**−561 Zeilen (−39,8 %), −2.958 Wörter (−28,4 %).** Guidelines-Block: 865 → 275 Zeilen
+(−68 %), Zielrichtwert der ADR war ~250. Der Ausgangswert der Spec (1.376 / 9.812) ist die
+Messung aus dem Issue; im Worktree lag der Stand vor der Umstellung bei 1.410 / 10.401 (die
+Dateien sind zwischen Issue-Anlage und Task-Start gewachsen) – beide Werte hier genannt, damit
+die Differenz nachvollziehbar bleibt.
+
+### AC5 – Regel-Inventar vorher/nachher (kein Regelverlust)
+
+Methode: `git diff -U0` über die zwei verdichteten Dateien, **jede** entfernte Zeile einzeln
+klassifiziert (Regel vs. Prosa/Illustration). Ergebnis:
+
+- **Verschoben, byte-identisch** (`lessons/testing.md`, per Reconstruction-Assertion belegt:
+  1.197 + 1.531 + 920 = 3.648 Bytes): „Exhaustiveness-Guards (`never`-Check)", „Mock-Default mit
+  leerem Array verdeckt Mapping-Code", „Coverage-Ausgabe nur in ignorierte Pfade (ADR-040)".
+  Je eine Index-Zeile mit „Laden bei"-Trigger in `PROJECT-CONTEXT.md`. Die ADR-040-Regel behält
+  zusätzlich einen Einzeiler inline, weil sie jede Test-Task treffen kann.
+- **Umformuliert, Regel erhalten:** Test-Granularität, „Was TDD nicht bedeutet", „Wenn TDD schwer
+  fällt", Was-testen/Nicht-testen, Mocking-Regeln, Isolation, Flaky, Coverage-Anforderungen
+  (Bullet-Listen → Prosa, gleicher normativer Gehalt).
+- **Ersatzlos entfallen – ausschließlich Rationale/Illustration, keine Regel:** (a) Abschnitt
+  „Warum Test-First?" (4 Begründungs-Bullets; die darin enthaltene Aussage „schwer testbarer Code
+  ist schlecht designed" steht weiterhin unter „Wenn TDD schwer fällt"), (b) der generische
+  Java-AAA-Codeblock (die Regel ARRANGE→ACT→ASSERT + „keine Logik zwischen Arrange und Act" steht
+  als Prosa), (c) zwei von drei Test-Namens-Beispielen, (d) eine Arrange-Zeile im
+  Tautologie-Codebeispiel (Schlecht/Gut-Paar und Faustregel unverändert).
+
+### AC9 – `.claude/**`-Patch: nicht zutreffend
+
+Kein Skill musste geändert werden, gegengeprüft statt angenommen: `architecture.md:26` nennt
+`architecture-principles.md` bereits im „Kontext laden"-Teil (Trigger existiert), `refactor.md:8`
+nennt `clean-code.md` (bleibt @importiert), und die Abschnitts-Verweise auf `git-workflow.md` in
+`review.md`, `security-review.md` und `codify.md` bleiben gültig, weil die Datei bestehen bleibt –
+nur ihre Einbindung ändert sich. Kein `tasks/patch-319.diff` nötig.
+
+### Verweis-Sweep (AC8) – drei aktive Doku-Stellen nachgezogen
+
+Nicht nur die ADR (Lesson #211), auch Prosa im Präsens (Lesson #176):
+
+- `guidelines/token-efficiency.md` §5 behauptete, „die Guidelines" würden bei **jeder** Session
+  geladen – gilt jetzt nur für drei von fünf; ergänzt um den Deckel-Check.
+- `lessons/frontend-react.md` verwies für die Exhaustiveness-Guard-Regel auf
+  `testing-standards.md` → jetzt `lessons/testing.md`.
+- `ADR-033` §Tests verwies auf dieselbe verschobene Regel → Quellenangabe nachgezogen.
+- `ADR-037` §Konsequenzen: der Satz „Guidelines-Dateien und ihre `@import`-Einbindung bleiben
+  unverändert" ist durchgestrichen + auf ADR-047 verwiesen (kein `Superseded`, Lessons-Teil bleibt
+  in Kraft).
+
+Link-Check über alle geänderten Dateien: keine toten relativen Links.
+
+### Bekannte Grenze des Deckel-Checks (bewusst, im Skript-Header dokumentiert)
+
+Erkannt wird nur die Repo-Konvention „eine Zeile besteht ausschließlich aus `@<pfad>`". Ein
+Import mitten in einer Prosa-Zeile würde nicht mitgezählt; diese Form existiert im Repo nicht,
+und ein zusätzlicher Token-Scanner hätte gegen Prosa-Vorkommen wie `@serwist/next` oder
+„@importiert" abgrenzen müssen (YAGNI, nicht von ADR-047 §4 gefordert).
+
+### Nicht ausgeführt
+
+`pnpm lint`/`pnpm typecheck`/`pnpm test` (Vitest) sind unberührt: die Änderung besteht aus
+Markdown und zwei Bash-Skripten, kein TypeScript. Gelaufen ist die zuständige Suite
+`scripts/checks/tests/run-tests.sh` (1358 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
+UI-Berührung → keine Oberflächentests.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

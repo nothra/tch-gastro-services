@@ -163,7 +163,8 @@ unit-testbar ohne DB. **Single source** für **Anzeige und Abschluss-Gate** (D3)
   bestehenden `auslagenSummen`/`listAuslagen` (nur `erstattet`e sind kassenwirksam, ADR-028 D6),
   **je zugeordneter Kasse** – **keine** Netto-Verrechnung mit dem Verzehr (Spec). Beträge sind
   Integer-Cent → Summen exakt ganzzahlig; Anzeige über `formatCents` (de-DE).
-- **Kein Exhaustiveness-Guard ohne Test** (testing-standards): der `never`-Zweig aus `zeileSummen`
+- **Kein Exhaustiveness-Guard ohne Test** (Regel seit #319 in `docs/factory/lessons/testing.md`,
+  zuvor `testing-standards.md`): der `never`-Zweig aus `zeileSummen`
   bleibt dort; neue separierbare Kriterien je eigener Assertion (Codify #116/#117).
 
 ### D6 — Data-Layer, Actions, RBAC, Route/UI (fail-closed)

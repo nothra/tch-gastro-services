@@ -252,6 +252,9 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Zähl-Assertion in einem per `awk` extrahierten Funktionsrumpf: das Label darf nur behaupten, was das Extraktionsfenster abdeckt – ruft die als isoliert behandelte Funktion denselben Wert über eine externe Hilfsfunktion außerhalb des Fensters erneut ab, gehört das explizit ins Label, sonst übernimmt eine spätere Review-Runde die falsche Zusammenfassung ungeprüft (aus #312, Review-Runde-3-Finding W1)
 - Neuer EXIT-Trap/Hook, der ein externes CLI aufruft, aus einem von mehreren bestehenden echten Pipeline-Tests geteilten Scaffold heraus: Stub fürs CLI ins Scaffold selbst legen, nicht auf ambientes Fail-Fast der Testmaschine verlassen (aus #314, Review-Runde-2-Finding)
 - Zeilen-Gap-Assertion auf deterministischem Output: Ist-Wert exakt prüfen (`-eq`), keine unbegründete Toleranz (`-ge`/`-le`) ohne Kommentar zur Variabilitätsquelle (aus #322, Review-Runde-2-Finding)
+- Exhaustiveness-Guard (`never`-Check) braucht einen eigenen Test – Zweig per Type-Cast erzwingen (verschoben aus `testing-standards.md`, #319)
+- Mock-Default `mockResolvedValue([])` verdeckt den Mapping-Lambda – mind. ein Test mit befülltem Array (verschoben aus `testing-standards.md`, #319)
+- Coverage-Ausgabe nur in `.gitignore`-abgedeckte Pfade (`coverage/`, `.coverage-tmp<id>/`) – ADR-040 (verschoben aus `testing-standards.md`, #319)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 

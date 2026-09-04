@@ -689,3 +689,69 @@ tatsächlichen Ist-Wert am realen Output ablesen (nicht schätzen) und exakt dar
 Variabilitätsquelle existiert (z. B. eine optionale Zeile, die je nach Bedingung dazwischen
 erscheinen kann) – sonst verschenkt die Toleranz genau die Präzision, die der Test laut seiner
 eigenen Beschreibung ("unmittelbar", "direkt danach") behaupten soll.
+
+### Exhaustiveness-Guards (`never`-Check) brauchen einen eigenen Test (verschoben aus `testing-standards.md`, #319)
+
+Ein `else`/`default`-Zweig, der eine Union über `const _exhaustive: never = wert; throw new
+Error(...)` abschließt, ist zur **Compile-Zeit** unerreichbar – zur **Laufzeit** zählt er aber
+weiter als Code-Zeile für Coverage. Der Reflex ist, ihn als „durch das Typsystem abgesichert"
+zu betrachten und ungetestet zu lassen, weil kein regulärer Input ihn je auslöst.
+
+**Smell:** „Ich kann diesen Zweig nicht über einen normalen Input erreichen" – das ist kein
+Freibrief, ihn ungetestet zu lassen, sondern der Hinweis, den Wert per Type-Cast zu erzwingen.
+
+**Regel:** Jeder Exhaustiveness-Guard bekommt einen eigenen Testfall, der die Guard-Bedingung
+über einen Type-Cast (`as unknown as T`) erzwingt und den Fehlertext prüft:
+```ts
+it("should_throw_when_categoryIsUnknown", () => {
+  const invalid = { category: "unknown" as unknown as CatalogCategory, /* … */ };
+  expect(() => zeileSummen([invalid])).toThrow("Unbekannte Kategorie");
+});
+```
+Ohne diesen Test bleibt der Guard-Zweig als einzige ungetestete Zeile zurück – Coverage-Ziele
+(100 % bei neuem Code, siehe unten) werden verfehlt, ohne dass es beim Schreiben auffällt,
+weil der Zweig „offensichtlich sicher" wirkt.
+
+### Mock-Default mit leerem Array verdeckt Mapping-Code (verschoben aus `testing-standards.md`, #319)
+
+Setzt ein `beforeEach` eine Mock-Funktion, die eine Liste liefert (z. B. ein Data-Layer-Call wie
+`listZeilen`/`listPositionen`), pauschal auf `mockResolvedValue([])` und überschreibt kein
+Einzeltest sie mit echten Daten, läuft jeder nachgelagerte `.map(...)`/`.filter(...)`-Aufruf im
+Produktionscode nur über das leere Array. Der Lambda-Rumpf – meist die Feldübersetzung von
+DB-Row auf Domain-/Modell-Objekt – wird dadurch **nie mit echten Werten** ausgeführt: ein
+vertauschtes oder falsch benanntes Feld bliebe unentdeckt, obwohl Coverage-Tools die Zeile als
+„covered" zählen (die Lambda-*Definition* läuft, ihr Aufruf mit befüllten Daten nicht).
+
+**Smell:** „Wird dieser Mock in irgendeinem Testfall mit **befüllten** Daten aufgerufen?" Bleibt
+er in jedem Test bei `[]`, ist das Mapping darüber ungetestet – unabhängig davon, ob der Test
+selbst grün ist.
+
+**Regel:** Verarbeitet ein Produktionscode-Pfad das Ergebnis eines gemockten Data-Layer-Calls
+per `.map(...)`/`.filter(...)`, muss mindestens **ein** Testfall den Mock mit einem befüllten
+Array (mind. ein Element mit allen relevanten Feldern) versorgen und das Ergebnis gegen die
+erwarteten gemappten Werte prüfen – nicht nur den Response-Status:
+```ts
+listZeilenMock.mockResolvedValue([
+  { id: "z-1", teilnehmerId: "t-1", anzeigename: "Anna", erhaltenCents: 1500, /* … */ },
+]);
+// … Act …
+expect(berichtXlsxMock).toHaveBeenCalledWith(
+  expect.objectContaining({ teilnehmer: [expect.objectContaining({ anzeigename: "Anna" })] }),
+);
+```
+
+### Coverage-Ausgabe nur in ignorierte Pfade schreiben (ADR-040, verschoben aus `testing-standards.md`, #319)
+
+Coverage-Artefakte (HTML-Report, `coverage-summary.json`, sonstige Zwischenausgaben) dürfen
+**nie** in einen von Git getrackten Pfad geschrieben werden. Ein versehentlich committetes
+Coverage-Verzeichnis blockiert später den Push-Gate (Prettier) – und ein unbeaufsichtigter
+Pipeline-Lauf lief genau daran auf (#212: `.coverage-tmp209/coverage-summary.json`).
+
+**Regel:** Coverage-Ausgabe zielt ausschließlich auf einen `.gitignore`-abgedeckten Pfad:
+- Standard-Report von `pnpm test:coverage` (Vitest): Default-Verzeichnis `coverage/` – bereits
+  ignoriert.
+- Braucht ein Schritt (z. B. `/test`/`/review`, per-Diff-Coverage) ein **isoliertes** oder
+  temporäres Coverage-Verzeichnis, ist der ignorierte Präfix **`.coverage-tmp<id>/`** zu nutzen
+  (deckt `.coverage-tmp*/` in `.gitignore`), nie ein Ad-hoc-Pfad im Projektbaum.
+
+Kurz: Wenn Coverage nach `git status` auftaucht, ist der Zielpfad falsch gewählt.
