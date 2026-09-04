@@ -1,7 +1,7 @@
-# Spec: ADR – Lademechanismus der 5 Guidelines im @import-Pfad entscheiden
+# Spec: @import-Umgang mit den 5 Guidelines entscheiden **und umsetzen**
 
-> Issue: [#319](https://github.com/nothra/tch-gastro-services/issues/319) · Branch-Typ: `documentation`
-> (reine Entscheidungs-/Doku-Task, kein Produktverhalten) · Aspekt: `factory-pipeline`
+> Issue: [#319](https://github.com/nothra/tch-gastro-services/issues/319) ·
+> Aspekt: `factory-pipeline` · Ergebnis: ADR **plus** vollzogene Umstellung
 
 ## Kontext
 
@@ -16,7 +16,7 @@ braucht:
 | `guidelines/clean-code.md` | 131 |
 | `guidelines/tdd-principles.md` | 84 |
 | `guidelines/architecture-principles.md` | 79 |
-| **Summe** | **844** |
+| **Summe** | **844** (≈ 61 % des @import-Kontexts von 1.376 Zeilen) |
 
 [ADR-037](../adr/037-lessons-auslagern-aus-import-kontext.md) hat 2026 die 45 `/codify`-Learnings
 aus dem @import-Pfad nach `docs/factory/lessons/` ausgelagert, aber unter „Konsequenzen"
@@ -28,6 +28,13 @@ löst ihn aus dem Nachtrag zu #314 heraus, weil er eine eigenständige Entscheid
 ausgelagerten Volltext) ist mit jedem `/codify`-Lauf gewachsen und steht heute bei 335 Zeilen –
 dieselbe Governance-Lücke wie bei ADR-037, nur eine Ebene höher. Gehört laut Issue in dieselbe
 Entscheidung, nicht in eine dritte Runde.
+
+**Entscheidung des Auftraggebers (weicht bewusst von der Issue-Abgrenzung ab):** Das Issue
+schreibt „Ergebnis ist eine ADR; die Umsetzung ist ein Folge-Task". Dieser Task liefert
+stattdessen **Entscheidung und Umsetzung zusammen**. Begründung: Genau die Trennung
+„entscheiden jetzt, umsetzen später" hat den Punkt bei ADR-037 zwei Runden liegen lassen, bis
+er hier erneut anstand. Eine ADR ohne vollzogene Umstellung erzeugt denselben offenen Posten
+ein drittes Mal.
 
 **Zur Datenlage (im Requirements-Gespräch geklärt):** Das Issue ordnet die Entscheidung
 bewusst „nach #314" ein, um sie mit Kosten-**Messwerten** statt Intuition zu treffen. #314
@@ -72,8 +79,12 @@ offener Blocker behandelt.
 - Mitentscheidung des Zusatzbefunds: ein Governance-Mechanismus, der das unbegrenzte Wachstum
   des Lessons-Index in `PROJECT-CONTEXT.md` künftig begrenzt (analog zur Guideline-Entscheidung,
   nicht zwingend identischer Mechanismus).
-- Die ADR benennt die **Umsetzung** (tatsächliche Datei-Änderungen) explizit als **Folge-Task**
-  (neues Issue) – dieser Task liefert die Entscheidung, nicht die Migration.
+- **Die vollzogene Umsetzung der Entscheidung in diesem Task** (siehe AC6–AC9): tatsächliche
+  Änderung an `CLAUDE.md`/den betroffenen Dateien, neu gemessener @import-Stand, konsistente
+  Verweise, und – falls Skills berührt sind – der `.claude/**`-Patch zur Human-Apply.
+- Falls Kandidat 4 („nichts ändern") gewinnt, besteht die „Umsetzung" aus der dokumentierten
+  Nicht-Änderung: die ADR ist dann das gesamte Ergebnis, AC6–AC8 gelten als erfüllt, wenn die
+  ADR die Nicht-Änderung begründet und der Governance-Punkt (AC4) dennoch entschieden ist.
 
 **Nicht inbegriffen:**
 
@@ -82,24 +93,24 @@ offener Blocker behandelt.
   Regeln in den Agentenkontext kommen: über welchen Mechanismus und in welchem Umfang. Eine
   Kürzung von Prosa/Vorfall-Narrativ unter Erhalt aller Regeln ist damit **nicht** ausgeschlossen
   (Kandidat 3), eine Streichung oder Abschwächung einer Regel schon.
-- Keine tatsächliche Umsetzung der ADR-Entscheidung (kein Verschieben, Kürzen oder Verdichten von
-  Dateien, keine `.claude/**`-Patches) – das ist der Folge-Task. In diesem PR bleiben die 5
-  Guidelines-Dateien unangetastet.
 - Kein Aktivieren von OTEL / keine neue Kosten-Messung als Vorbedingung für diese Entscheidung
   (siehe Kontext).
 - Keine Änderung am bestehenden `docs/factory/lessons/`-Mechanismus aus ADR-037 selbst (nur der
   Index-Wachstum-Aspekt in `PROJECT-CONTEXT.md` wird mitentschieden).
+- Kein Umbau der Skill-Pipeline oder der Rollen-Tabelle über das hinaus, was die gewählte Option
+  zwingend erfordert (kein Gold-Plating).
 
 ## Akzeptanzkriterien
 
-- [ ] **AC1 – Lademechanismus entschieden:** GIVEN die 4 Kandidaten aus Issue #319 WHEN die ADR
+### Entscheidung
+
+- [ ] **AC1 – @import-Umgang entschieden:** GIVEN die 4 Kandidaten aus Issue #319 WHEN die ADR
   verfasst wird THEN wählt sie einen davon (oder eine begründete Kombination) für alle 5
   Guidelines – mit Begründung je Datei, falls unterschiedliche Mechanismen gewählt werden.
 - [ ] **AC2 – Keine Kosten-Messung als Vorbedingung:** GIVEN die fehlende OTEL-Kostenmessung
   WHEN die ADR die Entscheidung begründet THEN stützt sie sich auf inhaltliche/strukturelle
   Argumente, die **ohne** Kosten-Messwerte prüfbar sind – je Kandidat auf die ihm eigene
-  Argumentationsart (siehe Tabelle im Kontext: Aufgaben-Relevanz, Rollen-Relevanz,
-  Prosa-/Redundanz-Anteil, Cache-Wiederverwendung) – und benennt die fehlende Kostenmessung nur
+  Argumentationsart (siehe Tabelle im Kontext) – und benennt die fehlende Kostenmessung nur
   als Kontext, nicht als offenen Punkt. Die Wahl der Argumentationsart darf **keine** Option
   vorab ausschließen.
 - [ ] **AC3 – Gate-Risiko adressiert:** GIVEN die gewählte Option WHEN ein Agent eine Guideline
@@ -111,16 +122,34 @@ offener Blocker behandelt.
   auch für diesen Punkt eine Entscheidung (Mechanismus oder bewusstes Zurückstellen mit
   Begründung) – nicht nur für die 5 Guidelines.
 - [ ] **AC5 – Normativer Gehalt bleibt gültig (Prosa-Umfang darf sich ändern):** GIVEN die
-  Entscheidung WHEN sie umgesetzt wird THEN bleibt jede **geltende Regel** der 5 Guidelines
+  Umstellung WHEN sie vollzogen ist THEN bleibt jede **geltende Regel** der 5 Guidelines
   unverändert gültig und auffindbar („was gilt, bleibt gültig", Issue-Abgrenzung). Wird
   Kandidat 3 (Verdichten) ganz oder teilweise gewählt, ist die Reduktion von **Prosa,
   Vorfall-Narrativ und Redundanz** ausdrücklich erlaubt – verboten ist nur der Verlust einer
   Regel bzw. das stille Abschwächen ihrer Verbindlichkeit. Kein Kandidat wird durch dieses AC
   ausgeschlossen.
-- [ ] **AC6 – Umsetzung als Folge-Task benannt:** GIVEN die getroffene Entscheidung WHEN die ADR
-  abgeschlossen ist THEN dokumentiert sie explizit, dass die Umsetzung (Datei-Änderungen,
-  ggf. `.claude/**`-Patch) ein separates Issue ist, und nennt die nötigen Schritte grob (kein
-  Umsetzungsdetail).
+
+### Umsetzung (in diesem Task, nicht als Folge-Task)
+
+- [ ] **AC6 – Entscheidung ist vollzogen, nicht nur beschrieben:** GIVEN die ADR-Entscheidung
+  WHEN dieser PR abgeschlossen ist THEN ist der gewählte Mechanismus im Repo tatsächlich
+  angewandt (`CLAUDE.md`-`@import`-Block, betroffene Dateien, ggf. „Laden bei"-Trigger) – die ADR
+  beschreibt keinen Zustand, der erst später eintritt.
+- [ ] **AC7 – Neuer @import-Stand gemessen und dokumentiert:** GIVEN die vollzogene Umstellung
+  WHEN der PR beschrieben wird THEN nennt er den neuen Zeilen-/Wortstand des @import-Kontexts
+  gegen den Ausgangswert (1.376 Zeilen / 9.812 Wörter, davon 844 Zeilen Guidelines) – analog
+  spec-196 AC2, damit die Wirkung belegt statt behauptet ist.
+- [ ] **AC8 – Verweise konsistent, keine toten Links:** GIVEN die verschobenen/verdichteten
+  Inhalte WHEN im Repo nach Verweisen gesucht wird THEN sind Querverweise zwischen `CLAUDE.md`,
+  `PROJECT-CONTEXT.md`, Guidelines, `lessons/`, ADRs und Skills konsistent, die kanonische Quelle
+  je Regel ist eindeutig, und kein Verweis zeigt ins Leere (Regel „Kanonische Quellen immer
+  referenzieren"; ADR-037 §Konsequenzen als Vorbild).
+- [ ] **AC9 – `.claude/**`-Anteil als Patch geliefert:** GIVEN die Umsetzung berührt Skills unter
+  `.claude/**` (agent-hard-denied) WHEN der Anteil nötig ist THEN liegt er als
+  `tasks/patch-319.diff` zur Human-Apply bei, `git apply --check` läuft grün, und die Prüfung
+  adressiert den **Endzustand der committeten Live-Datei**, nicht das transiente Patch-Artefakt
+  (Lesson aus #212). Berührt die gewählte Option keine `.claude/**`-Datei, gilt AC9 mit
+  ausdrücklichem Vermerk als nicht zutreffend.
 
 ## Fehlerszenarien
 
@@ -134,17 +163,23 @@ offener Blocker behandelt.
 - [ ] **Kosten-Datenlücke blockiert die Entscheidung:** Die ADR wird mit Verweis auf fehlende
   OTEL-Zahlen offen gelassen oder vertagt. Prüfung: ADR trifft eine Entscheidung; die fehlende
   Messung erscheint höchstens als Kontext-Satz, nicht als Bedingung für spätere Entscheidung.
-- [ ] **Guideline-Datei in diesem Task verändert:** Dieser Task ist entscheidungs-only – ein
-  Rework fängt schon hier mit dem Umsetzen an. Prüfung: Diff der 5 Guidelines-Dateien in **diesem**
-  PR ist leer. (Das ist eine Aussage über diesen PR, **nicht** über die Entscheidung: im
-  Folge-Task darf Kandidat 3 Prosa verdichten, siehe AC5.)
+- [ ] **ADR und Repo-Zustand driften:** Die ADR beschreibt Mechanismus X, umgesetzt ist Y (oder
+  nichts) – der Fehler, den AC6 verhindert. Prüfung: `CLAUDE.md`-`@import`-Block und betroffene
+  Dateien gegen den ADR-Abschnitt „Entscheidung" spiegeln (Lesson #211: PR ändert die von einer
+  ADR beschriebene Mechanik → ADR im selben PR mitpflegen, hier in beide Richtungen).
 - [ ] **Regel verliert sich beim Verdichten:** Wird Kandidat 3 gewählt, fällt eine geltende Regel
-  der Kürzung zum Opfer oder wird zur unverbindlichen Empfehlung abgeschwächt. Prüfung: Die ADR
-  schreibt für den Folge-Task eine Verlustkontrolle fest (Regel-Inventar vorher/nachher, analog
-  zur Count-Assertion aus spec-196 AC3), nicht nur „verdichten".
-- [ ] **Index-Wachstum unbehandelt:** Die ADR entscheidet nur über die 5 Guidelines und
-  übergeht den Zusatzbefund zum Lessons-Index ersatzlos. Prüfung: ADR-Abschnitt „Entscheidung"
-  enthält einen eigenen Punkt zum Index-Wachstum.
+  der Kürzung zum Opfer oder wird zur unverbindlichen Empfehlung abgeschwächt. Prüfung:
+  Regel-Inventar vorher/nachher (Count-Assertion analog spec-196 AC3), nicht nur „verdichten".
+- [ ] **Gate-Regel nur noch in nicht geladener Datei:** Eine Clean-Code-/TDD-/Testing-Regel ist
+  nach der Umstellung ausschließlich in einer Datei zu finden, die kein Agent verlässlich lädt,
+  ohne inline verbleibende Kurzregel oder verpflichtenden Trigger. Prüfung: je Gate-Regel den
+  Ladepfad benennen (welcher Skill lädt sie wann) – das ist die Umsetzungs-Seite von AC3.
+- [ ] **Kontext wächst zurück:** Die Umstellung reduziert einmalig, ohne Mechanismus gegen das
+  erneute Anwachsen – genau die ADR-037-Lücke, die diesen Task verursacht hat. Prüfung: der in
+  AC4 entschiedene Governance-Mechanismus ist im Repo verankert (z. B. in `/codify` bzw. an der
+  Stelle, die künftig anhängt), nicht nur in der ADR-Prosa beschrieben.
+- [ ] **Patch bricht:** Der `.claude/**`-Diff lässt sich nicht anwenden. Prüfung:
+  `git apply --check tasks/patch-319.diff` grün.
 
 ## Offene Fragen
 
@@ -155,7 +190,12 @@ offener Blocker behandelt.
   zwischen „geltende Regel" (bleibt) und „Vorfall-Narrativ/Prosa" (darf weichen)? Die
   Vorfall-Narrative sind teils die **Begründung** einer Regel – und `factory-workflow.md` zeigt,
   dass Agenten ohne das „Warum" Regeln erneut brechen (dokumentierte Rezidive). → in
-  `/architecture` als Kriterium festlegen, nicht dem Folge-Task überlassen.
+  `/architecture` als Kriterium festlegen, nicht dem Implementieren überlassen.
 - [ ] Governance-Mechanismus gegen erneutes Zurückwachsen (analog zur ADR-037-Lücke, die genau
   dazu führte, dass dieser Punkt jetzt erneut ansteht) → in `/architecture` festlegen. Gilt für
   jeden Kandidaten: auch eine verdichtete oder ausgelagerte Datei wächst ohne Mechanismus zurück.
+- [ ] Branch-Typ: Der Branch heißt `feature/319-…` (Default aus `start-work.sh`). Da der Task
+  Factory-Harness-Doku/-Kontext ohne neues Produktverhalten ändert, wäre `improvement/` laut
+  `git-workflow.md`-Tabelle passender (Lesson #120: Branch-Typ korrigieren, wenn der Scope über
+  die initiale Annahme hinauswächst). Umbenennen zieht einen neuen PR nach sich → Entscheidung
+  des Auftraggebers.
