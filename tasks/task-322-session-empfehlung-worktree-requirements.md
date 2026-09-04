@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt ([PR #326](https://github.com/nothra/tch-gastro-services/pull/326))
 
 ## Beschreibung
 `start-work.sh` wird fast immer bereits in einer frischen, task-freien Claude-Session
