@@ -74,7 +74,7 @@ greift sie nicht mehr, sonst wäre jede Datei auslagerbar.
 
 | Datei | Entscheidung | Erzwungen durch | Begründung |
 |-------|--------------|-----------------|------------|
-| `git-workflow.md` (390) | **raus** aus `@import`; 8 Kern-Kurzregeln + „Laden bei"-Trigger inline (§3) | Ruleset `protect-main` (serverseitig fail-closed, auch für Admins) – der `pre-push`-Hook ist daneben nur lokales, umgehbares Feedback; `branch-name-check.sh` (Branch-Typ), `issue-sync`-Gate (Task↔Issue), `pr-closes-issue`-Job (`Closes #<id>`). **Nicht** erzwungen ist das Commit-Message-Format: der `commit-msg`-Hook lehnt ausschließlich `--help`/`-h` ab (`commit-msg-check.sh` §Scope) – dafür trägt Kurzregel 5 | Größter Block, geringstes Risiko: die harten Grenzen stoppen einen unwissenden Agenten fail-closed. Zudem ist ein großer Teil Mensch-/Setup-Doku (`git gone`-Alias, Hook-Installation, Worktree-Aufräumen, Secret-Hygiene) oder Label-Nachschlagewerk, das nur `review`/`security-review`/`codify` punktuell brauchen |
+| `git-workflow.md` (390) | **raus** aus `@import`; 8 Kern-Kurzregeln + „Laden bei"-Trigger inline (§3) | Ruleset `protect-main` (serverseitig fail-closed, auch für Admins) – der `pre-push`-Hook ist daneben nur lokales, umgehbares Feedback; `issue-sync`-Gate (Task↔Issue), `pr-closes-issue`-Job (`Closes #<id>`). **Nicht** erzwungen sind: das Commit-Message-Format (der `commit-msg`-Hook lehnt ausschließlich `--help`/`-h` ab, `commit-msg-check.sh` §Scope) und der Branch-Typ – `branch-name-check.sh` ist ein Claude-Code-**PreToolUse**-Hook auf den Bash-Tool-Input und greift nur bei `checkout -b`/`switch -c` aus Claude Code, nicht bei `git worktree add -b`, nicht außerhalb von Claude Code und in keinem Push-/CI-Gate. Für beide tragen die Kern-Kurzregeln 2 und 5 | Größter Block, geringstes Risiko: die harten Grenzen stoppen einen unwissenden Agenten fail-closed. Zudem ist ein großer Teil Mensch-/Setup-Doku (`git gone`-Alias, Hook-Installation, Worktree-Aufräumen, Secret-Hygiene) oder Label-Nachschlagewerk, das nur `review`/`security-review`/`codify` punktuell brauchen |
 | `architecture-principles.md` (79) | **raus** aus `@import`; Trigger `/architecture`, `/review` | – (nicht erzwungen) | Trotz fehlender Erzwingung ausgelagert, weil der Adressatenkreis eng und scharf ist: generische Prinzipien (SOLID, SoC, DI), die nur zwei Skills brauchen. `architecture.md:26` referenziert die Datei bereits im Aufgabenteil – der Trigger existiert praktisch schon |
 | `clean-code.md` (131) | **bleibt** geladen | – (kein Linter prüft Namensgüte, Funktionslänge, Kommentar-Ort) | Betrifft jede code-schreibende Task; Nicht-Laden = stille Verletzung. Prinzip 2 in `CLAUDE.md` („Clean Code. Kein Kompromiss") |
 | `tdd-principles.md` (84) | **bleibt** geladen, **verdichtet** | – (kein Gate prüft „Test zuerst geschrieben") | Prinzip 1 in `CLAUDE.md` („Tests zuerst"). Verdichtbar, weil ~40 % Didaktik-Prosa sind („Warum Test-First", „Wenn TDD schwer fällt", „Was TDD nicht bedeutet") – der normative Kern ist Red→Green→Refactor + Granularität |
@@ -119,9 +119,12 @@ alle `@`-eingebundenen Dateien) auf eine Obergrenze:
 - **Warum ein Gate und nicht eine Prosa-Pflicht:** ADR-037 hat den Index per Prosa-Konvention
   schlank halten wollen und ist damit von ~80 auf 341 Zeilen gelaufen. Eine zweite
   Prosa-Pflicht derselben Art hätte keinen Grund, anders auszugehen.
-- **Warum jetzt und nicht bei #196:** Dort wurde ein Umfangs-Gate bewusst als YAGNI verworfen
-  („Kein Check-Skript aus Reflex", `token-efficiency.md`). Diese Begründung ist überholt: das
-  Problem ist seither eingetreten und gemessen (341 statt 80 Zeilen). YAGNI schützt vor
+- **Warum jetzt und nicht bei #196:** Dort wurde ein Umfangs-Gate bewusst als YAGNI verworfen –
+  gestützt auf die `/codify`-Faustregel „Kein Check-Skript aus Reflex: ein Gate nur, wenn der
+  Fehler verlässlich grep-bar **und** wiederkehrend ist" (kanonisch in
+  [`OPERATING.md`](../factory/OPERATING.md) §5.1). Diese Begründung ist überholt, nicht die
+  Faustregel: das Problem ist seither eingetreten und gemessen (341 statt 80 Zeilen), der Fehler
+  ist grep-bar (Zeilensumme) und wiederkehrend (zweites Mal nach ADR-037). YAGNI schützt vor
   spekulativen Gates, nicht vor eingetretenen Defekten.
 - **Ein Deckel für beide Probleme:** Weil der Check die Summe prüft, deckt er den
   Guidelines-Block **und** das Index-Wachstum mit einem Mechanismus ab (AC4).
@@ -130,14 +133,31 @@ alle `@`-eingebundenen Dateien) auf eine Obergrenze:
   Puffer muss legitime Regel-Ergänzungen tragen, ohne den nächsten Wildwuchs zu decken.
 - **Fail-closed:** Ist eine `@`-referenzierte Datei nicht lesbar, ist der Check rot (nicht
   „überspringen") – sonst umgeht eine Umbenennung den Deckel lautlos.
+- **Ort: `pre-push`, plus ein schwaches CI-Bein.** Der Hook ist lokales Feedback und mit
+  `--no-verify` umgehbar. Server-seitig läuft der Check heute nur über **eine Assertion** in der
+  Self-Test-Suite (`run-tests.sh`, erster Test des #319-Blocks) gegen den echten Repo-Stand, die
+  über den required Check `factory-self-test` greift. Das ist genau das Muster, das
+  [ADR-041](041-config-validation-ci-required-check.md) für `config-validation-check.sh` als
+  fragil verworfen und durch einen eigenen CI-Job plus `required_status_checks`-Eintrag ersetzt
+  hat. Hier wird es bewusst zunächst in Kauf genommen: die Ruleset-Änderung braucht nach
+  [ADR-029](029-branch-protection-main-ruleset.md) Adminrechte und einen dokumentierten
+  `gh api`-Befehl, also einen menschlichen Schritt. Nachgezogen wird das über
+  [Issue #328](https://github.com/nothra/tch-gastro-services/issues/328); bis dahin gilt der
+  Deckel als lokal erzwungen und server-seitig nur mittelbar abgesichert.
 - **Beide Referenz-Formen zählen:** die alleinstehende `@pfad`-Zeile **und** ein `@pfad` mitten in
-  Prosa. Dass Claude Code auch die zweite Form lädt, ist empirisch belegt (Review zu #319:
-  Fixture-`CLAUDE.md` mit `@docs/…` in einem Satz gab den Marker zurück, dieselbe Zeile ohne `@`
-  nicht) – ein Deckel, der nur Zeilen-Imports zählt, wäre per Prosa-Zeile lautlos umgehbar und
-  hätte damit dieselbe Konventions-Abhängigkeit, an der ADR-037 gescheitert ist. **Restgrenze:**
-  Inline-Referenzen werden nur gezählt, wenn sie auf eine lesbare Datei auflösen – anders sind sie
-  von Prosa wie `@serwist/next` oder „@importiert" nicht zu unterscheiden. Für diese Form ist der
-  Check daher nicht fail-closed; die alleinstehende Zeile bleibt es.
+  Prosa, auch mit Markdown-Dekoration (`**@docs/x.md**`, `_@…_`, `>@…`, geklammert, mit
+  angehängtem Satzzeichen). Dass Claude Code diese Formen lädt, ist empirisch belegt (Review zu
+  #319: Fixture-`CLAUDE.md` mit dem Pfad in einem Satz gab den Marker zurück, dieselbe Zeile ohne
+  `@` nicht) – ein Deckel, der nur Zeilen-Imports zählt, wäre per Prosa-Zeile lautlos umgehbar und
+  hätte damit dieselbe Konventions-Abhängigkeit, an der ADR-037 gescheitert ist.
+- **Restgrenzen, ausdrücklich benannt** (der Deckel deckt die im Repo vorkommenden und im
+  Ladeverhalten belegten Formen ab, nicht beweisbar jede): Inline-Referenzen zählen nur, wenn sie
+  auf eine **lesbare Datei** auflösen – anders sind sie von Prosa wie dem real vorhandenen
+  „nicht @importiert (ADR-037)" nicht zu unterscheiden. Diese Form ist damit **nicht**
+  fail-closed; eine Inline-Referenz auf eine gelöschte Datei fällt still weg. Fail-closed bleibt
+  die alleinstehende Zeile – die Form, in der die echten Imports stehen. Ungewöhnliche
+  Einbettungen (typografische Anführungszeichen o. ä.) können ungezählt bleiben; die
+  Trimm-Liste steht im Skript-Header.
 
 ## Alternativen
 

@@ -18,7 +18,7 @@
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] **[`scripts/checks/import-context-limit-check.sh:84`] Markdown-dekorierte
+- [x] **[`scripts/checks/import-context-limit-check.sh:84`] Markdown-dekorierte
   Inline-`@import`s werden geladen, aber nicht gezählt – und drei Stellen behaupten
   Vollständigkeit.** Der Token-Scan filtert mit `grep '^@.'`; angehängte Satzzeichen werden
   abgeschnitten, **vorangestellte** Markdown-Dekoration nicht. `**@docs/x.md**` (fett),
@@ -45,14 +45,14 @@
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [`scripts/checks/tests/run-tests.sh:7380-7392`] Zyklus-Test: das Label behauptet „…
+- [x] [`scripts/checks/tests/run-tests.sh:7380-7392`] Zyklus-Test: das Label behauptet „…
   **und zählt CLAUDE.md nur einmal**", der Ausdruck ist `assert_exit 0` bei verworfener Ausgabe –
   die Summe wird nirgends beobachtet. *Verifiziert:* ein Mutant ohne `seen`-Dedup meldet auf
   einem Fixture mit zweimal `@docs/a.md` „82 von 1100" statt 52 – **exit 0 in beiden Fällen**,
   der Test bleibt grün. Rezidiv des #312-Learnings, das derselbe Block an anderer Stelle korrekt
   zitiert. Fix: Ausgabe erfassen und `assert_contains_286 "$ic_out" "52 von"` ergänzen (Muster
   wie Test 1 und 12).
-- [ ] [`scripts/checks/import-context-limit-check.sh:20-23`, `run-tests.sh:7411-7420`,
+- [x] [`scripts/checks/import-context-limit-check.sh:20-23`, `run-tests.sh:7411-7420`,
   Task-Datei] Der Resolve-Filter ist mit der **falschen Kausalkette** begründet, und die
   zugehörige Assertion ist vakuum-grün. Header, Test-Kommentar und Rework-Notiz nennen
   `@serwist/next`, `@neondatabase/serverless` und `@types/node` als Grund – diese Token erreichen
@@ -62,13 +62,13 @@
   real wirksame Fall. Folge: `assert_absent "$ic_out" "serwist"` kann per Konstruktion nie rot
   werden. Fix: Begründung an allen drei Stellen auf `@importiert`/unklammerte Prosa-Token
   umstellen, und im Fixture ein **unklammertes** `@serwist/next` verwenden.
-- [ ] [`scripts/checks/import-context-limit-check.sh:33-34`] Header behauptet „weil
+- [x] [`scripts/checks/import-context-limit-check.sh:33-34`] Header behauptet „weil
   Prettier/`format:check` sie mit Schluss-Newline erzwingt". *Verifiziert:* `.prettierignore`
   deckt `docs/` **und** `CLAUDE.md` – kein Gate erzwingt die Schluss-Newline (im selben Task
   bereits selbst festgestellt, als es um das Format-Risiko der Änderung ging). Falsche
   Kausalkette in einem WHY-Kommentar, codifizierte Klasse (#264/#268). Fix: `awk 'END{print NR}'`
   statt `wc -l` – dann entfällt der Absatz –, oder den echten Grund nennen.
-- [ ] [`scripts/checks/import-context-limit-check.sh:12-15` vs. `:75-82`] Header-Bedingung ≠
+- [x] [`scripts/checks/import-context-limit-check.sh:12-15` vs. `:75-82`] Header-Bedingung ≠
   implementierte Bedingung: dokumentiert ist „die Zeile besteht (bis auf Leerzeichen) aus
   `@<pfad>`", implementiert ist „beginnt mit `@` und enthält kein weiteres `@`" → der ganze Rest
   gilt als Pfad. *Verifiziert:* `@importiert werden die Lessons bewusst nicht.` als Zeilenanfang
@@ -76,20 +76,20 @@
   Fail-closed, aber irreführend; ein Absatz-Umbruch genügt als Auslöser. Fix: Form 1 auf
   whitespace-freies `rest` einschränken und ein `rest` mit Leerzeichen nur zählen, wenn es
   auflöst (Test 12 bleibt grün, die Fail-closedness für den Umbenennungsfall bleibt erhalten).
-- [ ] [`scripts/checks/import-context-limit-check.sh:140`, `run-tests.sh:7311-7344`] Die
+- [x] [`scripts/checks/import-context-limit-check.sh:140`, `run-tests.sh:7311-7344`] Die
   Grenzwert-Semantik ist ungetestet: alle Fixtures liegen bei `LIMIT+10` oder deutlich darunter,
   `total == MAX_IMPORT_LINES` kommt nicht vor. *Verifiziert:* Mutation `-gt` → `-ge` lässt den
   gesamten Block grün. Das ist die **einzige** Vergleichsoperation des Skripts, und
   `testing-standards.md` führt Boundary Values unter „Testen: immer". Fix: zwei Assertions
   (genau `IC_LIMIT_319` Zeilen → exit 0, `+1` → exit 1).
-- [ ] [`CLAUDE.md:106-112`] Das verdichtete Kriterium wird von seinem eigenen Hauptfall verletzt:
+- [x] [`CLAUDE.md:106-112`] Das verdichtete Kriterium wird von seinem eigenen Hauptfall verletzt:
   `git-workflow.md` ist nach diesem Wortlaut in **keiner** der beiden Bedingungen (nicht
   vollständig erzwungen – ADR §2 vermerkt es selbst für das Commit-Format – und Adressatenkreis
   „jeder Schritt"). Der ADR löst das über einen dritten Mechanismus (Spiegelung als
   Kern-Kurzregel, §3), den die verdichtete Fassung nicht nennt. Widerspruch innerhalb der im
   selben PR neu verfassten Prosa (#322). Fix: dritte Alternative ergänzen („… oder wenn ihre
   schritt-relevanten, nicht erzwungenen Regeln als Kern-Kurzregeln inline gespiegelt werden").
-- [ ] [`docs/adr/047-…md:77`, `CLAUDE.md:140`] Dritte nicht tragende Erzwingungs-Behauptung
+- [x] [`docs/adr/047-…md:77`, `CLAUDE.md:140`] Dritte nicht tragende Erzwingungs-Behauptung
   (gleiche Klasse wie K2 aus Iteration 1, deren Sweep sie hätte mitnehmen müssen – Lesson #264):
   `branch-name-check.sh` steht in der Spalte „Erzwungen durch", ist aber ein
   Claude-Code-**PreToolUse**-Hook auf den Bash-Tool-Input. *Verifiziert:* einzige Verdrahtung ist
@@ -98,13 +98,13 @@
   steht, greift also nicht bei `git branch && git checkout`, nicht bei `git worktree add -b`
   (genau der Pfad von `start-work.sh`), nicht außerhalb von Claude Code und nicht beim Push.
   Fix: Zelle und Kurzregel-Klammer präzisieren.
-- [ ] [`docs/adr/047-…md:123`] Falsche kanonische Quelle zitiert: §4 begründet „Warum jetzt und
+- [x] [`docs/adr/047-…md:123`] Falsche kanonische Quelle zitiert: §4 begründet „Warum jetzt und
   nicht bei #196" mit „(„Kein Check-Skript aus Reflex", `token-efficiency.md`)". *Verifiziert:*
   Die Phrase steht in `docs/factory/OPERATING.md:419` (§5.1, `/codify`-Faustregeln), nicht in
   `token-efficiency.md` – `git log -S` zeigt, dass sie dort nie stand. Verstoß gegen „Kanonische
   Quellen immer referenzieren" an genau der Stelle, an der die ADR eine bestehende Regel für
   überholt erklärt – mit der Folge, dass die Regel am **richtigen** Ort unverändert stehen bleibt.
-- [ ] [`docs/factory/OPERATING.md:410-419`, `:461-479`] Der von `CLAUDE.md` als „kanonische Quelle
+- [x] [`docs/factory/OPERATING.md:410-419`, `:461-479`] Der von `CLAUDE.md` als „kanonische Quelle
   des prozeduralen Ablaufs" benannte Ort ist der einzige nicht mitgepflegte: (a) `/codify`
   schreibt Regeln laut `:410` nach `CLAUDE.md`/Guidelines – beide stehen jetzt unter einem harten
   Deckel; (b) die YAGNI-Gate-Regel `:419` (siehe voriges Finding); (c) die Registry „Invarianten
@@ -112,51 +112,51 @@
   Worktrees, Hooks installiert, yq-Seam) – „@import-Kontext unter dem Deckel halten" fehlt.
   Lesson #176 plus die Faustregel zwei Zeilen darüber („taucht eine Regel mehrfach auf, beim
   Update **alle** synchronisieren").
-- [ ] [`scripts/checks/tests/run-tests.sh:1055`, `docs/factory/lessons/code-style.md:57`] Der
+- [x] [`scripts/checks/tests/run-tests.sh:1055`, `docs/factory/lessons/code-style.md:57`] Der
   Sweep der nach `lessons/testing.md` verschobenen Exhaustiveness-Regel ist zwei Treffer kurz
   (ADR-033 und `lessons/frontend-react.md` wurden korrigiert). `run-tests.sh:1055` nennt den
   Abschnittstitel wörtlich als in `testing-standards.md` liegend – in einer Datei, die dieser PR
   um über 300 Zeilen erweitert. *Verifiziert:* `testing-standards.md` komplett gelesen, der
   Abschnitt ist bis auf die Auslagerungs-Notiz weg.
-- [ ] [`docs/adr/047-…md` §4/§Konsequenzen, `CLAUDE.md:197-201`] Governance-Ort: der Deckel ist
+- [x] [`docs/adr/047-…md` §4/§Konsequenzen, `CLAUDE.md:197-201`] Governance-Ort: der Deckel ist
   nur als `pre-push`-Gate dokumentiert, hat faktisch aber ein zweites, server-seitiges Bein –
   eine einzelne Assertion in `run-tests.sh` (Test 1), die über den required Check
   `factory-self-test` läuft. *Verifiziert:* das ist genau das Muster, das
-  [ADR-041](docs/adr/041-config-validation-eigener-ci-check.md) für `config-validation-check.sh`
+  [ADR-041](../docs/adr/041-config-validation-ci-required-check.md) für `config-validation-check.sh`
   als fragil verworfen hat („eine einzelne Testzeile …, die *zufällig* das reale
   `factory.config.yml` gegen das Gate laufen lässt"); ADR-047 erwähnt ADR-041 nicht. Zweite
   Hälfte: `CLAUDE.md:198` sagt „blockiert einen Push fail-closed" – für einen umgehbaren Hook
   (`--no-verify`) dieselbe Überclaim-Klasse, die K2 zwei Bildschirmzeilen darüber beseitigt hat.
   **In diesem PR zu tun:** beides dokumentieren (CI-Bein + ADR-041-Spannung + Hook umgehbar). Der
   eigene Required-Check ist out-of-scope und als Issue #328 angelegt.
-- [ ] [`scripts/checks/tests/run-tests.sh:7574`] Der Gegen-Guard zu K3 ankert auf dem
+- [x] [`scripts/checks/tests/run-tests.sh:7574`] Der Gegen-Guard zu K3 ankert auf dem
   inhaltsleeren Fragment `"kanonisch in"` – es trägt keine der bewachten Semantiken (nicht
   Labels, nicht Schwelle, nicht `git-workflow.md`). *Verifiziert (Mutation):* Kurzregel 7 durch
   „Irgendetwas anderes, kanonisch in einer Datei." ersetzt → Guard bleibt **grün**, obwohl der
   Verweis weg ist. Siebtes Vorkommnis des Fragment-Anker-Rezidivs. Fix: auf `nie aus dem
   Gedächtnis` + `„GitHub-Labels"` ankern.
-- [ ] [`tasks/task-319-…md:165-171`, `:99`, `:176`] Die Task-Datei widerspricht sich selbst: der
+- [x] [`tasks/task-319-…md:165-171`, `:99`, `:176`] Die Task-Datei widerspricht sich selbst: der
   Abschnitt „Bekannte Grenze des Deckel-Checks" behauptet weiter „Erkannt wird nur … eine Zeile
   besteht ausschließlich aus `@<pfad>`" und begründet den Token-Scanner als YAGNI – 60 Zeilen
   weiter unten beschreiben die Rework-Notizen genau diesen Scanner als umgesetzt. Zusätzlich
   steht zweimal „1358 grün" (Vor-Rework-Stand, aktuell 1390). Die Datei muss **vor** dem Merge
   stimmen, danach ist sie nur über einen neuen PR änderbar (CLAUDE.md-Guardrail).
-- [ ] [PR #327, Abschnitt „Entscheidung"] Der PR-Body trägt weiter die Ein-Kriterien-Formulierung
+- [x] [PR #327, Abschnitt „Entscheidung"] Der PR-Body trägt weiter die Ein-Kriterien-Formulierung
   („wenn ein Gate/Hook/Ruleset sie fail-closed erzwingt. Wo sie **nur** durch Gelesenwerden
   wirkt, bleibt sie geladen") und listet in derselben Tabelle `architecture-principles.md` als
   „raus", obwohl ADR §2 dort „nicht erzwungen" einträgt. Dritte Fundstelle desselben Fixes aus
   Iteration 1 (Lesson #264); der Body ist laut AC7 selbst ein Liefergegenstand und wird von
   keinem Commit-Schritt nachgezogen (Lesson #233).
-- [ ] [`docs/factory/kleinfunde.md:224-227`] Der im selben PR angelegte Eintrag trägt einen
+- [x] [`docs/factory/kleinfunde.md:224-227`] Der im selben PR angelegte Eintrag trägt einen
   falschen Zeilen-Anker und behauptet, er sei verifiziert: die Branch-Tabelle liegt bei **28-37**,
   nicht bei 22-32 (22-24 ist der `Closes`-Absatz). *Verifiziert:* Zeilen 20-38 mit Nummern
   gelesen. Genau die codifizierte Regel #291 (`kleinfunde.md`-Eintrag mit `Datei:Zeile`-Ankern
   braucht denselben Drift-Check) plus #268 („verifiziert" ohne Prüfung). Der Anker war wörtlich
   aus dem Iteration-1-Report übernommen – Lesson #315.
-- [ ] [`scripts/checks/tests/run-tests.sh:7297`] WHY-Kommentar nennt die alte Herleitungs-Basis:
+- [x] [`scripts/checks/tests/run-tests.sh:7297`] WHY-Kommentar nennt die alte Herleitungs-Basis:
   „849 + 25 %, aufgerundet auf 50" über einer Zeile, die mit 860 rechnet. Der Rework hat Skript,
   Grep-Assertion und Arithmetik auf 860 gehoben, den Kommentar nicht.
-- [ ] [`scripts/checks/import-context-limit-check.sh:70-96`] `refs_of()` ist prozess-teuer und
+- [x] [`scripts/checks/import-context-limit-check.sh:70-96`] `refs_of()` ist prozess-teuer und
   unnötig verschachtelt: pro Zeile `printf | tr | grep`, pro Token zusätzlich ein `sed` – bei 860
   Zeilen ≈ 2.580 Prozesse, obwohl nur 13 Zeilen überhaupt ein `@` enthalten. *Gemessen* (drei
   Läufe): 2,9 s, davon 2,5 s `sys`; ein awk-Prototyp mit einem Lauf je Datei liefert dasselbe
@@ -167,52 +167,52 @@
 
 ## Nitpicks (optional)
 
-- [ ] [`import-context-limit-check.sh:28`] Header-Absatz beginnt mit „**Nicht erkannt:**" und
+- [x] [`import-context-limit-check.sh:28`] Header-Absatz beginnt mit „**Nicht erkannt:**" und
   erklärt dann, dass der Fall **doch** gezählt wird – die Überschrift widerspricht dem Absatz.
   „Nicht unterschieden:" träfe es.
-- [ ] [`import-context-limit-check.sh:31`] Die Asymmetrie der Pfad-Auflösung ist nicht benannt:
+- [x] [`import-context-limit-check.sh:31`] Die Asymmetrie der Pfad-Auflösung ist nicht benannt:
   für Form 1 ist sie fail-closed (rot), für Form 2 fail-open (still ungezählt).
-- [ ] [`import-context-limit-check.sh:75-82`] Eine `@`-Annotation am Zeilenanfang in einer
+- [x] [`import-context-limit-check.sh:75-82`] Eine `@`-Annotation am Zeilenanfang in einer
   importierten Datei (`@media (prefers-color-scheme: dark)`, `@param …`) macht den Push rot mit
   irreführender Meldung – und `clean-code.md`/`testing-standards.md` sind Dateien mit
   Code-Beispielen. Fail-closed, also unkritisch; entfällt mit dem Form-1-Fix oben.
-- [ ] [`import-context-limit-check.sh:90`] Die Satzzeichen-Abschneidung zählt eine Form, die
+- [x] [`import-context-limit-check.sh:90`] Die Satzzeichen-Abschneidung zählt eine Form, die
   Claude Code **nicht** lädt (`@docs/x.md.` mit Satzpunkt → geprüft: `NICHT_GELADEN`). Overcount
   in fail-closed-Richtung, aber der Header liest sich, als spiegele er das Ladeverhalten.
-- [ ] [`run-tests.sh:7299`] Die Herleitungs-Basis `860` und `125/100`/`50` stehen numerisch im
+- [x] [`run-tests.sh:7299`] Die Herleitungs-Basis `860` und `125/100`/`50` stehen numerisch im
   Test, zwölf Zeilen unter einem Kommentar, der genau das verbietet („Grenze aus dem Skript lesen,
   statt sie im Test zu duplizieren"). Basis aus dem Kommentar lesen → eine numerische Pflegestelle.
-- [ ] [`run-tests.sh:7335`] Label „Ausgabe nennt die **größten** Beiträger namentlich" prüft nur
+- [x] [`run-tests.sh:7335`] Label „Ausgabe nennt die **größten** Beiträger namentlich" prüft nur
   Präsenz eines Namens; das `sort -rn` ist unassertiert (im Fixture gibt es nur einen Beiträger).
-- [ ] [`run-tests.sh:7422-7427`] Test 11 legt `docs/gross.md` nicht selbst an, sondern lebt vom
+- [x] [`run-tests.sh:7422-7427`] Test 11 legt `docs/gross.md` nicht selbst an, sondern lebt vom
   Rest aus Test 9 – Reihenfolge-Abhängigkeit gegen `testing-standards.md` → Test-Isolation. Eine
   Zeile behebt es.
-- [ ] [`run-tests.sh:7480-7484`] Die awk-Blockisolation der Mutation endet an
+- [x] [`run-tests.sh:7480-7484`] Die awk-Blockisolation der Mutation endet an
   `/^# ─── Check 7:/`. Wird der Deckel später der letzte Check, läuft sie still bis EOF
   (Klasse #255) – zusätzlich auf einen generischen `# ─── `-Trenner abbrechen.
-- [ ] [`run-tests.sh:7518-7523`] Die Trigger-Assertionen ankern die vollständige
+- [x] [`run-tests.sh:7518-7523`] Die Trigger-Assertionen ankern die vollständige
   Beschreibungsprosa; eine reine Umformulierung macht sie rot unter einem Label, das nur die
   Existenz des Triggers behauptet. Ein Satz zum Fehlalarm-Modus spart der nächsten Runde die
   Fehlspur.
-- [ ] [`run-tests.sh:7580`] Der letzte K2-Guard ist ein `assert_absent` auf **eine** exakte alte
+- [x] [`run-tests.sh:7580`] Der letzte K2-Guard ist ein `assert_absent` auf **eine** exakte alte
   Wortfolge – er verhindert das Rezidiv dieser Formulierung, nicht die Fehlerklasse.
 - [ ] [`run-tests.sh:7463-7472`] Die drei git-Zeilen und der Runner des E2E-Scaffolds sind
   zeilengleich zu `:3310-3316` (`run_prepush_149`). Ein eigenes Scaffold ist hier **berechtigt**
   (die vorhandenen `_mk_pipe_repo`/`commit_310` liegen im yq-Zweig und hätten eine
   yq-Abhängigkeit in den Deckel-Test getragen) – ein gemeinsamer `mk_prepush_repo <dir> <branch>`
   wäre trotzdem der nächste Schritt.
-- [ ] [`run-tests.sh:7541-7550`] „Verlustfreie Migration" ist nur über die Präsenz dreier
+- [x] [`run-tests.sh:7541-7550`] „Verlustfreie Migration" ist nur über die Präsenz dreier
   Titel-Phrasen belegt, ohne Byte-Rekonstruktion (Lesson #196) – die Byte-Summe steht nur in der
   Task-Datei, nicht im Test.
-- [ ] [`CLAUDE.md:146`] Kurzregel 8 behauptet unbedingt „der Worktree enthält eine Kopie von
+- [x] [`CLAUDE.md:146`] Kurzregel 8 behauptet unbedingt „der Worktree enthält eine Kopie von
   `.env.local`"; der Volltext kennt zwei Einschränkungen (`FACTORY_WT_SKIP_ENV=1`; Quelle ist
   `$FACTORY_DIR`, das selbst keine Datei haben muss). Verkürzung in fail-safe-Richtung, „in der
   Regel" wäre korrekt.
-- [ ] [`docs/specs/spec-319-…md:186-196`, `tasks/task-319-…md:283-286`] Alle drei „Offenen Fragen"
+- [x] [`docs/specs/spec-319-…md:186-196`, `tasks/task-319-…md:283-286`] Alle drei „Offenen Fragen"
   stehen weiter offen („→ in `/architecture` entscheiden"), obwohl ADR-047 sie beantwortet und in
   §Begründung selbst schreibt „(offene Frage der Spec, damit beantwortet)". Direkter Widerspruch
   innerhalb des PRs (#253).
-- [ ] [`CONTRIBUTING.md:71`] „Typecheck und Format laufen als lokale pre-push-Gates" nennt zwei
+- [x] [`CONTRIBUTING.md:71`] „Typecheck und Format laufen als lokale pre-push-Gates" nennt zwei
   von sechs Checks – vorbestehend unvollständig, dieser PR ist der dritte Zuwachs seit der
   Formulierung. Ein „u. a." oder ein Verweis auf die Hook-Tabelle entschärft es.
 - [ ] [`.claude/commands/review.md`] ADR §2 gibt `architecture-principles.md` den Trigger
@@ -275,3 +275,25 @@
 ## Empfehlung
 
 NEEDS_REWORK
+
+---
+
+## Rework-Stand (Runde 2, nach dem Report)
+
+Das Kritisch und alle 17 Wichtig behoben, 14 von 16 Nitpicks. Offen bleiben bewusst zwei: ein
+gemeinsamer `mk_prepush_repo`-Helfer für die zwei pre-push-E2E-Scaffolds (das eigene Scaffold ist
+berechtigt – die vorhandenen Repo-Helfer liegen im yq-Zweig und hätten eine yq-Abhängigkeit in den
+Deckel-Test getragen) und der `/review`-Trigger für `architecture-principles.md` im Skill selbst
+(braucht den `.claude/**`-Patch-Workflow, und die `CLAUDE.md`-Trigger-Liste trägt ihn bereits).
+Begründungen je in den Rework-Notizen der Task-Datei.
+
+Der Follow-up zum eigenen CI-Required-Check ist Issue
+[#328](https://github.com/nothra/tch-gastro-services/issues/328). Suite danach: **1421 grün,
+0 rot**. @import-Kontext: **863 von 1100 Zeilen** (Deckel-Lauf 0,08 s statt 2,9 s).
+
+Zwei Defekte in den **eigenen neuen Guards** fielen erst im GREEN-Lauf auf und sind behoben: ein
+selbstreferenzieller Content-Scan (die Suchphrase stand als Literal in der gescannten Datei, der
+Guard war damit immer rot) und ein Anker, der mit `-` begann und von `grep` als Option gelesen
+wurde. Letzteres ist ein Defekt der geteilten Helfer `assert_contains_286`/`assert_absent` (kein
+`--` vor dem Pattern) und als Kleinfund erfasst – dritter Fall derselben Regel aus `clean-code.md`
+in dieser Task.

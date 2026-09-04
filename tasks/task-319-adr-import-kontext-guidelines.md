@@ -96,25 +96,26 @@ angepasst werden muss, `tasks/patch-319.diff` + Human-Apply.
 **Reihenfolge:** Doku-Umstellung zuerst (der Ist-Stand danach ist die Grundlage der
 Deckel-Konstante), dann TDD für den Check: Test-Block in `run-tests.sh` → RED (19 rot, alle
 skript-abhängig) → `import-context-limit-check.sh` + `pre-push.sh`-Verdrahtung → GREEN
-(1358 grün, 0 rot).
+(am Ende der Rework-Runden: 1421 grün, 0 rot).
 
 ### AC7 – @import-Stand vorher/nachher (gemessen im Worktree)
 
 | Datei | vorher | nachher |
 |-------|-------:|--------:|
-| `CLAUDE.md` | 204 | 238 |
+| `CLAUDE.md` | 204 | 241 |
 | `docs/factory/PROJECT-CONTEXT.md` | 341 | 344 |
 | `guidelines/clean-code.md` (bleibt geladen) | 131 | 131 |
 | `guidelines/tdd-principles.md` (verdichtet) | 84 | 54 |
 | `guidelines/testing-standards.md` (verdichtet) | 181 | 93 |
 | `guidelines/architecture-principles.md` (**raus**) | 79 | – |
 | `guidelines/git-workflow.md` (**raus**) | 390 | – |
-| **Summe @import-Kontext** | **1.410 Zeilen / 10.401 Wörter** | **860 Zeilen / 7.627 Wörter** |
+| **Summe @import-Kontext** | **1.410 Zeilen / 10.401 Wörter** | **863 Zeilen / 7.697 Wörter** |
 
-**−550 Zeilen (−39,0 %), −2.774 Wörter (−26,7 %).** Guidelines-Block: 865 → 278 Zeilen
-(−68 %), Zielrichtwert der ADR war ~250. (Stand nach Review-Rework-Runde 1; direkt nach der
-Umstellung waren es 849 / 7.443 – die Kurzregel-Korrekturen und der Guardrail-Eintrag haben
-`CLAUDE.md` um 8 und `testing-standards.md` um 3 Zeilen wachsen lassen.) Der Ausgangswert der Spec (1.376 / 9.812) ist die
+**−547 Zeilen (−38,8 %), −2.704 Wörter (−26,0 %).** Guidelines-Block: 865 → 278 Zeilen
+(−68 %), Zielrichtwert der ADR war ~250. (Endstand nach zwei Review-Rework-Runden; direkt nach
+der Umstellung waren es 849 / 7.443. Die Differenz sind die Kurzregel-Korrekturen, der
+Guardrail-Eintrag und das wiederhergestellte Codebeispiel – jede Zeile davon ist ein
+Review-Finding, keine Nachlässigkeit.) Der Ausgangswert der Spec (1.376 / 9.812) ist die
 Messung aus dem Issue; im Worktree lag der Stand vor der Umstellung bei 1.410 / 10.401 (die
 Dateien sind zwischen Issue-Anlage und Task-Start gewachsen) – beide Werte hier genannt, damit
 die Differenz nachvollziehbar bleibt.
@@ -162,18 +163,18 @@ Nicht nur die ADR (Lesson #211), auch Prosa im Präsens (Lesson #176):
 
 Link-Check über alle geänderten Dateien: keine toten relativen Links.
 
-### Bekannte Grenze des Deckel-Checks (bewusst, im Skript-Header dokumentiert)
+### Grenzen des Deckel-Checks
 
-Erkannt wird nur die Repo-Konvention „eine Zeile besteht ausschließlich aus `@<pfad>`". Ein
-Import mitten in einer Prosa-Zeile würde nicht mitgezählt; diese Form existiert im Repo nicht,
-und ein zusätzlicher Token-Scanner hätte gegen Prosa-Vorkommen wie `@serwist/next` oder
-„@importiert" abgrenzen müssen (YAGNI, nicht von ADR-047 §4 gefordert).
+**Überholt durch Rework-Runde 1 und 2** – die ursprüngliche Annahme („nur alleinstehende
+`@pfad`-Zeilen erkennen genügt, Inline-Formen existieren im Repo nicht") war falsch und wurde vom
+Review widerlegt. Der Stand samt der verbleibenden, bewusst benannten Restgrenzen steht unten
+unter „Rework-Notizen" und im Skript-Header.
 
 ### Nicht ausgeführt
 
 `pnpm lint`/`pnpm typecheck`/`pnpm test` (Vitest) sind unberührt: die Änderung besteht aus
 Markdown und zwei Bash-Skripten, kein TypeScript. Gelaufen ist die zuständige Suite
-`scripts/checks/tests/run-tests.sh` (1358 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
+`scripts/checks/tests/run-tests.sh` (Stand nach den Rework-Runden: 1421 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
 UI-Berührung → keine Oberflächentests.
 
 ## Rework-Notizen (Runde 1 nach `/review`)
@@ -274,11 +275,125 @@ Drei Abwesenheits-Guards + ein Verweis-Guard halten das fest (Test 18).
   `branch-name-check.sh:25`, out-of-scope → Eintrag in `docs/factory/kleinfunde.md`. Kurzregel 2
   behauptet jetzt nur noch, dass der Check die Präfixe prüft, und nennt die Tabelle als kanonisch.
 
+## Rework-Notizen (Runde 2 nach `/review`-Iteration 2)
+
+Report: [`tasks/review-319.md`](review-319.md) – 1 Kritisch, 17 Wichtig, 16 Nitpicks. Alle
+Kritisch und Wichtig behoben, Nitpicks bis auf zwei bewusst offene.
+
+### Kritisch – Deckel zählt jetzt auch dekorierte Inline-Referenzen
+
+Der Rework aus Runde 1 hatte K1 verengt, nicht geschlossen: `**@docs/x.md**`, `_@docs/x.md_` und
+`>@docs/x.md` lädt Claude Code (per `claude --print` mit Marker-Datei und Negativkontrolle
+belegt), der Deckel zählte sie nicht – während ADR §4, Skript-Header **und** der neue
+`CLAUDE.md`-Guardrail Vollständigkeit behaupteten.
+
+**Gewählt: beide Richtungen** (Auftraggeber-Entscheidung). Der Extraktions-Kern ist jetzt ein
+`awk`-Lauf je Datei, der Kandidaten als `S`/`T` ausgibt; bash löst auf:
+
+| Regel | Erkennung | Fail-closed? |
+|-------|-----------|--------------|
+| 1 · Referenz-Zeile | ganze Zeile ist `@<pfad>`, kein weiteres `@`, Pfad **einwortig** | **ja** – fehlende Datei ist rot |
+| 1b · Zeile mit Leerzeichen im Rest | ambig (umgebrochene Prosa kann mit `@` beginnen) → wie Regel 2 behandelt | nein |
+| 2 · Inline-Referenz | jedes `@`-Token, das auf eine lesbare Datei auflöst; führende Dekoration (`**`, `_`, `>`, Klammern, Backticks) und angehängte Satzzeichen werden getrimmt | nein (dokumentierte Restgrenze) |
+
+Und die Behauptungen sind an allen drei Stellen auf das eingeschränkt, was gilt – inklusive der
+ausdrücklich benannten Restgrenzen (Regel 2 nicht fail-closed; ungewöhnliche Einbettungen können
+ungezählt bleiben; Auflösung gegen die Projektwurzel).
+
+**Nebeneffekte der awk-Umstellung:** 2,9 s → 0,08 s (vorher ~2.580 Prozesse für 13 relevante
+Zeilen), keine unquotierte Command-Substitution mehr (damit auch keine Pathname-Expansion auf den
+Tokens), und Regel 1b beseitigt die irreführende Meldung „Datei nicht lesbar: <ganzer Satz>" für
+eine Prosa-Zeile, die mit `@` beginnt.
+
+### Wichtig – die drei falschen Behauptungen in meinen eigenen Kommentaren
+
+Alle drei waren Sachfehler, nicht Ungenauigkeiten:
+
+1. **„Prettier erzwingt die Schluss-Newline"** – falsch: `.prettierignore` deckt `docs/` und
+   `CLAUDE.md`. Das hatte ich in derselben Session selbst festgestellt (als es um das
+   Format-Risiko ging) und im Header trotzdem als Garantie behauptet. Behoben durch
+   `awk 'END{print NR}'` statt `wc -l` – damit ist die Aussage nicht mehr nötig, und eine Datei
+   ohne Schluss-Newline zählt vollständig (eigener Test).
+2. **Resolve-Filter mit den falschen Beispielen begründet** – `@serwist/next` &co. erreichen den
+   Filter nie (geklammert/gebacktickt, scheiden am Token-Rand aus). Ein vollständiger Token-Scan
+   über das reale @import-Set liefert genau fünf Kandidaten: die vier echten Imports plus
+   `@importiert`. Begründung an allen Stellen darauf umgestellt; das Fixture nutzt jetzt ein
+   **unklammertes** `@serwist/next`, damit das Sieb wirklich durchlaufen wird (vorher war die
+   zugehörige Abwesenheits-Assertion per Konstruktion nie rot).
+3. **`branch-name-check.sh` als „Erzwinger"** in ADR §2 und `CLAUDE.md` – er ist ein
+   Claude-Code-PreToolUse-Hook auf den Bash-Tool-Input und greift nur bei `checkout -b`/
+   `switch -c`, nicht bei `git worktree add -b` (dem Pfad von `start-work.sh`), nicht außerhalb
+   von Claude Code, in keinem Push-/CI-Gate. Dritte Instanz derselben Klasse wie K2 aus
+   Iteration 1 – diesmal per Grep über alle Erzwingungs-Behauptungen gesweept.
+
+### Wichtig – Testqualität
+
+- **Zyklus-Test** erfasst jetzt die Ausgabe und assertiert die Summe (52, nicht 73). Vorher
+  behauptete das Label „zählt CLAUDE.md nur einmal", während der Ausdruck nur den Exit-Code sah –
+  ein Mutant ohne `seen`-Dedup terminiert ebenfalls mit 0.
+- **Grenzwert-Semantik** hat zwei eigene Fälle (genau `MAX_IMPORT_LINES` → grün, +1 → rot). Vorher
+  hätte eine Mutation `-gt` → `-ge` den ganzen Block grün gelassen.
+- **Herleitungs-Basis** wird jetzt aus dem Skript-Kommentar gelesen statt im Test dupliziert; der
+  Test hält nur die Rechenregel (Basis + 25 %, auf 50 aufgerundet). Eine Pflegestelle weniger.
+- **Migrations-Beleg** prüft nicht mehr nur Titel-Präsenz, sondern die Rumpf-Größe je verschobenem
+  Abschnitt – eine spätere Kürzung wäre vorher unentdeckt geblieben (Lesson #196).
+- **Reihenfolge der breakdown-Liste** wird per Positionsvergleich assertiert (größter Beiträger
+  zuerst), nicht mehr nur die Präsenz eines Namens.
+- **Test-Isolation:** der Satzzeichen-Fall baut sein Fixture selbst, statt vom Rest des
+  Vorgänger-Tests zu leben.
+- **awk-Blockisolation** der `FAILED=1`-Mutation bricht am generischen Job-Trenner ab, nicht nur
+  an „Check 7" (Klasse #255).
+- **Verweis-Guard zu K3** ankert auf `nie aus dem Gedächtnis` + `„GitHub-Labels"` statt auf dem
+  inhaltsleeren Fragment `kanonisch in` – letzteres blieb bei beliebiger Umformulierung grün.
+
+Beim GREEN-Lauf selbst gefunden: zwei **eigene** Guards waren defekt. Einer scannte
+`run-tests.sh` nach einer Phrase, die er als Literal selbst enthielt (immer rot,
+selbstreferenziell) – die Phrase wird jetzt zur Laufzeit zusammengesetzt. Der andere ankerte auf
+einer mit `-` beginnenden Phrase; `assert_contains_286` gibt kein `--` an `grep` weiter, der
+Anker wurde als Option gelesen. Der Helfer-Defekt selbst ist als Kleinfund erfasst.
+
+### Wichtig – Doku und Governance
+
+- **ADR §4 zitierte die falsche Quelle** für „Kein Check-Skript aus Reflex": die Faustregel steht
+  in `OPERATING.md` §5.1 und stand nie in `token-efficiency.md` (`git log -S` belegt es).
+  Korrigiert – und die Regel selbst am **richtigen** Ort um die Gegenrichtung ergänzt
+  („eingetreten und gemessen" schlägt YAGNI).
+- **`OPERATING.md` war der einzige nicht mitgepflegte kanonische Ort:** `/codify`-Ziele stehen
+  jetzt mit dem Deckel-Hinweis da, die YAGNI-Faustregel mit der Präzisierung, und die Registry
+  „Invarianten laufend grün halten" führt die Deckel-Invariante (Guard: Test 21). Nebenbei die
+  dortige „pre-push-Hook blockiert hart"-Formulierung auf denselben Stand gebracht wie Kurzregel 1.
+- **Governance-Ort ehrlich beschrieben:** der Deckel ist ein `pre-push`-Hook (umgehbar), sein
+  server-seitiger Arm ist bislang **eine** Assertion in der Self-Test-Suite. Genau das Muster,
+  das ADR-041 für `config-validation` als fragil verworfen hat – jetzt in ADR §4 benannt, samt
+  Begründung, warum es hier zunächst in Kauf genommen wird (Ruleset-Änderung braucht nach ADR-029
+  Adminrechte). Nachgezogen über **Issue #328**.
+- **Kriterium in `CLAUDE.md`** trug seinen eigenen Hauptfall nicht: `git-workflow.md` ist weder
+  vollständig erzwungen noch von engem Adressatenkreis – es wird als Kurzregel gespiegelt. Diese
+  dritte Alternative steht jetzt im Satz.
+- **Sweep-Nachträge** zur verschobenen Exhaustiveness-Regel (`run-tests.sh`,
+  `lessons/code-style.md`), `kleinfunde.md`-Anker korrigiert (Tabelle liegt bei 28-37),
+  `CONTRIBUTING.md`-Gate-Aufzählung entschärft, drei „Offene Fragen" in Spec und Task als von
+  ADR-047 beantwortet markiert.
+
+### Bewusst offen geblieben
+
+- **Puffer-Formulierung** („ohne den nächsten Wildwuchs zu decken") bei 237 Zeilen Luft: ein
+  engerer Puffer würde legitime Regel-Ergänzungen blockieren; der Deckel soll den nächsten
+  Wildwuchs **melden**, nicht jede Zeile verhandeln.
+- **Trigger-Assertions ankern lange Beschreibungsprosa.** Eine Umformulierung macht sie rot,
+  obwohl der Trigger noch da ist. Der Fehlalarm-Modus steht jetzt als Kommentar am Test – ein
+  schwächerer Anker würde die Vakuum-Grün-Gefahr zurückbringen, die das Finding erst ausgelöst hat.
+- **Ein gemeinsamer `mk_prepush_repo`-Helfer** für die zwei pre-push-E2E-Scaffolds wäre der
+  nächste Schritt; das eigene Scaffold ist berechtigt (die vorhandenen Repo-Helfer liegen im
+  yq-Zweig und hätten eine yq-Abhängigkeit in den Deckel-Test getragen).
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- Granularität rollen-spezifischer Zuschnitte, falls Kandidat 2 gewählt wird → /architecture
-- Grenze "geltende Regel" vs. "Vorfall-Narrativ", falls Kandidat 3 gewählt wird (Narrative sind teils die Regel-Begründung) → /architecture
-- Governance-Mechanismus gegen erneutes Zurückwachsen → /architecture
+Alle drei durch [ADR-047](../docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md)
+beantwortet – keine offene Frage mehr:
+- [x] Granularität rollen-spezifischer Zuschnitte → entfällt, Kandidat 2 wurde verworfen (§Begründung, §Alternativen Option C2)
+- [x] Grenze „geltende Regel" vs. „Vorfall-Narrativ" → §2 (Regel bleibt, Didaktik/Prosa darf weichen); Beleg über das Regel-Inventar unten
+- [x] Governance-Mechanismus gegen Zurückwachsen → §4 (Deckel als pre-push-Check), Restrisiko und Follow-up #328 dort benannt
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

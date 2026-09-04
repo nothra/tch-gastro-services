@@ -7,31 +7,43 @@
 # das ist nach ADR-037 passiert (der Lessons-Index von ~80 auf 341 Zeilen, Befund aus #319).
 # Eine Prosa-Konvention hat dort nicht gehalten, deshalb hier ein Gate.
 #
-# Erkannte Referenz-Formen – zwei, bewusst unterschiedlich behandelt:
+# ── Was als Referenz gilt ────────────────────────────────────────────────────────────────────
 #
-#   1. Alleinstehende Import-Zeile: die Zeile besteht (bis auf Leerzeichen) aus `@<pfad>` und
-#      enthält kein weiteres `@`. Dann IST der Rest der Zeile der Pfad – er darf Leerzeichen
-#      enthalten. Diese Form wird immer gezählt, auch wenn sie nicht auflöst: nur so ist der
-#      Check fail-closed, sonst umgeht eine Umbenennung den Deckel lautlos.
+# Claude Code lädt `@pfad` nicht nur als eigene Zeile, sondern auch mitten in Prosa und mit
+# Markdown-Dekoration. Empirisch belegt (Review zu #319, `claude --print` mit Marker-Datei und
+# Negativkontrolle ohne `@`): geladen werden u. a. `@docs/x.md`, `**@docs/x.md**`,
+# `_@docs/x.md_` und `>@docs/x.md`. Ein Deckel, der nur alleinstehende Zeilen zählt, wäre per
+# Prosa-Zeile lautlos umgehbar – also fail-open gegen den eigenen Zweck. Erkannt werden daher:
 #
-#   2. Inline-`@pfad` mitten in Prosa. Claude Code lädt auch diese Form – empirisch belegt im
-#      Review zu #319 (Fixture-CLAUDE.md „Siehe @docs/geheim.md …" gab den Marker zurück,
-#      dieselbe Zeile ohne `@` nicht). Sie muss deshalb mitzählen, sonst ist der Deckel per
-#      Prosa-Zeile umgehbar. Ein Prosa-Token lässt sich von einem echten Import aber nur daran
-#      unterscheiden, ob es auf eine lesbare Datei zeigt: `@serwist/next`,
-#      `@neondatabase/serverless`, `@types/node` (alle real in PROJECT-CONTEXT.md) und
-#      „@importiert" tun das nicht. Diese Form ist daher resolve-gefiltert und damit NICHT
-#      fail-closed – ein Inline-Import auf eine gelöschte Datei fällt still weg. Das ist die
-#      bekannte Restgrenze; sie ist die Kehrseite davon, Prosa nicht als Import zu zählen.
-#      Angehängte Satzzeichen (`…@docs/x.md.`) werden abgeschnitten.
+#   1. **Referenz-Zeile:** Die Zeile besteht (bis auf umgebende Leerzeichen) aus `@<pfad>`,
+#      enthält kein weiteres `@` – und der Pfad ist **einwortig**. Diese Form wird immer
+#      gezählt, auch wenn die Datei fehlt: nur so ist der Check fail-closed, sonst umgeht eine
+#      Umbenennung den Deckel lautlos.
+#      Enthält der Rest der Zeile Leerzeichen, ist die Form ambig – ein umgebrochener
+#      Prosa-Absatz kann zufällig mit `@` beginnen. Dann gilt Regel 2, damit eine Prosa-Zeile
+#      den Push nicht mit „Datei nicht lesbar: <ganzer Satz>" blockiert. Ein echter Pfad **mit**
+#      Leerzeichen zählt weiterhin, sobald er auflöst.
 #
-# Nicht erkannt: eine `@pfad`-Zeile in einem Code-Fence zählt wie ein echter Import (Form 1) und
-# macht den Check bei nicht existierendem Pfad rot – fail-closed, aber ein Doku-Beispiel muss
-# deshalb einen existierenden Pfad nennen. Geschachtelte Pfade werden gegen die Projektwurzel
-# aufgelöst, nicht gegen die importierende Datei (heute ohne Fall im Repo).
+#   2. **Inline-Referenz:** Jedes `@`-Token einer Zeile, das auf eine **lesbare Datei** auflöst.
+#      Vorangestellte Dekoration (`**`, `_`, `>`, Klammern, Backticks) und angehängte
+#      Satzzeichen werden abgeschnitten. Die Auflösungs-Bedingung ist notwendig, weil sich ein
+#      Import sonst nicht von Prosa unterscheiden lässt – real steht in `CLAUDE.md` der Satzteil
+#      „nicht @importiert (ADR-037)", der kein Import ist.
 #
-# `wc -l` zählt Newlines: eine Datei ohne Schluss-Newline wird um 1 unterzählt. Für die
-# @import-Dateien irrelevant, weil Prettier/`format:check` sie mit Schluss-Newline erzwingt.
+# ── Bekannte Grenzen (bewusst) ───────────────────────────────────────────────────────────────
+#
+# * Regel 2 ist **nicht** fail-closed: eine Inline-Referenz auf eine gelöschte Datei fällt still
+#   weg. Das ist die Kehrseite davon, Prosa nicht als Import zu zählen. Fail-closed bleibt allein
+#   Regel 1 – die Form, in der die echten Imports stehen.
+# * Ungewöhnliche Einbettungen (typografische Anführungszeichen, Dekoration hinter dem Pfad ohne
+#   passendes Zeichen in der Trimm-Liste) können ungezählt bleiben. Der Deckel deckt die Formen
+#   ab, die im Repo vorkommen und für die das Ladeverhalten belegt ist – nicht beweisbar jede.
+# * Pfade werden gegen die Projektwurzel aufgelöst, nicht gegen die importierende Datei. Für
+#   Regel 1 ist das fail-closed (falsches Rot), für Regel 2 fail-open (still ungezählt). Heute
+#   ohne Fall, weil keine importierte Datei selbst importiert.
+# * Gezählt werden Zeilen per `awk END{print NR}` – auch eine Datei ohne Schluss-Newline zählt
+#   vollständig (`wc -l` unterzählte sie um 1; ein Gate, das die Schluss-Newline erzwingt, gibt
+#   es nicht: `.prettierignore` deckt `docs/` und `CLAUDE.md`).
 #
 # Projektwurzel: FACTORY_DIR (Tests/Override), sonst zwei Ebenen über scripts/checks/.
 
@@ -41,9 +53,10 @@ ROOT="${FACTORY_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 # Obergrenze in Zeilen für CLAUDE.md + rekursiv alle @-eingebundenen Dateien.
 # Herleitung (ADR-047 §4 – keine Magic Number): Ist-Stand direkt nach der Umstellung aus #319
-# = 860 Zeilen; + 25 % Puffer = 1.075; aufgerundet auf das nächste Vielfache von 50 = 1.100.
+# = 863 Zeilen; + 25 % Puffer = 1.079; aufgerundet auf das nächste Vielfache von 50 = 1.100.
 # Der Puffer trägt legitime Regel-Ergänzungen, ohne den nächsten Wildwuchs zu decken. Wer die
-# Grenze anhebt, trifft eine bewusste Entscheidung – und pflegt diese Herleitung mit.
+# Grenze anhebt, trifft eine bewusste Entscheidung – und pflegt diese Herleitung mit (ein Test
+# rechnet die Konstante gegen die hier genannte Basis nach).
 MAX_IMPORT_LINES=1100
 
 ENTRY_FILE="CLAUDE.md"
@@ -65,34 +78,40 @@ if [ ! -f "$ENTRY_FILE" ] || [ ! -r "$ENTRY_FILE" ]; then
   exit 1
 fi
 
-# refs_of <datei> – gibt die referenzierten Pfade aus, einen je Zeile (siehe Header: Form 1
-# unbedingt, Form 2 nur wenn sie auf eine lesbare Datei auflöst).
-refs_of() {
-  local file="$1" line trimmed rest token candidate stripped
-  while IFS= read -r line || [ -n "$line" ]; do
-    trimmed="${line#"${line%%[![:space:]]*}"}"
-    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
-    case "$trimmed" in
-      @?*)
-        rest="${trimmed#@}"
-        case "$rest" in
-          *@*) ;;  # mehrere @ in der Zeile → nur Token-Scan, sonst wäre der „Pfad" der ganze Satz
-          *) printf '%s\n' "$rest"; continue ;;
-        esac
-        ;;
-    esac
-    for token in $(printf '%s\n' "$line" | tr -s '[:space:]' '\n' | grep '^@.'); do
-      candidate="${token#@}"
-      if [ -f "$candidate" ] && [ -r "$candidate" ]; then
-        printf '%s\n' "$candidate"
-        continue
-      fi
-      stripped="$(printf '%s' "$candidate" | sed 's/[.,;:!?)]*$//')"
-      if [ "$stripped" != "$candidate" ] && [ -f "$stripped" ] && [ -r "$stripped" ]; then
-        printf '%s\n' "$stripped"
-      fi
-    done
-  done < "$file"
+# candidates_of <datei> – gibt je Zeile einen Kandidaten aus, als `<art>\t<pfad>`:
+#   S = Referenz-Zeile (Regel 1) → wird unbedingt gezählt, fehlende Datei ist rot
+#   T = Inline-Kandidat (Regel 2) → wird nur gezählt, wenn er auflöst
+# Ein awk-Lauf je Datei statt einer Prozess-Pipeline je Zeile/Token: bei ~860 Zeilen war die
+# Zeilen-Variante messbar teurer (2,9 s gegen 0,03 s) und verlangte eine unquotierte
+# Command-Substitution, die zusätzlich der Pathname-Expansion unterlag.
+candidates_of() {
+  awk '
+    {
+      line = $0
+      gsub(/^[[:space:]]+/, "", line)
+      gsub(/[[:space:]]+$/, "", line)
+
+      # Regel 1: ganze Zeile ist @<pfad>, kein weiteres @
+      if (line ~ /^@./ && index(substr(line, 2), "@") == 0) {
+        rest = substr(line, 2)
+        if (rest !~ /[[:space:]]/) { print "S\t" rest; next }
+        print "T\t" rest   # mit Leerzeichen: nur zählen, wenn es wirklich ein Pfad ist
+      }
+
+      # Regel 2: jedes @-Token der Zeile, mit und ohne abgeschnittene Satzzeichen/Dekoration
+      n = split($0, tok, /[[:space:]]+/)
+      for (i = 1; i <= n; i++) {
+        t = tok[i]
+        sub(/^[^@]*@/, "@", t)          # führende Dekoration: **, _, >, (, `, [ …
+        if (t !~ /^@./) continue
+        cand = substr(t, 2)
+        print "T\t" cand
+        trimmed = cand
+        gsub(/[]*_`".,;:!?)}]+$/, "", trimmed)
+        if (trimmed != "" && trimmed != cand) print "T\t" trimmed
+      }
+    }
+  ' "$1"
 }
 
 # Worklist als newline-getrennter String statt Array: bash 3.2 (macOS) bricht unter `set -u`
@@ -122,14 +141,19 @@ while [ -n "$pending" ]; do
     continue
   fi
 
-  lines="$(wc -l < "$rel" | tr -d ' ')"
+  lines="$(awk 'END { print NR }' "$rel")"
   total=$((total + lines))
   breakdown="$breakdown$(printf '%6d  %s' "$lines" "$rel")$NL"
 
-  nested="$(refs_of "$rel")"
-  if [ -n "$nested" ]; then
-    pending="${pending:+$pending$NL}$nested"
-  fi
+  while IFS="$(printf '\t')" read -r kind cand; do
+    [ -n "${cand:-}" ] || continue
+    case "$kind" in
+      S) pending="${pending:+$pending$NL}$cand" ;;
+      T) [ -f "$cand" ] && [ -r "$cand" ] && pending="${pending:+$pending$NL}$cand" ;;
+    esac
+  done <<CANDIDATES
+$(candidates_of "$rel")
+CANDIDATES
 done
 
 if [ "$failed" -eq 1 ]; then

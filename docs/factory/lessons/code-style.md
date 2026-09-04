@@ -54,7 +54,8 @@ Input erweckt den Eindruck durchgängiger Absicherung, den der zweite bricht.
 für jeden Input**, der in dieselbe Vergleichs-/Rechenoperation fließt – sonst leckt die Invariante
 über den ungeprüften Zweig. Die Guard-Klausel je Input duplizieren (`case "$x" in ''|*[!0-9]*) …`),
 nicht nur für den „offensichtlich unsicheren" Wert. Jeder Guard bekommt zudem einen eigenen Test
-(vgl. `testing-standards.md`).
+(vgl. [`lessons/testing.md`](testing.md) → Exhaustiveness-Guards; bis #319 in
+`testing-standards.md`).
 
 ### Magic-Number-Konsistenz-Bewertung braucht projektweiten Grep, nicht nur Datei-/PR-lokalen Vergleich (aus #142, Review→Refactor-Diskrepanz)
 

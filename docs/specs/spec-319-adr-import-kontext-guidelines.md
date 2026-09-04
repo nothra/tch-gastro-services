@@ -183,17 +183,19 @@ offener Blocker behandelt.
 
 ## Offene Fragen
 
-- [ ] Falls Kandidat 2 (rollen-spezifische Zuschnitte) gewählt wird: Wie granular ist die
+- [x] Falls Kandidat 2 (rollen-spezifische Zuschnitte) gewählt wird: Wie granular ist die
   Zuordnung Persona ↔ Guideline, und wie wird verhindert, dass diese zweite Zuordnungsquelle
-  gegenüber der Rollen-Tabelle in `CLAUDE.md` driftet? → in `/architecture` entscheiden.
-- [ ] Falls Kandidat 3 (Verdichten) ganz oder teilweise gewählt wird: Wo verläuft die Grenze
-  zwischen „geltende Regel" (bleibt) und „Vorfall-Narrativ/Prosa" (darf weichen)? Die
-  Vorfall-Narrative sind teils die **Begründung** einer Regel – und `factory-workflow.md` zeigt,
-  dass Agenten ohne das „Warum" Regeln erneut brechen (dokumentierte Rezidive). → in
-  `/architecture` als Kriterium festlegen, nicht dem Implementieren überlassen.
-- [ ] Governance-Mechanismus gegen erneutes Zurückwachsen (analog zur ADR-037-Lücke, die genau
-  dazu führte, dass dieser Punkt jetzt erneut ansteht) → in `/architecture` festlegen. Gilt für
-  jeden Kandidaten: auch eine verdichtete oder ausgelagerte Datei wächst ohne Mechanismus zurück.
+  gegenüber der Rollen-Tabelle in `CLAUDE.md` driftet? → **Entfällt:** ADR-047 verwirft Kandidat 2
+  (Option C2), genau mit dem Drift-Argument dieser Frage.
+- [x] Falls Kandidat 3 (Verdichten) ganz oder teilweise gewählt wird: Wo verläuft die Grenze
+  zwischen „geltende Regel" (bleibt) und „Vorfall-Narrativ/Prosa" (darf weichen)? → **Beantwortet
+  in ADR-047 §2:** geltende Regel bleibt wörtlich, Didaktik-Prosa und Illustration dürfen weichen,
+  lessons-artige Einträge wandern in die Lesson (Begründung bleibt dort erhalten). Belegt über ein
+  Regel-Inventar vorher/nachher (Task-Datei), nicht über „verdichten" als Zusicherung.
+- [x] Governance-Mechanismus gegen erneutes Zurückwachsen → **Beantwortet in ADR-047 §4:** ein
+  `pre-push`-Deckel über die Summe des gesamten @import-Kontexts, Grenze als hergeleitete
+  Konstante. Restrisiko (Hook umgehbar, CI-Arm nur mittelbar) dort benannt; ein eigener
+  CI-Required-Check ist als Issue #328 ausgelagert.
 - [ ] Branch-Typ: Der Branch heißt `feature/319-…` (Default aus `start-work.sh`). Da der Task
   Factory-Harness-Doku/-Kontext ohne neues Produktverhalten ändert, wäre `improvement/` laut
   `git-workflow.md`-Tabelle passender (Lesson #120: Branch-Typ korrigieren, wenn der Scope über
