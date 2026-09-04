@@ -10,17 +10,57 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+`start-work.sh` wird fast immer bereits in einer frischen, task-freien Claude-Session
+ausgeführt. Die Abschluss-Ausgabe empfiehlt aktuell trotzdem pauschal, zusätzlich eine neue
+Claude-Session zu öffnen, bevor überhaupt `/requirements` läuft – das widerspricht der bereits in
+`docs/factory/guidelines/git-workflow.md` dokumentierten Ausnahme (start-work.sh + `/requirements`
+dürfen in derselben Session laufen) und dem realen Normalfall.
+
+Diese Task richtet die Empfehlung auf den Normalfall aus: direkt im Worktree mit
+`/requirements` (ggf. `/architecture`) in derselben Session fortfahren; die
+Neue-Session-Empfehlung wandert an den Phasenübergang zur Implementierung (`/implement`).
+Betroffen: `scripts/start-work.sh`, `docs/factory/guidelines/git-workflow.md`, `CLAUDE.md`,
+`docs/factory/OPERATING.md` sowie die zugehörigen #267-Guards in
+`scripts/checks/tests/run-tests.sh`. Details siehe
+[`docs/specs/spec-322-session-empfehlung-worktree-requirements.md`](../docs/specs/spec-322-session-empfehlung-worktree-requirements.md).
+
+Die Worktree-Pflicht selbst ist **nicht** betroffen – nur die Session-Empfehlung.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [ ] GIVEN `start-work.sh` ist im Worktree-Modus fertig gelaufen WHEN die Abschluss-Ausgabe
+      angezeigt wird THEN wird der Wechsel in den Worktree gefolgt von `/requirements <id>` in
+      derselben Session als der zu erwartende nächste Schritt dargestellt, ohne dass zuvor eine
+      neue Claude-Session empfohlen wird.
+- [ ] GIVEN dieselbe Abschluss-Ausgabe WHEN sie den Implementierungsschritt (`/implement <id>`)
+      nennt THEN steht dort die Empfehlung, für den Implementierungsschritt eine neue
+      Claude-Session zu öffnen – weiterhin klar als Empfehlung, nicht als Pflicht.
+- [ ] GIVEN der bisherige Worktree-Fakt („kein geteilter HEAD", #267 AK5) WHEN die Ausgabe geprüft
+      wird THEN ist dieser Fakt weiterhin enthalten, aber nicht mehr mit einer
+      Sofort-Session-Empfehlung verknüpft.
+- [ ] GIVEN `docs/factory/guidelines/git-workflow.md` → „Eine Task = Eine Session" WHEN der
+      Abschnitt gelesen wird THEN ist der Ablauf start-work.sh + `/requirements` (ggf.
+      `/architecture`) in derselben, noch task-freien Session als dokumentierter Regelfall
+      formuliert; Grenze und Worktree-Pflicht bleiben unverändert und klar getrennt.
+- [ ] GIVEN `CLAUDE.md` (Guardrails) WHEN die Session-Empfehlungszeile gelesen wird THEN ist sie
+      konsistent mit der aktualisierten Guideline und verweist weiterhin auf `git-workflow.md` als
+      kanonische Quelle.
+- [ ] GIVEN `docs/factory/OPERATING.md` → „Die zwei Phasen der Factory" WHEN die Beschreibung des
+      Ablaufs gelesen wird THEN gibt es keinen Widerspruch zur aktualisierten Formulierung.
+- [ ] GIVEN die bestehenden #267-Guards in `scripts/checks/tests/run-tests.sh` WHEN die
+      Wortlaut-Änderung umgesetzt ist THEN sind diese Guards auf den neuen Wortlaut angepasst und
+      bestehen weiterhin (inkl. Mutationskontrolle gegen die alte Formulierung).
+- [ ] GIVEN die Worktree-Pflicht WHEN die gesamte Änderung umgesetzt ist THEN bleibt dieser
+      Abschnitt inhaltlich unverändert (keine Aufweichung).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+Kein ADR-Trigger erkennbar (reine Doku-/Ausgabe-Umformulierung, keine Technologie-/Architektur-
+Entscheidung) – `/architecture` kann übersprungen werden, direkt mit `/implement 322` fortfahren.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
+- [x] Keine offenen Fragen – Scope ist durch Issue #322 präzise vorgegeben.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
