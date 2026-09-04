@@ -1,7 +1,7 @@
 # Task 322: session-empfehlung-worktree-requirements
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -28,35 +28,51 @@ Die Worktree-Pflicht selbst ist **nicht** betroffen – nur die Session-Empfehlu
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN `start-work.sh` ist im Worktree-Modus fertig gelaufen WHEN die Abschluss-Ausgabe
+- [x] GIVEN `start-work.sh` ist im Worktree-Modus fertig gelaufen WHEN die Abschluss-Ausgabe
       angezeigt wird THEN wird der Wechsel in den Worktree gefolgt von `/requirements <id>` in
       derselben Session als der zu erwartende nächste Schritt dargestellt, ohne dass zuvor eine
       neue Claude-Session empfohlen wird.
-- [ ] GIVEN dieselbe Abschluss-Ausgabe WHEN sie den Implementierungsschritt (`/implement <id>`)
+- [x] GIVEN dieselbe Abschluss-Ausgabe WHEN sie den Implementierungsschritt (`/implement <id>`)
       nennt THEN steht dort die Empfehlung, für den Implementierungsschritt eine neue
       Claude-Session zu öffnen – weiterhin klar als Empfehlung, nicht als Pflicht.
-- [ ] GIVEN der bisherige Worktree-Fakt („kein geteilter HEAD", #267 AK5) WHEN die Ausgabe geprüft
+- [x] GIVEN der bisherige Worktree-Fakt („kein geteilter HEAD", #267 AK5) WHEN die Ausgabe geprüft
       wird THEN ist dieser Fakt weiterhin enthalten, aber nicht mehr mit einer
       Sofort-Session-Empfehlung verknüpft.
-- [ ] GIVEN `docs/factory/guidelines/git-workflow.md` → „Eine Task = Eine Session" WHEN der
+- [x] GIVEN `docs/factory/guidelines/git-workflow.md` → „Eine Task = Eine Session" WHEN der
       Abschnitt gelesen wird THEN ist der Ablauf start-work.sh + `/requirements` (ggf.
       `/architecture`) in derselben, noch task-freien Session als dokumentierter Regelfall
       formuliert; Grenze und Worktree-Pflicht bleiben unverändert und klar getrennt.
-- [ ] GIVEN `CLAUDE.md` (Guardrails) WHEN die Session-Empfehlungszeile gelesen wird THEN ist sie
+- [x] GIVEN `CLAUDE.md` (Guardrails) WHEN die Session-Empfehlungszeile gelesen wird THEN ist sie
       konsistent mit der aktualisierten Guideline und verweist weiterhin auf `git-workflow.md` als
       kanonische Quelle.
-- [ ] GIVEN `docs/factory/OPERATING.md` → „Die zwei Phasen der Factory" WHEN die Beschreibung des
+- [x] GIVEN `docs/factory/OPERATING.md` → „Die zwei Phasen der Factory" WHEN die Beschreibung des
       Ablaufs gelesen wird THEN gibt es keinen Widerspruch zur aktualisierten Formulierung.
-- [ ] GIVEN die bestehenden #267-Guards in `scripts/checks/tests/run-tests.sh` WHEN die
+- [x] GIVEN die bestehenden #267-Guards in `scripts/checks/tests/run-tests.sh` WHEN die
       Wortlaut-Änderung umgesetzt ist THEN sind diese Guards auf den neuen Wortlaut angepasst und
       bestehen weiterhin (inkl. Mutationskontrolle gegen die alte Formulierung).
-- [ ] GIVEN die Worktree-Pflicht WHEN die gesamte Änderung umgesetzt ist THEN bleibt dieser
+- [x] GIVEN die Worktree-Pflicht WHEN die gesamte Änderung umgesetzt ist THEN bleibt dieser
       Abschnitt inhaltlich unverändert (keine Aufweichung).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 Kein ADR-Trigger erkennbar (reine Doku-/Ausgabe-Umformulierung, keine Technologie-/Architektur-
 Entscheidung) – `/architecture` kann übersprungen werden, direkt mit `/implement 322` fortfahren.
+
+**Umsetzung (/implement):**
+- `scripts/start-work.sh`: Schritt 2 (`/implement`) trägt jetzt die Session-Empfehlung direkt
+  unter sich; Schritt 0/1 bleiben unqualifiziert. Die Worktree-Fakt-Zeile („kein geteilter HEAD")
+  steht jetzt als letzte Zeile, entkoppelt von der Empfehlung.
+- `docs/factory/OPERATING.md` (§1.1, §2) war bereits widerspruchsfrei zur neuen Formulierung
+  (§1.1 bindet die „frische Claude-Session" bereits an den Implement-Schritt) – keine Änderung
+  nötig, nur gegengeprüft.
+- `scripts/checks/tests/run-tests.sh`: die #267-Guards (AK3/AK7) prüften bisher, dass die *alte*
+  Formulierung – wo sie vorkommt – als Empfehlung qualifiziert ist. Diese Formulierung existiert
+  nach der Umformulierung in keiner der vier Dateien mehr; AK7 prüft jetzt stattdessen ihre
+  vollständige Abwesenheit (mit einer frischen Wegwerf-Fixture als Positivkontrolle). Zusätzlich
+  ein neuer #322-Block direkt nach AK5: prüft die Reihenfolge/Bindung der Empfehlung an Schritt 2
+  im Abschluss-Output von `start-work.sh`, inkl. Mutationskontrolle gegen die alte Reihenfolge.
+- Alle Gates grün: `scripts/checks/tests/run-tests.sh` (1319/1319), `pre-commit.sh`, `pre-push.sh`
+  (Unit-Tests, Typecheck, Format, Routen-Doku-Drift, Hooks).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

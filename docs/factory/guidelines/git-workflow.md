@@ -312,16 +312,15 @@ Gemergte Branches werden weitgehend automatisch entfernt – dreistufig:
   brauchen bewusst kein Gesprächsgedächtnis (Output in Dateien) – eine Fortsetzung funktioniert
   technisch, kostet aber Fokus und Token, nicht Korrektheit.
 
-Trotzdem gilt die **dringende Empfehlung**: Jede neue Task in einer neuen Claude-Session starten.
+**Regelfall:** `start-work.sh` und das anschließende `/requirements` (ggf. `/architecture`)
+sollen in derselben, noch task-freien Session laufen – die Anforderung wird hier interaktiv
+geschärft, bevor die eigentliche Implementierungs-Task beginnt. Für den nachfolgenden
+`/implement`-Schritt gilt dagegen die **dringende Empfehlung**: eine neue Claude-Session öffnen.
 
-**Warum:**
+**Warum (für den `/implement`-Schritt):**
 - Kleiner Kontext → KI bleibt fokussiert auf die aktuelle Task
 - Kein Übersprechen von Entscheidungen oder Fehlern aus vorherigen Tasks
 - Weniger Token-Verbrauch, da kein irrelevanter Verlauf mitgeschleppt wird
-
-**Zulässige Ausnahme:** `start-work.sh` und das anschließende `/requirements` (ggf.
-`/architecture`) dürfen in derselben, noch task-freien Session laufen – die Anforderung wird
-hier interaktiv geschärft, bevor die eigentliche Implementierungs-Task beginnt.
 
 **Grenze:** Nach Abschluss einer Task **nicht** die nächste Task in derselben Session
 beginnen – dort gilt die Empfehlung uneingeschränkt.
@@ -330,8 +329,8 @@ beginnen – dort gilt die Empfehlung uneingeschränkt.
 ```bash
 bash scripts/start-work.sh "<beschreibung>"   # Issue-first: legt Issue an, Nr. = Task-ID
 # → gibt den Pfad des angelegten Worktrees aus
-# → dorthin wechseln, neue Claude-Session öffnen
-# → /implement <task-id>
+# → dorthin wechseln, in dieser Session: /requirements <task-id> (ggf. /architecture)
+# → für /implement <task-id>: neue Claude-Session öffnen (Empfehlung)
 ```
 
 Das Skript gibt am Ende immer einen Hinweis dazu.
