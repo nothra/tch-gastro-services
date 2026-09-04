@@ -7342,7 +7342,6 @@ mklines "$TMP_IC/docs/b.md" $((IC_LIMIT + 10))
 ic >/dev/null 2>&1
 assert_exit 1 "$?" "#319: geschachtelter @import zählt mit → exit 1"
 rm -f "$TMP_IC/docs/b.md"
-printf '@docs/a.md\n' > /dev/null   # Struktur unverändert, nur der geschachtelte Beitrag fehlt
 sed -i.bak '/^@docs\/b.md$/d' "$TMP_IC/docs/a.md" && rm -f "$TMP_IC/docs/a.md.bak"
 ic >/dev/null 2>&1
 assert_exit 0 "$?" "#319 (Mutation): ohne den geschachtelten Beitrag ist dieselbe Prüfung grün"
