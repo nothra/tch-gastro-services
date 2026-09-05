@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -513,7 +513,21 @@ beantwortet – keine offene Frage mehr:
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Report: [`tasks/codify-319.md`](codify-319.md). **Sieben Regeln** abgeleitet – eine universelle in
+`guidelines/bash-gotchas.md` (§13: `$((summe + ""))` addiert lautlos 0 und macht ein Gate still
+grün), zwei in `lessons/code-style.md` (Erzwingungs-Behauptungen prüfen; Massen-Ersetzung trifft
+den neuen Helfer), drei in `lessons/testing.md` (Fail-closed braucht einen Test, der die Messung
+bricht; selbstreferenzieller Content-Scan; `-`-Anker in den assert-Helfern), eine in
+`lessons/factory-workflow.md` (neues Gate gegen bestehende ADRs zum Gate-Ort prüfen). Dazu sechs
+Index-Zeilen mit „Laden bei"-Trigger in `PROJECT-CONTEXT.md`.
+
+Bewusst **keine** Regel: die zwei falschen Agenten-Behauptungen (Lesson #314 deckt sie ab und hat
+zweimal funktioniert), ein Check gegen Erzwingungs-Behauptungen (nicht verlässlich grep-bar →
+Gate aus Reflex), der `--`-Fix in den assert-Helfern (Kleinfund, zwei Zeichen je Stelle).
+
+Der `/codify`-Lauf selbst hat den @import-Kontext von 863 auf 869 Zeilen wachsen lassen – der in
+dieser Task gebaute Deckel greift damit sofort auf den Mechanismus, der ihn nötig gemacht hat.
 
 ---
 Branch: `feature/319-adr-import-kontext-guidelines`
