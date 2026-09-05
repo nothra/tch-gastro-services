@@ -7803,6 +7803,10 @@ assert_true "$([ -n "$(ic_missing_sections_319 "$IC_TDD_319" 'Ein Abschnitt, den
 # entstanden (ein geratener ADR-Dateiname, ein Pfad ohne `../` aus tasks/) – beide erst durch
 # einen Ad-hoc-Lauf gefunden. Der Check gehört damit in die Suite, begrenzt auf die Dateien,
 # die dieser Task besitzt.
+# Grenze der Erkennung: der Ausdruck sieht Markdown-Link-Syntax, nicht deren Kontext. Prosa, die
+# ÜBER Links spricht (z. B. `](../adr/` in einem Backtick-Span, wie in lessons/factory-workflow.md),
+# wird als Link gelesen und wäre ein Fehlalarm. Deshalb prüft der Guard eine feste Dateiliste –
+# Dateien mit solcher Meta-Prosa gehören nicht hinein, bevor der Ausdruck Code-Spans ausnimmt.
 ic_dead_links_319() {  # $1 = Markdown-Datei → gibt "datei → ziel" je totem relativen Link aus
   local f="$1" d ziel
   d="$(dirname "$f")"
