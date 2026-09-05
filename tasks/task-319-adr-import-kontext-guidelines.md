@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -415,6 +415,48 @@ Bewusst nicht getestet und je begründet: AC2/AC7 (Prosa-Aussagen; ein Zahlen-Gu
 tautologisch oder bräche bei jeder legitimen Änderung), Vollständigkeit der Einbettungsformen
 (nicht beweisbar – deshalb steht die Restgrenze im Header statt einer Vollständigkeitsbehauptung),
 und ein repo-weiter Dead-Link-Check (eigenes Gate, eigener Task).
+
+## /refactor-Notizen
+
+**Kein neues Verhalten.** Suite vor und nach dem Pass identisch: **1430 grün, 0 rot**. Der Diff
+enthält zehn `assert_`-Zeilen – belegt als eine reine Verschiebung (identischer Inhalt) und vier
+Umbenennungen; keine Assertion wurde hinzugefügt, entfernt oder inhaltlich geändert.
+
+Fünf Änderungen, jede mit Anlass:
+
+1. **`mk_feature_repo <dir> <branch>` extrahiert** (bei den übrigen Cross-Block-Helfern
+   definiert). Die drei git-Zeilen des pre-push-Verhaltenstests standen zweimal identisch da
+   (#149 und #319) – vom Review als „nächster Schritt" benannt. Nebeneffekt: die Begründung für
+   die explizite Git-Identität (Lesson #265) steht jetzt an einer Stelle statt nur in der
+   jüngeren Kopie.
+2. **`claude_fixture_319 [zeile…]` extrahiert.** Dreizehn Stellen bauten die Fixture-`CLAUDE.md`
+   mit demselben Zweizeiler (20 Füllzeilen + angehängte Referenz-/Prosa-Zeile). Der Helfer
+   dokumentiert zugleich, woher die „21" in den Summen der Test-Labels kommt.
+3. **`enqueue_refs_of <datei>` aus der Hauptschleife des Checks extrahiert.** Die Schleife trug
+   fünf Verantwortlichkeiten auf ~40 Zeilen; jetzt 25. Der WHY zum Heredoc (Leseschleife muss in
+   der aktuellen Shell laufen, eine Pipe verlöre die Worklist-Mutation an die Subshell) steht am
+   Funktionskopf statt mitten im Kontrollfluss.
+4. **`ic_has_sections_319` → `ic_missing_sections_319`.** Der Name behauptete das Gegenteil
+   dessen, was die Funktion zurückgibt (sie liefert die **fehlenden** Abschnitte) –
+   `clean-code.md`: keine irreführenden Namen.
+5. **`ic_tote_links_319` → `ic_dead_links_found_319`.** Sprachmix im Bezeichner; die Suite benennt
+   ihre Helfer englisch (`flat_286`, `name_hits_315`, `tracked_repo_315`).
+
+Zusätzlich die **ADR-Status-Assertion** zu ihrer Variablen-Definition verschoben: sie stand im
+`/test`-Block und las `$ADR047_FLAT_319` aus einem rund hundert Zeilen entfernten anderen
+Abschnitt – eine implizite Reihenfolge-Abhängigkeit, die beim Verschieben eines der Blöcke
+lautlos gebrochen wäre.
+
+**Beim Refactoring selbst gefangen:** die regexbasierte Fixture-Ersetzung traf auch den Rumpf des
+neu angelegten Helfers und machte ihn selbstrekursiv (`claude_fixture_319` rief sich selbst auf).
+Aufgefallen bei der Kontrolle „wie viele Roh-Paare sind übrig?" – die Antwort 0 war zu gut, um zu
+stimmen. Behoben vor dem ersten Testlauf.
+
+**Bewusst nicht angefasst:** der Kopf-Kommentar des Check-Skripts (70 von 183 Zeilen) – er ist der
+Kontrakt der zwei Erkennungsregeln samt Restgrenzen, den zwei Review-Iterationen eingefordert
+haben; die S/T-Marker (ein Zeichen, an beiden Stellen dokumentiert, keine Duplikation); und die
+Byte-Schwellen der Migrations-Guards (Herleitung steht im Kommentar darüber, je einmal verwendet –
+eine benannte Konstante wäre Indirektion ohne Gewinn).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

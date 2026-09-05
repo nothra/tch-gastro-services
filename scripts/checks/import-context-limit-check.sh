@@ -114,6 +114,24 @@ candidates_of() {
   ' "$1"
 }
 
+# enqueue_refs_of <datei> – hängt die Referenzen der Datei an die Worklist `pending` an.
+# Wertet den S/T-Kontrakt von candidates_of aus: S kommt unbedingt in die Liste (eine fehlende
+# Datei soll später rot werden), T nur, wenn der Pfad wirklich auf eine lesbare Datei zeigt.
+# Mutiert bewusst die globale Worklist – der Heredoc hält die Leseschleife in der aktuellen
+# Shell, eine Pipe täte das nicht (Subshell) und der Anhang ginge verloren.
+enqueue_refs_of() {
+  local kind cand
+  while IFS="$(printf '\t')" read -r kind cand; do
+    [ -n "${cand:-}" ] || continue
+    case "$kind" in
+      S) pending="${pending:+$pending$NL}$cand" ;;
+      T) [ -f "$cand" ] && [ -r "$cand" ] && pending="${pending:+$pending$NL}$cand" ;;
+    esac
+  done <<CANDIDATES
+$(candidates_of "$1")
+CANDIDATES
+}
+
 # Worklist als newline-getrennter String statt Array: bash 3.2 (macOS) bricht unter `set -u`
 # beim Expandieren leerer Arrays ab – der Check läuft lokal UND in CI.
 pending="$ENTRY_FILE"
@@ -145,15 +163,7 @@ while [ -n "$pending" ]; do
   total=$((total + lines))
   breakdown="$breakdown$(printf '%6d  %s' "$lines" "$rel")$NL"
 
-  while IFS="$(printf '\t')" read -r kind cand; do
-    [ -n "${cand:-}" ] || continue
-    case "$kind" in
-      S) pending="${pending:+$pending$NL}$cand" ;;
-      T) [ -f "$cand" ] && [ -r "$cand" ] && pending="${pending:+$pending$NL}$cand" ;;
-    esac
-  done <<CANDIDATES
-$(candidates_of "$rel")
-CANDIDATES
+  enqueue_refs_of "$rel"
 done
 
 if [ "$failed" -eq 1 ]; then

@@ -78,6 +78,16 @@ assert_absent() {
   assert_true "$([ $? -ne 0 ]; echo $?)" "$3"
 }
 
+# mk_feature_repo <verzeichnis> <branch> – leeres git-Repo auf einem Feature-Branch, bereit für
+# einen echten pre-push.sh-Lauf. Die lokale Git-Identität wird explizit gesetzt: ohne sie
+# scheitert der Commit in einer identitätslosen Umgebung (CI), wo kein globaler Fallback
+# existiert (Lesson aus #265). Genutzt von den pre-push-Verhaltenstests in #149 und #319.
+mk_feature_repo() {
+  git -C "$1" init -q
+  git -C "$1" checkout -q -b "$2"
+  git -C "$1" -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init
+}
+
 # ls_mode_matches <datei> <modus-präfix, z. B. '-rw-------'>
 # Modus-Vergleich über `ls -l` (die `stat`-Flags sind zwischen BSD und GNU unvereinbar).
 # Präfix-Match, weil macOS bei ACLs/xattrs ein '+'/'@' an die Modus-Spalte anhängt.
@@ -3308,9 +3318,7 @@ assert_true "$?" "#149: pre-push.sh verdrahtet das Format-Gate mit fail-closed-D
 # neutralisieren (true), sodass allein das Format-Gate das Ergebnis bestimmt. Beweist,
 # dass das Gate den ECHTEN Befehl ausführt (rot → blockiert) und der Env-Override greift.
 TMP_G149="$(mktemp -d)"
-git -C "$TMP_G149" init -q
-git -C "$TMP_G149" checkout -q -b feature/149-format-gate-test
-git -C "$TMP_G149" -c user.email="t@t.com" -c user.name="t" commit -q --allow-empty -m init
+mk_feature_repo "$TMP_G149" feature/149-format-gate-test
 run_prepush_149() { # $1 = FACTORY_FORMAT_COMMAND-Wert
   ( cd "$TMP_G149" && FACTORY_TEST_COMMAND=true FACTORY_TYPECHECK_COMMAND=true \
       FACTORY_FORMAT_COMMAND="$1" bash "$CHECKS_DIR/pre-push.sh" >/dev/null 2>&1 )
@@ -7309,10 +7317,16 @@ ic_319() { FACTORY_DIR="$TMP_IC" bash "$IMPORT_CHECK" 2>&1; }
 # mklines_319 <datei> <anzahl> – deterministischer Füllinhalt; `seq` wie an den bestehenden
 # Fixture-Stellen der Suite (:3721), keine dritte Schreibweise.
 mklines_319() { seq 1 "$2" > "$1"; }
+# claude_fixture_319 [zeile…] – Fixture-CLAUDE.md aus 20 Füllzeilen plus den übergebenen Zeilen.
+# Die 20 erklären die „21" in den Summen der Test-Labels (Füllzeilen + die Referenz-/Prosa-Zeile);
+# sie stehen hier an einer Stelle statt dreizehnmal im Block.
+claude_fixture_319() {
+  mklines_319 "$TMP_IC/CLAUDE.md" 20
+  [ "$#" -eq 0 ] || printf '%s\n' "$@" >> "$TMP_IC/CLAUDE.md"
+}
 
 # 1. Unter dem Deckel → exit 0, Ausgabe nennt Summe UND Grenze (sonst ist sie nicht handlungsfähig)
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/a.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/a.md'
 mklines_319 "$TMP_IC/docs/a.md" 30
 ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 0 "$ic_rc" "#319: Summe unter der Grenze → exit 0"
@@ -7339,8 +7353,7 @@ assert_exit 1 "$?" "#319 Seite A: CLAUDE.md allein über der Grenze → exit 1 (
 
 # 4. Drift-Guard Seite B: CLAUDE.md klein, aber eine REFERENZIERTE Datei wächst über die Grenze.
 #    Zwei Beiträger, damit auch die Sortierung der breakdown-Liste (größter zuerst) prüfbar ist.
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/a.md\n@docs/klein.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/a.md' '@docs/klein.md'
 mklines_319 "$TMP_IC/docs/a.md" $((IC_LIMIT_319 + 10))
 mklines_319 "$TMP_IC/docs/klein.md" 5
 ic_out="$(ic_319)"; ic_rc=$?
@@ -7356,8 +7369,7 @@ rm -f "$TMP_IC/docs/klein.md"
 
 # 5. Summen-Beweis: zwei Dateien, jede allein unter der Grenze, zusammen darüber. Belegt, dass
 #    der Check die SUMME prüft und nicht je Datei einzeln (ADR-047 §4: „ein Deckel für beide").
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/a.md\n@docs/b.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/a.md' '@docs/b.md'
 mklines_319 "$TMP_IC/docs/a.md" $((IC_LIMIT_319 * 2 / 3))
 mklines_319 "$TMP_IC/docs/b.md" $((IC_LIMIT_319 * 2 / 3))
 ic_319 >/dev/null 2>&1
@@ -7366,8 +7378,7 @@ assert_exit 1 "$?" "#319: zwei je-für-sich zulässige Dateien, zusammen über d
 # 6. Rekursion: @import in einer importierten Datei zählt mit (CLAUDE.md → a.md → b.md).
 #    Mutationsbeleg über dieselbe Assertion: ohne den geschachtelten Beitrag läge die Summe
 #    unter der Grenze – der Test kann also nur wegen der Rekursion rot werden.
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/a.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/a.md'
 mklines_319 "$TMP_IC/docs/a.md" 30
 printf '@docs/b.md\n' >> "$TMP_IC/docs/a.md"
 mklines_319 "$TMP_IC/docs/b.md" $((IC_LIMIT_319 + 10))
@@ -7379,8 +7390,7 @@ ic_319 >/dev/null 2>&1
 assert_exit 0 "$?" "#319 (Mutation): ohne den geschachtelten Beitrag ist dieselbe Prüfung grün"
 
 # 7. Fail-closed bei unlesbarer Quelle – Seite B: einwortige Referenz-Zeile, Datei fehlt.
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/fehlt.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/fehlt.md'
 ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 1 "$ic_rc" "#319: nicht lesbare Referenz-Zeile → exit 1 (fail-closed, keine Umgehung per Rename)"
 assert_contains_286 "$ic_out" 'docs/fehlt.md' "#319: benennt die nicht lesbare Datei"
@@ -7402,8 +7412,7 @@ assert_contains_286 "$ic_out" "Projektwurzel nicht erreichbar" "#319: eigene Mel
 #    NICHT: ein Mutant ohne seen-Dedup terminiert ebenfalls mit 0 und meldet nur eine zu große
 #    Summe. Deshalb wird die SUMME assertiert (21 + 31 = 52) – sonst behauptet das Label mehr,
 #    als der Ausdruck messen kann (Lesson #312).
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/a.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/a.md'
 mklines_319 "$TMP_IC/docs/a.md" 30
 printf '@CLAUDE.md\n' >> "$TMP_IC/docs/a.md"
 IC_CYCLE_OUT_319="$(mktemp)"
@@ -7427,15 +7436,14 @@ for ic_deko_319 in 'Siehe @docs/gross.md fuer die Details.' \
                    '>@docs/gross.md' \
                    'Details in @docs/gross.md.' \
                    'Details in (@docs/gross.md), siehe dort.'; do
-  mklines_319 "$TMP_IC/CLAUDE.md" 20
-  printf '%s\n' "$ic_deko_319" >> "$TMP_IC/CLAUDE.md"
+  claude_fixture_319 "$ic_deko_319"
   ic_out="$(ic_319)"; ic_rc=$?
   assert_exit 1 "$ic_rc" "#319 K1: Inline-@import zählt mit – Form: $ic_deko_319"
   assert_contains_286 "$ic_out" 'docs/gross.md' "#319 K1: nennt die inline referenzierte Datei ($ic_deko_319)"
 done
 # Mutationsbeleg über dieselbe Assertion: ohne die Prosa-Zeile ist die Prüfung grün – der Test
 # kann also nur wegen des Inline-Treffers rot werden (nicht wegen der 21 Basis-Zeilen).
-mklines_319 "$TMP_IC/CLAUDE.md" 20
+claude_fixture_319
 ic_319 >/dev/null 2>&1
 assert_exit 0 "$?" "#319 K1 (Mutation): ohne die Inline-Zeile ist dieselbe Prüfung grün"
 
@@ -7443,9 +7451,7 @@ assert_exit 0 "$?" "#319 K1 (Mutation): ohne die Inline-Zeile ist dieselbe Prüf
 #     fail-closed rot werden. Der real wirksame Fall im Repo ist „@importiert" (CLAUDE.md);
 #     `@serwist/next` hier bewusst OHNE Klammer, damit das Resolve-Sieb wirklich durchlaufen
 #     wird (geklammert scheidet das Token schon am Zeilen-Split aus und prüfte nichts).
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf 'Die Lessons sind bewusst nicht @importiert (ADR-037).\n' >> "$TMP_IC/CLAUDE.md"
-printf 'Stack: @serwist/next, @neondatabase/serverless und @types/node.\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 'Die Lessons sind bewusst nicht @importiert (ADR-037).' 'Stack: @serwist/next, @neondatabase/serverless und @types/node.'
 ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 0 "$ic_rc" "#319 K1: Prosa-/npm-Scope-Token ohne Datei-Auflösung lassen den Check grün"
 assert_absent "$ic_out" "importiert" "#319 K1: Prosa-Token wird nicht als Referenz gemeldet"
@@ -7454,21 +7460,18 @@ assert_absent "$ic_out" "serwist" "#319 K1: unklammerter npm-Scope wird nicht al
 # 12. Eine Zeile, die mit `@` beginnt, ist nicht automatisch eine Import-Zeile: enthält der Rest
 #     Leerzeichen, ist es Prosa (ein umgebrochener Absatz genügt) und darf den Push nicht mit
 #     einer irreführenden „Datei nicht lesbar: <ganzer Satz>"-Meldung blockieren.
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@importiert werden die Lessons bewusst nicht.\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@importiert werden die Lessons bewusst nicht.'
 ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 0 "$ic_rc" "#319: Prosa-Zeile, die mit @ beginnt, ist kein Import (exit 0)"
 assert_absent "$ic_out" "nicht lesbar" "#319: keine irreführende Fehlermeldung für eine Prosa-Zeile"
 # Die einwortige Referenz-Zeile bleibt davon unberührt fail-closed (Regressions-Gegenprobe zu 7).
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/fehlt.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/fehlt.md'
 ic_319 >/dev/null 2>&1
 assert_exit 1 "$?" "#319: einwortige Referenz-Zeile bleibt fail-closed (keine Aufweichung durch 12)"
 
 # 13. Alleinstehende Import-Zeile mit Leerzeichen im Pfad: der Rest der Zeile ist der Pfad, wenn
 #     er auflöst. Vorher wurde die Zeile gar nicht erkannt → 30 Zeilen blieben ungezählt.
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/mit datei.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/mit datei.md'
 mklines_319 "$TMP_IC/docs/mit datei.md" 30
 ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 0 "$ic_rc" "#319: Import-Zeile mit Leerzeichen im Pfad wird aufgelöst"
@@ -7476,8 +7479,7 @@ assert_contains_286 "$ic_out" "51" "#319: ihre Zeilen zählen mit (21 + 30 = 51)
 
 # 14. Datei ohne Schluss-Newline wird vollständig gezählt (`wc -l` hätte um 1 unterzählt; kein
 #     Gate erzwingt die Schluss-Newline – `.prettierignore` deckt `docs/` und `CLAUDE.md`).
-mklines_319 "$TMP_IC/CLAUDE.md" 20
-printf '@docs/a.md\n' >> "$TMP_IC/CLAUDE.md"
+claude_fixture_319 '@docs/a.md'
 printf 'eins\nzwei\ndrei' > "$TMP_IC/docs/a.md"   # bewusst OHNE \n am Ende
 ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 0 "$ic_rc" "#319: Datei ohne Schluss-Newline → exit 0"
@@ -7508,11 +7510,7 @@ rm -f "$IC_MUT_319"
 TMP_PP319="$(mktemp -d)"
 mkdir -p "$TMP_PP319/scripts/checks"
 cp "$CHECKS_DIR/pre-push.sh" "$CHECKS_DIR/import-context-limit-check.sh" "$TMP_PP319/scripts/checks/"
-git -C "$TMP_PP319" init -q
-git -C "$TMP_PP319" checkout -q -b feature/319-deckel-e2e
-# Lokale Git-Identität explizit: ohne sie scheitert der Commit in einer identitätslosen
-# Umgebung (CI), wo kein globaler Fallback existiert (Lesson aus #265).
-git -C "$TMP_PP319" -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init
+mk_feature_repo "$TMP_PP319" feature/319-deckel-e2e
 run_prepush_319() {  # $1 = Zeilen in CLAUDE.md, $2 = Gate-Skript (Default: das kopierte Original)
   mklines_319 "$TMP_PP319/CLAUDE.md" "$1"
   ( cd "$TMP_PP319" && FACTORY_TEST_COMMAND=true FACTORY_TYPECHECK_COMMAND=true \
@@ -7689,6 +7687,10 @@ assert_absent "$ADR047_FLAT_319" "Reflex\", \`token-efficiency.md\`" \
   "#319: ADR-047 zitiert die YAGNI-Regel nicht bei der falschen Quelle"
 assert_contains_286 "$ADR047_FLAT_319" "OPERATING.md" \
   "#319: ADR-047 nennt OPERATING.md als Quelle der YAGNI-Regel"
+# Und eine im selben PR umgesetzte ADR steht auf `Accepted`, nicht auf `Proposed`
+# (Lesson factory-workflow.md, aus #197 – beim Implementieren mitzuziehen).
+assert_contains_286 "$ADR047_FLAT_319" "## Status Accepted" \
+  "#319: ADR-047 steht auf Accepted (Umsetzung im selben PR)"
 # ─── #319 (/test): Lücken aus der AK-Abdeckungsmatrix ────────────────────────
 echo ""
 echo "#319 AK-Abdeckung (/test):"
@@ -7709,7 +7711,7 @@ rm -f "$IC_AC4_MUT_319"
 # AC5 – „jede geltende Regel bleibt gültig und auffindbar". Die zwei verdichteten Guidelines
 # behalten ihre Regel-Abschnitte; eine spätere, zu eifrige Verdichtung würde sonst unbemerkt
 # eine Regelgruppe kappen (die vorhandenen Tests prüfen nur die drei VERSCHOBENEN Abschnitte).
-ic_has_sections_319() {  # $1 = Datei, $2… = erwartete Abschnitts-Überschriften
+ic_missing_sections_319() {  # $1 = Datei, $2… = erwartete Abschnitts-Überschriften
   local f="$1" fehlend="" titel
   shift
   for titel in "$@"; do
@@ -7719,16 +7721,16 @@ ic_has_sections_319() {  # $1 = Datei, $2… = erwartete Abschnitts-Überschrift
 }
 IC_TDD_319="$FACTORY_ROOT/docs/factory/guidelines/tdd-principles.md"
 IC_TST_319="$FACTORY_ROOT/docs/factory/guidelines/testing-standards.md"
-assert_true "$([ -z "$(ic_has_sections_319 "$IC_TDD_319" \
+assert_true "$([ -z "$(ic_missing_sections_319 "$IC_TDD_319" \
   'Der Zyklus: Red → Green → Refactor' 'Test-Granularität' 'Was TDD nicht bedeutet' 'Wenn TDD schwer fällt')" ]; echo $?)" \
   "#319 AC5: tdd-principles.md trägt nach der Verdichtung alle Regel-Abschnitte"
-assert_true "$([ -z "$(ic_has_sections_319 "$IC_TST_319" \
+assert_true "$([ -z "$(ic_missing_sections_319 "$IC_TST_319" \
   'Test-Aufbau: Arrange-Act-Assert' 'Test-Namen' 'Was testen? Was nicht?' 'Mocking-Regeln' \
   'Test-Isolation' 'Flaky Tests: Zero Tolerance' 'Coverage-Anforderungen')" ]; echo $?)" \
   "#319 AC5: testing-standards.md trägt nach der Verdichtung alle Regel-Abschnitte"
 # Diskriminierungs-Kontrolle: der Helfer meldet eine fehlende Überschrift auch wirklich –
 # sonst wäre die Abwesenheit von Fehlern oben nicht aussagekräftig.
-assert_true "$([ -n "$(ic_has_sections_319 "$IC_TDD_319" 'Ein Abschnitt, den es nicht gibt')" ]; echo $?)" \
+assert_true "$([ -n "$(ic_missing_sections_319 "$IC_TDD_319" 'Ein Abschnitt, den es nicht gibt')" ]; echo $?)" \
   "#319 AC5 (Kontrolle): der Abschnitts-Helfer meldet eine fehlende Überschrift"
 
 # AC8 – „kein Verweis zeigt ins Leere". In dieser Task sind zweimal tote relative Links
@@ -7755,7 +7757,7 @@ assert_true "$([ -n "$(ic_dead_links_319 "$TMP_LNK_319/doc.md")" ]; echo $?)" \
   "#319 AC8 (Kontrolle): ein toter Link wird gemeldet"
 rm -rf "$TMP_LNK_319"
 # Der eigentliche Guard über die Dateien dieses Tasks.
-ic_tote_links_319=""
+ic_dead_links_found_319=""
 for f in CLAUDE.md CONTRIBUTING.md docs/factory/PROJECT-CONTEXT.md docs/factory/OPERATING.md \
          docs/factory/kleinfunde.md docs/factory/lessons/testing.md \
          docs/factory/lessons/code-style.md docs/factory/lessons/frontend-react.md \
@@ -7765,16 +7767,11 @@ for f in CLAUDE.md CONTRIBUTING.md docs/factory/PROJECT-CONTEXT.md docs/factory/
          docs/adr/037-lessons-auslagern-aus-import-kontext.md \
          docs/specs/spec-319-adr-import-kontext-guidelines.md \
          tasks/task-319-adr-import-kontext-guidelines.md tasks/review-319.md; do
-  ic_tote_links_319="$ic_tote_links_319$(ic_dead_links_319 "$FACTORY_ROOT/$f")"
+  ic_dead_links_found_319="$ic_dead_links_found_319$(ic_dead_links_319 "$FACTORY_ROOT/$f")"
 done
-assert_true "$([ -z "$ic_tote_links_319" ]; echo $?)" \
+assert_true "$([ -z "$ic_dead_links_found_319" ]; echo $?)" \
   "#319 AC8: kein toter relativer Link in den Dateien dieses Tasks"
-[ -z "$ic_tote_links_319" ] || printf '%s\n' "$ic_tote_links_319" | sed 's/^/      /'
-
-# ADR-Status: eine im selben PR umgesetzte ADR steht auf `Accepted`, nicht auf `Proposed`
-# (Lesson factory-workflow.md, aus #197 – beim Implementieren mitzuziehen).
-assert_contains_286 "$ADR047_FLAT_319" "## Status Accepted" \
-  "#319: ADR-047 steht auf Accepted (Umsetzung im selben PR)"
+[ -z "$ic_dead_links_found_319" ] || printf '%s\n' "$ic_dead_links_found_319" | sed 's/^/      /'
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
