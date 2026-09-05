@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 @import-Umgang mit den 5 Guidelines-Dateien in `CLAUDE.md` entscheiden **und umsetzen**
@@ -500,6 +500,33 @@ Trigger für `/implement` und `/security-review`. Die zwei generischen Sicherhei
 sind projektspezifisch in `PROJECT-CONTEXT.md` abgedeckt (Zod an jeder Server-Grenze,
 serverseitige Auth-Checks, Secrets nur als Env-Vars, konstante Zeit bei `bcrypt.compare`), das
 bleibt geladen.
+
+## Abschluss-Vermerk
+
+**Zur Checkbox „Review bestanden":** Beide `/review`-Iterationen endeten formal mit
+`NEEDS_REWORK` – ein dritter Lauf mit formalem `APPROVED` hat bewusst **nicht** stattgefunden
+(Auftraggeber-Entscheidung nach Iteration 2: statt einer dritten Runde weiter mit `/test`, weil
+der Circuit Breaker bei drei Iterationen eskaliert und die Iteration-2-Findings durchweg
+Kommentar-Wahrheit, Testschärfe und Doku-Konsistenz betrafen – kein Struktur- oder
+Korrektheitsproblem). Die Checkbox ist auf dieser Grundlage gesetzt, mit der belegbaren Bilanz:
+
+| Iteration | Findings | Stand |
+|-----------|----------|-------|
+| 1 | 3 Kritisch, 12 Wichtig, 18 Nitpicks | alle Kritisch + Wichtig behoben, 17/18 Nitpicks |
+| 2 | 1 Kritisch, 17 Wichtig, 16 Nitpicks | alle Kritisch + Wichtig behoben, 14/16 Nitpicks |
+
+Die vier bewusst offenen Nitpicks sind je im Report begründet (Puffer-Kalibrierung, Anker-Länge
+der Trigger-Assertions, gemeinsamer `mk_prepush_repo`-Helfer – letzterer im `/refactor`-Schritt
+nachgeholt –, `/review`-Trigger im Skill, der den `.claude/**`-Patch-Workflow bräuchte).
+Nachgelagert bestätigt haben den Stand `/test` (4 Abdeckungslücken geschlossen, u. a. war AC4
+praktisch ungetestet), `/refactor` (Suite vor/nach identisch) und `/security-review` (PASSED,
+3 Härtungen).
+
+**Zum Branch-Typ:** Der Branch heißt `feature/319-…`, obwohl der Task kein neues Produktverhalten
+bringt und `improvement/` laut `git-workflow.md`-Tabelle passender wäre (offene Frage der Spec).
+Bewusst **nicht** umbenannt: ein Rename zieht einen neuen PR nach sich und damit den Verlust von
+13 Commits Historie, zwei Review-Reports und einem gepflegten PR-Body – unverhältnismäßig
+gegenüber dem Nutzen einer korrekten Präfix-Klassifizierung. Entscheidung des Auftraggebers.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
