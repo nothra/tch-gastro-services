@@ -38,9 +38,19 @@
 # * Ungewöhnliche Einbettungen (typografische Anführungszeichen, Dekoration hinter dem Pfad ohne
 #   passendes Zeichen in der Trimm-Liste) können ungezählt bleiben. Der Deckel deckt die Formen
 #   ab, die im Repo vorkommen und für die das Ladeverhalten belegt ist – nicht beweisbar jede.
-# * Pfade werden gegen die Projektwurzel aufgelöst, nicht gegen die importierende Datei. Für
-#   Regel 1 ist das fail-closed (falsches Rot), für Regel 2 fail-open (still ungezählt). Heute
+# * Pfade werden gegen die Projektwurzel aufgelöst, nicht gegen die importierende Datei. Heute
 #   ohne Fall, weil keine importierte Datei selbst importiert.
+# * **Confinement:** Ein Kandidat, der aus der Projektwurzel herausführt (absolut oder mit
+#   `..`-Segment), wird abgelehnt – als Referenz-Zeile fail-closed mit Meldung, als Inline-Token
+#   still übergangen. Ein `@import` dieses Repos ist immer wurzelrelativ; ohne die Regel war der
+#   Deckel ein Zeilenzahl-Orakel über beliebige lesbare Dateien der Maschine
+#   (Security-Review zu #319).
+# * **Ausgabe:** Abgeleitete Pfade gehen nie durch `echo -e`, sondern über `printf %s`. Sonst
+#   werden `\033`-Sequenzen aus dem Dateiinhalt zu echten Steuerzeichen und ein präparierter
+#   Pfad kann die Gate-Ausgabe der übrigen Checks überschreiben (Security-Review zu #319).
+# * **Zeilenzahl:** Lässt sie sich nicht ermitteln, ist der Check rot. `$((total + ""))` ist in
+#   bash kein Fehler, sondern `+ 0` – ohne Integer-Guard hätte eine fehlgeschlagene Zählung das
+#   Gate still grün gemacht.
 # * Gezählt werden Zeilen per `awk END{print NR}` – auch eine Datei ohne Schluss-Newline zählt
 #   vollständig (`wc -l` unterzählte sie um 1; ein Gate, das die Schluss-Newline erzwingt, gibt
 #   es nicht: `.prettierignore` deckt `docs/` und `CLAUDE.md`).
@@ -111,7 +121,20 @@ candidates_of() {
         if (trimmed != "" && trimmed != cand) print "T\t" trimmed
       }
     }
-  ' "$1"
+  ' "./$1"
+}
+
+# repo_relative <pfad> – 0, wenn der Pfad innerhalb der Projektwurzel bleibt.
+# Ein `@import` dieses Repos ist immer wurzelrelativ. Ein absoluter Pfad oder ein `..`-Segment
+# ist deshalb entweder ein Fehler – oder der Weg, den Deckel als Zeilenzahl-Orakel über beliebige
+# lesbare Dateien der Maschine zu missbrauchen (`@/etc/passwd` zählte vorher mit und erschien in
+# der Beiträger-Liste; Security-Review zu #319).
+repo_relative() {
+  case "$1" in
+    /*) return 1 ;;
+    ..|../*|*/../*|*/..) return 1 ;;
+    *) return 0 ;;
+  esac
 }
 
 # enqueue_refs_of <datei> – hängt die Referenzen der Datei an die Worklist `pending` an.
@@ -124,8 +147,17 @@ enqueue_refs_of() {
   while IFS="$(printf '\t')" read -r kind cand; do
     [ -n "${cand:-}" ] || continue
     case "$kind" in
-      S) pending="${pending:+$pending$NL}$cand" ;;
-      T) [ -f "$cand" ] && [ -r "$cand" ] && pending="${pending:+$pending$NL}$cand" ;;
+      S)
+        if repo_relative "$cand"; then
+          pending="${pending:+$pending$NL}$cand"
+        else
+          printf '%b %s\n' "${RED}✗${NC} import-context-limit-check:" \
+            "Referenz außerhalb der Projektwurzel: $cand (fail-closed)"
+          failed=1
+        fi
+        ;;
+      T) repo_relative "$cand" && [ -f "$cand" ] && [ -r "$cand" ] &&
+           pending="${pending:+$pending$NL}$cand" ;;
     esac
   done <<CANDIDATES
 $(candidates_of "$1")
@@ -154,12 +186,21 @@ while [ -n "$pending" ]; do
   seen="$seen$NL$rel"
 
   if [ ! -f "$rel" ] || [ ! -r "$rel" ]; then
-    echo -e "${RED}✗${NC} import-context-limit-check: referenzierte Datei nicht lesbar: $rel (fail-closed)"
+    printf '%b %s\n' "${RED}✗${NC} import-context-limit-check:" \
+      "referenzierte Datei nicht lesbar: $rel (fail-closed)"
     failed=1
     continue
   fi
 
-  lines="$(awk 'END { print NR }' "$rel")"
+  lines="$(awk 'END { print NR }' "./$rel" 2>/dev/null)" || lines=""
+  case "$lines" in
+    ''|*[!0-9]*)
+      printf '%b %s\n' "${RED}✗${NC} import-context-limit-check:" \
+        "Zeilenzahl nicht ermittelbar: $rel (fail-closed)"
+      failed=1
+      continue
+      ;;
+  esac
   total=$((total + lines))
   breakdown="$breakdown$(printf '%6d  %s' "$lines" "$rel")$NL"
 
@@ -167,7 +208,8 @@ while [ -n "$pending" ]; do
 done
 
 if [ "$failed" -eq 1 ]; then
-  echo "     Beheben: Referenz in CLAUDE.md (bzw. der importierenden Datei) korrigieren oder entfernen."
+  echo "     Beheben: die oben genannte Ursache beseitigen – Referenz korrigieren oder entfernen,"
+  echo "     bzw. das Zählwerkzeug (awk) prüfen. Bis dahin bleibt der Deckel fail-closed."
   exit 1
 fi
 

@@ -133,6 +133,13 @@ alle `@`-eingebundenen Dateien) auf eine Obergrenze:
   Puffer muss legitime Regel-Ergänzungen tragen, ohne den nächsten Wildwuchs zu decken.
 - **Fail-closed:** Ist eine `@`-referenzierte Datei nicht lesbar, ist der Check rot (nicht
   „überspringen") – sonst umgeht eine Umbenennung den Deckel lautlos.
+- **Fail-closed heißt auch: nicht messbar ist rot.** Lässt sich die Zeilenzahl einer Datei nicht
+  ermitteln, ist der Check rot statt still grün, und ein Kandidat, der aus der Projektwurzel
+  herausführt (absolut oder `..`), wird abgelehnt statt gezählt. Beides ist Ergebnis der
+  Security-Review zu #319: ohne den Integer-Guard machte `$((total + ""))` das Gate lautlos grün,
+  und ohne das Confinement war es ein Zeilenzahl-Orakel über beliebige lesbare Dateien der
+  Maschine. Abgeleitete Pfade gehen zudem nie durch `echo -e`, damit ein präparierter Pfad die
+  Ausgabe der übrigen Push-Checks nicht überschreiben kann.
 - **Ort: `pre-push`, plus ein schwaches CI-Bein.** Der Hook ist lokales Feedback und mit
   `--no-verify` umgehbar. Server-seitig läuft der Check heute nur über **eine Assertion** in der
   Self-Test-Suite (`run-tests.sh`, erster Test des #319-Blocks) gegen den echten Repo-Stand, die

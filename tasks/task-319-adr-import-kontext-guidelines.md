@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [ ] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -96,7 +96,7 @@ angepasst werden muss, `tasks/patch-319.diff` + Human-Apply.
 **Reihenfolge:** Doku-Umstellung zuerst (der Ist-Stand danach ist die Grundlage der
 Deckel-Konstante), dann TDD für den Check: Test-Block in `run-tests.sh` → RED (19 rot, alle
 skript-abhängig) → `import-context-limit-check.sh` + `pre-push.sh`-Verdrahtung → GREEN
-(am Ende der Rework-Runden 1421 grün, nach den `/test`-Ergänzungen 1430 grün, 0 rot).
+(Rework-Runden 1421 grün, nach `/test` 1430, nach `/security-review` 1444 grün, 0 rot).
 
 ### AC7 – @import-Stand vorher/nachher (gemessen im Worktree)
 
@@ -174,7 +174,7 @@ unter „Rework-Notizen" und im Skript-Header.
 
 `pnpm lint`/`pnpm typecheck`/`pnpm test` (Vitest) sind unberührt: die Änderung besteht aus
 Markdown und zwei Bash-Skripten, kein TypeScript. Gelaufen ist die zuständige Suite
-`scripts/checks/tests/run-tests.sh` (Endstand nach `/test`: 1430 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
+`scripts/checks/tests/run-tests.sh` (Endstand: 1444 grün, 0 rot) plus `bash -n` für beide Skripte. Keine
 UI-Berührung → keine Oberflächentests.
 
 ## Rework-Notizen (Runde 1 nach `/review`)
@@ -457,6 +457,49 @@ Kontrakt der zwei Erkennungsregeln samt Restgrenzen, den zwei Review-Iterationen
 haben; die S/T-Marker (ein Zeichen, an beiden Stellen dokumentiert, keine Duplikation); und die
 Byte-Schwellen der Migrations-Guards (Herleitung steht im Kommentar darüber, je einmal verwendet –
 eine benannte Konstante wäre Indirektion ohne Gewinn).
+
+## /security-review-Notizen
+
+Report: [`tasks/security-319.md`](security-319.md) – **PASSED**, keine kritischen Findings.
+
+**Der OWASP-Standardkatalog trifft hier nicht** (kein Produktcode, keine Route, kein Data-Layer,
+keine Dependency). Die reale Fläche ist, dass der neue Check **Repo-Inhalte interpretiert**: er
+leitet aus `@`-Token Dateipfade ab, öffnet sie und gibt sie aus. Drei Schwächen darin – alle in
+diesem Schritt behoben, jede mit Testfall:
+
+1. **Fail-open bei nicht ermittelbarer Zeilenzahl.** `$((total + ""))` ist in bash kein Fehler,
+   sondern `+ 0`: schlug die Zählung fehl, meldete das Gate „✓ 0 von 1100" und Exit 0, obwohl der
+   Kontext die Grenze riss. Ein Gate, das Fail-closed **zusichert**, darf das nicht. Integer-Guard
+   ergänzt (`clean-code.md` verlangt ihn für genau diesen Fall).
+2. **Kein Pfad-Confinement.** `@/etc/passwd` wurde gezählt (143 Zeilen, exit 0) und erschien
+   namentlich in der Beiträger-Liste – ein Zeilenzahl-Orakel über beliebige lesbare Dateien der
+   Maschine, Symlinks inklusive. `repo_relative()` lehnt jetzt absolute Pfade und `..`-Segmente
+   ab: als Referenz-Zeile fail-closed, als Inline-Token still übergangen (sonst blockierte eine
+   Prosa-Erwähnung den Push).
+3. **Terminal-Injection über die Ausgabe.** `echo -e` verwandelte `\033`-Sequenzen **aus dem
+   Dateiinhalt** in echte ESC-Bytes; ein Token wie `@x\033[2J\033[32mGATE-OK` löschte den
+   Bildschirm und legte grünen Wunschtext über die Ergebnisse der Checks 1–5. Der Exit-Code war
+   nie betroffen – die Täuschung zielte auf den Menschen oder Agenten, der die Push-Ausgabe liest.
+   Jetzt `printf '%b %s'`: Farbe interpretiert, Pfad literal.
+
+Als Nebeneffekt von (2) ist auch die Argument-Injection-Fläche (`@-v` als awk-Option) geschlossen;
+der naheliegende Fix `awk … --` wäre falsch gewesen – BSD-awk meldet dafür `can't open file --`,
+portabel ist das `./`-Präfix.
+
+**Keiner der Funde geht über das Grundrisiko hinaus** („wer committen darf, kann alles ändern"),
+deshalb kein Blocker. Behoben wurden sie, weil das Gate Eigenschaften zusichert, die es nicht
+hielt – und weil ADR §4 diese Zusicherung jetzt trägt statt sie zu behaupten.
+
+**Eine Teilbehauptung des Security-Agenten war falsch** und ist im Report korrigiert: er meldete,
+eine nicht-numerische Zeilenzahl breche unter `set -u` mit Exit **0** ab. Nachgestellt ergibt der
+Fall `rc=127`, also rot. Nur die Leerstring-Variante war fail-open. Zweiter Beleg dafür, dass die
+Eigenprüfung jeder Agenten-Behauptung (Lesson #314) kein Ritual ist.
+
+Ohne Handlungsbedarf, aber vermerkt: `architecture-principles.md` verlässt den Dauerkontext ohne
+Trigger für `/implement` und `/security-review`. Die zwei generischen Sicherheitsregeln der Datei
+sind projektspezifisch in `PROJECT-CONTEXT.md` abgedeckt (Zod an jeder Server-Grenze,
+serverseitige Auth-Checks, Secrets nur als Env-Vars, konstante Zeit bei `bcrypt.compare`), das
+bleibt geladen.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

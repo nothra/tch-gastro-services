@@ -7690,7 +7690,73 @@ assert_contains_286 "$ADR047_FLAT_319" "OPERATING.md" \
 # Und eine im selben PR umgesetzte ADR steht auf `Accepted`, nicht auf `Proposed`
 # (Lesson factory-workflow.md, aus #197 – beim Implementieren mitzuziehen).
 assert_contains_286 "$ADR047_FLAT_319" "## Status Accepted" \
-  "#319: ADR-047 steht auf Accepted (Umsetzung im selben PR)"
+  "#319: ADR-047 steht auf Accepted (Umsetzung im selben PR)"# ─── #319 (/security-review): Härtung des Gates gegen präparierte Referenzen ──
+echo ""
+echo "#319 Gate-Härtung (/security-review):"
+
+TMP_SEC319="$(mktemp -d)"
+mkdir -p "$TMP_SEC319/fx"
+sec319() { FACTORY_DIR="$TMP_SEC319/fx" bash "$IMPORT_CHECK" 2>&1; }
+
+# S1 – Fail-open bei nicht ermittelbarer Zeilenzahl. `$((total + ""))` ist in bash KEIN Fehler,
+# sondern `+ 0`: schlug die Zählung fehl, meldete das Gate „0 von 1100" und exit 0, obwohl der
+# Kontext die Grenze reißt. clean-code.md verlangt für genau das einen Integer-Guard vor der
+# Arithmetik („fail-closed – im Zweifel ablehnen, nie still durchwinken").
+seq 1 20 > "$TMP_SEC319/fx/CLAUDE.md"
+printf '@big.md\n' >> "$TMP_SEC319/fx/CLAUDE.md"
+seq 1 2000 > "$TMP_SEC319/fx/big.md"
+sec319 >/dev/null 2>&1
+assert_exit 1 "$?" "#319 S1 (Kontrolle): der Fixture ist ohne Manipulation rot"
+mkdir -p "$TMP_SEC319/stub"
+printf '#!/bin/sh\nexit 1\n' > "$TMP_SEC319/stub/awk"
+chmod +x "$TMP_SEC319/stub/awk"
+sec_out="$(PATH="$TMP_SEC319/stub:$PATH" FACTORY_DIR="$TMP_SEC319/fx" bash "$IMPORT_CHECK" 2>&1)"
+sec_rc=$?
+assert_exit 1 "$sec_rc" "#319 S1: nicht ermittelbare Zeilenzahl → exit 1 (fail-closed statt still grün)"
+assert_absent "$sec_out" "0 von" "#319 S1: meldet keine Summe 0, die eine Freigabe vortäuscht"
+rm -rf "$TMP_SEC319/stub"
+
+# S2 – Pfad-Confinement. Eine Referenz-Zeile, die aus der Projektwurzel herausführt, ist kein
+# @import dieses Repos: absolute Pfade und `..`-Segmente werden abgelehnt statt gezählt. Ohne
+# das war der Check ein Zeilenzahl-Orakel über beliebige lesbare Dateien der Maschine
+# (`@/etc/passwd` → „143 von 1100", exit 0).
+for sec_pfad in '/etc/passwd' '../ausserhalb.md' 'unter/../../ausserhalb.md'; do
+  seq 1 20 > "$TMP_SEC319/fx/CLAUDE.md"
+  printf '@%s\n' "$sec_pfad" >> "$TMP_SEC319/fx/CLAUDE.md"
+  sec_out="$(sec319)"; sec_rc=$?
+  assert_exit 1 "$sec_rc" "#319 S2: Referenz außerhalb der Projektwurzel → exit 1 ($sec_pfad)"
+  assert_contains_286 "$sec_out" "außerhalb der Projektwurzel" \
+    "#319 S2: nennt den Grund der Ablehnung ($sec_pfad)"
+done
+# Gegenprobe: ein normaler wurzelrelativer Pfad bleibt unberührt zulässig.
+seq 1 20 > "$TMP_SEC319/fx/CLAUDE.md"
+printf '@unter/normal.md\n' >> "$TMP_SEC319/fx/CLAUDE.md"
+mkdir -p "$TMP_SEC319/fx/unter"
+seq 1 5 > "$TMP_SEC319/fx/unter/normal.md"
+sec319 >/dev/null 2>&1
+assert_exit 0 "$?" "#319 S2 (Gegenprobe): ein wurzelrelativer Pfad bleibt zulässig"
+# Inline-Token außerhalb der Wurzel werden still übergangen (wie jedes nicht auflösende Token) –
+# sonst würde eine Prosa-Erwähnung wie „@/etc/hosts" den Push blockieren.
+seq 1 20 > "$TMP_SEC319/fx/CLAUDE.md"
+printf 'Beispielhaft erwähnt: @/etc/passwd im Fließtext.\n' >> "$TMP_SEC319/fx/CLAUDE.md"
+sec_out="$(sec319)"; sec_rc=$?
+assert_exit 0 "$sec_rc" "#319 S2: Inline-Token außerhalb der Wurzel blockiert nicht"
+assert_absent "$sec_out" "passwd" "#319 S2: und wird auch nicht gezählt oder gemeldet"
+
+# S3 – Keine Terminal-/Log-Injection über den Pfad. `echo -e` interpretierte `\033`-Sequenzen aus
+# dem Dateiinhalt und schrieb echte ESC-Bytes in die Gate-Ausgabe: ein präparierter Pfad konnte
+# den Bildschirm löschen und ein grünes „alles ok" über die Ergebnisse der anderen Checks legen.
+# Der Exit-Code war nie betroffen – die Täuschung zielte auf den Menschen (oder den Agenten),
+# der die Push-Ausgabe liest.
+seq 1 20 > "$TMP_SEC319/fx/CLAUDE.md"
+printf '@x\\033[2J\\033[32mGATE-OK\n' >> "$TMP_SEC319/fx/CLAUDE.md"
+sec_out="$(sec319)"
+assert_contains_286 "$sec_out" 'x\033[2J' "#319 S3: die Escape-Sequenz bleibt literal in der Ausgabe"
+printf '%s' "$sec_out" | LC_ALL=C grep -q "$(printf '\033')\[2J"
+assert_true "$([ $? -ne 0 ]; echo $?)" "#319 S3: kein echtes ESC-Byte aus dem Pfad in der Ausgabe"
+
+rm -rf "$TMP_SEC319"
+
 # ─── #319 (/test): Lücken aus der AK-Abdeckungsmatrix ────────────────────────
 echo ""
 echo "#319 AK-Abdeckung (/test):"
