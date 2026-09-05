@@ -528,6 +528,19 @@ Bewusst **nicht** umbenannt: ein Rename zieht einen neuen PR nach sich und damit
 13 Commits Historie, zwei Review-Reports und einem gepflegten PR-Body – unverhältnismäßig
 gegenüber dem Nutzen einer korrekten Präfix-Klassifizierung. Entscheidung des Auftraggebers.
 
+## PR-Shepherd
+
+**PR-Shepherd 2026-09-05: Merge freigegeben – alle Gates grün.**
+
+- Offene Review-Kommentare: keine (nur der automatische Vercel-Preview-Kommentar).
+- Rebase: nicht nötig – der Branch sitzt bereits auf der aktuellen `origin/main`
+  (`git log HEAD..origin/main` leer), kein `gh pr update-branch` erforderlich.
+- Approvals: `required_approving_review_count: 0` im Ruleset `protect-main` (ADR-029) –
+  am Ruleset verifiziert, nicht angenommen; das leere `reviewDecision` ist der Sollzustand.
+- Required Checks: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`,
+  `config-validation`.
+- Merge-Methode: `squash` (einzige im Ruleset erlaubte).
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 Alle drei durch [ADR-047](../docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md)
