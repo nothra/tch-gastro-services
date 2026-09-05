@@ -221,7 +221,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Orphan-sichere Joins: Snapshot-Referenz kann verschwinden, auch wenn die Business-Entity bleibt (aus #53, Review-Finding K1)
 - Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
 
-**[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test` beim Testschreiben/Coverage
+**[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test`, `/review` beim Testschreiben/Coverage
 
 - Vitest + Testing Library ohne `globals: true` (aus #48)
 - Guard-Clause-Branches in Server Actions brauchen dedizierte Tests (aus #51, Review-Finding)
@@ -252,6 +252,12 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Zähl-Assertion in einem per `awk` extrahierten Funktionsrumpf: das Label darf nur behaupten, was das Extraktionsfenster abdeckt – ruft die als isoliert behandelte Funktion denselben Wert über eine externe Hilfsfunktion außerhalb des Fensters erneut ab, gehört das explizit ins Label, sonst übernimmt eine spätere Review-Runde die falsche Zusammenfassung ungeprüft (aus #312, Review-Runde-3-Finding W1)
 - Neuer EXIT-Trap/Hook, der ein externes CLI aufruft, aus einem von mehreren bestehenden echten Pipeline-Tests geteilten Scaffold heraus: Stub fürs CLI ins Scaffold selbst legen, nicht auf ambientes Fail-Fast der Testmaschine verlassen (aus #314, Review-Runde-2-Finding)
 - Zeilen-Gap-Assertion auf deterministischem Output: Ist-Wert exakt prüfen (`-eq`), keine unbegründete Toleranz (`-ge`/`-le`) ohne Kommentar zur Variabilitätsquelle (aus #322, Review-Runde-2-Finding)
+- Exhaustiveness-Guard (`never`-Check) braucht einen eigenen Test – Zweig per Type-Cast erzwingen (verschoben aus `testing-standards.md`, #319)
+- Mock-Default `mockResolvedValue([])` verdeckt den Mapping-Lambda – mind. ein Test mit befülltem Array (verschoben aus `testing-standards.md`, #319)
+- Coverage-Ausgabe nur in `.gitignore`-abgedeckte Pfade (`coverage/`, `.coverage-tmp<id>/`) – ADR-040 (verschoben aus `testing-standards.md`, #319)
+- Fail-closed-Zusicherung eines Gates braucht einen Test, der die **Messung** bricht (Stub im `PATH`), nicht nur den Input – zwölf grüne Input-Tests sahen den fail-open-Fall nicht (aus #319, Security-Review-Finding)
+- Content-Scan-Guard, dessen Suchphrase als Literal in der gescannten Datei steht, ist immer rot – Phrase zur Laufzeit zusammensetzen (aus #319, /implement-Selbstfund)
+- Anker, der mit `-` beginnt, macht `assert_contains_286`/`assert_absent` still falsch (`grep` liest ihn als Option) – erster Blick bei unerklärlichem Rot (aus #319, dritter Fall derselben Regel im selben PR)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -276,6 +282,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - „Empirisch verifiziert" im Kommentar ohne tatsächliche Prüfung in dieser Session – Rezidiv an anderer Stelle trotz Fix, plus Versionsangabe unbemerkt auf 7 Stellen kopiert (aus #268, Review-Runde 2 W3 + Runde 4 W1)
 - JSDoc auf einem geteilten Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten mit abweichendem Wert – gleiches Muster an einem Nachbarfeld derselben Struktur übersehen (aus #182, Review-Runde 1 W2 + Runde 2 Nitpick 1)
 - TL;DR-Merksatz über einem umformulierten Detail-Absatz im selben Abschnitt nicht mitgezogen – Widerspruch existiert rein innerhalb der eigenen, im selben PR neu verfassten Prosa, keine externe Referenz nötig, um ihn zu finden (aus #322, Review-Runde-3-Finding)
+- „X erzwingt Y" ist eine überprüfbare Tatsachenbehauptung über fremden Code – vor dem Schreiben den Enforcer öffnen (wo verdrahtet? was lehnt er ab?); dreimal falsch im selben PR, einmal gegen Information aus derselben Session (aus #319)
+- Massen-Ersetzung beim Extrahieren eines Helfers trifft auch dessen eigenen Rumpf → Selbstrekursion; „null verbliebene Vorkommen" ist das Warnzeichen, nicht der Erfolg (aus #319, /refactor-Selbstfund)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
 
@@ -325,6 +333,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - AK mit Pflichtinhalt in der PR-Beschreibung selbst (nicht in einer Repo-Datei) wird vom Standard-Draft-Body aus `start-work.sh` nicht automatisch erfüllt – kein Commit-Schritt zieht ihn nach, erst `/review` deckt die Lücke per `gh pr view --json body` auf; Inhalt per `gh pr edit <nr> --body "..."` explizit nachziehen, spätestens vor `/review` (aus #233, Review-Runde-1-Finding) → `/implement`, `/review` – bei einem Spec-AK, das Inhalt in der PR-Beschreibung selbst fordert
 - Content-scannender Anti-Regressions-Guard (`grep -r` über ein ganzes Verzeichnis, nicht nur Wiring-Anker) ist blind für Tracked-Status – ein gitignoretes `*.tmp.*`-Scratch-Artefakt aus einer vorherigen Session kann das verbotene Muster rein textuell enthalten (auch als Log-Zeile einer bestandenen Assertion); bei unerwartetem Rot zuerst `git status --ignored` prüfen, nicht den Guard abschwächen (aus #312, zweimal in derselben Task) → `/review`, `/test`, `/refactor`, `/security-review` – bei unerwartetem Rot eines verzeichnisweiten Content-Scan-Guards in `run-tests.sh` trotz sauberem `git status`
 - Ein von einem Review-Report vorformulierter Fix-Text trägt die Deixis seiner eigenen Perspektive mit („diese Spec selbst" im Report meinte die besprochene Spec) – wörtlich in eine andere Zieldatei (Guideline) übernommen, verliert der Verweis sein Antezedens und geht ins Leere (aus #315, Review-Runde-5-Finding) → `/implement`, `/review` – beim wörtlichen Übernehmen eines Fix-Vorschlags aus einem Review-/Security-/Codify-Report in eine andere Zieldatei
+- Neues Gate verankern: prüfen, ob eine ADR den Ort für Gates dieser Klasse schon entschieden hat – ADR-047 wiederholte die von ADR-041 bereits verworfene „einzelne Testzeile als CI-Arm"-Konstruktion, ohne sie zu erwähnen (aus #319, Review-Runde-3-Finding) → `/architecture`, `/implement`, `/review` – bei neuem Check-Skript, Hook-Verdrahtung oder CI-Job
 
 ---
 
