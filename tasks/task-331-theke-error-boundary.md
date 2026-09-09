@@ -92,11 +92,10 @@ exception has occurred" statt einer Inline-Fehlermeldung.
    Action-Fehlers vs. Boundary-Fall).
 5. `docs/adr/048-rate-limit-theke-leseroute.md` D4 – Asymmetrie HTML/Klartext nachgezogen.
 
-## Codify-Notizen
-- Muster für `/codify`: eine Proxy-/Middleware-Antwort auf einen Server-Action-Aufruf muss das
-  Next.js-Action-Antwortprotokoll einhalten (bekannter Content-Type oder Redirect-Header) – ein
-  früher Gate-/Drossel-Zweig, der davor sitzt, kann dieses Protokoll sonst brechen, ohne dass ein
-  Test das sieht, der nur den regulären Action-Erfolgspfad prüft.
+Hinweis für `/codify`: Das auslösende Muster – ein früher Gate-/Drossel-Zweig vor einer
+Server-Action-Route muss deren Antwortprotokoll einhalten, sonst globaler Client-Crash statt
+Inline-Fehler – ist bereits als Lesson aus #297 indexiert
+(`docs/factory/PROJECT-CONTEXT.md` → `lessons/next-auth.md`, Issue #331 dort schon verlinkt).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
