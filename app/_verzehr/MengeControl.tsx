@@ -6,9 +6,13 @@ import type { VerzehrFormAction } from "./types";
 // Strichlisten-Steuerung einer (Zeile, Katalogartikel)-Position: −1 / Menge / +1. Der Client
 // sendet ein Delta (±1), nie ein absolutes `menge` (ADR-025 D3). Die angezeigte Menge ist die
 // server-autoritative Prop – nach jedem Erfassen frisch via `revalidatePath` (ADR-025 D4), also
-// keine optimistische Drift. Schlägt die Action fehl, bleibt die alte Menge stehen und der
-// Fehler wird sichtbar (FS3). Kein `useEffect` – Fehler kommen aus dem useActionState-State
-// (Codify #49).
+// keine optimistische Drift. Schlägt die Action mit einem regulären `VerzehrActionState.error`
+// fehl (z. B. ADR-044-Drossel), bleibt die alte Menge stehen und der Fehler wird inline sichtbar
+// (FS3). Kein `useEffect` – Fehler kommen aus dem useActionState-State (Codify #49). Das gilt nur
+// für Action-Fehlerzustände innerhalb des Server-Action-Protokolls: Eine Proxy-Antwort außerhalb
+// dieses Protokolls (429-Klartext bei erschöpftem Schreib-Budget, ADR-048 D5) oder ein
+// Netz-/Offline-Fehler wirft während des Renderns weiter und läuft nicht über diesen State –
+// dafür fängt `app/theke/[token]/error.tsx` die Theken-Route (#331).
 export function MengeControl({
   action,
   zeileId,

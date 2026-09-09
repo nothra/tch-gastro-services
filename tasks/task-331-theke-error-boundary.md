@@ -1,7 +1,7 @@
 # Task 331: theke-error-boundary
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -31,23 +31,23 @@ Nicht im Scope: app-weite Boundary, Logging des Drosselns (Kleinfund), Änderung
 `not-found.tsx`, Anzeige von `error.message`/`error.digest`.
 
 ## Akzeptanzkriterien
-- [ ] AK-1 Boundary fängt den Absturz: GIVEN Schreib-Budget erschöpft WHEN +/− gedrückt THEN eigene Fehlerfläche statt „Application error: a client-side exception has occurred"
-- [ ] AK-2 Erholung ohne Reload: GIVEN Fehlerfläche sichtbar WHEN „Erneut versuchen" gedrückt THEN `reset()` wird aufgerufen
-- [ ] AK-3 Kein fremdbestimmter Text: GIVEN beliebiger Fehler THEN weder `error.message` noch `error.digest` in der Ausgabe
-- [ ] AK-4 Action-POST bekommt Klartext: GIVEN Schreib-Budget erschöpft WHEN Anfrage mit `Next-Action`-Header gedrosselt THEN 429 mit `content-type` exakt `text/plain` (kein `; charset=utf-8` – strikter Vergleich in `server-action-reducer.js:117`) + kurzer Body
-- [ ] AK-5 Lesepfad bleibt HTML: GIVEN Lese-Budget erschöpft WHEN Anfrage ohne Action-Ausweis gedrosselt THEN weiterhin `text/html; charset=utf-8` (beide Richtungen assertieren, Lesson #211)
-- [ ] AK-6 Header beider Varianten: GIVEN gedrosselte Antwort (Lese- oder Schreibpfad) THEN `retry-after` = Fensterlänge in Sekunden + `cache-control: no-store`
-- [ ] AK-7 Eine Quelle für die Fensterlänge: GIVEN Klartext nennt eine Wartezeit THEN aus `THEKE_RATE_LIMIT_WINDOW_MS` abgeleitet, kein zweites `60`-Literal
-- [ ] AK-8 Kommentar-Zusicherung präzisiert: GIVEN Modul-Kommentar `MengeControl.tsx` THEN Geltungsbereich = Action-Fehlerzustände, Proxy-Antwort außerhalb des Protokolls → Boundary
-- [ ] AK-9 ADR-048 D4 nachgezogen: GIVEN Action-Zweig liefert Klartext THEN beschreibt D4 die Asymmetrie samt Begründung
-- [ ] AK-10 Kein Routen-Doku-Drift: GIVEN `error.tsx` hinzugefügt THEN `docs/routes.md` unverändert und `routes-doc-check.sh` grün
+- [x] AK-1 Boundary fängt den Absturz: GIVEN Schreib-Budget erschöpft WHEN +/− gedrückt THEN eigene Fehlerfläche statt „Application error: a client-side exception has occurred"
+- [x] AK-2 Erholung ohne Reload: GIVEN Fehlerfläche sichtbar WHEN „Erneut versuchen" gedrückt THEN `reset()` wird aufgerufen
+- [x] AK-3 Kein fremdbestimmter Text: GIVEN beliebiger Fehler THEN weder `error.message` noch `error.digest` in der Ausgabe
+- [x] AK-4 Action-POST bekommt Klartext: GIVEN Schreib-Budget erschöpft WHEN Anfrage mit `Next-Action`-Header gedrosselt THEN 429 mit `content-type` exakt `text/plain` (kein `; charset=utf-8` – strikter Vergleich in `server-action-reducer.js:117`) + kurzer Body
+- [x] AK-5 Lesepfad bleibt HTML: GIVEN Lese-Budget erschöpft WHEN Anfrage ohne Action-Ausweis gedrosselt THEN weiterhin `text/html; charset=utf-8` (beide Richtungen assertieren, Lesson #211)
+- [x] AK-6 Header beider Varianten: GIVEN gedrosselte Antwort (Lese- oder Schreibpfad) THEN `retry-after` = Fensterlänge in Sekunden + `cache-control: no-store`
+- [x] AK-7 Eine Quelle für die Fensterlänge: GIVEN Klartext nennt eine Wartezeit THEN aus `THEKE_RATE_LIMIT_WINDOW_MS` abgeleitet, kein zweites `60`-Literal
+- [x] AK-8 Kommentar-Zusicherung präzisiert: GIVEN Modul-Kommentar `MengeControl.tsx` THEN Geltungsbereich = Action-Fehlerzustände, Proxy-Antwort außerhalb des Protokolls → Boundary
+- [x] AK-9 ADR-048 D4 nachgezogen: GIVEN Action-Zweig liefert Klartext THEN beschreibt D4 die Asymmetrie samt Begründung
+- [x] AK-10 Kein Routen-Doku-Drift: GIVEN `error.tsx` hinzugefügt THEN `docs/routes.md` unverändert und `routes-doc-check.sh` grün
 
 ## Fehlerszenarien
-- [ ] FS-1 Offline-Fall mit abgedeckt: GIVEN kein Netz WHEN Action abgeschickt THEN Fehlerfläche statt Absturz
-- [ ] FS-2 Kein Enumerations-Leak durch den Klartext: GIVEN gültiges vs. erfundenes Segment THEN Antworten ununterscheidbar
-- [ ] FS-3 Kein Endlos-Absturz: GIVEN Budget nach `reset()` noch erschöpft WHEN erneut gedrückt THEN wieder Fehlerfläche, keine Schleife
-- [ ] FS-4 `notFound()` läuft nicht über die Boundary: GIVEN unbekanntes Token THEN neutrale Not-Found-Antwort
-- [ ] FS-5 Boundary ist nicht selbst die Fehlerquelle: GIVEN `error.tsx` THEN `"use client"`, kein Server-only-Import, kein DB-Zugriff, unabhängig von den Seiten-Props
+- [x] FS-1 Offline-Fall mit abgedeckt: GIVEN kein Netz WHEN Action abgeschickt THEN Fehlerfläche statt Absturz
+- [x] FS-2 Kein Enumerations-Leak durch den Klartext: GIVEN gültiges vs. erfundenes Segment THEN Antworten ununterscheidbar
+- [x] FS-3 Kein Endlos-Absturz: GIVEN Budget nach `reset()` noch erschöpft WHEN erneut gedrückt THEN wieder Fehlerfläche, keine Schleife
+- [x] FS-4 `notFound()` läuft nicht über die Boundary: GIVEN unbekanntes Token THEN neutrale Not-Found-Antwort
+- [x] FS-5 Boundary ist nicht selbst die Fehlerquelle: GIVEN `error.tsx` THEN `"use client"`, kein Server-only-Import, kein DB-Zugriff, unabhängig von den Seiten-Props
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -63,11 +63,40 @@ Verifizierte Grundlagen (an den installierten Versionen nachgelesen, `next@16.2.
 - `routes-doc-check.sh:42` – der Drift-Check scannt nur `page.tsx`/`route.ts`
 
 ## Offene Fragen
-- [ ] OF-1 Ort der Klartext-Antwort: zweiter Export in `lib/theke-throttle-response.ts` (dann
-      Modul-Header dort mitpflegen – er behauptet heute „Lese-Anfragen" und „nimmt kein Argument")
-      oder eigenes Modul. Bedingung: `RETRY_AFTER_SECONDS` bleibt eine Quelle (AK-7)
-- [ ] OF-2 Wortlaut von Fehlerfläche und Klartext-Body – deutsch, freundlich, keine 429-Spezifika
-      in der Fehlerfläche (sie trägt auch FS-1)
+- [x] OF-1 Ort der Klartext-Antwort: **zweiter Export** `tooManyRequestsPlainTextResponse()` in
+      `lib/theke-throttle-response.ts` – Modul-Header aktualisiert, `RETRY_AFTER_SECONDS` bleibt
+      die einzige Quelle für beide Antworten.
+- [x] OF-2 Wortlaut: deutsch, freundlich, ohne 429-Spezifika in der Fehlerfläche
+      („Da ist etwas schiefgelaufen" + „Erneut versuchen"); der Klartext-Body nennt Sekunden aus
+      `THEKE_RATE_LIMIT_WINDOW_MS`, ohne Token/Veranstaltung.
+
+## Root Cause [2026-09-09]
+
+`proxy.ts` (isServerActionRequest-Zweig) – die 429-Antwort für einen gedrosselten Server-Action-
+`POST` war identisch zur Lese-Antwort (HTML). `server-action-reducer.js:113/117` (next@16.2.12)
+akzeptiert als gültige Action-Antwort nur `text/x-component`/`x-action-redirect` oder Klartext mit
+EXAKT `content-type: text/plain`; alles andere führt zu `throw` während des Renderns
+(`useThenable`, react-dom-client). Da im gesamten `app/`-Baum keine Error-Boundary existierte,
+lief die Exception bis in Next' Default-`GlobalError` und zeigte „Application error: a client-side
+exception has occurred" statt einer Inline-Fehlermeldung.
+
+## Fix
+
+1. `app/theke/[token]/error.tsx` (neu) – Client-Error-Boundary, fester Text + `reset()`-Knopf.
+2. `lib/theke-throttle-response.ts` – neuer Export `tooManyRequestsPlainTextResponse()`
+   (429, `content-type: text/plain`, gleiche `retry-after`/`cache-control` wie die HTML-Variante).
+3. `proxy.ts` – der Server-Action-Zweig liefert bei erschöpftem Budget jetzt
+   `tooManyRequestsPlainTextResponse()` statt `tooManyRequestsResponse()`; der Lesepfad bleibt
+   unverändert bei HTML.
+4. `app/_verzehr/MengeControl.tsx` – Modul-Kommentar präzisiert (Geltungsbereich des sichtbaren
+   Action-Fehlers vs. Boundary-Fall).
+5. `docs/adr/048-rate-limit-theke-leseroute.md` D4 – Asymmetrie HTML/Klartext nachgezogen.
+
+## Codify-Notizen
+- Muster für `/codify`: eine Proxy-/Middleware-Antwort auf einen Server-Action-Aufruf muss das
+  Next.js-Action-Antwortprotokoll einhalten (bekannter Content-Type oder Redirect-Header) – ein
+  früher Gate-/Drossel-Zweig, der davor sitzt, kann dieses Protokoll sonst brechen, ohne dass ein
+  Test das sieht, der nur den regulären Action-Erfolgspfad prüft.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

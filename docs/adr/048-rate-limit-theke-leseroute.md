@@ -113,7 +113,7 @@ Session-Rotations-Unterdrückung bleibt an ihrem Platz (FS-6). Der `authorized`-
 **nicht** angefasst: Er kennt weiterhin nur „`/login` oder Session" und muss keine Liste
 öffentlicher Pfade führen.
 
-### D4 · Antwort: 429 mit eigenem HTML direkt aus dem Proxy (OF-5)
+### D4 · Antwort: 429 direkt aus dem Proxy – HTML für den Lesepfad, Klartext für den Action-Pfad (OF-5, Nachzug #331)
 
 Die Hinweisseite wird als vollständiges, in sich geschlossenes HTML-Dokument aus einem eigenen
 Modul geliefert (`lib/theke-throttle-response.ts`), mit `Status 429`, `Retry-After: 60` und
@@ -124,6 +124,27 @@ gerade einsparen soll, wieder erzeugen würde – und weil `NextResponse.rewrite
 Zielroute liefert, nicht 429. Da die Antwort ohne App-Layout und ohne Assets auskommen muss (kein
 `_next/`-Roundtrip im Drosselfall), trägt sie ihr bisschen CSS inline. Es entsteht **keine** neue
 Route – `docs/routes.md` bleibt unverändert.
+
+**Nachzug #331 – die HTML-Begründung trägt nicht für den Action-Zweig.** Die Begründung oben
+("menschlicher Browser-Aufruf") gilt für den Lesepfad, nicht für den Server-Action-`POST` (D5): Der
+läuft über `fetch`, und eine HTML-429 liegt außerhalb des Server-Action-Protokolls von Next.js.
+`server-action-reducer.js:113` wirft bei jeder Antwort ohne `text/x-component`/`x-action-redirect`
+weiter; `useThenable` (react-dom-client) propagiert das während des Renderns – ohne eine
+Error-Boundary auf der Route stürzt die komplette Theken-Ansicht mit „Application error: a
+client-side exception has occurred" ab, statt den Fehler im `VerzehrActionState` zu zeigen. Der
+gedrosselte Action-`POST` bekommt deshalb eine zweite, eigenständige Antwort aus demselben Modul:
+`tooManyRequestsPlainTextResponse()`, Status 429 mit `content-type` **exakt** `text/plain` – ohne
+`; charset=utf-8` – und kurzem, token-unabhängigem Body (FS-2). Das "exakt" ist keine Stilfrage:
+`server-action-reducer.js:117` vergleicht strikt (`contentType === 'text/plain'`); mit Parameter
+fiele der Body wieder heraus und React zeigte erneut die generische Meldung. `Retry-After` und
+`Cache-Control: no-store` bleiben in beiden Varianten identisch (AK-6), abgeleitet aus derselben
+`THEKE_RATE_LIMIT_WINDOW_MS` (AK-7) – **eine** Quelle für die Fensterlänge, zwei Antwort-Formate.
+Der Lesepfad bleibt unverändert bei HTML: Die Asymmetrie ist die bewusste Antwort auf zwei
+unterschiedliche Aufrufer, kein Rückzug von D4.
+
+Die Absturzklasse selbst ist damit nur diagnostizierbar gemacht, nicht ausgeschlossen – dafür sorgt
+die neue Error-Boundary `app/theke/[token]/error.tsx`, die auch den Offline-Fall (ein Netz-Fehler
+während derselben Action wirft strukturell gleich) auffängt.
 
 ### D5 · Zähl-Umfang: **jede** Anfrage zählt, auf eines von zwei getrennten Budgets (OF-6)
 
