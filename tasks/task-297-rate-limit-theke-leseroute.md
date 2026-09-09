@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -407,6 +407,33 @@ neuen Testfälle über die Isolationskorrektur hinaus nötig.
 
 **Kein neuer ADR-Trigger:** Die Änderung ist Test-Isolation ohne Verhaltens-, Technologie- oder
 Vertragswechsel.
+
+## Refactoring-Notizen (`/refactor`, 2026-09-09)
+
+**Kein Produktionscode geändert** – `proxy.ts`, `lib/rate-limit.ts`, `lib/theke-throttle-response.ts`
+sowie deren Tests sind bereits aus den drei Review-Runden clean (kleine Funktionen, sprechende
+Namen, WHY-Kommentare, keine Magic Numbers ohne Herleitung, keine toten Fallbacks). Behoben sind
+die zwei noch offenen, als optional markierten Nitpicks aus Review-Runde 3:
+
+- `docs/adr/048-rate-limit-theke-leseroute.md:271` – Lead-in „Ein gemeinsames Budget." umformuliert
+  zu „Das Lese-Budget ist ein gemeinsames." (der Folgesatz meinte das schon immer, der fette
+  Lead-in las sich aber wie „insgesamt nur ein Budget", nach zwei Absätzen über zwei getrennte
+  Budgets).
+- `tasks/task-297-rate-limit-theke-leseroute.md:172-173` – die Präsens-Referenz auf die in Runde 2
+  entfernte Konstante `READ_METHODS` ersetzt durch den tatsächlichen Namen `isServerActionRequest`
+  plus Hinweis, dass sie in Runde 2 an deren Stelle getreten ist.
+
+Beide Findings in `tasks/review-297.md` als erledigt abgehakt. Die drei übrigen, ausdrücklich als
+optional/nicht-`/refactor`-Scope markierten Punkte bleiben bewusst unangetastet: `Math.ceil` auf
+`Retry-After` wäre ein Fallback für einen laut `clean-code.md` durch die Konstante bereits
+ausgeschlossenen Fall (Fenster ist heute immer ein Vielfaches von 1000 ms); die vierfache
+Wiederholung der „Marker ist Ausweis, keine Prüfung"-Begründung ist Wartungslast, kein Widerspruch;
+das UI-Verhalten bei erschöpftem Schreib-Budget ist explizit als Frage an `/security-review`
+adressiert.
+
+**Gates:** `pnpm lint` grün · `pnpm test` 794 passed / 59 skipped · `pnpm typecheck` grün ·
+`pnpm format:check` grün · `routes-doc-check.sh` grün. Committet/gepusht über
+`bash scripts/factory-commit.sh` (`53faa99`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
