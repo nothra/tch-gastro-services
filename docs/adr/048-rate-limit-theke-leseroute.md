@@ -268,7 +268,7 @@ Hybrid-Dimension oder eine Plattform-Firewall nachrüsten, ohne die Aufrufstelle
 - Keine neue Route, kein `docs/routes.md`-Drift, keine neue Abhängigkeit, keine Secrets.
 
 **Negativ / Trade-offs:**
-- **Ein gemeinsames Budget.** Ein gezielter Flood belegt es und beantwortet im selben Fenster auch
+- **Das Lese-Budget ist ein gemeinsames.** Ein gezielter Flood belegt es und beantwortet im selben Fenster auch
   echte Theken-Besucher mit 429. Die Bremse schützt **Kosten**, nicht die Verfügbarkeit unter einem
   bewussten Angriff – dafür bräuchte es eine Plattform-Firewall (nicht im Tarif, außerhalb dieses
   Tasks). Bewusst akzeptiert, wie in ADR-020.

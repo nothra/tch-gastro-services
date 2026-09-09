@@ -170,7 +170,8 @@ für GET/HEAD.** ADR-048 D3/D5 skizzierten `if (isThekeRead(request))`, ließen 
 `authMiddleware` durchfallen. Das bricht AK-7: Der neue Matcher-Eintrag holt `/theke/*` überhaupt
 erst in den Proxy, und `authorized` in `auth.config.ts` verlangt für **jeden** Pfad außer `/login`
 eine Session. Implementiert ist deshalb `isThekePath` (verlässt den Proxy) getrennt von
-`READ_METHODS` (wird gezählt). **ADR-048 D3/D5 sind im selben PR nachgezogen** (Lesson #211/#55).
+`isServerActionRequest` (wählt das Budget; in Runde 2 an die Stelle von `READ_METHODS` getreten).
+**ADR-048 D3/D5 sind im selben PR nachgezogen** (Lesson #211/#55).
 
 Beleg per Mutation am laufenden Dev-Server (nicht nur Codelesen, Lesson #286/#314):
 

@@ -80,14 +80,14 @@ Spec-Stellen plus die selbst gefundene fünfte („Nicht inbegriffen") sagen jet
   nachgezogen werden musste). Ein Satz + ADR-Verweis an der Aufrufstelle wäre haltbarer als vier
   Kopien der Argumentation. Bewusst als Nitpick: kein Widerspruch, nur Wartungslast.
 
-- [ ] **`docs/adr/048-rate-limit-theke-leseroute.md:271` – „**Ein gemeinsames Budget.**" ist nach
+- [x] **`docs/adr/048-rate-limit-theke-leseroute.md:271` – „**Ein gemeinsames Budget.**" ist nach
   D5 die irritierendste Formulierung, die noch steht.** Gemeint (und im Folgesatz korrekt erklärt)
   ist „ein Budget, das alle Besucher teilen" – nach zwei Absätzen über zwei getrennte Budgets liest
   der fette Lead-in aber wie „insgesamt nur ein Budget". Dieselbe Klasse wie der in Runde 2 an
   `:258` behobene Merksatz (#322); dort wurde die Geschwister-Stelle im selben Abschnitt nicht
   mitgezogen. Vorschlag: „Das Lese-Budget ist ein gemeinsames."
 
-- [ ] **`tasks/task-297-rate-limit-theke-leseroute.md:173` nennt `READ_METHODS` im Präsens**
+- [x] **`tasks/task-297-rate-limit-theke-leseroute.md:173` nennt `READ_METHODS` im Präsens**
   („Implementiert ist deshalb `isThekePath` … getrennt von `READ_METHODS`") – die Konstante gibt es
   seit dem Rework in Runde 2 nicht mehr (repo-weit nur noch in dieser Zeile und im Runde-1-Report).
   Die Chronologie ist durch die datierte Überschrift und die spätere „Rework Runde 2"-Sektion
