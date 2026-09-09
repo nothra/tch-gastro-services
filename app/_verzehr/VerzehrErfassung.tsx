@@ -66,15 +66,17 @@ export function VerzehrErfassung({
 // (ADR-035 D2), damit die F7-`FokusListe` sie als Akkordeon wiederverwenden kann. Ohne die
 // optionalen Akkordeon-Props verhält sie sich UNVERÄNDERT (flach, voll aufgeklappt) – so bleibt
 // die F5-Seite unberührt. `collapsible` macht den Kopf zu einem Aufklapp-Button; bei `open=false`
-// entfällt nur der Erfassungs-Körper (Kategorien + MengeControl), Kopf + Summen bleiben sichtbar
-// (volle Transparenz, spec-54 AC B). `ref` (React-19-Prop) zeigt auf das `<li>` – für scrollIntoView.
-// `className` wird auf das Wurzel-`<li>` gelegt: so steuert der Konsument layoutseitige Belange
-// seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky Chip-Leiste vor), ohne dass die
-// route-neutrale Karte diese Fremd-Layouts kennen muss.
-// `aktion` ist ein vom Konsumenten gelieferter Baustein am Fuß des Körpers – die Karte kennt weder
-// Route noch Semantik (ADR-039 D1). Er hängt am sichtbaren Körper, erscheint bei `collapsible` also
-// nur in der geöffneten Karte (#308 AK7); ein Weg, der keine Aktion anbietet, reicht nichts herein
-// (Selbstbedienung F7, #308 AK9).
+// entfallen Erfassungs-Körper (Kategorien + MengeControl) und Aktion, Kopf + Summen bleiben
+// sichtbar (volle Transparenz, spec-54 AC B). `ref` (React-19-Prop) zeigt auf das `<li>` – für
+// scrollIntoView. `className` wird auf das Wurzel-`<li>` gelegt: so steuert der Konsument
+// layoutseitige Belange seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky
+// Chip-Leiste vor), ohne dass die route-neutrale Karte diese Fremd-Layouts kennen muss.
+// `aktion` ist ein vom Konsumenten gelieferter Baustein direkt unter dem Kopf, oberhalb der
+// Erfassungs-Sektionen – der Wechsel gehört zur Person, nicht zum Betragsblock, und soll ohne
+// Scrollen bei langer Aufschlüsselung erreichbar sein (#318). Die Karte kennt weder Route noch
+// Semantik (ADR-039 D1). Er steht vor dem Erfassungs-Körper, teilt aber dessen Sichtbarkeits-Gate
+// `koerperSichtbar` und erscheint bei `collapsible` also nur in der geöffneten Karte (#308 AK7);
+// ein Weg, der keine Aktion anbietet, reicht nichts herein (Selbstbedienung F7, #308 AK9).
 export function ZeileKarte({
   zeile,
   artikel,
@@ -145,6 +147,8 @@ export function ZeileKarte({
         kopf
       )}
 
+      {koerperSichtbar && aktion}
+
       {koerperSichtbar &&
         CATEGORY_ORDER.map((category) => {
           const artikelDerKategorie = artikel.filter((item) => item.category === category);
@@ -209,8 +213,6 @@ export function ZeileKarte({
           </ul>
         </section>
       )}
-
-      {koerperSichtbar && aktion}
     </li>
   );
 }

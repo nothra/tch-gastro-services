@@ -604,10 +604,35 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
   });
 
   it("should_renderAktion_when_bodyVisible", () => {
-    // Die Aktion des Konsumenten (#308: Wechsel ins Kassieren) hängt am sichtbaren Körper.
+    // Die Aktion des Konsumenten (#308: Wechsel ins Kassieren) teilt das Sichtbarkeits-Gate
+    // des Körpers (`koerperSichtbar`), sitzt aber nicht mehr im Körper selbst (seit #318).
     renderKarte({ collapsible: true, open: true, aktion: <a href="/ziel">Kassieren</a> });
 
     expect(screen.getByRole("link", { name: "Kassieren" })).toHaveAttribute("href", "/ziel");
+  });
+
+  it("should_renderAktionBetweenHeadAndBody_when_collapsibleAndOpen", () => {
+    // #318 AK1: die Aktion sitzt unmittelbar unter dem Kopf (Name + Summen), oberhalb der ersten
+    // Erfassungs-Sektion – nicht mehr am Fuß des Körpers. Reihenfolge, nicht nur Anwesenheit.
+    // `collapsible: true, open: true` deckt den ausgelieferten Pfad ab (FokusListe rendert den
+    // Kopf immer als Button, #318 Review-Finding W2).
+    renderKarte({
+      collapsible: true,
+      open: true,
+      aktion: <a href="/ziel">Kassieren</a>,
+    });
+
+    const li = screen.getAllByRole("listitem")[0];
+    const kinder = Array.from(li.children);
+    const kopfIndex = kinder.findIndex((kind) => kind.contains(screen.getByText("Anna")));
+    const aktionIndex = kinder.findIndex((kind) =>
+      kind.contains(screen.getByRole("link", { name: "Kassieren" })),
+    );
+    const koerperIndex = kinder.findIndex((kind) => kind.contains(screen.getByTestId("menge")));
+
+    expect(kopfIndex).toBeGreaterThan(-1);
+    expect(aktionIndex).toBe(kopfIndex + 1);
+    expect(koerperIndex).toBeGreaterThan(aktionIndex);
   });
 
   it("should_hideAktion_when_collapsibleAndClosed", () => {
