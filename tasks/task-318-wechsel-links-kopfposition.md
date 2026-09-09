@@ -49,6 +49,34 @@ sind in der Spec unter „Offene Fragen" bereits entschieden.
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Runde 1** (`tasks/review-318.md`, `NEEDS_REWORK`): keine kritischen, vier wichtige Findings,
+sechs Nitpicks. Kein funktionaler Defekt – alle wichtigen Findings betreffen die Beweiskraft des
+neuen Reihenfolge-Tests und die Präzision des Kommentarblocks:
+
+1. AK1s „unmittelbar" ist nicht assertiert (`toBeGreaterThan` statt `toBe(kopfIndex + 1)`) –
+   per Mutation gemessen: ein Fremd-Element zwischen Kopf und Slot lässt alle 40 Tests grün.
+2. Reihenfolge-Nachweis liegt auf dem Pfad ohne `collapsible`, obwohl der einzige
+   Produktions-Konsument (`FokusListe`) immer `collapsible` rendert.
+3. Kommentar-Widerspruch in `VerzehrErfassung.tsx:69` vs. `:74-77` („Körper" trägt zwei
+   Bedeutungen; „entfällt nur der Erfassungs-Körper" ist unvollständig).
+4. Markup-gekoppelte/asymmetrische Test-Anker (`tagName === "SECTION"`,
+   `textContent === "Kassieren"` vs. `includes("Anna")`).
+
+Ein Out-of-Scope-Fund (ADR-035 D2, Ungenauigkeit aus #308) ist unterhalb der Issue-Schwelle in
+`docs/factory/kleinfunde.md` festgehalten.
+
+**Rework nach Runde 1:** Alle vier wichtigen Findings behoben:
+1. `expect(aktionIndex).toBe(kopfIndex + 1)` statt `toBeGreaterThan` – belegt „unmittelbar" (AK1).
+2. Reihenfolge-Test nutzt jetzt `collapsible: true, open: true` – deckt den ausgelieferten
+   Kopf-`<button>`-Pfad ab (Produktionskombination von `FokusListe`).
+3. Kommentar in `VerzehrErfassung.tsx:74-77` korrigiert: `aktion` teilt das Sichtbarkeits-Gate
+   `koerperSichtbar`, statt widersprüchlich „am Körper zu hängen"; Zeile 69 nennt jetzt
+   „Erfassungs-Körper und Aktion" beim Einklappen.
+4. Indizes im Reihenfolge-Test über verhaltensnahe Marker (`getByText("Anna")`,
+   `getByRole("link", { name: "Kassieren" })`, `getByTestId("menge")`) statt Markup/Text-Substring.
+
+Verifiziert: `pnpm vitest run` über alle vier Testdateien → 112/112 grün, `pnpm lint` grün.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

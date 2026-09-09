@@ -610,20 +610,28 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
     expect(screen.getByRole("link", { name: "Kassieren" })).toHaveAttribute("href", "/ziel");
   });
 
-  it("should_renderAktionBetweenHeadAndBody_when_bodyVisible", () => {
+  it("should_renderAktionBetweenHeadAndBody_when_collapsibleAndOpen", () => {
     // #318 AK1: die Aktion sitzt unmittelbar unter dem Kopf (Name + Summen), oberhalb der ersten
     // Erfassungs-Sektion – nicht mehr am Fuß des Körpers. Reihenfolge, nicht nur Anwesenheit.
-    const { container } = renderKarte({ aktion: <a href="/ziel">Kassieren</a> });
+    // `collapsible: true, open: true` deckt den ausgelieferten Pfad ab (FokusListe rendert den
+    // Kopf immer als Button, #318 Review-Finding W2).
+    const { container } = renderKarte({
+      collapsible: true,
+      open: true,
+      aktion: <a href="/ziel">Kassieren</a>,
+    });
 
     const li = container.querySelector("li");
     if (!li) throw new Error("Karte nicht gerendert");
     const kinder = Array.from(li.children);
-    const kopfIndex = kinder.findIndex((kind) => kind.textContent?.includes("Anna"));
-    const aktionIndex = kinder.findIndex((kind) => kind.textContent === "Kassieren");
-    const koerperIndex = kinder.findIndex((kind) => kind.tagName === "SECTION");
+    const kopfIndex = kinder.findIndex((kind) => kind.contains(screen.getByText("Anna")));
+    const aktionIndex = kinder.findIndex((kind) =>
+      kind.contains(screen.getByRole("link", { name: "Kassieren" })),
+    );
+    const koerperIndex = kinder.findIndex((kind) => kind.contains(screen.getByTestId("menge")));
 
     expect(kopfIndex).toBeGreaterThan(-1);
-    expect(aktionIndex).toBeGreaterThan(kopfIndex);
+    expect(aktionIndex).toBe(kopfIndex + 1);
     expect(koerperIndex).toBeGreaterThan(aktionIndex);
   });
 
