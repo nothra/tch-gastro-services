@@ -200,6 +200,12 @@ Domäne); Positions-/Struktur-Test auf der real genutzten Prop-Kombination des K
 schreiben, nicht auf dem Default-Pfad. Beide Runde-2-Findings (Anker-Drift, Test-Kommentar-
 Duplikat) waren bereits durch bestehende Lessons (#291, #264) abgedeckt – kein neuer Eintrag.
 
+## PR-Shepherd
+
+PR-Shepherd 2026-09-09: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare,
+Branch auf aktuellem `main` (0 Commits dahinter), CI vollständig grün, `mergeStateStatus: CLEAN`.
+PR #333 aus dem Draft geholt (`gh pr ready`).
+
 ---
 Branch: `feature/318-wechsel-links-kopfposition`
 Erstellt: 2026-09-09 17:54
