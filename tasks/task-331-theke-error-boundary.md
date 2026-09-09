@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -113,7 +113,10 @@ task-relevanten Dateien).
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Keine neuen Regeln – siehe `tasks/codify-331.md`. Das auslösende Muster war bereits als Lesson
+aus #297 (`lessons/next-auth.md`) indexiert und mit diesem Issue verlinkt; nur die verbleibenden
+Nitpicks aus Review/Security-Review, keine neuen wiederkehrenden Fehler.
 
 ---
 Branch: `fix/331-theke-error-boundary`
