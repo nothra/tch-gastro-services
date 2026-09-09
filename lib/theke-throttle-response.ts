@@ -14,7 +14,9 @@ import { THEKE_RATE_LIMIT_WINDOW_MS } from "./rate-limit";
 
 // Aus der Fensterlänge des Limiters abgeleitet (ADR-048 D2) statt als zweites 60er-Literal
 // danebengestellt: Nach genau dieser Zeit ist wieder Budget da, und ein geändertes Fenster zieht
-// den Header mit (#142 – projektweite Magic-Number-Konsistenz).
+// den Header mit (#142 – projektweite Magic-Number-Konsistenz). Der sichtbare Hinweistext unten
+// liest dieselbe Konstante: Sonst zöge ein geändertes Fenster nur den Header mit und die Prosa
+// bliebe als stille Falschaussage stehen (#264 – Fix auf die Geschwister-Stelle ausweiten).
 const RETRY_AFTER_SECONDS = THEKE_RATE_LIMIT_WINDOW_MS / 1000;
 
 const THROTTLE_PAGE_HTML = `<!doctype html>
@@ -36,7 +38,7 @@ p { margin: 0; line-height: 1.6; color: #475569; }
 <main>
 <h1>Zu viele Anfragen</h1>
 <p>Die Theke wird gerade sehr h&auml;ufig aufgerufen. Bitte versuche es gleich noch einmal &ndash;
-in etwa einer Minute geht es wieder.</p>
+in etwa ${RETRY_AFTER_SECONDS} Sekunden geht es wieder.</p>
 </main>
 </body>
 </html>

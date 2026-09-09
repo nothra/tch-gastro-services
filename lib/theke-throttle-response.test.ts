@@ -27,6 +27,11 @@ describe("tooManyRequestsResponse", () => {
     expect(html).toContain("Zu viele Anfragen");
     // AK-4 verlangt den Hinweis, es gleich noch einmal zu versuchen – nicht nur den Status.
     expect(html).toContain("gleich noch einmal");
+    // Die sichtbare Wartezeit nennt dieselbe Dauer wie der `Retry-After`-Header und wird aus
+    // derselben Konstante erzeugt. Ohne diese Assertion zöge ein geändertes Fenster nur den
+    // Header mit und die Prosa nicht (#264 – Fix für gekoppelte Literale auf die
+    // Geschwister-Stelle im selben Modul ausweiten).
+    expect(html).toContain("60 Sekunden");
   });
 
   it("should_embedEverythingInline_when_called", async () => {
