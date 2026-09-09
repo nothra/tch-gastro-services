@@ -63,11 +63,14 @@ describe("tooManyRequestsPlainTextResponse", () => {
   });
 
   it("should_shareRetryAfterAndCacheControlWithHtmlVariant_when_called", () => {
-    // AK-6: beide Varianten tragen dieselben Header-Werte.
-    const res = tooManyRequestsPlainTextResponse();
+    // AK-6: beide Varianten tragen dieselben Header-Werte – echter Vergleich gegen die
+    // HTML-Variante statt hartkodierter Literale, damit der Testname hält, was er verspricht
+    // (Review-Nitpick, task-#331).
+    const plainText = tooManyRequestsPlainTextResponse();
+    const html = tooManyRequestsResponse();
 
-    expect(res.headers.get("retry-after")).toBe("60");
-    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(plainText.headers.get("retry-after")).toBe(html.headers.get("retry-after"));
+    expect(plainText.headers.get("cache-control")).toBe(html.headers.get("cache-control"));
   });
 
   it("should_notLeakTokenOrVeranstaltung_when_bodyRead", async () => {
