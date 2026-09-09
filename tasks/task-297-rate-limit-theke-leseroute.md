@@ -1,7 +1,7 @@
 # Task 297: rate-limit-theke-leseroute
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -28,24 +28,24 @@ der Page. Die **Zähl-Dimension** bleibt bewusst offen und geht an `/architectur
 **Nächster Pipeline-Schritt: `/architecture 297`** – erst danach `/implement`.
 
 ## Akzeptanzkriterien
-- [ ] AK-1 Normalfall unverändert: gültiger Token unter Schwellwert → Seite rendert wie heute
-- [ ] AK-2 Deckelung greift: ausgeschöpftes Fenster → kein `getVeranstaltungByToken`/`listZeilen`/`listActiveCatalog`/`listPositionen`
-- [ ] AK-3 Invocation gespart: gedrosselte Anfrage wird vor der Route beantwortet, `ThekePage` läuft nicht
-- [ ] AK-4 Sichtbare, ehrliche Antwort: eigene „Zu viele Anfragen"-Seite mit Retry-Hinweis, Status 429, nicht 404
-- [ ] AK-5 Öffentlicher Zugang bleibt öffentlich: `/theke/<token>` ohne Login → 200, kein 307 auf `/login` (Nachweis auf Proxy-Ebene, Lesson #63)
-- [ ] AK-6 Auth-Gate bleibt fail-closed: geschützte Route ohne Session → weiterhin Redirect auf `/login`
-- [ ] AK-7 Schreibpfad unberührt: Server-Action-POST unterliegt weiterhin nur ADR-044, nie der Lese-Bremse
-- [ ] AK-8 Kein Selbst-Drosseln: Schwellwert deckt reale Theken-Last inkl. `revalidatePath`-Re-Renders und 60 Schreibaufrufen/Fenster
-- [ ] AK-9 Fenster-Reset: nach Fensterablauf wieder normale Verarbeitung
-- [ ] AK-10 Muster wiederverwendet: Fixed-Window-Arithmetik aus `lib/rate-limit.ts`, keine dritte Implementierung
+- [x] AK-1 Normalfall unverändert: gültiger Token unter Schwellwert → Seite rendert wie heute
+- [x] AK-2 Deckelung greift: ausgeschöpftes Fenster → kein `getVeranstaltungByToken`/`listZeilen`/`listActiveCatalog`/`listPositionen`
+- [x] AK-3 Invocation gespart: gedrosselte Anfrage wird vor der Route beantwortet, `ThekePage` läuft nicht
+- [x] AK-4 Sichtbare, ehrliche Antwort: eigene „Zu viele Anfragen"-Seite mit Retry-Hinweis, Status 429, nicht 404
+- [x] AK-5 Öffentlicher Zugang bleibt öffentlich: `/theke/<token>` ohne Login → 200, kein 307 auf `/login` (Nachweis auf Proxy-Ebene, Lesson #63)
+- [x] AK-6 Auth-Gate bleibt fail-closed: geschützte Route ohne Session → weiterhin Redirect auf `/login`
+- [x] AK-7 Schreibpfad unberührt: Server-Action-POST unterliegt weiterhin nur ADR-044, nie der Lese-Bremse
+- [x] AK-8 Kein Selbst-Drosseln: Schwellwert deckt reale Theken-Last inkl. `revalidatePath`-Re-Renders und 60 Schreibaufrufen/Fenster
+- [x] AK-9 Fenster-Reset: nach Fensterablauf wieder normale Verarbeitung
+- [x] AK-10 Muster wiederverwendet: Fixed-Window-Arithmetik aus `lib/rate-limit.ts`, keine dritte Implementierung
 
 ## Fehlerszenarien
-- [ ] FS-1 Fail-open bei Limiter-Störung/Cold-Start
-- [ ] FS-2 Throttle-Pfad billiger als Verarbeitungspfad (kein I/O)
-- [ ] FS-3 Kein Lockout über das Fenster hinaus
-- [ ] FS-4 Kein Enumerations-Leak: Drossel-Antwort für gültiges und erfundenes Token ununterscheidbar
-- [ ] FS-5 Kein angreiferkontrolliert unbegrenzt wachsender Zustand (Schlüsselraum ist hier frei wählbar)
-- [ ] FS-6 Keine Regression der Session-Rotations-Unterdrückung (#164/#170, ADR-032)
+- [x] FS-1 Fail-open bei Limiter-Störung/Cold-Start
+- [x] FS-2 Throttle-Pfad billiger als Verarbeitungspfad (kein I/O)
+- [x] FS-3 Kein Lockout über das Fenster hinaus
+- [x] FS-4 Kein Enumerations-Leak: Drossel-Antwort für gültiges und erfundenes Token ununterscheidbar
+- [x] FS-5 Kein angreiferkontrolliert unbegrenzt wachsender Zustand (Schlüsselraum ist hier frei wählbar)
+- [x] FS-6 Keine Regression der Session-Rotations-Unterdrückung (#164/#170, ADR-032)
 
 ## Technische Notizen
 
@@ -84,8 +84,9 @@ den Angriff aus dem Issue wirkungslos (jedes Zufallssegment = neuer Schlüssel =
 
 ```ts
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (isThekeRead(request)) {
-    return thekeReadRateLimiter.tryAcquire() ? NextResponse.next() : tooManyRequestsResponse();
+  if (isThekePath(request)) {
+    const isThrottled = READ_METHODS.has(request.method) && !thekeReadRateLimiter.tryAcquire();
+    return isThrottled ? tooManyRequestsResponse() : NextResponse.next();
   }
 
   const response = await authMiddleware(request, event);
@@ -96,9 +97,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 }
 ```
 
-`isThekeRead` = Pfad beginnt mit `/theke/` **und** Methode ist `GET` oder `HEAD`. Jede andere
-Methode fällt durch in den bestehenden Pfad (AK-7). Kein `try/catch` um `tryAcquire` – reine
-synchrone Arithmetik, ein Fallback wäre ein toter Zweig (`clean-code.md`, ADR-048 D6).
+> **Korrigiert während `/implement` (siehe Notiz unten):** Die Bedingung trennt „verlässt den
+> Proxy" (`isThekePath`) von „wird gezählt" (`READ_METHODS`). Der ursprüngliche Entwurf ließ die
+> nicht gezählten Methoden in `authMiddleware` durchfallen – das brach AK-7.
+
+`isThekePath` = Pfad beginnt mit `/theke/`; gezählt wird nur, wenn zusätzlich die Methode `GET`
+oder `HEAD` ist. Jede andere Methode wird ungezählt an die Route durchgereicht (AK-7) – **nicht**
+ins Auth-Gate. Kein `try/catch` um `tryAcquire` – reine synchrone Arithmetik, ein Fallback wäre
+ein toter Zweig (`clean-code.md`, ADR-048 D6).
 
 ### TDD-Reihenfolge
 
@@ -150,6 +156,43 @@ synchrone Arithmetik, ein Fallback wäre ein toter Zweig (`clean-code.md`, ADR-0
 - [x] OF-4 Edge-Runtime → **hinfällig**: `proxy.ts` läuft in Next 16 immer auf Node.js (belegt in `next@16.2.12`)
 - [x] OF-5 Hinweisseite → ADR-048 D4: 429 mit Inline-HTML aus dem Proxy, keine neue Route
 - [x] OF-6 Zähl-Umfang → ADR-048 D5: nur GET/HEAD; POST bleibt allein bei ADR-044
+
+## Implementierungs-Notizen (`/implement`, 2026-09-09)
+
+**Abweichung vom ADR-Entwurf – der Theken-Zweig kehrt für den ganzen Pfad früh zurück, nicht nur
+für GET/HEAD.** ADR-048 D3/D5 skizzierten `if (isThekeRead(request))`, ließen also POST & Co. in
+`authMiddleware` durchfallen. Das bricht AK-7: Der neue Matcher-Eintrag holt `/theke/*` überhaupt
+erst in den Proxy, und `authorized` in `auth.config.ts` verlangt für **jeden** Pfad außer `/login`
+eine Session. Implementiert ist deshalb `isThekePath` (verlässt den Proxy) getrennt von
+`READ_METHODS` (wird gezählt). **ADR-048 D3/D5 sind im selben PR nachgezogen** (Lesson #211/#55).
+
+Beleg per Mutation am laufenden Dev-Server (nicht nur Codelesen, Lesson #286/#314):
+
+| Variante | `POST /theke/<token>` | `GET /theke/<token>` |
+|---|---|---|
+| verworfener Entwurf (Durchfallen) | **307** → `/login` | 404 |
+| implementiert (früher Return) | **404** | 404 |
+
+**Oberflächen-/Live-Verifikation** gegen `pnpm dev` + lokale DB (Skill-Schritt 4), alle Nachweise
+auf echter Proxy-Ebene statt per Direktaufruf der Page (Lesson #63):
+
+- AK-5: `GET /theke/<token>` ohne Login → 404 (`notFound` der Route), **kein** 307 auf `/login`
+- AK-6: `GET /veranstaltung` ohne Login → 307 auf `/login` (Auth-Gate unverändert fail-closed)
+- AK-2/AK-4: nach 240 Lese-Anfragen → **429**, `content-type: text/html; charset=utf-8`,
+  `retry-after: 60`, `cache-control: no-store`, `<h1>Zu viele Anfragen</h1>`
+- FS-4: zweites, frei erfundenes Segment im selben Fenster → ebenfalls 429, ununterscheidbar
+- AK-7: `POST` im **ausgeschöpften** Fenster weiterhin 404, nie 429 → ungezählt
+- AK-6 im ausgeschöpften Fenster: `/veranstaltung` unverändert 307 → kein Übergriff der Bremse
+
+Verifikations-Skripte liegen als `scripts/verify-297*.tmp.sh` (von `.gitignore` Zeile 19 gedeckt,
+geprüft – nicht Teil des Commits).
+
+**Kein neuer ADR-Trigger** (Skill-Schritt 0): Die Entscheidung ist mit ADR-048 bereits getroffen;
+die Korrektur oben präzisiert die dort beschriebene Mechanik, wechselt aber weder Technologie noch
+Muster noch Schnittstellen-Vertrag.
+
+**`docs/routes.md` bewusst unverändert** – es entsteht keine neue Route (ADR-048 D4); der
+Drift-Check ist in beide Richtungen fail-closed.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

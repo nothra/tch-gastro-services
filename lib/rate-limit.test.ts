@@ -3,6 +3,7 @@ import {
   createKeyedRateLimiter,
   createRateLimiter,
   selfServiceVerzehrRateLimiter,
+  thekeReadRateLimiter,
 } from "./rate-limit";
 
 describe("createRateLimiter", () => {
@@ -124,5 +125,47 @@ describe("selfServiceVerzehrRateLimiter", () => {
 
     vi.advanceTimersByTime(1);
     expect(selfServiceVerzehrRateLimiter.tryAcquire(token)).toBe(true);
+  });
+});
+
+describe("thekeReadRateLimiter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("should_allowFirstRequest_when_coldStart", async () => {
+    // FS-1 (spec-297): Fail-open ist strukturell – eine frisch gestartete Function-Instanz hat
+    // einen Zähler bei 0 und lässt durch. `resetModules` + Re-Import ist der echte Cold-Start:
+    // ein eigenes Modul-Objekt mit eigenem Zähler, das das Budget des Singletons im Test unten
+    // nicht anfasst (der globale Zähler hat keinen Schlüssel zur Isolation).
+    vi.resetModules();
+
+    const { thekeReadRateLimiter: coldStarted } = await import("./rate-limit");
+
+    expect(coldStarted.tryAcquire()).toBe(true);
+  });
+
+  it("should_allow240ThenThrottleUntilWindowElapsed_when_globalCounter", () => {
+    // AK-9/AK-10/OF-2: pinnt **beide** produktiv verdrahteten Parameter (240 Anfragen je 60 s,
+    // ADR-048 D2) am echten Singleton. Die Fenster-Tests weiter oben laufen gegen ad-hoc erzeugte
+    // Limiter mit `windowMs: 1000` und würden ein Vertippen hier nicht bemerken.
+    // Anders als die keyed-Variante startet der globale Zähler sein Fenster beim **Modul-Import**,
+    // nicht lazy beim ersten Aufruf. Die Fake-Uhr wird deshalb um mehr als eine Fensterlänge über
+    // die Importzeit hinaus gestellt – der erste `tryAcquire` unten beginnt damit garantiert ein
+    // frisches Fenster bei 0, unabhängig davon, wie lange die Datei vorher schon geladen war.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 3_600_000);
+
+    for (let i = 0; i < 240; i++) {
+      expect(thekeReadRateLimiter.tryAcquire()).toBe(true);
+    }
+    expect(thekeReadRateLimiter.tryAcquire()).toBe(false);
+
+    vi.advanceTimersByTime(59_999);
+    expect(thekeReadRateLimiter.tryAcquire()).toBe(false);
+
+    // AK-9/FS-3: nach Fensterablauf wieder normal – kein Lockout über das Fenster hinaus.
+    vi.advanceTimersByTime(1);
+    expect(thekeReadRateLimiter.tryAcquire()).toBe(true);
   });
 });

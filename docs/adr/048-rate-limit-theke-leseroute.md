@@ -72,8 +72,9 @@ Die Erfassungs-Re-Renders, die AK-8 nennt, fallen **nicht** unter dieses Budget 
 
 ```ts
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (isThekeRead(request)) {
-    return thekeReadRateLimiter.tryAcquire() ? NextResponse.next() : tooManyRequestsResponse();
+  if (isThekePath(request)) {
+    const isThrottled = READ_METHODS.has(request.method) && !thekeReadRateLimiter.tryAcquire();
+    return isThrottled ? tooManyRequestsResponse() : NextResponse.next();
   }
 
   const response = await authMiddleware(request, event);
@@ -83,6 +84,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   return response;
 }
 ```
+
+**Der Zweig endet immer hier – für den gesamten Pfad, nicht nur für die gezählten Methoden.** Die
+Bedingung trennt daher `isThekePath` (verlässt den Proxy) von der Zähl-Entscheidung (nur `GET`/
+`HEAD`, D5). Ein früherer Entwurf ließ die nicht gezählten Methoden in `authMiddleware`
+durchfallen; das wäre ein Fehler: Der neue Matcher-Eintrag holt `/theke/*` erst in den Proxy
+hinein, und `authorized` in `auth.config.ts` gibt für **jeden** Pfad außer `/login` nur
+`loggedIn` zurück. Ein durchfallender Server-Action-`POST` bekäme also einen 307 auf `/login`
+und AK-7 wäre gebrochen – exakt die Fehlerklasse aus Lesson #63.
 
 Der bestehende Negativ-Lookahead behält `theke/` unverändert – die Theke erreicht den
 `authorized`-Callback also weiterhin **nie**, und der öffentliche Zugang bleibt öffentlich (AK-5).
@@ -106,9 +115,9 @@ Route – `docs/routes.md` bleibt unverändert.
 ### D5 · Zähl-Umfang: nur GET und HEAD (OF-6)
 
 Gezählt und gedrosselt werden ausschließlich `GET`- und `HEAD`-Anfragen (Dokument-Navigation und
-RSC-Prefetch). Jede andere Methode auf `/theke/*` – insbesondere der Server-Action-`POST` – läuft
-unberührt durch den Zweig hindurch und unterliegt weiterhin **allein** der Grenze aus ADR-044
-(AK-7). Eine HTML-429 als Antwort auf einen Server-Action-POST wäre für den Client ohnehin kein
+RSC-Prefetch). Jede andere Methode auf `/theke/*` – insbesondere der Server-Action-`POST` – wird
+**ungezählt an die Route durchgereicht** (`NextResponse.next()`, nicht ins Auth-Gate, siehe D3)
+und unterliegt weiterhin **allein** der Grenze aus ADR-044 (AK-7). Eine HTML-429 als Antwort auf einen Server-Action-POST wäre für den Client ohnehin kein
 verwertbarer `VerzehrActionState`.
 
 Daraus folgt die saubere Auflösung von AK-8: Der `revalidatePath`-Re-Render läuft **innerhalb**

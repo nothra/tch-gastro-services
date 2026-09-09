@@ -1,6 +1,7 @@
 // Best-Effort-Rate-Limiter für die öffentlichen Grenzen der App – kanonische Quelle der
 // Fixed-Window-Arithmetik. Zwei Ausprägungen auf derselben Kernlogik:
-//   1. `createRateLimiter` – ein globaler Zähler, für den /api/health-Endpunkt (ADR-020).
+//   1. `createRateLimiter` – ein globaler Zähler, für den /api/health-Endpunkt (ADR-020) und
+//      für den öffentlichen Theken-Lesepfad im Proxy (ADR-048).
 //   2. `createKeyedRateLimiter` – ein Zähler je Schlüssel, für die token-scoped
 //      Selbstbedienungs-Action (ADR-044).
 // Zweck in beiden Fällen: die DB-Amplifikation auf Neon-Free deckeln, ohne einen geteilten
@@ -48,6 +49,13 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
 }
 
 export const healthRateLimiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
+
+// Lesepfad der öffentlichen Theken-Route, ausgewertet im Proxy vor der Seite (ADR-048 D1/D2).
+// Bewusst EIN globaler Zähler statt eines je Token: das Token ist hier ein frei wählbares
+// URL-Segment, jeder Zufallswert wäre also ein neuer Schlüssel mit frischem Budget – die
+// Pro-Schlüssel-Dimension aus ADR-044 liefe gegen genau den Angriff leer, den sie deckeln soll.
+// 240/60 s = ~40 gleichzeitige Teilnehmer × ~4 Lese-Anfragen/min plus ~50 % Puffer.
+export const thekeReadRateLimiter = createRateLimiter({ limit: 240, windowMs: 60_000 });
 
 export interface KeyedRateLimiter {
   /** true = erlaubt, false = gedrosselt – pro key ein eigenes Fenster. */
