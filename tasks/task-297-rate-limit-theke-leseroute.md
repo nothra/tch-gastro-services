@@ -195,7 +195,17 @@ Muster noch Schnittstellen-Vertrag.
 Drift-Check ist in beide Richtungen fail-closed.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+> Runde 1 (`/review`, 2026-09-09): **NEEDS_REWORK** – Report:
+> [`tasks/review-297.md`](review-297.md). 1 kritisch, 2 wichtig, 4 Nitpicks.
+
+**Kritisch:** Die Bremse zählt nur `GET`/`HEAD`. Next.js rendert App-Router-Seiten aber auch für
+`POST`/`PUT`/`PATCH`/`DELETE` ohne Server-Action-Marker – `ThekePage` läuft dann samt
+`getVeranstaltungByToken`, ungezählt und ungedeckelt. Am laufenden Dev-Server belegt: 300 ×
+`POST /theke/rand-<i>` → je Page-Invocation mit `application-code ≈ 30 ms`, das Lese-Budget bleibt
+unberührt (`GET` danach weiterhin 404 statt 429). ADR-048 D5 („unterliegt weiterhin allein der
+Grenze aus ADR-044") trifft auf diese Anfragen nicht zu: ohne Action-Marker läuft
+`adjustVerzehrByTokenAction` – und damit `selfServiceVerzehrRateLimiter` – nie.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
