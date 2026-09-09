@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -345,6 +345,34 @@ per `git status --porcelain --ignored` geprüft, sie stehen unter `!!`, nicht un
 
 **Kein neuer ADR-Trigger** (Skill-Schritt 0): Markdown-Drift und ein Testfall, keine
 Technologie-/Muster-/Vertrags-Entscheidung.
+
+### Review-Runde 3 (`/review`, 2026-09-09): **APPROVED**
+
+Report: [`tasks/review-297.md`](review-297.md). **0 kritisch, 1 wichtig, 5 Nitpicks** – kein Befund
+am Produktionscode. Alle 13 Findings der Runden 1+2 sind am Datei-Stand verifiziert behoben (nicht
+aus den Task-Notizen übernommen); der Mutationsbeleg der Diskriminierungs-Kontrolle wurde
+eigenständig nachvollzogen: `THEKE_PATH_PREFIX` `"/theke/"` → `"/theke"` → `proxy.test.ts`
+1 failed / 19 passed, genau `should_leaveAuthGateUntouched_when_pathOnlyLooksLikeTheke`; Revert per
+EXIT-Trap, Baum sauber.
+
+**Gates selbst gemessen:** `pnpm test` 794 passed / 59 skipped · `pnpm lint` grün ·
+`pnpm typecheck` grün · `routes-doc-check.sh` grün.
+
+**Wichtiges Finding → an `/test` übergeben (nicht an eine 4. `/implement`-Iteration):**
+`lib/rate-limit.test.ts:132-222` ist reihenfolge-abhängig – die drei Theken-`describe`-Blöcke
+zählen an denselben produktiven Singletons und stellen die Fake-Uhr nur relativ vor (`+1 h`/`+2 h`).
+Belegt mit `pnpm vitest run lib/rate-limit.test.ts --sequence.shuffle=true --sequence.seed=12345`
+→ **1 failed** (`:191`, die 240er-Schleife des Schreib-Budgets). `vitest.config.ts` schaltet kein
+Shuffle, die Suite ist heute also deterministisch grün – der Verstoß gegen
+`testing-standards.md` → „Test-Isolation"/„Zero Tolerance" bleibt aber latent und trifft die
+schärfste Assertion der Datei. Richtung: pro Block ein frisches Modul-Objekt
+(`setSystemTime` → `resetModules` → Re-Import, wie im Cold-Start-Test `:137-150`).
+
+**Circuit Breaker:** Dritter `/review`-Lauf = Iterationsgrenze aus CLAUDE.md erreicht. Bewusst
+**kein** NEEDS_REWORK und **keine** Eskalation – es ist kein Konflikt offen: kein kritisches
+Finding, kein Produktionscode-Befund, das eine wichtige Finding ist Test-Hygiene und liegt beim
+unmittelbar folgenden Schritt `/test`. Nitpick 5 (UI-Verhalten, wenn ein echter Erfassungs-POST auf
+das erschöpfte Schreib-Budget läuft) ist als Frage an `/security-review` adressiert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
