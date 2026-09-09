@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -96,6 +96,18 @@ Hinweis für `/codify`: Das auslösende Muster – ein früher Gate-/Drossel-Zwe
 Server-Action-Route muss deren Antwortprotokoll einhalten, sonst globaler Client-Crash statt
 Inline-Fehler – ist bereits als Lesson aus #297 indexiert
 (`docs/factory/PROJECT-CONTEXT.md` → `lessons/next-auth.md`, Issue #331 dort schon verlinkt).
+
+## Refactor-Notiz
+
+Beide Review-Nitpicks bewusst nicht umgesetzt:
+- Header-Duplikation (`status`/`retry-after`/`cache-control`) zwischen `tooManyRequestsResponse`
+  und `tooManyRequestsPlainTextResponse`: bei zwei Funktionen kein Muss laut `clean-code.md`
+  ("kein Over-Engineering für 3-Zeilen-Funktionen") – Extraktion erst beim dritten Vorkommen.
+- Proxy-Kommentar (Zeilen 75-78): paraphrasiert ADR-048 D4 knapp, verweist aber korrekt auf die
+  kanonische Quelle – kein Widerspruch, keine Drift, kein Refactoring-Bedarf.
+Der Testname-Nitpick wurde bereits in `/test` behoben (echter Cross-Check statt Literale).
+Keine strukturellen Änderungen nötig – Tests vor/nach identisch grün (31/31 in den drei
+task-relevanten Dateien).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
