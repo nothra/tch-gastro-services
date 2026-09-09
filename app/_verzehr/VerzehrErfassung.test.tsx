@@ -610,6 +610,23 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
     expect(screen.getByRole("link", { name: "Kassieren" })).toHaveAttribute("href", "/ziel");
   });
 
+  it("should_renderAktionBetweenHeadAndBody_when_bodyVisible", () => {
+    // #318 AK1: die Aktion sitzt unmittelbar unter dem Kopf (Name + Summen), oberhalb der ersten
+    // Erfassungs-Sektion – nicht mehr am Fuß des Körpers. Reihenfolge, nicht nur Anwesenheit.
+    const { container } = renderKarte({ aktion: <a href="/ziel">Kassieren</a> });
+
+    const li = container.querySelector("li");
+    if (!li) throw new Error("Karte nicht gerendert");
+    const kinder = Array.from(li.children);
+    const kopfIndex = kinder.findIndex((kind) => kind.textContent?.includes("Anna"));
+    const aktionIndex = kinder.findIndex((kind) => kind.textContent === "Kassieren");
+    const koerperIndex = kinder.findIndex((kind) => kind.tagName === "SECTION");
+
+    expect(kopfIndex).toBeGreaterThan(-1);
+    expect(aktionIndex).toBeGreaterThan(kopfIndex);
+    expect(koerperIndex).toBeGreaterThan(aktionIndex);
+  });
+
   it("should_hideAktion_when_collapsibleAndClosed", () => {
     // #308 AK7: eingeklappte Karte zeigt keine Wechsel-Aktion – auch nicht, wenn sie übergeben wird.
     renderKarte({ collapsible: true, open: false, aktion: <a href="/ziel">Kassieren</a> });

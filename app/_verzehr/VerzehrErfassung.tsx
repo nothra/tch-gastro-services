@@ -71,10 +71,10 @@ export function VerzehrErfassung({
 // `className` wird auf das Wurzel-`<li>` gelegt: so steuert der Konsument layoutseitige Belange
 // seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky Chip-Leiste vor), ohne dass die
 // route-neutrale Karte diese Fremd-Layouts kennen muss.
-// `aktion` ist ein vom Konsumenten gelieferter Baustein am Fuß des Körpers – die Karte kennt weder
-// Route noch Semantik (ADR-039 D1). Er hängt am sichtbaren Körper, erscheint bei `collapsible` also
-// nur in der geöffneten Karte (#308 AK7); ein Weg, der keine Aktion anbietet, reicht nichts herein
-// (Selbstbedienung F7, #308 AK9).
+// `aktion` ist ein vom Konsumenten gelieferter Baustein direkt unter dem Kopf, oberhalb der
+// Erfassungs-Sektionen (#318) – die Karte kennt weder Route noch Semantik (ADR-039 D1). Er hängt
+// am sichtbaren Körper, erscheint bei `collapsible` also nur in der geöffneten Karte (#308 AK7);
+// ein Weg, der keine Aktion anbietet, reicht nichts herein (Selbstbedienung F7, #308 AK9).
 export function ZeileKarte({
   zeile,
   artikel,
@@ -145,6 +145,8 @@ export function ZeileKarte({
         kopf
       )}
 
+      {koerperSichtbar && aktion}
+
       {koerperSichtbar &&
         CATEGORY_ORDER.map((category) => {
           const artikelDerKategorie = artikel.filter((item) => item.category === category);
@@ -209,8 +211,6 @@ export function ZeileKarte({
           </ul>
         </section>
       )}
-
-      {koerperSichtbar && aktion}
     </li>
   );
 }
