@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -121,6 +121,26 @@ geschlossen.
 
 Verifiziert: `pnpm vitest run` über alle vier betroffenen Testdateien → 112/112 grün,
 `pnpm lint` grün, Arbeitsbaum sauber.
+
+## Test-Ergebnis (`/test`)
+
+Coverage-Analyse (`pnpm test:coverage`, gesamter Baum) zeigt für
+`app/_verzehr/VerzehrErfassung.tsx` **100 % Statements/Branches/Functions/Lines** (29/29, 27/27,
+13/13, 27/27) – alle Zweige um `koerperSichtbar`, `collapsible`/`open` und den `aktion`-Slot sind
+abgedeckt. Alle fünf AK geprüft: AK1 (Position/Adjazenz) und AK5 (Reihenfolge Name → Link →
+Körper) sind bereits mit einer exakten `toBe(kopfIndex + 1)`-Assertion belegt (per Mutation in
+Review-Runde 2 verifiziert); AK2 (Sichtbarkeitsregeln, ehem. spec-308 AK7/AK9/AK10) ist über
+`should_hideAktion_when_collapsibleAndClosed` (AK7), die generische
+`should_renderNoAktion_when_aktionOmitted`-Absenz-Prüfung (AK9, Konsument liefert keine Aktion)
+sowie die unveränderten, positionsagnostischen Tests in `FokusListe.test.tsx`/
+`verzehr/page.test.tsx`/`e2e/wechsel-verzehr-kassieren.spec.ts` (AK10) abgedeckt; AK3/AK4 sind
+über bestehende Tests (`href`-Assertion, route-neutrale Konsumenten-Tests) belegt. Keine Lücken
+gefunden – Tests testen Verhalten (verhaltensnahe Marker: `getByText`, `getByRole`,
+`getByTestId`), sind unabhängig und deterministisch (AAA-Pattern eingehalten). Keine
+Testdatei-Änderung nötig, daher kein Commit in diesem Schritt (nur die Checkbox unten).
+
+Verifiziert: `pnpm vitest run` → 803/803 grün (59 skipped, unabhängig von dieser Task), `pnpm lint`
+grün, Arbeitsbaum sauber bis auf diese Task-Datei-Aktualisierung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
