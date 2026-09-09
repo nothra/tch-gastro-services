@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -491,7 +491,22 @@ begründet abgelehnt.
 `routes-doc-check.sh` erneut gefahren, obwohl nur Markdown geändert wurde.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Report: [`tasks/codify-297.md`](codify-297.md). Drei neue Learnings ausgelagert (Volltext +
+Index-Zeile in `PROJECT-CONTEXT.md`):
+
+- `lessons/testing.md`: Rezidiv von #172 – Pfad-Präfix-Diskriminator vor einem Auth-Gate braucht
+  einen Negativtest mit ähnlichem Nachbar-Pfad, nicht nur einem entfernten (Review-Runde-2-Fund).
+- `lessons/testing.md`: Modulweit geteilter Rate-Limiter-Singleton war reihenfolgeabhängig
+  (relatives statt absolutes Zeit-Einfrieren) – nur per `--sequence.shuffle` reproduzierbar
+  (Review-Runde-3-Fund, in `/test` behoben).
+- `lessons/next-auth.md`: Früher Gate-/Drossel-Zweig vor einer Server-Action-Route muss deren
+  Antwortprotokoll einhalten, sonst globaler Client-Crash statt Inline-Fehler
+  (Security-Review-Finding W1, Issue #331).
+
+Keine neuen Checks/Issues/Kleinfunde nötig – die übrigen Findings sind bereits durch bestehende
+Regeln (#211/#176/#253 Doku-Drift-Nachpflege) abgedeckt. Gates (`pre-commit.sh`,
+`import-context-limit-check.sh`) grün.
 
 ---
 Branch: `feature/297-rate-limit-theke-leseroute`

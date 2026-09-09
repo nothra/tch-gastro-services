@@ -91,3 +91,30 @@ verifizieren: Build-Routen-Tabelle (`○`/`ƒ`), echte Response-Header, und für
 Playwright-Trace mit `--repeat-each` (die **Reihenfolge** der `Set-Cookie`-Header – `[SESSION-CLEARED]`
 vor racenden `[SESSION-SET]`-Prefetch-Antworten – war der entscheidende Beweis).
 
+### Ein früher Return/Drossel-Zweig vor einer Route, die auch Server Actions bedient, muss deren Antwort-Protokoll einhalten (aus #297, Security-Review-Finding, Issue #331)
+
+#297 fügte `proxy.ts` einen frühen Rate-Limit-Zweig vor `/theke/*` hinzu, der bei erschöpftem
+Budget eine **generische** 429-HTML-Antwort zurückgibt – unabhängig davon, ob die Anfrage ein
+normaler Seitenaufruf oder ein Server-Action-POST (`useActionState`) war. Next.js' Server-Action-
+Client-Runtime (`server-action-reducer.js`) erwartet als Antwortkörper **entweder** das
+Action-Ergebnis **oder**, bei Fehlerstatus, exakt `content-type: text/plain` mit einer erwarteten
+Fehlerstruktur – alles andere (hier `text/html`) wird nicht als Formularfehler interpretiert,
+sondern als unerwarteter Wert `throw`t (`updateActionStateImpl` → `useThenable`). Ohne
+`error.tsx`/`global-error.tsx` im betroffenen Routen-Baum reißt das die **gesamte** Seite in den
+globalen Client-Error-Screen, statt die erwartete Inline-Fehlermeldung im Formular zu zeigen – und
+das Budget ist dabei **ohne gültiges Token** mit wenigen Anfragen/Sekunde erschöpfbar.
+
+**Smell:** Ein neuer früher Return/Gate-Zweig (Rate-Limit, Wartungsmodus, Feature-Flag) in
+`proxy.ts` oder einem Route-Handler liegt vor einer Route, die **auch** per Server-Action-POST
+(`Next-Action`-Header) erreichbar ist – und die Drossel-/Gate-Antwort ist ein generischer
+HTML-/JSON-Body mit beliebigem Status, ohne Rücksicht auf das Server-Action-Antwortprotokoll.
+
+**Regel:** Vor dem Verdrahten eines früh zurückkehrenden Gates in einer Route mit Server-Action-
+Verkehr prüfen, ob der Discriminator (Server-Action-Marker) auch die **Antwortform** beeinflussen
+muss – entweder das Gate für Server-Action-Anfragen mit einer protokollkonformen Antwort bedienen,
+oder das Verhalten der Client-Runtime bei einer Fremdantwort **empirisch** (nicht nur durch Lesen)
+in der installierten Version nachvollziehen (`node_modules/react-dom/cjs/…`,
+`node_modules/next/dist/…`) und den Blast Radius (fehlendes `error.tsx` → globaler Crash statt
+Inline-Fehler) explizit gegen die Kosten einer Fixgrenze abwägen, bevor er als hinnehmbar
+eingestuft wird.
+
