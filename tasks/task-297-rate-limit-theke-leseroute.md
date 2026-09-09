@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -373,6 +373,39 @@ schärfste Assertion der Datei. Richtung: pro Block ein frisches Modul-Objekt
 Finding, kein Produktionscode-Befund, das eine wichtige Finding ist Test-Hygiene und liegt beim
 unmittelbar folgenden Schritt `/test`. Nitpick 5 (UI-Verhalten, wenn ein echter Erfassungs-POST auf
 das erschöpfte Schreib-Budget läuft) ist als Frage an `/security-review` adressiert.
+
+## Test-Notizen (`/test`, 2026-09-09)
+
+**Kein Produktionscode geändert** – nur `lib/rate-limit.test.ts` (`proxy.ts`, `lib/rate-limit.ts`,
+`lib/theke-throttle-response.ts` unverändert), genau der von Review-Runde 3 benannte Umfang.
+
+**Wichtiges Finding aus Runde 3 behoben:** Die drei theken-relevanten Blöcke
+(`thekeReadRateLimiter`, `thekeActionRateLimiter`) liefen bislang gegen die über die Datei
+**geteilten** produktiven Singletons und stellten die Fake-Uhr nur relativ vor (`+1 h`/`+2 h`) –
+ein reihenfolgeabhängiges Design, das `testing-standards.md` → „Test-Isolation"/„Zero Tolerance"
+verletzt. Umgesetzt wie im Bericht vorgeschlagen: Jeder Test, der einen vollständigen Zähler-Zyklus
+braucht, holt sich jetzt per `vi.resetModules()` + dynamischem Re-Import ein **eigenes**
+Modul-Objekt (Muster aus dem bestehenden Cold-Start-Test) und friert die Zeit **vor** dem Import
+auf `0` ein – absolut statt relativ zu vorherigen Tests, kein geteilter Zustand mehr zwischen den
+`describe`-Blöcken. Die nicht mehr benötigten statischen Top-Level-Importe von
+`thekeActionRateLimiter`/`thekeReadRateLimiter` sind entfernt (jeder Test bezieht sie jetzt aus
+seinem eigenen frischen Import).
+
+**Beleg:** vorher reproduzierte `pnpm vitest run lib/rate-limit.test.ts --sequence.shuffle=true
+--sequence.seed=12345` einen roten Test (`:191`, Schreib-Budget-Schleife). Nach dem Fix läuft
+derselbe Seed grün, ebenso vier weitere Stichproben-Seeds (`1`, `42`, `999`, `7`, `2026`) –
+alle 13 Tests der Datei bestehen unabhängig von der Ausführungsreihenfolge.
+
+**Test-Vollständigkeit gegen die AK-Tabelle geprüft:** alle zehn AK und sechs FS aus der Spec haben
+einen zugeordneten Testfall (Tabelle oben, Implementierungs-Notizen); keine Lücke gefunden, keine
+neuen Testfälle über die Isolationskorrektur hinaus nötig.
+
+**Gates:** `pnpm lint` grün · `pnpm typecheck` grün · `pnpm test` 794 passed / 59 skipped ·
+`pnpm format:check` grün (ein `prettier --write` auf die geänderte Datei war nötig) ·
+`routes-doc-check.sh` grün (keine Routen-Änderung).
+
+**Kein neuer ADR-Trigger:** Die Änderung ist Test-Isolation ohne Verhaltens-, Technologie- oder
+Vertragswechsel.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

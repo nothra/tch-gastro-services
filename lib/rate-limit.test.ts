@@ -3,8 +3,6 @@ import {
   createKeyedRateLimiter,
   createRateLimiter,
   selfServiceVerzehrRateLimiter,
-  thekeActionRateLimiter,
-  thekeReadRateLimiter,
 } from "./rate-limit";
 
 describe("createRateLimiter", () => {
@@ -149,28 +147,31 @@ describe("thekeReadRateLimiter", () => {
     expect(coldStarted.tryAcquire()).toBe(true);
   });
 
-  it("should_allow240ThenThrottleUntilWindowElapsed_when_globalCounter", () => {
+  it("should_allow240ThenThrottleUntilWindowElapsed_when_globalCounter", async () => {
     // AK-9/AK-10/OF-2: pinnt **beide** produktiv verdrahteten Parameter (240 Anfragen je 60 s,
     // ADR-048 D2) am echten Singleton. Die Fenster-Tests weiter oben laufen gegen ad-hoc erzeugte
     // Limiter mit `windowMs: 1000` und würden ein Vertippen hier nicht bemerken.
     // Anders als die keyed-Variante startet der globale Zähler sein Fenster beim **Modul-Import**,
-    // nicht lazy beim ersten Aufruf. Die Fake-Uhr wird deshalb um mehr als eine Fensterlänge über
-    // die Importzeit hinaus gestellt – der erste `tryAcquire` unten beginnt damit garantiert ein
-    // frisches Fenster bei 0, unabhängig davon, wie lange die Datei vorher schon geladen war.
+    // nicht lazy beim ersten Aufruf. Test-Isolation (testing-standards.md): eigenes Modul-Objekt
+    // per `resetModules` + Re-Import statt des über die Datei geteilten Singletons – Zeit auf 0
+    // eingefroren *vor* dem Import, damit das Fenster unabhängig von Lauf-Reihenfolge/Shuffle bei
+    // 0 startet (kein Bezug auf `Date.now()` zur Testlaufzeit nötig).
     vi.useFakeTimers();
-    vi.setSystemTime(Date.now() + 3_600_000);
+    vi.setSystemTime(0);
+    vi.resetModules();
+    const { thekeReadRateLimiter: limiter } = await import("./rate-limit");
 
     for (let i = 0; i < 240; i++) {
-      expect(thekeReadRateLimiter.tryAcquire()).toBe(true);
+      expect(limiter.tryAcquire()).toBe(true);
     }
-    expect(thekeReadRateLimiter.tryAcquire()).toBe(false);
+    expect(limiter.tryAcquire()).toBe(false);
 
     vi.advanceTimersByTime(59_999);
-    expect(thekeReadRateLimiter.tryAcquire()).toBe(false);
+    expect(limiter.tryAcquire()).toBe(false);
 
     // AK-9/FS-3: nach Fensterablauf wieder normal – kein Lockout über das Fenster hinaus.
     vi.advanceTimersByTime(1);
-    expect(thekeReadRateLimiter.tryAcquire()).toBe(true);
+    expect(limiter.tryAcquire()).toBe(true);
   });
 });
 
@@ -179,44 +180,42 @@ describe("thekeActionRateLimiter", () => {
     vi.useRealTimers();
   });
 
-  it("should_allow240ThenThrottleUntilWindowElapsed_when_globalCounter", () => {
+  it("should_allow240ThenThrottleUntilWindowElapsed_when_globalCounter", async () => {
     // Pinnt beide produktiv verdrahteten Parameter des Schreib-Budgets (240 Anfragen je 60 s,
     // ADR-048 D5) am echten Singleton. Es ist bewusst ein **eigenes** Objekt: Ein gemeinsames
-    // Budget mit dem Lesepfad ließe einen Lese-Flood die Erfassung mit abwürgen (AK-7). Fake-Uhr
-    // wie beim Lese-Singleton über die Importzeit hinaus, damit das Fenster garantiert frisch ist.
+    // Budget mit dem Lesepfad ließe einen Lese-Flood die Erfassung mit abwürgen (AK-7).
+    // Test-Isolation wie beim Lese-Singleton: eigenes Modul-Objekt statt des geteilten.
     vi.useFakeTimers();
-    vi.setSystemTime(Date.now() + 3_600_000);
+    vi.setSystemTime(0);
+    vi.resetModules();
+    const { thekeActionRateLimiter: limiter } = await import("./rate-limit");
 
     for (let i = 0; i < 240; i++) {
-      expect(thekeActionRateLimiter.tryAcquire()).toBe(true);
+      expect(limiter.tryAcquire()).toBe(true);
     }
-    expect(thekeActionRateLimiter.tryAcquire()).toBe(false);
+    expect(limiter.tryAcquire()).toBe(false);
 
     vi.advanceTimersByTime(59_999);
-    expect(thekeActionRateLimiter.tryAcquire()).toBe(false);
+    expect(limiter.tryAcquire()).toBe(false);
 
     vi.advanceTimersByTime(1);
-    expect(thekeActionRateLimiter.tryAcquire()).toBe(true);
+    expect(limiter.tryAcquire()).toBe(true);
   });
 
-  it("should_keepSeparateBudget_when_readBudgetExhausted", () => {
+  it("should_keepSeparateBudget_when_readBudgetExhausted", async () => {
     // Der Kern der Trennung: Ein ausgeschöpftes Lesebudget lässt das Schreib-Budget unberührt.
-    // Ohne eigene Zähler-Instanz wäre dieser Test grün, ohne dass AK-7 gilt.
-    //
-    // Der Sprung ist doppelt so groß wie die +1 h der Tests darüber, und das ist Absicht mit
-    // Reihenfolge-Semantik: Diese Datei teilt sich die produktiven Singletons über alle
-    // `describe`-Blöcke hinweg. Die Tests darüber haben die Fake-Uhr bis ~+1 h + 60 s vorgestellt
-    // und dort zuletzt gezählt – beide Singletons stehen seither mit count 1 in einem Fenster, das
-    // dort beginnt. Nochmals +1 h läge *vor* diesem Fenster-Start, die Zähler liefen also mit
-    // vorbelastetem Stand weiter und die Prämisse „240 sind hier frei" wäre falsch (empirisch:
-    // mit +1 h liefert bereits der 240. `tryAcquire` der Schleife `false`). +2 h liegt garantiert
-    // jenseits davon – beide Zähler beginnen hier ein frisches Fenster.
+    // Ohne eigene Zähler-Instanz wäre dieser Test grün, ohne dass AK-7 gilt. Beide Limiter stammen
+    // aus demselben frischen Modul-Import, damit dieser Test nicht vom Zählerstand anderer Tests
+    // in dieser Datei abhängt (testing-standards.md – Test-Isolation).
     vi.useFakeTimers();
-    vi.setSystemTime(Date.now() + 7_200_000);
+    vi.setSystemTime(0);
+    vi.resetModules();
+    const { thekeReadRateLimiter: readLimiter, thekeActionRateLimiter: actionLimiter } =
+      await import("./rate-limit");
 
-    for (let i = 0; i < 240; i++) thekeReadRateLimiter.tryAcquire();
-    expect(thekeReadRateLimiter.tryAcquire()).toBe(false);
+    for (let i = 0; i < 240; i++) readLimiter.tryAcquire();
+    expect(readLimiter.tryAcquire()).toBe(false);
 
-    expect(thekeActionRateLimiter.tryAcquire()).toBe(true);
+    expect(actionLimiter.tryAcquire()).toBe(true);
   });
 });
