@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -447,6 +447,48 @@ bewusst **nicht** die Zeit einfriert (pinnt nur `limit > 0`, keine Fenster-Arith
 
 **Gates:** `pnpm lint`/`pnpm typecheck`/`pnpm format:check` grün · `pnpm test` weiterhin
 794 passed / 59 skipped · `routes-doc-check.sh` grün (kein Routen-Bezug).
+
+## Security-Notizen (`/security-review`, 2026-09-09)
+
+**Ergebnis: PASSED** – Report: [`tasks/security-297.md`](security-297.md). 0 kritisch, 2 wichtig,
+3 Hinweise. **Kein Produktionscode geändert** (`proxy.ts`, `lib/rate-limit.ts`,
+`lib/theke-throttle-response.ts` unverändert).
+
+**Kein Auth-Bypass** – die zentrale Frage dieses PRs. Die Menge der Anfragen, die der frühe Return
+am Auth-Gate vorbeiführt (`pathname.startsWith("/theke/")`), ist exakt die Menge, die der
+Negativ-Lookahead in `matcher[0]` schon vorher aus dem Proxy ausschloss; unter `app/theke/` liegt
+nur `[token]/page.tsx`. Groß-/Kleinschreibung, `..`-Segmente und Encoding wurden je einzeln geprüft
+– jede Divergenz zeigt in die fail-closed-Richtung. Ebenfalls sauber: XSS/Header-Injection (kein
+reflektierter Input im Inline-HTML), FS-4 (ununterscheidbare Drossel-Antwort), FS-5 (konstanter
+Zustand), FS-6, Fail-open, Dependencies (keine neuen), Secrets/Logging.
+
+**W1 (Verfügbarkeit) → Issue [#331](https://github.com/nothra/tch-gastro-services/issues/331)**
+(`bug` + `security`, über den Seam angelegt): Eine HTML-429 auf einen echten Server-Action-POST
+liegt außerhalb des Action-Protokolls – Next wirft, `useActionState` re-throwt im Render, und
+mangels `error.tsx` landet die ganze Theken-Seite im globalen Client-Error-Screen statt in der
+roten Inline-Meldung. Das Schreib-Budget ist dabei **ohne gültiges Token** mit ~4 req/s
+erschöpfbar. Kein Blocker (keine Vertraulichkeits-/Integritätswirkung, selbstheilend), aber
+oberhalb der Kleinfunde-Schwelle. Damit ist zugleich **Nitpick 5 aus Review-Runde 3 beantwortet**,
+der ausdrücklich an diesen Schritt adressiert war.
+
+Die tragende Kette wurde nicht vom Sub-Agenten übernommen, sondern selbst an den installierten
+Versionen nachgelesen (Lesson #314): `server-action-reducer.js` (Body nur bei **exakt**
+`text/plain`, `text/html` → generische Meldung), `react-dom-client` `updateActionStateImpl`
+(`useThenable` → `throw x` im Render), `find app -name 'error.tsx' -o -name 'global-error.tsx'`
+→ leer.
+
+**W2 (Doku) in diesem PR behoben** (Lesson #211/#176 – Doku, die dieser PR selbst verfasst hat):
+ADR-048 → Konsequenzen beziffert den Trade-off des Schreib-Budgets jetzt vollständig (kein Token
+nötig, ~4 req/s, alle Veranstaltungen betroffen, Vergleich zu ADR-044) statt ihn nur als
+„Extremfall" zu benennen.
+
+**H1/H2 → `docs/factory/kleinfunde.md`** (unterhalb der Schwelle, ADR-043): fehlende
+Beobachtbarkeit beim Drosseln (OWASP A09, `console.warn` auf der Flanke) und `nosniff` auf der
+429. H3 (`Retry-After`-Ganzzahligkeit) ist kein Security-Thema und von `/refactor` bereits
+begründet abgelehnt.
+
+**Gates:** siehe unten – `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check` und
+`routes-doc-check.sh` erneut gefahren, obwohl nur Markdown geändert wurde.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

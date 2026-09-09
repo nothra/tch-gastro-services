@@ -280,6 +280,15 @@ Hybrid-Dimension oder eine Plattform-Firewall nachrüsten, ohne die Aufrufstelle
 - **Der Schreibpfad hat jetzt eine Obergrenze, die er vorher nicht hatte** (240/60 s je Instanz,
   D5). Sie liegt weit über allem, was ADR-044 pro Token durchlässt, deckelt aber im Extremfall auch
   echte Erfassung – der Preis dafür, dass der Marker nur ein Ausweis und keine Prüfung ist.
+  Der Vollständigkeit halber die Größenordnung, weil sie die Abwägung trägt: Das Schreib-Budget
+  ist **ohne gültiges Token** erschöpfbar (D3 zählt, bevor irgendetwas aufgelöst wird), rund
+  4 Anfragen/s genügen, und betroffen sind dann **alle** Veranstaltungen auf der Instanz. Vor
+  dieser ADR war das unmöglich: ADR-044 zählt auf einen serverseitig gebundenen Schlüssel, ein
+  Flood traf immer nur den eigenen Token. Der Schutz kostet also eine neue Verfügbarkeits-
+  Angriffsfläche – akzeptiert, weil die Alternative (ungezählter Marker-Zweig) die Bremse per
+  Header abschaltbar machte, und weil der Hebel aus D1/Option C nachrüstbar bleibt. Was die
+  Theke dabei **sieht**, ist nicht die 429-Seite, sondern der globale Client-Error-Screen –
+  eigenständig verfolgt in Issue #331.
 - **Der Marker-Discriminator erkennt den No-JS-Server-Action-Pfad nicht** (Action-ID im
   Multipart-Body statt im Header, D5). Im heutigen Aufbau unerreichbar; wird das Erfassungs-Formular
   je ohne JS auslieferbar, muss diese Stelle mitgeändert werden.
