@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -163,6 +163,32 @@ Task-Notiz-Halbsatz zu AK5 (bereits in der Technischen Notiz oben nachgetragen).
 
 Verifiziert: `pnpm vitest run` → 803/803 grün (59 skipped), `pnpm lint` grün,
 `bash scripts/checks/pre-commit.sh` grün.
+
+## Security-Review (`/security-review`)
+
+`tasks/security-318.md`: **PASSED** – keine kritischen, keine wichtigen Findings, keine Hinweise.
+Produktionscode-Anteil des Diffs ist eine verschobene JSX-Zeile; es entsteht kein neuer
+Datenfluss, keine neue Grenze, kein neues Input. Positiv belegt statt nur behauptet:
+
+- Sichtbarkeits-Gate `koerperSichtbar` (`VerzehrErfassung.tsx:115`) ist byte-identisch – nicht
+  umformuliert, nicht gelockert, nicht dupliziert; nur der Ort im JSX-Baum ist neu.
+- Der öffentliche Token-Weg zeigt den Link auf die authentifizierte Kassieransicht weiterhin
+  nicht: `aktionJeZeile` hat repo-weit genau **einen** Lieferanten
+  (`veranstaltung/[id]/verzehr/page.tsx:113`, hinter dem `veranstalter`-Gate `:36`); beide
+  `FokusListe`-Instanzen in `theke/[token]/IdentityGate.tsx` (`:94`, `:160`) übergeben ihn nicht.
+- Der Slot ist in der neuen Position **Geschwister** des Kopf-`<button>` (`:137-148`), nicht
+  dessen Kind – kein verschachteltes interaktives Element, kein Toggle-Mitfeuern.
+- URL-Bau unverändert sicher: `zeileId` per `URLSearchParams` als Daten kodiert
+  (`personenbezug.ts:44-46`), `veranstaltungId` vorher fail-closed gegen die DB aufgelöst
+  (`getVeranstaltung` → `notFound()`); IDOR-Auflösung über die Zeilen-Menge dieser Veranstaltung
+  (`personenbezug.ts:34-41`) vom Diff nicht berührt.
+- Keine Dependency-Datei im Diff (`package.json`/`pnpm-lock.yaml`/`next.config.*`/`.env*`) →
+  kein `pnpm audit` nötig; kein `dangerouslySetInnerHTML`/`eval`/Secret/Env-Zugriff in den
+  `+`-Zeilen; `kleinfunde.md` nutzt den etablierten Kanal (kein neuer Ablage-Mechanismus im
+  Sinne von Lesson #286).
+
+Keine Out-of-Scope-Findings – weder Issue (Schritt A) noch `kleinfunde.md`-Eintrag (Schritt B)
+anzulegen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
