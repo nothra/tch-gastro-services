@@ -35,6 +35,8 @@ inklusive ihrer vier DB-Reads erneut. Zusätzlich adressiert der Server-Action-P
 URL** `/theke/<token>` wie der Lese-GET. Eine Bremse, die alle Anfragen auf diesen Pfad zählt,
 zählt damit auch den Schreibverkehr mit. Das ist bei Schwellwert **und** Zähl-Umfang zu
 berücksichtigen (AK-7, AK-8), sonst drosselt sich die Theke bei normaler Nutzung selbst.
+→ Aufgelöst in [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D5: gezählt werden nur GET und
+HEAD; der Re-Render läuft innerhalb des POST und erreicht den Zähler gar nicht.
 
 ### Entscheidungen des Auftraggebers (gesetzt, nicht mehr offen)
 
@@ -117,8 +119,10 @@ berücksichtigen (AK-7, AK-8), sonst drosselt sich die Theke bei normaler Nutzun
   (mehrere Teilnehmer erfassen gleichzeitig; jede Erfassung erzeugt zusätzlich einen
   `revalidatePath`-Re-Render von `ThekePage`) WHEN ein volles Fenster lang so gearbeitet wird THEN
   wird **keine** dieser Anfragen gedrosselt – der gewählte Schwellwert liegt nachweislich und
-  begründet über der real erwartbaren Lese-Last inklusive Re-Renders und der 60 Schreibaufrufe pro
-  Fenster aus ADR-044.
+  begründet über der real erwartbaren Lese-Last. (Erfüllt durch
+  [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D2/D5: der Re-Render läuft **innerhalb** des
+  Server-Action-POST und passiert den Proxy-Zähler nie, und der Schreibpfad wird nicht mitgezählt –
+  die Herleitung des Schwellwerts muss diese beiden Lasten daher nicht mehr absorbieren.)
 
 - [ ] **AK-9 (Fenster-Reset):** GIVEN im Fenster N wurde gedrosselt WHEN nach Ablauf der
   Fensterlänge erneut aufgerufen wird THEN wird die Anfrage wieder normal verarbeitet (Zähler
@@ -160,42 +164,32 @@ berücksichtigen (AK-7, AK-8), sonst drosselt sich die Theke bei normaler Nutzun
 
 ## Offene Fragen
 
-> Alle sechs gehen an `/architecture` (das Issue verlangt diese Runde ausdrücklich). Sie sind
-> **Entscheidungs**fragen mit Begründungspflicht, keine Implementierungsdetails.
+> **Alle sechs sind in [ADR-048](../adr/048-rate-limit-theke-leseroute.md) entschieden**
+> (`/architecture`-Runde vom 2026-09-09). Sie bleiben als Nachweis stehen, was die
+> Architektur-Runde zu klären hatte; die Begründungen stehen in der ADR, nicht hier.
 
-- [ ] **OF-1 · Zähl-Dimension.** Pro Token (analog ADR-044 – aber der Schlüssel ist hier ein frei
-  wählbares URL-Segment, die Map wüchse angreiferkontrolliert, vgl. FS-5) vs. globaler Zähler für
-  die ganze Route (analog ADR-020 – kein Map-Wachstum, aber ein Flood kann echte Theken-Besucher
-  mitdrosseln, Konflikt mit AK-8) vs. hybrid (eigener großzügiger Zähler für **auflösbare** Token,
-  gemeinsamer kleiner Zähler für unbekannte – setzt aber einen Lookup vor dem Zählen voraus und
-  kollidiert mit AK-2/AK-3) vs. bewusst nichts, weil die vorgelagerten Vercel-Plattform-Limits
-  genügen. ADR-044 D2 hat dieselbe Abwägung für den Schreibpfad **anders** entschieden als ADR-020 –
-  die Abgrenzung ist hier erneut zu führen, nicht zu übernehmen.
+- [x] **OF-1 · Zähl-Dimension** → **ADR-048 D1: ein globaler Zähler für die Route.** Die
+  Pro-Token-Dimension aus ADR-044 wäre gegen den Angriff aus dem Issue wirkungslos, weil jedes neue
+  Zufallssegment ein neuer Schlüssel mit frischem Budget ist – und sie verletzte FS-5.
 
-- [ ] **OF-2 · Schwellwert und Fensterlänge**, hergeleitet aus AK-8: Der Wert muss die reale
-  Lese-Last einer Theke **inklusive** der `revalidatePath`-Re-Renders und der bis zu 60
-  Schreibaufrufe pro Fenster (ADR-044) abdecken. Die Herleitung gehört in die ADR, nicht nur die
-  Zahl.
+- [x] **OF-2 · Schwellwert und Fensterlänge** → **ADR-048 D2: Fixed-Window 60 s, 240 Anfragen pro
+  Fenster und Instanz**, hergeleitet aus ~40 gleichzeitigen Teilnehmern × ~4 Lese-Anfragen pro
+  Minute plus ~50 % Puffer.
 
-- [ ] **OF-3 · Verdrahtung im `proxy.ts`, ohne das Auth-Gate aufzuweichen.** Heute ist `theke/` im
-  Negativ-Lookahead des Matchers, und `authorized()` verlangt für **alles** außer `/login` eine
-  Session – ein bloßes Aufnehmen von `theke/` in den Matcher würde den öffentlichen Zugang brechen
-  (307 auf `/login`, exakt die Falle aus Lesson #63). Zu entscheiden: eigener Matcher-Eintrag plus
-  früher Zweig in `proxy()` **vor** `authMiddleware` vs. Erweiterung des `authorized`-Callbacks vs.
-  eine dritte Variante. Die Lösung muss AK-5, AK-6 und FS-6 gleichzeitig erfüllen.
+- [x] **OF-3 · Verdrahtung im `proxy.ts`** → **ADR-048 D3: zweiter Matcher-Eintrag für
+  `/theke/:path*` plus früher Zweig vor `authMiddleware`.** Negativ-Lookahead und
+  `authorized`-Callback bleiben unverändert – AK-5, AK-6 und FS-6 sind damit gleichzeitig erfüllt.
 
-- [ ] **OF-4 · Konsequenz der Edge-Runtime.** `proxy.ts` läuft auf der Edge-Runtime; deren
-  Instanzen sind zahlreicher und kurzlebiger als die Node-Serverless-Instanzen, für die ADR-020/044
-  ihren In-Memory-Zustand begründet haben. Die aggregierte Deckelung ist damit schwächer
-  (`Schwellwert × Instanzzahl`). Bewerten und begründen, ob das die gewählte Wirkung noch trägt –
-  oder ob das Schutzziel „auch Function-Invocations" den Preis wert ist.
+- [x] **OF-4 · Konsequenz der Edge-Runtime** → **hinfällig, die Prämisse war falsch.** In Next 16
+  läuft `proxy.ts` immer auf der **Node.js**-Runtime (belegt in der installierten `next@16.2.12`:
+  `node_modules/next/dist/build/analysis/get-page-static-info.js:587` – „Proxy always runs on
+  Node.js runtime"). Die In-Memory-Begründung aus ADR-020/044 überträgt sich unverändert; es gibt
+  keinen Runtime-Aufpreis für die Proxy-Platzierung. Details in ADR-048 → Kontext.
 
-- [ ] **OF-5 · Auslieferung der Hinweisseite (AK-4).** 429 mit HTML-Body direkt aus dem Proxy vs.
-  `rewrite` auf eine eigene, statisch gerenderte Route (dann `docs/routes.md` mitpflegen). Inklusive
-  der Frage, ob die Seite ohne App-Layout/Assets auskommen muss und wie sie sich zur PWA-Shell
-  verhält.
+- [x] **OF-5 · Auslieferung der Hinweisseite** → **ADR-048 D4: 429 mit eigenem, in sich
+  geschlossenem HTML direkt aus dem Proxy** (`Retry-After: 60`, `Cache-Control: no-store`). Ein
+  `rewrite` auf eine eigene Route erzeugte wieder die Invocation, die AK-3 einsparen soll. Es
+  entsteht **keine** neue Route – `docs/routes.md` bleibt unverändert.
 
-- [ ] **OF-6 · Zähl-Umfang der Anfragearten.** Ob HEAD-, RSC-Prefetch- und Server-Action-POST-
-  Anfragen auf denselben Pfad mitgezählt werden. AK-7 verlangt, dass der Schreibpfad nicht von der
-  Lese-Bremse abgelehnt wird; ob er trotzdem **zählt** (und damit den Schwellwert aus OF-2 mit
-  bestimmt), ist zu entscheiden.
+- [x] **OF-6 · Zähl-Umfang der Anfragearten** → **ADR-048 D5: nur GET und HEAD.** Jede andere
+  Methode läuft unberührt durch; der Server-Action-POST unterliegt weiterhin allein ADR-044.
