@@ -261,6 +261,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Anker, der mit `-` beginnt, macht `assert_contains_286`/`assert_absent` still falsch (`grep` liest ihn als Option) – erster Blick bei unerklärlichem Rot (aus #319, dritter Fall derselben Regel im selben PR)
 - Diskriminierungs-Kontrolle für Pfad-Präfix-Prädikate vor einem Auth-Gate: Negativtest braucht einen ähnlichen Nachbar-Pfad, nicht nur einen entfernten (Rezidiv von #172, aus #297, Review-Runde-2-Finding)
 - Modulweit geteilter Rate-Limiter-Singleton in Tests: absolut statt relativ einfrieren + `resetModules` pro Test, sonst reihenfolgeabhängig (aus #297, Review-Runde-3-Finding; nur per `--sequence.shuffle` reproduzierbar)
+- DOM-Adjazenz-Behauptung („unmittelbar") mit `toBe(index + 1)` statt `toBeGreaterThan` belegen – Rezidiv von #322 in neuer Domäne (aus #318, Review-Runde-1-Finding)
+- Positions-/Struktur-Test auf der Prop-Kombination schreiben, die der reale Produktions-Konsument tatsächlich nutzt, nicht auf dem Default-Pfad der Komponente (aus #318, Review-Runde-1-Finding)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 

@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -192,6 +192,13 @@ anzulegen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Report: [`tasks/codify-318.md`](codify-318.md). Zwei neue Lesson-Einträge in
+`docs/factory/lessons/testing.md` (+ Index-Zeilen in `PROJECT-CONTEXT.md`): DOM-Adjazenz-
+Assertion mit `toBe(index + 1)` statt `toBeGreaterThan` belegen (Rezidiv von #322 in neuer
+Domäne); Positions-/Struktur-Test auf der real genutzten Prop-Kombination des Konsumenten
+schreiben, nicht auf dem Default-Pfad. Beide Runde-2-Findings (Anker-Drift, Test-Kommentar-
+Duplikat) waren bereits durch bestehende Lessons (#291, #264) abgedeckt – kein neuer Eintrag.
 
 ---
 Branch: `feature/318-wechsel-links-kopfposition`
