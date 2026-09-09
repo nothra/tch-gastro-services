@@ -435,6 +435,19 @@ adressiert.
 `pnpm format:check` grün · `routes-doc-check.sh` grün. Committet/gepusht über
 `bash scripts/factory-commit.sh` (`53faa99`).
 
+### Zweiter Refactoring-Pass (`/refactor`, 2026-09-09) – Duplikation in `lib/rate-limit.test.ts`
+
+Die drei `describe`-Blöcke `thekeReadRateLimiter`/`thekeActionRateLimiter` wiederholten dieselbe
+Dreizeiler-Sequenz (`vi.useFakeTimers(); vi.setSystemTime(0); vi.resetModules();` vor dem
+Re-Import) identisch dreimal. Extrahiert zu `importFreshRateLimitModule()` (Modul-Top-Level,
+zwischen `selfServiceVerzehrRateLimiter`- und `thekeReadRateLimiter`-Block). Kein neues Verhalten:
+jeder Aufrufer bekommt weiterhin sein eigenes frisches Modul-Objekt mit auf `0` eingefrorener Zeit;
+der separate Cold-Start-Test (`should_allowFirstRequest_when_coldStart`) bleibt unverändert, da er
+bewusst **nicht** die Zeit einfriert (pinnt nur `limit > 0`, keine Fenster-Arithmetik).
+
+**Gates:** `pnpm lint`/`pnpm typecheck`/`pnpm format:check` grün · `pnpm test` weiterhin
+794 passed / 59 skipped · `routes-doc-check.sh` grün (kein Routen-Bezug).
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

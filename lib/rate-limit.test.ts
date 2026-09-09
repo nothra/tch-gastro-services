@@ -127,6 +127,16 @@ describe("selfServiceVerzehrRateLimiter", () => {
   });
 });
 
+// Der globale Zähler startet sein Fenster beim Modul-Import, nicht lazy beim ersten Aufruf –
+// Zeit deshalb *vor* dem Re-Import auf 0 eingefroren, damit das Fenster unabhängig von
+// Lauf-Reihenfolge/Shuffle bei 0 startet (testing-standards.md – Test-Isolation).
+async function importFreshRateLimitModule() {
+  vi.useFakeTimers();
+  vi.setSystemTime(0);
+  vi.resetModules();
+  return import("./rate-limit");
+}
+
 describe("thekeReadRateLimiter", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -152,14 +162,9 @@ describe("thekeReadRateLimiter", () => {
     // ADR-048 D2) am echten Singleton. Die Fenster-Tests weiter oben laufen gegen ad-hoc erzeugte
     // Limiter mit `windowMs: 1000` und würden ein Vertippen hier nicht bemerken.
     // Anders als die keyed-Variante startet der globale Zähler sein Fenster beim **Modul-Import**,
-    // nicht lazy beim ersten Aufruf. Test-Isolation (testing-standards.md): eigenes Modul-Objekt
-    // per `resetModules` + Re-Import statt des über die Datei geteilten Singletons – Zeit auf 0
-    // eingefroren *vor* dem Import, damit das Fenster unabhängig von Lauf-Reihenfolge/Shuffle bei
-    // 0 startet (kein Bezug auf `Date.now()` zur Testlaufzeit nötig).
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    vi.resetModules();
-    const { thekeReadRateLimiter: limiter } = await import("./rate-limit");
+    // nicht lazy beim ersten Aufruf – eigenes Modul-Objekt statt des über die Datei geteilten
+    // Singletons (Test-Isolation, testing-standards.md).
+    const { thekeReadRateLimiter: limiter } = await importFreshRateLimitModule();
 
     for (let i = 0; i < 240; i++) {
       expect(limiter.tryAcquire()).toBe(true);
@@ -185,10 +190,7 @@ describe("thekeActionRateLimiter", () => {
     // ADR-048 D5) am echten Singleton. Es ist bewusst ein **eigenes** Objekt: Ein gemeinsames
     // Budget mit dem Lesepfad ließe einen Lese-Flood die Erfassung mit abwürgen (AK-7).
     // Test-Isolation wie beim Lese-Singleton: eigenes Modul-Objekt statt des geteilten.
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    vi.resetModules();
-    const { thekeActionRateLimiter: limiter } = await import("./rate-limit");
+    const { thekeActionRateLimiter: limiter } = await importFreshRateLimitModule();
 
     for (let i = 0; i < 240; i++) {
       expect(limiter.tryAcquire()).toBe(true);
@@ -207,11 +209,8 @@ describe("thekeActionRateLimiter", () => {
     // Ohne eigene Zähler-Instanz wäre dieser Test grün, ohne dass AK-7 gilt. Beide Limiter stammen
     // aus demselben frischen Modul-Import, damit dieser Test nicht vom Zählerstand anderer Tests
     // in dieser Datei abhängt (testing-standards.md – Test-Isolation).
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    vi.resetModules();
     const { thekeReadRateLimiter: readLimiter, thekeActionRateLimiter: actionLimiter } =
-      await import("./rate-limit");
+      await importFreshRateLimitModule();
 
     for (let i = 0; i < 240; i++) readLimiter.tryAcquire();
     expect(readLimiter.tryAcquire()).toBe(false);
