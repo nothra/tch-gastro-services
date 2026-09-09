@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -40,6 +40,12 @@ jetzt direkt nach dem Kopf gerendert statt nach dem letzten Erfassungs-Abschnitt
 selbst bleibt unverändert (ein einzelner, vom Konsumenten gelieferter `ReactNode`) – `FokusListe`
 und die Verzehr-Seite brauchten keine Änderung, da sie nur den Slot befüllen, nicht seine Position
 bestimmen.
+
+Zu AK5 – warum nur eine der drei genannten Testdateien angepasst wurde: die bestehenden
+#308-Link-Tests in `FokusListe.test.tsx` und `verzehr/page.test.tsx` sind positionsagnostisch
+(sie prüfen Präsenz, `href` und das Weiterreichen der Prop, nicht die DOM-Reihenfolge innerhalb
+der Karte) und brauchten daher keine Umstellung. Gleiches gilt für
+`e2e/wechsel-verzehr-kassieren.spec.ts` (rollen-/textbasierte Assertions).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
@@ -99,6 +105,22 @@ zwei Präzisionsfehler in Artefakten dieses PRs:
    zum Nachbartest `:614-617`.
 
 Verifiziert: `pnpm vitest run app/_verzehr/VerzehrErfassung.test.tsx` → 40/40 grün.
+
+**Runde 3** (`tasks/review-318.md`, `APPROVED` – letzte zulässige Iteration laut Circuit Breaker):
+keine kritischen, keine wichtigen Findings. Beide Runde-2-Präzisionsfehler sind an der Quelle
+nachgeprüft behoben (Zeilen-Anker `:114`/`:149` gegen `HEAD` nachgezählt, Rezidiv-Grep #264 neu
+gefahren – unter `app/` kein Vorkommen mehr). Die aus Runde 2 stammenden Tatsachenbehauptungen
+wurden nach Lesson #314 eigenständig gegengeprüft statt übernommen: ADR-039 D1 und ADR-035 D2
+enthalten keine Positionsaussage zum `aktion`-Slot (kein ADR-Nachtrag nach #211/#176 fällig), und
+`e2e/wechsel-verzehr-kassieren.spec.ts` assertiert durchgehend rollen-/textbasiert, also
+positionsagnostisch. Zusätzlich als Positivum belegt: der Slot liegt außerhalb des
+Kopf-`<button>` (`:136-147`) – kein verschachteltes interaktives Element, und die Tab-Reihenfolge
+ist jetzt Kopf → Wechsel-Link → Erfassung. Die sechs Nitpicks bleiben ausdrücklich optional; die
+Erklärlücke zu AK5 (Runde-2-Nitpick 5) ist mit dieser Runde in der Technischen Notiz oben
+geschlossen.
+
+Verifiziert: `pnpm vitest run` über alle vier betroffenen Testdateien → 112/112 grün,
+`pnpm lint` grün, Arbeitsbaum sauber.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
