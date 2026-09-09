@@ -604,7 +604,8 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
   });
 
   it("should_renderAktion_when_bodyVisible", () => {
-    // Die Aktion des Konsumenten (#308: Wechsel ins Kassieren) hängt am sichtbaren Körper.
+    // Die Aktion des Konsumenten (#308: Wechsel ins Kassieren) teilt das Sichtbarkeits-Gate
+    // des Körpers (`koerperSichtbar`), sitzt aber nicht mehr im Körper selbst (seit #318).
     renderKarte({ collapsible: true, open: true, aktion: <a href="/ziel">Kassieren</a> });
 
     expect(screen.getByRole("link", { name: "Kassieren" })).toHaveAttribute("href", "/ziel");

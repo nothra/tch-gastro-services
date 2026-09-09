@@ -1,150 +1,147 @@
 # Review: Task 318
 
-> Diff-Scope: `git diff origin/main...HEAD` (4 Dateien) · Runde 1 von max. 3
+> Diff-Scope: `git diff origin/main...HEAD` (6 Dateien, davon 2 Code) · **Runde 2 von max. 3**
+> Runde 1 (`NEEDS_REWORK`, 4 wichtige Findings) steht in der Git-History dieser Datei; ihre
+> Findings + der Rework sind in `tasks/task-318-wechsel-links-kopfposition.md` zusammengefasst.
 > Verifikation: `pnpm vitest run` über `VerzehrErfassung.test.tsx`, `FokusListe.test.tsx`,
-> `verzehr/page.test.tsx`, `kassieren/page.test.tsx` → **4 Dateien / 112 Tests grün**.
-> Zwei Mutationsbelege gefahren (jeweils selbst-wiederherstellend, `git status` danach leer) –
-> Ergebnisse unter W1 und im Abschnitt „Positives".
+> `verzehr/page.test.tsx`, `kassieren/page.test.tsx` → **4 Dateien / 112 Tests grün**;
+> `pnpm lint` grün. Zwei Mutationsbelege gefahren (selbst-wiederherstellend, `git status`
+> danach leer) – Ergebnisse unter „Positives".
 
 ## Kritische Findings (müssen behoben werden)
 
-_Keine._ Das Produktionsverhalten ist korrekt: die Verschiebung ist eine einzelne JSX-Zeile
-(`VerzehrErfassung.tsx:148`), das Sichtbarkeits-Gate `koerperSichtbar` (`:113`) ist unverändert
-und steht weiterhin vor dem Slot – spec-308 AK7/AK9/AK10 bleiben damit strukturell, nicht nur
-zufällig, erhalten.
+_Keine._ Das Produktionsverhalten ist korrekt und die Verschiebung bleibt eine einzelne
+JSX-Zeile (`VerzehrErfassung.tsx:149`) hinter dem unveränderten Gate `koerperSichtbar`
+(`:114`) – spec-308 AK7/AK9/AK10 bleiben strukturell erhalten. Alle vier wichtigen Findings
+aus Runde 1 sind behoben und **gemessen** behoben (siehe „Positives", Mutation A).
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] **`app/_verzehr/VerzehrErfassung.test.tsx:626` – Reihenfolge-Assertion belegt AK1s
-      „unmittelbar" nicht.** AK1 (`spec-318:57`) fordert „**unmittelbar** unterhalb des
-      Kartenkopfs"; `expect(aktionIndex).toBeGreaterThan(kopfIndex)` prüft nur „irgendwo danach".
-      **Empirisch belegt:** Mit einem zusätzlich zwischen Kopf und Slot gerenderten Fremd-Element
-      (`<p>Zwischenzeile</p>` vor Zeile 148) bleiben **alle 40 Tests grün** – eine AK1-Verletzung
-      bliebe also unentdeckt. Dass es heute faktisch Adjazenz ist, liegt allein an der Fixture
-      (genau drei Kinder). Fix ist ein Token: `expect(aktionIndex).toBe(kopfIndex + 1)`.
-- [ ] **`app/_verzehr/VerzehrErfassung.test.tsx:616` – der Reihenfolge-Nachweis liegt auf der
-      Prop-Kombination, die gar nicht ausgeliefert wird.** Der neue Test nutzt den flachen Pfad
-      ohne `collapsible`; der einzige Produktions-Konsument des Slots (`FokusListe.tsx:129`)
-      rendert `ZeileKarte` aber **immer** mit `collapsible` (`FokusListe.tsx:118`), wo der Kopf ein
-      `<button>` statt eines `<div>` ist (`VerzehrErfassung.tsx:135-146`). Die ausgelieferte
-      Kombination hat weiterhin nur Präsenz-/Containment-Assertions (`FokusListe.test.tsx:210-225`,
-      `verzehr/page.test.tsx:261-272`). Funktionsrisiko gering (identische JSX-Reihenfolge in
-      beiden Kopf-Zweigen), AK5-Beweis aber am Nebenpfad. Fix: `collapsible: true, open: true` in
-      das Override des neuen Tests – deckt dann Produktionspfad und Kopf-`<button>`-Zweig mit ab.
-- [ ] **`app/_verzehr/VerzehrErfassung.tsx:69` vs. `:74-77` – Widerspruch innerhalb des in diesem
-      PR umformulierten Kommentarblocks.** Zeile 65 definiert „Körper = Erfassung", Zeile 69 sagt
-      „bei `open=false` entfällt **nur** der Erfassungs-Körper (Kategorien + `MengeControl`)". Der
-      neu formulierte Satz stellt den Slot ausdrücklich „oberhalb der Erfassungs-Sektionen"
-      (`:74-75`), lässt ihn aber „am sichtbaren Körper hängen" (`:76`) – unter der Definition aus
-      Zeile 65 liegt er damit außerhalb des Körpers und hängt gleichzeitig daran. In der
-      #308-Fassung („Baustein am Fuß des Körpers") war das widerspruchsfrei. Zusätzlich ist Zeile
-      69 jetzt unvollständig: beim Einklappen entfällt auch die Aktion (festgeschrieben in
-      `VerzehrErfassung.test.tsx:630`). Fix: Sichtbarkeit an die **Bedingung** statt an die
-      **Region** binden („steht vor dem Erfassungs-Körper, teilt aber dessen Sichtbarkeits-Gate
-      `koerperSichtbar`") und Zeile 69 auf „Erfassungs-Körper **und Aktion**" ziehen. Bekanntes
-      Rezidiv-Muster: `lessons/code-style.md`, TL;DR-Satz über umformuliertem Detail-Absatz nicht
-      mitgezogen (aus #322).
-- [ ] **`app/_verzehr/VerzehrErfassung.test.tsx:621-623` – markup-gekoppelte und asymmetrische
-      Suchprädikate.** `kopfIndex` nutzt Substring (`textContent?.includes("Anna")`), `aktionIndex`
-      exakte Gleichheit (`textContent === "Kassieren"`) – der Produktions-Link heißt aber
-      `Kassieren →` (`verzehr/page.tsx:71`); richtet jemand die Fixture am echten Text aus, liefert
-      `findIndex` still `-1` und der Test wird kosmetisch rot. `koerperIndex` fixiert über
-      `tagName === "SECTION"` den Elementtyp des Körpers (`VerzehrErfassung.tsx:156`/`:194`), womit
-      ein reines Markup-Refactoring den Test bricht, ohne dass sich Verhalten ändert. Im Repo sind
-      verhaltensnahe Anker etabliert – Containment (`FokusListe.test.tsx:224`) und die im selben
-      `describe` eingeführten Marker `getByRole("link", …)` (`:610`), `getByText("Anna")` (`:555`),
-      `getByTestId("menge")` (`:556`). Fix: Indizes über `kind.contains(<Marker-Element>)`
-      bestimmen; die Assertion-Kette bleibt unverändert.
+- [ ] **`docs/factory/kleinfunde.md:293` – die eigenen `Datei:Zeile`-Anker sind seit dem
+      Rework-Commit dieser Task um eine Zeile verschoben.** Der Eintrag nennt
+      `app/_verzehr/VerzehrErfassung.tsx:113` + `:148`; tatsächlich steht
+      `const koerperSichtbar = …` auf **`:114`** und `{koerperSichtbar && aktion}` auf **`:149`**
+      (`grep -n koerperSichtbar` gegen HEAD). Zeile 113 ist `);`, Zeile 148 eine Leerzeile –
+      beide zitierten Anker zeigen auf Nicht-Inhalt. Ursache ist der Rework-Commit `1a2d137`
+      derselben Task: der neu formulierte Kommentarblock ist um eine Zeile gewachsen, nachdem
+      der Eintrag in Runde 1 geschrieben wurde. Der Dateikopf macht genau das zur Pflicht
+      (`kleinfunde.md:19`: „Fundstelle mit `Datei:Zeile` **verifiziert am Eintragsdatum** –
+      Zeilennummern driften"), und die Lesson zu #291 nennt exakt diesen Fall („auch wenn die
+      Drift-Quelle die eigenen Folge-Commits derselben Task sind"). Der ADR-Anker desselben
+      Eintrags (`035-…:66-67`) ist dagegen **korrekt** – nachgeprüft, nicht übernommen.
+      Fix: zwei Zahlen.
+- [ ] **`app/_verzehr/VerzehrErfassung.test.tsx:607` – der in Runde 1 (W3) als widersprüchlich
+      eingestufte Wortlaut steht unverändert in der Geschwister-Kopie derselben Datei.** Der
+      Rework hat die Aussage „`aktion` hängt am sichtbaren Körper" in
+      `VerzehrErfassung.tsx:76` korrekt auf „steht vor dem Erfassungs-Körper, teilt aber dessen
+      Sichtbarkeits-Gate `koerperSichtbar`" umgestellt. Der Testkommentar sagt weiter wörtlich
+      „Die Aktion des Konsumenten (#308: Wechsel ins Kassieren) **hängt am sichtbaren Körper**"
+      – unter der Definition „Körper = Erfassung" (`VerzehrErfassung.tsx:65`) liegt sie nach
+      diesem PR gerade **nicht** mehr dort, was der Nachbartest `:615` in derselben Datei
+      ausdrücklich festhält („nicht mehr am Fuß des Körpers"). Die Datei widerspricht sich damit
+      innerhalb von acht Zeilen. Bekanntes Rezidiv-Muster: `lessons/code-style.md`, „Fix für
+      falschen WHY-Kommentar per Grep auf kopierte Geschwister-Stellen im selben PR ausweiten"
+      (aus #264, dort Rezidiv in Runde 3). Ein repo-weiter Grep auf `sichtbaren Körper` findet
+      genau **eine** weitere Stelle, `tasks/task-308-…md:67` – historischer Task-Bericht einer
+      anderen Task und damit bewusst unberührt. Fix: ein halber Satz.
 
 ## Nitpicks (optional)
 
-- [ ] `app/_verzehr/VerzehrErfassung.test.tsx:613-628` – AK1 nennt als „erste sichtbare
-      Erfassungs-Sektion" ausdrücklich auch die Variante „Nicht mehr im Katalog"
-      (`spec-318:59-60`); dieser Zweig (`VerzehrErfassung.tsx:193-213`) hat keine
-      Reihenfolge-Assertion. Risiko strukturell null (ein einziger Einfügepunkt, Zeile 148, liegt
-      vor **beiden** Sektionsblöcken) und `tagName === "SECTION"` würde die Inaktiv-Sektion
-      unverändert treffen – es fehlt nur der Beweis. Zweiter Fall mit `artikel: []` +
-      `positionen: [pos({ active: false, menge: 2 })]` wäre fast Copy-Paste.
-- [ ] `app/_verzehr/VerzehrErfassung.test.tsx:618-619` – der `throw`-Guard ist zur Laufzeit
-      unerreichbar (`ZeileKarte` rendert immer ein `<li>`, `VerzehrErfassung.tsx:129`). **Kein**
-      Verstoß gegen `clean-code.md` → „Keine Fallbacks für vom Typsystem bereits ausgeschlossene
-      Fälle": `querySelector` ist deklariert `Element | null`, die Verengung ist für `li.children`
-      typnotwendig (`tsconfig.json` setzt nur `strict: true`, kein `noUncheckedIndexedAccess`).
-      Einsparbar über das im Repo häufigere `screen.getAllByRole("listitem")[0]`
-      (`KassierZeilenListe.test.tsx:22-28`) – Wurzel-Karte ist das erste `listitem`, die
-      verschachtelten `<li>` liegen erst in `:234`/`:272`.
-- [ ] `app/_verzehr/VerzehrErfassung.tsx:74-75` – der neue Kommentarsatz nennt die Position und
-      `#318`, aber nicht das WHY. Die übrigen Sätze des Blocks tun das durchgängig (`:71-73`). Ein
-      Halbsatz aus dem Spec-Kontext (`spec-318:12-15`: der Wechsel gehört zur Person, nicht zum
-      Betragsblock – kein Scrollen bei langer Aufschlüsselung) genügt.
-- [ ] `app/veranstaltung/personenbezug.ts:5-7` – „Hin- und Rückweg sollen als EIN Bedienmuster
-      auftreten". Die begründete Mechanik (eine geteilte `WECHSEL_LINK_CLASS`, `:13-14`) bleibt
-      richtig und unverändert; die **Position** ist nach diesem PR aber bewusst asymmetrisch
-      (Verzehr unter dem Kopf, Kassieren weiterhin am Fuß der Zeile,
-      `kassieren/page.tsx:203-207` – Spec-Scope `spec-318:36-38`). Ein Halbsatz, der „EIN
-      Bedienmuster" explizit aufs Erscheinungsbild einengt und die Positionsdifferenz auf #318
-      verweist, würde die Aussage wieder eindeutig machen. Kein Code-Änderungsbedarf.
-- [ ] `tasks/task-318-wechsel-links-kopfposition.md:38-42` – AK5 nennt drei Testdateien namentlich;
-      die Technische Notiz begründet nur, warum die **Komponenten** unverändert blieben, nicht die
-      **Tests**. Ein Halbsatz („bestehende #308-Link-Tests sind positionsagnostisch – Präsenz und
-      `href` – und brauchten keine Umstellung") schließt die Erklärlücke, die sonst jede Folgerunde
-      neu aufwirft.
-- [ ] `app/_verzehr/VerzehrErfassung.test.tsx:613` – das Suffix `_when_bodyVisible` bezeichnet hier
-      ein anderes Setup als beim Geschwistertest `:606` (dort explizit
-      `collapsible: true, open: true`, hier ist `koerperSichtbar` schon über `!collapsible` wahr).
-      Löst sich mit dem Fix zu Wichtig-Finding 2 von selbst auf.
+> Die ersten fünf standen bereits in Runde 1, wurden als optional nicht gezogen und sind
+> unverändert offen – hier nur als Bestandsaufnahme, nicht als neue Forderung.
 
-**Out of Scope (nicht in diesem PR):** ADR-035 D2 (`docs/adr/035-…:66-67`) behauptet „eingeklappt
-entfällt **nur** der Erfassungs-Körper" – der `aktion`-Slot entfällt ebenfalls. Die Ungenauigkeit
-stammt aus #308 und betrifft eine von #318 nicht angefasste Datei; unterhalb der Issue-Schwelle
-(ADR-043) → als Eintrag in `docs/factory/kleinfunde.md` festgehalten.
+- [ ] `app/_verzehr/VerzehrErfassung.test.tsx:613-636` – AK1 nennt als „erste sichtbare
+      Erfassungs-Sektion" ausdrücklich auch „Nicht mehr im Katalog" (`spec-318:59-60`); dieser
+      Zweig (`VerzehrErfassung.tsx:194-214`) hat weiter keine Reihenfolge-Assertion. Risiko
+      strukturell null (ein einziger Einfügepunkt, `:149`, liegt vor **beiden** Sektionsblöcken).
+- [ ] `app/_verzehr/VerzehrErfassung.test.tsx:625` – der `throw`-Guard bleibt zur Laufzeit
+      unerreichbar (`ZeileKarte` rendert immer ein `<li>`, `:130`); typnotwendig für
+      `querySelector`, also **kein** Verstoß gegen `clean-code.md` → „Keine Fallbacks für vom
+      Typsystem bereits ausgeschlossene Fälle". Einsparbar über das repo-übliche
+      `screen.getAllByRole("listitem")[0]` (`KassierZeilenListe.test.tsx:22-28`).
+- [ ] `app/_verzehr/VerzehrErfassung.tsx:74-75` – der Kommentarsatz nennt Position und `#318`,
+      aber nicht das WHY; die übrigen Sätze des Blocks tun das durchgängig (`:71-73`). Ein
+      Halbsatz aus `spec-318:12-15` (der Wechsel gehört zur Person, nicht zum Betragsblock –
+      kein Scrollen bei langer Aufschlüsselung) genügt.
+- [ ] `app/veranstaltung/personenbezug.ts:5-7` – „Hin- und Rückweg sollen als EIN Bedienmuster
+      auftreten". Die begründete Mechanik (geteilte `WECHSEL_LINK_CLASS`, `:13-14`) bleibt
+      richtig; die **Position** ist nach diesem PR bewusst asymmetrisch (Verzehr unter dem Kopf,
+      Kassieren weiter am Fuß der Zeile, `kassieren/page.tsx:203-207` – Spec-Scope
+      `spec-318:36-38`). Ein Halbsatz, der „EIN Bedienmuster" aufs Erscheinungsbild einengt,
+      macht die Aussage wieder eindeutig. Kein Code-Änderungsbedarf.
+- [ ] `tasks/task-318-wechsel-links-kopfposition.md:38-42` – AK5 nennt drei Testdateien
+      namentlich; die Technische Notiz begründet nur, warum die **Komponenten** unverändert
+      blieben, nicht die **Tests**. Ein Halbsatz („die bestehenden #308-Link-Tests in
+      `FokusListe.test.tsx`/`verzehr/page.test.tsx` sind positionsagnostisch – Präsenz und
+      `href` – und brauchten keine Umstellung") schließt die Erklärlücke, die sonst jede
+      Folgerunde neu aufwirft.
+- [ ] `app/_verzehr/VerzehrErfassung.test.tsx:606` vs. `:613` – nach dem Rework haben beide
+      Tests **identische** Overrides (`collapsible: true, open: true, aktion: …`), tragen aber
+      unterschiedliche Bedingungs-Suffixe (`_when_bodyVisible` vs. `_when_collapsibleAndOpen`).
+      Inhaltlich sind sie sauber getrennt (`href` vs. Reihenfolge); nur die Namen suggerieren
+      zwei verschiedene Setups. Runde-1-Nitpick 6 ist damit zur Hälfte aufgelöst.
+
+**Out of Scope (verifiziert, kein Handlungsbedarf in diesem PR):**
+`docs/anleitung/veranstalter/bilder/08-verzehr.png` zeigt den `Kassieren →`-Link nicht – der
+Screenshot stammt aus `9e21cde` (#221/#226) und damit von **vor** der Einführung des Links in
+`d006c59` (#308). Die Lücke ist also weder von #318 verursacht noch von ihm verschlimmert; der
+Alt-Text (`anleitung.md:133`: „Namensleiste oben, aufgeklappte Teilnehmer-Karte mit Plus/Minus
+je Artikel") bleibt zutreffend. Bewusst **kein** `kleinfunde.md`-Eintrag – hier festgehalten,
+damit eine Folgerunde es nicht neu aufwirft.
 
 ## Positives
 
-- **Mutationsbeleg der Kausalität, nicht nur Codelesen:** Setzt man die Verschiebung zurück (Slot
-  wieder ans Körper-Ende), wird **genau** der neue Test rot (1 failed / 39 passed) – die
-  RED-vor-GREEN-Kausalität hängt an der dritten Assertion (`:627`), weil die Kinderliste dann
-  `[div, section, a]` lautet. Kein „grün aus dem falschen Grund".
-- **Die `-1`-Absicherung ist lückenlos und transitiv:** `expect(kopfIndex).toBeGreaterThan(-1)`
-  (`:625`) verhindert, dass die Kette über zwei `-1`-Werte zufällig grün wird; daraus folgt
-  `aktionIndex ≥ 1` und `koerperIndex ≥ 2`. Jeder `-1`-Fall macht die jeweilige Assertion rot.
-- **Keine Magic Numbers:** alle drei Indizes werden über `findIndex` zur Laufzeit bestimmt statt
-  als Literale gesetzt – die Lesson „Row/Cell-Index-Assertions sind Magic Numbers, Herleitung
-  mitschreiben" (aus #189) greift hier gar nicht, weil keine feste Zahl vorkommt.
-- **Reihenfolge über Geschwister-Position statt Textreihenfolge:** `li.children` + Index-Vergleich
-  ist strenger als ein `textContent`-Vergleich über den ganzen Container – ein in den Kopf
-  hineingerenderter Link würde auffallen. Trifft die Lesson „zwei isolierte Präsenz-Assertions
-  ersetzen keinen Positionsvergleich" (aus #286) korrekt.
-- **AK4 belegbar gehalten:** der Diff berührt den Importblock (`:1-15`) nicht, die Prop bleibt
-  generisch `aktion?: ReactNode` (`:100`), der ADR-039-D1-Verweis bleibt im Kommentar. Ein
+- **Mutation A – der Runde-1-Kernfund ist gemessen geschlossen:** Mit einem zwischen Kopf und
+  Slot eingefügten Fremd-Element (`<p>Zwischenzeile</p>` vor `:149`) wird jetzt **genau** der
+  neue Test rot, und zwar an der Adjazenz-Assertion (`:634`, 1 failed / 39 passed). In Runde 1
+  blieben in derselben Mutation alle 40 Tests grün. `toBeGreaterThan` → `toBe(kopfIndex + 1)`
+  hat also real Beweiskraft gewonnen, nicht nur kosmetisch.
+- **Mutation B – Kausalität zur Produktionsänderung:** Setzt man `VerzehrErfassung.tsx` auf den
+  Stand vor der Verschiebung zurück (`git show 9f5f597:…`, Slot wieder auf `:213` am
+  Körper-Ende), scheitert derselbe Test mit `expected 2 to be 1` – die Assertion misst die
+  Position, nicht ein Nebenprodukt. Kein „grün aus dem falschen Grund".
+- **W2 aus Runde 1 sauber getroffen:** Der Reihenfolge-Nachweis liegt jetzt auf
+  `collapsible: true, open: true` – der einzigen ausgelieferten Kombination (`aktion=` kommt
+  repo-weit nur aus `FokusListe.tsx:129`, und `FokusListe` rendert `collapsible` unbedingt,
+  `:118`). Damit deckt der Test den Kopf-`<button>`-Zweig (`VerzehrErfassung.tsx:136-147`) ab,
+  nicht den flachen `<div>`-Zweig, den kein Konsument mit `aktion` benutzt.
+- **W4 aus Runde 1 verhaltensnah gelöst:** Die drei Indizes kommen über
+  `getByText("Anna")` / `getByRole("link", { name: "Kassieren" })` / `getByTestId("menge")` und
+  `kind.contains(…)`. Damit ist kein Elementtyp mehr fixiert (`tagName === "SECTION"` ist weg),
+  die Text-Asymmetrie ist weg, und die `get*`-Queries werfen bei Abwesenheit selbst – ein
+  stilles `-1` ist nicht mehr möglich, was `toBe(kopfIndex + 1)` zusätzlich absichert.
+- **Kommentar-Fix an der gemeldeten Stelle korrekt und vollständig:** `:69` nennt jetzt
+  „Erfassungs-Körper **und Aktion**" (deckt `VerzehrErfassung.test.tsx:638-643` ab), `:76`
+  bindet die Sichtbarkeit an die **Bedingung** statt an die **Region**. Der Widerspruch aus
+  Runde 1 W3 ist an der Produktionsstelle aufgelöst (offen bleibt nur die Kopie, W-Finding 2).
+- **AK4 (Route-Neutralität, ADR-039 D1) unverändert belegbar:** Der Diff berührt den
+  Importblock (`:1-15`) nicht, die Prop bleibt generisch `aktion?: ReactNode` (`:101`), und ein
   repo-weiter Grep auf `Kassieren →` liefert kein Vorkommen unter `app/_verzehr/`.
-- **Doku-Drift systematisch geprüft, und die eine relevante Stelle ist mitgezogen:** Der
-  Prop-Kommentar wurde im selben PR von „am Fuß des Körpers" auf die neue Position korrigiert
-  (`:74-77`). ADR-039 D1 + #308-Nachtrag (`:42-47`) beschreiben den Slot rein über Semantik und
-  **Sichtbarkeit**, nicht über die Position – kein ADR-Nachtrag nötig. Ebenso ohne Positionsaussage
-  und damit driftfrei: `spec-308`, `spec-52`, `spec-54`, `spec-187`, `README-montagsrunde.md`,
-  `docs/anleitung/veranstalter/anleitung.md` (Schritt 4 nennt den Wechsel-Link gar nicht),
-  `docs/routes.md:30`, `lessons/frontend-react.md`.
-- **`docs/routes.md` (#145) korrekt unberührt:** der Diff enthält kein `app/**/page.tsx` und kein
-  `app/api/**/route.ts` – keine Änderung an Pfad, Existenz oder Zugriff.
-- **Die E2E-Absicherung aus #308 ist positionsagnostisch** (`e2e/wechsel-verzehr-kassieren.spec.ts`
-  prüft Präsenz/`href`/Zielverhalten) und bricht durch die Verschiebung nicht – belegt durch die
-  grüne Vitest-Suite plus Codelesen der Spec-Datei.
-- **Spec-Disziplin:** die Kopf-Abgrenzung (Summenzeile bleibt Teil des Kopfs, Kopf-`div` wird nicht
-  aufgespalten) und die Scope-Reduktion um die Kassier-Karte waren vorab entschieden
-  (`spec-318:36-38`, `:104-111`) und sind exakt so umgesetzt – kein Gold-Plating, keine offene
-  Designentscheidung in `/implement`.
-- **Keine Repo-Artefakte im PR:** `git status --porcelain --ignored` zeigt alle
-  `scripts/*.tmp.sh`-Hilfsskripte dieses Reviews als ignoriert (`!!`), nicht getrackt; der
-  Arbeitsbaum ist ansonsten sauber.
+- **ADR-Drift selbst nachgeprüft, nicht aus Runde 1 übernommen:** `grep` über ADR-039 und
+  ADR-035 zeigt, dass beide den `aktion`-Slot ausschließlich über Semantik/Sichtbarkeit
+  beschreiben (`039:43-47`) bzw. gar nicht erwähnen (ADR-035) – **keine** Positionsaussage,
+  also kein ADR-Nachtrag nach #211/#176 fällig. Ebenso ohne Positionsaussage: `spec-308`,
+  `docs/anleitung/veranstalter/anleitung.md` (Schritt 4, `:124-137`, nennt den Link nicht),
+  `e2e/wechsel-verzehr-kassieren.spec.ts` (Präsenz/`href`/Zielverhalten, `.first()`-Filter –
+  positionsagnostisch).
+- **`docs/routes.md` (#145) korrekt unberührt:** kein `app/**/page.tsx` und kein
+  `app/api/**/route.ts` im Diff – keine Änderung an Pfad, Existenz oder Zugriff.
+- **Scope strikt gehalten:** `KassierZeilenListe`/`kassieren/page.tsx` sind unberührt
+  (`spec-318:36-38`), die Kopf-Abgrenzung (Summenzeile bleibt Teil des Kopfs, kein Aufspalten
+  des Kopf-`div`) folgt der vorab entschiedenen Spec (`spec-318:104-111`). Kein Gold-Plating.
+- **Keine Repo-Artefakte im PR:** `git status --porcelain --ignored` listet die
+  `scripts/*.tmp.sh`-Hilfsskripte dieses Reviews als ignoriert (`!!`); der Arbeitsbaum ist nach
+  beiden Mutationen sauber (`git status --porcelain` leer).
 
 ## Empfehlung
 
 NEEDS_REWORK
 
-Kein funktionaler Defekt – alle vier wichtigen Findings betreffen Beweiskraft der Tests und
-Präzision der Kommentare. Ausschlaggebend ist Finding 1: dass eine AK1-Verletzung („unmittelbar")
-den Test grün lässt, ist **gemessen**, nicht vermutet, und der Fix kostet ein Token. Finding 2
-(`collapsible` mitgeben) und Finding 4 (verhaltensnahe Anker) sind Einzeiler im selben Test,
-Finding 3 zwei Kommentarzeilen in der bereits angefassten Datei. Zusammen etwa zehn Zeilen in zwei
-Dateien – deutlich billiger jetzt als als Altlast.
+Kein funktionaler Defekt, und der inhaltliche Kernfund aus Runde 1 ist **gemessen** geschlossen
+(Mutation A). Was bleibt, sind zwei Präzisionsfehler in Artefakten, die dieser PR selbst
+angelegt bzw. angefasst hat: zwei falsche Zeilennummern in `kleinfunde.md` (ein Eintrag, den
+spätere Agenten als Arbeitsanweisung lesen und dessen Dateikopf verifizierte Anker verlangt) und
+eine Kommentar-Kopie, die dem Fix aus Runde 1 im selben File widerspricht. Zusammen drei Zeilen
+in zwei Dateien; beide sind dokumentierte Rezidiv-Muster (#291, #264), weshalb sie hier fallen
+sollten statt als Altlast weiterzulaufen. Die sechs Nitpicks bleiben ausdrücklich optional –
+sie sind **kein** Grund für eine weitere Runde.

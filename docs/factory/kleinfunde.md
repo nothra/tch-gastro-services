@@ -291,7 +291,7 @@
   – „eingeklappt entfällt nur der Erfassungs-Körper (Kategorien + `MengeControl`)" (verifiziert am
   2026-09-09).
 - **Was:** Beim Einklappen entfällt zusätzlich der `aktion`-Slot, der am selben
-  `koerperSichtbar`-Gate hängt (`app/_verzehr/VerzehrErfassung.tsx:113` + `:148`). Die
+  `koerperSichtbar`-Gate hängt (`app/_verzehr/VerzehrErfassung.tsx:114` + `:149`). Die
   Ungenauigkeit stammt aus #308 (damals lag der Slot positionell im Körper, die Aussage war also
   stimmig); seit #318 sitzt er zwischen Kopf und Körper und stimmt auch positionell nicht mehr.
   Rein dokumentarisch – kein Verhaltensdefekt.

@@ -77,6 +77,29 @@ Ein Out-of-Scope-Fund (ADR-035 D2, Ungenauigkeit aus #308) ist unterhalb der Iss
 
 Verifiziert: `pnpm vitest run` über alle vier Testdateien → 112/112 grün, `pnpm lint` grün.
 
+**Runde 2** (`tasks/review-318.md`, `NEEDS_REWORK`): keine kritischen Findings, zwei wichtige,
+sechs Nitpicks. Alle vier wichtigen Findings aus Runde 1 sind behoben – der Kernfund (AK1
+„unmittelbar") ist per Mutation gemessen geschlossen: ein Fremd-Element zwischen Kopf und Slot
+macht jetzt genau die Adjazenz-Assertion rot (vorher blieben alle 40 Tests grün). Offen bleiben
+zwei Präzisionsfehler in Artefakten dieses PRs:
+
+1. `docs/factory/kleinfunde.md:293` – die Anker `VerzehrErfassung.tsx:113`/`:148` sind durch den
+   eigenen Rework-Commit `1a2d137` um eine Zeile verschoben (korrekt: `:114`/`:149`); der
+   Dateikopf verlangt verifizierte Anker (Rezidiv-Muster #291).
+2. `app/_verzehr/VerzehrErfassung.test.tsx:607` – der von Runde 1 (W3) beanstandete Wortlaut
+   „hängt am sichtbaren Körper" steht unverändert in der Geschwister-Kopie und widerspricht dem
+   Nachbartest `:615` („nicht mehr am Fuß des Körpers"); Rezidiv-Muster #264 (Grep auf kopierte
+   Stellen im selben PR).
+
+**Rework nach Runde 2:** Beide Präzisionsfehler behoben:
+1. `docs/factory/kleinfunde.md:294` – Anker korrigiert auf `VerzehrErfassung.tsx:114`/`:149`
+   (gegen die aktuelle Datei verifiziert).
+2. `app/_verzehr/VerzehrErfassung.test.tsx:607-608` – Wortlaut auf „teilt das Sichtbarkeits-Gate
+   des Körpers, sitzt aber nicht mehr im Körper selbst (seit #318)" korrigiert, widerspruchsfrei
+   zum Nachbartest `:614-617`.
+
+Verifiziert: `pnpm vitest run app/_verzehr/VerzehrErfassung.test.tsx` → 40/40 grün.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
