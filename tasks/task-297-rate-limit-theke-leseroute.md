@@ -274,6 +274,25 @@ FS-4 zusätzlich per Body-Hash zweier verschiedener Segmente: identisch. Header 
 Verifikations-Skripte als `scripts/verify-297-*.tmp.sh` (nicht Teil des Commits – geprüft: sie
 erscheinen nicht in `git status`).
 
+### Review-Runde 2 (`/review`, 2026-09-09): **NEEDS_REWORK**
+
+Report: [`tasks/review-297.md`](review-297.md). 1 kritisch, 2 wichtig, 3 Nitpicks – **kein
+Produktionscode betroffen**. Der kritische Fund aus Runde 1 ist wirksam behoben (am Code
+verifiziert, alle 7 Findings abgehakt).
+
+**Kritisch:** `spec-297` ist in **diesem** PR entstanden und wurde beim Rework nicht mitgezogen –
+sie behauptet an vier Stellen (`:38-39`, AK-7 `:113-116`, AK-8-Klammer `:122-125`, OF-6 `:194-195`)
+weiterhin „nur GET/HEAD" bzw. „der Server-Action-POST unterliegt ausschließlich ADR-044 und wird
+nie mit der HTML-429 beantwortet". `proxy.test.ts:252-267` assertiert das Gegenteil. Die AK-7-Zeile
+oben in dieser Datei spiegelt denselben Satz und ist als erfüllt abgehakt. Risiko: `/test` schreibt
+seine Fälle gegen die AK-Tabelle der Spec. Lesson #253/#211/#176.
+
+**Wichtig:** ADR-048 D2 `:71-73` beziffert die Wirkung noch mit „≤ 240 Renders / ~960 Reads pro
+Minute und Instanz" – seit dem zweiten 240er-Budget (D5) ist die reale Decke ≤ 480 / ~1920; `:258`
+spricht weiterhin von „ein Zähler, ein Fenster-Start". · `isThekePath` hat keine
+Diskriminierungs-Kontrolle in der Gegenrichtung: Mutation `"/theke/"` → `"/theke"` lässt alle 35
+Tests grün, obwohl ein zu breites Präfix Pfade wie `/thekenwart` am Auth-Gate vorbeiführte.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

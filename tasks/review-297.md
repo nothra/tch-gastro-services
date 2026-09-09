@@ -1,5 +1,149 @@
 # Review: Task 297
 
+> **Runde 2** (`/review`, 2026-09-09) – Diff-Scope: `git diff origin/main...HEAD` (6 Commits,
+> 11 Dateien). Der Report von Runde 1 steht am Ende dieser Datei; seine 7 Findings sind alle
+> behoben und hier abgehakt.
+>
+> Gate-Lauf zum Review-Zeitpunkt: `pnpm vitest run proxy.test.ts lib/rate-limit.test.ts
+> lib/theke-throttle-response.test.ts` → **35 passed / 3 Dateien**. Die volle Suite und
+> `pnpm lint`/`typecheck` sind in dieser Runde **nicht** erneut gelaufen (Stand aus der
+> Task-Notiz: 793 passed / 59 skipped, lint + typecheck grün).
+>
+> **Der kritische Fund aus Runde 1 ist wirksam behoben** – am Code verifiziert: Der Zweig zählt
+> jede Anfrage auf `/theke/*`, der Discriminator ist der Action-Marker, nicht die Methode.
+> Alle Findings dieser Runde betreffen **Doku-Drift und eine Testlücke** – kein Produktionscode.
+
+## Kritische Findings (müssen behoben werden)
+
+- [ ] **`docs/specs/spec-297-rate-limit-theke-leseroute.md:38-39,113-116,122-125,194-195` – die
+  Spec dieses PRs behauptet an vier Stellen das Gegenteil dessen, was der PR implementiert und
+  testet.** Die Spec ist in **diesem** PR entstanden (Commit `28d2f37`); sie wurde beim Rework in
+  Runde 2 nicht mitgezogen, obwohl ADR-048 D5 vollständig neu geschrieben wurde. Der Widerspruch
+  ist rein PR-intern belegbar, es braucht keine externe Referenz:
+
+  | Spec-Stelle | Aussage | Ist-Zustand |
+  |---|---|---|
+  | `:38-39` (Wechselwirkung) | „gezählt werden nur GET und HEAD" | `proxy.ts:68-71` zählt **jede** Anfrage |
+  | `:113-116` (**AK-7**) | „gilt für den Schreibpfad weiterhin **ausschließlich** die Grenze aus ADR-044; die Lese-Bremse … beantwortet ihn **nie** mit der HTML-Hinweisseite" | `thekeActionRateLimiter` (240/60 s) ist eine zweite Grenze; `proxy.test.ts:252-267` assertiert für den Server-Action-POST über Limit **exakt** eine HTML-429 |
+  | `:122-125` (AK-8-Klammer) | „der Schreibpfad wird nicht mitgezählt" | er wird gezählt, nur auf ein eigenes Budget |
+  | `:194-195` (**OF-6**) | „nur GET und HEAD. Jede andere Methode läuft unberührt durch; der Server-Action-POST unterliegt weiterhin allein ADR-044" | widerlegt – das ist wörtlich die in ADR-048 D5 als **falsch** gekennzeichnete Prämisse |
+
+  Dazu spiegelt `tasks/task-297-rate-limit-theke-leseroute.md` in der AK-Liste denselben Satz
+  („AK-7 Schreibpfad unberührt: Server-Action-POST unterliegt weiterhin nur ADR-044, nie der
+  Lese-Bremse") und hakt ihn als **erfüllt** ab. Ein Akzeptanzkriterium, dessen Wortlaut die
+  Implementierung bewusst verletzt, darf nicht als erfüllt abgehakt bleiben – entweder wird der
+  Wortlaut nachgezogen (die Sache selbst ist in ADR-048 D5 sauber begründet: der Marker ist ein
+  Ausweis, kein Nachweis, deshalb braucht auch der Schreibpfad ein Budget) oder das Kriterium ist
+  offen.
+
+  **Konkreter Folgeschaden, nicht nur Kosmetik:** Der nächste Pipeline-Schritt `/test`
+  vervollständigt die Suite **gegen die AK-Tabelle der Spec**. Aus AK-7 in der heutigen Fassung
+  folgt ein Test „Server-Action-POST wird nie mit 429 beantwortet" – der direkt gegen den
+  bestehenden `should_return429_when_thekeServerActionPostOverActionLimit` läuft.
+
+  Lesson-Klasse #253 (frisch im selben PR entstandene Spec braucht denselben Drift-Check wie ADRs)
+  und #211/#176 – dieselbe Klasse, die in Runde 1 schon `docs/routes.md` traf. Die ADR-Seite wurde
+  beide Male korrekt nachgezogen, die Spec-Seite kein Mal.
+
+## Wichtige Findings (sollten behoben werden)
+
+- [ ] **`docs/adr/048-rate-limit-theke-leseroute.md:71-73` – die quantifizierte Obergrenze in D2
+  ist seit D5 um den Faktor 2 zu niedrig.** D2 beziffert die Wirkung der Bremse mit „deckelt die
+  Amplifikation … auf ≤ 240 Renders bzw. ≤ ~960 Neon-Reads pro Minute und Instanz". Diese Zahl
+  stammt aus der Fassung mit **einem** Budget. D5 hat in Runde 2 ein zweites Budget mit denselben
+  240/60 s ergänzt – und stellt dort selbst fest, dass eine Anfrage mit erfundener Action-ID „die
+  Seite trotzdem rendert (am Dev-Server gemessen)". Ein Angreifer, der den `Next-Action`-Header
+  setzt, holt sich also **zusätzlich** 240 Renders pro Fenster: die reale Decke ist ≤ 480 Renders
+  bzw. ≤ ~1920 Neon-Reads pro Minute und Instanz. Die Herleitung des Schutzniveaus ist genau die
+  Aussage, wegen der die ADR existiert – sie muss die Summe beider Budgets nennen.
+
+  Gleiche Stelle, gleiche Ursache: `:258` („Der Zustand ist konstant – **ein** Zähler, **ein**
+  Fenster-Start") beschreibt seit D5 zwei Zähler. FS-5 bleibt erfüllt (konstant ist konstant), die
+  Formulierung stimmt aber nicht mehr. Lesson-Klasse #322 (Merksatz über dem im selben PR
+  umgeschriebenen Detail-Absatz nicht mitgezogen).
+
+- [ ] **`proxy.test.ts:269-277` – der Zweig, der das Auth-Gate überspringt, hat keine
+  Diskriminierungs-Kontrolle in der Gegenrichtung.** Der einzige Negativfall ist `/veranstaltung`
+  – ein weit entfernter Pfad. Eine Verbreiterung von `THEKE_PATH_PREFIX` (`proxy.ts:22`) fällt
+  damit durch kein Netz, obwohl `isThekePath` entscheidet, ob eine Anfrage **ganz am Auth-Gate
+  vorbei** läuft: Träfe das Präfix zu breit, würde jeder künftige Pfad, der mit `/theke` beginnt
+  (z. B. `/thekenwart`), unauthentifiziert an die Route durchgereicht – ein Auth-Bypass, kein
+  Rate-Limit-Detail.
+
+  **Mutationsbeleg** (Lesson #286 – derselbe Assert-Ausdruck, nicht nur derselbe Grundbefehl):
+  `THEKE_PATH_PREFIX = "/theke/"` → `"/theke"` mutiert, `pnpm vitest run proxy.test.ts
+  lib/rate-limit.test.ts lib/theke-throttle-response.test.ts` → **35 passed, unverändert grün**.
+  Danach mit `git checkout -- proxy.ts` zurückgenommen (Baum sauber). Ein Nahtreffer-Fall
+  (`request("GET", "/thekenwart")` → `tryAcquireMock` **nicht** aufgerufen, `fakeAuth` aufgerufen)
+  macht die Mutation rot. Kann auch `/test` nachziehen; dann bitte dort mit demselben
+  Mutationsbeleg.
+
+## Nitpicks (optional)
+
+- [ ] **`lib/theke-throttle-response.ts:38-39` – die zweite, unerzwungene Kopplung an die
+  Fensterlänge ist stehen geblieben.** Runde-1-Finding W2 wurde für den Header behoben
+  (`RETRY_AFTER_SECONDS` leitet sich jetzt aus `THEKE_RATE_LIMIT_WINDOW_MS` ab), der **sichtbare**
+  Satz sagt aber weiterhin fest „in etwa einer Minute". Ein geändertes Fenster zieht den Header
+  mit und die Prosa nicht – dieselbe Klasse, nur eine Zeile tiefer. Lesson #264: Fix per Grep auf
+  die Geschwister-Stellen im selben PR ausweiten. Entweder den Satz aus der Konstante
+  interpolieren oder ihn fenster-unabhängig formulieren („gleich noch einmal" reicht für AK-4).
+
+- [ ] **`lib/rate-limit.test.ts:206` – `Date.now() + 7_200_000` ohne Herleitung.** Der Test
+  darüber nimmt `+ 3_600_000` und begründet den Sprung („über die Importzeit hinaus"); warum
+  dieser Test einen doppelt so großen braucht, steht nirgends. (Er braucht ihn, weil der
+  vorherige Test die Fake-Uhr bereits auf ~+3,66 Mio. ms gestellt und die Singletons dort
+  gezählt hat – geteilter Zustand zwischen den `describe`-Blöcken.) Magic Number mit
+  Reihenfolge-Semantik: Herleitung sofort mitschreiben (Lesson #189).
+
+- [ ] **`proxy.test.ts:22-24` – der Kommentar behauptet eine falsche Fehlerwirkung.** „bekäme
+  sonst `NaN` statt `60`" – tatsächlich bricht Vitest schon beim Import ab. **Empirisch geprüft**
+  (Lesson #319 – „X bewirkt Y" ist eine überprüfbare Tatsachenbehauptung): Konstante aus der
+  Mock-Factory entfernt → `Error: [vitest] No "THEKE_RATE_LIMIT_WINDOW_MS" export is defined on
+  the "@/lib/rate-limit" mock`, 1 Datei rot; danach zurückgenommen. Der Kommentar sollte das sagen
+  – „sonst schlägt der Import der Drossel-Antwort fehl" – statt eine `NaN`-Folge zu erfinden. (Zur
+  Einordnung: In dieser Datei assertiert kein Test den `Retry-After`-Wert; die Konstante ist hier
+  reine Import-Voraussetzung.)
+
+## Positives
+
+- **Der kritische Fund aus Runde 1 ist an der Wurzel behoben, nicht kaschiert.** Der Discriminator
+  wanderte von der HTTP-Methode auf den Server-Action-Marker, und statt eines ungezählten
+  Freibriefs bekam der Schreibpfad ein **eigenes** Budget – die Einsicht „der Marker ist ein
+  Ausweis, den jeder setzen kann" ist die richtige und wird in Code (`proxy.ts:31-42`), ADR (D5)
+  und Test (`proxy.test.ts:252-257`) übereinstimmend begründet. Genau das ist die schwierigere,
+  nicht die bequeme Lösung.
+- **Die bewusste Grenze des Discriminators ist getestet statt angenommen** – der No-JS-Multipart-
+  Pfad hat einen eigenen Testfall (`proxy.test.ts:199-213`) samt Begründung, warum er im heutigen
+  Aufbau unerreichbar ist. Das war in Runde 1 explizit eingefordert.
+- **Der Mutationsbeleg der Zweigauswahl ist in der Task-Notiz mit den drei rot werdenden
+  Testnamen dokumentiert** – nicht nur „Mutation getestet" behauptet (Lesson #286 sauber
+  angewandt).
+- **`docs/routes.md:27`** ist präzise nachgezogen („kein Auth-Gate, Token; Rate-Limit im Proxy,
+  ADR-048") und der fail-closed Drift-Check bleibt grün.
+- **Die Trennung der Budgets ist am echten Singleton belegt**
+  (`lib/rate-limit.test.ts:202-212`) – ein erschöpftes Lesebudget lässt das Schreib-Budget
+  unberührt. Ohne eigene Zähler-Instanz wäre AK-7 still gebrochen.
+- **Die Fixture-Erweiterung ist die richtige Härtung:** `pathname` ist Pflichtargument mit
+  Begründung – ein Default hätte die bestehenden Session-Guard-Tests still in den neuen Zweig
+  fallen lassen.
+- Kein dritter Zähl-Code (AK-10), Modul-Header in `lib/rate-limit.ts:1-8` zählt **beide** neuen
+  Konsumenten auf (Lesson #207), kein toter `try/catch` um `tryAcquire`.
+
+## Empfehlung
+
+NEEDS_REWORK
+
+> **Umfang des Reworks:** ausschließlich Markdown (`spec-297` an vier Stellen + AK-Zeile in der
+> Task-Datei, `ADR-048:71-73` und `:258`, drei Kommentare) plus **ein** Testfall in
+> `proxy.test.ts`. **Kein Produktionscode.**
+>
+> **Circuit Breaker:** Das wäre Iteration 3 von maximal 3 (CLAUDE.md → Guardrails). Findet die
+> nächste Review-Runde erneut Blockierendes, wird eskaliert statt weiter iteriert.
+
+---
+
+# Review: Task 297 – Runde 1 (2026-09-09)
+
 > Diff-Scope: `git diff origin/main...HEAD` (4 Commits, 9 Dateien).
 > Gates zum Review-Zeitpunkt grün: `pnpm test` (785 passed / 59 skipped), `pnpm lint`,
 > `scripts/checks/routes-doc-check.sh`.
@@ -122,10 +266,7 @@
 
 NEEDS_REWORK
 
----
-
 > **Rework erledigt (`/implement`, 2026-09-09):** Alle 7 Findings behoben – Details, Mutationsbeleg
 > und die Live-Gegenprobe zum kritischen Fund (POST/PUT/DELETE ohne Marker jetzt 429 statt 404)
 > stehen in [`task-297-rate-limit-theke-leseroute.md`](task-297-rate-limit-theke-leseroute.md)
-> → „Rework Runde 2". Dieser Report bleibt als Stand von Runde 1 stehen; das Verdikt für Runde 2
-> vergibt der nächste `/review`-Lauf.
+> → „Rework Runde 2". In Runde 2 verifiziert und abgehakt.
