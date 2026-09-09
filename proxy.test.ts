@@ -266,7 +266,22 @@ describe("proxy – Lese-Bremse der öffentlichen Theken-Route (#297 / ADR-048)"
     )) as Response;
 
     expect(res.status).toBe(429);
+    // AK-4 (#331): exakt `text/plain` – ohne diesen Klartext wirft `server-action-reducer.js`
+    // während des Renderns weiter und die komplette Theke stürzt hinter „Application error…" ab.
+    expect(res.headers.get("content-type")).toBe("text/plain");
     expect(fakeAuth).not.toHaveBeenCalled();
+  });
+
+  it("should_returnHtml429_when_thekeReadRequestOverLimit", async () => {
+    // AK-5 (#331): der Lesepfad bleibt unverändert bei HTML (ADR-048 D4) – ein menschlicher
+    // Browser-Aufruf, kein fetch-basierter Action-Aufruf. Spiegel-Assertion zur Action-Variante
+    // oben (Lesson #211: beide Richtungen einer Asymmetrie explizit prüfen).
+    tryAcquireMock.mockReturnValue(false);
+
+    const res = (await proxy(request("GET", THEKE_PATH), {} as never)) as Response;
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
   });
 
   it("should_leaveAuthGateUntouched_when_protectedRoute", async () => {
@@ -301,6 +316,25 @@ describe("proxy – Lese-Bremse der öffentlichen Theken-Route (#297 / ADR-048)"
 
     const valid = (await proxy(request("GET", THEKE_PATH), {} as never)) as Response;
     const invented = (await proxy(request("GET", "/theke/frei-erfunden"), {} as never)) as Response;
+
+    expect(invented.status).toBe(valid.status);
+    expect([...invented.headers]).toEqual([...valid.headers]);
+    await expect(invented.text()).resolves.toBe(await valid.text());
+  });
+
+  it("should_answerIdentically_when_throttledActionTokenValidOrInvented", async () => {
+    // FS-2 (#331): dasselbe für den neuen Klartext-Zweig – kein Token-/Veranstaltungs-Leak über
+    // den Server-Action-Pfad.
+    tryAcquireActionMock.mockReturnValue(false);
+
+    const valid = (await proxy(
+      request("POST", THEKE_PATH, serverActionHeaders),
+      {} as never,
+    )) as Response;
+    const invented = (await proxy(
+      request("POST", "/theke/frei-erfunden", serverActionHeaders),
+      {} as never,
+    )) as Response;
 
     expect(invented.status).toBe(valid.status);
     expect([...invented.headers]).toEqual([...valid.headers]);

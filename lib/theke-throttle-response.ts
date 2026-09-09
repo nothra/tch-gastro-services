@@ -1,14 +1,14 @@
-// Antwort für gedrosselte Lese-Anfragen auf die öffentliche Theken-Route (#297, ADR-048 D4).
+// Zwei Antworten für gedrosselte Anfragen auf die öffentliche Theken-Route: HTML für den
+// menschlichen Lesepfad (#297, ADR-048 D4) und Klartext für den fetch-basierten Server-Action-Pfad
+// (#331, ADR-048 D4-Nachzug). Beide nimmt keine Argumente – der Inhalt ist unabhängig vom
+// aufgerufenen Token: eine gedrosselte Anfrage auf ein gültiges und auf ein erfundenes Segment ist
+// ununterscheidbar (FS-4/FS-2).
 //
-// Die Seite wird direkt im Proxy erzeugt, nicht per `rewrite` auf eine Next-Route: Ein Rewrite
+// Beide werden direkt im Proxy erzeugt, nicht per `rewrite` auf eine Next-Route: Ein Rewrite
 // erzeugte genau die Function-Invocation, die die Bremse einsparen soll (AK-3), und lieferte den
-// Status der Zielroute statt 429. Aus demselben Grund ist das Dokument in sich geschlossen –
+// Status der Zielroute statt 429. Aus demselben Grund ist die HTML-Variante in sich geschlossen –
 // Layout und CSS inline, kein Skript, kein `_next/`-Bundle, kein externes Asset: im Drosselfall
 // darf kein weiterer Roundtrip entstehen.
-//
-// Der Inhalt ist bewusst unabhängig vom aufgerufenen Token (die Funktion nimmt kein Argument):
-// eine gedrosselte Anfrage auf ein gültiges und auf ein erfundenes Segment ist ununterscheidbar
-// (FS-4).
 
 import { THEKE_RATE_LIMIT_WINDOW_MS } from "./rate-limit";
 
@@ -55,4 +55,22 @@ export function tooManyRequestsResponse(): Response {
       "cache-control": "no-store",
     },
   });
+}
+
+// 429-Antwort für einen gedrosselten Server-Action-POST (#331). `content-type` ist EXAKT
+// `text/plain` – ohne `; charset=utf-8` –, weil `server-action-reducer.js:117` strikt vergleicht
+// (`contentType === 'text/plain'`); mit Parameter fiele der Body wieder heraus und React zeigte
+// erneut die generische „An unexpected response was received from the server."
+export function tooManyRequestsPlainTextResponse(): Response {
+  return new Response(
+    `Zu viele Anfragen. Bitte in etwa ${RETRY_AFTER_SECONDS} Sekunden erneut versuchen.`,
+    {
+      status: 429,
+      headers: {
+        "content-type": "text/plain",
+        "retry-after": String(RETRY_AFTER_SECONDS),
+        "cache-control": "no-store",
+      },
+    },
+  );
 }

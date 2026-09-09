@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import { tooManyRequestsResponse } from "./theke-throttle-response";
+import {
+  tooManyRequestsResponse,
+  tooManyRequestsPlainTextResponse,
+} from "./theke-throttle-response";
 
 // Deckt AK-4 (sichtbare, ehrliche Antwort) und den Selbstgenügsamkeits-Teil von AK-3 ab: Die
 // Drossel-Antwort muss ohne Render, ohne Layout und ohne Asset-Roundtrip auskommen (ADR-048 D4).
@@ -43,5 +46,38 @@ describe("tooManyRequestsResponse", () => {
     expect(html).not.toMatch(/\ssrc=/i);
     expect(html).not.toMatch(/\shref=/i);
     expect(html).not.toContain("_next/");
+  });
+});
+
+// #331/AK-4: Der Server-Action-Zweig braucht Klartext statt HTML – `server-action-reducer.js:117`
+// übernimmt den Body nur bei EXAKT `content-type: text/plain` (strikter Vergleich, kein
+// `; charset=utf-8`) als Meldung; sonst bleibt es bei der generischen React-Meldung und der
+// Absturz ist zwar gefangen (Boundary), aber nicht diagnostizierbar.
+describe("tooManyRequestsPlainTextResponse", () => {
+  it("should_return429WithExactPlainTextContentType_when_called", () => {
+    const res = tooManyRequestsPlainTextResponse();
+
+    expect(res.status).toBe(429);
+    // Exakt – kein Parameter. `server-action-reducer.js:117` vergleicht strikt.
+    expect(res.headers.get("content-type")).toBe("text/plain");
+  });
+
+  it("should_shareRetryAfterAndCacheControlWithHtmlVariant_when_called", () => {
+    // AK-6: beide Varianten tragen dieselben Header-Werte – echter Vergleich gegen die
+    // HTML-Variante statt hartkodierter Literale, damit der Testname hält, was er verspricht
+    // (Review-Nitpick, task-#331).
+    const plainText = tooManyRequestsPlainTextResponse();
+    const html = tooManyRequestsResponse();
+
+    expect(plainText.headers.get("retry-after")).toBe(html.headers.get("retry-after"));
+    expect(plainText.headers.get("cache-control")).toBe(html.headers.get("cache-control"));
+  });
+
+  it("should_notLeakTokenOrVeranstaltung_when_bodyRead", async () => {
+    // FS-2: der Body bleibt unabhängig vom aufgerufenen Segment – kein Token-/Veranstaltungs-Leak.
+    const body = await tooManyRequestsPlainTextResponse().text();
+
+    expect(body.length).toBeGreaterThan(0);
+    expect(body).not.toMatch(/theke|token|veranstaltung/i);
   });
 });

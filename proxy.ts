@@ -3,7 +3,10 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server
 import { authConfig } from "@/auth.config";
 import { shouldSuppressSessionRotation, stripSessionRotation } from "@/lib/prefetch-session";
 import { thekeActionRateLimiter, thekeReadRateLimiter } from "@/lib/rate-limit";
-import { tooManyRequestsResponse } from "@/lib/theke-throttle-response";
+import {
+  tooManyRequestsResponse,
+  tooManyRequestsPlainTextResponse,
+} from "@/lib/theke-throttle-response";
 
 // Edge-"Proxy" (Next 16, vormals middleware) auf Basis der edge-sicheren Config:
 // liest die JWT-Session; der `authorized`-Callback entscheidet Zugriff/Redirect.
@@ -66,8 +69,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Kein try/catch: `tryAcquire` ist reine synchrone Zähler-Arithmetik ohne I/O, ein Fallback
   // wäre ein toter Zweig – Cold-Start = frischer Zähler = durchlassen (fail-open, ADR-048 D6).
   if (isThekePath(request.nextUrl.pathname)) {
-    const limiter = isServerActionRequest(request) ? thekeActionRateLimiter : thekeReadRateLimiter;
-    return limiter.tryAcquire() ? NextResponse.next() : tooManyRequestsResponse();
+    const isAction = isServerActionRequest(request);
+    const limiter = isAction ? thekeActionRateLimiter : thekeReadRateLimiter;
+    if (limiter.tryAcquire()) return NextResponse.next();
+    // Klartext für den Action-Zweig (#331): eine HTML-429 liegt außerhalb des Server-Action-
+    // Protokolls und lässt react-dom-client mit „Application error…" abstürzen, statt den Text
+    // aus dem State zu zeigen. Der Lesepfad bleibt bei HTML (ADR-048 D4) – ein menschlicher
+    // Browser-Aufruf, kein fetch.
+    return isAction ? tooManyRequestsPlainTextResponse() : tooManyRequestsResponse();
   }
 
   const response = await authMiddleware(request, event);
