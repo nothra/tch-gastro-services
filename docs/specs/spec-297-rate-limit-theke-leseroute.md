@@ -35,8 +35,11 @@ inklusive ihrer vier DB-Reads erneut. Zusätzlich adressiert der Server-Action-P
 URL** `/theke/<token>` wie der Lese-GET. Eine Bremse, die alle Anfragen auf diesen Pfad zählt,
 zählt damit auch den Schreibverkehr mit. Das ist bei Schwellwert **und** Zähl-Umfang zu
 berücksichtigen (AK-7, AK-8), sonst drosselt sich die Theke bei normaler Nutzung selbst.
-→ Aufgelöst in [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D5: gezählt werden nur GET und
-HEAD; der Re-Render läuft innerhalb des POST und erreicht den Zähler gar nicht.
+→ Aufgelöst in [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D5: Gezählt wird **jede**
+Anfrage auf `/theke/*`, aber auf **zwei getrennte Budgets** – Discriminator ist der
+Server-Action-Marker (`Next-Action`-Header), nicht die HTTP-Methode. Der Schreibverkehr belastet
+damit nicht das Lese-Budget, und der `revalidatePath`-Re-Render läuft ohnehin **innerhalb** des
+POST und erreicht den Zähler gar nicht.
 
 ### Entscheidungen des Auftraggebers (gesetzt, nicht mehr offen)
 
@@ -67,7 +70,9 @@ HEAD; der Re-Render läuft innerhalb des POST und erreicht den Zähler gar nicht
 
 **Nicht inbegriffen:**
 - **Keine** Änderung an der Schreib-Bremse aus ADR-044 (`selfServiceVerzehrRateLimiter`,
-  60/Fenster pro Token) – sie bleibt unverändert die Grenze des Schreibpfads.
+  60/Fenster pro Token) – sie bleibt unverändert die Grenze, die reale Erfassung tatsächlich
+  erreicht. (Der Proxy legt in ADR-048 D5 ein zweites, weit höheres Missbrauchs-Budget darüber;
+  angefasst wird `selfServiceVerzehrRateLimiter` dabei nicht.)
 - **Keine** Änderung an `/api/health` (ADR-020) und **kein** Rate-Limit auf `/api/version`
   (kein DB-Zugriff, keine Amplifikationsfläche dieser Klasse).
 - **Kein** geteilter/externer Store (Redis/Vercel KV) – bleibt Best-Effort in-memory pro
@@ -110,10 +115,13 @@ HEAD; der Re-Render läuft innerhalb des POST und erreicht den Zähler gar nicht
   Unangemeldeter eine geschützte Route (z. B. `/veranstaltung`) aufruft THEN wird er unverändert auf
   `/login` umgeleitet – die Verdrahtung der Bremse weicht das eng gefasste Auth-Gate nicht auf.
 
-- [ ] **AK-7 (Schreibpfad unberührt):** GIVEN die Lese-Bremse ist aktiv WHEN
+- [ ] **AK-7 (Schreibpfad vom Lese-Flood entkoppelt):** GIVEN die Lese-Bremse ist aktiv WHEN
   `adjustVerzehrByTokenAction` (Server-Action-POST auf dieselbe URL `/theke/<token>`) aufgerufen
-  wird THEN gilt für den Schreibpfad weiterhin **ausschließlich** die Grenze aus ADR-044; die
-  Lese-Bremse lehnt keinen Schreibaufruf ab und beantwortet ihn nie mit der HTML-Hinweisseite.
+  wird THEN zählt er auf ein **eigenes** Budget: Ein ausgeschöpftes Lese-Fenster lehnt **keinen**
+  Schreibaufruf ab. Reale Erfassung bleibt damit praktisch allein durch ADR-044 begrenzt
+  (60/Fenster pro Token). Das eigene Proxy-Budget ist ein reiner Missbrauchs-Deckel und **kein**
+  Freibrief – der `Next-Action`-Header ist ein Ausweis, den jeder setzen kann; ein ungezählter
+  Zweig wäre ein Header-Schalter zum Abstellen der Bremse (Review-Runde 1, ADR-048 D5).
 
 - [ ] **AK-8 (Kein Selbst-Drosseln bei realer Nutzung):** GIVEN eine Theke im Normalbetrieb
   (mehrere Teilnehmer erfassen gleichzeitig; jede Erfassung erzeugt zusätzlich einen
@@ -121,8 +129,9 @@ HEAD; der Re-Render läuft innerhalb des POST und erreicht den Zähler gar nicht
   wird **keine** dieser Anfragen gedrosselt – der gewählte Schwellwert liegt nachweislich und
   begründet über der real erwartbaren Lese-Last. (Erfüllt durch
   [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D2/D5: der Re-Render läuft **innerhalb** des
-  Server-Action-POST und passiert den Proxy-Zähler nie, und der Schreibpfad wird nicht mitgezählt –
-  die Herleitung des Schwellwerts muss diese beiden Lasten daher nicht mehr absorbieren.)
+  Server-Action-POST und passiert den Proxy-Zähler nie, und der Schreibverkehr zählt auf ein
+  **eigenes** Budget statt auf das Lese-Budget – die Herleitung des Lese-Schwellwerts muss diese
+  beiden Lasten daher nicht absorbieren.)
 
 - [ ] **AK-9 (Fenster-Reset):** GIVEN im Fenster N wurde gedrosselt WHEN nach Ablauf der
   Fensterlänge erneut aufgerufen wird THEN wird die Anfrage wieder normal verarbeitet (Zähler
@@ -191,5 +200,12 @@ HEAD; der Re-Render läuft innerhalb des POST und erreicht den Zähler gar nicht
   `rewrite` auf eine eigene Route erzeugte wieder die Invocation, die AK-3 einsparen soll. Es
   entsteht **keine** neue Route – `docs/routes.md` bleibt unverändert.
 
-- [x] **OF-6 · Zähl-Umfang der Anfragearten** → **ADR-048 D5: nur GET und HEAD.** Jede andere
-  Methode läuft unberührt durch; der Server-Action-POST unterliegt weiterhin allein ADR-044.
+- [x] **OF-6 · Zähl-Umfang der Anfragearten** → **ADR-048 D5: jede Anfrage zählt, auf eines von
+  zwei getrennten Budgets.** Discriminator ist der Server-Action-Marker (`Next-Action`-Header),
+  nicht die HTTP-Methode: Ein POST **mit** Marker zählt auf das Schreib-Budget, jede andere Anfrage
+  auf `/theke/*` auf das Lese-Budget; ungezählt durchgereicht wird nichts.
+  **Die zuerst dokumentierte Fassung („nur GET und HEAD, jede andere Methode läuft unberührt durch,
+  der Server-Action-POST unterliegt allein ADR-044") ist in Review-Runde 1 widerlegt worden:** Der
+  App Router rendert `ThekePage` auch für POST/PUT/PATCH/DELETE ohne Marker – dabei läuft
+  `adjustVerzehrByTokenAction` und damit `selfServiceVerzehrRateLimiter` nie, diese Anfragen
+  unterlagen also **keiner** Grenze und die Bremse war mit `curl -X POST` umgehbar.

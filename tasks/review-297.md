@@ -139,6 +139,15 @@ NEEDS_REWORK
 >
 > **Circuit Breaker:** Das wäre Iteration 3 von maximal 3 (CLAUDE.md → Guardrails). Findet die
 > nächste Review-Runde erneut Blockierendes, wird eskaliert statt weiter iteriert.
+>
+> **Rework erledigt (`/implement`, 2026-09-09):** Alle 6 Findings behoben – der Umfang blieb wie
+> vorgezeichnet reines Markdown plus **ein** Testfall
+> (`should_leaveAuthGateUntouched_when_pathOnlyLooksLikeTheke`), **kein Produktionscode**. Details,
+> der geforderte Mutationsbeleg (`"/theke/"` → `"/theke"` → genau dieser Test rot) und die
+> empirischen Proben zu den beiden Kommentar-Nitpicks stehen in
+> [`task-297-rate-limit-theke-leseroute.md`](task-297-rate-limit-theke-leseroute.md) →
+> „Rework Runde 3". Der erste Nitpick (Wartezeit-Text ↔ Fensterkonstante) war zum Report-Zeitpunkt
+> bereits mit `2bb6bec` behoben.
 
 ---
 

@@ -68,9 +68,14 @@ Herleitung (AK-8 verlangt die Herleitung, nicht nur die Zahl): Die größte real
 Theke ist eine Montagsrunde mit bis zu ~40 gleichzeitig anwesenden Teilnehmern. Pro Person und
 Minute sind im Spitzenfall ~4 Lese-Anfragen plausibel (Erstaufruf, Reload, Zurück-Navigation,
 RSC-Prefetch) → ~160/Fenster. Aufgerundet mit ~50 % Puffer: **240**. Das ist bewusst großzügig
-(Auftraggeber-Vorgabe) und deckelt die Amplifikation trotzdem von *unbegrenzt* auf ≤ 240 Renders
-bzw. ≤ ~960 Neon-Reads pro Minute und Instanz – gegenüber den Zehntausenden Anfragen pro Minute,
-die eine ungebremste Schleife erreicht, eine Reduktion um Größenordnungen.
+(Auftraggeber-Vorgabe) und deckelt die Amplifikation trotzdem von *unbegrenzt* auf eine feste
+Obergrenze – gegenüber den Zehntausenden Anfragen pro Minute, die eine ungebremste Schleife
+erreicht, eine Reduktion um Größenordnungen.
+
+**Die Obergrenze ist die Summe beider Budgets aus D5**, nicht dieses eine: Das Schreib-Budget ist
+mit denselben 240/60 s bemessen, und ein Angreifer, der einfach den `Next-Action`-Header setzt,
+lässt die Seite ebenfalls rendern (D5). Die reale Decke ist damit **≤ 480 Renders bzw.
+≤ ~1920 Neon-Reads pro Minute und Instanz**.
 
 Die Erfassungs-Re-Renders, die AK-8 nennt, fallen **nicht** unter dieses Budget – siehe D5.
 
@@ -255,7 +260,8 @@ Hybrid-Dimension oder eine Plattform-Firewall nachrüsten, ohne die Aufrufstelle
 - Der beschriebene Angriff (Schleife auf zufällige Segmente) wird tatsächlich gedeckelt – anders
   als bei einer Pro-Token-Dimension.
 - Gedrosselte Anfragen kosten weder DB-Read noch Seiten-Invocation noch Asset-Roundtrip.
-- Der Zustand ist konstant (ein Zähler, ein Fenster-Start) und wächst nicht mit Angreifer-Input.
+- Der Zustand ist konstant (zwei Zähler mit je einem Fenster-Start, D5) und wächst nicht mit
+  Angreifer-Input – auch nicht mit der Zahl verschiedener Pfad-Segmente (FS-5).
 - Das Auth-Gate bleibt unverändert eng und fail-closed; der `authorized`-Callback führt keine
   Liste öffentlicher Pfade.
 - Die Erfassungs-Re-Renders sind vom Lese-Budget strukturell ausgenommen – kein Selbst-Drosseln.

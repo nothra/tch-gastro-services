@@ -19,8 +19,11 @@ const { tryAcquireMock, tryAcquireActionMock } = vi.hoisted(() => ({
 vi.mock("@/lib/rate-limit", () => ({
   thekeReadRateLimiter: { tryAcquire: tryAcquireMock },
   thekeActionRateLimiter: { tryAcquire: tryAcquireActionMock },
-  // Die Factory ersetzt das ganze Modul: `lib/theke-throttle-response` leitet seinen
-  // `Retry-After`-Header aus dieser Konstante ab und bekäme sonst `NaN` statt `60`.
+  // Die Factory ersetzt das ganze Modul, also muss sie auch die Konstante liefern, aus der
+  // `lib/theke-throttle-response` seinen `Retry-After`-Header ableitet – sonst schlägt schon der
+  // Import fehl (empirisch geprüft: Konstante entfernt → `Error: [vitest] No
+  // "THEKE_RATE_LIMIT_WINDOW_MS" export is defined on the "@/lib/rate-limit" mock`, Datei rot).
+  // Kein Test hier assertiert den Wert; er ist reine Import-Voraussetzung.
   THEKE_RATE_LIMIT_WINDOW_MS: 60_000,
 }));
 
@@ -272,6 +275,21 @@ describe("proxy – Lese-Bremse der öffentlichen Theken-Route (#297 / ADR-048)"
     const res = (await proxy(request("GET", "/veranstaltung"), {} as never)) as Response;
 
     expect(tryAcquireMock).not.toHaveBeenCalled();
+    expect(fakeAuth).toHaveBeenCalledOnce();
+    expect(hasSessionCookie(res)).toBe(false);
+  });
+
+  it("should_leaveAuthGateUntouched_when_pathOnlyLooksLikeTheke", async () => {
+    // Diskriminierungs-Kontrolle in der Gegenrichtung zum Test darüber (Review-Runde 2): Der Zweig
+    // entscheidet nicht nur über die Bremse, sondern darüber, ob eine Anfrage **ganz am Auth-Gate
+    // vorbei** läuft. `/veranstaltung` als einziger Negativfall ist zu weit entfernt – ein zu
+    // breites Präfix (`/theke` statt `/theke/`) führte jeden künftigen Pfad, der mit „theke"
+    // beginnt, unauthentifiziert an die Route durch: ein Auth-Bypass, kein Rate-Limit-Detail.
+    // Belegt per Mutation von THEKE_PATH_PREFIX auf "/theke" – dann wird genau dieser Test rot.
+    const res = (await proxy(request("GET", "/thekenwart"), {} as never)) as Response;
+
+    expect(tryAcquireMock).not.toHaveBeenCalled();
+    expect(tryAcquireActionMock).not.toHaveBeenCalled();
     expect(fakeAuth).toHaveBeenCalledOnce();
     expect(hasSessionCookie(res)).toBe(false);
   });

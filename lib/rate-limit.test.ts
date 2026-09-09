@@ -202,6 +202,15 @@ describe("thekeActionRateLimiter", () => {
   it("should_keepSeparateBudget_when_readBudgetExhausted", () => {
     // Der Kern der Trennung: Ein ausgeschöpftes Lesebudget lässt das Schreib-Budget unberührt.
     // Ohne eigene Zähler-Instanz wäre dieser Test grün, ohne dass AK-7 gilt.
+    //
+    // Der Sprung ist doppelt so groß wie die +1 h der Tests darüber, und das ist Absicht mit
+    // Reihenfolge-Semantik: Diese Datei teilt sich die produktiven Singletons über alle
+    // `describe`-Blöcke hinweg. Die Tests darüber haben die Fake-Uhr bis ~+1 h + 60 s vorgestellt
+    // und dort zuletzt gezählt – beide Singletons stehen seither mit count 1 in einem Fenster, das
+    // dort beginnt. Nochmals +1 h läge *vor* diesem Fenster-Start, die Zähler liefen also mit
+    // vorbelastetem Stand weiter und die Prämisse „240 sind hier frei" wäre falsch (empirisch:
+    // mit +1 h liefert bereits der 240. `tryAcquire` der Schleife `false`). +2 h liegt garantiert
+    // jenseits davon – beide Zähler beginnen hier ein frisches Fenster.
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 7_200_000);
 

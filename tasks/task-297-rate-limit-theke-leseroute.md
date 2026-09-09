@@ -34,7 +34,7 @@ der Page. Die **Zähl-Dimension** bleibt bewusst offen und geht an `/architectur
 - [x] AK-4 Sichtbare, ehrliche Antwort: eigene „Zu viele Anfragen"-Seite mit Retry-Hinweis, Status 429, nicht 404
 - [x] AK-5 Öffentlicher Zugang bleibt öffentlich: `/theke/<token>` ohne Login → 200, kein 307 auf `/login` (Nachweis auf Proxy-Ebene, Lesson #63)
 - [x] AK-6 Auth-Gate bleibt fail-closed: geschützte Route ohne Session → weiterhin Redirect auf `/login`
-- [x] AK-7 Schreibpfad unberührt: Server-Action-POST unterliegt weiterhin nur ADR-044, nie der Lese-Bremse
+- [x] AK-7 Schreibpfad vom Lese-Flood entkoppelt: Server-Action-POST zählt auf ein eigenes Budget – ein ausgeschöpftes Lese-Fenster lehnt keinen Schreibaufruf ab (reale Erfassung bleibt praktisch bei ADR-044; das Proxy-Budget ist reiner Missbrauchs-Deckel, kein Freibrief)
 - [x] AK-8 Kein Selbst-Drosseln: Schwellwert deckt reale Theken-Last inkl. `revalidatePath`-Re-Renders und 60 Schreibaufrufen/Fenster
 - [x] AK-9 Fenster-Reset: nach Fensterablauf wieder normale Verarbeitung
 - [x] AK-10 Muster wiederverwendet: Fixed-Window-Arithmetik aus `lib/rate-limit.ts`, keine dritte Implementierung
@@ -292,6 +292,59 @@ Minute und Instanz" – seit dem zweiten 240er-Budget (D5) ist die reale Decke �
 spricht weiterhin von „ein Zähler, ein Fenster-Start". · `isThekePath` hat keine
 Diskriminierungs-Kontrolle in der Gegenrichtung: Mutation `"/theke/"` → `"/theke"` lässt alle 35
 Tests grün, obwohl ein zu breites Präfix Pfade wie `/thekenwart` am Auth-Gate vorbeiführte.
+
+### Rework Runde 3 (`/implement`, 2026-09-09) – alle 6 Findings behoben
+
+**Kein Produktionscode angefasst** (`proxy.ts`, `lib/rate-limit.ts`, `lib/theke-throttle-response.ts`
+unverändert) – der Rework ist Doku-Drift plus ein Testfall, genau der vom Report benannte Umfang.
+
+**Kritisch (behoben): `spec-297` zieht die Korrektur aus Runde 2 nach.** Vier gemeldete Stellen –
+„Wechselwirkung" (jede Anfrage zählt, auf zwei getrennte Budgets; Discriminator ist der
+Server-Action-Marker), **AK-7** (neu formuliert: „Schreibpfad vom Lese-Flood entkoppelt" – eigenes
+Budget statt „unterliegt ausschließlich ADR-044 und wird nie mit der HTML-429 beantwortet"),
+AK-8-Klammer und **OF-6** (die alte Fassung steht jetzt ausdrücklich als in Runde 1 **widerlegte**
+Prämisse da, wie in ADR-048 D5). Die AK-7-Zeile in der AK-Liste oben ist mitgezogen; das Kriterium
+bleibt damit erfüllt abgehakt, weil sein Wortlaut jetzt beschreibt, was der Code tut.
+Fünfte Stelle per Grep selbst gefunden (Lesson #264 – Fix auf Geschwister-Stellen ausweiten):
+„Nicht inbegriffen" behauptete, ADR-044 bleibe „unverändert **die** Grenze des Schreibpfads".
+
+**Wichtig (behoben): ADR-048 quantifiziert jetzt beide Budgets.** D2 nennt die Decke als Summe
+(**≤ 480 Renders / ≤ ~1920 Neon-Reads** pro Minute und Instanz statt ≤ 240 / ~960) mit der
+Begründung aus D5 – wer den Header setzt, holt sich das zweite Budget. „Konsequenzen" sagt statt
+„ein Zähler, ein Fenster-Start" nun „zwei Zähler mit je einem Fenster-Start"; FS-5 bleibt erfüllt
+(konstant ist konstant).
+
+**Wichtig (behoben): Diskriminierungs-Kontrolle für `isThekePath`.** Neuer Testfall
+`should_leaveAuthGateUntouched_when_pathOnlyLooksLikeTheke` (`proxy.test.ts`): `GET /thekenwart`
+→ **kein** Limiter-Aufruf, `fakeAuth` läuft, Session-Strip greift. Der bisherige Negativfall
+`/veranstaltung` lag zu weit weg, um eine Präfix-Verbreiterung zu fangen – und `isThekePath`
+entscheidet, ob eine Anfrage **ganz am Auth-Gate vorbei** läuft.
+
+**Mutationsbeleg** (Lesson #286 – derselbe Assert-Ausdruck): `THEKE_PATH_PREFIX = "/theke/"` →
+`"/theke"` mutiert → `proxy.test.ts` **1 Test rot**, exakt der neue
+(`proxy.test.ts:288`, `expect(tryAcquireMock).not.toHaveBeenCalled()`); unmutiert 36 grün.
+Mutation per `git checkout -- proxy.ts` zurückgenommen.
+
+**Nitpicks:** Der erste (sichtbarer Wartezeit-Text koppelt an die Fensterkonstante) war bereits mit
+`2bb6bec` behoben – verifiziert, keine erneute Änderung. Die beiden übrigen Kommentar-Aussagen sind
+korrigiert **und empirisch belegt**, statt sie zu behaupten (Lesson #319/#314):
+
+| Kommentar | Behauptung | Probe | Ergebnis |
+|---|---|---|---|
+| `proxy.test.ts` Mock-Factory | nicht „bekäme `NaN`", sondern „der Import schlägt fehl" | Konstante aus der Factory entfernt | `Error: [vitest] No "THEKE_RATE_LIMIT_WINDOW_MS" export is defined on the "@/lib/rate-limit" mock`, Datei rot, **0 Tests** gelaufen |
+| `lib/rate-limit.test.ts` `+ 7_200_000` | Herleitung: geteilter Singleton-Zustand, +1 h läge **vor** dem Fenster-Start, den die Tests darüber hinterlassen | auf `+ 3_600_000` mutiert **und** die Schleife auf `toBe(true)` assertierend | `AssertionError: expected false to be true` → die Prämisse „240 sind hier frei" wäre falsch |
+
+**Gates:** `pnpm lint` grün · `pnpm typecheck` grün (Lesson #137) · `pnpm test` **794 passed /
+59 skipped** (+1 = der neue Testfall) · `routes-doc-check.sh` grün.
+
+**Keine Live-/Oberflächen-Verifikation nötig:** Der Rework ändert kein Verhalten – Produktionscode
+unverändert, die Proxy-Naht ist in Runde 2 am laufenden Dev-Server belegt (Tabelle oben). Die
+Wegwerf-Skripte liegen als `scripts/verify-297-r3*.tmp.sh` und `scripts/cleanup-297-r3.tmp.sh`
+(+ zwei `*.tmp.txt`-Backups, wieder gelöscht); `.gitignore` Zeile 18/19 deckt beide Muster –
+per `git status --porcelain --ignored` geprüft, sie stehen unter `!!`, nicht unter den Änderungen.
+
+**Kein neuer ADR-Trigger** (Skill-Schritt 0): Markdown-Drift und ein Testfall, keine
+Technologie-/Muster-/Vertrags-Entscheidung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
