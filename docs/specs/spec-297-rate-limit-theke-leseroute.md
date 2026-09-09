@@ -1,0 +1,211 @@
+# Spec: Rate-Limit/DB-Amplifikations-Bremse für die öffentliche GET-Route `/theke/[token]`
+
+> Issue: #297 · Herkunft: `/security-review` zu #182 ([ADR-044](../adr/044-rate-limit-selbstbedienungs-action.md)).
+> Von [spec-182](spec-182-rate-limit-selbstbedienung.md) → „Nicht inbegriffen" ausdrücklich
+> ausgeklammert und hierher verwiesen. Kanonisches Muster: [ADR-020](../adr/020-health-endpoint-rate-limit.md)
+> (`lib/rate-limit.ts`).
+
+## Kontext
+
+`app/theke/[token]/page.tsx` ist die öffentliche, login-freie Selbstbedienungs-Seite (F7, #54,
+[ADR-034](../adr/034-selbstbedienung-token-zugang.md) D1). Sie ist im Auth-Proxy freigeschaltet
+(`proxy.ts` – Negativ-Lookahead `theke/`) und führt für **jeden** GET mit beliebigem Pfad-Segment
+mindestens `getVeranstaltungByToken(token)` aus; bei Treffer zusätzlich `listZeilen`,
+`listActiveCatalog` und `listPositionen` (vier Neon-Reads).
+
+Anders als bei der Schreib-Action ist der Token hier **kein** serverseitig gebundenes
+Closure-Argument, sondern ein **frei wählbares URL-Pfad-Segment**. Eine unauthentifizierte
+Schleife (`curl /theke/<zufall>`) erzeugt damit unbegrenzt DB-Reads auf dem Neon-Free-Tarif und
+unbegrenzt Vercel-Function-Invocations.
+
+Das ist keine Regression aus #182, sondern eine seit F7/#54 bestehende Lücke – aber genau die
+Amplifikations-Klasse, für die ADR-020 den Limiter am `/api/health`-Endpunkt eingeführt hat.
+Nach #182 ist der **Schreib**pfad gedeckelt (60/Fenster pro Token) und der ungedeckelte
+**Lese**pfad die verbleibende, billigste Amplifikationsfläche.
+
+**Kein Vertraulichkeits-Risiko:** Der 256-bit-Token bleibt unratbar (ADR-034 D2), `notFound()`
+antwortet neutral. Es geht um **Verfügbarkeit und Kosten** (DB-Reads, Function-Invocations),
+nicht um Enumeration.
+
+### Wechselwirkung mit dem Schreibpfad (in `/requirements` gefunden)
+
+`adjustVerzehrByTokenAction` löst bei Erfolg `revalidatePath(thekePath(token))` aus – die
+Server-Action-Antwort enthält den **neu gerenderten** Seiten-Payload, `ThekePage` läuft also
+inklusive ihrer vier DB-Reads erneut. Zusätzlich adressiert der Server-Action-POST **dieselbe
+URL** `/theke/<token>` wie der Lese-GET. Eine Bremse, die alle Anfragen auf diesen Pfad zählt,
+zählt damit auch den Schreibverkehr mit. Das ist bei Schwellwert **und** Zähl-Umfang zu
+berücksichtigen (AK-7, AK-8), sonst drosselt sich die Theke bei normaler Nutzung selbst.
+→ Aufgelöst in [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D5: Gezählt wird **jede**
+Anfrage auf `/theke/*`, aber auf **zwei getrennte Budgets** – Discriminator ist der
+Server-Action-Marker (`Next-Action`-Header), nicht die HTTP-Methode. Der Schreibverkehr belastet
+damit nicht das Lese-Budget, und der `revalidatePath`-Re-Render läuft ohnehin **innerhalb** des
+POST und erreicht den Zähler gar nicht.
+
+### Entscheidungen des Auftraggebers (gesetzt, nicht mehr offen)
+
+- **Sichtbare Antwort bei Drosselung:** eine **eigene „Zu viele Anfragen"-Seite** mit
+  freundlichem Hinweis, es gleich noch einmal zu versuchen – **nicht** die neutrale
+  404-/`notFound()`-Seite (ein echter Besucher soll nicht fälschlich „nicht gefunden" lesen).
+- **Verhältnis Schutz ↔ Verfügbarkeit:** **großzügiger Schwellwert + fail-open**, konsistent mit
+  ADR-020 und ADR-044. Die Bremse senkt die Amplifikation um Größenordnungen und darf reale
+  Theken-Nutzung nie blockieren.
+- **Schutzziel:** **DB-Reads *und* Function-Invocations** – die Bremse sitzt damit **vor** der
+  Route (Edge-Proxy), nicht in der Page-Komponente.
+- **Zähl-Dimension:** bewusst **offen** – sie ist der Grund, aus dem das Issue eine eigene
+  `/architecture`-Runde verlangt (s. „Offene Fragen").
+
+## Scope
+
+**Inbegriffen:**
+- Eine Rate-Limit-Bremse auf dem **Lesepfad** der öffentlichen Route `/theke/[token]`, wirksam
+  **vor** dem Rendern von `ThekePage` (keine Page-Invocation, kein DB-Read im Drosselfall).
+- Eine eigene, verständliche Hinweis-Antwort für gedrosselte Aufrufe (Text sinngemäß: zu viele
+  Anfragen, bitte gleich noch einmal versuchen) mit HTTP-Status **429**.
+- Wiederverwendung des bestehenden Bausteins `lib/rate-limit.ts` (`createRateLimiter` /
+  `createKeyedRateLimiter`) bzw. einer begründeten Erweiterung davon.
+- Erhalt des öffentlichen Zugangs: `/theke/<token>` bleibt ohne Login erreichbar (AK-5), während
+  alle anderen Routen fail-closed hinter dem Auth-Gate bleiben (AK-6).
+- Pflege von [`docs/routes.md`](../routes.md), falls die Umsetzung eine neue Route einführt
+  (Drift-Check `routes-doc-check.sh` ist fail-closed im Push-Gate).
+
+**Nicht inbegriffen:**
+- **Keine** Änderung an der Schreib-Bremse aus ADR-044 (`selfServiceVerzehrRateLimiter`,
+  60/Fenster pro Token) – sie bleibt unverändert die Grenze, die reale Erfassung tatsächlich
+  erreicht. (Der Proxy legt in ADR-048 D5 ein zweites, weit höheres Missbrauchs-Budget darüber;
+  angefasst wird `selfServiceVerzehrRateLimiter` dabei nicht.)
+- **Keine** Änderung an `/api/health` (ADR-020) und **kein** Rate-Limit auf `/api/version`
+  (kein DB-Zugriff, keine Amplifikationsfläche dieser Klasse).
+- **Kein** geteilter/externer Store (Redis/Vercel KV) – bleibt Best-Effort in-memory pro
+  Instanz, wie in ADR-020/ADR-044 begründet (keine Kosten, keine Secrets, kein Netz-Roundtrip).
+- **Kein** Rate-Limit nach IP/`X-Forwarded-For` – in ADR-020 als spoofbar verworfen, das gilt
+  hier unverändert.
+- **Kein** Caching (`s-maxage`) als Ersatz für die Bremse – die Schutzart ist bewusst ein
+  Rate-Limit; Caching ist ein eigenes Thema und würde die Aktualität der Theken-Ansicht ändern.
+- **Keine** Sperrung/Blockliste über das laufende Zeitfenster hinaus (kein Lockout, kein Banning).
+- **Keine** Änderung an Inhalt, Layout oder Verhalten der Theken-Seite selbst im Normalfall.
+- **Keine** Rotation oder Änderung des Token-Formats (ADR-034 D2 bleibt unberührt).
+
+## Akzeptanzkriterien
+
+- [ ] **AK-1 (Normalfall unverändert):** GIVEN die Aufrufrate liegt unter dem Schwellwert WHEN ein
+  Unangemeldeter `/theke/<gültiger Token>` aufruft THEN antwortet die App wie heute mit der
+  gerenderten Theken-Seite (Veranstaltung, Zeilen, Katalog, Positionen, `IdentityGate`) – keine
+  Verhaltens- oder Darstellungsänderung gegenüber heute.
+
+- [ ] **AK-2 (Deckelung greift):** GIVEN der Schwellwert für den Lesepfad ist im laufenden Fenster
+  ausgeschöpft WHEN ein weiterer GET auf `/theke/<beliebiges Segment>` erfolgt THEN wird er
+  gedrosselt, **ohne** dass `getVeranstaltungByToken`, `listZeilen`, `listActiveCatalog` oder
+  `listPositionen` ausgeführt werden.
+
+- [ ] **AK-3 (Invocation gespart):** GIVEN eine Anfrage wird gedrosselt THEN wird sie **vor** der
+  Route beantwortet – `ThekePage` wird nicht ausgeführt, es entsteht keine Node-Function-Invocation
+  der Seite.
+
+- [ ] **AK-4 (Sichtbare, ehrliche Antwort):** GIVEN eine Anfrage wird gedrosselt WHEN ein Mensch die
+  URL im Browser öffnet THEN sieht er eine eigene, verständliche „Zu viele Anfragen"-Seite mit dem
+  Hinweis, es gleich noch einmal zu versuchen – **nicht** die 404-/`notFound()`-Ansicht und keinen
+  rohen Fehler; der HTTP-Status ist **429**.
+
+- [ ] **AK-5 (Öffentlicher Zugang bleibt öffentlich):** GIVEN die Bremse ist verdrahtet WHEN ein
+  Unangemeldeter `/theke/<gültiger Token>` unterhalb des Schwellwerts aufruft THEN bekommt er die
+  Seite (Status 200) – **kein** 307-Redirect auf `/login`. Nachweis auf der **Proxy-Ebene**, nicht
+  nur durch direkten Aufruf der Page-Funktion (Lesson aus #63).
+
+- [ ] **AK-6 (Auth-Gate bleibt fail-closed):** GIVEN die Bremse ist verdrahtet WHEN ein
+  Unangemeldeter eine geschützte Route (z. B. `/veranstaltung`) aufruft THEN wird er unverändert auf
+  `/login` umgeleitet – die Verdrahtung der Bremse weicht das eng gefasste Auth-Gate nicht auf.
+
+- [ ] **AK-7 (Schreibpfad vom Lese-Flood entkoppelt):** GIVEN die Lese-Bremse ist aktiv WHEN
+  `adjustVerzehrByTokenAction` (Server-Action-POST auf dieselbe URL `/theke/<token>`) aufgerufen
+  wird THEN zählt er auf ein **eigenes** Budget: Ein ausgeschöpftes Lese-Fenster lehnt **keinen**
+  Schreibaufruf ab. Reale Erfassung bleibt damit praktisch allein durch ADR-044 begrenzt
+  (60/Fenster pro Token). Das eigene Proxy-Budget ist ein reiner Missbrauchs-Deckel und **kein**
+  Freibrief – der `Next-Action`-Header ist ein Ausweis, den jeder setzen kann; ein ungezählter
+  Zweig wäre ein Header-Schalter zum Abstellen der Bremse (Review-Runde 1, ADR-048 D5).
+
+- [ ] **AK-8 (Kein Selbst-Drosseln bei realer Nutzung):** GIVEN eine Theke im Normalbetrieb
+  (mehrere Teilnehmer erfassen gleichzeitig; jede Erfassung erzeugt zusätzlich einen
+  `revalidatePath`-Re-Render von `ThekePage`) WHEN ein volles Fenster lang so gearbeitet wird THEN
+  wird **keine** dieser Anfragen gedrosselt – der gewählte Schwellwert liegt nachweislich und
+  begründet über der real erwartbaren Lese-Last. (Erfüllt durch
+  [ADR-048](../adr/048-rate-limit-theke-leseroute.md) D2/D5: der Re-Render läuft **innerhalb** des
+  Server-Action-POST und passiert den Proxy-Zähler nie, und der Schreibverkehr zählt auf ein
+  **eigenes** Budget statt auf das Lese-Budget – die Herleitung des Lese-Schwellwerts muss diese
+  beiden Lasten daher nicht absorbieren.)
+
+- [ ] **AK-9 (Fenster-Reset):** GIVEN im Fenster N wurde gedrosselt WHEN nach Ablauf der
+  Fensterlänge erneut aufgerufen wird THEN wird die Anfrage wieder normal verarbeitet (Zähler
+  zurückgesetzt).
+
+- [ ] **AK-10 (Muster wiederverwendet):** GIVEN die Bremse wird umgesetzt THEN nutzt sie die
+  Fixed-Window-Arithmetik aus `lib/rate-limit.ts` (kanonische Quelle, ADR-020/ADR-044) – die
+  Fenster-/Zähl-Logik wird nicht ein drittes Mal implementiert.
+
+## Fehlerszenarien
+
+- [ ] **FS-1 (Fail-open bei Limiter-Störung):** GIVEN der Limiter-Zustand kann nicht ermittelt
+  werden (z. B. Cold-Start einer frischen Instanz) WHEN eine Anfrage eintrifft THEN wird sie
+  **durchgelassen** – der Schutz degradiert bewusst, statt die Theke unbenutzbar zu machen.
+
+- [ ] **FS-2 (Throttle-Pfad billiger als Verarbeitungspfad):** GIVEN eine Anfrage wird gedrosselt
+  THEN ist die Antwort nicht teurer als der reguläre Pfad: reine In-Memory-Prüfung, **kein**
+  zusätzlicher I/O, kein DB-Zugriff, kein Netz-Roundtrip.
+
+- [ ] **FS-3 (Kein Lockout über das Fenster hinaus):** GIVEN ein Aufrufer wurde gedrosselt THEN
+  bleibt er **nicht** über das laufende Fenster hinaus gesperrt – reines Fenster-Throttling, keine
+  Blockliste.
+
+- [ ] **FS-4 (Kein Enumerations-Leak durch die Hinweisseite):** GIVEN zwei Anfragen werden
+  gedrosselt – eine mit gültigem, eine mit erfundenem Token WHEN beide beantwortet werden THEN sind
+  die Antworten ununterscheidbar (gleiche Seite, gleicher Status); die Drosselung verrät nicht, ob
+  ein Token existiert.
+
+- [ ] **FS-5 (Zustand wächst nicht angreiferkontrolliert unbegrenzt):** GIVEN ein Angreifer flutet
+  die Route mit **vielen verschiedenen** erfundenen Pfad-Segmenten WHEN die Bremse zählt THEN
+  entsteht dadurch keine neue, unbegrenzt wachsende Speicherfläche in der Function-Instanz – die
+  gewählte Zähl-Dimension muss diesen Fall ausdrücklich abdecken (der Schlüsselraum ist hier,
+  anders als bei ADR-044, vollständig angreiferkontrolliert).
+
+- [ ] **FS-6 (Keine Regression der Session-Behandlung):** GIVEN die Verdrahtung ändert `proxy.ts`
+  WHEN eine nicht-mutierende Anfrage auf einer geschützten Route beantwortet wird THEN bleibt die
+  Unterdrückung der Session-Rotation (`shouldSuppressSessionRotation`/`stripSessionRotation`,
+  #164/#170, ADR-032) unverändert wirksam.
+
+## Offene Fragen
+
+> **Alle sechs sind in [ADR-048](../adr/048-rate-limit-theke-leseroute.md) entschieden**
+> (`/architecture`-Runde vom 2026-09-09). Sie bleiben als Nachweis stehen, was die
+> Architektur-Runde zu klären hatte; die Begründungen stehen in der ADR, nicht hier.
+
+- [x] **OF-1 · Zähl-Dimension** → **ADR-048 D1: ein globaler Zähler für die Route.** Die
+  Pro-Token-Dimension aus ADR-044 wäre gegen den Angriff aus dem Issue wirkungslos, weil jedes neue
+  Zufallssegment ein neuer Schlüssel mit frischem Budget ist – und sie verletzte FS-5.
+
+- [x] **OF-2 · Schwellwert und Fensterlänge** → **ADR-048 D2: Fixed-Window 60 s, 240 Anfragen pro
+  Fenster und Instanz**, hergeleitet aus ~40 gleichzeitigen Teilnehmern × ~4 Lese-Anfragen pro
+  Minute plus ~50 % Puffer.
+
+- [x] **OF-3 · Verdrahtung im `proxy.ts`** → **ADR-048 D3: zweiter Matcher-Eintrag für
+  `/theke/:path*` plus früher Zweig vor `authMiddleware`.** Negativ-Lookahead und
+  `authorized`-Callback bleiben unverändert – AK-5, AK-6 und FS-6 sind damit gleichzeitig erfüllt.
+
+- [x] **OF-4 · Konsequenz der Edge-Runtime** → **hinfällig, die Prämisse war falsch.** In Next 16
+  läuft `proxy.ts` immer auf der **Node.js**-Runtime (belegt in der installierten `next@16.2.12`:
+  `node_modules/next/dist/build/analysis/get-page-static-info.js:587` – „Proxy always runs on
+  Node.js runtime"). Die In-Memory-Begründung aus ADR-020/044 überträgt sich unverändert; es gibt
+  keinen Runtime-Aufpreis für die Proxy-Platzierung. Details in ADR-048 → Kontext.
+
+- [x] **OF-5 · Auslieferung der Hinweisseite** → **ADR-048 D4: 429 mit eigenem, in sich
+  geschlossenem HTML direkt aus dem Proxy** (`Retry-After: 60`, `Cache-Control: no-store`). Ein
+  `rewrite` auf eine eigene Route erzeugte wieder die Invocation, die AK-3 einsparen soll. Es
+  entsteht **keine** neue Route – `docs/routes.md` bleibt unverändert.
+
+- [x] **OF-6 · Zähl-Umfang der Anfragearten** → **ADR-048 D5: jede Anfrage zählt, auf eines von
+  zwei getrennten Budgets.** Discriminator ist der Server-Action-Marker (`Next-Action`-Header),
+  nicht die HTTP-Methode: Ein POST **mit** Marker zählt auf das Schreib-Budget, jede andere Anfrage
+  auf `/theke/*` auf das Lese-Budget; ungezählt durchgereicht wird nichts.
+  **Die zuerst dokumentierte Fassung („nur GET und HEAD, jede andere Methode läuft unberührt durch,
+  der Server-Action-POST unterliegt allein ADR-044") ist in Review-Runde 1 widerlegt worden:** Der
+  App Router rendert `ThekePage` auch für POST/PUT/PATCH/DELETE ohne Marker – dabei läuft
+  `adjustVerzehrByTokenAction` und damit `selfServiceVerzehrRateLimiter` nie, diese Anfragen
+  unterlagen also **keiner** Grenze und die Bremse war mit `curl -X POST` umgehbar.

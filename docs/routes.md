@@ -24,7 +24,7 @@
 |------|-----|----------|---------|
 | `/` | Seite | Startseite / Landing | angemeldet |
 | `/login` | Seite | Anmeldung (Credentials) | öffentlich |
-| `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (proxy-exempt, Token) |
+| `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (kein Auth-Gate, Token; Rate-Limit im Proxy, ADR-048) |
 | `/veranstaltung` | Seite | Veranstaltungs-Liste | `veranstalter` |
 | `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail) | `veranstalter` |
 | `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Fokus-Akkordeon + Chip-Leiste; Getränke, Essen, Kaffee); personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |

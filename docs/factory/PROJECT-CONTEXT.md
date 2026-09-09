@@ -210,6 +210,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - NextAuth v5: Custom-Session-/JWT-Claims typisieren (aus #48)
 - Öffentliche API-Routen aus dem Auth-Proxy ausnehmen (aus #63)
 - Auto-Prefetch geschützter Routen belebt die Session nach dem Abmelden wieder (aus #164)
+- Früher Gate-/Drossel-Zweig vor einer Server-Action-Route muss deren Antwortprotokoll einhalten, sonst globaler Client-Crash statt Inline-Fehler (aus #297, Security-Review-Finding, Issue #331)
 
 **[`lessons/db-drizzle.md`](lessons/db-drizzle.md)** – Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen · **Laden bei:** `/implement`, `/review`, `/test` bei Data-Layer (Drizzle)
 
@@ -258,6 +259,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Fail-closed-Zusicherung eines Gates braucht einen Test, der die **Messung** bricht (Stub im `PATH`), nicht nur den Input – zwölf grüne Input-Tests sahen den fail-open-Fall nicht (aus #319, Security-Review-Finding)
 - Content-Scan-Guard, dessen Suchphrase als Literal in der gescannten Datei steht, ist immer rot – Phrase zur Laufzeit zusammensetzen (aus #319, /implement-Selbstfund)
 - Anker, der mit `-` beginnt, macht `assert_contains_286`/`assert_absent` still falsch (`grep` liest ihn als Option) – erster Blick bei unerklärlichem Rot (aus #319, dritter Fall derselben Regel im selben PR)
+- Diskriminierungs-Kontrolle für Pfad-Präfix-Prädikate vor einem Auth-Gate: Negativtest braucht einen ähnlichen Nachbar-Pfad, nicht nur einen entfernten (Rezidiv von #172, aus #297, Review-Runde-2-Finding)
+- Modulweit geteilter Rate-Limiter-Singleton in Tests: absolut statt relativ einfrieren + `resetModules` pro Test, sonst reihenfolgeabhängig (aus #297, Review-Runde-3-Finding; nur per `--sequence.shuffle` reproduzierbar)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
