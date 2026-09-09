@@ -8,7 +8,12 @@
 // des Renderns weiter. Fester, eigener Text: weder `error.message` noch `error.digest` erscheinen
 // (AK-3, Auftraggeber-Entscheidung) – keine 429-Spezifika, da dieselbe Fläche auch den
 // Offline-Fall trägt (FS-1).
-export default function ThekeError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ThekeError({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
       <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
