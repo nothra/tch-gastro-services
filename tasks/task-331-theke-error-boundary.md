@@ -118,6 +118,10 @@ Keine neuen Regeln – siehe `tasks/codify-331.md`. Das auslösende Muster war b
 aus #297 (`lessons/next-auth.md`) indexiert und mit diesem Issue verlinkt; nur die verbleibenden
 Nitpicks aus Review/Security-Review, keine neuen wiederkehrenden Fehler.
 
+PR-Shepherd [2026-09-09]: Merge freigegeben – Branch 0 Commits hinter `origin/main` (kein Rebase
+nötig), keine offenen Review-Kommentare (nur Vercel-Bot), CI zum Zeitpunkt der Freigabe pending
+(kein roter Check) → Auto-Merge (`gh pr merge --auto --squash`) wartet serverseitig.
+
 ---
 Branch: `fix/331-theke-error-boundary`
 Erstellt: 2026-09-09 07:28
