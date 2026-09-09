@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Der personenbezogene Wechsel-Link aus #308 (`Kassieren →` in der Verzehr-Karte) steht heute am
