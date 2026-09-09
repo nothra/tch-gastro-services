@@ -3,6 +3,7 @@ import {
   createKeyedRateLimiter,
   createRateLimiter,
   selfServiceVerzehrRateLimiter,
+  thekeActionRateLimiter,
   thekeReadRateLimiter,
 } from "./rate-limit";
 
@@ -134,10 +135,13 @@ describe("thekeReadRateLimiter", () => {
   });
 
   it("should_allowFirstRequest_when_coldStart", async () => {
-    // FS-1 (spec-297): Fail-open ist strukturell – eine frisch gestartete Function-Instanz hat
-    // einen Zähler bei 0 und lässt durch. `resetModules` + Re-Import ist der echte Cold-Start:
-    // ein eigenes Modul-Objekt mit eigenem Zähler, das das Budget des Singletons im Test unten
-    // nicht anfasst (der globale Zähler hat keinen Schlüssel zur Isolation).
+    // Pinnt genau eine Zusicherung: Das Singleton startet mit einem **positiven** Budget, eine
+    // frische Function-Instanz lässt also durch (die Umsetzung von FS-1 ist strukturell – der
+    // Modul-Zustand selbst, nicht ein Fehlerpfad). Absichtlich schwach: Über `tryAcquire` allein
+    // kann dieser Fall nur rot werden, wenn `limit <= 0` konfiguriert wäre; die scharfe
+    // Parameter-Zusicherung liefert der Test darunter. `resetModules` + Re-Import ist dabei der
+    // echte Cold-Start: ein eigenes Modul-Objekt mit eigenem Zähler, das das Budget des
+    // Singletons unten nicht anfasst (der globale Zähler hat keinen Schlüssel zur Isolation).
     vi.resetModules();
 
     const { thekeReadRateLimiter: coldStarted } = await import("./rate-limit");
@@ -167,5 +171,43 @@ describe("thekeReadRateLimiter", () => {
     // AK-9/FS-3: nach Fensterablauf wieder normal – kein Lockout über das Fenster hinaus.
     vi.advanceTimersByTime(1);
     expect(thekeReadRateLimiter.tryAcquire()).toBe(true);
+  });
+});
+
+describe("thekeActionRateLimiter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("should_allow240ThenThrottleUntilWindowElapsed_when_globalCounter", () => {
+    // Pinnt beide produktiv verdrahteten Parameter des Schreib-Budgets (240 Anfragen je 60 s,
+    // ADR-048 D5) am echten Singleton. Es ist bewusst ein **eigenes** Objekt: Ein gemeinsames
+    // Budget mit dem Lesepfad ließe einen Lese-Flood die Erfassung mit abwürgen (AK-7). Fake-Uhr
+    // wie beim Lese-Singleton über die Importzeit hinaus, damit das Fenster garantiert frisch ist.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 3_600_000);
+
+    for (let i = 0; i < 240; i++) {
+      expect(thekeActionRateLimiter.tryAcquire()).toBe(true);
+    }
+    expect(thekeActionRateLimiter.tryAcquire()).toBe(false);
+
+    vi.advanceTimersByTime(59_999);
+    expect(thekeActionRateLimiter.tryAcquire()).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(thekeActionRateLimiter.tryAcquire()).toBe(true);
+  });
+
+  it("should_keepSeparateBudget_when_readBudgetExhausted", () => {
+    // Der Kern der Trennung: Ein ausgeschöpftes Lesebudget lässt das Schreib-Budget unberührt.
+    // Ohne eigene Zähler-Instanz wäre dieser Test grün, ohne dass AK-7 gilt.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 7_200_000);
+
+    for (let i = 0; i < 240; i++) thekeReadRateLimiter.tryAcquire();
+    expect(thekeReadRateLimiter.tryAcquire()).toBe(false);
+
+    expect(thekeActionRateLimiter.tryAcquire()).toBe(true);
   });
 });

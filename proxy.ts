@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { authConfig } from "@/auth.config";
 import { shouldSuppressSessionRotation, stripSessionRotation } from "@/lib/prefetch-session";
-import { thekeReadRateLimiter } from "@/lib/rate-limit";
+import { thekeActionRateLimiter, thekeReadRateLimiter } from "@/lib/rate-limit";
 import { tooManyRequestsResponse } from "@/lib/theke-throttle-response";
 
 // Edge-"Proxy" (Next 16, vormals middleware) auf Basis der edge-sicheren Config:
@@ -21,12 +21,27 @@ const authMiddleware = auth as unknown as EdgeMiddleware;
 
 const THEKE_PATH_PREFIX = "/theke/";
 
-// Nur Dokument-Navigation und Prefetch/Probe zählen (ADR-048 D5). Der Server-Action-POST
-// adressiert dieselbe URL, unterliegt aber weiterhin allein der Schreib-Grenze aus ADR-044.
-const READ_METHODS = new Set(["GET", "HEAD"]);
+// Header, mit dem Next.js einen Server-Action-Aufruf kennzeichnet (Wert = Action-ID).
+const SERVER_ACTION_HEADER = "next-action";
 
-function isThekePath(request: NextRequest): boolean {
-  return request.nextUrl.pathname.startsWith(THEKE_PATH_PREFIX);
+function isThekePath(pathname: string): boolean {
+  return pathname.startsWith(THEKE_PATH_PREFIX);
+}
+
+// Weist sich die Anfrage als Server-Action-Aufruf der Erfassung aus (ADR-048 D5)? Dann zählt sie
+// auf das getrennte Schreib-Budget, damit ein Lese-Flood die Theke nicht am Buchen hindert (AK-7).
+//
+// Nicht an der HTTP-Methode festgemacht: Der App Router rendert eine Seite auch für POST/PUT/
+// PATCH/DELETE, sobald kein Action-Marker vorliegt – eine reine GET/HEAD-Zählung wäre mit
+// `curl -X POST` umgehbar (Review-Runde 1). Der Header ist zugleich nur ein *Ausweis*, keine
+// Prüfung: Die Action-ID lässt sich im Proxy nicht gegen das Manifest verifizieren, und eine
+// erfundene ID rendert die Seite trotzdem (am Dev-Server gemessen). Genau deshalb hat auch dieser
+// Zweig ein Budget – ungezählt durchlassen hieße, die Bremse mit einem Header abschaltbar zu
+// machen. Die Multipart-Kodierung des No-JS-Pfads (`$ACTION_ID_…` im Body) gilt bewusst nicht als
+// Ausweis: Das Erfassungs-Formular liegt hinter dem rein clientseitigen `IdentityGate` und
+// existiert ohne JS gar nicht; ein Body-Parse im Proxy wäre zudem teurer als der eingesparte Read.
+function isServerActionRequest(request: NextRequest): boolean {
+  return request.method === "POST" && request.headers.has(SERVER_ACTION_HEADER);
 }
 
 // Wrapper um die NextAuth-Middleware: auf allen nicht-mutierenden Methoden das rotierende
@@ -38,17 +53,21 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Amplifikations-Bremse der öffentlichen Theken-Leseroute (#297 / ADR-048 D3): bewusst VOR
   // `authMiddleware`, damit eine gedrosselte Anfrage weder DB-Read noch Seiten-Invocation kostet.
   //
-  // Der Zweig endet IMMER hier – auch ungedrosselt und auch für nicht gezählte Methoden. Die
-  // Theke ist öffentlich (ADR-034 D1) und lief vor dem neuen Matcher-Eintrag gar nicht durch den
-  // Proxy; ein Durchfallen in `authMiddleware` machte aus dem Server-Action-POST einen 307 auf
-  // /login und bräche AK-7. Der Matcher-Eintrag holt die Route ausschließlich für die Bremse
-  // hierher, nicht ins Auth-Gate.
+  // Der Zweig endet IMMER hier – auch ungedrosselt und auch für den Server-Action-POST. Die Theke
+  // ist öffentlich (ADR-034 D1) und lief vor dem neuen Matcher-Eintrag gar nicht durch den Proxy;
+  // ein Durchfallen in `authMiddleware` machte aus dem Server-Action-POST einen 307 auf /login und
+  // bräche AK-7. Der Matcher-Eintrag holt die Route ausschließlich für die Bremse hierher, nicht
+  // ins Auth-Gate.
+  //
+  // Jede Anfrage zählt – auf eines von zwei getrennten Budgets. Ungezählt durchlassen ist keine
+  // Option: Der App Router rendert die Seite für jede Methode, ein Freibrief wäre also selbst der
+  // Amplifikationspfad (Review-Runde 1).
   //
   // Kein try/catch: `tryAcquire` ist reine synchrone Zähler-Arithmetik ohne I/O, ein Fallback
   // wäre ein toter Zweig – Cold-Start = frischer Zähler = durchlassen (fail-open, ADR-048 D6).
-  if (isThekePath(request)) {
-    const isThrottled = READ_METHODS.has(request.method) && !thekeReadRateLimiter.tryAcquire();
-    return isThrottled ? tooManyRequestsResponse() : NextResponse.next();
+  if (isThekePath(request.nextUrl.pathname)) {
+    const limiter = isServerActionRequest(request) ? thekeActionRateLimiter : thekeReadRateLimiter;
+    return limiter.tryAcquire() ? NextResponse.next() : tooManyRequestsResponse();
   }
 
   const response = await authMiddleware(request, event);

@@ -6,13 +6,15 @@ import { tooManyRequestsResponse } from "./theke-throttle-response";
 // Drossel-Antwort muss ohne Render, ohne Layout und ohne Asset-Roundtrip auskommen (ADR-048 D4).
 
 describe("tooManyRequestsResponse", () => {
-  it("should_return429WithHtmlHeaders_when_called", async () => {
+  it("should_return429WithHtmlHeaders_when_called", () => {
     const res = tooManyRequestsResponse();
 
     // AK-4: 429, nicht 404 – ein echter Besucher soll nicht fälschlich „nicht gefunden" lesen.
     expect(res.status).toBe(429);
     expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
-    // Retry-After deckt sich mit der Fensterlänge aus ADR-048 D2 (60 s).
+    // Der produktive Wert, abgeleitet aus `THEKE_RATE_LIMIT_WINDOW_MS` (ADR-048 D2). Absichtlich
+    // ein Literal statt einer Rechnung über dieselbe Konstante: So bleibt die Assertion unabhängig
+    // und ein geändertes Fenster muss hier bewusst nachgezogen werden.
     expect(res.headers.get("retry-after")).toBe("60");
     // Kein CDN darf eine 429 für diese URL zwischenspeichern.
     expect(res.headers.get("cache-control")).toBe("no-store");

@@ -52,8 +52,17 @@ erfüllt) und ohne Lookup vor der Entscheidung (AK-2/AK-3 strukturell erfüllt).
 ### D2 · Parameter: Fixed-Window 60 s, 240 Anfragen pro Fenster und Instanz (OF-2)
 
 ```ts
-export const thekeReadRateLimiter = createRateLimiter({ limit: 240, windowMs: 60_000 });
+export const THEKE_RATE_LIMIT_WINDOW_MS = 60_000;
+
+export const thekeReadRateLimiter = createRateLimiter({
+  limit: 240,
+  windowMs: THEKE_RATE_LIMIT_WINDOW_MS,
+});
 ```
+
+Die Fensterlänge ist eine **exportierte** Konstante, weil die Drossel-Antwort ihren
+`Retry-After`-Header daraus ableitet (D4). Zwei unabhängige `60`-Literale in zwei Modulen wären
+eine behauptete, aber von nichts erzwungene Kopplung.
 
 Herleitung (AK-8 verlangt die Herleitung, nicht nur die Zahl): Die größte realistisch erwartbare
 Theke ist eine Montagsrunde mit bis zu ~40 gleichzeitig anwesenden Teilnehmern. Pro Person und
@@ -72,9 +81,9 @@ Die Erfassungs-Re-Renders, die AK-8 nennt, fallen **nicht** unter dieses Budget 
 
 ```ts
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (isThekePath(request)) {
-    const isThrottled = READ_METHODS.has(request.method) && !thekeReadRateLimiter.tryAcquire();
-    return isThrottled ? tooManyRequestsResponse() : NextResponse.next();
+  if (isThekePath(request.nextUrl.pathname)) {
+    const limiter = isServerActionRequest(request) ? thekeActionRateLimiter : thekeReadRateLimiter;
+    return limiter.tryAcquire() ? NextResponse.next() : tooManyRequestsResponse();
   }
 
   const response = await authMiddleware(request, event);
@@ -85,13 +94,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 }
 ```
 
-**Der Zweig endet immer hier – für den gesamten Pfad, nicht nur für die gezählten Methoden.** Die
-Bedingung trennt daher `isThekePath` (verlässt den Proxy) von der Zähl-Entscheidung (nur `GET`/
-`HEAD`, D5). Ein früherer Entwurf ließ die nicht gezählten Methoden in `authMiddleware`
-durchfallen; das wäre ein Fehler: Der neue Matcher-Eintrag holt `/theke/*` erst in den Proxy
-hinein, und `authorized` in `auth.config.ts` gibt für **jeden** Pfad außer `/login` nur
-`loggedIn` zurück. Ein durchfallender Server-Action-`POST` bekäme also einen 307 auf `/login`
-und AK-7 wäre gebrochen – exakt die Fehlerklasse aus Lesson #63.
+**Der Zweig endet immer hier – für den gesamten Pfad und für jede Methode.** Die Bedingung trennt
+daher `isThekePath` (verlässt den Proxy) von der Zuordnung zum Budget (D5). Ein früherer Entwurf
+ließ nicht gezählte Methoden in `authMiddleware` durchfallen; das wäre ein Fehler: Der neue
+Matcher-Eintrag holt `/theke/*` erst in den Proxy hinein, und `authorized` in `auth.config.ts` gibt
+für **jeden** Pfad außer `/login` nur `loggedIn` zurück. Ein durchfallender Server-Action-`POST`
+bekäme also einen 307 auf `/login` und AK-7 wäre gebrochen – exakt die Fehlerklasse aus Lesson #63.
 
 Der bestehende Negativ-Lookahead behält `theke/` unverändert – die Theke erreicht den
 `authorized`-Callback also weiterhin **nie**, und der öffentliche Zugang bleibt öffentlich (AK-5).
@@ -112,16 +120,42 @@ Zielroute liefert, nicht 429. Da die Antwort ohne App-Layout und ohne Assets aus
 `_next/`-Roundtrip im Drosselfall), trägt sie ihr bisschen CSS inline. Es entsteht **keine** neue
 Route – `docs/routes.md` bleibt unverändert.
 
-### D5 · Zähl-Umfang: nur GET und HEAD (OF-6)
+### D5 · Zähl-Umfang: **jede** Anfrage zählt, auf eines von zwei getrennten Budgets (OF-6)
 
-Gezählt und gedrosselt werden ausschließlich `GET`- und `HEAD`-Anfragen (Dokument-Navigation und
-RSC-Prefetch). Jede andere Methode auf `/theke/*` – insbesondere der Server-Action-`POST` – wird
-**ungezählt an die Route durchgereicht** (`NextResponse.next()`, nicht ins Auth-Gate, siehe D3)
-und unterliegt weiterhin **allein** der Grenze aus ADR-044 (AK-7). Eine HTML-429 als Antwort auf einen Server-Action-POST wäre für den Client ohnehin kein
-verwertbarer `VerzehrActionState`.
+Der Discriminator ist **nicht die HTTP-Methode, sondern der Server-Action-Marker**: Trägt eine
+`POST`-Anfrage den `Next-Action`-Header, zählt sie auf `thekeActionRateLimiter`; jede andere
+Anfrage auf `/theke/*` zählt auf `thekeReadRateLimiter`. Ungezählt durchgereicht wird **nichts**.
 
-Daraus folgt die saubere Auflösung von AK-8: Der `revalidatePath`-Re-Render läuft **innerhalb**
-desselben POST, erscheint am Proxy also nie als eigener GET und belastet das Lese-Budget nicht.
+**Korrektur einer falschen Prämisse (Review-Runde 1 zu #297).** Die ursprüngliche Fassung zählte
+nur `GET`/`HEAD` und reichte jede andere Methode ungezählt durch, mit der Begründung, sie unterliege
+„weiterhin allein der Grenze aus ADR-044". Diese Begründung ist **falsch**: Der App Router rendert
+eine Seite auch für `POST`/`PUT`/`PATCH`/`DELETE`, sobald **kein** Action-Marker vorliegt. Es läuft
+dann `ThekePage` samt `getVeranstaltungByToken` – aber nie `adjustVerzehrByTokenAction` und damit
+nie `selfServiceVerzehrRateLimiter`. Solche Anfragen unterlagen also **keiner** Grenze, und die
+Bremse war mit einem Zeichen umgehbar (`curl -X POST`). Am laufenden Dev-Server belegt: 300 ×
+`POST /theke/<zufall>` erzeugten je eine Page-Invocation mit DB-Read, ohne das Lese-Budget zu
+berühren. Ein `POST` ohne Action-Marker ist kein Schreibaufruf, sondern ein getarnter Seiten-Read –
+er gehört auf das Lese-Budget.
+
+**Warum zwei Budgets statt einem.** Der Schreibpfad braucht ein eigenes, damit ein Lese-Flood die
+Erfassung an der Theke nicht mit abwürgt (AK-7) – mit einem gemeinsamen Zähler wäre genau das der
+Fall. Der Schreibpfad bleibt aber **nicht ungezählt**: Der Marker ist ein Header, den jeder setzen
+kann, und eine erfundene Action-ID lässt Next die Seite trotzdem rendern (am Dev-Server gemessen).
+Ein ungezählter Freibrief hieße, die Bremse per Header abschaltbar zu machen. Das Schreib-Budget ist
+mit denselben 240/60 s bemessen; reale Erfassung erreicht es nie, weil ADR-044 pro Token bereits bei
+60/Fenster abriegelt – es greift erst jenseits von vier parallel geführten Veranstaltungen und ist
+damit reiner Missbrauchs-Deckel. Dass eine HTML-429 für den Client kein verwertbarer
+`VerzehrActionState` ist, bleibt richtig, betrifft aber nur diesen Missbrauchsfall.
+
+**Grenze des Discriminators, bewusst akzeptiert.** Die progressive-enhancement-Variante einer Server
+Action (ohne JS) kodiert die Action-ID im Multipart-**Body** (`$ACTION_ID_…`), nicht im Header; sie
+zählte hier auf das Lese-Budget. Dieser Fall ist im vorliegenden Aufbau strukturell unerreichbar –
+das Erfassungs-Formular liegt hinter dem rein clientseitigen `IdentityGate` und existiert ohne JS
+gar nicht. Ihn korrekt zu erkennen erforderte ein Body-Parsing im Proxy, das teurer wäre als der
+Read, den die Bremse einspart.
+
+Die Auflösung von AK-8 bleibt unberührt: Der `revalidatePath`-Re-Render läuft **innerhalb**
+desselben POST, erscheint am Proxy also nie als eigene Anfrage und belastet kein Budget zusätzlich.
 Das Selbst-Drossel-Risiko, das die Spec für eine Bremse *in* der Page beschreibt, existiert bei
 dieser Platzierung strukturell nicht – ein zweiter, unabhängiger Grund für D3.
 
@@ -237,6 +271,12 @@ Hybrid-Dimension oder eine Plattform-Firewall nachrüsten, ohne die Aufrufstelle
   gilt die Grenze M-fach.
 - Der Proxy läuft künftig auch für Theken-Anfragen – ein zusätzlicher, billiger Schritt im
   Normalfall.
+- **Der Schreibpfad hat jetzt eine Obergrenze, die er vorher nicht hatte** (240/60 s je Instanz,
+  D5). Sie liegt weit über allem, was ADR-044 pro Token durchlässt, deckelt aber im Extremfall auch
+  echte Erfassung – der Preis dafür, dass der Marker nur ein Ausweis und keine Prüfung ist.
+- **Der Marker-Discriminator erkennt den No-JS-Server-Action-Pfad nicht** (Action-ID im
+  Multipart-Body statt im Header, D5). Im heutigen Aufbau unerreichbar; wird das Erfassungs-Formular
+  je ohne JS auslieferbar, muss diese Stelle mitgeändert werden.
 - Der Schwellwert 240 ist eine begründete Schätzung, keine Messung. Er ist eine Konstante und
   jederzeit anpassbar, falls die Praxis etwas anderes zeigt.
 

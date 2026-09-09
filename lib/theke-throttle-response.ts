@@ -10,8 +10,12 @@
 // eine gedrosselte Anfrage auf ein gültiges und auf ein erfundenes Segment ist ununterscheidbar
 // (FS-4).
 
-// Deckt sich mit der Fensterlänge des Limiters (ADR-048 D2) – nach dieser Zeit ist wieder Budget da.
-const RETRY_AFTER_SECONDS = 60;
+import { THEKE_RATE_LIMIT_WINDOW_MS } from "./rate-limit";
+
+// Aus der Fensterlänge des Limiters abgeleitet (ADR-048 D2) statt als zweites 60er-Literal
+// danebengestellt: Nach genau dieser Zeit ist wieder Budget da, und ein geändertes Fenster zieht
+// den Header mit (#142 – projektweite Magic-Number-Konsistenz).
+const RETRY_AFTER_SECONDS = THEKE_RATE_LIMIT_WINDOW_MS / 1000;
 
 const THROTTLE_PAGE_HTML = `<!doctype html>
 <html lang="de">

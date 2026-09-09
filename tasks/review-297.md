@@ -6,7 +6,7 @@
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] **`proxy.ts:26,49-52` (+ `docs/adr/048-rate-limit-theke-leseroute.md:115-121` D5) – Die
+- [x] **`proxy.ts:26,49-52` (+ `docs/adr/048-rate-limit-theke-leseroute.md:115-121` D5) – Die
   Bremse ist mit einem Zeichen umgehbar: `curl -X POST /theke/<zufall>` rendert `ThekePage`
   weiterhin ungedeckelt.** `READ_METHODS` zählt nur `GET`/`HEAD`; jede andere Methode wird per
   `NextResponse.next()` ungezählt an die Route durchgereicht. Next.js rendert Seiten des App
@@ -50,7 +50,7 @@
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] **`docs/routes.md:27` – „proxy-exempt" stimmt nach diesem PR nicht mehr.** Die Zeile
+- [x] **`docs/routes.md:27` – „proxy-exempt" stimmt nach diesem PR nicht mehr.** Die Zeile
   beschreibt `/theke/[token]` als `öffentlich (proxy-exempt, Token)`. Mit dem zweiten
   Matcher-Eintrag `"/theke/:path*"` (`proxy.ts:75`) läuft die Route jetzt **durch** den Proxy –
   ausgenommen ist sie nur noch vom **Auth-Gate** (Negativ-Lookahead in `matcher[0]`). Die
@@ -63,7 +63,7 @@
   Formulierung nicht ab. Vorschlag: `öffentlich (kein Auth-Gate, Token; Lese-Bremse im Proxy,
   ADR-048)`.
 
-- [ ] **`lib/theke-throttle-response.ts:14` ↔ `lib/rate-limit.ts:58` – gekoppelte Konstante ohne
+- [x] **`lib/theke-throttle-response.ts:14` ↔ `lib/rate-limit.ts:58` – gekoppelte Konstante ohne
   Guard.** `RETRY_AFTER_SECONDS = 60` und `windowMs: 60_000` sind zwei unabhängige Literale in
   zwei Modulen. Beide Kommentare behaupten die Kopplung ausdrücklich („Deckt sich mit der
   Fensterlänge des Limiters (ADR-048 D2)" bzw. „Retry-After deckt sich mit der Fensterlänge" in
@@ -75,22 +75,22 @@
 
 ## Nitpicks (optional)
 
-- [ ] **`lib/rate-limit.test.ts:136-146` – der Cold-Start-Test ist nahezu tautologisch.** Ein per
+- [x] **`lib/rate-limit.test.ts:136-146` – der Cold-Start-Test ist nahezu tautologisch.** Ein per
   `vi.resetModules()` frisch importiertes Modul hat `count = 0`; `tryAcquire()` kann dort nur
   `false` liefern, wenn `limit <= 0` wäre. Der Test unterscheidet also nicht zwischen „fail-open
   funktioniert" und „ein frischer Zähler ist frisch"; die aussagekräftige Zusicherung (Limit 240)
   liefert bereits der Test darunter. Wenn er bleibt, sollte der Kommentar ehrlich sagen, was er
   pinnt (`limit > 0` am produktiven Singleton), statt FS-1 zu behaupten.
 
-- [ ] **`lib/theke-throttle-response.test.ts:9` – `async` ohne `await`.** Der erste Test ist als
+- [x] **`lib/theke-throttle-response.test.ts:9` – `async` ohne `await`.** Der erste Test ist als
   `async` deklariert, prüft aber nur synchrone Header/Status. Die beiden folgenden Tests brauchen
   `async` zu Recht.
 
-- [ ] **`proxy.ts:28-30` – `isThekePath(request: NextRequest)` nutzt nur `nextUrl.pathname`.** Ein
+- [x] **`proxy.ts:28-30` – `isThekePath(request: NextRequest)` nutzt nur `nextUrl.pathname`.** Ein
   Parameter `pathname: string` wäre der engere Vertrag (und die `request()`-Fixture in
   `proxy.test.ts` müsste die `NextRequest`-Form nicht mehr für diesen Zweck nachbauen).
 
-- [ ] **`proxy.test.ts:196-204` – asymmetrische Matcher-Prüfung.** `matcher[0]` wird als echter
+- [x] **`proxy.test.ts:196-204` – asymmetrische Matcher-Prüfung.** `matcher[0]` wird als echter
   Regex gegen zwei Pfade verhaltensgeprüft, `matcher[1]` nur per
   `toContain("/theke/:path*")` – eine reine Präsenz-Assertion auf ein Literal. Ein Vertippen wie
   `"/theke:path*"` fiele auf, ein semantischer Fehler (`"/theke/:path"` ohne `*`, also nur eine
@@ -121,3 +121,11 @@
 ## Empfehlung
 
 NEEDS_REWORK
+
+---
+
+> **Rework erledigt (`/implement`, 2026-09-09):** Alle 7 Findings behoben – Details, Mutationsbeleg
+> und die Live-Gegenprobe zum kritischen Fund (POST/PUT/DELETE ohne Marker jetzt 429 statt 404)
+> stehen in [`task-297-rate-limit-theke-leseroute.md`](task-297-rate-limit-theke-leseroute.md)
+> → „Rework Runde 2". Dieser Report bleibt als Stand von Runde 1 stehen; das Verdikt für Runde 2
+> vergibt der nächste `/review`-Lauf.

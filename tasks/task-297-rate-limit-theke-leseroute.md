@@ -59,13 +59,15 @@ den Angriff aus dem Issue wirkungslos (jedes Zufallssegment = neuer Schlüssel =
 
 ### Betroffene Dateien
 
-1. **`lib/rate-limit.ts`** – neuer Singleton
-   `export const thekeReadRateLimiter = createRateLimiter({ limit: 240, windowMs: 60_000 })`.
-   Keine neue Arithmetik (AK-10). **Der Modul-Header zählt seine Konsumenten auf** („`createRateLimiter`
-   – ein globaler Zähler, für den /api/health-Endpunkt") – beim Hinzufügen des zweiten Konsumenten
-   mitpflegen (Lesson aus #207).
-2. **`lib/rate-limit.test.ts`** – eigener `describe`-Block für den neuen Singleton, der **beide**
-   produktiven Parameter pinnt (Muster: bestehender Block `selfServiceVerzehrRateLimiter`).
+1. **`lib/rate-limit.ts`** – neue Singletons `thekeReadRateLimiter` und (seit Review-Runde 2)
+   `thekeActionRateLimiter`, beide `{ limit: 240, windowMs: THEKE_RATE_LIMIT_WINDOW_MS }`, plus die
+   exportierte Fensterlänge `THEKE_RATE_LIMIT_WINDOW_MS = 60_000`, aus der die Drossel-Antwort ihren
+   `Retry-After` ableitet. Keine neue Arithmetik (AK-10). **Der Modul-Header zählt seine Konsumenten
+   auf** („`createRateLimiter` – ein globaler Zähler, für den /api/health-Endpunkt") – beim
+   Hinzufügen weiterer Konsumenten mitpflegen (Lesson aus #207).
+2. **`lib/rate-limit.test.ts`** – je ein `describe`-Block pro neuem Singleton, der **beide**
+   produktiven Parameter pinnt (Muster: bestehender Block `selfServiceVerzehrRateLimiter`), plus ein
+   Test, der die Trennung der Budgets belegt.
 3. **`lib/theke-throttle-response.ts`** (+ `.test.ts`) – baut die Drossel-Antwort: Status **429**,
    `content-type: text/html; charset=utf-8`, `Retry-After: 60`, `Cache-Control: no-store`,
    vollständiges `lang="de"`-Dokument mit Inline-CSS, **ohne** externe Assets und **ohne** JS
@@ -84,9 +86,9 @@ den Angriff aus dem Issue wirkungslos (jedes Zufallssegment = neuer Schlüssel =
 
 ```ts
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (isThekePath(request)) {
-    const isThrottled = READ_METHODS.has(request.method) && !thekeReadRateLimiter.tryAcquire();
-    return isThrottled ? tooManyRequestsResponse() : NextResponse.next();
+  if (isThekePath(request.nextUrl.pathname)) {
+    const limiter = isServerActionRequest(request) ? thekeActionRateLimiter : thekeReadRateLimiter;
+    return limiter.tryAcquire() ? NextResponse.next() : tooManyRequestsResponse();
   }
 
   const response = await authMiddleware(request, event);
@@ -97,14 +99,17 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 }
 ```
 
-> **Korrigiert während `/implement` (siehe Notiz unten):** Die Bedingung trennt „verlässt den
-> Proxy" (`isThekePath`) von „wird gezählt" (`READ_METHODS`). Der ursprüngliche Entwurf ließ die
-> nicht gezählten Methoden in `authMiddleware` durchfallen – das brach AK-7.
+> **Zweimal korrigiert gegenüber dem ADR-Entwurf (Notizen unten):** In `/implement` wurde „verlässt
+> den Proxy" (`isThekePath`) von „wird gezählt" getrennt – der Entwurf ließ nicht gezählte Methoden
+> in `authMiddleware` durchfallen und brach damit AK-7. In **Review-Runde 2** entfiel die
+> Methoden-Bedingung ganz: Sie ließ `POST`/`PUT`/`PATCH`/`DELETE` ungezählt durch, obwohl der App
+> Router die Seite auch dafür rendert. ADR-048 D3/D5 sind beide Male im selben PR nachgezogen.
 
-`isThekePath` = Pfad beginnt mit `/theke/`; gezählt wird nur, wenn zusätzlich die Methode `GET`
-oder `HEAD` ist. Jede andere Methode wird ungezählt an die Route durchgereicht (AK-7) – **nicht**
-ins Auth-Gate. Kein `try/catch` um `tryAcquire` – reine synchrone Arithmetik, ein Fallback wäre
-ein toter Zweig (`clean-code.md`, ADR-048 D6).
+`isThekePath` = Pfad beginnt mit `/theke/`. **Jede** Anfrage auf diesem Pfad zählt; der
+Discriminator ist nicht die Methode, sondern der Server-Action-Marker (`Next-Action`-Header): Er
+wählt zwischen Schreib- und Lese-Budget, damit ein Lese-Flood die Erfassung nicht abwürgt (AK-7).
+Ungezählt durchgereicht wird nichts – **nicht** ins Auth-Gate. Kein `try/catch` um `tryAcquire` –
+reine synchrone Arithmetik, ein Fallback wäre ein toter Zweig (`clean-code.md`, ADR-048 D6).
 
 ### TDD-Reihenfolge
 
@@ -124,8 +129,9 @@ ein toter Zweig (`clean-code.md`, ADR-048 D6).
 | AK-1, AK-5 | GET `/theke/<token>` unter Limit → `authMiddleware` **nicht** aufgerufen, Anfrage läuft durch (kein Redirect auf `/login`) | `proxy.test.ts` |
 | AK-2, AK-3, AK-4 | GET über Limit → Status 429, Hinweis-HTML, `authMiddleware` **nicht** aufgerufen | `proxy.test.ts` |
 | AK-6, FS-6 | GET `/veranstaltung` → Zweig greift nicht, `authMiddleware` läuft, Session-Strip weiterhin aktiv | `proxy.test.ts` |
-| AK-7, D5 | POST `/theke/<token>` → `tryAcquire` **nicht** aufgerufen, Anfrage läuft in den bestehenden Pfad | `proxy.test.ts` |
-| AK-8 | HEAD wird gezählt, POST nicht – zusammen mit AK-7 der Nachweis, dass Erfassung das Lesebudget nicht belastet | `proxy.test.ts` |
+| AK-7, D5 | POST `/theke/<token>` **mit** `Next-Action`-Header → zählt aufs Schreib-Budget, Lese-Budget unberührt; läuft auch bei erschöpftem Lese-Budget durch | `proxy.test.ts` |
+| AK-2, D5 | POST/DELETE `/theke/<token>` **ohne** Marker → zählt aufs Lese-Budget, über Limit 429 (Review-Runde 2, kritisch) | `proxy.test.ts` |
+| AK-8 | HEAD wird gezählt, der Server-Action-POST nicht – zusammen mit AK-7 der Nachweis, dass Erfassung das Lesebudget nicht belastet | `proxy.test.ts` |
 | AK-9, AK-10, OF-2 | 240 erlaubt, 241. gedrosselt, Reset nach exakt 60 000 ms am echten Singleton | `lib/rate-limit.test.ts` |
 | AK-4 | Status/Header/Markup der Drossel-Antwort | `lib/theke-throttle-response.test.ts` |
 | FS-4 | zwei gedrosselte GETs auf **unterschiedliche** Segmente → ununterscheidbare Antwort (Status, Header, Body) | `proxy.test.ts` |
@@ -206,6 +212,67 @@ Drift-Check ist in beide Richtungen fail-closed.
 unberührt (`GET` danach weiterhin 404 statt 429). ADR-048 D5 („unterliegt weiterhin allein der
 Grenze aus ADR-044") trifft auf diese Anfragen nicht zu: ohne Action-Marker läuft
 `adjustVerzehrByTokenAction` – und damit `selfServiceVerzehrRateLimiter` – nie.
+
+### Rework Runde 2 (`/implement`, 2026-09-09) – alle 7 Findings behoben
+
+**Kritisch (behoben).** Der Discriminator ist nicht mehr die HTTP-Methode, sondern der
+Server-Action-Marker: `isServerActionRequest` (POST **und** `Next-Action`-Header) wählt zwischen
+`thekeActionRateLimiter` und `thekeReadRateLimiter`; **ungezählt durchgereicht wird nichts** mehr.
+Ein POST ohne Marker ist ein getarnter Seiten-Read und zählt aufs Lese-Budget. Der Schreibpfad
+bekommt ein **eigenes** Budget (240/60 s) statt eines Freibriefs – der Marker ist nur ein Ausweis,
+den jeder setzen kann, ein ungezählter Zweig wäre also ein Header-Schalter zum Abstellen der Bremse.
+Reale Erfassung erreicht diese Grenze nie (ADR-044 riegelt pro Token schon bei 60/Fenster ab).
+
+**Bewusste Grenze** (in Code, ADR und Test dokumentiert): Der No-JS-Server-Action-Pfad kodiert die
+Action-ID im Multipart-Body, nicht im Header, und zählte aufs Lese-Budget. Im heutigen Aufbau
+unerreichbar – das Erfassungs-Formular liegt hinter dem rein clientseitigen `IdentityGate`. Ein
+Body-Parse im Proxy wäre teurer als der eingesparte Read.
+
+**Wichtig (behoben):** `docs/routes.md` sagt für `/theke/[token]` nicht mehr „proxy-exempt"
+(stimmt seit dem zweiten Matcher-Eintrag nicht), sondern „kein Auth-Gate, Token; Rate-Limit im
+Proxy, ADR-048". · Die gekoppelten `60`-Literale sind aufgelöst: `THEKE_RATE_LIMIT_WINDOW_MS` ist
+exportiert, `RETRY_AFTER_SECONDS` leitet sich daraus ab.
+
+**Nitpicks (alle vier behoben):** Cold-Start-Test-Kommentar sagt jetzt ehrlich, dass er nur
+`limit > 0` pinnt · `async` ohne `await` entfernt · `isThekePath(pathname: string)` statt
+`NextRequest` · die Asymmetrie der Matcher-Prüfung ist als Kommentar begründet.
+
+**ADR-048 im selben PR nachgezogen** (Lesson #211/#55 – dieselbe Stelle wie in Runde 1): D2 um die
+exportierte Fensterkonstante, D3 um das korrigierte Codebeispiel, **D5 vollständig neu** samt
+expliziter Kennzeichnung der widerlegten Prämisse; „Konsequenzen" um die zwei neuen Trade-offs
+(Obergrenze auf dem Schreibpfad, Marker erkennt den No-JS-Pfad nicht).
+
+**Vorgefundener Zustand:** Der Worktree enthielt uncommittete Änderungen aus einem abgebrochenen
+Rework-Lauf – darin in `proxy.ts` eine **stehengebliebene Testmutation** (`// MUTANT`, beide
+Zweigseiten auf `thekeReadRateLimiter`), die den Fix wirkungslos machte. Zurückgenommen und der
+Zweig per Mutationsbeleg abgesichert (Lesson #185/#264/#324 – Retry ohne Gedächtnis baut auf
+halbfertigem Fremd-Stand auf).
+
+**Mutationsbeleg** (Lesson #286 – derselbe Assert-Ausdruck, nicht nur derselbe Grundbefehl):
+Mutation der Zweigauswahl auf den Lese-Limiter → `proxy.test.ts` **3 Tests rot**
+(`should_countOnActionBudgetOnly_when_thekeServerActionPost`,
+`should_passRequestToRoute_when_thekeServerActionPostWithExhaustedReadBudget`,
+`should_return429_when_thekeServerActionPostOverActionLimit`); ohne Mutation grün.
+
+**Gates:** `pnpm lint` grün · `pnpm typecheck` grün (Lesson #137) · `pnpm test` 793 passed /
+59 skipped · `routes-doc-check.sh` grün.
+
+**Live-Verifikation** an der echten Proxy-Naht (`pnpm dev` + lokale DB, Lesson #63) – der Fund aus
+Runde 1 ist dort widerlegt, wo er gemessen wurde:
+
+| Probe (Lese-Budget ausgeschöpft) | Runde 1 | jetzt |
+|---|---|---|
+| `POST /theke/<segment>` ohne Marker | 404 (ungedeckelt) | **429** |
+| `PUT` / `DELETE` ohne Marker | 404 (ungedeckelt) | **429** / **429** |
+| `POST /theke/<segment>` **mit** `Next-Action` | 404 | **404** (AK-7: eigenes Budget) |
+| `GET /veranstaltung` | 307 | **307** (AK-6, kein Übergriff) |
+| 241. `GET /theke/<segment>` | 429 | **429** (AK-2/AK-4) |
+| `GET` nach 61 s | – | **404** (AK-9, Fenster-Reset) |
+
+FS-4 zusätzlich per Body-Hash zweier verschiedener Segmente: identisch. Header der 429:
+`content-type: text/html; charset=utf-8`, `retry-after: 60`, `cache-control: no-store`.
+Verifikations-Skripte als `scripts/verify-297-*.tmp.sh` (nicht Teil des Commits – geprüft: sie
+erscheinen nicht in `git status`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
