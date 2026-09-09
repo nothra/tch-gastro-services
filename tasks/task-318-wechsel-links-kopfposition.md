@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -141,6 +141,28 @@ Testdatei-Änderung nötig, daher kein Commit in diesem Schritt (nur die Checkbo
 
 Verifiziert: `pnpm vitest run` → 803/803 grün (59 skipped, unabhängig von dieser Task), `pnpm lint`
 grün, Arbeitsbaum sauber bis auf diese Task-Datei-Aktualisierung.
+
+## Refactoring (`/refactor`)
+
+Kein neues Verhalten eingeführt. Zwei der sechs optionalen Nitpicks aus Review-Runde 3
+aufgegriffen (kein Grund für eine Review-Runde, rein strukturelle Verbesserung):
+
+1. `VerzehrErfassung.tsx:74-77` – Kommentar ergänzt um das WHY der Positionsentscheidung
+   (Wechsel gehört zur Person, nicht zum Betragsblock; kein Scrollen bei langer
+   Aufschlüsselung), passend zum Duktus der übrigen Sätze des Blocks (Nitpick 3).
+2. `VerzehrErfassung.test.tsx:614-635` – toter `throw`-Guard nach `container.querySelector("li")`
+   entfernt, stattdessen `screen.getAllByRole("listitem")[0]` wie im repo-üblichen Muster
+   (`KassierZeilenListe.test.tsx`); der Guard war typnotwendig, aber zur Laufzeit unerreichbar
+   (Nitpick 2).
+
+Die übrigen vier Nitpicks bleiben bewusst unangetastet (rein kosmetisch/dokumentarisch, kein
+Struktur- oder Klarheitsgewinn im Verhältnis zum Diff-Risiko): Test-Namens-Suffix-Angleichung,
+fehlende Reihenfolge-Assertion auf dem strukturell bereits abgedeckten Inaktiv-Zweig,
+Bedienmuster-Formulierung in `personenbezug.ts` (bereits als Out-of-Scope-Nachtrag dokumentiert),
+Task-Notiz-Halbsatz zu AK5 (bereits in der Technischen Notiz oben nachgetragen).
+
+Verifiziert: `pnpm vitest run` → 803/803 grün (59 skipped), `pnpm lint` grün,
+`bash scripts/checks/pre-commit.sh` grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

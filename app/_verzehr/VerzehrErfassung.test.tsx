@@ -616,14 +616,13 @@ describe("ZeileKarte (Akkordeon, #183/ADR-035 D2)", () => {
     // Erfassungs-Sektion – nicht mehr am Fuß des Körpers. Reihenfolge, nicht nur Anwesenheit.
     // `collapsible: true, open: true` deckt den ausgelieferten Pfad ab (FokusListe rendert den
     // Kopf immer als Button, #318 Review-Finding W2).
-    const { container } = renderKarte({
+    renderKarte({
       collapsible: true,
       open: true,
       aktion: <a href="/ziel">Kassieren</a>,
     });
 
-    const li = container.querySelector("li");
-    if (!li) throw new Error("Karte nicht gerendert");
+    const li = screen.getAllByRole("listitem")[0];
     const kinder = Array.from(li.children);
     const kopfIndex = kinder.findIndex((kind) => kind.contains(screen.getByText("Anna")));
     const aktionIndex = kinder.findIndex((kind) =>

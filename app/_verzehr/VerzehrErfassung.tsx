@@ -72,10 +72,11 @@ export function VerzehrErfassung({
 // layoutseitige Belange seines Kontexts (z. B. F7 gibt ein scroll-margin für die sticky
 // Chip-Leiste vor), ohne dass die route-neutrale Karte diese Fremd-Layouts kennen muss.
 // `aktion` ist ein vom Konsumenten gelieferter Baustein direkt unter dem Kopf, oberhalb der
-// Erfassungs-Sektionen (#318) – die Karte kennt weder Route noch Semantik (ADR-039 D1). Er steht
-// vor dem Erfassungs-Körper, teilt aber dessen Sichtbarkeits-Gate `koerperSichtbar` und erscheint
-// bei `collapsible` also nur in der geöffneten Karte (#308 AK7); ein Weg, der keine Aktion
-// anbietet, reicht nichts herein (Selbstbedienung F7, #308 AK9).
+// Erfassungs-Sektionen – der Wechsel gehört zur Person, nicht zum Betragsblock, und soll ohne
+// Scrollen bei langer Aufschlüsselung erreichbar sein (#318). Die Karte kennt weder Route noch
+// Semantik (ADR-039 D1). Er steht vor dem Erfassungs-Körper, teilt aber dessen Sichtbarkeits-Gate
+// `koerperSichtbar` und erscheint bei `collapsible` also nur in der geöffneten Karte (#308 AK7);
+// ein Weg, der keine Aktion anbietet, reicht nichts herein (Selbstbedienung F7, #308 AK9).
 export function ZeileKarte({
   zeile,
   artikel,
