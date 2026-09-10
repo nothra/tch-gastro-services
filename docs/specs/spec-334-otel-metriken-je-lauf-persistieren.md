@@ -38,7 +38,7 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 | Störung der Pipeline-Logik | keine: `run_skill` wertet Exit-Code und Report-**Dateien** aus (`run-pipeline.sh:302–319`), nicht den Text-Output |
 | Personenbezug in den Attributen | **ja**: `user.email`, `user.id`, `user.account_id`, `user.account_uuid`, `organization.id` |
 | Überlebt eine **gitignorete** Datei im Arbeitsbaum `git worktree remove`? | **Nein** – wird ohne `--force` und **ohne Warnung** mitgelöscht (Git zählt Ignorierte nicht als „untracked") |
-| Überlebt eine Datei im **gemeinsamen git-Verzeichnis** (`git rev-parse --git-common-dir`)? | **Ja** – und `git status` bleibt sauber, sie erscheint nicht einmal als ignoriert |
+| Überlebt eine Datei im **gemeinsamen git-Verzeichnis** (`git rev-parse --git-common-dir`)? | **Ja** – und `git status` bleibt sauber, sie erscheint nicht einmal als ignoriert. *(Als Ablage dennoch verworfen: nicht versioniert, nicht teilbar – ADR-049 §E4)* |
 
 ## Scope
 
@@ -50,16 +50,22 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 - Zuordnung der Kosten zu den **einzelnen Pipeline-Schritten** eines Laufs.
 - Erzeugung **integriert in `run-pipeline.sh`, standardmäßig eingeschaltet**, per Parameter
   abschaltbar. Ein abgeschalteter Lauf verhält sich unverändert.
-- Die persistierten Werte **überleben das Entfernen des Worktrees**, in dem der Lauf
-  stattfand – sonst gäbe es keine Historie über Tasks hinweg.
+- Die Werte werden **je Lauf in Git gespeichert**, versioniert und mit **Bezug zum Task**
+  (Task-ID im Dateinamen). Sie überleben damit das Entfernen des Worktrees und den Verlust des
+  Klons – sonst gäbe es keine belastbare Historie über Tasks hinweg.
+- **Personenfrei**: die persistierten Werte enthalten keine Nutzer-/Organisations-Kennungen
+  (siehe AK5) – Voraussetzung dafür, dass sie überhaupt ins Repo dürfen.
 
 **Nicht inbegriffen:**
 
-- **Kein Versand an ein zentrales Ziel.** Keine Gateway-/Collector-Anbindung, kein
-  `OTEL_EXPORTER_OTLP_ENDPOINT` auf einen fremden Host, keine Secrets. Ausdrückliche
-  Auftraggeber-Vorgabe: die Metriken sind für den lokalen Betreiber und verlassen den Rechner
-  nicht. (Randbedingung, nicht Bequemlichkeit: die Attribute tragen `user.email` und
-  Account-IDs – ein zentrales Ziel wäre eine eigene Datenschutz-Entscheidung.)
+- **Kein Telemetrie-Backend.** Keine Gateway-/Collector-Anbindung, kein
+  `OTEL_EXPORTER_OTLP_ENDPOINT` auf einen fremden Host, keine Secrets. Der einzige Weg, den die
+  Werte nehmen, ist der ohnehin bestehende Git-Push.
+  *(Geändert am 2026-09-11: vorher „kein Versand an ein zentrales Ziel – die Metriken verlassen
+  den Rechner nicht". Mit der Entscheidung „getrackt in Git" gehen die **personenfreien** Werte
+  nach GitHub; personenbezogene Felder bleiben ausgeschlossen, siehe AK5.)*
+- **Keine Personendaten im Repo.** Der personenbehaftete Roh-Output wird nicht getrackt,
+  Test-Fixtures nur anonymisiert.
 - **Keine CI-Aktivierung.** Claude Code läuft in CI ausschließlich in `factory-poll.yml`, und
   der ist seit #284 stillgelegt und ohne `ANTHROPIC_API_KEY`. Eine Aktivierung dort wäre
   heute inerte Konfiguration (vgl. #201).
@@ -92,23 +98,32 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
       *(Geändert am 2026-09-11 auf Auftraggeber-Entscheidung: vorher opt-in – siehe
       ADR-049 §E3 und dortige Revisionsnotiz. Zwei Zusicherungen sind dadurch im selben PR
       nachzuziehen: die Assertion `run-tests.sh:292` und die OTEL-Invariante in ADR-045.)*
-- [ ] **AK5 (kein zentraler Versand):** GIVEN die Umsetzung, WHEN ein Lauf mit aktivierter
-      Telemetrie läuft, THEN geht kein Telemetrie-Datum an einen netzwerk-externen Empfänger,
-      und insbesondere enthält der über `--publish` veröffentlichte Prozess-Report
-      (GitHub-Issue-Kommentar / Step-Summary) **keine** Telemetrie-Daten.
+- [ ] **AK5 (keine Personendaten in den persistierten Werten):** GIVEN eine Roh-Messung, die
+      `user.email`, `user.id`, `user.account_id`, `user.account_uuid`, `organization.id` oder
+      `session.id` enthält, WHEN daraus das persistierte Artefakt entsteht, THEN enthält dieses
+      **keines** dieser Felder – auch nicht in einer Restspalte oder einem Kommentar. Die
+      Projektion erfolgt als **Whitelist** (benannte Felder aufnehmen), nicht als Blacklist.
+      Ergänzend: der über `--publish` veröffentlichte Prozess-Report enthält weiterhin
+      **keine** Telemetrie-Daten, und der personenbehaftete **Roh-Output** wird nie getrackt.
+      *(Geändert am 2026-09-11: vorher „kein zentraler Versand". Mit „getrackt in Git" gehen die
+      Werte per Push nach GitHub; die frühere strukturelle Sicherung entfällt, die Zusicherung
+      hängt jetzt am Filter – ADR-049 §E5. Deshalb ist der Guard dazu Teil des AK, nicht
+      Beiwerk.)*
 - [ ] **AK6 (fail-open):** GIVEN die Erhebung oder Auswertung der Telemetrie schlägt fehl,
       WHEN der Lauf endet, THEN bleibt der ursprüngliche Exit-Code des Laufs unverändert und
       die Pipeline gilt nicht wegen der Messung als gescheitert (analog AK3 aus `spec-314`).
-- [ ] **AK7 (sauberer Arbeitsbaum, Historie überlebt den Worktree):** GIVEN ein abgeschlossener
-      Lauf, WHEN danach `git status` läuft, THEN ist der Arbeitsbaum unverändert sauber; **und**
-      GIVEN der Worktree dieses Laufs wird anschließend regulär entfernt
-      (`git worktree remove`, ohne `--force`), WHEN danach nachgesehen wird, THEN sind die
-      persistierten Messwerte **noch vorhanden**.
-      *(Zweite Hälfte ergänzt am 2026-09-11 nach Messung: `git worktree remove` löscht
-      gitignorete Dateien im Arbeitsbaum ohne `--force` und ohne Warnung mit. Die Ablage liegt
-      deshalb im gemeinsamen git-Verzeichnis statt unter `tasks/` – ADR-049 §E4. Der
-      ADR-040-Grund bleibt: ein **getracktes** Mess-Artefakt ließe die Endzustands-Verifikation
-      des nächsten Laufs fehlschlagen.)*
+- [ ] **AK7 (versioniert, ohne den Lauf zu gefährden):** GIVEN ein abgeschlossener Lauf, WHEN
+      danach `git status` läuft, THEN ist der Arbeitsbaum sauber – **weil die CSV committet und
+      gepusht ist**, nicht weil sie ignoriert wird; **und** GIVEN der Worktree wird anschließend
+      regulär entfernt (`git worktree remove`), WHEN danach im Repo nachgesehen wird, THEN sind
+      die Messwerte weiterhin vorhanden (in Git); **und** GIVEN ein Folgelauf im selben
+      Worktree, WHEN dessen Endzustands-Verifikation läuft, THEN schlägt sie nicht wegen der
+      Telemetrie fehl.
+      *(Umgestellt am 2026-09-11: Die Zusicherung kommt nicht mehr aus einem `.gitignore`-Eintrag
+      oder einer Ablage außerhalb des Arbeitsbaums, sondern daraus, dass der Lauf die Datei
+      selbst committet und pusht – ADR-049 §E4. `verify_final_state` prüft **beides**, dirty Tree
+      und ungepushte Commits, weshalb der Push dazugehört. Der ADR-040-Grund bleibt: ein
+      ungetracktes oder uncommittetes Mess-Artefakt ließe die Verifikation fehlschlagen.)*
 - [ ] **AK8 (Auswertbarkeit für Modellwahl):** GIVEN mehrere persistierte Läufe, WHEN der
       Betreiber die Kosten je Modell vergleichen will, THEN ist je Messwert erkennbar, welches
       **Modell** ihn verursacht hat – die Frage „lohnt Tier X für Schritt Y" ist ohne
@@ -139,10 +154,13 @@ bleiben als Entscheidungsgrundlage stehen. Kurzfassung:
 - **Verankerung:** **in `run-pipeline.sh` integriert, Default an, per Parameter abschaltbar**
   (§E3, revidiert am 2026-09-11). Dadurch sind Gate `run-tests.sh:292` **zu ersetzen** und die
   OTEL-Invariante in ADR-045 **zu korrigieren** – im selben PR.
-- **Ablage:** Unterverzeichnis des **gemeinsamen git-Verzeichnisses**
-  (`git rev-parse --git-common-dir`), je Lauf eine CSV (§E4, revidiert am 2026-09-11 nach
-  Messung). Nicht unter `tasks/` – das überlebte `git worktree remove` nicht. Nicht in
-  `tasks/metrics-<datum>.md` – das geht via `--publish` nach GitHub (AK5).
+- **Ablage:** **getrackt in Git** als `tasks/telemetry-<task-id>-<zeitstempel>.csv`, im Lauf
+  committet und gepusht zwischen `/codify` und `/pr-shepherd` (§E4, **zweimal revidiert** am
+  2026-09-11: erst von gitignoret-unter-`tasks/` auf das gemeinsame git-Verzeichnis nach
+  Messung, dann auf getrackt-in-Git auf Auftraggeber-Entscheidung). Weiterhin nicht in
+  `tasks/metrics-<datum>.md` – das geht via `--publish` nach GitHub und bleibt der Prozess-Ebene.
+- **Personenbezug:** per **Whitelist** ausgeschlossen, durch einen Guard bewacht (§E5, neu) –
+  die tragende Sicherung, seit die Werte das Repo erreichen.
 
 - [x] **Verhältnis zu ADR-006 Option B.** ADR-006 hat „Token/Kosten aus Logs oder
       API-Antworten selbst parsen" **abgelehnt**. Ist das Auslesen des OTEL-Console-Exporters

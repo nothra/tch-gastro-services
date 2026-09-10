@@ -17,7 +17,12 @@ Die Telemetrie-Ebene aus ADR-006 existiert bisher nur als Beispiel-Datei (Defaul
 entsteht keine Historie. #314 hat diese Arbeit ausdrücklich vertagt („braucht eine eigene ADR
 und eine eigene Issue") – diese Issue ist #334.
 
-**Auftraggeber-Vorgabe:** rein lokal, kein Versand an ein zentrales Ziel.
+**Auftraggeber-Vorgaben** (Stand 2026-09-11): Erzeugung in `run-pipeline.sh` integriert und
+standardmäßig an, per Parameter abschaltbar; die Werte **personenfrei je Lauf in Git**,
+mit Bezug zum Task. Kein Telemetrie-Backend/Gateway.
+*(Die ursprüngliche Vorgabe „rein lokal, kein Versand an ein zentrales Ziel" ist damit
+überholt – personenfreie Werte gehen per Git-Push mit; der Personenbezug bleibt
+ausgeschlossen, AK5.)*
 
 Spec: [`docs/specs/spec-334-otel-metriken-je-lauf-persistieren.md`](../docs/specs/spec-334-otel-metriken-je-lauf-persistieren.md)
 
@@ -33,13 +38,16 @@ Spec: [`docs/specs/spec-334-otel-metriken-je-lauf-persistieren.md`](../docs/spec
       geschrieben ist, THEN sind die Kosten den einzelnen Schritten zuzuordnen.
 - [ ] **AK4 (opt-in, kein Zwang):** GIVEN Telemetrie nicht aktiviert, WHEN ein Lauf
       stattfindet, THEN verhält er sich unverändert wie vor dieser Task.
-- [ ] **AK5 (kein zentraler Versand):** GIVEN aktivierte Telemetrie, WHEN ein Lauf läuft,
-      THEN geht kein Telemetrie-Datum an einen netzwerk-externen Empfänger, und der via
-      `--publish` veröffentlichte Prozess-Report enthält keine Telemetrie-Daten.
-- [ ] **AK6 (fail-open):** GIVEN die Erhebung/Auswertung schlägt fehl, WHEN der Lauf endet,
-      THEN bleibt der ursprüngliche Exit-Code unverändert.
-- [ ] **AK7 (kein dirty Arbeitsbaum):** GIVEN ein abgeschlossener Lauf, WHEN `git status`
-      läuft, THEN ist der Arbeitsbaum sauber (Artefakt von `.gitignore` gedeckt, ADR-040).
+- [ ] **AK5 (keine Personendaten):** GIVEN eine Roh-Messung mit `user.email`, `user.id`,
+      `user.account_id`, `user.account_uuid`, `organization.id` oder `session.id`, WHEN das
+      Artefakt entsteht, THEN enthält es keines dieser Felder – Projektion als **Whitelist**.
+      Roh-Output nie getrackt; `--publish`-Report weiterhin ohne Telemetrie-Daten.
+- [ ] **AK6 (fail-open):** GIVEN die Erhebung/Auswertung/der Commit schlägt fehl, WHEN der Lauf
+      endet, THEN bleibt der ursprüngliche Exit-Code unverändert.
+- [ ] **AK7 (versioniert, ohne den Lauf zu gefährden):** GIVEN ein abgeschlossener Lauf, WHEN
+      `git status` läuft, THEN ist der Arbeitsbaum sauber, **weil die CSV committet und gepusht
+      ist**; und ein Folgelauf im selben Worktree scheitert nicht an der Telemetrie
+      (`verify_final_state` prüft dirty Tree **und** ungepushte Commits).
 - [ ] **AK8 (Auswertbarkeit für Modellwahl):** GIVEN mehrere persistierte Läufe, WHEN Kosten
       je Modell verglichen werden, THEN ist je Messwert das verursachende Modell erkennbar.
 
@@ -85,22 +93,37 @@ Architektur-Entscheidung: [ADR-049](../docs/adr/049-telemetrie-persistenz-je-pip
 2. **Ernte-/Auswertungs-Seam** unter `scripts/lib/` – reine, testbare Funktionen (analog
    `scripts/lib/tier-select.sh`), damit die Auswertung ohne echten `claude`-Lauf gegen eine
    Fixture prüfbar ist. Der Orchestrator ruft, er rechnet nicht.
-3. **Ablage im gemeinsamen git-Verzeichnis**, je Lauf eine CSV.
-   **Kein `.gitignore`-Eintrag nötig** – die Datei liegt ausserhalb jedes Arbeitsbaums (gemessen:
-   `git status` bleibt sauber, sie erscheint nicht einmal als ignoriert).
-   **Falle:** `git rev-parse --git-common-dir` liefert im **Hauptbaum** einen *relativen* Pfad
-   (`.git`), im Worktree einen absoluten. Immer auflösen (z. B. `cd "$(…)" && pwd`), sonst
-   landet die Datei relativ zum jeweiligen cwd an wechselnden Orten.
-4. **Assertion `run-tests.sh:292` ersetzen**, nicht löschen – die alte Zusicherung („OTEL nicht
-   in run-pipeline.sh gesourct") ist durch E3 ungültig. Die neue muss bewachen: Default an
-   **und** Abschalt-Parameter wirkt wirklich. Ein entfernter Guard hinterlässt eine unbewachte
-   Zusicherung. Dazu **Format-Drift-Guard + anonymisierte Fixture** (kein `user.email` ins
-   Repo!) – muss laut scheitern, wenn Console-Format oder Marker-Zeile nicht mehr erkannt
-   werden. Kein stilles 0.
-5. **ADR-045-Invariante** ist bereits korrigiert (Verweis auf ADR-049); beim Umsetzen
+3. **Getrackte CSV je Lauf** unter `tasks/telemetry-<task-id>-<zeitstempel>.csv` (geprüft: von
+   keinem `.gitignore`-Muster erfasst, also trackbar). Der Lauf **committet und pusht sie
+   selbst** – beides nötig, weil `verify_final_state` dirty Tree **und** ungepushte Commits
+   prüft (`verify-final-state.sh:52–59`).
+   - **Ort im Ablauf: nach `run_skill "codify"` (`:602`), vor Phase 7 `/pr-shepherd` (`:605`).**
+     Danach ist der PR bei `PR_SHEPHERD=true` gemergt, ein Commit hätte kein Ziel, und
+     Direkt-Commits auf `main` sind verboten. Konsequenz: die Kosten von `/pr-shepherd` selbst
+     fehlen in der Reihe – bewusst, dokumentiert in ADR-049.
+   - **Nicht `scripts/factory-commit.sh` verwenden!** Es macht `git add -A`
+     (`factory-commit.sh:89`) und würde bei einem Abbruch halbfertige Agenten-Änderungen
+     mitcommitten. Gezielt nur die CSV stagen.
+4. **Whitelist-Projektion (AK5)** im Seam: nur benannte Felder aufnehmen
+   (Zeitstempel, Task-ID, Schritt, `model`, `agent.name`, Metrik, Werttyp, Wert). **Nie**
+   `user.email`, `user.id`, `user.account_id`, `user.account_uuid`, `organization.id`,
+   `session.id`. Keine Blacklist – ein neues Attribut in einer künftigen CLI-Version würde
+   sonst lautlos in ein getracktes, gepushtes Artefakt wandern, und die Git-Historie
+   konserviert den Fehler.
+5. **Guards in `scripts/checks/tests/run-tests.sh`:**
+   - Assertion `:292` **ersetzen**, nicht löschen – die alte Zusicherung („OTEL nicht in
+     run-pipeline.sh gesourct") ist durch E3 ungültig. Die neue bewacht: Default an **und**
+     Abschalt-Parameter wirkt wirklich.
+   - **Personendaten-Guard** (die tragende Sicherung, seit die Werte ins Repo gehen): Roh-Eingabe
+     **mit** Personenfeldern hineingeben, assertieren, dass die CSV keines davon enthält.
+   - **Format-Drift-Guard** samt **anonymisierter** Fixture (kein `user.email` ins Repo) – muss
+     laut scheitern, wenn Console-Format oder Marker-Zeile nicht mehr erkannt werden. Kein
+     stilles 0.
+6. **ADR-045-Invariante** ist bereits korrigiert (Verweis auf ADR-049); beim Umsetzen
    gegenprüfen, dass die dortige Beschreibung zum gebauten Verhalten passt.
-6. **Doku**: Default an, Abschalt-Parameter und Ablageort in `CLAUDE.md` bzw.
-   `docs/factory/OPERATING.md` – der Ort in `.git/` ist ungewöhnlich und muss auffindbar sein.
+7. **Doku**: Default an, Abschalt-Parameter und Ablageort in `CLAUDE.md` bzw.
+   `docs/factory/OPERATING.md`. Dabei erwähnen, dass jeder Task-PR ab jetzt eine
+   Telemetrie-CSV mitführt – das taucht in jedem Diff auf und sollte niemanden überraschen.
 
 **Parsing-Anker (gemessen, gegen Fixture zu testen):**
 
@@ -140,12 +163,16 @@ Alle vier waren ADR-Trigger und sind in
       (§E3, **revidiert am 2026-09-11** auf Auftraggeber-Entscheidung; vorher: Wrapper).
       Folge: Assertion `run-tests.sh:292` **ersetzen** und ADR-045-Invariante korrigieren
       (letzteres erledigt).
-- [x] Ablageort/Format → **Unterverzeichnis des gemeinsamen git-Verzeichnisses**
-      (`git rev-parse --git-common-dir`), je Lauf eine CSV (§E4, **revidiert am 2026-09-11**
-      nach Messung; vorher: `tasks/telemetry-*.csv` gitignored). Grund: `git worktree remove`
-      löscht gitignorete Dateien ohne `--force` und **ohne Warnung** mit – die Historie hätte
-      das nach CLAUDE.md vorgeschriebene Aufräumen nicht überlebt. Weiterhin nicht in
-      `tasks/metrics-<datum>.md` (geht via `--publish` nach GitHub → AK5-Verstoß).
+- [x] Ablageort/Format → **getrackt in Git**: `tasks/telemetry-<task-id>-<zeitstempel>.csv`,
+      im Lauf committet und gepusht (§E4, **zweimal revidiert am 2026-09-11**).
+      Weg dorthin: (1) zuerst gitignoret unter `tasks/` – verworfen, weil
+      `git worktree remove` gitignorete Dateien ohne `--force` und **ohne Warnung** mitlöscht;
+      (2) dann gitignoret im gemeinsamen git-Verzeichnis – überlebte das, blieb aber auf einem
+      Rechner (nicht versioniert, nicht teilbar); (3) jetzt getrackt in Git auf
+      Auftraggeber-Entscheidung. Weiterhin nicht in `tasks/metrics-<datum>.md` (geht via
+      `--publish` nach GitHub und bleibt der Prozess-Ebene).
+- [x] Personenbezug → **Whitelist + Guard** (§E5, neu). Nötig, weil mit „getrackt in Git" die
+      frühere strukturelle Sicherung entfällt.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

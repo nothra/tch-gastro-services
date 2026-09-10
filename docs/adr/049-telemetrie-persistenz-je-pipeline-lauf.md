@@ -1,4 +1,4 @@
-# ADR 049: Telemetrie-Persistenz je Pipeline-Lauf – in `run-pipeline.sh` integriert, Default an, Ablage im gemeinsamen git-Verzeichnis
+# ADR 049: Telemetrie-Persistenz je Pipeline-Lauf – in `run-pipeline.sh` integriert, Default an, personenfrei getrackt in Git
 
 ## Status
 
@@ -28,12 +28,20 @@ Anforderungen stehen in
 [`spec-334`](../specs/spec-334-otel-metriken-je-lauf-persistieren.md) (AK1–AK8). Zwei
 Auftraggeber-Vorgaben prägen jede Option:
 
-1. **Rein lokal, kein zentraler Versand** (AK5). Grund ist nicht Bequemlichkeit: die Attribute
-   tragen `user.email`, `user.id`, `user.account_id`, `user.account_uuid` und
-   `organization.id`.
+1. **Keine Personendaten in den persistierten Werten** (AK5, präzisiert am 2026-09-11). Die
+   OTEL-Attribute tragen `user.email`, `user.id`, `user.account_id`, `user.account_uuid` und
+   `organization.id` – diese Felder dürfen die Ablage nie erreichen.
+   *Bis zur Präzisierung lautete die Vorgabe „rein lokal, kein zentraler Versand"; sie ist durch
+   „getrackt in Git" (Vorgabe 3) ersetzt. Damit wechselt die Sicherung ihre Natur: vorher
+   strukturell (die Daten verließen den Rechner nicht), jetzt ein **Filter im Code**. Eine
+   Code-Zusicherung ist schwächer als eine strukturelle und braucht daher einen Guard – siehe
+   E5.*
 2. **Die Erzeugung ist Teil des normalen Pipeline-Laufs und standardmäßig an**, abschaltbar per
    Parameter (Auftrag vom 2026-09-11). Das kehrt die ursprüngliche Fassung dieser ADR um und
    verschiebt AK4 von *opt-in* auf *opt-out*.
+3. **Die Werte werden je Pipeline-Lauf in Git gespeichert, mit Bezug zum Task** (Auftrag vom
+   2026-09-11). Getrackt und versioniert, nicht nur lokal abgelegt – die Historie wird damit
+   Teil des Repos und über den Task auffindbar.
 
 Die Faktenlage ist in Task 334 gemessen, nicht angenommen (Details in `spec-334`). Relevant:
 `agent.name` existiert und weist Sub-Agenten als eigene, disjunkte Messreihe aus; `skill.name`
@@ -103,28 +111,55 @@ nachzuziehen, nicht stillschweigend zu brechen:**
    an. Die bestehende Assertion … bleibt gültig." ist überholt. ADR-045 ist entsprechend zu
    ergänzen (Verweis auf diese ADR), damit die beiden ADRs sich nicht widersprechen.
 
-### E4 – Ablage im **gemeinsamen git-Verzeichnis**, je Lauf eine Datei
+### E4 – **Getrackte** Datei je Lauf unter `tasks/`, im Lauf committet und gepusht
 
-Ablageort ist ein Unterverzeichnis des von `git rev-parse --git-common-dir` gelieferten Pfades,
-je Lauf eine eigene Datei (Lauf-Zeitstempel und Task-ID im Namen). Gemessene Eigenschaften:
-
-- **Überlebt `git worktree remove`** – der eigentliche Grund für diese Wahl.
-- Liegt außerhalb jedes Arbeitsbaums: `git status` bleibt sauber, die Datei erscheint nicht
-  einmal als ignoriert. AK7 ist damit **strukturell** erfüllt, nicht durch eine Regel.
-- **Kein `.gitignore`-Eintrag nötig** – eine Regel weniger, die jemand versehentlich aufheben
-  kann.
-- Alle Worktrees desselben Klons teilen die Ablage; die Historie ist über Tasks hinweg
-  zusammenhängend.
+Ablage ist `tasks/telemetry-<task-id>-<zeitstempel>.csv`, **versioniert in Git**. Der Task-Bezug
+steckt im Dateinamen und stellt die Verbindung zur `tasks/task-<id>-*.md` her; der Zeitstempel
+trennt mehrere Läufe derselben Task (AK1). Geprüft: der Pfad ist von keinem `.gitignore`-Muster
+erfasst, also trackbar.
 
 Format: CSV mit Kopfzeile – maschinenauswertbar über viele Läufe (der Zweck) und im Editor
-lesbar. Je Messwert eine Zeile mit mindestens: Lauf-Zeitstempel, Task-ID, Pipeline-Schritt,
-**Modell** (AK8), Herkunft (Hauptsession vs. Sub-Agent inkl. `agent.name`, AK2), Metrik,
-Werttyp (`input`/`output`/`cacheRead`/`cacheCreation`) und Wert.
+lesbar. Je Messwert eine Zeile mit: Lauf-Zeitstempel, Task-ID, Pipeline-Schritt, **Modell**
+(AK8), Herkunft (Hauptsession vs. Sub-Agent inkl. `agent.name`, AK2), Metrik, Werttyp
+(`input`/`output`/`cacheRead`/`cacheCreation`) und Wert. **Keine** Spalte trägt Personenbezug
+(E5).
 
-Ausdrücklich **nicht**: ein Abschnitt in `tasks/metrics-<datum>.md`. Diese Datei geht über
-`metrics.sh --publish` als Issue-Kommentar nach GitHub und würde AK5 verletzen; zudem
-vermischte es die zwei Ebenen, die ADR-006 trennt, und sie ist tagesbasiert (mehrere Läufe
-überschrieben sich, AK1).
+**Weil die Datei getrackt ist, muss sie im Lauf committet *und* gepusht werden.**
+`verify_final_state` (ADR-040) prüft beides: einen dirty Arbeitsbaum **und** ungepushte Commits
+(`verify-final-state.sh:52–59`). Eine nur geschriebene Datei ließe die Verifikation dieses Laufs
+bzw. jedes Folgelaufs im selben Worktree fehlschlagen.
+
+**Ort im Ablauf: nach `/codify`, vor `/pr-shepherd`** (zwischen `run-pipeline.sh:602` und
+`:605`). Grund: Läuft `PR_SHEPHERD=true`, ist der PR danach gemergt – ein späterer Commit hätte
+kein Ziel mehr, und ein Direkt-Commit auf `main` ist verboten. Das ist derselbe Grund, aus dem
+CLAUDE.md verlangt, die Task-Datei **vor** dem Merge final zu machen.
+
+**Der Commit staged ausschließlich die eigene Datei.** `scripts/factory-commit.sh` ist hier
+**nicht** zu verwenden: es macht `git add -A` (`factory-commit.sh:89`) und würde bei einem
+Abbruch mitten im Lauf halbfertige Agenten-Änderungen mitcommitten.
+
+Ausdrücklich **nicht**: ein Abschnitt in `tasks/metrics-<datum>.md`. Diese Datei bleibt
+gitignored (ADR-045-Invariante), ist tagesbasiert (mehrere Läufe überschrieben sich, AK1) und
+gehört der Prozess-Ebene – die Ebenen-Trennung aus ADR-006 gilt für die Ablage weiter.
+
+### E5 – Personenbezug wird per **Whitelist** ausgeschlossen, bewacht durch einen Guard
+
+Die CSV entsteht durch **Aufnahme benannter Felder**, nicht durch Entfernen bekannter
+Personenfelder. Eine Blacklist würde bei einem neuen Attribut in einer künftigen CLI-Version
+lautlos Personendaten durchlassen; eine Whitelist lässt im selben Fall höchstens ein Feld
+fehlen.
+
+Zulässig sind ausschließlich: Lauf-Zeitstempel, Task-ID, Pipeline-Schritt, `model`,
+`agent.name`, Metrikname, Werttyp, Wert. **Nie**: `user.email`, `user.id`, `user.account_id`,
+`user.account_uuid`, `organization.id`, `session.id`.
+
+Der **Roh-Output** des Console-Exporters enthält diese Felder und wird deshalb **nie** getrackt;
+er ist ein temporäres Zwischenprodukt und nach der Ernte zu verwerfen oder gitignored abzulegen.
+Gleiches gilt für Test-Fixtures: nur anonymisiert ins Repo.
+
+Ein Guard in der Testsuite prüft fail-closed, dass eine erzeugte CSV **keines** der verbotenen
+Felder enthält – auch dann, wenn die Roh-Eingabe sie trägt. Dieser Test ist die tragende
+Sicherung, seit die frühere strukturelle Garantie („verlässt den Rechner nicht") entfallen ist.
 
 ## Alternativen
 
@@ -149,22 +184,39 @@ ADR-006 „Default aus" bliebe wörtlich gültig.
 **Nachteile:** teilt den Kernnachteil der Wrapper-Variante – ohne bewusstes Zutun keine Daten.
 Verworfen aus demselben Grund.
 
-### Zu E4 – Ablage unter `tasks/` mit `.gitignore`-Muster (ursprüngliche Fassung, verworfen)
-
-**Vorteile:** neben den Prozess-Reports, ein Ablageort für alles Messbare; vertrautes Muster
-(`tasks/metrics-*.md`).
+### Zu E4 – Gitignorete Ablage unter `tasks/` (erste Fassung, verworfen)
 
 **Nachteile:** **stirbt mit dem Worktree** – gemessen: `git worktree remove` löscht die
 gitignorete Datei ohne `--force` und ohne Warnung mit. Da CLAUDE.md dieses Aufräumen nach jedem
-Merge vorschreibt, wäre die Historie systematisch verloren, und zwar unbemerkt. Verworfen.
+Merge vorschreibt, wäre die Historie systematisch und unbemerkt verloren. Verworfen.
+
+### Zu E4 – Gitignorete Ablage im gemeinsamen git-Verzeichnis (zweite Fassung, verworfen)
+
+**Vorteile:** überlebt `git worktree remove` (gemessen); `git status` bleibt sauber, die Datei
+erscheint nicht einmal als ignoriert; kein `.gitignore`-Eintrag nötig; AK7 strukturell erfüllt.
+
+**Nachteile:** die Historie bleibt **auf einem Rechner**. Sie ist nicht versioniert, nicht
+teilbar, nicht wiederherstellbar, wenn der Klon verschwindet, und für niemanden außer dem
+Betreiber sichtbar. Das ist zu wenig für eine Grundlage, auf der wiederkehrend Modell- und
+Tier-Entscheidungen begründet werden sollen. **Verworfen** auf Auftraggeber-Entscheidung
+(2026-09-11) zugunsten von „getrackt in Git, ohne Personendaten".
 
 ### Zu E4 – Ablage außerhalb des Repos (z. B. unter `$HOME`)
 
-**Vorteile:** überlebt sogar das Löschen des gesamten Klons.
+**Nachteile:** verliert die Bindung an das Repo, in dem gemessen wurde; bei mehreren Klonen
+vermischen sich die Reihen. Teilt zudem den Kernnachteil der zweiten Fassung (nicht
+versioniert, nicht teilbar).
 
-**Nachteile:** verliert die Bindung an das Repo, in dem gemessen wurde; bei mehreren Klonen oder
-Projekten vermischen sich die Reihen, und die Zuordnung müsste künstlich wiederhergestellt
-werden. Das gemeinsame git-Verzeichnis erfüllt die Anforderung, ohne diese Bindung aufzugeben.
+### Zu E5 – Personenfelder per Blacklist entfernen statt per Whitelist aufnehmen
+
+**Vorteile:** neue, unbekannte Attribute landen automatisch in der Ablage – kein Feld geht
+verloren.
+
+**Nachteile:** genau das ist das Risiko. Führt eine künftige CLI-Version ein weiteres
+personenbezogene Attribut ein, wandert es lautlos in ein getracktes, gepushtes Artefakt – ein
+Fehler, der sich nicht zurücknehmen lässt, weil die Git-Historie ihn konserviert. Bei einer
+Whitelist ist der schlimmste Fall ein **fehlendes** Feld. Verworfen: der asymmetrische Schaden
+entscheidet.
 
 ### Zu E2 – Lokaler OTLP-Empfänger (Collector-Container) auf `localhost`
 
@@ -197,11 +249,25 @@ fail-open keine Höflichkeit mehr, sondern Bedingung: eine Messung, die einen er
 scheitern lassen kann, wäre schlimmer als keine Messung. Und ein erkennbares Risiko
 (Format-Drift, laut scheiternd) ist einem stillen (nicht laufender Collector) vorzuziehen.
 
-**Strukturelle Zusicherungen schlagen Regeln** trägt E4. Die ursprüngliche Ablage erfüllte AK7
-über einen `.gitignore`-Eintrag – eine Regel, die jemand aufheben kann, und die das eigentliche
-Problem (Tod mit dem Worktree) gar nicht adressierte. Die neue Ablage liegt außerhalb jedes
-Arbeitsbaums: sie *kann* den Arbeitsbaum nicht verschmutzen und *kann* nicht mit dem Worktree
-verschwinden. Zusicherungen, die aus der Struktur folgen, brauchen keinen Guard.
+**Eine Entscheidungsgrundlage muss haltbar und teilbar sein** trägt E4. Beide früheren Fassungen
+scheiterten daran unterschiedlich weit: die erste starb mit dem Worktree, die zweite überlebte
+zwar, blieb aber auf einem Rechner – nicht versioniert, nicht teilbar, verloren mit dem Klon.
+Wenn diese Reihe künftig Modell- und Tier-Entscheidungen begründen soll, gehört sie dorthin, wo
+im Projekt jede andere begründende Grundlage liegt: ins Repo, versioniert, neben dem Task, auf
+den sie sich bezieht. Der Preis ist der Commit-Zwang im Lauf; er ist mit einem festen Ort im
+Ablauf beherrschbar.
+
+**Asymmetrischer Schaden entscheidet die Filter-Richtung** trägt E5. Getrackt und gepusht heißt:
+ein Fehler ist nicht zurücknehmbar, weil die Git-Historie ihn konserviert. Eine Whitelist kann
+ein Feld vergessen (Schaden: eine Spalte fehlt), eine Blacklist kann ein neues Personenfeld
+durchlassen (Schaden: personenbezogene Daten dauerhaft im Repo). Bei so ungleichen Folgen ist
+die Richtung nicht Geschmackssache.
+
+**Der Wechsel der Sicherungsnatur ist der eigentliche Preis dieser Revision.** Vorher war
+„keine Personendaten nach außen" strukturell garantiert – die Daten verließen den Rechner nicht,
+es *konnte* nichts passieren. Jetzt hängt dieselbe Zusicherung an einem Filter im Code. Deshalb
+ist der Guard aus E5 keine Fleißaufgabe, sondern die Bedingung, unter der diese Entscheidung
+vertretbar ist. Ohne ihn wäre sie es nicht.
 
 **Separation of Concerns** bleibt gewahrt, wenn auch anders als zuvor: Die Ernte-Logik gehört in
 einen eigenen, testbaren Seam unter `scripts/lib/` (Muster wie `tier-select.sh`), nicht in den
@@ -220,10 +286,12 @@ ADR-Ablehnung stillschweigend.
   die Kalibrierung aus ADR-009 und die Tier-Wahl aus ADR-038 bekommen eine lückenlose
   empirische Grundlage.
 - Der Sub-Agenten-Anteil wird sichtbar; er verursacht den Großteil der Last.
-- Die Historie überlebt das Aufräumen von Worktrees – gemessen, nicht angenommen.
+- Die Historie ist **versioniert, teilbar und wiederherstellbar** – sie überlebt nicht nur das
+  Aufräumen von Worktrees, sondern auch den Verlust des Klons, und ist über den Task-Bezug im
+  Dateinamen auffindbar.
 - Ein Einstiegspunkt, ein Befehl. Keine Wahl, die man falsch treffen kann.
-- Keine Infrastruktur, keine Secrets, kein Netzwerkziel – die Daten können den Rechner nicht
-  verlassen.
+- Keine Infrastruktur, keine Secrets, kein Telemetrie-Backend – der Weg der Daten ist der
+  ohnehin bestehende Git-Push, kein zusätzlicher Kanal.
 
 **Negativ / Trade-offs:**
 
@@ -238,24 +306,33 @@ ADR-Ablehnung stillschweigend.
   Signal muss also eindeutig sein.
 - **Keine `skill.name`-Attribution.** Die Zuordnung hängt an Marker-Zeilen der Pipeline; ändert
   sich deren Wortlaut, bricht die Zuordnung. Auch das gehört unter den Drift-Guard.
-- **Ablage wächst monoton.** Je Lauf eine Datei im gemeinsamen git-Verzeichnis, plus begrenzt
-  vorzuhaltender Roh-Output (ein Mini-Aufruf erzeugte ~1300 Zeilen). Kein Automatismus räumt
-  dort auf; die Roh-Ablage ist zu begrenzen, und ein späteres Aufräum-/Rotationskonzept ist
-  offen.
-- **Roh-Ausgaben enthalten personenbezogene Attribute** (`user.email`, Account-/Organisations-IDs).
-  Deshalb: lokale Ablage, kein Versand. Ein Wechsel auf ein zentrales Ziel ist eine **neue**
-  Entscheidung mit eigener Datenschutz-Prüfung – diese ADR deckt ihn nicht.
-- Die Ablage liegt in `.git/`. Das ist bewusst gewählt (Überlebensfähigkeit, strukturelle
-  Sauberkeit), aber ein ungewöhnlicher Ort für Nutzdaten: er ist zu dokumentieren, damit die
-  Dateien auffindbar sind und niemand sie für git-Interna hält.
+- **Die Kosten von `/pr-shepherd` fehlen in der Reihe.** Der Commit muss vor diesem Schritt
+  liegen, weil der PR danach gemergt ist. Akzeptiert: `/pr-shepherd` verwaltet den Merge und ist
+  der günstigste Schritt; die Lücke ist bekannt und dokumentiert statt unbemerkt. Wer sie
+  schließen will, braucht einen Folge-PR nach dem Merge – eigenes Issue, nicht diese ADR.
+- **Jeder Task-PR trägt ab jetzt eine Telemetrie-Datei.** Das Repo wächst um eine Datei je Lauf,
+  und Diffs enthalten Messdaten neben dem fachlichen Inhalt. Bewusst in Kauf genommen (kleine
+  CSV, hoher Nutzen); ein Aufräum-/Aggregationskonzept für viele Läufe ist offen.
+- **Die Personendaten-Zusicherung hängt jetzt an Code, nicht an Struktur.** Ein Filter-Fehler
+  ist nicht zurücknehmbar, weil die Git-Historie ihn konserviert. Der Whitelist-Guard aus E5 ist
+  daher nicht optional. Der **Roh-Output** (mit `user.email` und Account-IDs) wird nie getrackt;
+  Fixtures nur anonymisiert.
+- **Der Lauf schreibt jetzt selbst in die Git-Historie.** Ein zusätzlicher Commit je Lauf im
+  Feature-Branch, mit gezieltem Staging (nicht `factory-commit.sh`, das `git add -A` macht).
+  Schlägt der Commit oder Push fehl, greift fail-open – dann fehlt der Messwert, aber der Lauf
+  bleibt unberührt.
 
 ## Betroffene Stellen
 
 - `scripts/run-pipeline.sh` – Aktivierung, Abschalt-Parameter (Muster: `--dry-run`,
-  Zeilen 53–60), Ernte-Aufruf am Ende (fail-open, Exit-Code unberührt)
-- **Neu:** Ernte-/Auswertungs-Logik als eigener, testbarer Seam unter `scripts/lib/`
+  Zeilen 53–60), Ernte + **Commit/Push der CSV zwischen `/codify` (`:602`) und `/pr-shepherd`
+  (`:605`)**, alles fail-open (Exit-Code unberührt)
+- **Neu:** Ernte-/Auswertungs-Logik als eigener, testbarer Seam unter `scripts/lib/` –
+  inklusive der **Whitelist**-Projektion aus E5
 - `scripts/checks/tests/run-tests.sh:292` – Assertion **ersetzen** (Default an + Parameter
-  schaltet ab), zusätzlich Format-Drift-Guard samt anonymisierter Fixture
+  schaltet ab), zusätzlich Format-Drift-Guard samt anonymisierter Fixture **und** der
+  Personendaten-Guard aus E5 (verbotene Felder erscheinen nie in der CSV, auch nicht bei
+  personenbehafteter Roh-Eingabe)
 - `docs/adr/045-prozess-messung-je-pipeline-lauf.md` – überholte OTEL-Invariante korrigieren,
   Verweis auf diese ADR
 - `docs/specs/spec-334-*.md` – AK4 auf opt-out, AK7 auf die neue Ablage nachziehen
@@ -271,10 +348,22 @@ ADR-Ablehnung stillschweigend.
   - **E3:** von „eigener Wrapper-Einstiegspunkt, Gate und Invariante unberührt" zu
     „Integration in `run-pipeline.sh`, Default an, Abschaltung per Parameter". Grund:
     Vollständigkeit der Messreihe; ein optionaler zweiter Befehl erzeugt Lücken.
-  - **E4:** von „`tasks/telemetry-*.csv` mit `.gitignore`-Muster" zu „Unterverzeichnis des
-    gemeinsamen git-Verzeichnisses". Grund: gemessen – `git worktree remove` löscht
-    gitignorete Dateien ohne `--force` und ohne Warnung mit; die Historie hätte das nach
-    CLAUDE.md vorgeschriebene Aufräumen nicht überlebt.
+  - **E4 (erste Revision):** von „`tasks/telemetry-*.csv` mit `.gitignore`-Muster" zu
+    „Unterverzeichnis des gemeinsamen git-Verzeichnisses". Grund: gemessen – `git worktree
+    remove` löscht gitignorete Dateien ohne `--force` und ohne Warnung mit; die Historie hätte
+    das nach CLAUDE.md vorgeschriebene Aufräumen nicht überlebt.
+- **2026-09-11, E4 erneut revidiert + E5 neu** (Auftraggeber-Entscheidung, ebenfalls vor dem
+  Merge):
+  - **E4 (zweite Revision):** von „gitignoret im gemeinsamen git-Verzeichnis" zu
+    „**getrackt** in Git, `tasks/telemetry-<task-id>-<zeitstempel>.csv`, im Lauf committet und
+    gepusht". Grund: eine Historie auf einem Rechner ist nicht versioniert, nicht teilbar und
+    mit dem Klon verloren – zu wenig als wiederkehrende Entscheidungsgrundlage. Folgen: Commit
+    zwingend zwischen `/codify` und `/pr-shepherd` (danach ist der PR gemergt), gezieltes
+    Staging statt `factory-commit.sh`, und die Kosten von `/pr-shepherd` fehlen in der Reihe.
+  - **E5 (neu):** Personenbezug wird per Whitelist ausgeschlossen und durch einen Guard
+    bewacht. Nötig geworden, weil mit „getrackt in Git" die frühere strukturelle Sicherung
+    („die Daten verlassen den Rechner nicht") entfällt – die Zusicherung hängt jetzt an Code
+    und muss getestet werden.
 
 ## Quelle
 
