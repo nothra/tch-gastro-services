@@ -37,6 +37,8 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 | Zuordnung zum Pipeline-Schritt | möglich, weil `run-pipeline.sh` je Schritt einen **eigenen** `claude`-Prozess startet – nicht über `skill.name` |
 | Störung der Pipeline-Logik | keine: `run_skill` wertet Exit-Code und Report-**Dateien** aus (`run-pipeline.sh:302–319`), nicht den Text-Output |
 | Personenbezug in den Attributen | **ja**: `user.email`, `user.id`, `user.account_id`, `user.account_uuid`, `organization.id` |
+| Überlebt eine **gitignorete** Datei im Arbeitsbaum `git worktree remove`? | **Nein** – wird ohne `--force` und **ohne Warnung** mitgelöscht (Git zählt Ignorierte nicht als „untracked") |
+| Überlebt eine Datei im **gemeinsamen git-Verzeichnis** (`git rev-parse --git-common-dir`)? | **Ja** – und `git status` bleibt sauber, sie erscheint nicht einmal als ignoriert |
 
 ## Scope
 
@@ -46,8 +48,10 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
   hinweg auswertbar bleiben (Historie für Modell-/Tier-Entscheidungen).
 - Ausweisen des **Sub-Agenten-Anteils** – die Personas verursachen den Großteil der Last.
 - Zuordnung der Kosten zu den **einzelnen Pipeline-Schritten** eines Laufs.
-- Aktivierung bleibt eine **bewusste Entscheidung des Betreibers**; ein Lauf ohne aktivierte
-  Telemetrie funktioniert unverändert weiter.
+- Erzeugung **integriert in `run-pipeline.sh`, standardmäßig eingeschaltet**, per Parameter
+  abschaltbar. Ein abgeschalteter Lauf verhält sich unverändert.
+- Die persistierten Werte **überleben das Entfernen des Worktrees**, in dem der Lauf
+  stattfand – sonst gäbe es keine Historie über Tasks hinweg.
 
 **Nicht inbegriffen:**
 
@@ -80,9 +84,14 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 - [ ] **AK3 (Schritt-Zuordnung):** GIVEN ein Lauf über mehrere Pipeline-Schritte, WHEN das
       Artefakt geschrieben ist, THEN sind die Kosten den einzelnen Schritten zuzuordnen
       (welcher Schritt wie viel), nicht nur als Lauf-Summe.
-- [ ] **AK4 (opt-in, kein Zwang):** GIVEN Telemetrie ist **nicht** aktiviert, WHEN ein Lauf
-      stattfindet, THEN verhält er sich unverändert wie vor dieser Task – kein Fehler, kein
-      leeres Artefakt, keine zusätzliche Ausgabe.
+- [ ] **AK4 (Default an, abschaltbar per Parameter):** GIVEN ein `run-pipeline.sh`-Aufruf
+      **ohne** zusätzliche Angabe, WHEN er läuft, THEN wird Telemetrie erzeugt und persistiert;
+      GIVEN derselbe Aufruf **mit** dem Abschalt-Parameter, WHEN er läuft, THEN wird keine
+      Telemetrie aktiviert, kein Artefakt geschrieben und der Lauf verhält sich wie vor dieser
+      Task.
+      *(Geändert am 2026-09-11 auf Auftraggeber-Entscheidung: vorher opt-in – siehe
+      ADR-049 §E3 und dortige Revisionsnotiz. Zwei Zusicherungen sind dadurch im selben PR
+      nachzuziehen: die Assertion `run-tests.sh:292` und die OTEL-Invariante in ADR-045.)*
 - [ ] **AK5 (kein zentraler Versand):** GIVEN die Umsetzung, WHEN ein Lauf mit aktivierter
       Telemetrie läuft, THEN geht kein Telemetrie-Datum an einen netzwerk-externen Empfänger,
       und insbesondere enthält der über `--publish` veröffentlichte Prozess-Report
@@ -90,10 +99,16 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 - [ ] **AK6 (fail-open):** GIVEN die Erhebung oder Auswertung der Telemetrie schlägt fehl,
       WHEN der Lauf endet, THEN bleibt der ursprüngliche Exit-Code des Laufs unverändert und
       die Pipeline gilt nicht wegen der Messung als gescheitert (analog AK3 aus `spec-314`).
-- [ ] **AK7 (kein dirty Arbeitsbaum):** GIVEN ein abgeschlossener Lauf, WHEN danach
-      `git status` läuft, THEN ist der Arbeitsbaum unverändert sauber – das Artefakt ist von
-      `.gitignore` gedeckt. (ADR-045-Invariante: ein getracktes Mess-Artefakt ließe die
-      Endzustands-Verifikation des **nächsten** Laufs nach ADR-040 fehlschlagen.)
+- [ ] **AK7 (sauberer Arbeitsbaum, Historie überlebt den Worktree):** GIVEN ein abgeschlossener
+      Lauf, WHEN danach `git status` läuft, THEN ist der Arbeitsbaum unverändert sauber; **und**
+      GIVEN der Worktree dieses Laufs wird anschließend regulär entfernt
+      (`git worktree remove`, ohne `--force`), WHEN danach nachgesehen wird, THEN sind die
+      persistierten Messwerte **noch vorhanden**.
+      *(Zweite Hälfte ergänzt am 2026-09-11 nach Messung: `git worktree remove` löscht
+      gitignorete Dateien im Arbeitsbaum ohne `--force` und ohne Warnung mit. Die Ablage liegt
+      deshalb im gemeinsamen git-Verzeichnis statt unter `tasks/` – ADR-049 §E4. Der
+      ADR-040-Grund bleibt: ein **getracktes** Mess-Artefakt ließe die Endzustands-Verifikation
+      des nächsten Laufs fehlschlagen.)*
 - [ ] **AK8 (Auswertbarkeit für Modellwahl):** GIVEN mehrere persistierte Läufe, WHEN der
       Betreiber die Kosten je Modell vergleichen will, THEN ist je Messwert erkennbar, welches
       **Modell** ihn verursacht hat – die Frage „lohnt Tier X für Schritt Y" ist ohne
@@ -121,10 +136,13 @@ bleiben als Entscheidungsgrundlage stehen. Kurzfassung:
 - **Option B?** Nein (§E1) – kein Nachbau, nur CLI-Ist-Werte; verbindliche Grenze „nie selbst
   rechnen".
 - **Erhebungsweg:** Console-Exporter + Format-Drift-Guard (§E2).
-- **Verankerung:** eigener Wrapper-Einstiegspunkt; `run-pipeline.sh`, Gate `run-tests.sh:292`
-  und ADR-045-Invariante bleiben unangetastet (§E3).
-- **Ablage:** `tasks/telemetry-<task-id>-<zeitstempel>.csv`, gitignored – nicht in
-  `tasks/metrics-<datum>.md` (§E4).
+- **Verankerung:** **in `run-pipeline.sh` integriert, Default an, per Parameter abschaltbar**
+  (§E3, revidiert am 2026-09-11). Dadurch sind Gate `run-tests.sh:292` **zu ersetzen** und die
+  OTEL-Invariante in ADR-045 **zu korrigieren** – im selben PR.
+- **Ablage:** Unterverzeichnis des **gemeinsamen git-Verzeichnisses**
+  (`git rev-parse --git-common-dir`), je Lauf eine CSV (§E4, revidiert am 2026-09-11 nach
+  Messung). Nicht unter `tasks/` – das überlebte `git worktree remove` nicht. Nicht in
+  `tasks/metrics-<datum>.md` – das geht via `--publish` nach GitHub (AK5).
 
 - [x] **Verhältnis zu ADR-006 Option B.** ADR-006 hat „Token/Kosten aus Logs oder
       API-Antworten selbst parsen" **abgelehnt**. Ist das Auslesen des OTEL-Console-Exporters

@@ -63,24 +63,44 @@ Spec: [`docs/specs/spec-334-otel-metriken-je-lauf-persistieren.md`](../docs/spec
 Architektur-Entscheidung: [ADR-049](../docs/adr/049-telemetrie-persistenz-je-pipeline-lauf.md).
 **Status dort auf `Accepted` flippen, sobald die Umsetzung beginnt** (Lesson aus #197).
 
-**Zu bauen:**
+**Zu bauen** (Stand nach der E3/E4-Revision vom 2026-09-11):
 
-1. **Wrapper-Einstiegspunkt** unter `scripts/` – setzt die OTEL-Variablen
-   (`CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_METRICS_EXPORTER=console`), ruft die
-   **unveränderte** `run-pipeline.sh` auf, erntet danach. Zwei harte Pflichten:
-   - Exit-Code der Pipeline **unverändert** durchreichen (AK6) – auch wenn die Ernte scheitert.
-     Achtung `set -e`/`pipefail` in Kombination mit `tee`: `PIPESTATUS` bzw. explizites
-     Einsammeln nutzen, sonst maskiert die Pipe den echten Code (vgl. das Muster in
-     `run_skill`, `run-pipeline.sh:286–296`).
-   - Roh-Output begrenzen, nicht unbegrenzt wachsen lassen (ein Mini-Aufruf ≈ 1300 Zeilen).
+1. **Integration in `scripts/run-pipeline.sh`** – aktiviert selbst
+   (`CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_METRICS_EXPORTER=console`), erntet am Ende.
+   **Default an**, Abschaltung per Parameter im Muster von `--dry-run`
+   (Argument-Parsing `run-pipeline.sh:53–60`). Harte Pflichten:
+   - Exit-Code **unverändert** durchreichen (AK6, fail-open). Bei Default an ist das kritisch,
+     weil jeder Lauf betroffen ist. Achtung `set -euo pipefail` in Kombination mit `tee`:
+     `PIPESTATUS` bzw. explizites Einsammeln nutzen, sonst maskiert die Pipe den echten Code
+     (Muster in `run_skill`, `run-pipeline.sh:286–296`).
+   - Der bestehende EXIT-Trap für die Prozess-Metriken (`run-pipeline.sh:506–521`) ist das
+     Vorbild für „läuft auch bei Abbruch, fail-open" – darf aber **nicht** verdrängt werden:
+     ein zweiter `trap … EXIT` **ersetzt** den ersten, er kommt nicht hinzu. Verifiziert am
+     2026-09-11: `bash -c 'trap "echo A" EXIT; trap "echo B" EXIT; true'` gibt **nur** `B` aus.
+     Also die Telemetrie-Ernte in den vorhandenen Handler einhängen, statt einen zweiten
+     EXIT-Trap zu registrieren – sonst fällt die Prozess-Messung aus #314 lautlos weg.
+     Ergänzend `bash-gotchas.md` §12 (Exit-Code im Handler; das Ersetzungs-Verhalten steht
+     dort noch nicht → Kandidat für `/codify`).
+   - Roh-Output begrenzen (ein Mini-Aufruf ≈ 1300 Zeilen).
 2. **Ernte-/Auswertungs-Seam** unter `scripts/lib/` – reine, testbare Funktionen (analog
    `scripts/lib/tier-select.sh`), damit die Auswertung ohne echten `claude`-Lauf gegen eine
-   Fixture prüfbar ist.
-3. **`.gitignore`-Muster** `tasks/telemetry-*` – **vor** dem ersten Lauf, sonst dirty
-   Arbeitsbaum (AK7, ADR-040). Deckung mit `git check-ignore -v` belegen, nicht behaupten
-   (Lesson aus #67/#324).
-4. **Format-Drift-Guard + Fixture** in `scripts/checks/tests/run-tests.sh` – muss laut scheitern,
-   wenn das Console-Format oder die Marker-Zeile nicht mehr erkannt wird. Kein stilles 0.
+   Fixture prüfbar ist. Der Orchestrator ruft, er rechnet nicht.
+3. **Ablage im gemeinsamen git-Verzeichnis**, je Lauf eine CSV.
+   **Kein `.gitignore`-Eintrag nötig** – die Datei liegt ausserhalb jedes Arbeitsbaums (gemessen:
+   `git status` bleibt sauber, sie erscheint nicht einmal als ignoriert).
+   **Falle:** `git rev-parse --git-common-dir` liefert im **Hauptbaum** einen *relativen* Pfad
+   (`.git`), im Worktree einen absoluten. Immer auflösen (z. B. `cd "$(…)" && pwd`), sonst
+   landet die Datei relativ zum jeweiligen cwd an wechselnden Orten.
+4. **Assertion `run-tests.sh:292` ersetzen**, nicht löschen – die alte Zusicherung („OTEL nicht
+   in run-pipeline.sh gesourct") ist durch E3 ungültig. Die neue muss bewachen: Default an
+   **und** Abschalt-Parameter wirkt wirklich. Ein entfernter Guard hinterlässt eine unbewachte
+   Zusicherung. Dazu **Format-Drift-Guard + anonymisierte Fixture** (kein `user.email` ins
+   Repo!) – muss laut scheitern, wenn Console-Format oder Marker-Zeile nicht mehr erkannt
+   werden. Kein stilles 0.
+5. **ADR-045-Invariante** ist bereits korrigiert (Verweis auf ADR-049); beim Umsetzen
+   gegenprüfen, dass die dortige Beschreibung zum gebauten Verhalten passt.
+6. **Doku**: Default an, Abschalt-Parameter und Ablageort in `CLAUDE.md` bzw.
+   `docs/factory/OPERATING.md` – der Ort in `.git/` ist ungewöhnlich und muss auffindbar sein.
 
 **Parsing-Anker (gemessen, gegen Fixture zu testen):**
 
@@ -116,10 +136,16 @@ Alle vier waren ADR-Trigger und sind in
       fehlt ein Wert, bleibt er leer.
 - [x] Erhebungsweg → **Console-Exporter + Format-Drift-Guard** (§E2). Der lokale Collector
       verlöre Daten still, wenn er nicht läuft; Prometheus scheitert an der Prozess-Lebensdauer.
-- [x] Verankerung → **eigener Wrapper-Einstiegspunkt** (§E3). `run-pipeline.sh` bleibt
-      unangetastet, Gate `run-tests.sh:292` und ADR-045-Invariante bleiben gültig.
-- [x] Ablageort/Format → **`tasks/telemetry-<task-id>-<zeitstempel>.csv`, gitignored** (§E4).
-      Nicht in `tasks/metrics-<datum>.md` (geht via `--publish` nach GitHub → AK5-Verstoß).
+- [x] Verankerung → **in `run-pipeline.sh` integriert, Default an, per Parameter abschaltbar**
+      (§E3, **revidiert am 2026-09-11** auf Auftraggeber-Entscheidung; vorher: Wrapper).
+      Folge: Assertion `run-tests.sh:292` **ersetzen** und ADR-045-Invariante korrigieren
+      (letzteres erledigt).
+- [x] Ablageort/Format → **Unterverzeichnis des gemeinsamen git-Verzeichnisses**
+      (`git rev-parse --git-common-dir`), je Lauf eine CSV (§E4, **revidiert am 2026-09-11**
+      nach Messung; vorher: `tasks/telemetry-*.csv` gitignored). Grund: `git worktree remove`
+      löscht gitignorete Dateien ohne `--force` und **ohne Warnung** mit – die Historie hätte
+      das nach CLAUDE.md vorgeschriebene Aufräumen nicht überlebt. Weiterhin nicht in
+      `tasks/metrics-<datum>.md` (geht via `--publish` nach GitHub → AK5-Verstoß).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
