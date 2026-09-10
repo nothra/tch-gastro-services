@@ -19,7 +19,8 @@ entscheiden, weil OTEL per Default aus ist.
 `spec-314` hat diese Arbeit bewusst vertagt und die Bedingungen benannt: die „Ernte" liegt
 „genau auf der Grenze, die ADR-006 zieht (Option B: ‚Token/Kosten aus Logs oder API-Antworten
 selbst parsen' – abgelehnt). Das braucht eine eigene ADR und eine eigene Issue." Diese Issue
-ist #334; die ADR ist Teil dieser Task (`/architecture`).
+ist #334; die ADR ist
+[ADR-049](../adr/049-telemetrie-persistenz-je-pipeline-lauf.md), in dieser Task entstanden.
 
 ### Vorab gemessene Faktenlage (Task 334, Haiku-Proben, ~0,45 USD)
 
@@ -111,23 +112,35 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 - [ ] Der Roh-Output wächst unbegrenzt (die Probe erzeugte ~1300 Zeilen für **einen**
       Mini-Aufruf): die Ablage darf den Arbeitsbaum nicht unbegrenzt zumüllen.
 
-## Offene Fragen (→ `/architecture`, ADR-Trigger)
+## Offene Fragen – entschieden in ADR-049
 
-- [ ] **Verhältnis zu ADR-006 Option B.** ADR-006 hat „Token/Kosten aus Logs oder
+Alle vier Fragen sind in
+[ADR-049](../adr/049-telemetrie-persistenz-je-pipeline-lauf.md) beantwortet; die Formulierungen
+bleiben als Entscheidungsgrundlage stehen. Kurzfassung:
+
+- **Option B?** Nein (§E1) – kein Nachbau, nur CLI-Ist-Werte; verbindliche Grenze „nie selbst
+  rechnen".
+- **Erhebungsweg:** Console-Exporter + Format-Drift-Guard (§E2).
+- **Verankerung:** eigener Wrapper-Einstiegspunkt; `run-pipeline.sh`, Gate `run-tests.sh:292`
+  und ADR-045-Invariante bleiben unangetastet (§E3).
+- **Ablage:** `tasks/telemetry-<task-id>-<zeitstempel>.csv`, gitignored – nicht in
+  `tasks/metrics-<datum>.md` (§E4).
+
+- [x] **Verhältnis zu ADR-006 Option B.** ADR-006 hat „Token/Kosten aus Logs oder
       API-Antworten selbst parsen" **abgelehnt**. Ist das Auslesen des OTEL-Console-Exporters
       die abgelehnte Option B – oder die legitime Telemetrie-Ebene, weil es Ist-Werte des
       offiziellen Telemetrie-Kanals liest und nichts schätzt? Die ADR muss das explizit
       beantworten, nicht implizit unterlaufen.
-- [ ] **Erhebungsweg.** Console-Exporter-Ausgabe auswerten (keine Infrastruktur, aber
+- [x] **Erhebungsweg.** Console-Exporter-Ausgabe auswerten (keine Infrastruktur, aber
       Text-Parsing) vs. lokaler OTLP-Empfänger auf `localhost` (strukturierte Daten, aber ein
       laufender Prozess als Voraussetzung – bei dem gemessenen Stand lauscht nichts auf
       4317/4318). Beide bleiben lokal und erfüllen AK5.
-- [ ] **Verankerungsort.** `run-pipeline.sh` bedingt erweitern vs. eigener Einstiegspunkt
+- [x] **Verankerungsort.** `run-pipeline.sh` bedingt erweitern vs. eigener Einstiegspunkt
       (Wrapper). Ersteres kollidiert mit dem fail-closed-Gate `run-tests.sh:292` („OTEL ist
       opt-in (nicht automatisch in run-pipeline.sh gesourct)") **und** mit der ausdrücklichen
       ADR-045-Invariante; beide müssten dann bewusst und dokumentiert geändert werden.
       Letzteres lässt Gate und Invariante unberührt, schafft aber einen zweiten Startbefehl.
-- [ ] **Ablageort und Format.** Eigenes Artefakt vs. Abschnitt im bestehenden
+- [x] **Ablageort und Format.** Eigenes Artefakt vs. Abschnitt im bestehenden
       `tasks/metrics-<datum>.md`. Letzteres vermischt die zwei Ebenen, die ADR-006 getrennt
       hält, und kollidiert mit AK5, weil diese Datei über `--publish` nach GitHub geht.
       Format maschinenauswertbar (Historie über viele Läufe) vs. lesbar.
