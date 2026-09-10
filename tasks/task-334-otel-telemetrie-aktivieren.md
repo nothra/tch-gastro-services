@@ -1,7 +1,7 @@
 # Task 334: otel-telemetrie-aktivieren
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -28,27 +28,27 @@ Spec: [`docs/specs/spec-334-otel-metriken-je-lauf-persistieren.md`](../docs/spec
 
 ## Akzeptanzkriterien
 
-- [ ] **AK1 (Persistenz je Lauf):** GIVEN Telemetrie aktiviert, WHEN ein Lauf endet, THEN
+- [x] **AK1 (Persistenz je Lauf):** GIVEN Telemetrie aktiviert, WHEN ein Lauf endet, THEN
       existiert ein Artefakt mit Token-/Kosten-Ist-Werten dieses Laufs, ohne den vorherigen
       Lauf zu überschreiben.
-- [ ] **AK2 (Sub-Agenten-Anteil):** GIVEN ein Lauf mit Sub-Agent, WHEN das Artefakt
+- [x] **AK2 (Sub-Agenten-Anteil):** GIVEN ein Lauf mit Sub-Agent, WHEN das Artefakt
       geschrieben ist, THEN ist der Sub-Agenten-Anteil getrennt von der Hauptsession
       ausgewiesen.
-- [ ] **AK3 (Schritt-Zuordnung):** GIVEN ein Lauf über mehrere Schritte, WHEN das Artefakt
+- [x] **AK3 (Schritt-Zuordnung):** GIVEN ein Lauf über mehrere Schritte, WHEN das Artefakt
       geschrieben ist, THEN sind die Kosten den einzelnen Schritten zuzuordnen.
-- [ ] **AK4 (opt-in, kein Zwang):** GIVEN Telemetrie nicht aktiviert, WHEN ein Lauf
+- [x] **AK4 (opt-in, kein Zwang):** GIVEN Telemetrie nicht aktiviert, WHEN ein Lauf
       stattfindet, THEN verhält er sich unverändert wie vor dieser Task.
-- [ ] **AK5 (keine Personendaten):** GIVEN eine Roh-Messung mit `user.email`, `user.id`,
+- [x] **AK5 (keine Personendaten):** GIVEN eine Roh-Messung mit `user.email`, `user.id`,
       `user.account_id`, `user.account_uuid`, `organization.id` oder `session.id`, WHEN das
       Artefakt entsteht, THEN enthält es keines dieser Felder – Projektion als **Whitelist**.
       Roh-Output nie getrackt; `--publish`-Report weiterhin ohne Telemetrie-Daten.
-- [ ] **AK6 (fail-open):** GIVEN die Erhebung/Auswertung/der Commit schlägt fehl, WHEN der Lauf
+- [x] **AK6 (fail-open):** GIVEN die Erhebung/Auswertung/der Commit schlägt fehl, WHEN der Lauf
       endet, THEN bleibt der ursprüngliche Exit-Code unverändert.
-- [ ] **AK7 (versioniert, ohne den Lauf zu gefährden):** GIVEN ein abgeschlossener Lauf, WHEN
+- [x] **AK7 (versioniert, ohne den Lauf zu gefährden):** GIVEN ein abgeschlossener Lauf, WHEN
       `git status` läuft, THEN ist der Arbeitsbaum sauber, **weil die CSV committet und gepusht
       ist**; und ein Folgelauf im selben Worktree scheitert nicht an der Telemetrie
       (`verify_final_state` prüft dirty Tree **und** ungepushte Commits).
-- [ ] **AK8 (Auswertbarkeit für Modellwahl):** GIVEN mehrere persistierte Läufe, WHEN Kosten
+- [x] **AK8 (Auswertbarkeit für Modellwahl):** GIVEN mehrere persistierte Läufe, WHEN Kosten
       je Modell verglichen werden, THEN ist je Messwert das verursachende Modell erkennbar.
 
 ## Technische Notizen
@@ -138,14 +138,22 @@ Architektur-Entscheidung: [ADR-049](../docs/adr/049-telemetrie-persistenz-je-pip
 - Hauptsession und Sub-Agent sind **disjunkte** Messreihen → für die Lauf-Summe addieren.
 - Schritt-Zuordnung über die Marker-Zeile `→ Starte: /<skill> <id>` (`run-pipeline.sh:250`).
 
-**Nicht anfassen** (ausdrücklich, ADR-049 „Betroffene Stellen"): `scripts/run-pipeline.sh`,
-`scripts/metrics.sh`, die Assertion `run-tests.sh:292`, `config/otel.env.example`, ADR-006,
-ADR-045.
+**Nicht anfassen** (ausdrücklich, ADR-049 „Betroffene Stellen"): `scripts/metrics.sh`,
+`config/otel.env.example`, ADR-006 (Ebenen-Trennung und Option-B-Ablehnung gelten weiter).
 
-**Wegwerf-Proben dieser Session** liegen als `scripts/otel-*.tmp.{sh,txt}` im Worktree
-(gitignored, per `git check-ignore -v` geprüft) und können als Fixture-Rohmaterial dienen –
-enthalten aber `user.email`/Account-IDs, also **nicht** als Fixture ins Repo kopieren, sondern
-anonymisierte Auszüge verwenden.
+> **Korrektur am 2026-09-11 (während `/implement`):** Diese Zeile führte bis dahin zusätzlich
+> `scripts/run-pipeline.sh`, die Assertion `run-tests.sh:292` und ADR-045 als „nicht anfassen"
+> auf – ein Überbleibsel der **Wrapper**-Fassung von ADR-049 §E3, das den Punkten 1 und 5
+> derselben Task direkt widersprach. Kanonisch ist ADR-049 → „Betroffene Stellen": genau diese
+> drei sind zu **ändern**. (Muster der Lesson „bei Widerspruch zwischen Spec und Lesson gilt
+> der Lesson-Text", hier: ADR schlägt die abgeleitete Notiz.)
+
+**Wegwerf-Proben:** Die Proben der Requirements-/Architektur-Session lagen nicht mehr im
+Worktree; die Messung wurde am 2026-09-11 in der Implementierungs-Session **neu erhoben**
+(`claude`-CLI 2.1.267, drei Proben à Haiku) – eine Fixture, die man nicht selbst gesehen hat,
+taugt als Drift-Guard nicht. Die anonymisierte Fixture liegt jetzt getrackt unter
+`scripts/checks/tests/fixtures/otel-console-sample.txt`; die personenbehafteten Roh-Proben
+sind gelöscht.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
@@ -173,6 +181,97 @@ Alle vier waren ADR-Trigger und sind in
       `--publish` nach GitHub und bleibt der Prozess-Ebene).
 - [x] Personenbezug → **Whitelist + Guard** (§E5, neu). Nötig, weil mit „getrackt in Git" die
       frühere strukturelle Sicherung entfällt.
+
+## Umsetzungs-Notizen (`/implement`, 2026-09-11)
+
+**Gebaut:**
+
+| Datei | Rolle |
+|-------|-------|
+| `scripts/lib/telemetry-harvest.sh` | Ernte-Seam: `harvest_telemetry_csv <roh-log> <zeitstempel> <task-id>` → CSV auf stdout. Reine Datei-in/stdout-Funktion, ohne claude-Lauf prüfbar. |
+| `scripts/run-pipeline.sh` | Aktivierung (Default an, `--no-telemetry`), Marker-Zeile + Roh-Log-Sink in `run_skill`, `persist_telemetry()`, Aufruf zwischen `/codify` und `/pr-shepherd` sowie im bestehenden EXIT-Trap |
+| `scripts/checks/tests/fixtures/otel-console-sample.txt` | anonymisierte Console-Exporter-Fixture (echt gemessen, Personen**werte** ersetzt, Personen**felder** bewusst erhalten) |
+| `scripts/checks/tests/run-tests.sh` | #334-Block: Seam-Verhalten, Personendaten-Guard, Format-Drift-Guard, E2E gegen den echten Orchestrator; ersetzte Assertion; neuer Helfer `cp_pipeline_libs` |
+
+**CSV-Spalten (Whitelist, AK5):**
+`run_timestamp, task_id, step_seq, step, metric, model, query_source, agent_name, value_type, value`
+
+**Belege je AK** (alle in `scripts/checks/tests/run-tests.sh`, Suite grün: 1510/1510):
+
+- **AK1** – E2E-Lauf legt `tasks/telemetry-905-<zeitstempel>.csv` an; der Zeitstempel im
+  Dateinamen trennt mehrere Läufe. Seam-Test: genau 10 Datenzeilen für die 10 Datenpunkte der
+  Fixture (keine erfunden, keine verloren).
+- **AK2** – `query_source` (`main`/`subagent`) + `agent_name`; Sub-Agent ist eine eigene Zeile,
+  nicht in die Hauptsession eingerechnet. E2E: `,subagent,Explore,` steht in der Datei.
+- **AK3** – Schritt-Zuordnung über die farbfreie Marker-Zeile, die `run_skill` in den Roh-Log
+  schreibt. `step_seq` unterscheidet **Aufrufe** desselben Skills: die Rework-Schleife ruft
+  `/implement` mehrfach auf, jeder Aufruf ist ein eigener Prozess mit eigenem, bei 0
+  startendem Counter – ohne die laufende Nummer verschmölzen beide zu einer Zeile und der
+  zweite Betrag verschwände.
+- **AK4** – Default an (`TELEMETRY=true`), `--no-telemetry` schaltet ab. E2E-Beleg über einen
+  claude-Stub, der die geerbten Variablen protokolliert: ohne Parameter `telemetry=1
+  exporter=console`, mit Parameter `telemetry=unset exporter=unset`.
+- **AK5** – Whitelist im awk-Programm (nur `model`, `query_source`, `agent.name`, `type`
+  werden überhaupt gelesen). Guard mit **Positivkontrolle**: die Fixture trägt alle fünf
+  Personenfelder als Roh-Eingabe, die erzeugte CSV keines davon – und auch keinen der Werte.
+- **AK6** – fail-open an vier Stellen: Format-Drift, leerer/gescheiterter Commit, gescheiterter
+  Push, nicht anlegbarer Roh-Log. E2E-Beleg für den Exit-Code als **Vergleich** desselben
+  Laufs mit und ohne Telemetrie – „unverändert" ist nur relativ zu einem Referenzlauf prüfbar.
+- **AK7** – die CSV wird committet **und** gepusht; scheitert der Push, wird der Commit
+  zurückgenommen und die Datei gelöscht (entweder beides oder nichts). Sonst ließe ein
+  liegengebliebener Commit `verify_final_state` jedes Folgelaufs im selben Worktree scheitern.
+  Vorbedingung leerer Index, damit der Rollback nie fremde Staging-Arbeit verwirft.
+- **AK8** – Spalte `model` je Messwert.
+
+**Nicht-offensichtliche Entscheidungen:**
+
+1. **Kein `OTEL_METRIC_EXPORT_INTERVAL`.** Gemessen: ohne Intervall flusht die CLI beim
+   Prozess-Ende genau einmal vollständig; mit Intervall entstehen zusätzliche Zyklen mit
+   **identischen** kumulativen Werten. Der Seam entdoppelt sie (Maximum je Schlüssel), aber
+   der Roh-Log wächst unnötig.
+2. **Metriknamen-Whitelist:** nur `claude_code.token.usage` und `claude_code.cost.usage`.
+   `active_time.total` und `session.count` tragen ein `type`-Attribut mit ganz anderer
+   Bedeutung (`"cli"`, `start_type`) – sie mit demselben Parser aufzunehmen hätte
+   Werttyp-Spalten mit Scheinbedeutung erzeugt.
+3. **`PIPESTATUS[0]` statt `$?`** beim claude-Aufruf, seit `telemetry_capture` als Sink
+   dahinterhängt: unter `pipefail` färbt ein gescheitertes `tee` sonst den Skill rot. Auf
+   bash 3.2 (macOS-Default) gegengeprüft – Producer-Fehler → 7, Sink-Fehler → 0, beide ok → 0.
+4. **Kein zweiter `trap … EXIT`.** Ein zweiter EXIT-Trap *ersetzt* den ersten; die Ernte hängt
+   deshalb im bestehenden `measure_process_metrics_on_exit`, sonst wäre die Prozess-Messung
+   aus #314 lautlos weggefallen.
+5. **`cp_pipeline_libs` als neuer Test-Helfer.** Die cp-Gruppe der von `run-pipeline.sh`
+   gesourcten Libs lag **achtmal** kopiert in `run-tests.sh`; eine neunte Kopie hätte die
+   Lesson-Serie #197/#240/#267/#310 ein weiteres Mal wiederholt. Jetzt ein Ort.
+
+**Umgebungsartefakt (für spätere Runden):** `CLAUDE_CODE_ENABLE_TELEMETRY=1` ist in einer
+interaktiven Claude-Code-Sitzung **ambient gesetzt**. Der E2E-Test knipst es (und
+`OTEL_METRICS_EXPORTER`) per `env -u` aus – ohne das wäre der `--no-telemetry`-Test lokal
+falschrot **und** der Default-an-Test falschgrün (er belegte die ambiente Variable statt der
+Aktivierung durch die Pipeline). Dieselbe Klasse wie das `PR_SHEPHERD`-Durchschlagen aus #262.
+
+## Blocker
+
+**Blocker 2026-09-11: `.claude/commands/daily-metrics.md` ist für Agenten gesperrt
+(`Edit(.claude/**)`, Lesson #91) – der Mensch muss den Patch anwenden.**
+Die Datei beschreibt die Telemetrie-Ebene noch über `config/otel.env.example` als Weg; seit
+dieser Task entsteht sie automatisch je Lauf (Drift nach Lesson #176). Die Änderung liegt als
+`tasks/patch-334.diff` bereit:
+
+```bash
+git apply tasks/patch-334.diff
+```
+
+Danach kann der zugehörige Doku-Guard (gegen die **Live-Datei**, nicht das Patch-Artefakt –
+Lesson #212) in `run-tests.sh` ergänzt werden.
+
+## Offene Nachtests
+
+- **Keine UI-Berührung** – diese Task ändert ausschließlich Shell-/Doku-Ebene. Oberflächentests
+  (Playwright, Dev-Server) entfallen; `pnpm lint`/`pnpm test` bleiben als Gates.
+- **Erster echter Pipeline-Lauf mit Telemetrie** steht noch aus: die E2E-Tests fahren den
+  echten Orchestrator, aber mit gestubbter CLI. Der erste Lauf gegen die echte CLI ist der
+  Nachweis, dass Console-Format und Marker-Zuordnung auch in freier Wildbahn greifen – der
+  Drift-Guard meldet ein Abweichen laut.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

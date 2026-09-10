@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Datum
 
@@ -95,9 +95,13 @@ aktiviert sie selbst und erntet am Ende; es gibt **keinen** zweiten Einstiegspun
 - **Die Erhebung darf den Lauf nie gefährden** (AK6, fail-open): Ein Fehler in Aktivierung,
   Ernte oder Auswertung lässt den ursprünglichen Exit-Code unberührt. Das ist bei Default an
   strikter zu nehmen als bei opt-in, weil nun **jeder** Lauf betroffen ist.
-- Die Schritt-Zuordnung (AK3) entsteht aus den Marker-Zeilen, die `run_skill` ohnehin ausgibt
-  (`→ Starte: /<skill> <id>`, `run-pipeline.sh:250`) – nicht aus `skill.name`, das auf diesem
-  Aufrufweg nachweislich fehlt.
+- Die Schritt-Zuordnung (AK3) entsteht aus der Marker-Zeile, die `run_skill` ohnehin ausgibt
+  (`→ Starte: /<skill> <id> …`) – nicht aus `skill.name`, das auf diesem Aufrufweg
+  nachweislich fehlt. Umgesetzt schreibt `run_skill` eine **farbfreie Kopie** derselben Zeile
+  in den Roh-Log (`telemetry_note_step`); die Terminal-Ausgabe trägt ANSI-Codes und taugt als
+  Parse-Anker nicht. Jeder Marker eröffnet einen eigenen Abschnitt mit laufender Nummer –
+  sonst verschmölzen die zwei `/implement`-Aufrufe der Rework-Schleife (zwei Prozesse, zwei
+  bei 0 startende Counter) zu einer Zeile und der zweite Betrag verschwände.
 
 **Diese Entscheidung ändert zwei bestehende Zusicherungen; beide sind im selben PR
 nachzuziehen, nicht stillschweigend zu brechen:**
@@ -129,8 +133,7 @@ lesbar. Je Messwert eine Zeile mit: Lauf-Zeitstempel, Task-ID, Pipeline-Schritt,
 (`verify-final-state.sh:52–59`). Eine nur geschriebene Datei ließe die Verifikation dieses Laufs
 bzw. jedes Folgelaufs im selben Worktree fehlschlagen.
 
-**Ort im Ablauf: nach `/codify`, vor `/pr-shepherd`** (zwischen `run-pipeline.sh:602` und
-`:605`). Grund: Läuft `PR_SHEPHERD=true`, ist der PR danach gemergt – ein späterer Commit hätte
+**Ort im Ablauf: nach `/codify`, vor `/pr-shepherd`.** Grund: Läuft `PR_SHEPHERD=true`, ist der PR danach gemergt – ein späterer Commit hätte
 kein Ziel mehr, und ein Direkt-Commit auf `main` ist verboten. Das ist derselbe Grund, aus dem
 CLAUDE.md verlangt, die Task-Datei **vor** dem Merge final zu machen.
 
@@ -324,15 +327,17 @@ ADR-Ablehnung stillschweigend.
 
 ## Betroffene Stellen
 
-- `scripts/run-pipeline.sh` – Aktivierung, Abschalt-Parameter (Muster: `--dry-run`,
-  Zeilen 53–60), Ernte + **Commit/Push der CSV zwischen `/codify` (`:602`) und `/pr-shepherd`
-  (`:605`)**, alles fail-open (Exit-Code unberührt)
-- **Neu:** Ernte-/Auswertungs-Logik als eigener, testbarer Seam unter `scripts/lib/` –
-  inklusive der **Whitelist**-Projektion aus E5
-- `scripts/checks/tests/run-tests.sh:292` – Assertion **ersetzen** (Default an + Parameter
-  schaltet ab), zusätzlich Format-Drift-Guard samt anonymisierter Fixture **und** der
-  Personendaten-Guard aus E5 (verbotene Felder erscheinen nie in der CSV, auch nicht bei
-  personenbehafteter Roh-Eingabe)
+- `scripts/run-pipeline.sh` – Aktivierung (`--no-telemetry` als Abschalt-Parameter im Muster
+  von `--dry-run`), Marker-Zeile und Roh-Log-Sink in `run_skill`, `persist_telemetry()` mit
+  **Commit/Push der CSV zwischen `/codify` und `/pr-shepherd`** sowie im EXIT-Trap für den
+  Abbruchfall – alles fail-open (Exit-Code unberührt)
+- **Neu:** `scripts/lib/telemetry-harvest.sh` – Ernte-/Auswertungs-Logik als eigener,
+  testbarer Seam inklusive der **Whitelist**-Projektion aus E5
+- `scripts/checks/tests/run-tests.sh` – die Assertion „OTEL ist opt-in" **ersetzt** (Default an
+  + Parameter schaltet ab), zusätzlich Format-Drift-Guard samt anonymisierter Fixture
+  (`scripts/checks/tests/fixtures/otel-console-sample.txt`), der Personendaten-Guard aus E5
+  (verbotene Felder erscheinen nie in der CSV, auch nicht bei personenbehafteter Roh-Eingabe)
+  und ein E2E-Verhaltenstest gegen den echten Orchestrator
 - `docs/adr/045-prozess-messung-je-pipeline-lauf.md` – überholte OTEL-Invariante korrigieren,
   Verweis auf diese ADR
 - `docs/specs/spec-334-*.md` – AK4 auf opt-out, AK7 auf die neue Ablage nachziehen

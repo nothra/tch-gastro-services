@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # run-pipeline.sh – Stage-3-Pipeline-Runner
 #
-# Verwendung: bash scripts/run-pipeline.sh <task-id> [--dry-run]
+# Verwendung: bash scripts/run-pipeline.sh <task-id> [--dry-run] [--no-telemetry]
 # Beispiel:   bash scripts/run-pipeline.sh 42
 # Dry-run:    bash scripts/run-pipeline.sh 42 --dry-run
+# Ohne OTEL:  bash scripts/run-pipeline.sh 42 --no-telemetry
 #
 # Orchestriert die vollständige Factory-Pipeline deterministisch.
 # Agenten werden aufgerufen – nicht umgekehrt.
@@ -48,14 +49,24 @@ source "$FACTORY_DIR/scripts/lib/tier-select.sh"
 # shellcheck source=scripts/lib/verify-final-state.sh
 source "$FACTORY_DIR/scripts/lib/verify-final-state.sh"
 
+# Telemetrie-Ernte je Lauf (ADR-049): harvest_telemetry_csv als reine, testbare Funktion
+# ausgelagert – der Orchestrator ruft, er rechnet nicht. Gegen eine anonymisierte Fixture
+# ohne echten claude-Lauf prüfbar.
+# shellcheck source=scripts/lib/telemetry-harvest.sh
+source "$FACTORY_DIR/scripts/lib/telemetry-harvest.sh"
+
 # ─── Argumente prüfen ────────────────────────────────────────────────────────
 
 DRY_RUN=false
+# Telemetrie ist Teil des regulären Laufs und per Default AN (ADR-049 §E3): eine Historie,
+# die von der Wahl des Befehls abhängt, hat Lücken genau dann, wenn es eilig war.
+TELEMETRY=true
 TASK_ID=""
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
+    --no-telemetry) TELEMETRY=false ;;
     -*) echo -e "${RED}Fehler:${NC} Unbekannte Option: $arg"; exit 1 ;;
     *)  TASK_ID="$arg" ;;
   esac
@@ -63,7 +74,7 @@ done
 
 if [ -z "$TASK_ID" ]; then
   echo -e "${RED}Fehler:${NC} Task-ID erforderlich"
-  echo "Verwendung: bash scripts/run-pipeline.sh <task-id> [--dry-run]"
+  echo "Verwendung: bash scripts/run-pipeline.sh <task-id> [--dry-run] [--no-telemetry]"
   exit 1
 fi
 
@@ -81,7 +92,114 @@ echo -e "${BLUE}║   Factory Pipeline – Task ${TASK_ID}          ║${NC}"
 echo -e "${BLUE}╚═══════════════════════════════════════╝${NC}"
 echo ""
 
+# ─── Telemetrie aktivieren (ADR-049 §E2/§E3) ─────────────────────────────────
+# Der Console-Exporter statt eines lokalen Collectors: ein nicht laufender Collector
+# verlöre die Daten STILL, und „läuft nicht" ist sein Normalzustand. Bewusst OHNE
+# OTEL_METRIC_EXPORT_INTERVAL – gemessen am 2026-09-11 (CLI 2.1.267) flusht die CLI beim
+# Prozess-Ende genau einmal vollständig; ein gesetztes Intervall erzeugt nur zusätzliche
+# Zyklen mit denselben kumulativen Werten (der Ernte-Seam entdoppelt sie, aber der Roh-Log
+# wächst unnötig).
+RUN_TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+TELEMETRY_RAW_LOG=""
+TELEMETRY_CSV=""
+TELEMETRY_PERSISTED=false
+
+if [ "$TELEMETRY" = true ]; then
+  export CLAUDE_CODE_ENABLE_TELEMETRY=1
+  export OTEL_METRICS_EXPORTER=console
+  # Der Roh-Output trägt user.email und Account-IDs (ADR-049 §E5) und ist ein temporäres
+  # Zwischenprodukt: `*.tmp.txt` ist gitignoret, der EXIT-Trap löscht ihn.
+  TELEMETRY_RAW_LOG="$FACTORY_DIR/tasks/telemetry-raw-${TASK_ID}-${RUN_TIMESTAMP}.tmp.txt"
+  TELEMETRY_CSV="$FACTORY_DIR/tasks/telemetry-${TASK_ID}-${RUN_TIMESTAMP}.csv"
+  if ! : > "$TELEMETRY_RAW_LOG" 2>/dev/null; then
+    echo -e "${YELLOW}⚠${NC} Roh-Log nicht anlegbar – Telemetrie für diesen Lauf aus (fail-open)"
+    TELEMETRY=false
+  fi
+fi
+
 # ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
+
+# Farbfreie Kopie der Schritt-Marker-Zeile in den Roh-Log. Der Ernte-Seam ordnet die
+# darauf folgenden Messwerte diesem Schritt zu (AK3) – die Terminal-Zeile trägt
+# ANSI-Codes und taugt als Anker nicht.
+telemetry_note_step() {
+  [ "$TELEMETRY" = true ] || return 0
+  printf '→ Starte: /%s %s (model: %s, max %s turns)\n' "$1" "$2" "$3" "$4" \
+    >> "$TELEMETRY_RAW_LOG" 2>/dev/null || true
+}
+
+# Sink für den claude-Output: mit Telemetrie zusätzlich in den Roh-Log, ohne unverändert
+# durchgereicht (AK4 – ein abgeschalteter Lauf verhält sich wie vor dieser Task).
+telemetry_capture() {
+  if [ "$TELEMETRY" = true ]; then
+    tee -a "$TELEMETRY_RAW_LOG" 2>/dev/null
+  else
+    cat
+  fi
+}
+
+# Roh-Output verwerfen: er trägt Personendaten und wird nie getrackt (ADR-049 §E5).
+telemetry_cleanup() {
+  [ -n "$TELEMETRY_RAW_LOG" ] || return 0
+  rm -f "$TELEMETRY_RAW_LOG" 2>/dev/null || true
+}
+
+# Ernte + Commit + Push der CSV (ADR-049 §E4). Idempotent: der reguläre Aufrufort zwischen
+# /codify und /pr-shepherd greift zuerst, der EXIT-Trap ist nur noch für den Abbruchfall da
+# (spec-334, Fehlerszenario 2 – der teuerste Lauf ist der interessanteste).
+#
+# Durchgehend fail-open (AK6): weder ein Format-Drift noch ein gescheiterter Commit/Push
+# darf den Exit-Code des Laufs verändern. Bei Default an ist das keine Höflichkeit mehr,
+# sondern Bedingung – eine Messung, die einen erfolgreichen Lauf scheitern lässt, wäre
+# schlimmer als keine Messung.
+persist_telemetry() {
+  [ "$TELEMETRY" = true ] || return 0
+  [ "$TELEMETRY_PERSISTED" = false ] || return 0
+  [ "$DRY_RUN" = false ] || return 0
+  TELEMETRY_PERSISTED=true
+
+  echo ""
+  echo -e "${YELLOW}→ Telemetrie ernten (ADR-049)${NC}"
+
+  # Fail-closed auf der Messseite (§E2): erkennt der Seam kein Console-Format, entsteht
+  # KEINE Datei. Ein leeres oder halbes Artefakt wäre irreführender als gar keins.
+  if ! harvest_telemetry_csv "$TELEMETRY_RAW_LOG" "$RUN_TIMESTAMP" "$TASK_ID" > "$TELEMETRY_CSV" 2>/dev/null; then
+    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
+    echo -e "${YELLOW}⚠${NC} Keine auswertbaren OTEL-Messwerte im Lauf-Log – keine CSV geschrieben"
+    return 0
+  fi
+
+  # Gezieltes Staging: scripts/factory-commit.sh macht `git add -A` und würde bei einem
+  # Abbruch mitten im Lauf halbfertige Agenten-Änderungen mitcommitten.
+  # Vorbedingung leerer Index: nur dann darf der Rollback unten (reset auf head_before)
+  # laufen, ohne fremde Staging-Arbeit zu verwerfen.
+  if ! git -C "$FACTORY_DIR" diff --cached --quiet 2>/dev/null; then
+    echo -e "${YELLOW}⚠${NC} Index nicht leer – Telemetrie-Commit übersprungen (fail-open)"
+    return 0
+  fi
+
+  local head_before
+  head_before="$(git -C "$FACTORY_DIR" rev-parse HEAD 2>/dev/null || true)"
+  if [ -z "$head_before" ] \
+     || ! git -C "$FACTORY_DIR" add -- "$TELEMETRY_CSV" 2>/dev/null \
+     || ! git -C "$FACTORY_DIR" commit -q -m "chore: telemetrie-messwerte lauf ${RUN_TIMESTAMP} (task ${TASK_ID})" 2>/dev/null; then
+    echo -e "${YELLOW}⚠${NC} Telemetrie-Commit fehlgeschlagen – übersprungen (fail-open)"
+    git -C "$FACTORY_DIR" reset -q -- "$TELEMETRY_CSV" 2>/dev/null || true
+    return 0
+  fi
+
+  # Entweder committet UND gepusht – oder gar nichts (AK7): verify_final_state prüft dirty
+  # Tree UND ungepushte Commits, ein liegengebliebener Commit ließe diesen oder jeden
+  # Folgelauf im selben Worktree an der Messung scheitern.
+  if ! git -C "$FACTORY_DIR" push -q origin HEAD 2>/dev/null; then
+    git -C "$FACTORY_DIR" reset -q --mixed "$head_before" 2>/dev/null || true
+    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
+    echo -e "${YELLOW}⚠${NC} Telemetrie-Push fehlgeschlagen – Commit zurückgenommen (fail-open)"
+    return 0
+  fi
+
+  echo -e "${GREEN}✓${NC} Telemetrie persistiert: $(basename "$TELEMETRY_CSV")"
+}
 
 # ── Konfiguration: Single Source of Truth = factory.defaults.yml (ADR-009) ────
 # Tier/Turns pro Skill kommen NICHT mehr aus hartkodierten case-Blöcken, sondern
@@ -248,6 +366,7 @@ run_skill() {
   local model
   model="$(get_model "$skill" "$task_id")"
   echo -e "${YELLOW}→ Starte: /${skill} ${task_id} (model: ${model}, max ${turns} turns)${NC}"
+  telemetry_note_step "$skill" "$task_id" "$model" "$turns"
 
   if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  [DRY-RUN] claude --print ... --model ${model} --max-turns ${turns}${NC}"
@@ -287,12 +406,18 @@ run_skill() {
     # Exit-Code `set -e`-sicher einsammeln: beide Rückkehrpfade werten dieselbe
     # Erfolgsbedingung aus, der Exit-Code bestimmt nur noch die Meldung. Ein nacktes
     # `cmd; rc=$?` würde die Shell beenden, bevor der Wert ausgewertet ist.
+    #
+    # Seit #334 hängt telemetry_capture als Sink dahinter. Unter `pipefail` färbt ein
+    # Fehler in JEDEM Glied die Pipeline rot, deshalb wird der Code des Producers über
+    # PIPESTATUS[0] gelesen statt über `$?` – ein gescheitertes `tee` (Platte voll)
+    # verfälscht so nicht den Skill-Exit-Code (fail-open, AK6). Auf bash 3.2 (macOS-Default)
+    # am 2026-09-11 gegengeprüft: Producer-Fehler → 7, Sink-Fehler → 0, beide ok → 0.
     if FACTORY_STAGE=3 claude --print "$prompt" \
         --model "$model" \
-        --max-turns "$turns" 2>&1; then
+        --max-turns "$turns" 2>&1 | telemetry_capture; then
       rc=0
     else
-      rc=$?
+      rc=${PIPESTATUS[0]}
     fi
 
     # Ein signalisierter Interrupt hat Vorrang vor der Frische-Prüfung (#312): sonst folgten
@@ -505,6 +630,14 @@ preflight_checks
 # ohne `|| true`-Schutz als letzten Befehl), nicht der eigentliche Erhaltungsmechanismus.
 measure_process_metrics_on_exit() {
   local _exit_code=$?
+  # Telemetrie zuerst (ADR-049): Bei einem Abbruch ist dies der EINZIGE Ort, an dem die bis
+  # dahin angefallenen Messwerte noch persistiert werden – und ein abgebrochener Lauf ist
+  # der teuerste. Nach einem regulären Lauf hat persist_telemetry zwischen /codify und
+  # /pr-shepherd bereits gegriffen und kehrt hier sofort zurück (TELEMETRY_PERSISTED).
+  # Beide Aufrufe `|| true`-geschützt: ein Fehlschlag als letzter Befehl im Handler würde
+  # unter `set -e` den Exit-Code überschreiben (bash-gotchas.md §12).
+  persist_telemetry || true
+  telemetry_cleanup || true
   if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}[DRY-RUN] Prozess-Metriken übersprungen${NC}" || true
     return "$_exit_code"
@@ -600,6 +733,13 @@ fi
 echo ""
 echo -e "${BLUE}Phase 6: Codify – Learnings extrahieren${NC}"
 run_skill "codify" "$TASK_ID"
+
+# ─── Telemetrie persistieren (ADR-049 §E4) ───────────────────────────────────
+# Genau hier, zwischen /codify und /pr-shepherd: Läuft PR_SHEPHERD=true, ist der PR danach
+# gemergt – ein späterer Commit hätte kein Ziel mehr, und ein Direkt-Commit auf main ist
+# verboten. Derselbe Grund, aus dem CLAUDE.md die Task-Datei VOR dem Merge final verlangt.
+# Bewusster Preis: die Kosten von /pr-shepherd selbst fehlen in der Reihe (ADR-049).
+persist_telemetry || true
 
 # Phase 7: PR Shepherd (optional – nur wenn PR_SHEPHERD=true gesetzt)
 if [ "${PR_SHEPHERD:-false}" = "true" ]; then
