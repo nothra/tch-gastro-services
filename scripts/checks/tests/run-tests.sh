@@ -8165,6 +8165,16 @@ assert_contains_286 "$claude_md_flat_334" 'tasks/telemetry-<task-id>-<zeitstempe
 assert_absent "$claude_md_flat_334" 'OTEL-Metriken (Token/Kosten/Nutzung pro Skill & Agent). Default aus' \
   "#334 Doku: die überholte 'Default aus'-Formulierung steht nicht mehr in CLAUDE.md"
 
+# Geprüft wird der Endzustand der COMMITTETEN Live-Datei, nicht tasks/patch-334.diff: das
+# Patch-Artefakt ist transient, die Zusicherung hängt an der Datei, die Agenten wirklich
+# lesen (Lesson #212). Die Datei liegt unter .claude/** und war für den Agenten gesperrt –
+# der Patch-Umweg ändert nichts daran, was hier zu bewachen ist.
+daily_metrics_flat_334=$(flat_286 "$FACTORY_ROOT/.claude/commands/daily-metrics.md")
+assert_contains_286 "$daily_metrics_flat_334" 'tasks/telemetry-<task-id>-<zeitstempel>.csv' \
+  "#334 Doku: daily-metrics.md verweist für Token/Kosten auf die persistierte Telemetrie-CSV"
+assert_absent "$daily_metrics_flat_334" 'die liefert die Telemetrie-Ebene (OTEL, `config/otel.env.example`)' \
+  "#334 Doku: daily-metrics.md nennt otel.env.example nicht mehr als DEN Telemetrie-Weg"
+
 operating_flat_334=$(flat_286 "$OPERATING_MD")
 assert_contains_286 "$operating_flat_334" 'Telemetrie (Token/Kosten) – Default an' \
   "#334 Doku: OPERATING.md §0.5 nennt den neuen Default"

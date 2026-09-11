@@ -249,20 +249,12 @@ interaktiven Claude-Code-Sitzung **ambient gesetzt**. Der E2E-Test knipst es (un
 falschrot **und** der Default-an-Test falschgrün (er belegte die ambiente Variable statt der
 Aktivierung durch die Pipeline). Dieselbe Klasse wie das `PR_SHEPHERD`-Durchschlagen aus #262.
 
-## Blocker
+## Blocker (erledigt)
 
-**Blocker 2026-09-11: `.claude/commands/daily-metrics.md` ist für Agenten gesperrt
-(`Edit(.claude/**)`, Lesson #91) – der Mensch muss den Patch anwenden.**
-Die Datei beschreibt die Telemetrie-Ebene noch über `config/otel.env.example` als Weg; seit
-dieser Task entsteht sie automatisch je Lauf (Drift nach Lesson #176). Die Änderung liegt als
-`tasks/patch-334.diff` bereit:
-
-```bash
-git apply tasks/patch-334.diff
-```
-
-Danach kann der zugehörige Doku-Guard (gegen die **Live-Datei**, nicht das Patch-Artefakt –
-Lesson #212) in `run-tests.sh` ergänzt werden.
+**Blocker 2026-09-11, behoben 2026-09-11:** `.claude/commands/daily-metrics.md` ist für
+Agenten gesperrt (`Edit(.claude/**)`, Lesson #91). Der Mensch hat `tasks/patch-334.diff`
+angewendet; der Doku-Guard dagegen (gegen die Live-Datei, nicht das Patch-Artefakt –
+Lesson #212) ist ergänzt. Patch-Datei entfernt, sie war nur das Transportmittel.
 
 ## Offene Nachtests
 
