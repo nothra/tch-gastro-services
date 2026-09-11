@@ -256,6 +256,15 @@ Agenten gesperrt (`Edit(.claude/**)`, Lesson #91). Der Mensch hat `tasks/patch-3
 angewendet; der Doku-Guard dagegen (gegen die Live-Datei, nicht das Patch-Artefakt –
 Lesson #212) ist ergänzt. Patch-Datei entfernt, sie war nur das Transportmittel.
 
+## Rework-Runde 1 (`/implement`, nach `/review` NEEDS_REWORK, 2026-09-11)
+
+Beide Kritisch-Findings aus `tasks/review-334.md` behoben (Details dort unter
+„Rework-Notiz"): leckende CSV in zwei Fail-Open-Zweigen von `telemetry_persist()`
+(vormals `persist_telemetry`) sowie Kosten-Unterzählung bei Retry-mit-Backoff
+(`telemetry_note_step` jetzt je Versuch, nicht je `run_skill()`-Aufruf). Dazu die
+Wichtig-/Nitpick-Findings (Namenskonsistenz, `--dry-run` legt keine Roh-Log-Datei mehr an).
+Je RED-Test vor dem Fix. Bash-Suite 1528/1528 grün.
+
 ## Offene Nachtests
 
 - **Keine UI-Berührung** – diese Task ändert ausschließlich Shell-/Doku-Ebene. Oberflächentests

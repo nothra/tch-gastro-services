@@ -7982,17 +7982,17 @@ grep -qF -- 'OTEL_METRICS_EXPORTER=console' "$PIPELINE"
 assert_true "$?" "#334 §E2: Erhebung über den Console-Exporter"
 # ADR-049 §E4: gezieltes Staging – factory-commit.sh (git add -A) würde bei einem Abbruch
 # halbfertige Agenten-Änderungen mitcommitten.
-tele_persist_body="$(awk '/^persist_telemetry\(\) \{/,/^\}/' "$PIPELINE")"
+tele_persist_body="$(awk '/^telemetry_persist\(\) \{/,/^\}/' "$PIPELINE")"
 # Nur die CODE-Zeilen des Rumpfs: der WHY-Kommentar darin muss factory-commit.sh benennen
 # (er begründet ja gerade dessen Nichtverwendung) und würde einen reinen Textscan über den
 # ganzen Rumpf immer rot färben – die Prosa-Kollision aus Lesson #284.
 tele_persist_code="$(printf '%s\n' "$tele_persist_body" | grep -v '^[[:space:]]*#' || true)"
 assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" commit -q -m' \
-  "#334 §E4: persist_telemetry() committet die CSV selbst"
+  "#334 §E4: telemetry_persist() committet die CSV selbst"
 assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" add -- "$TELEMETRY_CSV"' \
   "#334 §E4: gezieltes Staging genau der CSV, nicht des ganzen Baums"
 assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" push -q origin HEAD' \
-  "#334 AK7: persist_telemetry() pusht den Commit auch (verify_final_state prüft ungepushte Commits)"
+  "#334 AK7: telemetry_persist() pusht den Commit auch (verify_final_state prüft ungepushte Commits)"
 assert_absent "$tele_persist_code" 'factory-commit.sh' \
   "#334 §E4: der Telemetrie-Commit nutzt NICHT factory-commit.sh (git add -A)"
 # Diskriminierungs-Kontrolle: schlägt derselbe Abwesenheits-Ausdruck an, wenn der Aufruf
@@ -8138,6 +8138,121 @@ STUB_334
   assert_true "$([ -z "$(find "$TMP_334D/tasks" -name 'telemetry-908-*.csv')" ]; echo $?)" \
     "#334 AK7: nach gescheitertem Push bleibt auch keine uncommittete CSV liegen"
   rm -rf "$TMP_334D" "$TMP_334E"
+
+  # ── Review-Finding 1 (Kritisch): „Index nicht leer"-Zweig darf die geerntete CSV nicht
+  # auf der Platte zurücklassen – sonst dirty Working Tree trotz „übersprungen (fail-open)".
+  TMP_334F="$(mktemp -d)"; TMP_334F_ORIGIN="$(mktemp -d)"
+  scaffold_310 "$TMP_334F" 909
+  cp "$TELE_FIXTURE" "$TMP_334F/bin/otel-fixture.txt"
+  # codify staged bewusst eine fremde Datei, bevor telemetry_persist läuft (Ort im Ablauf:
+  # unmittelbar nach /codify) – simuliert eine Situation, in der bereits etwas im Index liegt.
+  mk_tele_stub_334 "$TMP_334F" 909 \
+    'case "$*" in *SKILL-codify*) : > "$PWD/tasks/leftover-staged.txt"; git add "$PWD/tasks/leftover-staged.txt" ;; esac
+cat "$(dirname "$0")/otel-fixture.txt"'
+  : > "$TELE_E2E_PROBE"
+  commit_314_pushed "$TMP_334F" "$TMP_334F_ORIGIN"
+  run_334 "$TMP_334F" 909
+  assert_contains_286 "$OUT_334" 'Index nicht leer' \
+    "#334 (Review-Finding 1): der Index-nicht-leer-Zweig greift wie erwartet"
+  assert_true "$([ -z "$(find "$TMP_334F/tasks" -name 'telemetry-909-*.csv')" ]; echo $?)" \
+    "#334 (Review-Finding 1): der Index-nicht-leer-Zweig hinterlässt KEINE CSV auf der Platte"
+  # Kein "Pipeline erfolgreich"-Assert hier: die selbst injizierte Vorbedingung
+  # (leftover-staged.txt) macht den Arbeitsbaum unabhängig vom Telemetrie-Fix dirty – das
+  # ist Absicht des Szenarios, nicht Teil dessen, was der Fix beheben soll.
+  rm -rf "$TMP_334F" "$TMP_334F_ORIGIN"
+
+  # ── Review-Finding 1 (Kritisch), zweiter Zweig: `git add` gelingt, `git commit` scheitert
+  # (hier: ablehnender pre-commit-Hook – deterministischer als auf fehlende globale
+  # Git-Identität zu setzen, Lesson testing.md #265). Auch hier darf keine CSV liegen bleiben.
+  TMP_334G="$(mktemp -d)"; TMP_334G_ORIGIN="$(mktemp -d)"
+  scaffold_310 "$TMP_334G" 910
+  cp "$TELE_FIXTURE" "$TMP_334G/bin/otel-fixture.txt"
+  mk_tele_stub_334 "$TMP_334G" 910 'cat "$(dirname "$0")/otel-fixture.txt"'
+  : > "$TELE_E2E_PROBE"
+  commit_314_pushed "$TMP_334G" "$TMP_334G_ORIGIN"
+  mkdir -p "$TMP_334G/.git/hooks"
+  printf '#!/bin/sh\nexit 1\n' > "$TMP_334G/.git/hooks/pre-commit"
+  chmod +x "$TMP_334G/.git/hooks/pre-commit"
+  run_334 "$TMP_334G" 910
+  assert_contains_286 "$OUT_334" 'Telemetrie-Commit fehlgeschlagen' \
+    "#334 (Review-Finding 1): der add-ok/commit-fehlgeschlagen-Zweig greift wie erwartet"
+  assert_true "$([ -z "$(find "$TMP_334G/tasks" -name 'telemetry-910-*.csv')" ]; echo $?)" \
+    "#334 (Review-Finding 1): der Commit-fehlgeschlagen-Zweig hinterlässt KEINE CSV auf der Platte"
+  rm -rf "$TMP_334G" "$TMP_334G_ORIGIN"
+
+  # ── Review-Finding 2 (Kritisch): Retry-mit-Backoff INNERHALB eines run_skill()-Aufrufs
+  # (Rate-Limit-Fall, run-pipeline.sh:405) darf die Kosten des ersten (gescheiterten)
+  # Versuchs nicht verlieren. Zwei physische claude-Prozesse unter demselben Skill –
+  # sleep ist über scaffold_310s Stub bereits entschärft (kein echtes Warten).
+  TMP_334H="$(mktemp -d)"; TMP_334H_ORIGIN="$(mktemp -d)"
+  scaffold_310 "$TMP_334H" 911
+  cat > "$TMP_334H/bin/otel-fixture-fail.txt" <<'FIXA'
+{
+  descriptor: {
+    name: "claude_code.cost.usage",
+  },
+  dataPoints: [
+    {
+      attributes: {
+        model: "claude-haiku-4-5-20251001",
+        query_source: "main",
+      },
+      value: 0.05,
+    }
+  ],
+}
+FIXA
+  cat > "$TMP_334H/bin/otel-fixture-ok.txt" <<'FIXB'
+{
+  descriptor: {
+    name: "claude_code.cost.usage",
+  },
+  dataPoints: [
+    {
+      attributes: {
+        model: "claude-haiku-4-5-20251001",
+        query_source: "main",
+      },
+      value: 0.08,
+    }
+  ],
+}
+FIXB
+  cat > "$TMP_334H/bin/claude" <<'STUB_334H'
+#!/bin/sh
+case "$*" in
+  *SKILL-implement*)
+    d="$(dirname "$0")"
+    n=0
+    [ -f "$d/.impl-attempts" ] && n="$(cat "$d/.impl-attempts")"
+    n=$((n + 1))
+    echo "$n" > "$d/.impl-attempts"
+    if [ "$n" -eq 1 ]; then
+      cat "$d/otel-fixture-fail.txt"
+      exit 7
+    fi
+    cat "$d/otel-fixture-ok.txt"
+    exit 0
+    ;;
+  *SKILL-security-review*) printf '## Ergebnis\nPASSED\n' > "$PWD/tasks/security-911.md" ;;
+  *SKILL-review*)          printf '## Empfehlung\nAPPROVED\n' > "$PWD/tasks/review-911.md" ;;
+esac
+exit 0
+STUB_334H
+  chmod +x "$TMP_334H/bin/claude"
+  commit_314_pushed "$TMP_334H" "$TMP_334H_ORIGIN"
+  run_334 "$TMP_334H" 911
+  tele_csv_h="$(find "$TMP_334H/tasks" -name 'telemetry-911-*.csv' | head -1)"
+  assert_true "$([ -n "$tele_csv_h" ]; echo $?)" \
+    "#334 (Review-Finding 2): der Lauf mit einem gescheiterten ersten Versuch persistiert dennoch eine CSV"
+  if [ -n "$tele_csv_h" ]; then
+    # Summe statt Maximum: 0.05 (Versuch 1, gescheitert) + 0.08 (Versuch 2, erfolgreich) = 0.13.
+    # awk statt bc/jq – hier bereits als Test-Utility im Einsatz (siehe die awk-Aufrufe oben).
+    tele_sum_h=$(awk -F, '$4=="implement" && $5=="claude_code.cost.usage"{s+=$10} END{printf "%.2f", s+0}' "$tele_csv_h")
+    assert_true "$([ "$tele_sum_h" = "0.13" ]; echo $?)" \
+      "#334 (Review-Finding 2): Kosten BEIDER Versuche stehen in der Summe (0.13), nicht nur der letzte (0.08) (war: $tele_sum_h)"
+  fi
+  rm -rf "$TMP_334H" "$TMP_334H_ORIGIN"
   rm -rf "$(dirname "$TELE_E2E_PROBE")"
 else
   skip_yq "#334 E2E: Telemetrie-Persistenz in run-pipeline.sh"

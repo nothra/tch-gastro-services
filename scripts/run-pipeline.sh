@@ -104,7 +104,10 @@ TELEMETRY_RAW_LOG=""
 TELEMETRY_CSV=""
 TELEMETRY_PERSISTED=false
 
-if [ "$TELEMETRY" = true ]; then
+# --dry-run macht keine echten claude-Aufrufe (run_skill kehrt vor der Retry-Schleife
+# zurück) – Aktivierung und das Anlegen der leeren Roh-Log-Datei unter tasks/ wären dort
+# reine Nebenwirkung ohne jeden Nutzen (Review-Nitpick, #334-Rework).
+if [ "$TELEMETRY" = true ] && [ "$DRY_RUN" = false ]; then
   export CLAUDE_CODE_ENABLE_TELEMETRY=1
   export OTEL_METRICS_EXPORTER=console
   # Der Roh-Output trägt user.email und Account-IDs (ADR-049 §E5) und ist ein temporäres
@@ -152,7 +155,7 @@ telemetry_cleanup() {
 # darf den Exit-Code des Laufs verändern. Bei Default an ist das keine Höflichkeit mehr,
 # sondern Bedingung – eine Messung, die einen erfolgreichen Lauf scheitern lässt, wäre
 # schlimmer als keine Messung.
-persist_telemetry() {
+telemetry_persist() {
   [ "$TELEMETRY" = true ] || return 0
   [ "$TELEMETRY_PERSISTED" = false ] || return 0
   [ "$DRY_RUN" = false ] || return 0
@@ -173,7 +176,12 @@ persist_telemetry() {
   # Abbruch mitten im Lauf halbfertige Agenten-Änderungen mitcommitten.
   # Vorbedingung leerer Index: nur dann darf der Rollback unten (reset auf head_before)
   # laufen, ohne fremde Staging-Arbeit zu verwerfen.
+  # Review-Finding (Kritisch, #334-Rework): jeder frühe Ausstieg ab hier muss die bereits auf
+  # die Platte geschriebene CSV wieder entfernen – sonst bleibt sie als UNTRACKED Datei liegen,
+  # macht den Arbeitsbaum dirty und lässt `verify_final_state` (ADR-040) genau den Lauf als
+  # gescheitert melden, den AK6/AK7 als „fail-open, sauberer Baum" garantieren sollen.
   if ! git -C "$FACTORY_DIR" diff --cached --quiet 2>/dev/null; then
+    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
     echo -e "${YELLOW}⚠${NC} Index nicht leer – Telemetrie-Commit übersprungen (fail-open)"
     return 0
   fi
@@ -183,8 +191,11 @@ persist_telemetry() {
   if [ -z "$head_before" ] \
      || ! git -C "$FACTORY_DIR" add -- "$TELEMETRY_CSV" 2>/dev/null \
      || ! git -C "$FACTORY_DIR" commit -q -m "chore: telemetrie-messwerte lauf ${RUN_TIMESTAMP} (task ${TASK_ID})" 2>/dev/null; then
-    echo -e "${YELLOW}⚠${NC} Telemetrie-Commit fehlgeschlagen – übersprungen (fail-open)"
+    # `git reset` unstaged nur (bringt die Datei zurück auf untracked) – löscht sie NICHT von
+    # der Platte. Ohne das `rm -f` bliebe genau dieselbe Lücke wie im Index-Zweig oben.
     git -C "$FACTORY_DIR" reset -q -- "$TELEMETRY_CSV" 2>/dev/null || true
+    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
+    echo -e "${YELLOW}⚠${NC} Telemetrie-Commit fehlgeschlagen – übersprungen (fail-open)"
     return 0
   fi
 
@@ -366,7 +377,6 @@ run_skill() {
   local model
   model="$(get_model "$skill" "$task_id")"
   echo -e "${YELLOW}→ Starte: /${skill} ${task_id} (model: ${model}, max ${turns} turns)${NC}"
-  telemetry_note_step "$skill" "$task_id" "$model" "$turns"
 
   if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  [DRY-RUN] claude --print ... --model ${model} --max-turns ${turns}${NC}"
@@ -403,6 +413,17 @@ run_skill() {
   # statt eine Entscheidung zu erfragen, löst er einen Interrupt aus (ADR-004).
   local attempt rc
   for attempt in 1 2 3; do
+    # Review-Finding (Kritisch, #334-Rework): der Marker MUSS vor JEDEM einzelnen Versuch
+    # stehen, nicht nur einmal vor der Schleife. Der Retry-mit-Backoff (Rate-Limit-Fall)
+    # startet bei jedem Versuch einen NEUEN claude-Prozess mit einem bei 0 beginnenden
+    # OTEL-Counter; ein einziger Marker vor der Schleife hätte alle Versuche unter demselben
+    # step_seq zusammengefasst – der Harvest nimmt je Schlüssel das Maximum (korrekt für
+    # mehrere Export-Zyklen DESSELBEN Prozesses), und ein gescheiterter erster Versuch wäre
+    # dadurch aus der Kostenhistorie verschwunden, statt zu den Kosten des zweiten addiert zu
+    # werden. Mit einem Marker je Versuch bekommt jeder Prozess seinen eigenen step_seq –
+    # exakt das bereits getestete Muster der Review-Rework-Schleife (mehrere run_skill()-
+    # Aufrufe desselben Skills), nur eine Ebene tiefer.
+    telemetry_note_step "$skill" "$task_id" "$model" "$turns"
     # Exit-Code `set -e`-sicher einsammeln: beide Rückkehrpfade werten dieselbe
     # Erfolgsbedingung aus, der Exit-Code bestimmt nur noch die Meldung. Ein nacktes
     # `cmd; rc=$?` würde die Shell beenden, bevor der Wert ausgewertet ist.
@@ -632,11 +653,11 @@ measure_process_metrics_on_exit() {
   local _exit_code=$?
   # Telemetrie zuerst (ADR-049): Bei einem Abbruch ist dies der EINZIGE Ort, an dem die bis
   # dahin angefallenen Messwerte noch persistiert werden – und ein abgebrochener Lauf ist
-  # der teuerste. Nach einem regulären Lauf hat persist_telemetry zwischen /codify und
+  # der teuerste. Nach einem regulären Lauf hat telemetry_persist zwischen /codify und
   # /pr-shepherd bereits gegriffen und kehrt hier sofort zurück (TELEMETRY_PERSISTED).
   # Beide Aufrufe `|| true`-geschützt: ein Fehlschlag als letzter Befehl im Handler würde
   # unter `set -e` den Exit-Code überschreiben (bash-gotchas.md §12).
-  persist_telemetry || true
+  telemetry_persist || true
   telemetry_cleanup || true
   if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}[DRY-RUN] Prozess-Metriken übersprungen${NC}" || true
@@ -739,7 +760,7 @@ run_skill "codify" "$TASK_ID"
 # gemergt – ein späterer Commit hätte kein Ziel mehr, und ein Direkt-Commit auf main ist
 # verboten. Derselbe Grund, aus dem CLAUDE.md die Task-Datei VOR dem Merge final verlangt.
 # Bewusster Preis: die Kosten von /pr-shepherd selbst fehlen in der Reihe (ADR-049).
-persist_telemetry || true
+telemetry_persist || true
 
 # Phase 7: PR Shepherd (optional – nur wenn PR_SHEPHERD=true gesetzt)
 if [ "${PR_SHEPHERD:-false}" = "true" ]; then

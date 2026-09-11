@@ -2,7 +2,7 @@
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] [scripts/run-pipeline.sh:187] Zwei der drei Fail-Open-Zweige in `persist_telemetry()`
+- [x] [scripts/run-pipeline.sh:187] Zwei der drei Fail-Open-Zweige in `persist_telemetry()`
   löschen die bereits geerntete CSV-Datei **nicht** von der Platte, obwohl sie den
   Commit/Push abbrechen. Betroffen: der „Index nicht leer"-Zweig (`scripts/run-pipeline.sh:176-179`,
   gar kein `rm -f`) und der „add/commit fehlgeschlagen"-Zweig (`scripts/run-pipeline.sh:183-189`,
@@ -33,7 +33,7 @@
   (Index vorbesetzt / Commit schlägt fehl), der `git status --porcelain` nach dem Lauf prüft –
   aktuell deckt keiner der `#334`-Tests diese zwei Zweige ab.
 
-- [ ] [scripts/lib/telemetry-harvest.sh:94-99] Die Kumulativ-Counter-Entdopplung nimmt das
+- [x] [scripts/lib/telemetry-harvest.sh:94-99] Die Kumulativ-Counter-Entdopplung nimmt das
   **Maximum** je Schlüssel – richtig für mehrere Export-Zyklen **desselben** `claude`-Prozesses,
   aber falsch, sobald **zwei verschiedene Prozesse** unter demselben Schritt landen: Der
   Retry-mit-Backoff in `run_skill()` (`scripts/run-pipeline.sh:405`, „z.B. bei
@@ -65,14 +65,14 @@
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [scripts/run-pipeline.sh:155] `persist_telemetry` bricht mit dem Namensschema der übrigen
+- [x] [scripts/run-pipeline.sh:155] `persist_telemetry` bricht mit dem Namensschema der übrigen
   Telemetrie-Funktionen (`telemetry_note_step`, `telemetry_capture`, `telemetry_cleanup`) –
   Subjekt-zuerst statt Verb-zuerst. Rein kosmetisch, aber in derselben Datei nebeneinander
   auffällig inkonsistent; Umbenennung zu `telemetry_persist` wäre naheliegend.
 
 ## Nitpicks (optional)
 
-- [ ] [scripts/run-pipeline.sh:107-118] Der Telemetrie-Aktivierungsblock (inkl. Anlegen der
+- [x] [scripts/run-pipeline.sh:107-118] Der Telemetrie-Aktivierungsblock (inkl. Anlegen der
   leeren Roh-Log-Datei unter `tasks/`) läuft auch bei `--dry-run`, obwohl in diesem Modus nie
   ein `claude`-Prozess startet und `persist_telemetry` sofort früh zurückkehrt
   (`DRY_RUN`-Guard). Die Datei wird zwar über den EXIT-Trap (`telemetry_cleanup`) wieder
@@ -104,6 +104,28 @@
   (`--no-telemetry` als Such-Phrase) belegt – vermeidet den in dieser Codebase mehrfach
   aufgetretenen `-`-Anker-Fehler.
 
+## Rework-Notiz (aus `/implement`, 2026-09-11)
+
+Alle vier Findings behoben, je mit RED-Test vor dem Fix:
+
+- **Kritisch 1** (leckende CSV in zwei Fail-Open-Zweigen): `rm -f "$TELEMETRY_CSV"` in beiden
+  Zweigen ergänzt (`scripts/run-pipeline.sh`, `telemetry_persist()`). Zwei neue E2E-Tests
+  (Index vorbesetzt / `pre-commit`-Hook lehnt ab) belegen `git status --porcelain` sauber
+  bzgl. der Telemetrie-Datei danach.
+- **Kritisch 2** (Retry-Unterzählung): `telemetry_note_step` aus vor die Retry-Schleife in
+  **jeden Versuch hinein** verschoben – jeder physische `claude`-Prozess bekommt jetzt einen
+  eigenen `step_seq`. Neuer E2E-Test (Versuch 1 scheitert mit 0.05 USD, Versuch 2 gelingt mit
+  0.08 USD) belegt die Summe 0.13 in der CSV statt des vorherigen Maximums 0.08.
+- **Wichtig** (Namensinkonsistenz): `persist_telemetry` → `telemetry_persist` umbenannt,
+  passend zu `telemetry_note_step`/`telemetry_capture`/`telemetry_cleanup`.
+- **Nitpick** (`--dry-run` legt unnötig eine Roh-Log-Datei an): Aktivierungsblock zusätzlich
+  auf `[ "$DRY_RUN" = false ]` bedingt.
+
+Bash-Suite: 1528/1528 grün (vorher 1522 + 6 neue). `pnpm lint`/`pre-commit` grün.
+
 ## Empfehlung
 
 NEEDS_REWORK
+
+<!-- Verdict bleibt an der nächsten /review-Runde – dieser Abschnitt dokumentiert nur den
+     Rework-Stand, ersetzt keine Freigabe. -->
