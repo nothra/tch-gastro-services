@@ -274,6 +274,35 @@ und verdeckt den Fall). Fix: expliziter `-c user.email=…`/`-c user.name=…` a
 empirisch in einem `ubuntu:24.04`-Container gegen die reale Commit-Zeile belegt, da lokal auf
 macOS nicht reproduzierbar. Details: `tasks/review-334.md`. Bash-Suite 1530/1530 grün.
 
+## Test-Vervollständigung (`/test`, 2026-09-12)
+
+Coverage-Analyse: `pnpm test:coverage` unverändert (803 grün, 90,14 % Stmts) – Task 334 berührt
+keinen App-Code, die App-Coverage ist als Sanity-Check bestätigt, nicht als Ziel dieser Task.
+Die eigentliche Testbasis ist die Bash-Self-Test-Suite (kein % Coverage-Konzept für Bash).
+
+Vollständigkeits-Check gegen `spec-334`s Fehlerszenarien ergab zwei Lücken, ergänzt:
+
+- **Fehlerszenario 2** („Lauf bricht vorzeitig ab … die bis dahin angefallenen Werte werden
+  persistiert"): bisher nur implizit durch AK6/AK7-Tests gedeckt, nie den EXIT-Trap-Fallback
+  (statt des regulären Aufruforts zwischen `/codify` und `/pr-shepherd`) direkt geprüft. Neuer
+  E2E-Test erzwingt einen Gate-Fehlschlag nach Phase 1 und belegt, dass die bis dahin
+  angefallene `/implement`-Telemetrie trotzdem committet wird.
+- **Fehlerszenario 3** („kein Lauf überschreibt das Artefakt eines anderen"): bisher nicht
+  geprüft. Neuer Test fährt zwei sequenzielle Läufe (unterschiedliche Task-IDs) im selben
+  Worktree und belegt, dass die CSV des ersten Laufs nach dem zweiten noch existiert.
+
+**Test-Selbstfund während der Konstruktion** (kein Produktionsdefekt): Der erste Entwurf des
+Fehlerszenario-3-Tests schrieb `review-914.md`/`security-914.md` im Stub des ERSTEN Laufs
+unbedingt bei jedem `claude`-Aufruf – dadurch sah der ECHTE `/review`-Aufruf des zweiten Laufs
+unveränderten Inhalt vor sich und der Report-Frische-Guard (ADR-019 §4) wertete ihn als „aus
+einem früheren Aufruf" (stale). Das ließ den zweiten Lauf in Phase 2 abbrechen – der Test bestand
+trotzdem, aber nur zufällig über den EXIT-Trap-Fallback statt über den regulären, im
+Test-Kommentar behaupteten Pfad. Per Mutationstest aufgedeckt (Entfernen des Trap-Aufrufs ließ
+ausgerechnet DIESEN Test rot werden, was er laut Beschreibung nicht dürfte) und behoben: die
+Schreibvorgänge sind jetzt an denselben Skill- UND Task-Marker gebunden wie der eingebaute Fall.
+
+Bash-Suite: 1537/1537 grün (1530 + 7 neue: 2 Fehlerszenarien + 5 begleitende Assertionen).
+
 ## Offene Nachtests
 
 - **Keine UI-Berührung** – diese Task ändert ausschließlich Shell-/Doku-Ebene. Oberflächentests

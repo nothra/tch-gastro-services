@@ -8263,6 +8263,84 @@ STUB_334H
       "#334 (Review-Finding 2): Kosten BEIDER Versuche stehen in der Summe (0.13), nicht nur der letzte (0.08) (war: $tele_sum_h)"
   fi
   rm -rf "$TMP_334H" "$TMP_334H_ORIGIN"
+
+  # ── Fehlerszenario 2 (spec-334): Lauf bricht vorzeitig ab (hier: Quality-Gate „Tests"
+  # scheitert nach Phase 1) – die bis dahin angefallene Telemetrie (der /implement-Schritt)
+  # wird trotzdem persistiert. Das ist NICHT der reguläre Aufrufort zwischen /codify und
+  # /pr-shepherd, sondern ausschließlich der EXIT-Trap-Fallback (measure_process_metrics_on_exit).
+  TMP_334I="$(mktemp -d)"; TMP_334I_ORIGIN="$(mktemp -d)"
+  scaffold_310 "$TMP_334I" 912
+  cp "$TELE_FIXTURE" "$TMP_334I/bin/otel-fixture.txt"
+  mk_tele_stub_334 "$TMP_334I" 912 'cat "$(dirname "$0")/otel-fixture.txt"'
+  commit_314_pushed "$TMP_334I" "$TMP_334I_ORIGIN"
+  OUT_334I=$(cd "$TMP_334I" && PATH="$TMP_334I/bin:$PATH" \
+    FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=false \
+    env -u PR_SHEPHERD -u FACTORY_STAGE -u FACTORY_METRICS_ISSUE -u GITHUB_STEP_SUMMARY \
+        -u CLAUDE_CODE_ENABLE_TELEMETRY -u OTEL_METRICS_EXPORTER \
+    bash "$TMP_334I/scripts/run-pipeline.sh" 912 2>&1); RC_334I=$?
+  assert_true "$([ "$RC_334I" -ne 0 ]; echo $?)" \
+    "#334 Fehlerszenario 2: der erzwungene Gate-Fehlschlag beendet den Lauf tatsächlich non-zero"
+  assert_absent "$OUT_334I" 'Phase 2: Code-Review' \
+    "#334 Fehlerszenario 2 (Kontrolle): der Abbruch geschieht wie beabsichtigt VOR Phase 2 (Test-Vorbedingung selbst geprüft)"
+  tele_csv_i="$(find "$TMP_334I/tasks" -name 'telemetry-912-*.csv' | head -1)"
+  assert_true "$([ -n "$tele_csv_i" ]; echo $?)" \
+    "#334 Fehlerszenario 2: die EXIT-Trap persistiert die bis zum Abbruch angefallene Telemetrie"
+  if [ -n "$tele_csv_i" ]; then
+    assert_contains_286 "$(cat "$tele_csv_i")" ',implement,claude_code.cost.usage,' \
+      "#334 Fehlerszenario 2: die CSV enthält die Kosten des vor dem Abbruch gelaufenen /implement-Schritts"
+  fi
+  rm -rf "$TMP_334I" "$TMP_334I_ORIGIN"
+
+  # ── Fehlerszenario 3 (spec-334): kein Lauf überschreibt das Artefakt eines anderen.
+  # Zwei sequenzielle Läufe für ZWEI TASKS im selben Worktree – nach dem zweiten Lauf müssen
+  # beide Telemetrie-Dateien noch existieren (der zweite Lauf löscht/überschreibt die Datei
+  # des ersten nicht). Bewusst zwei Task-IDs statt zweier Läufe derselben Task innerhalb der
+  # gleichen Sekunde: Letzteres wäre ein Test-Artefakt der Sekunden-Granularität des
+  # Zeitstempels, kein realistisches Szenario (ein echter Pipeline-Lauf dauert Minuten).
+  TMP_334J="$(mktemp -d)"; TMP_334J_ORIGIN="$(mktemp -d)"
+  scaffold_310 "$TMP_334J" 913
+  printf '# Task 914: zweiter Lauf\n' > "$TMP_334J/tasks/task-914-zweiter-lauf.md"
+  cp "$TELE_FIXTURE" "$TMP_334J/bin/otel-fixture.txt"
+  # EIN Stub für BEIDE Task-IDs, einmal geschrieben und committet: würde der Stub zwischen
+  # den beiden Läufen erneut geschrieben (mk_tele_stub_334 ein zweites Mal), stünde
+  # bin/claude als geänderte, uncommittete Tracked-Datei da – der zweite Lauf schlüge dann
+  # schon am Preflight („Working Tree nicht sauber") fehl, bevor die eigentliche Frage
+  # (überschreibt er die erste CSV?) je geprüft würde.
+  #
+  # Die review-914.md/security-914.md-Schreibvorgänge müssen an dieselbe Skill-Fallunterscheidung
+  # gebunden sein wie das eingebaute $2=913-Case – sonst schreibt JEDER claude-Aufruf während
+  # des ERSTEN Laufs (auch /implement, /test, /refactor) review-914.md unconditional vorab.
+  # Das ließ den späteren echten /review-Aufruf des ZWEITEN Laufs auf identischen Inhalt
+  # treffen → Report-Guard wertet ihn als „aus einem früheren Aufruf, unverändert" (stale) →
+  # /review scheitert nach 3 Versuchen → der zweite Lauf bricht in Phase 2 ab, nicht am Ende.
+  # Test bestand dadurch nur zufällig, weil der EXIT-Trap-Fallback (nicht der reguläre
+  # Aufrufort zwischen /codify und /pr-shepherd) die Telemetrie rettete – ein Test-Selbstfund
+  # während /test, kein Produktionsdefekt (Rezidiv der Lesson „Mock-Default … verdeckt" in
+  # neuer Form: die Testdouble-Fixture erzeugte Zustand außerhalb ihres eigenen Zuständigkeits-
+  # fensters und kollidierte mit einer echten Guard-Logik der Produktion).
+  # Zusätzlich an `task-914` geankert, nicht nur an den Skill-Marker: Ein reiner
+  # `*SKILL-review*`-Treffer feuerte auch beim ECHTEN /review-Aufruf von Lauf 1 (Task 913) –
+  # dieselbe Prompt-Substring-Prüfung kennt den Unterschied zwischen den Läufen nicht, nur
+  # die eingebettete Task-Datei (`task-${TASK_ID}-*.md`, hier `task-914-zweiter-lauf.md`)
+  # unterscheidet sie zuverlässig.
+  mk_tele_stub_334 "$TMP_334J" 913 \
+    'case "$*" in
+  *SKILL-review*task-914*)          printf "## Empfehlung\nAPPROVED\n" > "$PWD/tasks/review-914.md" ;;
+  *SKILL-security-review*task-914*) printf "## Ergebnis\nPASSED\n" > "$PWD/tasks/security-914.md" ;;
+esac
+cat "$(dirname "$0")/otel-fixture.txt"'
+  commit_314_pushed "$TMP_334J" "$TMP_334J_ORIGIN"
+  run_334 "$TMP_334J" 913
+  tele_csv_j1="$(find "$TMP_334J/tasks" -name 'telemetry-913-*.csv' | head -1)"
+  assert_true "$([ -n "$tele_csv_j1" ]; echo $?)" \
+    "#334 Fehlerszenario 3: erster Lauf (Task 913) persistiert seine CSV"
+  run_334 "$TMP_334J" 914
+  tele_csv_j2="$(find "$TMP_334J/tasks" -name 'telemetry-914-*.csv' | head -1)"
+  assert_true "$([ -n "$tele_csv_j2" ]; echo $?)" \
+    "#334 Fehlerszenario 3: zweiter Lauf (Task 914) persistiert seine EIGENE CSV"
+  assert_true "$([ -f "$tele_csv_j1" ]; echo $?)" \
+    "#334 AK1/Fehlerszenario 3: die CSV des ERSTEN Laufs existiert nach dem zweiten Lauf noch (kein Überschreiben)"
+  rm -rf "$TMP_334J" "$TMP_334J_ORIGIN"
   rm -rf "$(dirname "$TELE_E2E_PROBE")"
 else
   skip_yq "#334 E2E: Telemetrie-Persistenz in run-pipeline.sh"
