@@ -186,11 +186,22 @@ telemetry_persist() {
     return 0
   fi
 
+  # Review-Finding (Kritisch, Runde 2): der Commit trägt eine EXPLIZITE Identität statt sich
+  # auf ambiente `user.email`/`user.name`-Konfiguration zu verlassen. Auf einer
+  # Entwickler-Maschine (globales ~/.gitconfig, oder – wie hier empirisch mit einem
+  # `ubuntu:24.04`-Container belegt – ein Hostname mit Domainanteil) synthetisiert `git`
+  # klaglos eine Fallback-Identität; auf einem frischen `ubuntu-latest`-CI-Runner (genau
+  # dort, wo `factory-poll.yml` diesen Lauf künftig startet) hat der Hostname keinen
+  # Domainanteil, `git` verwirft den Fallback und der blanke Commit scheitert mit „unable to
+  # auto-detect email address" – jeder Lauf dort würde die Telemetrie-Ernte fail-open
+  # verschlucken, ohne je eine CSV zu persistieren.
   local head_before
   head_before="$(git -C "$FACTORY_DIR" rev-parse HEAD 2>/dev/null || true)"
   if [ -z "$head_before" ] \
      || ! git -C "$FACTORY_DIR" add -- "$TELEMETRY_CSV" 2>/dev/null \
-     || ! git -C "$FACTORY_DIR" commit -q -m "chore: telemetrie-messwerte lauf ${RUN_TIMESTAMP} (task ${TASK_ID})" 2>/dev/null; then
+     || ! git -C "$FACTORY_DIR" -c user.email="factory-pipeline@localhost" \
+              -c user.name="dm Development Factory" \
+              commit -q -m "chore: telemetrie-messwerte lauf ${RUN_TIMESTAMP} (task ${TASK_ID})" 2>/dev/null; then
     # `git reset` unstaged nur (bringt die Datei zurück auf untracked) – löscht sie NICHT von
     # der Platte. Ohne das `rm -f` bliebe genau dieselbe Lücke wie im Index-Zweig oben.
     git -C "$FACTORY_DIR" reset -q -- "$TELEMETRY_CSV" 2>/dev/null || true

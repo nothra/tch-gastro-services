@@ -11,7 +11,7 @@
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] [scripts/run-pipeline.sh:200] `telemetry_persist()`s Commit (`git -C "$FACTORY_DIR"
+- [x] [scripts/run-pipeline.sh:200] `telemetry_persist()`s Commit (`git -C "$FACTORY_DIR"
   commit -q -m "..."`) läuft **ohne** explizite Identität und verlässt sich auf ambiente
   `user.email`/`user.name`-Konfiguration. Das lässt den GitHub-CI-Check
   `factory-self-test` auf diesem PR **aktuell fehlschlagen** – drei Tests rot
@@ -62,7 +62,7 @@ Kopfnotiz)*
 
 ## Nitpicks (optional)
 
-- [ ] [docs/adr/049-telemetrie-persistenz-je-pipeline-lauf.md:331] Nennt unter „Betroffene
+- [x] [docs/adr/049-telemetrie-persistenz-je-pipeline-lauf.md:331] Nennt unter „Betroffene
   Stellen" noch den alten Funktionsnamen `persist_telemetry()` – die Rework-Runde hat sie
   zu `telemetry_persist()` umbenannt (Wichtig-Finding aus Runde 1). Kleine Doku-Drift,
   analog Lesson „ADR nach Review-Rework auf Drift prüfen" (#55).
@@ -83,6 +83,27 @@ Kopfnotiz)*
 - Namenskonsistenz (`telemetry_persist` statt `persist_telemetry`) vollständig durchgezogen
   im Code; nur die eine ADR-Stelle oben ist noch nicht nachgezogen.
 
+## Rework-Notiz Runde 2 (aus `/implement`, 2026-09-12)
+
+Fix: `telemetry_persist()`s Commit trägt jetzt `-c user.email="factory-pipeline@localhost"
+-c user.name="dm Development Factory"` statt sich auf ambiente Git-Konfiguration zu
+verlassen. RED→GREEN empirisch in einem frischen `ubuntu:24.04`-Container gegen die exakte
+Commit-Zeile aus `run-pipeline.sh` belegt (nicht nur lokal, da macOS-Git den Fehlerfall
+mangels Domainanteil im Hostname nicht reproduziert): vorher `fatal: unable to
+auto-detect email address`, exit 128 – nachher exit 0. Zusätzlich zwei strukturelle Guards
+in `run-tests.sh` (prüfen `-c user.email=`/`-c user.name=` in `telemetry_persist()`) per
+Mutationstest bestätigt (Fix zurückgenommen → genau diese zwei Tests kippen rot).
+
+Der bestehende `git commit -q -m`-Struktur-Guard war durch die neue mehrzeilige
+Commit-Aufrufform obsolet geworden (grep matcht zeilenweise) – auf
+`commit -q -m "chore: telemetrie-messwerte lauf'` präzisiert, damit er weiterhin greift.
+
+ADR-049-Nitpick (alter Funktionsname `persist_telemetry()`) ebenfalls behoben.
+
+Bash-Suite: 1530/1530 grün.
+
 ## Empfehlung
 
 NEEDS_REWORK
+
+<!-- Verdict bleibt an der nächsten /review-Runde. ----->

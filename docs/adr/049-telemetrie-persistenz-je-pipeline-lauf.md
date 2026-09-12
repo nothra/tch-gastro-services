@@ -328,9 +328,11 @@ ADR-Ablehnung stillschweigend.
 ## Betroffene Stellen
 
 - `scripts/run-pipeline.sh` – Aktivierung (`--no-telemetry` als Abschalt-Parameter im Muster
-  von `--dry-run`), Marker-Zeile und Roh-Log-Sink in `run_skill`, `persist_telemetry()` mit
+  von `--dry-run`), Marker-Zeile und Roh-Log-Sink in `run_skill`, `telemetry_persist()` mit
   **Commit/Push der CSV zwischen `/codify` und `/pr-shepherd`** sowie im EXIT-Trap für den
-  Abbruchfall – alles fail-open (Exit-Code unberührt)
+  Abbruchfall – alles fail-open (Exit-Code unberührt); der Commit trägt eine explizite
+  Identität (`-c user.email=…`/`-c user.name=…`), statt sich auf ambiente Git-Konfiguration
+  zu verlassen (Review-Runde 2, #334)
 - **Neu:** `scripts/lib/telemetry-harvest.sh` – Ernte-/Auswertungs-Logik als eigener,
   testbarer Seam inklusive der **Whitelist**-Projektion aus E5
 - `scripts/checks/tests/run-tests.sh` – die Assertion „OTEL ist opt-in" **ersetzt** (Default an

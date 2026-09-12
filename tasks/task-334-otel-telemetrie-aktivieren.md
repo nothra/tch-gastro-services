@@ -265,6 +265,15 @@ Beide Kritisch-Findings aus `tasks/review-334.md` behoben (Details dort unter
 Wichtig-/Nitpick-Findings (Namenskonsistenz, `--dry-run` legt keine Roh-Log-Datei mehr an).
 Je RED-Test vor dem Fix. Bash-Suite 1528/1528 grün.
 
+## Rework-Runde 2 (`/implement`, nach `/review` NEEDS_REWORK, 2026-09-12)
+
+CI (`factory-self-test`, required Check) meldete 3 rote Tests, obwohl lokal alles grün war –
+Ursache: `telemetry_persist()`s Commit verließ sich auf ambiente Git-Identität, die auf einem
+frischen `ubuntu-latest`-Runner fehlt (macOS synthetisiert dort klaglos eine Fallback-Identität
+und verdeckt den Fall). Fix: expliziter `-c user.email=…`/`-c user.name=…` am Commit. RED→GREEN
+empirisch in einem `ubuntu:24.04`-Container gegen die reale Commit-Zeile belegt, da lokal auf
+macOS nicht reproduzierbar. Details: `tasks/review-334.md`. Bash-Suite 1530/1530 grün.
+
 ## Offene Nachtests
 
 - **Keine UI-Berührung** – diese Task ändert ausschließlich Shell-/Doku-Ebene. Oberflächentests

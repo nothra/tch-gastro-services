@@ -7987,10 +7987,20 @@ tele_persist_body="$(awk '/^telemetry_persist\(\) \{/,/^\}/' "$PIPELINE")"
 # (er begründet ja gerade dessen Nichtverwendung) und würde einen reinen Textscan über den
 # ganzen Rumpf immer rot färben – die Prosa-Kollision aus Lesson #284.
 tele_persist_code="$(printf '%s\n' "$tele_persist_body" | grep -v '^[[:space:]]*#' || true)"
-assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" commit -q -m' \
+assert_contains_286 "$tele_persist_code" 'commit -q -m "chore: telemetrie-messwerte lauf' \
   "#334 §E4: telemetry_persist() committet die CSV selbst"
 assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" add -- "$TELEMETRY_CSV"' \
   "#334 §E4: gezieltes Staging genau der CSV, nicht des ganzen Baums"
+# Review-Finding (Kritisch, Runde 2): der Commit darf NICHT von ambienter Git-Identität
+# abhängen – auf einem frischen ubuntu-latest-Runner ohne konfigurierte user.email/user.name
+# verwirft `git` seinen eigenen Fallback (empirisch in ubuntu:24.04 belegt: "unable to
+# auto-detect email address"), wenn der Hostname keinen Domainanteil hat. Struktureller
+# Guard statt Verhaltens-E2E, weil das Verhalten selbst plattformabhängig ist (auf macOS
+# liefert git anstandslos eine Fallback-Identität und verdeckt eine fehlende Absicherung).
+assert_contains_286 "$tele_persist_code" '-c user.email="factory-pipeline@localhost"' \
+  "#334 (Review-Runde 2): der Commit trägt eine explizite user.email, unabhängig von ambienter Konfiguration"
+assert_contains_286 "$tele_persist_code" '-c user.name="dm Development Factory"' \
+  "#334 (Review-Runde 2): der Commit trägt auch einen expliziten user.name"
 assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" push -q origin HEAD' \
   "#334 AK7: telemetry_persist() pusht den Commit auch (verify_final_state prüft ungepushte Commits)"
 assert_absent "$tele_persist_code" 'factory-commit.sh' \
