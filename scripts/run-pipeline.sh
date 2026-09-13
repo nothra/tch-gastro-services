@@ -147,6 +147,16 @@ telemetry_cleanup() {
   rm -f "$TELEMETRY_RAW_LOG" 2>/dev/null || true
 }
 
+# Gemeinsame Aufräum-Logik für jeden der vier Fail-Open-Ausstiege in telemetry_persist():
+# die bereits geerntete CSV verwerfen und den Grund melden. Nur die Meldung unterscheidet
+# sich je Ausstieg – vorher an vier Stellen dasselbe `rm -f … || true` + `echo` dupliziert
+# (Refactor-Pass, clean-code.md „Keine Code-Duplikation"). `return 0` bleibt bewusst am
+# jeweiligen Aufruf-Ort: aus einer Helper-Funktion zurückzukehren beendet nicht den Aufrufer.
+telemetry_discard_csv() {
+  rm -f "$TELEMETRY_CSV" 2>/dev/null || true
+  echo -e "${YELLOW}⚠${NC} $1"
+}
+
 # Ernte + Commit + Push der CSV (ADR-049 §E4). Idempotent: der reguläre Aufrufort zwischen
 # /codify und /pr-shepherd greift zuerst, der EXIT-Trap ist nur noch für den Abbruchfall da
 # (spec-334, Fehlerszenario 2 – der teuerste Lauf ist der interessanteste).
@@ -167,8 +177,7 @@ telemetry_persist() {
   # Fail-closed auf der Messseite (§E2): erkennt der Seam kein Console-Format, entsteht
   # KEINE Datei. Ein leeres oder halbes Artefakt wäre irreführender als gar keins.
   if ! harvest_telemetry_csv "$TELEMETRY_RAW_LOG" "$RUN_TIMESTAMP" "$TASK_ID" > "$TELEMETRY_CSV" 2>/dev/null; then
-    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
-    echo -e "${YELLOW}⚠${NC} Keine auswertbaren OTEL-Messwerte im Lauf-Log – keine CSV geschrieben"
+    telemetry_discard_csv "Keine auswertbaren OTEL-Messwerte im Lauf-Log – keine CSV geschrieben"
     return 0
   fi
 
@@ -181,8 +190,7 @@ telemetry_persist() {
   # macht den Arbeitsbaum dirty und lässt `verify_final_state` (ADR-040) genau den Lauf als
   # gescheitert melden, den AK6/AK7 als „fail-open, sauberer Baum" garantieren sollen.
   if ! git -C "$FACTORY_DIR" diff --cached --quiet 2>/dev/null; then
-    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
-    echo -e "${YELLOW}⚠${NC} Index nicht leer – Telemetrie-Commit übersprungen (fail-open)"
+    telemetry_discard_csv "Index nicht leer – Telemetrie-Commit übersprungen (fail-open)"
     return 0
   fi
 
@@ -203,10 +211,10 @@ telemetry_persist() {
               -c user.name="dm Development Factory" \
               commit -q -m "chore: telemetrie-messwerte lauf ${RUN_TIMESTAMP} (task ${TASK_ID})" 2>/dev/null; then
     # `git reset` unstaged nur (bringt die Datei zurück auf untracked) – löscht sie NICHT von
-    # der Platte. Ohne das `rm -f` bliebe genau dieselbe Lücke wie im Index-Zweig oben.
+    # der Platte. Ohne das anschließende telemetry_discard_csv bliebe genau dieselbe Lücke
+    # wie im Index-Zweig oben.
     git -C "$FACTORY_DIR" reset -q -- "$TELEMETRY_CSV" 2>/dev/null || true
-    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
-    echo -e "${YELLOW}⚠${NC} Telemetrie-Commit fehlgeschlagen – übersprungen (fail-open)"
+    telemetry_discard_csv "Telemetrie-Commit fehlgeschlagen – übersprungen (fail-open)"
     return 0
   fi
 
@@ -215,8 +223,7 @@ telemetry_persist() {
   # Folgelauf im selben Worktree an der Messung scheitern.
   if ! git -C "$FACTORY_DIR" push -q origin HEAD 2>/dev/null; then
     git -C "$FACTORY_DIR" reset -q --mixed "$head_before" 2>/dev/null || true
-    rm -f "$TELEMETRY_CSV" 2>/dev/null || true
-    echo -e "${YELLOW}⚠${NC} Telemetrie-Push fehlgeschlagen – Commit zurückgenommen (fail-open)"
+    telemetry_discard_csv "Telemetrie-Push fehlgeschlagen – Commit zurückgenommen (fail-open)"
     return 0
   fi
 

@@ -303,6 +303,20 @@ Schreibvorgänge sind jetzt an denselben Skill- UND Task-Marker gebunden wie der
 
 Bash-Suite: 1537/1537 grün (1530 + 7 neue: 2 Fehlerszenarien + 5 begleitende Assertionen).
 
+## Refactoring (`/refactor`, 2026-09-13)
+
+Kein neues Verhalten, nur Struktur: die vier Fail-Open-Ausstiege in `telemetry_persist()`
+(Format-Drift, Index nicht leer, Commit fehlgeschlagen, Push fehlgeschlagen) wiederholten
+dieselbe zwei Zeilen `rm -f "$TELEMETRY_CSV" 2>/dev/null || true` + `echo -e "${YELLOW}⚠..."`.
+Extrahiert in `telemetry_discard_csv <meldung>`; `return 0` bleibt bewusst am jeweiligen
+Aufruf-Ort (ein Helper kann nicht für den Aufrufer zurückkehren). Nachrichtentexte
+unverändert – reine Struktur-Vereinfachung, keine Test-Anpassung nötig.
+
+`scripts/lib/telemetry-harvest.sh` und die Testsuite wurden durchgesehen, boten aber keine
+werthaltige Refactoring-Gelegenheit ohne bereits reviewte Strukturtests unnötig anzufassen.
+
+Bash-Suite weiterhin 1537/1537 grün, `pnpm test` 803 grün, alle Gates grün.
+
 ## Offene Nachtests
 
 - **Keine UI-Berührung** – diese Task ändert ausschließlich Shell-/Doku-Ebene. Oberflächentests
