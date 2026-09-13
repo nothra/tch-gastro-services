@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Review bestanden
+- [x] Tests vollständig
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -358,3 +358,8 @@ Whitelist-Bypass) bereits während `/security-review` angelegt.
 ---
 Branch: `chore/334-otel-telemetrie-aktivieren`
 Erstellt: 2026-09-10 23:10
+
+PR-Shepherd 2026-09-14: Merge freigegeben – alle Gates grün (lint, test, issue-sync,
+factory-self-test, pr-closes-issue, config-validation), keine offenen Review-Kommentare,
+main bereits enthalten (kein Rebase nötig), kein Approval erforderlich
+(required_approving_review_count 0), Draft → ready for review.
