@@ -1,89 +1,65 @@
 # Security Review: Task 334
 
+> Runde 2 (2026-09-13), nach dem Fix auf den Runde-1-Kritisch-Fund. Unabhängig neu geprüft,
+> nicht nur „laut Commit-Message übernommen": der demonstrierte Angriff aus Runde 1 wurde
+> gegen den gefixten Code erneut gefahren (blockiert jetzt), zusätzlich per Mutationstest
+> bestätigt (Fix zurückgenommen → genau die vier zugehörigen Tests kippen rot), und die
+> gesamte Bash-Suite frisch laufen lassen (1543/1543 grün).
+
 ## Kritische Findings (Blocker)
 
-- [x] [Data Exfiltration / Whitelist-Bypass] Die Whitelist-Projektion in
-  `scripts/lib/telemetry-harvest.sh` (§E5) filtert nur nach **Feldnamen**
-  (`model`, `query_source`, `"agent.name"`, `type`), prüft aber **nie die Form des Werts**.
-  Jeder String, der `clean()`s erlaubtes Alphabet (`[A-Za-z0-9._@:+-]`) einhält, wird
-  unverändert in die getrackte, automatisch gepushte CSV übernommen – unabhängig davon, ob
-  er wirklich vom OTEL-Exporter stammt oder aus der **Konversationsausgabe des Agenten**
-  (Teil desselben `claude --print`-Streams, den `telemetry_capture` unverändert mitschreibt).
-
-  Empirisch belegt (Ernte gegen ein Roh-Log, in dem ein „Agenten-Antwort"-Textblock einem
-  echten `cost.usage`-Datenpunkt vorausgeht, dessen `model`-Feld eine E-Mail-Adresse trägt):
-  ```
-  $ harvest_telemetry_csv raw.txt T 334
-  run_timestamp,task_id,step_seq,step,metric,model,query_source,agent_name,value_type,value
-  T,334,1,implement,claude_code.cost.usage,opfer@beispielfirma.de,main,,,0.01
-  ```
-  Dasselbe funktioniert gleichermaßen über `query_source`, `"agent.name"` und `type` –
-  alle vier Felder wurden einzeln mit demselben Ergebnis geprüft.
-
-  **Angriffskette:** Ein Angreifer, der bereits einen Prompt-Injection-Fuß in der Tür hat
-  (z. B. eine von `/implement` gelesene, manipulierte Datei, ein kompromittiertes
-  MCP-Tool-Ergebnis), kann den Agenten anweisen, eine Textzeile auszugeben, die exakt der
-  vom Parser erwarteten OTEL-Blockstruktur entspricht (`{` … `attributes: {` … `model: "…"`
-  … `value: …`). Der Ernte-Seam unterscheidet nicht zwischen „echtem" Exporter-Output und
-  Agenten-Konversationstext an derselben Stelle im Stream – beides landet ununterschieden im
-  selben Roh-Log.
-
-  **Warum kritisch:** AK5 dieser Task lautet wörtlich „keine Personendaten in den
-  persistierten Werten … Projektion als Whitelist". Die Whitelist filtert tatsächlich nur
-  **bekannte Feldnamen** heraus, nicht **den erwarteten Wertebereich** dieser Felder – genau
-  die Asymmetrie, die ADR-049 §E5 selbst als Begründung für „Whitelist statt Blacklist"
-  anführt ("ein Fehler ist nicht zurücknehmbar, weil die Git-Historie ihn konserviert"), gilt
-  identisch auf der Werte-Ebene: einmal committet und gepusht, ist ein exfiltrierter Wert aus
-  der Historie nicht mehr entfernbar.
-
-  **Empfohlene Lösung:** Die vier Felder zusätzlich auf ein **Werte-Whitelist-Muster** prüfen,
-  bevor sie übernommen werden – nicht nur auf ein sicheres Zeichen-Alphabet:
-  - `model`: gegen ein Muster bekannter Modellnamen (z. B. `^claude-[a-z0-9.-]+$` oder eine
-    Liste bekannter Modell-Präfixe), sonst das Feld leer lassen statt den Roh-Wert zu
-    übernehmen (konsistent mit §E1 „fehlt ein Wert, bleibt er leer").
-  - `query_source`: exakt `main` oder `subagent`, sonst leer.
-  - `type`: exakt eines aus `input`/`output`/`cacheRead`/`cacheCreation`, sonst leer.
-  - `"agent.name"`: optional lockerer (Sub-Agent-Namen wie „Explore" sind nicht abschließend
-    aufzählbar), aber mindestens eine Längenbegrenzung und ein Ausschluss von `@`
-    (E-Mail-typisches Zeichen, in keinem bekannten Agent-Namen sinnvoll).
-  Dazu ein Test analog zum bereits vorhandenen Personendaten-Guard: eine Roh-Eingabe mit
-  genau dieser Angriffsform (Wert-Whitelist-Bypass über ein erlaubtes Feld) muss in der CSV
-  **kein** unerwartetes Muster hinterlassen.
+*(keine – der Runde-1-Fund ist behoben und verifiziert, siehe unten)*
 
 ## Wichtige Findings
 
-*(keine)*
+- [ ] [Data Exfiltration / Whitelist-Bypass, residual] Der Runde-1-Fix schließt den
+  **demonstrierten** Angriffspfad (E-Mail-artige Werte in `model`/`query_source`/
+  `agent.name`/`type`), aber `model`/`agent_name` bleiben als NICHT vollständig
+  enumerierbare Felder weiterhin offen für **beliebigen Freitext ohne `@`-Zeichen** –
+  insbesondere Namen oder andere Personendaten ohne E-Mail-Form.
+
+  Empirisch belegt (gegen den GEFIXTEN Code, Runde 2):
+  ```
+  $ harvest_telemetry_csv raw.txt T 334
+  ...,claude_code.cost.usage,Ralf.Notheis-Vollstaendiger.Name,main,,,0.01
+  ```
+  Ein Wert ohne `@` und unter der 100-Zeichen-Grenze passiert `plausible_free_text()`
+  unverändert – dieselbe Angriffskette wie in Runde 1 (Agent gibt eine Zeile aus, die der
+  erwarteten Blockstruktur entspricht), nur mit einem Payload, der kein `@` enthält.
+
+  **Warum nicht mehr Blocker:** Der praktisch relevanteste, am leichtesten automatisierbar
+  ausnutzbare Pfad (maschinell scrapbare E-Mail-Adressen) ist geschlossen; der verbleibende
+  Pfad braucht einen Angreifer, der gezielt weiß, welchen konkreten Freitext er exfiltrieren
+  will, statt ihn massenhaft/automatisch abzugreifen. Eine vollständige Schließung würde
+  entweder `model` auf eine deutlich strengere Positiv-Liste (Risiko: legitime Gateway-/
+  Custom-Modellnamen fälschlich leeren) oder eine architektonische Trennung der
+  OTEL-Erhebung vom mitgeschriebenen Konversationsstream verlangen – beides über den Rahmen
+  einer iterativen Härtung hinaus.
+
+  **Nachverfolgung:** [Issue #336](https://github.com/nothra/tch-gastro-services/issues/336)
+  angelegt (`enhancement`, `security`, `factory-pipeline`) – bewusst als eigener Task
+  ausgelagert (ADR-018-Schwelle: eigenständige Härtung), nicht Blocker für diesen PR.
 
 ## Hinweise
 
-- [ ] [CSV-Injection / Formeleinschleusung] `clean()` erlaubt `+`, `-`, `@`, `.` als Zeichen
-  in jedem Feldwert. Ein Feld, das mit einem dieser Zeichen **beginnt** (z. B. `model` oder
-  `agent_name`), wird von Excel/Google Sheets beim Öffnen der CSV potenziell als Formel
-  interpretiert (klassische CSV-Injection). Die meisten gefährlichen Payload-Zeichen (Pipe,
-  Leerzeichen, Anführungszeichen, Klammern – nötig für DDE-artige Payloads) werden von
-  `clean()` bereits entfernt, das Risiko ist dadurch spürbar reduziert, aber nicht
-  strukturell ausgeschlossen. Falls die CSV routinemäßig in Tabellenkalkulationen geöffnet
-  wird (statt nur maschinell ausgewertet): führende `=`/`+`/`-`/`@` in einem Feldwert mit
-  einem Apostroph oder Tab-Präfix neutralisieren. Kein Blocker, da (a) die Whitelist-Fix
-  oben den praktisch relevanten Angriffspfad (PII/beliebiger Text) bereits schließt und (b)
-  die primäre Auswertung laut Spec maschinell erfolgt (`AK8`), nicht interaktiv in Excel.
+- [ ] [CSV-Injection / Formeleinschleusung] Unverändert aus Runde 1: `clean()` erlaubt
+  `+`, `-`, `@`, `.` als Zeichen in jedem Feldwert; ein Feld, das mit einem dieser Zeichen
+  beginnt, könnte von Excel/Google Sheets als Formel interpretiert werden. Weiterhin kein
+  Blocker (Payload-Zeichen wie Pipe/Leerzeichen/Anführungszeichen/Klammern sind bereits durch
+  `clean()` entfernt; die primäre Auswertung laut Spec ist maschinell, `AK8`).
 
-## Fix-Notiz (`/implement`, 2026-09-13)
+## Was in Runde 2 verifiziert wurde
 
-Kritischer Fund behoben: `scripts/lib/telemetry-harvest.sh` prüft `query_source`/`type` jetzt
-exakt gegen die einzigen bekannten CLI-Werte und `model`/`agent_name` gegen ein E-Mail-Muster
-(`@`) plus Längengrenze – nicht plausible Werte bleiben leer statt übernommen zu werden (§E1).
-Vier neue RED→GREEN-Tests (einer je betroffenem Feld) mit derselben Angriffsform aus diesem
-Report, plus zwei Kontroll-Tests, die belegen, dass echte Werte weiterhin durchkommen. Per
-Mutationstest verifiziert: Fix zurückgenommen → genau diese vier Tests kippen rot.
-
-Der Hinweis (CSV-Injection) bleibt unverändert offen – laut diesem Report kein Blocker.
-
-Bash-Suite: 1543/1543 grün.
+- Der Runde-1-Angriff (`model: "opfer@beispielfirma.de"` etc.) wird jetzt für alle vier
+  Felder korrekt geleert, nicht nur für `model` allein – einzeln nachgeprüft.
+- Zwei Kontroll-Tests bestätigen, dass echte Werte (Hauptsession **und** Sub-Agent) nach dem
+  Fix unverändert erhalten bleiben – der Fix ist nicht überscharf.
+- Mutationstest: die Werte-Whitelist-Prüfung aus dem Fix entfernt → exakt die vier
+  zugehörigen Tests kippen rot, alle anderen bleiben grün (Kausalität, nicht nur Korrelation).
+- Keine neuen Dependencies, keine Secrets im Diff, keine internen Stack-Traces in
+  Fehlerausgaben – Rest des Prüfkatalogs unverändert unauffällig (bereits in Runde 1 geprüft,
+  seither keine Änderungen an den betroffenen Stellen außer dem Fix selbst).
 
 ## Ergebnis
 
-NEEDS_FIXES
-
-<!-- Verdict bleibt an der nächsten /security-review-Runde – die Fix-Notiz oben dokumentiert
-     nur den Umsetzungsstand, ersetzt keine Freigabe. -->
+PASSED
