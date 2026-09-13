@@ -7919,6 +7919,52 @@ for tele_v in 'anon@example.invalid' 'ANONYMISIERT-user-id' 'ANONYMISIERT-accoun
   assert_absent "$tele_csv" "$tele_v" "#334 AK5: CSV enthält auch den Wert '$tele_v' nicht"
 done
 
+# Security-Review-Finding (Kritisch): die Whitelist filtert nur FELDNAMEN, nie die FORM des
+# Werts. Jeder String, der clean()s Zeichen-Alphabet einhält, wandert unverändert in die
+# CSV – auch wenn er nicht vom echten OTEL-Exporter stammt, sondern aus der Konversations-
+# ausgabe des Agenten (Teil desselben Streams, den telemetry_capture unverändert mitschreibt).
+# Empirisch belegt (tasks/security-334.md): ein "model"-Feld mit einer E-Mail-Adresse wird
+# klaglos übernommen. Guard: alle vier gelesenen Attribute mit demselben Angriffsmuster
+# (E-Mail-artiger Wert) füttern, keines davon darf in der CSV auftauchen.
+{ printf '→ Starte: /implement 334 (model: x, max 20 turns)\n'
+  cat <<'RAW'
+{
+  descriptor: {
+    name: "claude_code.token.usage",
+  },
+  dataPoints: [
+    {
+      attributes: {
+        model: "opfer@angreifer.example",
+        query_source: "opfer2@angreifer.example",
+        "agent.name": "opfer3@angreifer.example",
+        type: "opfer4@angreifer.example",
+      },
+      value: 1,
+    }
+  ],
+}
+RAW
+} > "$TELE_TMP/wertefaelschung.txt"
+tele_csv_wf="$(bash -c 'set -euo pipefail; source "$1"; harvest_telemetry_csv "$2" "T" 334' \
+  _ "$TELE_LIB" "$TELE_TMP/wertefaelschung.txt" 2>/dev/null || true)"
+for tele_wf in 'opfer@angreifer.example' 'opfer2@angreifer.example' \
+               'opfer3@angreifer.example' 'opfer4@angreifer.example'; do
+  assert_absent "$tele_csv_wf" "$tele_wf" \
+    "#334 (Security-Review-Finding): kein E-Mail-artiger Wert gelangt über ein gefälschtes Attribut in die CSV ('$tele_wf')"
+done
+# Kontrolle: derselbe Datenpunkt mit einem ECHTEN, erwartbaren model/query_source/type bleibt
+# weiterhin nutzbar – der Fix darf keine legitimen Werte miterfassen (Diskriminierung).
+{ printf '→ Starte: /implement 334 (model: x, max 20 turns)\n'
+  cat "$TELE_FIXTURE"
+} > "$TELE_TMP/echte-werte.txt"
+tele_csv_echt="$(bash -c 'set -euo pipefail; source "$1"; harvest_telemetry_csv "$2" "T" 334' \
+  _ "$TELE_LIB" "$TELE_TMP/echte-werte.txt" 2>/dev/null || true)"
+assert_contains_286 "$tele_csv_echt" ',claude_code.cost.usage,claude-haiku-4-5-20251001,main,,,0.0924215' \
+  "#334 (Security-Review-Kontrolle): ein echter, erwartbarer Wert bleibt nach dem Fix erhalten"
+assert_contains_286 "$tele_csv_echt" ',claude_code.cost.usage,claude-haiku-4-5-20251001,subagent,Explore,,0.02247895' \
+  "#334 (Security-Review-Kontrolle): auch der Sub-Agenten-Datenpunkt bleibt erhalten"
+
 # Kumulative Counter: derselbe Export-Zyklus zweimal im selben Schritt (das reale Verhalten bei
 # gesetztem OTEL_METRIC_EXPORT_INTERVAL – gemessen am 2026-09-11: beide Zyklen tragen denselben
 # Wert) darf die Zeilen nicht verdoppeln und den Wert nicht summieren.

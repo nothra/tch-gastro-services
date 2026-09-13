@@ -17,6 +17,17 @@
 #         gelesen. Ein neues (womöglich personenbezogenes) Attribut einer künftigen
 #         CLI-Version landet dadurch nie in der getrackten, gepushten Datei. Eine Blacklist
 #         hätte den umgekehrten, nicht zurücknehmbaren Fehlerfall.
+#   Sicherheitshärtung (Security-Review-Finding, Task 334): eine Feldnamen-Whitelist filtert
+#         NICHT die Form des Werts. `telemetry_capture` schreibt den GESAMTEN
+#         `claude --print`-Output mit, nicht nur den echten OTEL-Exporter-Anteil – ein
+#         Agent, der (z. B. durch Prompt-Injection) eine Zeile ausgibt, die exakt der
+#         erwarteten Blockstruktur entspricht, könnte sonst einen beliebigen Wert (auch
+#         Personendaten) über ein erlaubtes Feld einschleusen. Empirisch belegt: ein
+#         `model`-Feld mit einer E-Mail-Adresse wurde vor dieser Härtung klaglos übernommen.
+#         Deshalb prüfen die vier gelesenen Attribute zusätzlich die WERTFORM (nicht nur das
+#         Zeichen-Alphabet aus `clean()`): `query_source`/`type` exakt gegen die einzigen
+#         bekannten CLI-Werte, `model`/`agent_name` gegen ein E-Mail-Muster und eine
+#         Längengrenze. Nicht plausibel → Feld bleibt LEER (§E1 gilt auch hier).
 
 # harvest_telemetry_csv <roh-log> <lauf-zeitstempel> <task-id>
 #
@@ -52,6 +63,24 @@ harvest_telemetry_csv() {
       return v
     }
 
+    # Werte-Whitelist (Security-Review-Finding): query_source/type sind vollständig
+    # enumerierbar – der CLI kennt nur genau diese Werte, alles andere ist entweder Drift
+    # (soll der Format-Guard laut melden, nicht dieser Filter kaschieren) oder eingeschleust.
+    function plausible_query_source(v) { return (v == "main" || v == "subagent") ? v : "" }
+    function plausible_value_type(v) {
+      return (v == "input" || v == "output" || v == "cacheRead" || v == "cacheCreation") ? v : ""
+    }
+    # model/agent_name sind NICHT abschließend aufzählbar (Gateway-/Custom-Modellnamen,
+    # beliebige Sub-Agent-Personas) – hier greift nur ein Mindestmaß: kein "@" (das konkret
+    # belegte Signal für E-Mail-artige Werte) und eine großzügige Längengrenze gegen
+    # überlange Freitext-Payloads.
+    function plausible_free_text(v) {
+      if (v == "") return v
+      if (length(v) > 100) return ""
+      if (v ~ /@/) return ""
+      return v
+    }
+
     BEGIN { step = "unbekannt"; seq = 0; n = 0 }
 
     # ── Schritt-Marker (AK3) ────────────────────────────────────────────────
@@ -79,10 +108,10 @@ harvest_telemetry_csv() {
     # ── Whitelist der gelesenen Attribute (§E5) ─────────────────────────────
     # Alles, was hier nicht steht, wird nie gelesen – insbesondere user.email, user.id,
     # user.account_id, user.account_uuid, organization.id und session.id.
-    in_attrs && /^[[:space:]]+model: /          { model = clean(attr_value($0)); next }
-    in_attrs && /^[[:space:]]+query_source: /   { qsrc  = clean(attr_value($0)); next }
-    in_attrs && /^[[:space:]]+"agent\.name": /  { agent = clean(attr_value($0)); next }
-    in_attrs && /^[[:space:]]+type: /           { vtype = clean(attr_value($0)); next }
+    in_attrs && /^[[:space:]]+model: /          { model = plausible_free_text(clean(attr_value($0))); next }
+    in_attrs && /^[[:space:]]+query_source: /   { qsrc  = plausible_query_source(clean(attr_value($0))); next }
+    in_attrs && /^[[:space:]]+"agent\.name": /  { agent = plausible_free_text(clean(attr_value($0))); next }
+    in_attrs && /^[[:space:]]+type: /           { vtype = plausible_value_type(clean(attr_value($0))); next }
 
     # ── Messwert ────────────────────────────────────────────────────────────
     /^[[:space:]]+value: / {

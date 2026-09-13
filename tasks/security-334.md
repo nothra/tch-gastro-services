@@ -2,7 +2,7 @@
 
 ## Kritische Findings (Blocker)
 
-- [ ] [Data Exfiltration / Whitelist-Bypass] Die Whitelist-Projektion in
+- [x] [Data Exfiltration / Whitelist-Bypass] Die Whitelist-Projektion in
   `scripts/lib/telemetry-harvest.sh` (§E5) filtert nur nach **Feldnamen**
   (`model`, `query_source`, `"agent.name"`, `type`), prüft aber **nie die Form des Werts**.
   Jeder String, der `clean()`s erlaubtes Alphabet (`[A-Za-z0-9._@:+-]`) einhält, wird
@@ -68,6 +68,22 @@
   oben den praktisch relevanten Angriffspfad (PII/beliebiger Text) bereits schließt und (b)
   die primäre Auswertung laut Spec maschinell erfolgt (`AK8`), nicht interaktiv in Excel.
 
+## Fix-Notiz (`/implement`, 2026-09-13)
+
+Kritischer Fund behoben: `scripts/lib/telemetry-harvest.sh` prüft `query_source`/`type` jetzt
+exakt gegen die einzigen bekannten CLI-Werte und `model`/`agent_name` gegen ein E-Mail-Muster
+(`@`) plus Längengrenze – nicht plausible Werte bleiben leer statt übernommen zu werden (§E1).
+Vier neue RED→GREEN-Tests (einer je betroffenem Feld) mit derselben Angriffsform aus diesem
+Report, plus zwei Kontroll-Tests, die belegen, dass echte Werte weiterhin durchkommen. Per
+Mutationstest verifiziert: Fix zurückgenommen → genau diese vier Tests kippen rot.
+
+Der Hinweis (CSV-Injection) bleibt unverändert offen – laut diesem Report kein Blocker.
+
+Bash-Suite: 1543/1543 grün.
+
 ## Ergebnis
 
 NEEDS_FIXES
+
+<!-- Verdict bleibt an der nächsten /security-review-Runde – die Fix-Notiz oben dokumentiert
+     nur den Umsetzungsstand, ersetzt keine Freigabe. -->

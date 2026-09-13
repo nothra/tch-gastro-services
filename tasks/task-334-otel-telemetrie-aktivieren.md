@@ -317,6 +317,23 @@ werthaltige Refactoring-Gelegenheit ohne bereits reviewte Strukturtests unnötig
 
 Bash-Suite weiterhin 1537/1537 grün, `pnpm test` 803 grün, alle Gates grün.
 
+## Security-Fix (`/implement`, nach `/security-review` NEEDS_FIXES, 2026-09-13)
+
+Kritischer Fund aus `tasks/security-334.md` behoben: Die Whitelist-Projektion in
+`scripts/lib/telemetry-harvest.sh` filterte nur nach Feldnamen, nie nach der Form des Werts –
+ein per Prompt-Injection zum Ausgeben einer passend geformten Textzeile gebrachter Agent hätte
+beliebigen Text (auch Personendaten) über `model`/`query_source`/`agent.name`/`type` in die
+getrackte, gepushte CSV schmuggeln können. Empirisch mit einer E-Mail-Adresse im `model`-Feld
+belegt, jetzt durch eine Werte-Whitelist geschlossen (`query_source`/`type` exakt gegen die
+bekannten CLI-Werte, `model`/`agent_name` gegen ein E-Mail-Muster + Längengrenze – nicht
+plausible Werte bleiben leer statt übernommen zu werden, §E1). Vier neue Tests, per
+Mutationstest verifiziert.
+
+Der begleitende Hinweis (CSV-Injection über führende `+`/`-`/`@`) bleibt laut Security-Report
+bewusst offen – kein Blocker, optionale Härtung außerhalb des Scopes dieses Fixes.
+
+Bash-Suite: 1543/1543 grün.
+
 ## Offene Nachtests
 
 - **Keine UI-Berührung** – diese Task ändert ausschließlich Shell-/Doku-Ebene. Oberflächentests
