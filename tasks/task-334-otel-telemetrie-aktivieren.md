@@ -347,7 +347,13 @@ Bash-Suite: 1543/1543 grün.
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Drei neue Lessons (`docs/factory/lessons/factory-workflow.md` ×2, `lessons/testing.md` ×1) +
+ein `kleinfunde.md`-Eintrag, siehe [`tasks/codify-334.md`](codify-334.md) für Details. Kernmuster:
+alle drei technischen Findings dieser Task wurden erst durch echtes Ausführen gefunden (Retry-
+Pfad, gescheiterter Commit, CI-Runner-Hostname), nicht durch Code-Lesen – bestätigt die
+bestehende Grundhaltung dieser Factory, keine neue Regel dafür nötig. Issue #336 (residualer
+Whitelist-Bypass) bereits während `/security-review` angelegt.
 
 ---
 Branch: `chore/334-otel-telemetrie-aktivieren`
