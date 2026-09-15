@@ -118,3 +118,31 @@ in der installierten Version nachvollziehen (`node_modules/react-dom/cjs/…`,
 Inline-Fehler) explizit gegen die Kosten einer Fixgrenze abwägen, bevor er als hinnehmbar
 eingestuft wird.
 
+### `/_next/image`-Rauchtest gegen ein beliebiges `public/`-Asset kann am eigenen Auth-Proxy scheitern, nicht an der Optimierung selbst (aus #337, /implement-Selbstfund während Verifikation)
+
+Ein Rauchtest gegen `/_next/image?url=<lokaler-public-pfad>&w=…` sollte laut Spec-337 ein
+optimiertes Bild liefern, sobald `/_next/image` selbst aus dem `proxy.ts`-Matcher ausgenommen
+ist. Gegen ein frisch angelegtes, beliebiges `public/`-Testasset schlug er trotzdem fehl:
+`⨯ The requested resource isn't a valid image … received null`. Ursache: Next.js' eingebaute
+Bildoptimierung holt lokale Assets über einen **internen Self-Fetch auf denselben Origin** –
+dieser Fetch läuft selbst wieder durch `proxy.ts` und wird für jeden Pfad **außerhalb** der
+expliziten Matcher-Ausnahmeliste (hier: nur `icon(-dev|-int|-prd)?.svg` u. Ä.) auf `/login`
+umgeleitet. Die Optimierungsroute bekommt dadurch HTML statt Bilddaten und meldet „not a valid
+image", **nicht** weil next/image kaputt wäre. Gegenprobe gegen einen matcher-ausgenommenen
+Pfad (`icon-dev.svg`) bestätigte es: der interne Fetch kommt dort durch, scheitert aber
+(erwartungsgemäß) an „SVG nicht erlaubt" statt an „received null".
+
+**Smell:** Ein `/_next/image`-Rauchtest gegen ein lokales `public/`-Asset liefert
+„received null"/„not a valid image", obwohl das Asset selbst nachweislich valide ist (`file
+<pfad>` bestätigt das Format) und die Route laut Matcher-Konfiguration unauthentifiziert
+erreichbar sein sollte.
+
+**Regel:** Beim Verifizieren von `/_next/image` gegen ein `public/`-Asset **immer** gegen einen
+Pfad testen, der auch im `proxy.ts`-Matcher explizit ausgenommen ist (oder die Matcher-Liste
+kurzzeitig um den Testpfad erweitern) – ein generisches, nicht ausgenommenes Testasset prüft
+sonst unbeabsichtigt den Auth-Proxy statt der Bildoptimierung. Das ist zugleich ein
+Sicherheits-relevanter Nebenbefund: die praktische Reachability einer `next/image`-Schwachstelle
+über beliebige lokale Assets ist in einer App mit derart engem Matcher **geringer** als eine
+Spec/Analyse ohne Kenntnis dieses Verhaltens annehmen würde – aber kein verlässlicher
+Schutzmechanismus, weil `proxy.ts` unabhängig von next/image geändert werden kann.
+
