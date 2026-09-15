@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -99,6 +99,10 @@ fehlendes `Closes #329` im PR-Body (behoben), unbelegte Auth-E2E/`/_next/image`-
 siehe oben), offene Task-Checkboxen (behoben), Scope-fremder `next dev`-Agent-Rules-Block in
 CLAUDE.md (aus dem Commit entfernt). Runde 2 (Code-Qualität) und Runde 3 (Architektur): beide
 APPROVED, nur Nitpicks.
+
+**Security-Review:** PASSED, siehe `tasks/security-337.md`. Keine kritischen/wichtigen Findings
+im Scope. Neuer, scope-fremder Fund (`brace-expansion@5.x`, High-DoS, CVE-2026-14257-Familie,
+dritte parallel gepflegte Major-Linie ohne bestehenden Override) ausgelagert nach Issue #339.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
