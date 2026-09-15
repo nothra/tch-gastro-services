@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `next` auf ≥ 16.3.3 heben — schließt zwei kritische unauth. RCE-GHSAs
@@ -115,3 +115,8 @@ No-op-Messmethode brauchten keine neue Regel (bestehende Lessons haben funktioni
 ---
 Branch: `chore/337-next-16-3-3-rce`
 Erstellt: 2026-09-15 21:40
+
+PR-Shepherd 2026-09-16: Merge freigegeben – Review APPROVED (nach Rework), Security-Review
+PASSED (Issue #339 für scope-fremden Fund ausgelagert), keine offenen PR-Review-Kommentare,
+kein Rebase gegen `origin/main` nötig (kein Drift), CI läuft (kein rotes Ergebnis), PR aus
+Draft geholt. `Closes #337` + `Closes #329` im PR-Body.
