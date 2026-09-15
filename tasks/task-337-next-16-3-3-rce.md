@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -71,6 +71,14 @@ weder GHSA-2xp9-vwfh-vxw4 noch GHSA-p293-qw3h-jr36 — beide geschlossen. Zwei n
 Scope dieser Task fallende `brace-expansion`-High-Advisories (CVE-2026-14257) sind aufgetaucht;
 das ist gemäß Spec-Abschnitt "Nicht inbegriffen" (kein pnpm-audit-Vollabgleich) nicht Teil
 dieser Task — Weitergabe an `/security-review` bzw. Kleinfund/Issue dort.
+
+**`/refactor`-Phase:** Wichtiges Review-Runde-1-Finding behoben – `ovr_count_337` hatte keinen
+eigenen Mutationsbeleg (nur eine Diskriminierungskontrolle über den real vorhandenen
+undici-Override). Ergänzt: synthetische Fixture mit zurückgekehrtem postcss-Override belegt,
+dass derselbe Zähl-Ausdruck ihn findet (`run-tests.sh`). Kein neues Verhalten, nur Test-Härtung
+– Suite davor 1550 grün/1 rot, danach 1551 grün/1 rot (derselbe unabhängige #334-Fund). Übrige
+Nitpicks aus dem Review (Kommentar-Länge, Label-Kosmetik) bewusst nicht angefasst – keine
+Verhaltens-/Korrektheitsrelevanz, unverhältnismäßig für einen reinen Security-Bump.
 
 **`/test`-Phase:** `pnpm test:coverage` grün — 803 passed, 59 skipped, 0 failed, Gesamt-Coverage
 90,14 % Statements / 94,68 % Branches (über der 80 %-Schwelle), keine Regression durch

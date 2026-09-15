@@ -5760,6 +5760,18 @@ done
 undici_ovr_count_337="$(ovr_count_337 undici)"
 assert_true "$([ "$undici_ovr_count_337" = "1" ]; echo $?)" \
   "#337 Diskriminierungs-Kontrolle: derselbe Zähl-Ausdruck findet den weiterhin nötigen undici-Override (ist: $undici_ovr_count_337)"
+
+# Mutationsbeleg für die drei Null-Zählungen (Review-Runde-1-Finding #337): die undici-Kontrolle
+# oben belegt nur, dass IRGENDEIN vorhandener Override gefunden wird – nicht spezifisch, dass ein
+# postcss-Override (falls er zurückkäme) ebenfalls träfe. Synthetische Fixture mit genau einer
+# postcss-Zeile schließt das.
+overrides_keys_291_saved_337="$overrides_keys_291"
+overrides_keys_291='  "postcss@<8.5.23": "^8.5.23"
+  "undici@<7.29.0": "^7.29.0"'
+mut_postcss_ovr_count_337="$(ovr_count_337 postcss)"
+overrides_keys_291="$overrides_keys_291_saved_337"
+assert_true "$([ "$mut_postcss_ovr_count_337" = "1" ]; echo $?)" \
+  "#337 Mutationsbeleg: derselbe Zähl-Ausdruck findet einen zurückgekehrten postcss-Override auf einer Fixture (ist: $mut_postcss_ovr_count_337)"
 assert_true "$(grep -qE '^  "esbuild@<0\.25\.0"' "$WORKSPACE_YAML_291"; echo $?)" \
   "#291 AK7: esbuild-Override bleibt erhalten (kein No-op – ohne ihn kommt esbuild@0.18.20 zurück)"
 
