@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -71,6 +71,13 @@ weder GHSA-2xp9-vwfh-vxw4 noch GHSA-p293-qw3h-jr36 — beide geschlossen. Zwei n
 Scope dieser Task fallende `brace-expansion`-High-Advisories (CVE-2026-14257) sind aufgetaucht;
 das ist gemäß Spec-Abschnitt "Nicht inbegriffen" (kein pnpm-audit-Vollabgleich) nicht Teil
 dieser Task — Weitergabe an `/security-review` bzw. Kleinfund/Issue dort.
+
+**`/test`-Phase:** `pnpm test:coverage` grün — 803 passed, 59 skipped, 0 failed, Gesamt-Coverage
+90,14 % Statements / 94,68 % Branches (über der 80 %-Schwelle), keine Regression durch
+next 16.3.5 / vitest 4.1.11. Kein neuer Anwendungscode in dieser Task (reiner Dependency-Bump)
+— zusätzliche Unit-Tests nicht nötig; die Test-Abdeckung der AKs liegt in den bereits
+reviewten Bash-Guard-Assertions (`run-tests.sh`, Mutationsbelege + Diskriminierungskontrollen)
+plus Build/Auth-E2E/Audit-Verifikation oben.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
