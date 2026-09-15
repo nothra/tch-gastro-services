@@ -211,6 +211,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Öffentliche API-Routen aus dem Auth-Proxy ausnehmen (aus #63)
 - Auto-Prefetch geschützter Routen belebt die Session nach dem Abmelden wieder (aus #164)
 - Früher Gate-/Drossel-Zweig vor einer Server-Action-Route muss deren Antwortprotokoll einhalten, sonst globaler Client-Crash statt Inline-Fehler (aus #297, Security-Review-Finding, Issue #331)
+- `/_next/image`-Rauchtest gegen beliebiges `public/`-Asset kann am eigenen Auth-Proxy-Matcher scheitern (interner Self-Fetch der Bildoptimierung läuft durch denselben Proxy) statt an der Optimierung selbst – gegen einen matcher-ausgenommenen Pfad testen (aus #337, /implement-Selbstfund)
 
 **[`lessons/db-drizzle.md`](lessons/db-drizzle.md)** – Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen · **Laden bei:** `/implement`, `/review`, `/test` bei Data-Layer (Drizzle)
 
@@ -274,7 +275,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Verschachtelte alte `@types/node`-Kopie (transitive Dependency) kollidiert mit generischem `Buffer`-Typ bei TS≥5.7 – Cast über die Ziel-Funktionssignatur, nicht `as unknown as Buffer` (aus #189)
 - `pnpm audit` scheitert in dieser Sandbox an einem Gzip-Decoding-Bug – Registry-Endpoint direkt per `curl` + manuellem `gunzip` abfragen liefert echte Advisory-Daten statt nur des Lockfile-Ersatzkriteriums (aus #228, /security-review-Selbstfund)
 - Override-Ziel-Range immer als Caret innerhalb derselben Major-Linie (nicht offenes `>=`), bei Advisories in zwei Major-Linien disjunkte Selektoren; ein „No-op"-Verdacht auf einen Override ist zu messen (entfernen, neu auflösen, Version prüfen), nicht aus der Parent-Range anzunehmen (aus #291, Review-Runde-1/2-Findings)
-- `pnpm audit` zeigt bei Paketen mit mehreren parallel gepflegten Major-Linien (z. B. `brace-expansion`) nur eine Range-Gruppe, die nicht zur per `pnpm why` aufgelösten Version passen muss – vor „echtes Finding" die volle GHSA-Advisory-Liste (`vulnerabilities[]` komplett) gegenprüfen (aus #231, /security-review-Selbstfund)
+- `pnpm audit` zeigt bei Paketen mit mehreren parallel gepflegten Major-Linien (z. B. `brace-expansion`) nur eine Range-Gruppe, die nicht zur per `pnpm why` aufgelösten Version passen muss – vor „echtes Finding" die volle GHSA-Advisory-Liste (`vulnerabilities[]` komplett) gegenprüfen (aus #231, /security-review-Selbstfund; drittes Vorkommnis als echte ungedeckte Major-Linie statt Anzeige-Artefakt aus #337, /security-review-Selbstfund)
+- `next dev` (≥16.3) schreibt automatisch einen `<!-- BEGIN:nextjs-agent-rules -->`-Block ans Ende von `CLAUDE.md`/`AGENTS.md` – gehört nicht in einen fachlichen Task-Commit, aus dem Diff entfernen (aus #337, Review-Runde-1-Finding)
 
 **[`lessons/code-style.md`](lessons/code-style.md)** – Clean-Code-Muster (Naming, Kommentar-Ort) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
 

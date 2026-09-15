@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -106,6 +106,11 @@ dritte parallel gepflegte Major-Linie ohne bestehenden Override) ausgelagert nac
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe `tasks/codify-337.md`. Zwei neue Lessons: `next dev` (≥16.3) committet einen
+Agent-Rules-Block in `CLAUDE.md`/`AGENTS.md` scope-fremd mit (build-tooling.md), und
+`/_next/image`-Rauchtests gegen `public/`-Assets können am eigenen Auth-Proxy-Matcher
+scheitern statt an der Optimierung (next-auth.md). Turn-Limit-Exhaustion und
+No-op-Messmethode brauchten keine neue Regel (bestehende Lessons haben funktioniert/bestätigt).
 
 ---
 Branch: `chore/337-next-16-3-3-rce`
