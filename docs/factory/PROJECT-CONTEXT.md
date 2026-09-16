@@ -265,6 +265,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - DOM-Adjazenz-Behauptung („unmittelbar") mit `toBe(index + 1)` statt `toBeGreaterThan` belegen – Rezidiv von #322 in neuer Domäne (aus #318, Review-Runde-1-Finding)
 - Positions-/Struktur-Test auf der Prop-Kombination schreiben, die der reale Produktions-Konsument tatsächlich nutzt, nicht auf dem Default-Pfad der Komponente (aus #318, Review-Runde-1-Finding)
 - Claude-Stub-Nebenwirkung in einem Mehr-Lauf-E2E-Szenario an Skill- UND Task-Marker binden, nicht nur den Skill-Marker – sonst schreibt der erste Lauf vorsorglich eine Datei für den zweiten, der dortige Report-Frische-Guard schlägt fehl, und der Test besteht nur zufällig über einen Fallback-Pfad statt den behaupteten (aus #334, /test-Selbstfund)
+- Locale-abhängige Zahlenformatierung/-parsing in Shell-Test-Utilities: `awk`-Ausdrücke, die Dezimalzahlen parsen/formatieren (`s+=$N`, `%.Nf`), brauchen ein lokales `LC_ALL=C`-Präfix am Aufruf – Rezidiv derselben Fehlerklasse wie #96 (bash-`printf`), diesmal in `awk` (aus #341, Bug-Fix-Selbstfund)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
