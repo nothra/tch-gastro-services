@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -112,6 +112,10 @@ extrahiert, `LC_ALL=C` daraus entfernt und über denselben Aufrufweg (Fixture-CS
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+Siehe [`tasks/review-341.md`](review-341.md) – alle drei Runden (Backend/Logik,
+Code-Qualität, Architektur) APPROVED, keine kritischen/wichtigen Findings, keine
+Out-of-Scope-Kandidaten.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
