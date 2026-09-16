@@ -8203,8 +8203,11 @@ STUB_334
   # (Review-Finding 2) unten UND den #341-Locale-Regressionstest: beide rufen denselben
   # Ausdruck, statt dass eine Kopie vom Original wegdriftet (lessons/testing.md,
   # Mutationsbeleg-Regel).
+  # LC_ALL=C (#341): ohne gesetzte Locale parst BSD-awk "0.05"/"0.08" unter einer
+  # Komma-Dezimaltrenner-Locale als 0 UND formatiert "%.2f" mit Komma – Ergebnis "0,00"
+  # statt "0.13". Präzedenz in dieser Datei: :4687, :7871.
   tele_cost_sum_334() {
-    awk -F, '$4=="implement" && $5=="claude_code.cost.usage"{s+=$10} END{printf "%.2f", s+0}' "$1"
+    LC_ALL=C awk -F, '$4=="implement" && $5=="claude_code.cost.usage"{s+=$10} END{printf "%.2f", s+0}' "$1"
   }
 
   # ── AK1/AK3/AK4/AK7 (Default an): CSV entsteht, ist committet und gepusht.

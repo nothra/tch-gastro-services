@@ -38,23 +38,23 @@ parst oder formatiert (Grep über `%.Nf`, `s+=$N`, `sum+=$N` → ein Treffer). D
 
 ## Akzeptanzkriterien
 
-- [ ] AK1 GIVEN `run-tests.sh` WHEN der Kostensummen-Helfer gelesen wird THEN enthält er den
+- [x] AK1 GIVEN `run-tests.sh` WHEN der Kostensummen-Helfer gelesen wird THEN enthält er den
       awk-Aufruf mit vorangestelltem `LC_ALL=C` und ist die einzige Stelle mit diesem Ausdruck
       (keine Kopie).
-- [ ] AK2 GIVEN der Helfer existiert WHEN die #334-Kostensummen-Assertion geprüft wird THEN
+- [x] AK2 GIVEN der Helfer existiert WHEN die #334-Kostensummen-Assertion geprüft wird THEN
       ruft sie den Helfer auf, statt den awk-Ausdruck auszuschreiben (Anker: volle Aufrufzeile,
       kein Fragment).
-- [ ] AK3 GIVEN eine Fixture-CSV mit `0.05`/`0.08` in Spalte 10 WHEN der Helfer unter
+- [x] AK3 GIVEN eine Fixture-CSV mit `0.05`/`0.08` in Spalte 10 WHEN der Helfer unter
       `LC_ALL=de_DE.UTF-8 LC_NUMERIC=de_DE.UTF-8` läuft THEN liefert er exakt `0.13`.
-- [ ] AK4 GIVEN dieser Regressionstest WHEN das `LC_ALL=C` im Helfer probeweise entfernt wird
+- [x] AK4 GIVEN dieser Regressionstest WHEN das `LC_ALL=C` im Helfer probeweise entfernt wird
       THEN schlägt er unter deutscher Locale fehl (Mutationsbeleg über den vollen Aufrufweg,
       tatsächlich ausgeführt und notiert).
-- [ ] AK5 GIVEN eine Umgebung ohne `de_DE.UTF-8` WHEN die Suite läuft THEN überspringt sich der
+- [x] AK5 GIVEN eine Umgebung ohne `de_DE.UTF-8` WHEN die Suite läuft THEN überspringt sich der
       Test über die vorhandene Variable `HAS_DE_LOCALE` mit Skip-Meldung im #96-Stil – keine
       zweite/dritte Locale-Verfügbarkeitsprüfung.
-- [ ] AK6 GIVEN die vollständige Bash-Self-Test-Suite WHEN sie einmal unter deutscher Locale
+- [x] AK6 GIVEN die vollständige Bash-Self-Test-Suite WHEN sie einmal unter deutscher Locale
       und einmal unter `LC_ALL=C` läuft THEN ist sie in beiden Läufen grün.
-- [ ] AK7 GIVEN die Pre-Push-Gates WHEN sie nach der Änderung laufen THEN sind sie grün.
+- [x] AK7 GIVEN die Pre-Push-Gates WHEN sie nach der Änderung laufen THEN sind sie grün.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -80,6 +80,35 @@ parst oder formatiert (Grep über `%.Nf`, `s+=$N`, `sum+=$N` → ein Treffer). D
 ## Offene Fragen
 
 - [x] Keine offen – Fix-Richtung, Schutz-Umfang und Test-Ansatz in `/requirements` geklärt.
+
+## Bug-Fix (2026-09-16)
+
+**Root Cause:** `scripts/checks/tests/run-tests.sh:8409` (vor dem Fix) – der Kostensummen-awk-
+Aufruf lief ohne gesetzte Locale; unter `de_DE.UTF-8` parst BSD-awk `0.05`/`0.08` als `0` und
+formatiert `%.2f` mit Dezimalkomma statt -punkt.
+
+**Reproduktion (RED):** Helfer `tele_cost_sum_334()` zunächst ohne `LC_ALL=C` extrahiert +
+neuer Locale-Regressionstest (`#341`) dagegen geschrieben und committet
+(`fix: reproducing test for task-341`) – isoliert wie im Beschreibungsteil verifiziert:
+Ergebnis `0,00` unter `LC_ALL=de_DE.UTF-8 LC_NUMERIC=de_DE.UTF-8`.
+
+**Fix (GREEN):** `LC_ALL=C` vor den `awk`-Aufruf in `tele_cost_sum_334()` gesetzt
+(`scripts/checks/tests/run-tests.sh:8209-8211`). Die echte #334-Assertion (`:8420`) und der
+neue Regressionstest rufen denselben Helfer auf – kein zweites Vorkommen des awk-Ausdrucks.
+
+**Mutationsbeleg (AK4):** die reale Helfer-Definition per `sed` unverändert aus der Datei
+extrahiert, `LC_ALL=C` daraus entfernt und über denselben Aufrufweg (Fixture-CSV,
+`LC_ALL=de_DE.UTF-8 LC_NUMERIC=de_DE.UTF-8`) ausgeführt → Ergebnis `0,00` (rot), mit
+`LC_ALL=C` → `0.13` (grün). Tatsächlich ausgeführt, nicht vermutet.
+
+**Verifikation:**
+- Volle Bash-Self-Test-Suite unter ambienter `de_DE.UTF-8`-Locale: `1561 grün, 0 rot`.
+- Volle Bash-Self-Test-Suite unter `LC_ALL=C`: `1561 grün, 0 rot`.
+- `pnpm`-Pre-Push-Gates (Tests/Typecheck/Format/Routen-Doku/Hooks/@import-Grenze): grün.
+
+**Hinweis für `/codify`:** Musterfehler war ein locale-abhängiger `awk`-Dezimal-Aufruf ohne
+`LC_ALL=C` – bereits als Kern-Kurzregel-Kandidat für `lessons/testing.md` (Klasse: `%.Nf`/
+`s+=$N`-awk-Ausdrücke brauchen denselben `LC_ALL=C`-Schutz wie #96 für bash-`printf`).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
