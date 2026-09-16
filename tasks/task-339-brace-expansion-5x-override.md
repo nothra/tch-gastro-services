@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -194,7 +194,10 @@ haben sich bestätigt, insbesondere die Frisch-Auflösung `5.0.12`.
       `/refactor`, wenn dort auch die AK5-Zusicherung neu bewertet wird.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Siehe [`tasks/codify-339.md`](codify-339.md). Kurzfassung: Lesson `factory-workflow.md` (#312)
+um ein drittes Vorkommnis ergänzt (gitignorete `*.tmp.*`-Reste), zwei `kleinfunde.md`-Einträge
+korrigiert (stale Paketliste + Zeilendrift), Issue **#342** für den Review-Circuit-Breaker-vs-
+Stale-Verdict-Guard-Konflikt in `run-pipeline.sh` angelegt.
 
 ---
 Branch: `fix/339-brace-expansion-5x-override`
