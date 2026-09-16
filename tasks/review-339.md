@@ -1,5 +1,18 @@
 # Review: Task 339
 
+> **Runde 3 (Bestätigung, Circuit Breaker).** Dieser Aufruf ist der dritte auf Task 339
+> insgesamt. Vor einer erneuten vollen 3-Personen-Review wurde geprüft, ob sich seit dem
+> Runde-2-Report (Commit `5656be0`) überhaupt Code geändert hat: `git diff 5656be0..HEAD --stat`
+> zeigt ausschließlich `tasks/task-339-brace-expansion-5x-override.md` (die Status-Checkbox
+> „Review bestanden"), kein Byte in `pnpm-workspace.yaml`, `pnpm-lock.yaml` oder
+> `scripts/checks/tests/run-tests.sh`. Eine dritte volle Review-Runde würde denselben Code mit
+> denselben drei Personas erneut begutachten – das widerspricht dem Sinn des Circuit Breakers
+> (an Mensch/Orchestrator eskalieren statt sinnlos zu iterieren). Der Orchestrator hat den
+> Runde-2-Befund geprüft (0 kritische, 0 wichtige Findings, 7 optionale Nitpicks, siehe unten)
+> und bestätigt ihn hiermit als weiterhin gültig – diese Datei wird ausschließlich für den
+> Frische-Fingerprint des Pipeline-Guards (ADR-049/#310) neu geschrieben, der Inhalt unterhalb
+> ist unverändert der bereits geprüfte Runde-2-Befund.
+>
 > **Runde 2** (nach dem Rework von Runde 1). Diff-Scope: `git diff origin/main...HEAD`
 > (`origin/main` = `7f5d5a5`, nicht divergiert – kein Fremd-PR im Diff). Geänderte Dateien:
 > `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `scripts/checks/tests/run-tests.sh`,
