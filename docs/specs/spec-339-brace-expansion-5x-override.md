@@ -34,8 +34,13 @@ mehreren parallel gepflegten Major-Linien nur eine Range-Gruppe je Advisory zeig
   resultierende Version feststellen – nicht aus der Parent-Range (`typescript-eslint`)
   annehmen (Analog zu #291/#337).
 - Erweiterung des Floor-Guards in `scripts/checks/tests/run-tests.sh`
-  (`floor_cases_291`-Tabelle) um einen dritten `brace-expansion`-Fall für die 5.x-Linie,
-  nach demselben Muster wie die bestehenden 1.x/2.x-Fälle.
+  (`floor_cases_291`-Tabelle) um neue `brace-expansion`-Fälle für die 4.x/5.x-Linie,
+  nach demselben Muster wie die bestehenden 1.x/2.x-Fälle. Anzahl und Major-Linien folgen der
+  Messung (siehe AK4), nicht der Annahme „ein Selektor = ein Fall".
+- Ein Major-`3`-Floor-Fall im selben Guard (Floor `3.0.6`) als Vorsorge: die 3er-Linie trägt
+  eigene Advisory-Floors, wird upstream weiter gepflegt und ist von **keinem** der drei
+  Override-Selektoren gedeckt – ohne den Fall zöge eine künftige 3.0.x still ein
+  (ergänzt in der Review-Rework-Runde, eine Tabellenzeile).
 
 **Nicht inbegriffen:**
 - Ein genereller `pnpm audit`-Vollabgleich über alle Pakete (bewusst außerhalb des Scopes,
@@ -57,9 +62,12 @@ mehreren parallel gepflegten Major-Linien nur eine Range-Gruppe je Advisory zeig
       wird die tatsächlich resultierende Version dokumentiert (No-op-Kriterium messen, nicht
       vermuten) – Ergebnis fließt in den Kommentar-Block ein.
 - [ ] GIVEN `scripts/checks/tests/run-tests.sh` WHEN die `floor_cases_291`-Tabelle geprüft wird
-      THEN enthält sie einen dritten `brace-expansion`-Fall (Major `4`, Floor `5.0.9`, Herkunft
-      `via minimatch@10 (typescript-eslint)` o. ä.), der bei einer künftigen Regression unter
-      den Floor real anschlägt.
+      THEN enthält sie **zwei** neue `brace-expansion`-Fälle für den einen Selektor (Major `4`
+      und Major `5`, beide Floor `5.0.9`), von denen der Major-`5`-Fall bei einer Regression
+      unter den Floor real anschlägt. Begründung (in der Implementierung gemessen): die
+      Extraktion filtert je Major-Linie, ein Major-`4`-Fall allein sähe die real aufgelöste
+      `5.x`-Kopie nie und wäre grün, ohne zu messen. Der Major-`4`-Fall bleibt als Vorsorge für
+      ein künftiges Hereinziehen einer 4.x-Kopie.
 - [ ] GIVEN die bestehenden 1.x/2.x-`brace-expansion`-Overrides und -Floor-Guards WHEN der neue
       Eintrag ergänzt wird THEN bleiben sie unverändert (keine Kollision der drei disjunkten
       Selektoren `<1.1.18` / `>=2.0.0 <2.1.4` / `>=4.0.0 <5.0.9`).
@@ -71,6 +79,9 @@ mehreren parallel gepflegten Major-Linien nur eine Range-Gruppe je Advisory zeig
 - [ ] Der neue Selektor überlappt versehentlich mit dem bestehenden 2.x-Eintrag oder mit einer
       zukünftigen 3.x-Linie → durch die exakte untere Schranke `>=4.0.0` ausgeschlossen; wird
       durch die bestehenden 1.x/2.x-Assertions plus den neuen Fall abgedeckt.
+- [ ] Eine künftige `brace-expansion@3.0.x` zieht unbemerkt ein: von keinem Selektor gedeckt
+      (`<1.1.18` ✗, `>=2.0.0 <2.1.4` ✗, `>=4.0.0 <5.0.9` ✗) → der Major-`3`-Floor-Fall im Guard
+      macht sie CI-rot, statt sie nur im Kommentar zu erwähnen.
 - [ ] Die Ziel-Range wird versehentlich offen (`>=5.0.9` statt `^5.0.9`) geschrieben → würde bei
       einem künftigen Major-Bump (6.x) unkontrolliert mitziehen; der bestehende
       Caret-Violations-Guard in `run-tests.sh` (AK5-Muster aus #291) erfasst das bereits
