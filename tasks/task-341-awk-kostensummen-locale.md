@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -116,6 +116,24 @@ extrahiert, `LC_ALL=C` daraus entfernt und über denselben Aufrufweg (Fixture-CS
 Siehe [`tasks/review-341.md`](review-341.md) – alle drei Runden (Backend/Logik,
 Code-Qualität, Architektur) APPROVED, keine kritischen/wichtigen Findings, keine
 Out-of-Scope-Kandidaten.
+
+## Test-Vollständigkeit (2026-09-16, `/test`)
+
+Kein Produktionscode geändert – nur `scripts/checks/tests/run-tests.sh`. Deshalb kein
+`pnpm test:coverage`-Delta zu erwarten; Baseline zur Kontrolle erneut gemessen:
+`90.14 % Statements` (Schwelle 80 %, unverändert gegenüber main, kein Rückgang).
+
+**AK-Abdeckungsmatrix:**
+- AK1/AK2 (strukturell): per Grep in `/review` verifiziert – einzige Stelle, echter
+  Aufruf über die volle Zeile, keine erneute Prüfung nötig.
+- AK3/AK6/AK7 (Verhalten): finaler Suite-Lauf auf dem committeten Stand erneut grün
+  (`1561 grün, 0 rot`, `#341`-Assertion `war: 0.13`); Pre-Push-Gates grün.
+- AK4 (Mutationsbeleg): bereits im Bug-Fix-Abschnitt oben dokumentiert und tatsächlich
+  ausgeführt – bewusst kein dauerhafter Mutationstest im Skript (Spec-Entscheidung).
+- AK5 (Skip-Pfad): trivialer `else`-Zweig, deckungsgleich mit dem bereits ungetesteten
+  `#96`-Skip-Muster in derselben Datei – kein Testgap, keine neue Konvention.
+
+Keine fehlenden Tests identifiziert, keine neuen Testdateien nötig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
