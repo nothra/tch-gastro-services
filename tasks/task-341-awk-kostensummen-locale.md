@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -154,6 +154,13 @@ Die vier Nitpicks aus `tasks/review-341.md` wurden geprüft und bewusst NICHT um
   `_310`/`_314`/`_334`-Namensmuster in derselben Datei, keine Umbenennung nötig.
 
 Tests unverändert grün (kein Code geändert, siehe `/test`-Abschnitt oben).
+
+## Security-Review (2026-09-16, `/security-review`)
+
+Siehe [`tasks/security-341.md`](security-341.md) – Ergebnis PASSED, keine kritischen/wichtigen
+Findings, keine Out-of-Scope-Kandidaten. Geprüft: Command Injection, Freitext-Ablage-Kanal
+(Fixture-CSV), Locale-Env-Var-Injection, Temp-Datei-Handling, Secrets/PII, Dependencies,
+Error Handling – alle nicht anwendbar bzw. unauffällig für diesen reinen Test-Suite-Fix.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
