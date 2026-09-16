@@ -7,7 +7,10 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd 2026-09-16: Merge freigegeben – alle Gates grün (CI, Tests, Security-Review
+PASSED, kein offenes Approval-Gate).
 
 ## Beschreibung
 Dritter, konditionaler `brace-expansion`-Override (4.x/5.x-Linie, Selektor
