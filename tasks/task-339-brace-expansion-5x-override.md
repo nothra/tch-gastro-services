@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -126,6 +126,19 @@ zunächst 1 rot – **False Positive**, kein Regressions-Fund: ein gitignoreter
 zufällig das vom Content-Scan-Guard verbotene Muster (exakt Lesson `factory-workflow.md`
 #312). Zwölf `scripts/*.tmp.sh`/`.tmp.log`-Reste über Wrapper-Skript entfernt, danach
 1560/0 grün.
+
+## Refactoring-Notizen (`/refactor`)
+Nitpick 1 (Runde 2) umgesetzt: `lessons/build-tooling.md:74` verweist jetzt inline auf die
+Ausnahme unterhalb, statt sie nur neun Zeilen später kommentarlos zu bringen – reine
+Doku-Präzisierung, kein Verhalten geändert. Bewusst **nicht** umgesetzt:
+- Nitpick 7 aus Runde 1 (drei strukturgleiche Zeilen-Assertions in `run-tests.sh` in ein
+  Tabellen-Muster überführen) – Spec-AK5 verlangt die 1.x/2.x-Assertions ausdrücklich
+  unverändert; ein Umbau würde genau das anfassen, ohne dass AK5 hier neu bewertet wurde.
+  Bleibt offen, außerhalb dieses Tasks.
+- Nitpicks 2, 3, 6, 7 (Runde 2: Zähl-Inkonsistenz Spec/Task, Kommentar-Straffung in
+  `pnpm-workspace.yaml`, Re-Bewertungs-Klausel, `kleinfunde.md`-Anker) – reine
+  Prosa-/Doku-Feilen ohne Code-Bezug, passender in `/codify` aufgehoben als hier.
+Tests unverändert grün (keine Code-Änderung in diesem Schritt).
 
 ## Offene Fragen
 _Keine._

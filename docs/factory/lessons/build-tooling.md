@@ -72,7 +72,7 @@ Version belegen (`pnpm why <paket>` bzw. Lockfile-Prüfung) – ergänzend die D
 (eigener Eintrag unten, #228). Nicht auf die Abwesenheit einer Fehlermeldung vertrauen.
 
 **Ziel-Range immer als Caret innerhalb derselben Major-Linie** (`^1.1.18`, nicht `>=1.1.18`, aus
-#291): Ein offenes `>=` lässt pnpm auf die neueste Major springen und schiebt damit einen
+#291) – Ausnahme siehe unten: Ein offenes `>=` lässt pnpm auf die neueste Major springen und schiebt damit einen
 Major-Bump in einen Baum, der ihn nicht angefordert hat – `">=2.1.4"` hob die von `minimatch@3`
 erwartete `brace-expansion@1.1.15` über die Major-Grenze auf 2.x, und der Alt-Eintrag
 `"uuid@<11.1.1": ">=11.1.1"` löst bis heute auf **14.0.1** auf, obwohl `exceljs` `^8.3.2`
