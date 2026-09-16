@@ -5549,6 +5549,9 @@ assert_true "$([[ "$adr043_status_line" = "Accepted" ]]; echo $?)" "#286: ADR-04
 # von sharp und js-yaml sind ANGEHOBEN (Muster „Floor angehoben statt zweiter Eintrag daneben",
 # #169/#291), browserslist/baseline-browser-mapping/vitest/@vitest/mocker sind als Fälle
 # ergänzt, und der next-Pin-Floor steht auf 16.3.3 (GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36).
+# #339 nutzt denselben Guard ebenso weiter: zwei brace-expansion-Fälle für die 4.x/5.x-Linie
+# (Floor 5.0.9, GHSA-rgw5-rvv9-x895 / GHSA-mh99-v99m-4gvg) plus die AK1-Zeile zum dritten
+# Override-Selektor weiter unten.
 echo "#291/#337 Dependency-Security-Floors (aufgelöste Lockfile-Versionen):"
 
 LOCKFILE_291="$FACTORY_ROOT/pnpm-lock.yaml"
@@ -5594,6 +5597,11 @@ floor_cases_291=(
   "nanoid|3|3.3.17|runtime, via postcss"
   "brace-expansion|1|1.1.18|runtime, via minimatch@3"
   "brace-expansion|2|2.1.4|runtime, via minimatch@5"
+  # #339: die 4.x/5.x-Linie deckt EIN Override-Selektor (>=4.0.0 <5.0.9) ab, hier stehen aber
+  # ZWEI Fälle – lock_versions_291 filtert je Major-Linie (grep "^  <paket>@<major>\."), ein
+  # Fall mit Major 4 sähe die real aufgelöste 5.0.7 also nie und wäre grün, ohne zu messen.
+  "brace-expansion|4|5.0.9|development, via minimatch@10 (typescript-eslint), Floor aus #339"
+  "brace-expansion|5|5.0.9|development, via minimatch@10 (typescript-eslint), Floor aus #339"
   "sharp|0|0.35.4|runtime, via next (Bildoptimierung), Floor aus #337"
   "undici|7|7.29.0|development, via jsdom"
   "js-yaml|4|4.3.2|development, via eslint, Floor aus #337"
@@ -5712,6 +5720,12 @@ assert_true "$(grep -qxF -- '  "brace-expansion@<1.1.18": "^1.1.18"' "$WORKSPACE
   "#291 AK5: brace-expansion@1.x-Override hebt innerhalb der 1er-Linie (^1.1.18)"
 assert_true "$(grep -qxF -- '  "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4"' "$WORKSPACE_YAML_291"; echo $?)" \
   "#291 AK5: brace-expansion@2.x-Override ist nach unten begrenzt (>=2.0.0) und greift nicht auf 1.x über"
+# #339 AK1: dritter Selektor für die 4.x/5.x-Linie. Die untere Schranke prüft nur diese Zeile –
+# der projektweite Konditionalitäts-Guard oben sieht ausschließlich die OBERE Schranke, ein
+# versehentliches "brace-expansion@<5.0.9" (das auch 1.x/2.x über die Major-Grenze höbe)
+# käme dort also unauffällig durch.
+assert_true "$(grep -qxF -- '  "brace-expansion@>=4.0.0 <5.0.9": "^5.0.9"' "$WORKSPACE_YAML_291"; echo $?)" \
+  "#339 AK1: brace-expansion@4.x/5.x-Override ist nach unten begrenzt (>=4.0.0) und hebt innerhalb der 5er-Linie (^5.0.9)"
 
 # Caret-Regel projektweit für ALLE neuen #291-Einträge, nicht nur brace-expansion – sharp/
 # undici/js-yaml tragen dieselbe Ziel-Range-Form und dürfen bei einem künftigen Umstellen auf
