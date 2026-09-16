@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -164,6 +164,11 @@ Error Handling – alle nicht anwendbar bzw. unauffällig für diesen reinen Tes
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Siehe [`tasks/codify-341.md`](codify-341.md) – neue Lesson „Locale-abhängige
+Zahlenformatierung/-parsing in Shell-Test-Utilities" (`lessons/testing.md`, aus #96/#341) +
+Index-Zeile in `PROJECT-CONTEXT.md`. Keine Review-/Security-Findings, die eine weitere Regel
+rechtfertigen.
 
 ---
 Branch: `fix/341-awk-kostensummen-locale`
