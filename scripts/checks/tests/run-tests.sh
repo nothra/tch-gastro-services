@@ -5592,19 +5592,19 @@ versions_below_floor_291() {
 }
 
 # Format: "<paket>|<major>|<floor>|<herkunft im Baum>"
+# #339: die 4.x/5.x-Linie deckt EIN Override-Selektor (>=4.0.0 <5.0.9) ab, hier stehen aber
+# DREI Fälle, weil lock_versions_291 je Major-Linie filtert (grep "^  <paket>@<major>\.") und
+# ein Fall damit nur seine eigene Linie sieht. Gemessen wird allein vom Major-5-Fall: er traf
+# im RED-Lauf die real aufgelöste 5.0.7, während der Major-4-Fall prompt grün war. Die Fälle
+# für Major 4 und 3 sind Vorsorge gegen ein künftiges Hereinziehen – heute löst der Baum in
+# beiden Linien keine Kopie auf (minimatch@10 deklariert ^5.0.5 und kann selbst keine 4.x
+# ziehen). Für Major 3 ist dieser Fall die EINZIGE Deckung: die 3er-Linie hat bewusst keinen
+# Override-Selektor (Begründung in pnpm-workspace.yaml), eine 3.0.x zöge sonst still ein.
 floor_cases_291=(
   "postcss|8|8.5.23|runtime, via next"
   "nanoid|3|3.3.17|runtime, via postcss"
   "brace-expansion|1|1.1.18|runtime, via minimatch@3"
   "brace-expansion|2|2.1.4|runtime, via minimatch@5"
-  # #339: die 4.x/5.x-Linie deckt EIN Override-Selektor (>=4.0.0 <5.0.9) ab, hier stehen aber
-  # DREI Fälle, weil lock_versions_291 je Major-Linie filtert (grep "^  <paket>@<major>\.") und
-  # ein Fall damit nur seine eigene Linie sieht. Gemessen wird allein vom Major-5-Fall: er traf
-  # im RED-Lauf die real aufgelöste 5.0.7, während der Major-4-Fall prompt grün war. Die Fälle
-  # für Major 4 und 3 sind Vorsorge gegen ein künftiges Hereinziehen – heute löst der Baum in
-  # beiden Linien keine Kopie auf (minimatch@10 deklariert ^5.0.5 und kann selbst keine 4.x
-  # ziehen). Für Major 3 ist dieser Fall die EINZIGE Deckung: die 3er-Linie hat bewusst keinen
-  # Override-Selektor (Begründung in pnpm-workspace.yaml), eine 3.0.x zöge sonst still ein.
   "brace-expansion|3|3.0.6|Vorsorge, heute keine 3.x-Kopie im Baum, kein Override-Selektor (#339)"
   "brace-expansion|4|5.0.9|Vorsorge, heute keine 4.x-Kopie im Baum, Floor in der 5er-Linie (#339)"
   "brace-expansion|5|5.0.9|development, via minimatch@10 (typescript-eslint), Floor aus #339"
@@ -5633,6 +5633,34 @@ mut_below_291="$(versions_below_floor_291 postcss 8 8.5.23 "$mut_lock_291")"
 assert_true "$([ "$mut_below_291" = " 8.5.16" ]; echo $?)" \
   "#291 Mutationsbeleg: Floor-Kette meldet auf einer Fixture mit postcss@8.5.16 genau diese Version (ist: '${mut_below_291}')"
 rm -f "$mut_lock_291"
+
+# Mutationsbeleg für die #339-Vorsorge-Fälle (Major 3 und Major 4): der Baum löst heute in
+# beiden Linien keine Kopie auf, die Fälle sind im Ist-Lauf also zwangsläufig grün, ohne etwas
+# zu messen (Lesson testing.md, #319 – In-Suite-Diskriminierungs-Kontrolle statt nur behaupteter
+# Deckung). Je Fall eine Fixture mit einer Kopie unter dem Floor MUSS anschlagen, sonst wäre ein
+# Tippfehler in Paketname/Major dauerhaft unsichtbar.
+mut_vorsorge3_339="$(mktemp)"
+printf '  brace-expansion@3.0.1:\n  brace-expansion@3.0.6:\n' > "$mut_vorsorge3_339"
+mut_vorsorge3_below_339="$(versions_below_floor_291 brace-expansion 3 3.0.6 "$mut_vorsorge3_339")"
+assert_true "$([ "$mut_vorsorge3_below_339" = " 3.0.1" ]; echo $?)" \
+  "#339 Mutationsbeleg: Major-3-Vorsorge-Fall meldet auf einer Fixture mit brace-expansion@3.0.1 genau diese Version (ist: '${mut_vorsorge3_below_339}')"
+mut_vorsorge3_clean_339="$(versions_below_floor_291 brace-expansion 3 3.0.1 "$mut_vorsorge3_339")"
+assert_true "$([ -z "$mut_vorsorge3_clean_339" ]; echo $?)" \
+  "#339 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 3.0.1 sauber (ist: '${mut_vorsorge3_clean_339}')"
+rm -f "$mut_vorsorge3_339"
+
+# Major-4-Fall zusätzlich mit einer 5.x-Nachbarzeile in derselben Fixture: belegt neben dem
+# Floor-Vergleich auch, dass lock_versions_291 die Major-Linien trennt (die 5.0.12-Zeile darf
+# beim Major-4-Filter nicht mitzählen, sonst wäre die Vorsorge-Zeile aus dem falschen Grund grün).
+mut_vorsorge4_339="$(mktemp)"
+printf '  brace-expansion@4.0.0:\n  brace-expansion@5.0.12:\n' > "$mut_vorsorge4_339"
+mut_vorsorge4_below_339="$(versions_below_floor_291 brace-expansion 4 5.0.9 "$mut_vorsorge4_339")"
+assert_true "$([ "$mut_vorsorge4_below_339" = " 4.0.0" ]; echo $?)" \
+  "#339 Mutationsbeleg: Major-4-Vorsorge-Fall meldet auf einer Fixture mit brace-expansion@4.0.0 genau diese Version, nicht die 5.x-Nachbarzeile (ist: '${mut_vorsorge4_below_339}')"
+mut_vorsorge4_clean_339="$(versions_below_floor_291 brace-expansion 5 5.0.9 "$mut_vorsorge4_339")"
+assert_true "$([ -z "$mut_vorsorge4_clean_339" ]; echo $?)" \
+  "#339 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-5-Filter gegen Floor 5.0.9 sauber (5.0.12 liegt darüber) (ist: '${mut_vorsorge4_clean_339}')"
+rm -f "$mut_vorsorge4_339"
 
 # Mutationsbeleg für den QUOTIERTEN Scoped-Schlüssel (#337): @vitest/mocker steht im Lockfile
 # als '@vitest/mocker@4.1.11': – ohne die Quote-Entfernung in lock_versions_291 fände die Kette
