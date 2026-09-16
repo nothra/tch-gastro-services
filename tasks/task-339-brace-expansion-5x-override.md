@@ -162,7 +162,8 @@ haben sich bestätigt, insbesondere die Frisch-Auflösung `5.0.12`.
       Sektions-Kommentar entschlackt und Floor-Zuordnung korrigiert (`5.0.9` kommt aus `rgw5`,
       `mh99` liegt mit `5.0.8`/`3.0.3` darunter); doppelte Herkunftszeichenkette fällt mit W3
       auseinander; `engines`-Wechsel im Lockfile-Diff ergänzt.
-- [ ] **Nitpick 7 bewusst nicht umgesetzt** (drei strukturgleiche Zeilen-Assertions in ein
+- **Nitpick 7 bewusst nicht umgesetzt** – kein offener Punkt, daher ohne Checkbox (drei
+      strukturgleiche Zeilen-Assertions in ein
       Tabellen-Muster überführen): der Umbau würde die bestehenden 1.x/2.x-Assertions
       umschreiben, und Spec-AK5 verlangt sie ausdrücklich **unverändert**. Kandidat für
       `/refactor`, wenn dort auch die AK5-Zusicherung neu bewertet wird.
