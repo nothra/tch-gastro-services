@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -134,6 +134,26 @@ Kein Produktionscode geändert – nur `scripts/checks/tests/run-tests.sh`. Desh
   `#96`-Skip-Muster in derselben Datei – kein Testgap, keine neue Konvention.
 
 Keine fehlenden Tests identifiziert, keine neuen Testdateien nötig.
+
+## Refactor-Notizen (2026-09-16, `/refactor`)
+
+Kein Refactoring durchgeführt – Checkliste (Naming, Funktionsgröße/SRP, Duplikation, Magic
+Numbers, Verschachtelung, WHY-Kommentare) gegen `git diff origin/main...HEAD` geprüft, keine
+Verstöße gefunden: `tele_cost_sum_334()` ist eine 1-Zeilen-Funktion ohne Flag-Parameter, der
+awk-Ausdruck kommt weiterhin nur einmal vor (Grep erneut bestätigt), Kommentare sind WHY.
+
+Die vier Nitpicks aus `tasks/review-341.md` wurden geprüft und bewusst NICHT umgesetzt:
+- `LC_ALL=…  LC_NUMERIC=…`-Redundanz: entspricht wörtlich der in `/requirements`
+  festgelegten Analogie zu #96 – Abweichung würde die Test-Lesbarkeit verschlechtern.
+- Kommentarlänge über dem Helfer: reines WHY, keine Redundanz zum Code.
+- `run_timestamp` mit heutigem statt synthetischem Datum: entspricht der bestehenden
+  Konvention dieser Datei (z. B. `:7988` nutzt ebenfalls ein reales Beobachtungsdatum statt
+  eines Platzhalters wie `1970-01-01`) – eine Änderung würde von dieser Konvention abweichen,
+  nicht sie einhalten.
+- Helfer-Name `tele_cost_sum_334` trägt die Nummer des Ursprungs-Issues: konsistent mit dem
+  `_310`/`_314`/`_334`-Namensmuster in derselben Datei, keine Umbenennung nötig.
+
+Tests unverändert grün (kein Code geändert, siehe `/test`-Abschnitt oben).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
