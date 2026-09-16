@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -114,6 +114,18 @@ und der Fall ist genau die in `lessons/testing.md` (#238) beschriebene Klasse �
 teurer Erst-Aufruf" – hier zusätzlich unter Parallel-Last, weil im selben Skript unmittelbar
 davor die Bash-Suite lief. Kein neues Issue: einmalig, nicht reproduzierbar, und die #238-
 Aufwärm-Mitigation steht in der Datei bereits.
+
+## Test-Notizen (`/test`)
+Nitpick 4 (Kommentar-Ort über statt in `floor_cases_291`) und Nitpick 5 (In-Suite-
+Diskriminierungs-Kontrolle für die Major-3/4-Vorsorge-Zeilen, `mut_vorsorge3_339`/
+`mut_vorsorge4_339`) waren bereits im Rework-Commit `5656be0` umgesetzt – `/test` hat das
+nur verifiziert, nichts Neues ergänzt. Vitest: 803/803 grün, Coverage 90.14 % Statements /
+94.68 % Branches / 80.88 % Funktionen / 90.17 % Lines (alle über der 80 %-Schwelle). Bash-Suite
+zunächst 1 rot – **False Positive**, kein Regressions-Fund: ein gitignoreter
+`scripts/suite-339-r3.tmp.log`-Rest aus einer früheren Session enthielt als Log-Zeile
+zufällig das vom Content-Scan-Guard verbotene Muster (exakt Lesson `factory-workflow.md`
+#312). Zwölf `scripts/*.tmp.sh`/`.tmp.log`-Reste über Wrapper-Skript entfernt, danach
+1560/0 grün.
 
 ## Offene Fragen
 _Keine._
