@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -169,6 +169,13 @@ Siehe [`tasks/codify-341.md`](codify-341.md) – neue Lesson „Locale-abhängig
 Zahlenformatierung/-parsing in Shell-Test-Utilities" (`lessons/testing.md`, aus #96/#341) +
 Index-Zeile in `PROJECT-CONTEXT.md`. Keine Review-/Security-Findings, die eine weitere Regel
 rechtfertigen.
+
+## PR-Shepherd
+
+PR-Shepherd 2026-09-16: Merge freigegeben – alle Gates grün (Review APPROVED, Tests
+vollständig, Security-Review PASSED, Refactoring ohne Änderungen, Codify ausgeführt). Keine
+offenen Review-Kommentare, Branch auf aktuellem `main`, keine Approval-Pflicht ausstehend,
+Draft-PR #343 auf „ready for review" gesetzt.
 
 ---
 Branch: `fix/341-awk-kostensummen-locale`
