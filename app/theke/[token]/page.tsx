@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltungByToken, listZeilen } from "@/db/veranstaltung";
-import { listActiveCatalog } from "@/db/catalog";
+import { STANDARD_CATALOG_ID, listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { adjustVerzehrByTokenAction } from "@/app/veranstaltung/actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "@/app/veranstaltung/labels";
@@ -21,7 +21,9 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
 
   const [zeilen, artikel, positionen] = await Promise.all([
     listZeilen(veranstaltung.id),
-    listActiveCatalog(),
+    // Wie die authentifizierte F5-Seite: Preisquelle ist bis #346 der Standard-Katalog
+    // (ADR-050 D3), die angebotene Auswahl bleibt unverändert (spec-59 AK8).
+    listActiveCatalog(STANDARD_CATALOG_ID),
     listPositionen(veranstaltung.id),
   ]);
   const editable = veranstaltung.status === "offen";

@@ -5,7 +5,7 @@ import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
-import { getCatalogItem } from "@/db/catalog";
+import { STANDARD_CATALOG_ID, getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
 import { KASSEN, veranstaltungStatus, type Kasse, type Veranstaltung } from "@/db/schema";
 import {
@@ -268,7 +268,9 @@ async function applyVerzehrAdjust(
   // Soft-Delete-Prüfung nach Laden by id (Codify #51, gelockert durch ADR-026 D2): ein
   // inaktiver Artikel ist nur anpassbar, wenn auf dieser Zeile bereits eine Position dafür
   // existiert (Korrektur eines bereits erfassten Verzehrs) – Neu-Erfassung bleibt blockiert.
-  const item = await getCatalogItem(catalogItemId);
+  // Katalog-gebundene Abfrage (ADR-050 D4): ein Artikel aus einem fremden Katalog ist kein
+  // Treffer und läuft in dieselbe bestehende Meldung wie ein unbekannter (spec-59 FS2).
+  const item = await getCatalogItem(catalogItemId, STANDARD_CATALOG_ID);
   if (!item) return { error: ITEM_NOT_FOUND };
   if (!item.active) {
     const existing = await getPosition(zeileId, catalogItemId);

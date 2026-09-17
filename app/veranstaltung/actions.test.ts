@@ -27,7 +27,9 @@ vi.mock("@/db/veranstaltung", () => ({
   ensureThekeForKasse: vi.fn(),
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
-vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn() }));
+// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
+// Action `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
+vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn(), STANDARD_CATALOG_ID: "standard" }));
 vi.mock("@/db/verzehr", () => ({
   adjustMenge: vi.fn(),
   getPosition: vi.fn(),
@@ -161,8 +163,13 @@ const zeile: VeranstaltungZeile = {
   updatedAt: new Date(),
 };
 
+// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Gegen die
+// Produktions-Konstante und das Migrations-Literal hält ihn der Drift-Guard in db/catalog.test.ts.
+const STANDARD_CATALOG_ID = "standard";
+
 const cola: CatalogItem = {
   id: "c1",
+  catalogId: STANDARD_CATALOG_ID,
   name: "Cola",
   size: "",
   priceCents: 250,
@@ -741,10 +748,22 @@ describe("adjustVerzehrAction", () => {
     expect(adjustMengeMock).not.toHaveBeenCalled();
   });
 
+  it("should_resolveItemInStandardCatalog_when_verzehrAdjusted", async () => {
+    // AK8/ADR-050 D4: die Verzehr-Grenze löst den Artikel bis #346 im Standard-Katalog auf.
+    // Ohne diese Wiring-Assertion bliebe ein `undefined` als Katalogbezug im Mock unauffällig.
+    await boundAction(validAdjust);
+
+    expect(getCatalogItemMock).toHaveBeenCalledWith("c1", STANDARD_CATALOG_ID);
+  });
+
   it("should_returnErrorAndNotPersist_when_catalogItemMissing", async () => {
+    // Deckt beide FS2-Hälften ab: ein gar nicht existierender UND ein im angefragten Katalog
+    // fremder Artikel kommen an dieser Grenze identisch als `undefined` an (db/catalog.test.ts
+    // belegt das katalog-gebundene `undefined`). Die Meldung wird als Literal geprüft, nicht nur
+    // auf „irgendein Fehler" – FS2 verlangt die bestehende Meldung, keinen Crash.
     getCatalogItemMock.mockResolvedValue(undefined);
     const result = await boundAction(validAdjust);
-    expect(result.error).toBeDefined();
+    expect(result.error).toBe("Artikel nicht gefunden.");
     expect(adjustMengeMock).not.toHaveBeenCalled();
   });
 

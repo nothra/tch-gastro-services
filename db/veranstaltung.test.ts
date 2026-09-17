@@ -3,7 +3,7 @@ import { inArray } from "drizzle-orm";
 import { db } from "./index";
 import { catalogItems, teilnehmer, veranstaltung } from "./schema";
 import { createTeilnehmer } from "./teilnehmer";
-import { createItem, updateItem } from "./catalog";
+import { STANDARD_CATALOG_ID, createItem, updateItem } from "./catalog";
 import { adjustMenge, listPositionen } from "./verzehr";
 import { listEreignisse } from "./veranstaltung-ereignis";
 import {
@@ -37,7 +37,7 @@ const createdItems: string[] = [];
 const AKTEUR = { userId: null, name: `${TEST_PREFIX}Vera` };
 
 async function trackItem(name: string, priceCents: number) {
-  const item = await createItem({
+  const item = await createItem(STANDARD_CATALOG_ID, {
     name: `${TEST_PREFIX}${name}`,
     size: "",
     priceCents,
@@ -300,7 +300,7 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
 
     // Der Verwalter ändert danach den Katalogpreis – die abgeschlossene Veranstaltung bleibt stabil
     // (Tagessummen fixiert, ADR-033 D2), weil der Preis beim Abschluss eingefroren wurde.
-    await updateItem(item.id, {
+    await updateItem(item.id, STANDARD_CATALOG_ID, {
       name: item.name,
       size: item.size,
       priceCents: 300,
@@ -341,7 +341,7 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const item = await trackItem("Fanta", 250);
     await adjustMenge(zeile.id, item.id, 1);
     await abschliessenVeranstaltung(v.id, AKTEUR);
-    await updateItem(item.id, {
+    await updateItem(item.id, STANDARD_CATALOG_ID, {
       name: item.name,
       size: item.size,
       priceCents: 300,

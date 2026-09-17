@@ -6,7 +6,12 @@ vi.mock("@/db/veranstaltung", () => ({
   getVeranstaltungByToken: vi.fn(),
   listZeilen: vi.fn(),
 }));
-vi.mock("@/db/catalog", () => ({ listActiveCatalog: vi.fn() }));
+// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
+// Seite `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
+vi.mock("@/db/catalog", () => ({
+  listActiveCatalog: vi.fn(),
+  STANDARD_CATALOG_ID: "standard",
+}));
 vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
 vi.mock("@/app/veranstaltung/actions", () => ({ adjustVerzehrByTokenAction: vi.fn() }));
 
@@ -58,8 +63,13 @@ const aZeile: VeranstaltungZeile = {
   updatedAt: new Date(),
 };
 
+// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Gegen die
+// Produktions-Konstante und das Migrations-Literal hält ihn der Drift-Guard in db/catalog.test.ts.
+const STANDARD_CATALOG_ID = "standard";
+
 const cola: CatalogItem = {
   id: "c-1",
+  catalogId: STANDARD_CATALOG_ID,
   name: "Cola",
   size: "0,5l",
   category: "getraenk",
@@ -72,6 +82,7 @@ const cola: CatalogItem = {
 
 const kuchen: CatalogItem = {
   id: "c-2",
+  catalogId: STANDARD_CATALOG_ID,
   name: "Kuchen",
   size: "",
   category: "essen",
@@ -112,6 +123,9 @@ describe("ThekePage", () => {
     expect(getByTokenMock).toHaveBeenCalledWith("tok-1");
     expect(listZeilenMock).toHaveBeenCalledWith("v-1");
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
+    // AK8: die Theke bleibt verhaltensneutral, weil sie bis #346 die Auswahl aus dem
+    // Standard-Katalog lädt (ADR-050 D3) – Wiring-Assertion gegen ein `undefined` im Mock.
+    expect(listActiveCatalogMock).toHaveBeenCalledWith(STANDARD_CATALOG_ID);
     // Kein gemerkter Name → Namens-Picker UND bereits Liste + Summen sichtbar (spec-54 AC B1),
     // aber die Erfassungs-Controls bleiben read-only, bis ein Name gewählt wurde.
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();

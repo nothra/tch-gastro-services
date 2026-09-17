@@ -1,7 +1,7 @@
 # Task 59: preis-templates-veranstaltungstyp
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -23,25 +23,25 @@ Spec: [`docs/specs/spec-59-katalog-als-entitaet.md`](../docs/specs/spec-59-katal
 
 ## Akzeptanzkriterien
 
-- [ ] **AK1** – Katalog-Entität existiert (Name, Aktiv-Kennzeichen, Sortierung); Name eindeutig
-- [ ] **AK2** – Standard-Katalog „Montagsrunde" angelegt, **alle** bestehenden Artikel zugeordnet
-- [ ] **AK3** – Katalogbezug je Artikel ist DB-Pflicht (fail-closed, referenziell)
-- [ ] **AK4** – Duplikat-Regel gilt je Katalog (gleicher Name+Größe in K2 erlaubt, in K1 nicht);
+- [x] **AK1** – Katalog-Entität existiert (Name, Aktiv-Kennzeichen, Sortierung); Name eindeutig
+- [x] **AK2** – Standard-Katalog „Montagsrunde" angelegt, **alle** bestehenden Artikel zugeordnet
+- [x] **AK3** – Katalogbezug je Artikel ist DB-Pflicht (fail-closed, referenziell)
+- [x] **AK4** – Duplikat-Regel gilt je Katalog (gleicher Name+Größe in K2 erlaubt, in K1 nicht);
       Nutzermeldung unverändert
-- [ ] **AK5** – Umbenennen des Katalogs bricht nichts (Auflösung wertet den Namen nicht aus)
-- [ ] **AK6** – Artikel-Abfrage per ID ist katalog-gebunden (Parent-Key im `WHERE`)
-- [ ] **AK7** – Verhaltensneutral für den `verwalter` (`/verwaltung/katalog` unverändert)
-- [ ] **AK8** – Verhaltensneutral für Veranstalter und Theke (Verzehrerfassung, `/theke/[token]`)
-- [ ] **AK9** – Migration wiederholbar und leer-DB-fest (kein zweiter Standard-Katalog)
-- [ ] **AK10** – ADR zum Modell + Begriff „Katalog" in `PROJECT-CONTEXT.md` fortgeschrieben
+- [x] **AK5** – Umbenennen des Katalogs bricht nichts (Auflösung wertet den Namen nicht aus)
+- [x] **AK6** – Artikel-Abfrage per ID ist katalog-gebunden (Parent-Key im `WHERE`)
+- [x] **AK7** – Verhaltensneutral für den `verwalter` (`/verwaltung/katalog` unverändert)
+- [x] **AK8** – Verhaltensneutral für Veranstalter und Theke (Verzehrerfassung, `/theke/[token]`)
+- [x] **AK9** – Migration wiederholbar und leer-DB-fest (kein zweiter Standard-Katalog)
+- [x] **AK10** – ADR zum Modell + Begriff „Katalog" in `PROJECT-CONTEXT.md` fortgeschrieben
 
 ### Fehlerszenarien
 
-- [ ] **FS1** – Artikel ohne Katalog wird von der DB abgelehnt
-- [ ] **FS2** – Unbekannter/fremder Artikel an der Verzehr-Grenze → bestehende Fehlermeldung, kein Crash
-- [ ] **FS3** – Unique-Verletzung (23505) weiterhin als Nutzermeldung, nicht als technischer Fehler
-- [ ] **FS4** – Soft-Delete unverändert (deaktivierter Artikel bleibt zugeordnet und auflösbar)
-- [ ] **FS5** – Referenz-Schutz: keine Artikel ohne Katalog durch Katalog-Entfernung
+- [x] **FS1** – Artikel ohne Katalog wird von der DB abgelehnt
+- [x] **FS2** – Unbekannter/fremder Artikel an der Verzehr-Grenze → bestehende Fehlermeldung, kein Crash
+- [x] **FS3** – Unique-Verletzung (23505) weiterhin als Nutzermeldung, nicht als technischer Fehler
+- [x] **FS4** – Soft-Delete unverändert (deaktivierter Artikel bleibt zugeordnet und auflösbar)
+- [x] **FS5** – Referenz-Schutz: keine Artikel ohne Katalog durch Katalog-Entfernung
 
 ## Technische Notizen
 
@@ -125,6 +125,48 @@ aus `FormData`, die Action setzt ihn (ADR-050 D4). Kein neues Formularfeld → A
       alle sechs, als **Pflichtparameter** ohne Default; `catalogId` nie aus `FormData`.
 - [ ] Wie erreicht der `verwalter` das Umbenennen bis #345 (bis dahin nur direkt in der DB)?
       Bleibt offen – ein minimaler Pflege-Weg würde den Schnitt „verhaltensneutral" verlassen.
+
+## Implementierungs-Notizen (`/implement`, 2026-09-17)
+
+**Gates:** Lint grün (`pre-commit.sh`), `pnpm typecheck` grün, Vitest **885/885 grün, 0 skipped**
+gegen eine frisch migrierte DB. Playwright-E2E grün (8 passed, 3 skipped); der
+`CredentialsSignin`-Stacktrace im Server-Log stammt aus dem Test „falsche Zugangsdaten" und ist
+erwartetes Verhalten.
+
+**AK9 / Leer-DB gegen einen Wegwerf-Container verifiziert** (nicht gegen die geteilte Dev-DB, die
+nicht zerstört werden sollte): frischer `postgres:18-alpine`, alle Migrationen der Reihe nach →
+genau **ein** Katalog (`standard | Montagsrunde | active`), **16** Artikel, davon **0** ohne
+Katalog und **0** außerhalb von `standard`. Direkt am SQL nachgewiesen: AK3/FS1 (NOT-NULL greift),
+AK4 in **beiden** Richtungen (gleiche Kombi in K2 gelingt, in `standard` scheitert mit
+`catalog_item_catalog_name_size_unique`), FS5 (FK verhindert das Löschen eines belegten Katalogs).
+Die Reihenfolge stimmt auch fachlich: `0004` seedet mit `ON CONFLICT (name, size)` **vor** dem
+Constraint-Tausch in `0012` – ein Repo-weiter Grep belegt, dass es keine weitere Stelle mit
+`ON CONFLICT (name, size)` gibt.
+
+**Duplikat-Test zusammengeführt (Lesson #240):** der neu geschriebene AK4-Test
+`should_rejectDuplicate_when_sameNameAndSizeInSameCatalog` hatte denselben Rumpf wie der bereits
+vorhandene spec-49-Test `should_rejectDuplicate_when_sameNameAndSize`. Statt zwei parallele
+Varianten stehen zu lassen, ist der alte Test im AK4-Block aufgegangen (Kommentar dort erklärt es).
+
+**Nachgezogen gegenüber dem vorgefundenen Stand:** Wiring-Assertion
+`getCatalogItem(id, STANDARD_CATALOG_ID)` an der Verzehr-Grenze (AK8) fehlte – die Konstante war
+im Test zwar deklariert, aber nie gegen den Aufruf assertiert. FS2 prüft die Meldung jetzt als
+Literal (`"Artikel nicht gefunden."`), nicht mehr nur „irgendein Fehler".
+
+### Befunde, die NICHT zu dieser Task gehören (nicht behoben, Scope)
+
+1. **Lokale Dev-DB ist driftet, keine Regression.** `should_containSeededReferenceList_when_freshly
+   Migrated` schlägt gegen die geteilte Dev-DB fehl, weil dort die Referenz-Preisliste aus
+   Migration `0004` **gar nicht** vorhanden ist (8 Artikel, u. a. „Testbier 354321" aus alten
+   E2E-Läufen). Belegt als Umgebung, nicht als Code: eine ungefilterte `SELECT`-Abfrage zeigt die
+   Zeile nirgends, und gegen eine frische DB ist derselbe Test grün. `0004` ist im drizzle-Journal
+   als angewandt vermerkt und läuft daher nicht erneut. **Behebung wäre ein Neuaufsetzen des
+   lokalen DB-Volumes** – bewusst nicht getan, weil das Volume mit dem Haupt-Checkout geteilt wird.
+2. **Vorbestehender Flake zwischen zwei Testdateien.** `db/veranstaltung.test.ts` und
+   `db/verzehr.test.ts` legen beide `__test__Cola` mit leerer Größe an; laufen sie parallel, kollidieren
+   sie auf der Unique-Constraint. Unter der **alten** globalen `UNIQUE(name, size)` war die
+   Kollision identisch möglich – also kein Effekt von #59. Isoliert und gemeinsam sind beide
+   Dateien grün, gegen eine frische DB die ganze Suite. Kandidat für `kleinfunde.md`/Issue.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

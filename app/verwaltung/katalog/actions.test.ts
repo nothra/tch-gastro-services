@@ -6,10 +6,13 @@ import { ForbiddenError } from "@/lib/authz";
 // selbst (lib/authz) läuft echt – er gehört zur selben Server-Schicht und wird über die
 // auth()-Session gesteuert (Testing-Standards: keine Mocks interner Klassen der Schicht).
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
+// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichten die
+// Actions `undefined` als Katalogbezug durch und die Wiring-Assertionen unten wären wertlos.
 vi.mock("@/db/catalog", () => ({
   createItem: vi.fn(),
   updateItem: vi.fn(),
   setItemActive: vi.fn(),
+  STANDARD_CATALOG_ID: "standard",
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
@@ -25,6 +28,10 @@ const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
 const createItemMock = vi.mocked(createItem);
 const updateItemMock = vi.mocked(updateItem);
 const setItemActiveMock = vi.mocked(setItemActive);
+
+// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Gegen die
+// Produktions-Konstante und das Migrations-Literal hält ihn der Drift-Guard in db/catalog.test.ts.
+const STANDARD_CATALOG_ID = "standard";
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -58,6 +65,7 @@ describe("createCatalogItemAction", () => {
 
     expect(result).toEqual({ ok: true });
     expect(createItemMock).toHaveBeenCalledWith(
+      STANDARD_CATALOG_ID,
       expect.objectContaining({
         name: "Cola",
         size: "0,5 l",
@@ -65,6 +73,21 @@ describe("createCatalogItemAction", () => {
         category: "getraenk",
       }),
     );
+  });
+
+  it("should_neverTakeCatalogFromFormData_when_clientSendsCatalogId", async () => {
+    // ADR-050 D4: `catalogId` wird serverseitig gesetzt und nie aus `FormData` geparst – ein
+    // Client kann keinen fremden Katalog als Schreibziel angeben. Ohne diesen Test wäre die
+    // Zusicherung nur durch Codelesen belegt.
+    const result = await createCatalogItemAction(
+      undefined,
+      form({ ...validFields, catalogId: "fremd" }),
+    );
+
+    expect(result).toEqual({ ok: true });
+    const [catalogId, data] = createItemMock.mock.calls[0];
+    expect(catalogId).toBe(STANDARD_CATALOG_ID);
+    expect(data).not.toHaveProperty("catalogId");
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
@@ -108,6 +131,7 @@ describe("updateCatalogItemAction", () => {
     expect(result).toEqual({ ok: true });
     expect(updateItemMock).toHaveBeenCalledWith(
       "abc",
+      STANDARD_CATALOG_ID,
       expect.objectContaining({ priceCents: 210 }),
     );
   });
@@ -158,12 +182,12 @@ describe("updateCatalogItemAction", () => {
 describe("setCatalogItemActiveAction", () => {
   it("should_deactivate_when_activeFalse", async () => {
     await setCatalogItemActiveAction(form({ id: "abc", active: "false" }));
-    expect(setItemActiveMock).toHaveBeenCalledWith("abc", false);
+    expect(setItemActiveMock).toHaveBeenCalledWith("abc", STANDARD_CATALOG_ID, false);
   });
 
   it("should_reactivate_when_activeTrue", async () => {
     await setCatalogItemActiveAction(form({ id: "abc", active: "true" }));
-    expect(setItemActiveMock).toHaveBeenCalledWith("abc", true);
+    expect(setItemActiveMock).toHaveBeenCalledWith("abc", STANDARD_CATALOG_ID, true);
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {

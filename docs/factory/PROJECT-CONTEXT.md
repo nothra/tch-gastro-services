@@ -36,9 +36,18 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
   Status `offen`/`abgeschlossen`). Essen ist **kein** Feld der Veranstaltung, sondern ein
   Katalogartikel (ADR-023 §D4/§D7).
 - **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
-- **Katalog** – pflegbare Preisliste je Kategorie (`getraenk`/`kaffee`/`essen`); **Kaffee**
-  und **Essen** sind Katalogartikel mit **festem** Preis (Essen = Kategorie `essen`, kein
-  Veranstaltungs-Property), gewählt bei der Erfassung (ADR-023 §D4/§D7, #116).
+- **Katalog** – eine **benannte, eigenständige Preisliste** und damit das Preis-Template
+  (ADR-050, #59): „Montagsrunde" und „Dorfmeisterschaften" sind zwei Kataloge mit eigenen
+  Artikeln und Preisen. Jeder **Katalogartikel** gehört zu genau einem Katalog (Pflichtbezug,
+  DB-fail-closed); die Duplikat-Regel „gleicher Name + Größe" gilt **je Katalog**, nicht global.
+  Ein eigener fachlicher „Veranstaltungstyp" existiert **nicht** – die Typ-Semantik trägt der
+  Katalogname; `kasse` ist **nicht** die Preis-Achse (Kasse = Geldtopf, Katalog = Preisliste).
+  Artikel tragen eine Kategorie (`getraenk`/`kaffee`/`essen`); **Kaffee** und **Essen** sind
+  Katalogartikel mit **festem** Preis (Essen = Kategorie `essen`, kein Veranstaltungs-Property),
+  gewählt bei der Erfassung (ADR-023 §D4/§D7, #116).
+  Stand #59: es existiert genau **ein** geseedeter Katalog („Montagsrunde", stabiler Key
+  `standard`), und alle Bedienwege nutzen ihn – mehrere Kataloge pflegen (#345) und den Katalog
+  je Veranstaltung wählen (#346) folgen.
 - **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
 - **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
   Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
