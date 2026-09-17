@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -334,6 +334,27 @@ sichtbaren Lücken liegen ausschließlich in **von #59 nicht berührtem** Code:
 
 Neue Tests waren daher nicht nötig; die vorhandene Suite aus den drei `/implement`-Runden und
 Review-Runde 2 ist vollständig.
+
+## Refactoring-Notizen (`/refactor`, 2026-09-17)
+
+**Kein Produktionscode geändert** – nur die eine wichtige Review-Finding aus Runde 2 behoben, die
+explizit dem `/refactor`-Schritt zugewiesen war (keine weitere `/implement`-Runde nötig): der
+viermal kopierte Kommentar über `STANDARD_CATALOG_ID = "standard"` in fünf Wiring-Test-Dateien
+(`app/theke/[token]/page.test.tsx`, `app/veranstaltung/actions.test.ts`,
+`app/veranstaltung/[id]/verzehr/page.test.tsx`, `app/verwaltung/katalog/actions.test.ts`,
+`app/verwaltung/katalog/page.test.tsx`) behauptete, der Drift-Guard aus `db/catalog.test.ts`
+halte dieses test-lokale Literal gegen Produktionskonstante und Migration – der Guard liest diese
+fünf Dateien nie (Lesson #319). Kommentar korrigiert: das Literal ist unabhängig auf denselben
+Wert gesetzt, der Drift-Guard prüft ausschließlich `db/catalog.ts` gegen die Migrationsdatei.
+
+Restlicher geänderter Code (`db/catalog.ts`, `app/verwaltung/katalog/actions.ts`) wurde gegen die
+Checkliste geprüft (Naming, Funktionsgröße, Parameteranzahl, Duplikation, Magic Numbers,
+Verschachtelung) – keine weiteren Findings, beides bereits knapp und klar strukturiert.
+
+**Gates:** `pre-commit.sh` grün, `pre-push.sh` grün (Vitest 812/888 grün + 76 skipped ohne
+`DATABASE_URL` – wie erwartet, keine DB-Integrationstests in diesem Schritt nötig, da keine
+Produktionslogik geändert wurde; Typecheck, Format, Routen-Doku-Drift, Hook-Installation,
+`@import`-Deckel 893/1100 alle grün).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

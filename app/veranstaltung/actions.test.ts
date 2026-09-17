@@ -163,8 +163,9 @@ const zeile: VeranstaltungZeile = {
   updatedAt: new Date(),
 };
 
-// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Gegen die
-// Produktions-Konstante und das Migrations-Literal hält ihn der Drift-Guard in db/catalog.test.ts.
+// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Der Drift-Guard in
+// db/catalog.test.ts hält Produktions-Konstante und Migrations-Literal gegeneinander – er liest
+// dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
 const STANDARD_CATALOG_ID = "standard";
 
 const cola: CatalogItem = {
