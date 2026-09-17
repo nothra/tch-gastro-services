@@ -82,16 +82,43 @@ export const verificationTokens = pgTable(
 export const catalogCategory = pgEnum("catalog_category", ["getraenk", "kaffee", "essen"]);
 export type CatalogCategory = (typeof catalogCategory.enumValues)[number];
 
+// Der Katalog ist die benannte Preisliste und damit das Preis-Template (ADR-050 D1/D2, #59):
+// „Montagsrunde" und „Dorfmeisterschaften" sind zwei Kataloge mit eigenen Artikeln und Preisen.
+// `name` ist unique – bewusst anders als teilnehmer.name (ADR-022): der Katalogname ist ein
+// gewähltes Etikett, das in #346 die Auswahl des Veranstalters trägt; zwei gleichnamige Kataloge
+// machen diese Auswahl unlesbar. `active` entsteht ohne Wirkung und wird erst in #345 verdrahtet
+// (ADR-050 D7) – `listActiveCatalog` filtert weiterhin nur catalog_item.active.
+export const catalog = pgTable("catalog", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => globalThis.crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Catalog = typeof catalog.$inferSelect;
+export type NewCatalog = typeof catalog.$inferInsert;
+
 // Artikel werden nie hart gelöscht, sondern über `active` deaktiviert/reaktiviert
 // (spec-49). Preis als ganzzahlige Cent (ADR-021, Spalte *_cents). `size` ist
 // NOT NULL DEFAULT '' (leer = "ohne Größe", z. B. Kaffee), damit die Duplikat-Regel
-// eine einfache zusammengesetzte Unique-Constraint UNIQUE(name, size) ist.
+// eine einfache zusammengesetzte Unique-Constraint ist – seit ADR-050 D2 je Katalog
+// (catalog_id, name, size) statt global (name, size).
 export const catalogItems = pgTable(
   "catalog_item",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => globalThis.crypto.randomUUID()),
+    // Pflichtbezug auf den Katalog, fail-closed in der DB (ADR-050 D2). Kein onDelete
+    // (Postgres-Default "no action", faktisch restriktiv): Kataloge werden nie hart gelöscht,
+    // also kann es keinen Artikel ohne Katalog geben (spec-59 FS5).
+    catalogId: text("catalog_id")
+      .notNull()
+      .references(() => catalog.id),
     name: text("name").notNull(),
     size: text("size").notNull().default(""),
     priceCents: integer("price_cents").notNull(),
@@ -101,7 +128,11 @@ export const catalogItems = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (item) => [unique("catalog_item_name_size_unique").on(item.name, item.size)],
+  // `catalog_id` steht vorn (ADR-050 D2): der Btree-Index der Constraint bedient damit die
+  // katalog-gefilterten Lesezugriffe vollständig – ein separater FK-Index wäre redundant.
+  (item) => [
+    unique("catalog_item_catalog_name_size_unique").on(item.catalogId, item.name, item.size),
+  ],
 );
 
 export type CatalogItem = typeof catalogItems.$inferSelect;

@@ -36,9 +36,18 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
   Status `offen`/`abgeschlossen`). Essen ist **kein** Feld der Veranstaltung, sondern ein
   Katalogartikel (ADR-023 §D4/§D7).
 - **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
-- **Katalog** – pflegbare Preisliste je Kategorie (`getraenk`/`kaffee`/`essen`); **Kaffee**
-  und **Essen** sind Katalogartikel mit **festem** Preis (Essen = Kategorie `essen`, kein
-  Veranstaltungs-Property), gewählt bei der Erfassung (ADR-023 §D4/§D7, #116).
+- **Katalog** – eine **benannte, eigenständige Preisliste** und damit das Preis-Template
+  (ADR-050, #59): „Montagsrunde" und „Dorfmeisterschaften" sind zwei Kataloge mit eigenen
+  Artikeln und Preisen. Jeder **Katalogartikel** gehört zu genau einem Katalog (Pflichtbezug,
+  DB-fail-closed); die Duplikat-Regel „gleicher Name + Größe" gilt **je Katalog**, nicht global.
+  Ein eigener fachlicher „Veranstaltungstyp" existiert **nicht** – die Typ-Semantik trägt der
+  Katalogname; `kasse` ist **nicht** die Preis-Achse (Kasse = Geldtopf, Katalog = Preisliste).
+  Artikel tragen eine Kategorie (`getraenk`/`kaffee`/`essen`); **Kaffee** und **Essen** sind
+  Katalogartikel mit **festem** Preis (Essen = Kategorie `essen`, kein Veranstaltungs-Property),
+  gewählt bei der Erfassung (ADR-023 §D4/§D7, #116).
+  Stand #59: es existiert genau **ein** geseedeter Katalog („Montagsrunde", stabiler Key
+  `standard`), und alle Bedienwege nutzen ihn – mehrere Kataloge pflegen (#345) und den Katalog
+  je Veranstaltung wählen (#346) folgen.
 - **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
 - **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
   Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
@@ -266,6 +275,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Positions-/Struktur-Test auf der Prop-Kombination schreiben, die der reale Produktions-Konsument tatsächlich nutzt, nicht auf dem Default-Pfad der Komponente (aus #318, Review-Runde-1-Finding)
 - Claude-Stub-Nebenwirkung in einem Mehr-Lauf-E2E-Szenario an Skill- UND Task-Marker binden, nicht nur den Skill-Marker – sonst schreibt der erste Lauf vorsorglich eine Datei für den zweiten, der dortige Report-Frische-Guard schlägt fehl, und der Test besteht nur zufällig über einen Fallback-Pfad statt den behaupteten (aus #334, /test-Selbstfund)
 - Locale-abhängige Zahlenformatierung/-parsing in Shell-Test-Utilities: `awk`-Ausdrücke, die Dezimalzahlen parsen/formatieren (`s+=$N`, `%.Nf`), brauchen ein lokales `LC_ALL=C`-Präfix am Aufruf – Rezidiv derselben Fehlerklasse wie #96 (bash-`printf`), diesmal in `awk` (aus #341, Bug-Fix-Selbstfund)
+- Gleicher Testdaten-Namensliteral in mehreren DB-Integrationstestdateien (gleiche Tabelle, gleiche Unique-Constraint-Spalte) kollidiert unter Vitests Parallelisierung – je Datei ein eigenes Namensfenster statt geteiltem Präfix; Konvention ohne Enforcer, Kommentar muss alle Namensfelder der Tabelle nennen (aus #59/#347)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
@@ -291,7 +301,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - „Empirisch verifiziert" im Kommentar ohne tatsächliche Prüfung in dieser Session – Rezidiv an anderer Stelle trotz Fix, plus Versionsangabe unbemerkt auf 7 Stellen kopiert (aus #268, Review-Runde 2 W3 + Runde 4 W1)
 - JSDoc auf einem geteilten Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten mit abweichendem Wert – gleiches Muster an einem Nachbarfeld derselben Struktur übersehen (aus #182, Review-Runde 1 W2 + Runde 2 Nitpick 1)
 - TL;DR-Merksatz über einem umformulierten Detail-Absatz im selben Abschnitt nicht mitgezogen – Widerspruch existiert rein innerhalb der eigenen, im selben PR neu verfassten Prosa, keine externe Referenz nötig, um ihn zu finden (aus #322, Review-Runde-3-Finding)
-- „X erzwingt Y" ist eine überprüfbare Tatsachenbehauptung über fremden Code – vor dem Schreiben den Enforcer öffnen (wo verdrahtet? was lehnt er ab?); dreimal falsch im selben PR, einmal gegen Information aus derselben Session (aus #319)
+- „X erzwingt Y" ist eine überprüfbare Tatsachenbehauptung über fremden Code – vor dem Schreiben den Enforcer öffnen (wo verdrahtet? was lehnt er ab?); dreimal falsch im selben PR, einmal gegen Information aus derselben Session (aus #319); Rezidiv beim **Kopieren** eines bereits geschriebenen Kommentars in vier Geschwisterdateien, erst in `/review` gefunden (aus #59)
 - Massen-Ersetzung beim Extrahieren eines Helfers trifft auch dessen eigenen Rumpf → Selbstrekursion; „null verbliebene Vorkommen" ist das Warnzeichen, nicht der Erfolg (aus #319, /refactor-Selbstfund)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile

@@ -10,7 +10,9 @@ Accepted
 
 Issue #137 ([spec-137](../specs/spec-137-verzehr-groesse-anzeigen-gruppieren.md)) verfeinert die
 Anzeige der Artikelauswahl in der Verzehr-Erfassung (F5, [ADR-025](025-verzehr-erfassung-datenmodell.md)).
-Das Katalogmodell trägt `name` **und** `size` mit `UNIQUE(name, size)` – derselbe Artikelname
+Das Katalogmodell trägt `name` **und** `size` mit `UNIQUE(name, size)` (seit
+[ADR-050](050-katalog-als-template-entitaet.md) D2: `UNIQUE(catalog_id, name, size)` – die Regel
+gilt je Katalog; an dieser Anzeige-Entscheidung ändert das nichts) – derselbe Artikelname
 existiert ggf. in mehreren Größen (z. B. „Cola · 0,3 l" / „Cola · 0,5 l"). Bisher zeigt die
 Erfassung nur `{name} · {preis}` ([app/_verzehr/VerzehrErfassung.tsx](../../app/_verzehr/VerzehrErfassung.tsx)):
 Gleichnamige Artikel sind ununterscheidbar. Die Spec fordert (1) Größe je Artikel sichtbar und
@@ -23,7 +25,9 @@ Logik (ADR-025 D1–D4 bleiben unberührt). Relevante Randbedingungen:
 - **Route-Neutralität (ADR-025 D5, Codify #52):** `app/_verzehr/` ist mit der künftigen
   öffentlichen Theke (F7/#54) geteilt und darf **keine** Imports aus `app/<feature>/` tragen.
 - **Katalog-Ordnung:** `listActiveCatalog()` liefert bereits sortiert nach
-  `sortOrder, name, size` ([db/catalog.ts](../../db/catalog.ts)). `sortOrder` ist die bewusste
+  `sortOrder, name, size` ([db/catalog.ts](../../db/catalog.ts); seit
+  [ADR-050](050-katalog-als-template-entitaet.md) D4 mit Pflichtparameter
+  `listActiveCatalog(catalogId)`, Sortierung unverändert). `sortOrder` ist die bewusste
   Kuratierung des Verwalters – gleichnamige Varianten sind dadurch **nicht garantiert benachbart**.
 - **Soft-Delete-Sonderabschnitt (ADR-026):** „Nicht mehr im Katalog" rendert bereits konsumierte,
   danach deaktivierte Artikel aus `VerzehrPositionRow` – dessen `listPositionen`-Select führt

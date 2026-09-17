@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { db } from "./index";
 import { catalogItems, teilnehmer, veranstaltung } from "./schema";
-import { createItem, setItemActive } from "./catalog";
+import { STANDARD_CATALOG_ID, createItem, setItemActive } from "./catalog";
 import { createTeilnehmer } from "./teilnehmer";
 import { addZeile, createVeranstaltung } from "./veranstaltung";
 import { adjustMenge, getPosition, listPositionen } from "./verzehr";
@@ -37,14 +37,18 @@ async function trackTeilnehmer(name: string) {
   return row;
 }
 
+// Eigenes Namensfenster für Katalogartikel (#347) – siehe Begründung in db/veranstaltung.test.ts:
+// (catalog_id, name, size) ist unique, die DB-Testdateien laufen parallel gegen dieselbe DB.
+const ITEM_PREFIX = `${TEST_PREFIX}verzehr-`;
+
 async function trackItem(
   name: string,
   priceCents: number,
   category: "getraenk" | "kaffee" | "essen",
   size = "",
 ) {
-  const row = await createItem({
-    name: `${TEST_PREFIX}${name}`,
+  const row = await createItem(STANDARD_CATALOG_ID, {
+    name: `${ITEM_PREFIX}${name}`,
     size,
     priceCents,
     category,
@@ -180,7 +184,7 @@ describe.skipIf(!hasDb)("verzehr data-layer (integration)", () => {
     const item = await trackItem("Bier", 300, "getraenk");
     await adjustMenge(zeile.id, item.id, 1);
 
-    await setItemActive(item.id, false);
+    await setItemActive(item.id, STANDARD_CATALOG_ID, false);
     const positionen = await listPositionen(v.id);
 
     expect(positionen.find((p) => p.catalogItemId === item.id)?.active).toBe(false);

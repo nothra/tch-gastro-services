@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { db } from "./index";
-import { catalogItems, teilnehmer, veranstaltung } from "./schema";
+import { catalog, catalogItems, teilnehmer, veranstaltung } from "./schema";
 import { createTeilnehmer } from "./teilnehmer";
-import { createItem, updateItem } from "./catalog";
+import { STANDARD_CATALOG_ID, createItem, updateItem } from "./catalog";
 import { adjustMenge, listPositionen } from "./verzehr";
 import { listEreignisse } from "./veranstaltung-ereignis";
 import {
@@ -33,12 +33,24 @@ const TEST_PREFIX = "__test__";
 const createdVeranstaltungen: string[] = [];
 const createdTeilnehmer: string[] = [];
 const createdItems: string[] = [];
+const createdCatalogs: string[] = [];
 
 const AKTEUR = { userId: null, name: `${TEST_PREFIX}Vera` };
 
-async function trackItem(name: string, priceCents: number) {
-  const item = await createItem({
-    name: `${TEST_PREFIX}${name}`,
+// Eigenes Namensfenster für Katalogartikel (#347): `catalog_item` trägt eine Unique-Constraint
+// auf (catalog_id, name, size), und die DB-Testdateien laufen parallel gegen dieselbe DB. Ohne
+// datei-eigenes Präfix kollidieren gleichnamige Artikel verschiedener Dateien im
+// Standard-Katalog – reihenfolge-abhängig rot (testing-standards.md: keine
+// Test-Reihenfolge-Abhängigkeiten). Teilnehmer-/Veranstaltungsnamen brauchen das nicht: dort
+// gibt es keine Unique-Constraint auf dem Namen.
+const ITEM_PREFIX = `${TEST_PREFIX}veranstaltung-`;
+
+// Der Default-Parameter ist bewusst nur im Test: ADR-050 D4 verbietet ihn in der
+// Data-Layer-Signatur, damit der Compiler in #346 jede Aufrufstelle meldet – dieser Helfer
+// reicht `catalogId` seinerseits explizit an `createItem` durch.
+async function trackItem(name: string, priceCents: number, catalogId = STANDARD_CATALOG_ID) {
+  const item = await createItem(catalogId, {
+    name: `${ITEM_PREFIX}${name}`,
     size: "",
     priceCents,
     category: "getraenk",
@@ -46,6 +58,17 @@ async function trackItem(name: string, priceCents: number) {
   });
   createdItems.push(item.id);
   return item;
+}
+
+// Zweiter Katalog für den D5-Guard unten. Bis #345 gibt es keinen Pflege-Weg – der Test legt
+// ihn deshalb direkt auf der Tabelle an (wie in catalog.test.ts).
+async function trackCatalog(name: string) {
+  const [row] = await db
+    .insert(catalog)
+    .values({ name: `${TEST_PREFIX}${name}` })
+    .returning();
+  createdCatalogs.push(row.id);
+  return row;
 }
 
 function datierte(overrides: Partial<VeranstaltungData> = {}): VeranstaltungData {
@@ -85,6 +108,11 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     }
     if (createdItems.length > 0) {
       await db.delete(catalogItems).where(inArray(catalogItems.id, createdItems.splice(0)));
+    }
+    // Kataloge zuletzt: der Pflicht-FK ohne ON DELETE (ADR-050 D2) verbietet die umgekehrte
+    // Reihenfolge.
+    if (createdCatalogs.length > 0) {
+      await db.delete(catalog).where(inArray(catalog.id, createdCatalogs.splice(0)));
     }
   });
 
@@ -300,7 +328,7 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
 
     // Der Verwalter ändert danach den Katalogpreis – die abgeschlossene Veranstaltung bleibt stabil
     // (Tagessummen fixiert, ADR-033 D2), weil der Preis beim Abschluss eingefroren wurde.
-    await updateItem(item.id, {
+    await updateItem(item.id, STANDARD_CATALOG_ID, {
       name: item.name,
       size: item.size,
       priceCents: 300,
@@ -315,6 +343,39 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     expect(ereignisse).toHaveLength(1);
     expect(ereignisse[0].art).toBe("abgeschlossen");
     expect(ereignisse[0].akteurName).toBe(AKTEUR.name);
+  });
+
+  it("should_resolveAndFreezePosition_when_itemBelongsToForeignCatalog", async () => {
+    // Regressionsguard für ADR-050 D5: Anzeige-Join (db/verzehr.ts) und Freeze-Subquery (oben)
+    // bleiben katalog-frei. Der Artikel liegt hier bewusst NICHT im Standard-Katalog – genau die
+    // Konstellation, die #346 erzeugt, sobald Veranstaltungen verschiedene Kataloge nutzen.
+    // Käme in einem der beiden Pfade eine `catalog_id`-Bedingung dazu, fiele die Position aus dem
+    // Join bzw. der Freeze liefe auf NULL und die abgeschlossene Abrechnung rechnete wieder live.
+    const fremder = await trackCatalog("D5-Fremdkatalog");
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Mira");
+    const zeile = await addZeile(v.id, person);
+    const item = await trackItem("FremdkatalogBier", 250, fremder.id);
+    await adjustMenge(zeile.id, item.id, 2);
+
+    // (1) Auflösung: der Join findet den Artikel über seine global eindeutige id.
+    expect((await listPositionen(v.id)).find((p) => p.catalogItemId === item.id)).toMatchObject({
+      menge: 2,
+      priceCents: 250,
+    });
+
+    // (2) Freeze: Abschluss schreibt den Snapshot, eine spätere Preisänderung bleibt folgenlos.
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+    await updateItem(item.id, fremder.id, {
+      name: item.name,
+      size: item.size,
+      priceCents: 300,
+      category: "getraenk",
+      sortOrder: item.sortOrder,
+    });
+
+    const position = (await listPositionen(v.id)).find((p) => p.catalogItemId === item.id);
+    expect(position?.priceCents).toBe(250); // eingefroren, nicht der neue Live-Preis 300
   });
 
   it("should_returnUndefined_when_abschliessenAlreadyClosed", async () => {
@@ -341,7 +402,7 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const item = await trackItem("Fanta", 250);
     await adjustMenge(zeile.id, item.id, 1);
     await abschliessenVeranstaltung(v.id, AKTEUR);
-    await updateItem(item.id, {
+    await updateItem(item.id, STANDARD_CATALOG_ID, {
       name: item.name,
       size: item.size,
       priceCents: 300,

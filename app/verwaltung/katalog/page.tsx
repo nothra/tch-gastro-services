@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
-import { listCatalog } from "@/db/catalog";
+import { STANDARD_CATALOG_ID, listCatalog } from "@/db/catalog";
 import { CatalogItemForm } from "./CatalogItemForm";
 import { CatalogRow } from "./CatalogRow";
 
@@ -19,7 +19,9 @@ export default async function CatalogPage() {
     );
   }
 
-  const items = await listCatalog();
+  // Bis #346 pflegt der Verwalter genau den Standard-Katalog (ADR-050 D3) – die Seite bleibt
+  // damit verhaltensneutral (spec-59 AK7) und zeigt keinen Katalogbezug an.
+  const items = await listCatalog(STANDARD_CATALOG_ID);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">

@@ -6,7 +6,12 @@ import type { VerzehrPositionRow } from "@/db/verzehr";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/veranstaltung", () => ({ getVeranstaltung: vi.fn(), listZeilen: vi.fn() }));
-vi.mock("@/db/catalog", () => ({ listActiveCatalog: vi.fn() }));
+// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
+// Seite `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
+vi.mock("@/db/catalog", () => ({
+  listActiveCatalog: vi.fn(),
+  STANDARD_CATALOG_ID: "standard",
+}));
 vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
 vi.mock("../../actions", () => ({ adjustVerzehrAction: vi.fn() }));
 
@@ -87,8 +92,14 @@ const bZeile: VeranstaltungZeile = {
   anzeigename: "Bernd",
 };
 
+// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Der Drift-Guard in
+// db/catalog.test.ts hält Produktions-Konstante und Migrations-Literal gegeneinander – er liest
+// dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
+const STANDARD_CATALOG_ID = "standard";
+
 const cola: CatalogItem = {
   id: "c-1",
+  catalogId: STANDARD_CATALOG_ID,
   name: "Cola",
   size: "0,5l",
   category: "getraenk",
@@ -191,6 +202,9 @@ describe("VerzehrPage", () => {
     // … aber initial keine Karte offen → keine MengeControl gerendert.
     expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
+    // AK8: die Verzehrerfassung bleibt verhaltensneutral, weil sie bis #346 die Auswahl aus dem
+    // Standard-Katalog lädt (ADR-050 D3) – Wiring-Assertion gegen ein `undefined` im Mock.
+    expect(listActiveCatalogMock).toHaveBeenCalledWith(STANDARD_CATALOG_ID);
   });
 
   it("should_openCardEditable_when_chipTappedOnOpenVeranstaltung", async () => {

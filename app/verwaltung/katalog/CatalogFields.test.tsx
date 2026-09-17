@@ -7,6 +7,7 @@ afterEach(() => cleanup());
 
 const essenItem: CatalogItem = {
   id: "1",
+  catalogId: "standard",
   name: "Essen Montagsrunde",
   size: "",
   priceCents: 600,

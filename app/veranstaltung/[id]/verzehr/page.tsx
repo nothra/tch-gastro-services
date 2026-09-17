@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
-import { listActiveCatalog } from "@/db/catalog";
+import { STANDARD_CATALOG_ID, listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { FokusListe } from "@/app/_verzehr/FokusListe";
 import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrErfassung";
@@ -48,7 +48,9 @@ export default async function VerzehrPage({
 
   const [zeilen, artikel, positionen] = await Promise.all([
     listZeilen(id),
-    listActiveCatalog(),
+    // Preisquelle ist bis #346 immer der Standard-Katalog (ADR-050 D3) – die Auswahl bleibt
+    // damit unverändert (spec-59 AK8).
+    listActiveCatalog(STANDARD_CATALOG_ID),
     listPositionen(id),
   ]);
   const offen = veranstaltung.status === "offen";

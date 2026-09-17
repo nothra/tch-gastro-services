@@ -18,7 +18,8 @@ deaktiviert wird, obwohl darauf bereits Verzehr erfasst wurde:
 
 1. `listPositionen` liefert die Position weiter (Join ohne `active`), `zeileSummen` (ADR-025 D5)
    **zählt sie in den Header**.
-2. Die Bedien-Zeilen (`MengeControl`) entstehen aber nur aus `listActiveCatalog()` (nur `active`)
+2. Die Bedien-Zeilen (`MengeControl`) entstehen aber nur aus `listActiveCatalog()` (nur `active`;
+   seit [ADR-050](050-katalog-als-template-entitaet.md) D4 `listActiveCatalog(catalogId)`)
    → für den inaktiven Artikel wird **keine Zeile** mehr gerendert.
 3. `adjustVerzehrAction` lehnt jede Anpassung ab (Soft-Delete-Guard, ADR-025 D6 Schritt 5:
    `!item.active → ITEM_NOT_FOUND`).
@@ -52,7 +53,7 @@ Neue Data-Layer-Funktion `getPosition(zeileId, catalogItemId): Promise<VerzehrPo
 `adjustVerzehrAction` behält die fail-closed-Reihenfolge aus ADR-025 D6, ersetzt aber Schritt 5:
 
 ```
-5. item = getCatalogItem(catalogItemId)
+5. item = getCatalogItem(catalogItemId)   // seit ADR-050 D4: getCatalogItem(id, catalogId)
    - item fehlt              → ITEM_NOT_FOUND (unverändert)
    - item.active === true    → erlaubt (unverändert – aktive Artikel: kein Zusatz-Query)
    - item.active === false   → nur erlaubt, wenn getPosition(zeileId, catalogItemId) existiert;
