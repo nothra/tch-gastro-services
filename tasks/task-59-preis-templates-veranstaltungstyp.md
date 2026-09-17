@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -206,7 +206,24 @@ nicht in einen fachlichen Task-Commit.
 
 ## Review-Findings
 
-`/review` (2026-09-17): **NEEDS_REWORK** – 0 kritisch, 5 wichtig, 5 Nitpicks.
+`/review` **Runde 2** (2026-09-17): **APPROVED** – 0 kritisch, 1 wichtig, 3 Nitpicks.
+Volltext (inkl. Runde-1-Anhang): [`tasks/review-59.md`](review-59.md).
+
+Alle fünf wichtigen Findings aus Runde 1 sind behoben; die Runde hat sie **nachgemessen** statt
+die Task-Notizen zu übernehmen (Lesson #312): Gates von Null grün, **888/888 in 3 von 3 Läufen**
+gegen eine frische DB (bestätigt den #347-Fix unabhängig), `drizzle-kit migrate` zweimal mit
+`kataloge=1 / artikel=16 / ohne_standard=0` und nur der neuen Unique-Constraint,
+`drizzle-kit check`+`generate` ohne Schema-Drift, und ein **Mutationsbeleg** für den neuen
+D5-Guard (je eine `catalog_id`-Bedingung in Anzeige-Join bzw. Freeze-Subquery macht ihn rot,
+Quellen danach zurückgesetzt). Der W1-Pfad ist bis in die UI verfolgt
+(`CatalogRow.tsx:18/51` – Formular bleibt offen, Meldung sichtbar).
+
+Das eine wichtige Finding ist eine **Kommentar-Korrektur ohne Verhaltensanteil**: der viermal
+kopierte Kommentar in den Wiring-Tests behauptet, der Drift-Guard halte das test-lokale Literal
+`"standard"` gegen Produktionskonstante und Migration – er liest diese Dateien nie (Lesson #319).
+Erledigung ausdrücklich dem `/refactor`-Schritt zugewiesen, **keine** weitere `/implement`-Runde.
+
+Historie Runde 1: **NEEDS_REWORK** – 0 kritisch, 5 wichtig, 5 Nitpicks.
 Volltext: [`tasks/review-59.md`](review-59.md). Out-of-Scope-Fund als Issue
 [#347](https://github.com/nothra/tch-gastro-services/issues/347) angelegt (vorbestehender
 Test-Flake `__test__Cola`).
