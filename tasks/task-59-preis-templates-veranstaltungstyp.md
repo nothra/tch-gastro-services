@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 
@@ -392,6 +392,13 @@ kollidiert unter Parallelisierung (aus #59/#347); (2) Rezidiv-Ergänzung an der 
 `lessons/code-style.md`-Lesson zu Erzwingungs-Behauptungen (#319) – diesmal beim Kopieren eines
 Kommentars in vier Geschwisterdateien. Beide Security-Hinweise waren bereits vom
 `/security-review`-Schritt selbst in `kleinfunde.md` eingetragen, keine Doppelerfassung.
+
+## PR-Shepherd-Notizen (`/pr-shepherd`, 2026-09-17)
+
+PR-Shepherd 2026-09-17: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare,
+keine Approval-Anforderung (`reviewDecision` leer). Alle CI-Checks grün (lint, test,
+factory-self-test, CodeQL, config-validation, issue-sync, pr-closes-issue, Vercel). Draft-Status
+aufgelöst (`gh pr ready`), kein Rebase nötig (Branch war bereits aktuell zu `origin/main`).
 
 ---
 Branch: `feature/59-preis-templates-veranstaltungstyp`
