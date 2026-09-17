@@ -62,10 +62,7 @@ export type CatalogItemData = Omit<
   "id" | "catalogId" | "createdAt" | "updatedAt" | "active"
 >;
 
-export async function createItem(
-  catalogId: string,
-  data: CatalogItemData,
-): Promise<CatalogItem> {
+export async function createItem(catalogId: string, data: CatalogItemData): Promise<CatalogItem> {
   const [created] = await db
     .insert(catalogItems)
     .values({ ...data, catalogId })

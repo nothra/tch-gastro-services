@@ -153,6 +153,38 @@ Varianten stehen zu lassen, ist der alte Test im AK4-Block aufgegangen (Kommenta
 im Test zwar deklariert, aber nie gegen den Aufruf assertiert. FS2 prüft die Meldung jetzt als
 Literal (`"Artikel nicht gefunden."`), nicht mehr nur „irgendein Fehler".
 
+### Abschluss-Verifikation (`/implement`, zweite Session)
+
+**Alle Gates erneut von Null gefahren.** `pre-commit.sh` grün; `pre-push.sh` grün (Tests,
+Typecheck, `format:check`, Routen-Doku-Drift, Hook-Installation, `@import`-Deckel 893/1100,
+Branch-Guard). Vitest **885/885 grün, 0 skipped** gegen einen frischen `postgres:18-alpine`
+(Port 55432, danach entfernt); ohne `DATABASE_URL` sind es 811 grün + 74 skipped – die
+Integrationsblöcke hängen am `hasDb`-Guard, ein reines `pnpm test` belegt AK1–AK6/AK9/FS1/FS4/FS5
+also **nicht**.
+
+**Format-Drift behoben:** `format:check` blockierte den Push wegen `db/catalog.ts` – die
+`createItem`-Signatur passt in eine Zeile (98 Zeichen). Einziger Code-Eingriff dieser Session,
+verhaltensneutral.
+
+**AK9 jetzt auch wörtlich belegt** („die Migrationen erneut angewandt"): zweiter Container,
+`drizzle-kit migrate` **zweimal** hintereinander, beide Läufe Exit 0 → danach `kataloge=1`,
+`artikel=16`, `ohne_katalog=0`, und als einzige Unique-Constraint auf `catalog_item` steht
+`catalog_item_catalog_name_size_unique` (die alte ist weg). Das ergänzt den bisherigen Nachweis,
+der nur die **Daten**-Statements doppelt ausgeführt hatte – wichtig, weil das
+`DROP CONSTRAINT` in `0012` kein `IF EXISTS` trägt und ein echtes Doppel-Apply allein durch das
+drizzle-Journal verhindert wird.
+
+**AK7 am echten Dev-Server verifiziert** (die dauerhafte E2E-Suite deckt `/verwaltung/katalog`
+**nicht** ab – Unit-/Page-Tests allein hätten einen fehlenden Backfill nicht gesehen): Wegwerf-Spec
+gegen `pnpm dev` + die echte Dev-DB. Dort sind 8 Artikel, alle mit `catalog_id='standard'`, und die
+Pflegeansicht zeigt „Artikel (8)", nicht den Leer-Zustand; kein Katalog-Eingabefeld. Die Spec war
+gitignoret (`*.tmp.spec.ts`) und ist wieder entfernt. Dauerhafte E2E-Suite unverändert grün
+(8 passed, 3 skipped).
+
+**`CLAUDE.md`-Autoblock verworfen:** `next dev` hängt beim E2E-Lauf den
+`<!-- BEGIN:nextjs-agent-rules -->`-Block an (Lesson aus #337). Aus dem Diff entfernt – er gehört
+nicht in einen fachlichen Task-Commit.
+
 ### Befunde, die NICHT zu dieser Task gehören (nicht behoben, Scope)
 
 1. **Lokale Dev-DB ist driftet, keine Regression.** `should_containSeededReferenceList_when_freshly
