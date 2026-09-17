@@ -1,4 +1,5 @@
--- Katalog als Template-Entität (spec-59, ADR-050). HAND-EDITIERTE Expand-only-Migration:
+-- Katalog als Template-Entität (spec-59, ADR-050). HAND-EDITIERTE Expand-Migration (nicht rein
+-- erweiternd: `SET NOT NULL` unten ist ein constraining Schritt, s. ADR-050 D6 zum Deploy-Fenster):
 -- `drizzle-kit generate` emittiert `ADD COLUMN "catalog_id" text NOT NULL` in einem Schritt,
 -- was auf jeder DB mit bestehenden Artikeln fehlschlägt. Deshalb die Reihenfolge aus ADR-050 D6:
 -- nullable → seed → backfill → NOT NULL → FK/Unique-Tausch. Vorbild für die Daten-Schritte ist

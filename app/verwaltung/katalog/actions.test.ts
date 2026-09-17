@@ -17,7 +17,9 @@ vi.mock("@/db/catalog", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { auth } from "@/auth";
+import { revalidatePath } from "next/cache";
 import { createItem, setItemActive, updateItem } from "@/db/catalog";
+import type { CatalogItem } from "@/db/schema";
 import {
   createCatalogItemAction,
   setCatalogItemActiveAction,
@@ -28,6 +30,22 @@ const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
 const createItemMock = vi.mocked(createItem);
 const updateItemMock = vi.mocked(updateItem);
 const setItemActiveMock = vi.mocked(setItemActive);
+const revalidatePathMock = vi.mocked(revalidatePath);
+
+// Treffer-Rückgabe der guarded UPDATEs. Ohne sie bliebe der Mock-Default `undefined` und
+// verdeckte den No-Match-Zweig, den die Action seit #59 auswertet (Lesson „Mock-Default").
+const persistedItem: CatalogItem = {
+  id: "abc",
+  catalogId: "standard",
+  name: "Cola",
+  size: "0,5 l",
+  priceCents: 210,
+  category: "getraenk",
+  sortOrder: 10,
+  active: true,
+  createdAt: new Date("2026-09-17T00:00:00.000Z"),
+  updatedAt: new Date("2026-09-17T00:00:00.000Z"),
+};
 
 // Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Gegen die
 // Produktions-Konstante und das Migrations-Literal hält ihn der Drift-Guard in db/catalog.test.ts.
@@ -126,6 +144,8 @@ describe("createCatalogItemAction", () => {
 
 describe("updateCatalogItemAction", () => {
   it("should_updateItem_when_idAndInputValid", async () => {
+    updateItemMock.mockResolvedValue(persistedItem);
+
     const result = await updateCatalogItemAction(undefined, form({ ...validFields, id: "abc" }));
 
     expect(result).toEqual({ ok: true });
@@ -134,6 +154,19 @@ describe("updateCatalogItemAction", () => {
       STANDARD_CATALOG_ID,
       expect.objectContaining({ priceCents: 210 }),
     );
+  });
+
+  it("should_returnNotFoundAndNotRevalidate_when_updateMatchesNoRow", async () => {
+    // Guarded UPDATE (Kern-Kurzregel 1, Lesson #55): `updateItem` liefert `undefined`, wenn der
+    // Parent-Key im WHERE keine Zeile trifft – unbekannte `id` aus `FormData` oder ein Artikel
+    // aus einem fremden Katalog. Ohne Auswertung meldete die Action Erfolg für einen
+    // Schreibvorgang, der nicht stattgefunden hat.
+    updateItemMock.mockResolvedValue(undefined);
+
+    const result = await updateCatalogItemAction(undefined, form({ ...validFields, id: "weg" }));
+
+    expect(result).toEqual({ error: "Artikel nicht gefunden." });
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_idMissing", async () => {

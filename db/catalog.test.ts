@@ -93,9 +93,14 @@ describe("Standard-Katalog-Key: Konstante gegen Seed-Migration (ADR-050 D3)", ()
 // Data-Layer (Integration)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Eigenes Namensfenster für Katalogartikel (#347) – siehe Begründung in db/veranstaltung.test.ts:
+// (catalog_id, name, size) ist unique, die DB-Testdateien laufen parallel gegen dieselbe DB.
+// Das Präfix beginnt weiter mit TEST_PREFIX, damit die Fremdzeilen-Filter unten greifen.
+const ITEM_PREFIX = `${TEST_PREFIX}katalog-`;
+
 function drink(name: string, overrides: Partial<CatalogItemData> = {}): CatalogItemData {
   return {
-    name: `${TEST_PREFIX}${name}`,
+    name: `${ITEM_PREFIX}${name}`,
     size: "0,5 l",
     priceCents: 200,
     category: "getraenk",
@@ -104,6 +109,9 @@ function drink(name: string, overrides: Partial<CatalogItemData> = {}): CatalogI
   };
 }
 
+// Der Default-Parameter ist bewusst nur hier im Test: ADR-050 D4 verbietet ihn in der
+// Data-Layer-Signatur, damit der Compiler in #346 jede Aufrufstelle meldet. Dieser Helfer ist
+// keine solche Aufrufstelle – er ruft `createItem` seinerseits mit explizitem Katalog auf.
 async function track(data: CatalogItemData, catalogId: string = STANDARD_CATALOG_ID) {
   const item = await createItem(catalogId, data);
   created.push(item.id);
@@ -230,8 +238,12 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
   it("should_haveSeededActiveStandardCatalog_when_migrated", async () => {
     const [standard] = await db.select().from(catalog).where(eq(catalog.id, STANDARD_CATALOG_ID));
 
+    // Geprüft werden nur die Eigenschaften, die ein Umbenennen NICHT verändert. Der Seed-Name
+    // „Montagsrunde" selbst ist eine Aussage über die Migration, nicht über den Dauerzustand
+    // dieser DB (spec-59 AK5 erklärt den Namen ausdrücklich für änderbar) – belegt ist er
+    // deshalb am Migrations-Statement (Drift-Guard oben) und am AK9-Replay, der die Anweisung
+    // gegen ein frisches Schema wirklich ausführt.
     expect(standard, `Standard-Katalog '${STANDARD_CATALOG_ID}' muss geseedet sein`).toBeDefined();
-    expect(standard.name).toBe("Montagsrunde");
     expect(standard.active).toBe(true);
   });
 
@@ -294,25 +306,38 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
   // ── AK5 – Umbenennen bricht nichts ─────────────────────────────────────────
 
   it("should_resolveUnchanged_when_standardCatalogRenamed", async () => {
+    // Geprüft wird der selbst angelegte Artikel, nicht die Gesamtliste des Standard-Katalogs:
+    // andere Testdateien legen dort parallel Artikel an und räumen sie wieder ab, ein
+    // Listen-Vergleich schlüge also aus einem AK-fremden Grund fehl. Die Sortierung hängt ohnehin
+    // nicht am Katalognamen (`sortOrder, name, size`) und ist in den Listen-Tests oben abgedeckt.
     const item = await track(drink("RenameProbe"));
-    const vorher = (await listActiveCatalog(STANDARD_CATALOG_ID)).map((row) => row.id);
-    expect(vorher).toContain(item.id);
+    expect((await listActiveCatalog(STANDARD_CATALOG_ID)).some((row) => row.id === item.id)).toBe(
+      true,
+    );
+
+    // Vorgefundenen Namen sichern statt ihn später auf ein Literal zu setzen: bis #345 ist das
+    // Umbenennen direkt in der DB der einzige unterstützte Pflege-Weg (spec-59) – ein hart
+    // zurückgeschriebenes „Montagsrunde" würde genau diese legitime Betreiber-Änderung bei
+    // jedem Suite-Lauf gegen dieselbe DB stillschweigend überschreiben.
+    const [{ name: nameVorher }] = await db
+      .select({ name: catalog.name })
+      .from(catalog)
+      .where(eq(catalog.id, STANDARD_CATALOG_ID));
 
     await db
       .update(catalog)
       .set({ name: `${TEST_PREFIX}Montagsrunde 2026` })
       .where(eq(catalog.id, STANDARD_CATALOG_ID));
     try {
-      // Die Auflösung wertet den Namen nicht aus (ADR-050 D3) – Auswahl bleibt identisch.
-      expect((await listActiveCatalog(STANDARD_CATALOG_ID)).map((row) => row.id)).toEqual(vorher);
+      // Die Auflösung wertet den Namen nicht aus (ADR-050 D3): alle drei Lesewege finden den
+      // Artikel unter demselben Katalog-Schlüssel weiterhin.
+      expect((await listActiveCatalog(STANDARD_CATALOG_ID)).some((row) => row.id === item.id)).toBe(
+        true,
+      );
       expect((await listCatalog(STANDARD_CATALOG_ID)).some((row) => row.id === item.id)).toBe(true);
       expect(await getCatalogItem(item.id, STANDARD_CATALOG_ID)).toBeDefined();
     } finally {
-      // Namen zurücksetzen: AK2 prüft ihn, und Tests dürfen nicht reihenfolge-abhängig werden.
-      await db
-        .update(catalog)
-        .set({ name: "Montagsrunde" })
-        .where(eq(catalog.id, STANDARD_CATALOG_ID));
+      await db.update(catalog).set({ name: nameVorher }).where(eq(catalog.id, STANDARD_CATALOG_ID));
     }
   });
 
@@ -357,6 +382,21 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
 
     expect(changed).toBeUndefined();
     expect((await getCatalogItem(item.id, STANDARD_CATALOG_ID))?.active).toBe(true);
+  });
+
+  // ── D7 – `catalog.active` filtert (noch) nichts ────────────────────────────
+
+  it("should_stillListItems_when_owningCatalogIsInactive", async () => {
+    // ADR-050 D7 als Abwesenheits-Aussage: `listActiveCatalog` prüft nur `catalog_item.active`,
+    // nicht `catalog.active`. Der Test nagelt das heutige Verhalten fest – #345 muss den Flip
+    // damit bewusst vornehmen (und diesen Test umdrehen), statt ihn nebenbei mitzunehmen.
+    const k2 = await trackCatalog("D7-Inaktiv");
+    const item = await track(drink("TrotzInaktivemKatalog"), k2.id);
+
+    await db.update(catalog).set({ active: false }).where(eq(catalog.id, k2.id));
+
+    expect((await listActiveCatalog(k2.id)).some((row) => row.id === item.id)).toBe(true);
+    expect((await listCatalog(k2.id)).some((row) => row.id === item.id)).toBe(true);
   });
 
   // ── FS4 – Soft-Delete bleibt katalog-gebunden auflösbar ────────────────────

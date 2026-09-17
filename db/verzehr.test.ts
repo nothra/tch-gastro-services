@@ -37,6 +37,10 @@ async function trackTeilnehmer(name: string) {
   return row;
 }
 
+// Eigenes Namensfenster für Katalogartikel (#347) – siehe Begründung in db/veranstaltung.test.ts:
+// (catalog_id, name, size) ist unique, die DB-Testdateien laufen parallel gegen dieselbe DB.
+const ITEM_PREFIX = `${TEST_PREFIX}verzehr-`;
+
 async function trackItem(
   name: string,
   priceCents: number,
@@ -44,7 +48,7 @@ async function trackItem(
   size = "",
 ) {
   const row = await createItem(STANDARD_CATALOG_ID, {
-    name: `${TEST_PREFIX}${name}`,
+    name: `${ITEM_PREFIX}${name}`,
     size,
     priceCents,
     category,

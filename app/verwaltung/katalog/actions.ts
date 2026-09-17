@@ -8,6 +8,7 @@ import { catalogItemSchema } from "./schema";
 
 const CATALOG_PATH = "/verwaltung/katalog";
 const DUPLICATE_MESSAGE = "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
+const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
 
 export type CatalogFormState = { ok?: boolean; error?: string };
 
@@ -24,14 +25,16 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
-// Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung.
-// Gibt null zurück wenn erfolgreich, ansonsten den Fehlerzustand.
-async function runWithUniqueCheck(fn: () => Promise<unknown>): Promise<CatalogFormState | null> {
+// Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung. Das
+// Ergebnis wird durchgereicht statt verworfen: die guarded UPDATEs melden einen No-Match über
+// ihren Rückgabewert, nicht über eine Exception (Kern-Kurzregel 1).
+type UniqueCheckOutcome<T> = { ok: true; value: T } | { ok: false; state: CatalogFormState };
+
+async function runWithUniqueCheck<T>(fn: () => Promise<T>): Promise<UniqueCheckOutcome<T>> {
   try {
-    await fn();
-    return null;
+    return { ok: true, value: await fn() };
   } catch (error) {
-    if (isUniqueViolation(error)) return { error: DUPLICATE_MESSAGE };
+    if (isUniqueViolation(error)) return { ok: false, state: { error: DUPLICATE_MESSAGE } };
     throw error;
   }
 }
@@ -46,8 +49,10 @@ export async function createCatalogItemAction(
 
   // Der Katalogbezug wird serverseitig gesetzt und nie aus `FormData` gelesen (ADR-050 D4) –
   // ein Client kann keinen fremden Katalog als Schreibziel angeben.
-  const result = await runWithUniqueCheck(() => createItem(STANDARD_CATALOG_ID, parsed.data));
-  if (result) return result;
+  // `createItem` liefert immer den angelegten Artikel (kein `| undefined`) – ein No-Match-Zweig
+  // wäre hier totes Verhalten (Clean-Code: keine Fallbacks für typseitig ausgeschlossene Fälle).
+  const outcome = await runWithUniqueCheck(() => createItem(STANDARD_CATALOG_ID, parsed.data));
+  if (!outcome.ok) return outcome.state;
   revalidatePath(CATALOG_PATH);
   return { ok: true };
 }
@@ -63,13 +68,20 @@ export async function updateCatalogItemAction(
   const parsed = catalogItemSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
-  const result = await runWithUniqueCheck(() => updateItem(id, STANDARD_CATALOG_ID, parsed.data));
-  if (result) return result;
+  const outcome = await runWithUniqueCheck(() => updateItem(id, STANDARD_CATALOG_ID, parsed.data));
+  if (!outcome.ok) return outcome.state;
+  // Guarded UPDATE: `undefined` heißt „keine Zeile getroffen" (Kern-Kurzregel 1, Lesson #55) –
+  // `id` kommt aus `FormData`, ist also client-gesteuert. Ohne diesen Zweig meldete die Action
+  // Erfolg für einen Schreibvorgang, der nicht stattgefunden hat.
+  if (!outcome.value) return { error: ITEM_NOT_FOUND };
   revalidatePath(CATALOG_PATH);
   return { ok: true };
 }
 
 // Deaktivieren/Reaktivieren als direkte Formular-Action (kein Formularzustand nötig).
+// `setItemActive` liefert ebenfalls `undefined`, wenn keine Zeile getroffen wurde – diese Action
+// hat aber keinen Meldungskanal (Rückgabetyp `void`, kein `useActionState`). Der Fall bleibt
+// daher bewusst stumm; einen sichtbaren Fehlerweg bekommt die Katalogpflege mit #345.
 export async function setCatalogItemActiveAction(formData: FormData): Promise<void> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");

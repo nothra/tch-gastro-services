@@ -153,7 +153,7 @@ Katalog-Bedingung gehört an die **Auswahl**- und **Schreib**-Grenze (D4), nicht
 Auflösung. Der Soft-Delete-Vertrag aus spec-49 (deaktivierte Artikel bleiben auflösbar) gilt
 unverändert weiter.
 
-### D6 — Eine hand-editierte **Expand-only**-Migration: nullable → seed → backfill → NOT NULL
+### D6 — Eine hand-editierte **Expand**-Migration: nullable → seed → backfill → NOT NULL
 
 Reihenfolge in **einer** Migrationsdatei, mit `--> statement-breakpoint` getrennt:
 
@@ -173,6 +173,22 @@ was auf jeder DB mit bestehenden Artikeln **fehlschlägt**. Die generierte Datei
 
 **Kein Contract-Schritt in diesem PR** (kein Spaltenabbau, kein Rename): die Migration ist allein
 deploybar und rührt keine laufende Abrechnung an.
+
+**Präzisierung – „expand" heißt hier nicht „ausschließlich erweiternd".** Schritt 5
+(`SET NOT NULL`) ist ein **constraining** Schritt, und die Deploy-Reihenfolge wendet die Migration
+**vor** dem Promote des neuen Builds an (`.github/workflows/deploy-gate.yml`: `db:migrate:prd`,
+dann `main → production`). Dazwischen läuft für die Dauer von Promote + Build der **alte** Code
+gegen das **neue** Schema. Lesen bleibt unberührt; betroffen ist genau ein Bedienweg: legt ein
+Verwalter in diesem Fenster einen Artikel an, setzt der alte `createItem(data)` kein `catalog_id`
+und die DB antwortet mit 23502 – ein Code, den `runWithUniqueCheck` bewusst nicht übersetzt (nur
+23505), der also als unbehandelter Server-Action-Fehler durchschlägt.
+
+Das Fenster wird **bewusst in Kauf genommen** statt das `SET NOT NULL` in eine Folge-Migration
+nach dem Deploy zu ziehen: der Nutzerkreis ist einstellig, Deploys laufen außerhalb der
+Montagsrunde, und ein zweistufiger Rollout kostet eine zweite Migration plus eine Schemaphase, in
+der `catalog_id` nullable und damit die Pflicht-Zusicherung aus AK3 nicht durchgesetzt wäre.
+Für #345/#346 gilt diese Abwägung nicht automatisch weiter – ein constraining Schritt auf einer
+dann stärker genutzten Tabelle gehört hinter den Code-Rollout.
 
 ### D7 — `catalog.active` entsteht ohne Wirkung; die Semantik gehört zu #345
 
@@ -280,8 +296,8 @@ formuliert und damit ebenfalls testbar (kein `catalog_id` im Join / kein Filter 
 **Positiv:**
 
 - Preis-Templates sind modelliert, ohne dass #345/#346 das Schema noch anfassen müssen.
-- Die Migration ist allein deploybar (Expand-only) und verhaltensneutral – der laufende
-  Montagsrunden-Betrieb ist nicht betroffen.
+- Die Migration ist allein deploybar und verhaltensneutral – der laufende Montagsrunden-Betrieb
+  ist nicht betroffen (zum kurzen Schreib-Fenster zwischen Migration und Promote s. D6).
 - Cross-Catalog-Schreiben ist **vor** dem Multi-Katalog-Feature versperrt (D4): Parent-Key im
   `WHERE` plus „`catalogId` nie aus Client-Input".
 - Der Preis-Freeze (ADR-033 D2) und der Soft-Delete-Vertrag (spec-49) bleiben unangetastet.
@@ -311,5 +327,12 @@ formuliert und damit ebenfalls testbar (kein `catalog_id` im Join / kein Filter 
 - **ADR-023 D4/D7** (Essen ist Katalogartikel, kein Veranstaltungs-Property) – unverändert
   gültig; `essen` bleibt eine `catalog_category` **innerhalb** eines Katalogs.
 - **ADR-025** (Verzehr-Modell) – `verzehr_position` bleibt unverändert (D5).
+- **ADR-026** (soft-gelöschter Artikel) – Semantik unverändert; die dort im Ablauf genannten
+  Signaturen `listActiveCatalog()` und `getCatalogItem(catalogItemId)` tragen seit D4 den
+  Katalogbezug. Der Guard-Ablauf aus ADR-026 D2 ist davon nicht betroffen: ein Artikel aus einem
+  fremden Katalog läuft in dieselbe `ITEM_NOT_FOUND`-Meldung wie ein unbekannter (spec-59 FS2).
+- **ADR-027** (Größe anzeigen/gruppieren) – die dort zitierte Duplikat-Regel `UNIQUE(name, size)`
+  gilt seit D2 als `UNIQUE(catalog_id, name, size)`; die Sortierung `sortOrder, name, size` und
+  die Gruppierungs-Entscheidung bleiben unverändert.
 - **ADR-033 D2** (Preis-Freeze) – ausdrücklich katalog-frei (D5).
 - **Kein Superseding.** Diese ADR erweitert das Katalog-Modell, ersetzt keine Entscheidung.

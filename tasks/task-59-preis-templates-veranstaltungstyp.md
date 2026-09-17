@@ -199,9 +199,91 @@ nicht in einen fachlichen Task-Commit.
    sie auf der Unique-Constraint. Unter der **alten** globalen `UNIQUE(name, size)` war die
    Kollision identisch möglich – also kein Effekt von #59. Isoliert und gemeinsam sind beide
    Dateien grün, gegen eine frische DB die ganze Suite. Kandidat für `kleinfunde.md`/Issue.
+   → als Issue [#347](https://github.com/nothra/tch-gastro-services/issues/347) angelegt und
+   **in der dritten `/implement`-Runde doch hier behoben** (Begründung unten: der Rework macht die
+   Kollision deterministisch, ein roter Integrationslauf hätte den Gate für alle Folgeschritte
+   wertlos gemacht).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+`/review` (2026-09-17): **NEEDS_REWORK** – 0 kritisch, 5 wichtig, 5 Nitpicks.
+Volltext: [`tasks/review-59.md`](review-59.md). Out-of-Scope-Fund als Issue
+[#347](https://github.com/nothra/tch-gastro-services/issues/347) angelegt (vorbestehender
+Test-Flake `__test__Cola`).
+
+### Rework (`/implement`, zweite Runde, 2026-09-17)
+
+**Alle 5 wichtigen Findings behoben, 4 von 5 Nitpicks** (Nitpick 4 – ausgelieferte Specs 116/137
+nennen die alte Unique-Constraint – war ausdrücklich ohne Handlungsbedarf).
+
+1. **W1 – `updateCatalogItemAction` wertet den No-Match aus.** `runWithUniqueCheck` ist jetzt
+   generisch und reicht das Ergebnis durch (`{ ok: true, value }` / `{ ok: false, state }`) statt
+   es zu verwerfen; `undefined` von `updateItem` wird zu `{ error: "Artikel nicht gefunden." }`
+   (Wortlaut aus `app/veranstaltung/actions.ts`, keine neue Meldung erfunden) und **ohne**
+   `revalidatePath`. Neuer Test `should_returnNotFoundAndNotRevalidate_when_updateMatchesNoRow`;
+   der Happy-Path-Test setzt jetzt einen echten Rückgabewert, sonst hätte der Mock-Default
+   `undefined` den neuen Zweig verdeckt. `createItem` bleibt ohne Guard (Rückgabetyp ohne
+   `| undefined` – ein Zweig dort wäre totes Verhalten). `setCatalogItemActiveAction` hat keinen
+   Meldungskanal (`void`); der Fall ist jetzt im Code kommentiert und auf #345 vertagt.
+2. **W2 – AK5-Test stellt den vorgefundenen Namen wieder her** statt „Montagsrunde"
+   zurückzuschreiben. Damit überschreibt die Suite die eine Datenänderung nicht mehr, die ein
+   Betreiber bis #345 legitim vornimmt.
+3. **W3 – Regressionsguard für ADR-050 D5** in `db/veranstaltung.test.ts`
+   (`should_resolveAndFreezePosition_when_itemBelongsToForeignCatalog`): Artikel in einem
+   **fremden** Katalog, Position darauf, dann (1) der Anzeige-Join löst sie auf und (2) der
+   Abschluss friert ihren Preis ein (spätere Preisänderung bleibt folgenlos). Eine
+   `catalog_id`-Bedingung in einem der beiden Pfade macht den Test rot – genau der teuerste
+   Fehler, den #346 machen kann, war bis hierhin unbewacht.
+4. **W4 – ADR-026/027 fortgeschrieben** (Lesson #211): ADR-050 § „Bezug zu bestehenden ADRs"
+   nennt beide, und an den vier Fundstellen steht ein „seit ADR-050"-Nachtrag
+   (`UNIQUE(name, size)` → je Katalog; `listActiveCatalog()`/`getCatalogItem()` mit
+   Katalogbezug). Die historischen Aussagen bleiben stehen.
+5. **W5 – D6 heißt nicht mehr „Expand-only"** und benennt den Trade-off: `deploy-gate.yml`
+   migriert PRD **vor** dem Promote, also läuft der alte Build kurz gegen `catalog_id NOT NULL`;
+   `createItem` des alten Codes scheitert dann mit 23502 (nicht von `runWithUniqueCheck`
+   übersetzt). Fenster bewusst in Kauf genommen (einstelliger Nutzerkreis, Deploy außerhalb der
+   Montagsrunde); für #345/#346 gilt die Abwägung ausdrücklich nicht weiter. Dieselbe zu starke
+   Formulierung stand im Kopfkommentar von `0012_catalog_als_entitaet.sql` und in den
+   „Konsequenzen" von ADR-050 – beide mitgezogen (Lesson #264: Geschwister-Stellen per Grep).
+6. **Nitpicks:** AK7-Gegenprobe hängt nicht mehr am Katalognamen (nur noch `queryByLabelText`);
+   die AK2-Namensassertion ist entfallen – der Seed-Name ist eine Aussage über die *Migration*
+   und dort doppelt belegt (Statement-Drift-Guard + AK9-Replay), während AK5 ihn ausdrücklich
+   für änderbar erklärt; neuer D7-Abwesenheitstest
+   (`should_stillListItems_when_owningCatalogIsInactive`); Default-Parameter der Test-Helfer
+   sind als „bewusst nur im Test" kommentiert.
+
+7. **#347 (Test-Isolation) doch in diesem PR behoben** – Abweichung von der Review-Einordnung
+   „nicht in diesem PR", bewusst und gemessen:
+   - **Messung.** Volle Suite 3× gegen einen frischen `postgres:18-alpine` (Wegwerf-Container,
+     Port 55434, danach entfernt). Mit dem Rework: **3 von 3 Läufen rot**, immer dieselbe
+     `__test__Cola`-Kollision (887/888). Mit den beiden DB-Testdateien auf HEAD zurückgespielt
+     (nur sie bestimmen das Timing): **2 von 3 rot**, 1 grün. Die Ursache ist also tatsächlich
+     vorbestehend, aber der W3-Guard verlängert `veranstaltung.test.ts` gerade so, dass die
+     Kollision praktisch immer eintritt.
+   - **Warum trotzdem hier.** `testing-standards.md` („Flaky Tests: Zero Tolerance … keine
+     Test-Reihenfolge-Abhängigkeiten") ist dauergeladene Guideline, nicht optional. Ohne Fix
+     hätten `/test`, `/refactor` und `/security-review` eine gegen eine echte DB rote Suite
+     vorgefunden – und das `pre-push`-Gate wäre nur deshalb grün, weil bare `pnpm test` **ohne**
+     `DATABASE_URL` läuft und die 74 Integrationsdateien überspringt. Genau die Blöcke belegen
+     aber AK1–AK6/AK9/FS1/FS4/FS5. Ein falsch-grüner Gate war die Alternative.
+   - **Fix (test-only, kein Produktionscode).** Jede der drei artikelanlegenden Testdateien
+     bekommt ein eigenes Namensfenster (`ITEM_PREFIX` = `__test__veranstaltung-` /
+     `__test__verzehr-` / `__test__katalog-`). Damit behoben ist nicht nur die in #347 gemeldete
+     `__test__Cola`-Kollision, sondern auch eine zweite, latente: `catalog.test.ts` und
+     `verzehr.test.ts` legen beide `__test__Kaffee` mit leerer Größe im Standard-Katalog an.
+     Keine Assertion hängt an einem Namensliteral (geprüft: `toContain("Schnitzel")` bleibt
+     erfüllt, die Fremdzeilen-Filter prüfen weiter auf `TEST_PREFIX`, das im neuen Präfix steckt).
+   - Der AK5-Test war zusätzlich selbst nicht parallelitätsfest (er verglich die **gesamte**
+     Artikelliste des Standard-Katalogs vor/nach dem Umbenennen und sah dabei Zeilen, die andere
+     Dateien parallel anlegen und abräumen) – er prüft jetzt den selbst angelegten Artikel über
+     alle drei Lesewege, was AK5 fachlich trägt.
+
+**Gates (dritte Runde, alles von Null gefahren):** `pnpm lint`, `pnpm typecheck` und
+`pnpm format:check` grün. Vitest **888/888 grün in 3 von 3 Läufen** gegen einen frischen
+`postgres:18-alpine` (Wegwerf-Container, Port 55434). Gegen die geteilte Dev-DB bleibt Befund 1
+oben gültig (fehlende `0004`-Referenzliste) – das ist ein Umgebungsproblem ohne Repo-Auslöser.
+Keine UI-Änderung in dieser Runde, daher keine erneute Oberflächen-Verifikation nötig (AK7/AK8
+wurden in Runde 2 am echten Dev-Server belegt).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

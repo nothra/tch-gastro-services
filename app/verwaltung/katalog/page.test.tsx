@@ -81,13 +81,15 @@ describe("CatalogPage", () => {
 
   it("should_notRenderCatalogSelectionOrField_when_verwalter", async () => {
     // AK7, Gegenrichtung: kein neues Eingabefeld und keine Katalog-Anzeige (spec-59 AK7).
+    // Bewusst am Feld/Label statt am Katalognamen: der Name ist laut AK5 änderbar, und es gibt
+    // echte Artikel, die ihn im eigenen Namen tragen („Essen Montagsrunde") – ein Guard darauf
+    // bräche aus einem AK-fremden Grund.
     authMock.mockResolvedValue(session(["verwalter"]));
     listCatalogMock.mockResolvedValue([seededItem]);
 
     render(await CatalogPage());
 
     expect(screen.queryByLabelText(/Katalog/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Montagsrunde/)).not.toBeInTheDocument();
   });
 
   it("should_renderEssenLabel_when_itemCategoryIsEssen", async () => {
