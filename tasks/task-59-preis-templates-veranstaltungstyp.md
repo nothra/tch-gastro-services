@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -355,6 +355,34 @@ Verschachtelung) – keine weiteren Findings, beides bereits knapp und klar stru
 `DATABASE_URL` – wie erwartet, keine DB-Integrationstests in diesem Schritt nötig, da keine
 Produktionslogik geändert wurde; Typecheck, Format, Routen-Doku-Drift, Hook-Installation,
 `@import`-Deckel 893/1100 alle grün).
+
+## Security-Notizen (`/security-review`, 2026-09-17)
+
+**PASSED** – 0 kritisch, 0 wichtig, 3 Hinweise. Volltext:
+[`tasks/security-59.md`](security-59.md). **Kein Code geändert** (Security-Agent schreibt
+keinen Produktionscode).
+
+Sicherheitstechnisch ist #59 netto eine Verbesserung: `getCatalogItem`/`updateItem`/
+`setItemActive` führen den Parent-Key im `WHERE` (Kern-Kurzregel 2), `updateCatalogItemAction`
+wertet den No-Match aus statt Erfolg zu melden, und die DB lehnt Artikel ohne Katalogbezug
+fail-closed ab. Der Katalogbezug kommt nie aus `FormData` (ADR-050 D4). Keine neuen
+Dependencies (`package.json`/`pnpm-lock.yaml`-Diff leer), keine neuen Routen, Auth/Session
+unberührt.
+
+Zwei handlungsfähige Hinweise nach `docs/factory/kleinfunde.md` ausgelagert (ADR-043 Schritt B –
+je 1–2 Zeilen, keine Angriffsfläche, daher kein Issue):
+1. `updateItem` spreadet `data` ungefiltert in `.set()` (`db/catalog.ts:82`), während
+   `createItem` `catalogId` **nach** dem Spread setzt. Heute nicht ausnutzbar – **empirisch**
+   gegen zod `^4.4.3` geprüft, dass `z.object` unbekannte Keys verwirft, `catalogId` also nicht
+   aus `FormData` durchkommt. Reine Defense-in-Depth-Symmetrie.
+2. `db/catalog.test.ts:22-23` behauptet weiter „nicht-destruktiv", während der AK9-Replay
+   `CREATE SCHEMA`/`DROP SCHEMA … CASCADE` auf der per `DATABASE_URL` verbundenen DB ausführt
+   (`:442`/`:505`). Radius sauber begrenzt (generierter Name, `search_path` ohne `public`) –
+   aber der Dateikopf sagt das Gegenteil.
+
+Dritter Hinweis ohne Handlungsbedarf: das ADR-050-D6-Deploy-Fenster leakt keine internen
+Details – `runWithUniqueCheck` wirft `23502` fail-closed weiter, und Next.js maskiert
+geworfene Server-Action-Fehler im Produktions-Build zu einer generischen Meldung mit Digest.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
