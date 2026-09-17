@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -385,7 +385,13 @@ Details – `runWithUniqueCheck` wirft `23502` fail-closed weiter, und Next.js m
 geworfene Server-Action-Fehler im Produktions-Build zu einer generischen Meldung mit Digest.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Volltext: [`tasks/codify-59.md`](codify-59.md). Zwei neue Learnings ausgelagert: (1)
+`lessons/testing.md` – gleicher Testdaten-Namensliteral in mehreren DB-Integrationstestdateien
+kollidiert unter Parallelisierung (aus #59/#347); (2) Rezidiv-Ergänzung an der bestehenden
+`lessons/code-style.md`-Lesson zu Erzwingungs-Behauptungen (#319) – diesmal beim Kopieren eines
+Kommentars in vier Geschwisterdateien. Beide Security-Hinweise waren bereits vom
+`/security-review`-Schritt selbst in `kleinfunde.md` eingetragen, keine Doppelerfassung.
 
 ---
 Branch: `feature/59-preis-templates-veranstaltungstyp`
