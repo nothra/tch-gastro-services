@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -301,6 +301,39 @@ nennen die alte Unique-Constraint – war ausdrücklich ohne Handlungsbedarf).
 oben gültig (fehlende `0004`-Referenzliste) – das ist ein Umgebungsproblem ohne Repo-Auslöser.
 Keine UI-Änderung in dieser Runde, daher keine erneute Oberflächen-Verifikation nötig (AK7/AK8
 wurden in Runde 2 am echten Dev-Server belegt).
+
+## Test-Notizen (`/test`, 2026-09-17)
+
+**Kein Produktionscode geändert** (nur Analyse + Task-Doku). Volle Suite und Coverage erneut
+gegen einen frischen `postgres:18-alpine`-Wegwerf-Container gefahren (nicht die driftende
+geteilte Dev-DB, Befund 1 aus `/implement`):
+
+- **Vitest: 888/888 grün, 0 skipped** (75 Testdateien).
+- **Coverage:** 97,13 % Statements / 95,36 % Branch / 94,63 % Funktionen / 97,59 % Zeilen –
+  deutlich über der 80-%-Schwelle aus `PROJECT-CONTEXT.md`.
+
+**AK/FS-Vollständigkeit geprüft:** alle zehn AKs und FS1/FS2/FS4/FS5 sind namentlich in den
+Tests referenziert (`db/catalog.test.ts`, `app/verwaltung/katalog/actions.test.ts`,
+`app/verwaltung/katalog/page.test.tsx`, `app/veranstaltung/actions.test.ts`,
+`db/veranstaltung.test.ts`); FS3 (Unique-Violation 23505 → Nutzermeldung) ist über
+`DUPLICATE_MESSAGE`-Assertions in `app/verwaltung/katalog/actions.test.ts` abgedeckt, ohne
+das Label im Kommentar zu tragen.
+
+**Verbleibende Coverage-Lücken bewusst nicht geschlossen (Scope, Kern-Kurzregel „Scope
+einhalten"):** ein Diff-Abgleich (`git diff origin/main...HEAD --stat`) zeigt, dass jede
+Zeile, die dieser Task tatsächlich zuzurechnen ist, abgedeckt ist. Die im Coverage-Report
+sichtbaren Lücken liegen ausschließlich in **von #59 nicht berührtem** Code:
+- `db/schema.ts` (76 %) – deklarative Tabellen-/Typ-Definitionen ohne Laufzeitlogik.
+- `app/verwaltung/katalog/actions.ts:87-88` (`if (!id) return;` in
+  `setCatalogItemActiveAction`) – unverändert seit `origin/main`, vor #59 bereits ungetestet.
+- `app/veranstaltung/actions.ts:119,333` – Guards in `createWalkInAction`/`ensureThekeAction`,
+  von #59 nicht angefasst (die neue Zeile `getCatalogItem(catalogItemId, STANDARD_CATALOG_ID)`
+  und ihr `if (!item)`-Zweig in `applyVerzehrAdjust` sind covered).
+- `CatalogRow.tsx`, `app/veranstaltung/[id]/page.tsx`, `TeilnehmerRow.tsx`,
+  `IdentityGate.tsx` u. Ä. – gar nicht im Diff dieser Task.
+
+Neue Tests waren daher nicht nötig; die vorhandene Suite aus den drei `/implement`-Runden und
+Review-Runde 2 ist vollständig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
