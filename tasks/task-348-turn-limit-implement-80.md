@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -95,6 +95,13 @@ historie), nicht WHAT. Tests bleiben unverändert grün: 1564/0 wie zuvor.
 **Empfehlung: APPROVED.** Keine kritischen/wichtigen Findings. Ein Nitpick (ASCII- statt
 Unicode-Pfeile im neuen Kommentar in `config-validation-check.sh`) wurde direkt in der
 Review-Runde behoben. Details: [tasks/review-348.md](review-348.md).
+
+**Security-Review: PASSED.** Keine kritischen/wichtigen Findings. Die Ceiling-Integrität
+(`MAX_TURNS_CEILING` bleibt eine nicht-config-überschreibbare Skript-Konstante, ADR-009 §6 /
+ADR-010 unverändert) und die Grenzfall-Enforcement (80 akzeptiert, 81 fail-closed abgelehnt)
+sind explizit geprüft und durch Tests belegt. Erhöhter Kosten-Rahmen ist der beabsichtigte
+Zweck der Task, dokumentiert begründet (ADR-051), kein Nebeneffekt. Details:
+[tasks/security-348.md](security-348.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
