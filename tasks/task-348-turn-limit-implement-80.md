@@ -34,13 +34,32 @@ Abbruch trotz fast fertigem Diff). Läuft über `/architecture` (ADR-Amendment),
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+**ADR:** [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md) – erweitert ADR-009 §6 /
+ADR-010 (Mechanismus unverändert, nur der Zahlenwert 50→80). ADR-010 hat eine kurze
+Blockquote-Notiz am Absatz „Heimat der Obergrenze" erhalten (Muster: ADR-036 D1 ↔ ADR-046).
+ADR-009 §6 bleibt **unverändert** – beschreibt nur den Mechanismus, keinen Zahlenwert, daher
+keine Drift.
+
+**Implementierung (für `/implement`):**
+1. `scripts/checks/config-validation-check.sh:34` → `MAX_TURNS_CEILING=80`; Kopf-Kommentar
+   (~Zeile 20-31) um Verweis auf ADR-051 ergänzen.
+2. `factory.config.yml:50` → `implement: { max_turns: 80 }`; `@reason`-Kommentar (~Zeile 38-48)
+   umschreiben: überholte „80 wurde abgelehnt"-Notiz raus, Verweis auf ADR-051 +
+   Eskalationshistorie (#49/#53/#324) rein.
+3. `scripts/checks/tests/run-tests.sh` (Abschnitt „Config-Validierungs-Gate", ab ~Zeile 1500):
+   - Neuer Positiv-Test `max_turns: 80` → Exit 0 (analog `ok.yml`, Zeile 1508).
+   - Neuer Negativ-Grenzfall-Test `max_turns: 81` → Exit ≠ 0 (analog `ceil.yml`, Zeile 1528 –
+     **nicht** überschreiben, `9999` bleibt als „weit über Ceiling"-Fall bestehen).
+   - Bestehende Fixtures (`typo.yml`, `zero.yml`, `nonint.yml`, `tier.yml`, `broken.yml`)
+     unverändert – ceiling-wert-unabhängig.
+4. Optional (empfohlen, kein hartes AC): kurzer Nachtrag in
+   `docs/factory/lessons/factory-workflow.md` beim #324-Eintrag
+   („Ceiling seit #348/ADR-051 auf 80 angehoben").
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- [ ] Amendment-Form: Status-Update in ADR-010 selbst, oder neue eigenständige ADR mit Verweis
-      auf 009/010 (analog ADR-046 „Erweitert ADR-036")? → Entscheidung bei `/architecture`.
-- [ ] Kurzer Nachtrag in `docs/factory/lessons/factory-workflow.md` beim #324-Eintrag
-      („Ceiling seit #348 auf 80 angehoben")? Empfehlung: ja, aber kein hartes AC.
+- [x] Amendment-Form: **entschieden** – neue eigenständige ADR-051 mit Verweis auf 009/010
+      (analog ADR-046 „Erweitert ADR-036"), keine Status-Änderung an ADR-009/010 selbst.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
