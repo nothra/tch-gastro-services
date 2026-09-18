@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -67,6 +67,15 @@ keine Drift.
 - GREEN: nach `MAX_TURNS_CEILING=80` + `factory.config.yml`-Update → volle Suite:
   1563 grün, 0 rot.
 - `pnpm lint` (via `scripts/checks/pre-commit.sh`) grün.
+
+**`/test`-Ergänzung:** Die bisherigen Gate-Tests (AC4/AC5) belegen nur, dass das Gate `80` als
+*gültig* einstuft – nicht, dass `run-pipeline.sh` den Wert für `/implement` auch tatsächlich
+*anwendet* (AC6, „kein stiller Fallback"). Neue End-to-End-Assertion in der Phase-1b-Sektion
+von `run-tests.sh` ergänzt: kopiert die **reale** `factory.config.yml` in den bestehenden
+TMP_CFG-Scaffold und prüft, dass `run-pipeline.sh 1 --dry-run` „max 80 turns" für `/implement`
+ausgibt. Volle Suite danach: **1564 grün, 0 rot**. Details/AK-Matrix:
+[tasks/coverage-348.md](coverage-348.md). Vitest-Coverage nicht anwendbar (kein App-Code im
+Diff, siehe dort).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
