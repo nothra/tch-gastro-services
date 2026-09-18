@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -105,6 +105,10 @@ Zweck der Task, dokumentiert begründet (ADR-051), kein Nebeneffekt. Details:
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Ein neues Learning ergänzt: „Gate-Validität ≠ Downstream-Anwendung" –
+[`docs/factory/lessons/testing.md`](../docs/factory/lessons/testing.md) + Index-Zeile in
+`PROJECT-CONTEXT.md`. Der Review-Nitpick (Pfeil-Stil) und die PASSED-Security-Review brauchten
+keine neue Regel (bereits durch bestehende Muster gedeckt). Details: [tasks/codify-348.md](codify-348.md).
 
 ---
 Branch: `feature/348-turn-limit-implement-80`
