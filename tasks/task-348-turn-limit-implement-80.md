@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -75,6 +75,9 @@ keine Drift.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+**Empfehlung: APPROVED.** Keine kritischen/wichtigen Findings. Ein Nitpick (ASCII- statt
+Unicode-Pfeile im neuen Kommentar in `config-validation-check.sh`) wurde direkt in der
+Review-Runde behoben. Details: [tasks/review-348.md](review-348.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
