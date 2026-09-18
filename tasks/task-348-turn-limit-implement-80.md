@@ -1,7 +1,7 @@
 # Task 348: turn-limit-implement-80
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,17 +20,21 @@ Abbruch trotz fast fertigem Diff). Läuft über `/architecture` (ADR-Amendment),
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] ADR-009 §6 / ADR-010 (bzw. neue Amendment-ADR) begründet die neue Ceiling 80 mit der
+- [x] ADR-009 §6 / ADR-010 (bzw. neue Amendment-ADR) begründet die neue Ceiling 80 mit der
       Eskalationshistorie (#49, #53, #324) – nicht nur dem Einzel-Incident #324
-- [ ] `MAX_TURNS_CEILING=80` in `scripts/checks/config-validation-check.sh`, Kommentar auf die
+      → [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md)
+- [x] `MAX_TURNS_CEILING=80` in `scripts/checks/config-validation-check.sh`, Kommentar auf die
       neue ADR aktualisiert
-- [ ] `skills.implement.max_turns: 80` in `factory.config.yml`, `@reason`-Kommentar auf #324
+- [x] `skills.implement.max_turns: 80` in `factory.config.yml`, `@reason`-Kommentar auf #324
       aktualisiert (überholte „80 wurde abgelehnt"-Notiz entfernt)
-- [ ] Gate akzeptiert `max_turns: 80` (Positiv-Test)
-- [ ] Gate lehnt `max_turns: 81` weiterhin fail-closed ab (Grenzfall-Negativ-Test)
-- [ ] Andere Skills (`pr-shepherd`, `codify`, `test`) bleiben bei ihren bisherigen Werten
-      (20/30/40) – Regressions-Check
-- [ ] Bestehende Negativ-Tests (Tippfehler-Key, `max_turns: 0`, nicht-Integer) bleiben grün
+- [x] Gate akzeptiert `max_turns: 80` (Positiv-Test) – neues Fixture `ceil80.yml`,
+      `scripts/checks/tests/run-tests.sh`
+- [x] Gate lehnt `max_turns: 81` weiterhin fail-closed ab (Grenzfall-Negativ-Test) – neues
+      Fixture `ceil81.yml`
+- [x] Andere Skills (`pr-shepherd`, `codify`, `test`) bleiben bei ihren bisherigen Werten
+      (20/30/40) – Regressions-Check: keine Änderung an diesen Zeilen in `factory.config.yml`
+- [x] Bestehende Negativ-Tests (Tippfehler-Key, `max_turns: 0`, nicht-Integer) bleiben grün
+      – volle Suite: 1563 grün, 0 rot (`scripts/checks/tests/run-tests.sh`)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -54,7 +58,15 @@ keine Drift.
      unverändert – ceiling-wert-unabhängig.
 4. Optional (empfohlen, kein hartes AC): kurzer Nachtrag in
    `docs/factory/lessons/factory-workflow.md` beim #324-Eintrag
-   („Ceiling seit #348/ADR-051 auf 80 angehoben").
+   („Ceiling seit #348/ADR-051 auf 80 angehoben"). **Erledigt.**
+
+**TDD-Nachweis (RED → GREEN):**
+- RED: direkte Gate-Probe + neue Fixtures vor der Ceiling-Änderung → `max_turns: 80` schlägt
+  fehl (`außerhalb [1, 50]`), volle Suite `scripts/checks/tests/run-tests.sh`: 1562 grün, 1 rot
+  (genau der neue `Gate #348: max_turns = 80`-Test).
+- GREEN: nach `MAX_TURNS_CEILING=80` + `factory.config.yml`-Update → volle Suite:
+  1563 grün, 0 rot.
+- `pnpm lint` (via `scripts/checks/pre-commit.sh`) grün.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

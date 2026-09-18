@@ -1554,6 +1554,16 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   bash "$GATE" "$DEFAULTS" "$GTMP/zero.yml" >/dev/null 2>&1; rc=$?
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate: max_turns = 0 (unter Minimum) → fail-closed"
 
+  # Positiv (Grenzfall, #348/ADR-051): max_turns = 80 ist die neue Ceiling → exit 0
+  printf 'skills:\n  implement: { max_turns: 80 }\n' > "$GTMP/ceil80.yml"
+  bash "$GATE" "$DEFAULTS" "$GTMP/ceil80.yml" >/dev/null 2>&1
+  assert_true "$?" "Gate #348: max_turns = 80 (neue Ceiling) → exit 0"
+
+  # Negativ (Grenzfall, #348/ADR-051): max_turns = 81 liegt über der neuen Ceiling
+  printf 'skills:\n  implement: { max_turns: 81 }\n' > "$GTMP/ceil81.yml"
+  bash "$GATE" "$DEFAULTS" "$GTMP/ceil81.yml" >/dev/null 2>&1; rc=$?
+  assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate #348: max_turns = 81 (über neuer Ceiling) → fail-closed"
+
   # ── Mindest-Tier für sicherheitsrelevante Skills (Task 241, Regel 5) ────────
   # AK1 (Negativ): security-review.tier unter heavy → fail-closed. light ist ein
   #   gültiger model_tiers-Key (passiert Regel 2/4a) → nur Regel 5 kann greifen;
