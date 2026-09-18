@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -76,6 +76,14 @@ TMP_CFG-Scaffold und prüft, dass `run-pipeline.sh 1 --dry-run` „max 80 turns"
 ausgibt. Volle Suite danach: **1564 grün, 0 rot**. Details/AK-Matrix:
 [tasks/coverage-348.md](coverage-348.md). Vitest-Coverage nicht anwendbar (kein App-Code im
 Diff, siehe dort).
+
+**`/refactor`-Ergebnis: kein Refactoring-Bedarf, keine Code-Änderung vorgenommen.** Diff geprüft
+gegen die Checkliste (Naming, Funktionslänge, Parameter, Duplikation, Magic Numbers,
+Verschachtelung, Kommentar-WHY-vs-WHAT): eine Konstanten-Wert-Änderung
+(`MAX_TURNS_CEILING`/`max_turns`) plus zwei neue Testblöcke, die exakt dem im File etablierten
+Fixture-/Assert-Idiom folgen (keine neue Abstraktion nötig, keine Duplikation – die Blöcke sind
+eigenständige Grenzfälle, keine Kopien). Kommentare erklären durchgängig WHY (Eskalations-
+historie), nicht WHAT. Tests bleiben unverändert grün: 1564/0 wie zuvor.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
