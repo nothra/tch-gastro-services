@@ -43,11 +43,14 @@
 # (Proxy < Schwelle) → light, großer → heavy; statisches tier: heavy bleibt als
 # Fail-Safe. Der frühere provisorische `implement: { tier: heavy }`-Override ist
 # damit aufgelöst (AK12) – hier steht nur noch der bewusste max_turns-Deckel.
-# @reason (max_turns=50): großer implement-Lauf braucht Spielraum; 50 ist das
-#   Gate-Policy-Maximum (ADR-009 §6, MAX_TURNS_CEILING; ein Versuch mit 80 wurde
-#   vom config-validation-check hart abgelehnt).
+# @reason (max_turns=80): großer implement-Lauf braucht Spielraum; 80 ist das
+#   Gate-Policy-Maximum (ADR-009 §6, MAX_TURNS_CEILING). Wiederkehrendes
+#   Turn-Limit-Exhaustion-Muster (Task 49: 20→40, Task 53: 40→50, zuletzt #324:
+#   erneuter 3×-Abbruch am damaligen Maximum 50, trotz fast fertigem Diff über
+#   6 Module/15 AC) führte zur Anhebung der Ceiling selbst auf 80 (ADR-051, #348) –
+#   ein früherer Versuch, direkt auf 80 zu setzen, war noch vom Gate abgelehnt worden.
 skills:
-  implement: { max_turns: 50 }
+  implement: { max_turns: 80 }
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 30 }
   test: { max_turns: 40 }
