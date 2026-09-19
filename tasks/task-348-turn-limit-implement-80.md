@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `MAX_TURNS_CEILING` (Gate-Policy-Konstante, `scripts/checks/config-validation-check.sh`,
@@ -109,6 +109,11 @@ Ein neues Learning ergänzt: „Gate-Validität ≠ Downstream-Anwendung" –
 [`docs/factory/lessons/testing.md`](../docs/factory/lessons/testing.md) + Index-Zeile in
 `PROJECT-CONTEXT.md`. Der Review-Nitpick (Pfeil-Stil) und die PASSED-Security-Review brauchten
 keine neue Regel (bereits durch bestehende Muster gedeckt). Details: [tasks/codify-348.md](codify-348.md).
+
+PR-Shepherd [2026-09-19]: Merge freigegeben – alle Gates grün (Lint, Tests,
+config-validation, factory-self-test, CodeQL, Vercel-Preview), keine offenen Review-
+Kommentare, keine Divergenz zu `origin/main` (mergeStateStatus CLEAN), 0 Approvals
+erforderlich (ADR-029), Draft → ready.
 
 ---
 Branch: `feature/348-turn-limit-implement-80`
