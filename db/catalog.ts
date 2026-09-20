@@ -1,6 +1,12 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { catalog, catalogItems, type CatalogItem, type NewCatalogItem, type Catalog } from "./schema";
+import {
+  catalog,
+  catalogItems,
+  type CatalogItem,
+  type NewCatalogItem,
+  type Catalog,
+} from "./schema";
 
 // Data-Layer des Getränke-Katalogs (F2, #49). Einziger Ort mit Drizzle-Queries auf
 // catalog_item – Actions/UI greifen nie direkt auf die Tabelle zu (PROJECT-CONTEXT,
@@ -135,10 +141,7 @@ export async function createCatalog(name: string): Promise<Catalog> {
 // Katalog umbenennen (AK3). Unique-Violation auf `catalog.name` wird in der Server Action
 // via `runWithUniqueCheck` zu einer Nutzermeldung übersetzt (FS1). `undefined` bei No-Match
 // ist Kern-Kurzregel 1 (Lesson #55): guarded UPDATE, Rückgabewert auswerten (FS2).
-export async function renameCatalog(
-  id: string,
-  name: string,
-): Promise<Catalog | undefined> {
+export async function renameCatalog(id: string, name: string): Promise<Catalog | undefined> {
   const [updated] = await db
     .update(catalog)
     .set({ name, updatedAt: new Date() })
@@ -149,10 +152,7 @@ export async function renameCatalog(
 
 // Katalog deaktivieren/reaktivieren (AK4). Soft-Delete analog `catalogItems.active`.
 // `undefined` bei No-Match (FS2).
-export async function setCatalogActive(
-  id: string,
-  active: boolean,
-): Promise<Catalog | undefined> {
+export async function setCatalogActive(id: string, active: boolean): Promise<Catalog | undefined> {
   const [updated] = await db
     .update(catalog)
     .set({ active, updatedAt: new Date() })

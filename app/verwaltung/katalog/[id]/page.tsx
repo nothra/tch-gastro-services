@@ -10,11 +10,7 @@ import { CatalogManager } from "./CatalogManager";
 // gerade gepflegt wird (Artikel anlegen/ändern/deaktivieren landen hier). Nur Verwalter.
 // Die UI-Sperre ist Anzeige-Komfort; die eigentliche Durchsetzung liegt serverseitig
 // in den Actions (requireRole), nicht ausschließlich hier (Defense in Depth).
-export default async function CatalogDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function CatalogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: catalogId } = await params;
 
   const session = await auth();
@@ -28,10 +24,7 @@ export default async function CatalogDetailPage({
     );
   }
 
-  const [allCatalogs, items] = await Promise.all([
-    listCatalogs(),
-    listCatalog(catalogId),
-  ]);
+  const [allCatalogs, items] = await Promise.all([listCatalogs(), listCatalog(catalogId)]);
 
   // Der gerade ausgewählte Katalog – wird vom Umschalter hervorgehoben
   const currentCatalog = allCatalogs.find((c) => c.id === catalogId);

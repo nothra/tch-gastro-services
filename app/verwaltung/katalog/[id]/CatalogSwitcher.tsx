@@ -32,9 +32,7 @@ export function CatalogSwitcher({ currentId, allCatalogs }: CatalogSwitcherProps
               }}
               className="cursor-pointer"
             />
-            <span className={cat.active ? "" : "text-zinc-500 dark:text-zinc-400"}>
-              {cat.name}
-            </span>
+            <span className={cat.active ? "" : "text-zinc-500 dark:text-zinc-400"}>{cat.name}</span>
             {!cat.active && (
               <span className="ml-auto text-xs text-zinc-500 dark:text-zinc-400">(inaktiv)</span>
             )}

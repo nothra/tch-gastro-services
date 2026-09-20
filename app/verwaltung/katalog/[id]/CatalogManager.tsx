@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import type { Catalog } from "@/db/schema";
-import { createCatalogAction, renameCatalogAction, setCatalogActiveAction, duplicateCatalogAction } from "../actions";
+import {
+  createCatalogAction,
+  renameCatalogAction,
+  setCatalogActiveAction,
+  duplicateCatalogAction,
+} from "../actions";
 
 interface CatalogManagerProps {
   currentCatalog?: Catalog;
@@ -80,10 +85,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
         <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
           <div className="flex max-h-[90vh] w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
             <h2 className="text-lg font-bold">Neuen Katalog anlegen</h2>
-            <form
-              action={handleCreateCatalog}
-              className="flex flex-col gap-3"
-            >
+            <form action={handleCreateCatalog} className="flex flex-col gap-3">
               <div>
                 <label className="block text-sm font-medium">Katalogname</label>
                 <input
@@ -118,10 +120,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
         <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
           <div className="flex max-h-[90vh] w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
             <h2 className="text-lg font-bold">Katalog umbenennen</h2>
-            <form
-              action={handleRenameCatalog}
-              className="flex flex-col gap-3"
-            >
+            <form action={handleRenameCatalog} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={currentCatalog.id} />
               <div>
                 <label className="block text-sm font-medium">Neuer Name</label>
@@ -158,12 +157,10 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
           <div className="flex max-h-[90vh] w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
             <h2 className="text-lg font-bold">Katalog duplizieren</h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Der Katalog &quot;{currentCatalog.name}&quot; wird mit all seinen aktiven Artikeln kopiert.
+              Der Katalog &quot;{currentCatalog.name}&quot; wird mit all seinen aktiven Artikeln
+              kopiert.
             </p>
-            <form
-              action={handleDuplicateCatalog}
-              className="flex flex-col gap-3"
-            >
+            <form action={handleDuplicateCatalog} className="flex flex-col gap-3">
               <input type="hidden" name="sourceId" value={currentCatalog.id} />
               <div>
                 <label className="block text-sm font-medium">Name der Kopie</label>

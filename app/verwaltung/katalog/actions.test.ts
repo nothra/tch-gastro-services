@@ -169,7 +169,13 @@ describe("updateCatalogItemAction", () => {
   it("should_returnError_when_idMissing", async () => {
     const result = await updateCatalogItemAction(
       undefined,
-      form({ name: "Cola", size: "0,5 l", priceCents: "2,10", category: "getraenk", catalogId: "standard" }),
+      form({
+        name: "Cola",
+        size: "0,5 l",
+        priceCents: "2,10",
+        category: "getraenk",
+        catalogId: "standard",
+      }),
     );
 
     expect(result.error).toBeDefined();
