@@ -140,9 +140,12 @@ und Verzehrerfassung ändern ihr Verhalten in dieser Slice nicht.
 - [x] ~~Was bedeutet „deaktiviert" konkret, solange #346 nicht existiert?~~ → Geklärt: wirkt nur
       auf die Duplizier-Quellenauswahl in der Verwaltung (AK5); Theke/Verzehr/`listActiveCatalog`
       bleiben unverändert.
-- [ ] **ADR-Bedarf für `/architecture`:** ADR-050 D7 hatte #345 verpflichtet, `catalog.active` zu
-      „verdrahten und testen (deaktivierter Katalog wird nicht mehr als Preisquelle angeboten)".
-      Diese Spec löst das enger auf (nur Duplizier-Quelle, nicht Theke/Verzehr) als D7 wörtlich
-      nahelegt. `/architecture` sollte prüfen, ob das eine kurze Ergänzung zu ADR-050 verdient
-      (Begründung: kein Veranstaltungs-Katalog-Bezug existiert vor #346, ein weitergehendes Gate
-      wäre unbelegbares Verhalten ohne Bedienweg) oder ob ein neuer ADR-Trigger vorliegt.
+- [x] ~~**ADR-Bedarf für `/architecture`:** löst diese Spec ADR-050 D7 enger auf (nur
+      Duplizier-Quelle, nicht Theke/Verzehr), als D7 wörtlich nahelegt – braucht das eine
+      ADR-Ergänzung oder liegt ein neuer ADR-Trigger vor?~~ → Geklärt: kein neuer ADR-Trigger
+      (Spec-002: keine neue Technologie, kein neues Architekturmuster, kein
+      Schnittstellen-Vertrag, keine irreversible Konsequenz – die Tabelle existiert bereits seit
+      #59). Stattdessen Nachtrag an
+      [ADR-050](../adr/050-katalog-als-template-entitaet.md#nachtrag-2026-09-20-345-auflösung-der-d7-verpflichtung--active-gatet-nur-die-verwaltung)
+      (2026-09-20, #345), der D7 als Erfüllung der dort selbst delegierten Verpflichtung
+      dokumentiert. Implementierungs-Hinweise (Routing, Data-Layer) stehen in der Task-Datei.

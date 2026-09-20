@@ -336,3 +336,32 @@ formuliert und damit ebenfalls testbar (kein `catalog_id` im Join / kein Filter 
   die Gruppierungs-Entscheidung bleiben unverändert.
 - **ADR-033 D2** (Preis-Freeze) – ausdrücklich katalog-frei (D5).
 - **Kein Superseding.** Diese ADR erweitert das Katalog-Modell, ersetzt keine Entscheidung.
+
+## Nachtrag (2026-09-20, #345): Auflösung der D7-Verpflichtung – `active` gate't nur die Verwaltung
+
+**Kontext.** D7 verpflichtet #345 wörtlich: „dort wird `active` verdrahtet **und** getestet
+(deaktivierter Katalog wird nicht mehr als Preisquelle angeboten)". Bei der Umsetzung von #345
+([spec-345](../specs/spec-345-mehrere-kataloge-verwalten.md)) stellte sich heraus, dass eine
+wörtliche Lesung – `catalog.active` filtert auch `listActiveCatalog`/Theke/Verzehr – zwei Probleme
+hätte: Erstens gibt es vor #346 keinen Bedienweg, der einen anderen Katalog als den
+Standard-Katalog an Theke oder Verzehrerfassung liefert; ein Aktiv-Filter auf diesem Pfad wäre ein
+Zweig, den kein Test und kein Bedienweg erreicht – totes Verhalten, das eine Fehlerbehandlung
+vortäuscht (Clean-Code-Guideline, „Keine Fallbacks für bereits ausgeschlossene Fälle"). Zweitens
+bricht ein Verwalter, der versehentlich den Standard-Katalog deaktiviert, damit den laufenden
+Montagsrunden-Betrieb – ein Fußangel, den D6 für die Migration selbst ausdrücklich vermeiden
+wollte („der laufende Betrieb ändert sich nicht").
+
+**Entscheidung.** `catalog.active` gate't in #345 ausschließlich die **Verwaltungsoberfläche**:
+ein deaktivierter Katalog verschwindet aus der Quellenauswahl für „Katalog duplizieren"
+(serverseitig durchgesetzt, nicht nur UI-Ausblendung), bleibt aber im Katalog-Umschalter sichtbar
+und seine Artikel bleiben normal les- und bearbeitbar. `listActiveCatalog`, Theke und
+Verzehrerfassung bleiben **unverändert** und prüfen `catalog.active` weiterhin nicht – exakt wie
+vor #345. Das ist kein neuer Design-Fork gegenüber D7, sondern eine engere, jetzt bedienweg- und
+testbare Lesung von „Preisquelle": in dieser Slice ist „neue Verwendung" ausschließlich
+„als Vorlage für einen neuen Katalog dienen", nicht „von einer Veranstaltung gelesen werden" – das
+Zweite entsteht erst mit #346 und bekommt dort, falls nötig, seine eigene Aktiv-Prüfung.
+
+**Konsequenz.** Kein Superseding, keine Schema-Änderung. Diese engere Lesung ist die einzige
+Interpretation von D7, die sich in #345 (ohne #346) tatsächlich durch einen Test belegen lässt;
+#346 kann `catalog.active` bei Bedarf zusätzlich an die Veranstaltungs-Katalog-Auswahl koppeln,
+ohne dass diese ADR dafür erneut geändert werden müsste.

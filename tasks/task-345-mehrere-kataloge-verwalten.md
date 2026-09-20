@@ -32,10 +32,51 @@ Details, Scope-Abgrenzung und Fehlerszenarien: [spec-345](../docs/specs/spec-345
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
+**Kein ADR-Trigger (Spec-002).** Keine neue Technologie, kein neues Architekturmuster, kein
+Schnittstellen-Vertrag mit anderen Teams, keine irreversible Konsequenz: Die Tabelle `catalog`
+existiert bereits seit #59 (ADR-050 D2) inkl. `active` und `sortOrder` – #345 braucht **keine
+neue Migration**, nur zusätzliche CRUD-Operationen auf bereits vorhandenen Spalten, nach exakt
+demselben Data-Layer-/Server-Action-/Zod-Muster wie die bestehende Artikel-Pflege. Die eine
+offene Frage aus der Spec (Auslegung von ADR-050 D7) ist **kein neuer Architektur-Fork**, sondern
+die Erfüllung einer in ADR-050 selbst bereits an #345 delegierten Verpflichtung – dafür genügt ein
+Nachtrag an der bestehenden ADR statt einer neuen: siehe
+[ADR-050, Abschnitt „Nachtrag (2026-09-20, #345)"](../docs/adr/050-katalog-als-template-entitaet.md).
+Kurzfassung: `catalog.active` gate't ausschließlich die Duplizier-Quellenauswahl in der
+Verwaltung; `listActiveCatalog`/Theke/Verzehr bleiben unverändert ungefiltert nach `catalog.active`.
+
+**Routing für den Katalog-Umschalter: dynamisches Segment, kein `searchParams`.** Recherche im
+Code zeigt: die einzige bestehende `searchParams`-Nutzung (`app/veranstaltung/personenbezug.ts`,
+#308) trägt einen Wert **zwischen** bereits gerouteten Seiten weiter, entscheidet aber nirgends,
+*was* ein Server Component lädt. Das etablierte Muster für „eins auswählen, dann dessen Daten
+laden/bearbeiten" ist die dynamische Route (`app/veranstaltung/[id]/...`). Empfehlung für
+`/implement`: `app/verwaltung/katalog/[id]/page.tsx` (Katalog-ID im Pfad, analog zu
+`veranstaltung/[id]`), `app/verwaltung/katalog/page.tsx` redirected auf
+`/verwaltung/katalog/${STANDARD_CATALOG_ID}` (= `/verwaltung/katalog/standard`) statt einen
+zweiten Auswahlmechanismus (searchParams/Client-State) einzuführen. **Achtung:** neue
+`page.tsx` → `docs/routes.md` im selben PR mitpflegen (Drift-Check `routes-doc-check.sh`,
+Lesson aus #145).
+
+**Voraussichtliche Data-Layer-Erweiterungen (`db/catalog.ts`, alle mit `requireRole("verwalter")`
+in der jeweiligen Action, nicht im Data-Layer selbst – bestehendes Muster):**
+- `listCatalogs()` – alle Kataloge (aktiv + inaktiv) für den Umschalter, sortiert
+  `sortOrder, name` (analog `catalogOrder` für Artikel).
+- `listDuplicatableCatalogs()` oder ein Filter-Parameter auf `listCatalogs` – nur aktive Kataloge,
+  für die Quellenauswahl in „Katalog duplizieren" (AK5); dieselbe Funktion ist auch die
+  serverseitige Durchsetzung in der Duplizier-Action (fremde/inaktive ID → Fehler, nicht nur
+  UI-Ausblendung).
+- `createCatalog(name)`, `renameCatalog(id, name)`, `setCatalogActive(id, active)` – Unique-
+  Violation auf `catalog.name` (23505) über denselben `runWithUniqueCheck`-Seam wie bei Artikeln
+  übersetzen (neue Nutzermeldung, z. B. „Ein Katalog mit diesem Namen existiert bereits.").
+- `duplicateCatalog(sourceId, newName)` – neuen Katalog anlegen, dann alle **aktiven** Artikel aus
+  `listActiveCatalog(sourceId)` mit `createItem(newId, {...})` je Zeile kopieren (kein Bulk-Insert
+  nötig bei der zu erwartenden Artikelmenge, ADR-050 „Performance & Skalierung"-Nichtanforderung).
+  Beide Schritte (Katalog anlegen + Artikel kopieren) gehören in **eine** Transaktion (`db.transaction`),
+  damit bei einem Fehler mitten in der Kopie kein halb-befüllter Katalog zurückbleibt.
+
 ## Offene Fragen
-- [ ] `/architecture` prüfen: verdient die enger gefasste Auslegung von ADR-050 D7 (active gate't
-      nur die Duplizier-Quellenauswahl, nicht Theke/Verzehr) eine ADR-Ergänzung? (spec-345,
-      Abschnitt „Offene Fragen")
+- [x] ~~`/architecture` prüfen: verdient die enger gefasste Auslegung von ADR-050 D7 eine
+      ADR-Ergänzung?~~ → Geklärt: Nachtrag an ADR-050 (2026-09-20, #345), kein neuer ADR nötig
+      (kein Trigger aus Spec-002).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
