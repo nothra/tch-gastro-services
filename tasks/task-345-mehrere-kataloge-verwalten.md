@@ -1,9 +1,9 @@
 # Task 345: mehrere-kataloge-verwalten
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung → Implementierung abgeschlossen
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig → 806 Tests grün
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -20,14 +20,14 @@ Details, Scope-Abgrenzung und Fehlerszenarien: [spec-345](../docs/specs/spec-345
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 – Katalog anlegen (Namenskonflikt wird abgelehnt)
-- [ ] AK2 – Katalog duplizieren (nur aktive Artikel, unabhängig editierbar)
-- [ ] AK3 – Katalog umbenennen (Rename-Sicherheit bleibt, Namenskonflikt wird abgelehnt)
-- [ ] AK4 – Katalog deaktivieren/reaktivieren (bleibt sichtbar & editierbar)
-- [ ] AK5 – Deaktivierter Katalog ist keine Duplizier-Quelle mehr (serverseitig durchgesetzt)
-- [ ] AK6 – Katalog-Umschalter steuert Artikel-Pflege (Parent-Key-Bindung)
-- [ ] AK7 – Rollen-Gate greift serverseitig für alle neuen Actions
-- [ ] AK8 – Duplikat-Regel je Katalog bleibt unangetastet
+- [x] AK1 – Katalog anlegen (Namenskonflikt wird abgelehnt)
+- [x] AK2 – Katalog duplizieren (nur aktive Artikel, unabhängig editierbar)
+- [x] AK3 – Katalog umbenennen (Rename-Sicherheit bleibt, Namenskonflikt wird abgelehnt)
+- [x] AK4 – Katalog deaktivieren/reaktivieren (bleibt sichtbar & editierbar)
+- [x] AK5 – Deaktivierter Katalog ist keine Duplizier-Quelle mehr (serverseitig durchgesetzt)
+- [x] AK6 – Katalog-Umschalter steuert Artikel-Pflege (Parent-Key-Bindung)
+- [x] AK7 – Rollen-Gate greift serverseitig für alle neuen Actions
+- [x] AK8 – Duplikat-Regel je Katalog bleibt unangetastet
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
