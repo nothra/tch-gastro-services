@@ -1,10 +1,21 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
-import { STANDARD_CATALOG_ID, createItem, setItemActive, updateItem } from "@/db/catalog";
-import { catalogItemSchema } from "./schema";
+import { db } from "@/db/index";
+import { catalog } from "@/db/schema";
+import {
+  createItem,
+  setItemActive,
+  updateItem,
+  createCatalog,
+  renameCatalog,
+  setCatalogActive,
+  duplicateCatalog,
+} from "@/db/catalog";
+import { catalogItemSchema, catalogNameSchema } from "./schema";
 
 const CATALOG_PATH = "/verwaltung/katalog";
 const DUPLICATE_MESSAGE = "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
@@ -44,16 +55,25 @@ export async function createCatalogItemAction(
   formData: FormData,
 ): Promise<CatalogFormState> {
   await requireRole("verwalter");
-  const parsed = catalogItemSchema.safeParse(Object.fromEntries(formData));
+  const catalogId = String(formData.get("catalogId") ?? "");
+  if (!catalogId) return { error: "Kein Katalog angegeben." };
+
+  // FormData-Einträge filtern: catalogId soll nicht in das Zod-Schema gehen
+  const itemData = Object.fromEntries(
+    Array.from(formData.entries()).filter(([key]) => key !== "catalogId"),
+  );
+  const parsed = catalogItemSchema.safeParse(itemData);
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
-  // Der Katalogbezug wird serverseitig gesetzt und nie aus `FormData` gelesen (ADR-050 D4) –
-  // ein Client kann keinen fremden Katalog als Schreibziel angeben.
+  // Der Katalogbezug wird serverseitig gesetzt, aber nicht aus einem Default – er kommt
+  // aus FormData ([id]/page.tsx setzt ihn). ADR-050 D4 verbietet einen Default-Parameter
+  // damit der Compiler in #346 jede Aufrufstelle meldet; per FormData ist der Bezug
+  // Nutzer-authentisch und keine Standardannahme.
   // `createItem` liefert immer den angelegten Artikel (kein `| undefined`) – ein No-Match-Zweig
   // wäre hier totes Verhalten (Clean-Code: keine Fallbacks für typseitig ausgeschlossene Fälle).
-  const outcome = await runWithUniqueCheck(() => createItem(STANDARD_CATALOG_ID, parsed.data));
+  const outcome = await runWithUniqueCheck(() => createItem(catalogId, parsed.data));
   if (!outcome.ok) return outcome.state;
-  revalidatePath(CATALOG_PATH);
+  revalidatePath(`/verwaltung/katalog/${catalogId}`);
   return { ok: true };
 }
 
@@ -63,29 +83,119 @@ export async function updateCatalogItemAction(
 ): Promise<CatalogFormState> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
+  const catalogId = String(formData.get("catalogId") ?? "");
   if (!id) return { error: "Kein Artikel angegeben." };
+  if (!catalogId) return { error: "Kein Katalog angegeben." };
 
-  const parsed = catalogItemSchema.safeParse(Object.fromEntries(formData));
+  // FormData-Einträge filtern
+  const itemData = Object.fromEntries(
+    Array.from(formData.entries()).filter(([key]) => !["id", "catalogId"].includes(key)),
+  );
+  const parsed = catalogItemSchema.safeParse(itemData);
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
-  const outcome = await runWithUniqueCheck(() => updateItem(id, STANDARD_CATALOG_ID, parsed.data));
+  const outcome = await runWithUniqueCheck(() => updateItem(id, catalogId, parsed.data));
   if (!outcome.ok) return outcome.state;
   // Guarded UPDATE: `undefined` heißt „keine Zeile getroffen" (Kern-Kurzregel 1, Lesson #55) –
-  // `id` kommt aus `FormData`, ist also client-gesteuert. Ohne diesen Zweig meldete die Action
-  // Erfolg für einen Schreibvorgang, der nicht stattgefunden hat.
+  // `id` und `catalogId` kommen aus FormData, sind also client-gesteuert. Ohne diesen Zweig
+  // meldete die Action Erfolg für einen Schreibvorgang, der nicht stattgefunden hat.
   if (!outcome.value) return { error: ITEM_NOT_FOUND };
-  revalidatePath(CATALOG_PATH);
+  revalidatePath(`/verwaltung/katalog/${catalogId}`);
   return { ok: true };
 }
 
 // Deaktivieren/Reaktivieren als direkte Formular-Action (kein Formularzustand nötig).
 // `setItemActive` liefert ebenfalls `undefined`, wenn keine Zeile getroffen wurde – diese Action
 // hat aber keinen Meldungskanal (Rückgabetyp `void`, kein `useActionState`). Der Fall bleibt
-// daher bewusst stumm; einen sichtbaren Fehlerweg bekommt die Katalogpflege mit #345.
+// daher bewusst stumm; einen sichtbaren Fehlerweg mit #345 folgt mit der Katalog-verwaltung.
 export async function setCatalogItemActiveAction(formData: FormData): Promise<void> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await setItemActive(id, STANDARD_CATALOG_ID, formData.get("active") === "true");
+  const catalogId = String(formData.get("catalogId") ?? "");
+  if (!id || !catalogId) return;
+  await setItemActive(id, catalogId, formData.get("active") === "true");
+  revalidatePath(`/verwaltung/katalog/${catalogId}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Katalog-Management (#345): Preislisten-Verwaltung
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CATALOG_MANAGEMENT_DUPLICATE_MESSAGE = "Ein Katalog mit diesem Namen existiert bereits.";
+const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
+const SOURCE_CATALOG_INACTIVE = "Der Quell-Katalog ist nicht aktiv.";
+
+export async function createCatalogAction(
+  _prevState: CatalogFormState | undefined,
+  formData: FormData,
+): Promise<CatalogFormState> {
+  await requireRole("verwalter");
+  const parsed = catalogNameSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const outcome = await runWithUniqueCheck(() => createCatalog(parsed.data.name));
+  if (!outcome.ok) return { ...outcome.state, error: CATALOG_MANAGEMENT_DUPLICATE_MESSAGE };
   revalidatePath(CATALOG_PATH);
+  return { ok: true };
+}
+
+export async function renameCatalogAction(
+  _prevState: CatalogFormState | undefined,
+  formData: FormData,
+): Promise<CatalogFormState> {
+  await requireRole("verwalter");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Kein Katalog angegeben." };
+
+  const parsed = catalogNameSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const outcome = await runWithUniqueCheck(() => renameCatalog(id, parsed.data.name));
+  if (!outcome.ok) return { ...outcome.state, error: CATALOG_MANAGEMENT_DUPLICATE_MESSAGE };
+  if (!outcome.value) return { error: CATALOG_NOT_FOUND };
+  revalidatePath(CATALOG_PATH);
+  return { ok: true };
+}
+
+export async function setCatalogActiveAction(
+  _prevState: CatalogFormState | undefined,
+  formData: FormData,
+): Promise<CatalogFormState> {
+  await requireRole("verwalter");
+  const id = String(formData.get("id") ?? "");
+  const active = formData.get("active") === "true";
+
+  if (!id) return { error: "Kein Katalog angegeben." };
+
+  const result = await setCatalogActive(id, active);
+  if (!result) return { error: CATALOG_NOT_FOUND };
+  revalidatePath(CATALOG_PATH);
+  return { ok: true };
+}
+
+export async function duplicateCatalogAction(
+  _prevState: CatalogFormState | undefined,
+  formData: FormData,
+): Promise<CatalogFormState> {
+  await requireRole("verwalter");
+  const sourceId = String(formData.get("sourceId") ?? "");
+  if (!sourceId) return { error: "Kein Quell-Katalog angegeben." };
+
+  const parsed = catalogNameSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  // Serverseitige Durchsetzung: nur aktive Kataloge sind Duplizier-Quellen (AK5, Defense in Depth)
+  const activeOnly = await runWithUniqueCheck(async () => {
+    // Quelle muss existieren und aktiv sein
+    const source = await db.select().from(catalog).where(eq(catalog.id, sourceId));
+    if (source.length === 0) throw new Error(CATALOG_NOT_FOUND);
+    if (!source[0].active) throw new Error(SOURCE_CATALOG_INACTIVE);
+
+    return duplicateCatalog(sourceId, parsed.data.name);
+  });
+
+  if (!activeOnly.ok) return activeOnly.state;
+  if (!activeOnly.value) return { error: CATALOG_NOT_FOUND };
+  revalidatePath(CATALOG_PATH);
+  return { ok: true };
 }

@@ -13,6 +13,12 @@ import {
   listCatalog,
   setItemActive,
   updateItem,
+  listCatalogs,
+  listDuplicatableCatalogs,
+  createCatalog,
+  renameCatalog,
+  setCatalogActive,
+  duplicateCatalog,
   type CatalogItemData,
 } from "./catalog";
 
@@ -419,6 +425,138 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
 
     // Kein ON DELETE (ADR-050 D2): der FK ist der Guard, es kann keinen Artikel ohne Katalog geben.
     await expect(db.delete(catalog).where(eq(catalog.id, k2.id))).rejects.toThrow();
+  });
+
+  // ── #345: Katalog-Management (AK1–AK8, FS1–FS4) ───────────────────────────────
+
+  it("should_listAllCatalogs_when_listCatalogsIsCalled", async () => {
+    // AK1, AK3, AK6: Katalog-Umschalter zeigt alle Kataloge (aktiv + inaktiv).
+    const k1 = await trackCatalog("ListAK1-K1");
+    const k2 = await trackCatalog("ListAK1-K2");
+
+    const all = await listCatalogs();
+
+    expect(all.find((k) => k.id === k1.id)).toBeDefined();
+    expect(all.find((k) => k.id === k2.id)).toBeDefined();
+  });
+
+  it("should_listOnlyActiveCatalogs_when_listDuplicatableCatalogsIsCalled", async () => {
+    // AK5: Duplizier-Quellenauswahl zeigt nur aktive Kataloge. Ein inaktiver Katalog
+    // erscheint nicht in der Liste.
+    const active = await trackCatalog("DupAK5-Active");
+    const inactive = await trackCatalog("DupAK5-Inactive");
+
+    await setCatalogActive(inactive.id, false);
+
+    const duplicatable = await listDuplicatableCatalogs();
+
+    expect(duplicatable.find((k) => k.id === active.id)).toBeDefined();
+    expect(duplicatable.find((k) => k.id === inactive.id)).toBeUndefined();
+  });
+
+  it("should_createNewCatalog_when_createCatalogIsCalledWithUniqueName", async () => {
+    // AK1: Katalog anlegen mit eindeutigem Namen. Der neue Katalog ist aktiv und leer.
+    const name = `${TEST_PREFIX}CreateAK1`;
+    const created = await createCatalog(name);
+    createdCatalogs.push(created.id);
+
+    expect(created.name).toBe(name);
+    expect(created.active).toBe(true);
+    expect(created.sortOrder).toBe(0);
+
+    const items = await listCatalog(created.id);
+    expect(items).toHaveLength(0);
+  });
+
+  it("should_rejectDuplicate_when_createCatalogWithExistingName", async () => {
+    // FS1: Namenskonflikt beim Anlegen wird abgelehnt.
+    const k1 = await trackCatalog("DupFS1");
+
+    await expect(createCatalog(k1.name)).rejects.toThrow();
+  });
+
+  it("should_renameExistingCatalog_when_renameCatalogIsCalledWithUniqueName", async () => {
+    // AK3: Katalog umbenennen, artikelbestände bleiben unverändert erreichbar.
+    const k = await trackCatalog("RenameAK3-Old");
+    const item = await track(drink("RenameProbe"), k.id);
+
+    const newName = `${TEST_PREFIX}RenameAK3-New`;
+    await renameCatalog(k.id, newName);
+
+    // Artikel ist weiterhin abrufbar.
+    const found = await getCatalogItem(item.id, k.id);
+    expect(found).toBeDefined();
+    expect(found?.catalogId).toBe(k.id);
+  });
+
+  it("should_rejectDuplicate_when_renameCatalogToExistingName", async () => {
+    // FS1 (Rename): Namenskonflikt beim Umbenennen wird abgelehnt.
+    const k1 = await trackCatalog("RenameFS1-K1");
+    const k2 = await trackCatalog("RenameFS1-K2");
+
+    await expect(renameCatalog(k2.id, k1.name)).rejects.toThrow();
+  });
+
+  it("should_toggleCatalogActive_when_setCatalogActiveIsCalled", async () => {
+    // AK4: Katalog deaktivieren/reaktivieren. Der Katalog bleibt sichtbar und editierbar.
+    const k = await trackCatalog("ActiveAK4");
+    const item = await track(drink("ActiveProbe"), k.id);
+
+    // Deaktivieren
+    const inactive = await setCatalogActive(k.id, false);
+    expect(inactive?.active).toBe(false);
+
+    // Artikel ist weiterhin erreichbar (listCatalog filtert nicht nach catalog.active)
+    const found = await getCatalogItem(item.id, k.id);
+    expect(found).toBeDefined();
+
+    // Reaktivieren
+    const active = await setCatalogActive(k.id, true);
+    expect(active?.active).toBe(true);
+  });
+
+  it("should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled", async () => {
+    // AK2: Katalog duplizieren kopiert nur aktive Artikel.
+    const source = await trackCatalog("DupAK2-Source");
+    const active = await track(drink("DupAK2-Active"), source.id);
+    const inactive = await track(drink("DupAK2-Inactive"), source.id);
+
+    // Einen Artikel deaktivieren
+    await setItemActive(inactive.id, source.id, false);
+
+    // Duplizieren
+    const result = await duplicateCatalog(source.id, `${TEST_PREFIX}DupAK2-Copy`);
+    createdCatalogs.push(result.catalog.id);
+
+    const copied = await listCatalog(result.catalog.id);
+    expect(copied).toHaveLength(1);
+    expect(copied[0].name).toBe(active.name);
+  });
+
+  it("should_allowEmptyCatalogDuplication_when_sourceHasNoActiveArticles", async () => {
+    // FS3: Ein Katalog ohne aktive Artikel lässt sich dennoch duplizieren.
+    const source = await trackCatalog("DupFS3-Source");
+
+    const result = await duplicateCatalog(source.id, `${TEST_PREFIX}DupFS3-Copy`);
+    createdCatalogs.push(result.catalog.id);
+
+    // Keine Artikel kopiert, da source leer ist.
+    const items = await listCatalog(result.catalog.id);
+    expect(items).toHaveLength(0);
+  });
+
+  it("should_returnUndefined_when_renamingNonexistentCatalog", async () => {
+    // FS2: Unbekannter Katalog wird erkannt.
+    const result = await renameCatalog("does-not-exist", `${TEST_PREFIX}NoSuchCatalog`);
+
+    expect(result).toBeUndefined();
+  });
+
+  it("should_returnUndefined_when_deactivatingNonexistentCatalog", async () => {
+    // FS2 (setActive): Unbekannter Katalog wird erkannt.
+    const result = await setCatalogActive("does-not-exist", false);
+
+    expect(result).toBeUndefined();
   });
 });
 

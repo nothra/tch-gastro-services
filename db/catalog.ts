@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { catalogItems, type CatalogItem, type NewCatalogItem } from "./schema";
+import { catalog, catalogItems, type CatalogItem, type NewCatalogItem, type Catalog } from "./schema";
 
 // Data-Layer des Getränke-Katalogs (F2, #49). Einziger Ort mit Drizzle-Queries auf
 // catalog_item – Actions/UI greifen nie direkt auf die Tabelle zu (PROJECT-CONTEXT,
@@ -98,4 +98,106 @@ export async function setItemActive(
     .where(and(eq(catalogItems.id, id), eq(catalogItems.catalogId, catalogId)))
     .returning();
   return updated;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Katalog-CRUD (#345): Preislisten verwalten
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Alle Kataloge (aktiv + inaktiv), sortiert für den Umschalter in der Verwaltung (AK1, AK3, AK6).
+// Der Sortier-Standard ist etabliert: `sortOrder` für die Admin-Reihenfolge, `name` als Fallback
+// für alphabetische Ordnung (dieselbe Reihenfolge wie `catalogOrder` für Artikel, ADR-050).
+export function listCatalogs(): Promise<Catalog[]> {
+  return db.select().from(catalog).orderBy(asc(catalog.sortOrder), asc(catalog.name));
+}
+
+// Nur aktive Kataloge für die Duplizier-Quellenauswahl (AK5). Diese Funktion ist auch die
+// serverseitige Durchsetzung (Defense in Depth): ein unbekannter oder inaktiver Katalog
+// wird in der Duplizier-Action abgelehnt.
+export function listDuplicatableCatalogs(): Promise<Catalog[]> {
+  return db
+    .select()
+    .from(catalog)
+    .where(eq(catalog.active, true))
+    .orderBy(asc(catalog.sortOrder), asc(catalog.name));
+}
+
+// Neuen Katalog anlegen (AK1). Unique-Violation auf `catalog.name` wird in der Server Action
+// via `runWithUniqueCheck` zu einer Nutzermeldung übersetzt (FS1).
+export async function createCatalog(name: string): Promise<Catalog> {
+  const [created] = await db
+    .insert(catalog)
+    .values({ name, active: true, sortOrder: 0 })
+    .returning();
+  return created;
+}
+
+// Katalog umbenennen (AK3). Unique-Violation auf `catalog.name` wird in der Server Action
+// via `runWithUniqueCheck` zu einer Nutzermeldung übersetzt (FS1). `undefined` bei No-Match
+// ist Kern-Kurzregel 1 (Lesson #55): guarded UPDATE, Rückgabewert auswerten (FS2).
+export async function renameCatalog(
+  id: string,
+  name: string,
+): Promise<Catalog | undefined> {
+  const [updated] = await db
+    .update(catalog)
+    .set({ name, updatedAt: new Date() })
+    .where(eq(catalog.id, id))
+    .returning();
+  return updated;
+}
+
+// Katalog deaktivieren/reaktivieren (AK4). Soft-Delete analog `catalogItems.active`.
+// `undefined` bei No-Match (FS2).
+export async function setCatalogActive(
+  id: string,
+  active: boolean,
+): Promise<Catalog | undefined> {
+  const [updated] = await db
+    .update(catalog)
+    .set({ active, updatedAt: new Date() })
+    .where(eq(catalog.id, id))
+    .returning();
+  return updated;
+}
+
+// Katalog duplizieren (AK2): neuer Katalog + nur aktive Artikel kopieren. Beide Schritte
+// (Katalog + Artikel) gehören in eine Transaktion (ADR-050 D4), damit kein halb-befüllter
+// Katalog zurückbleibt, falls die Kopie mitten in der Schleife abbricht. Unique-Violation
+// auf den neuen Katalog wird in der Server Action via `runWithUniqueCheck` übersetzt (FS1).
+export async function duplicateCatalog(
+  sourceId: string,
+  newName: string,
+): Promise<{ catalog: Catalog; itemCount: number }> {
+  return db.transaction(async (tx) => {
+    // Neuer Katalog
+    const [newCatalog] = await tx
+      .insert(catalog)
+      .values({ name: newName, active: true, sortOrder: 0 })
+      .returning();
+
+    // Nur aktive Artikel aus der Quelle kopieren (AK2)
+    const sourceItems = await tx
+      .select()
+      .from(catalogItems)
+      .where(and(eq(catalogItems.catalogId, sourceId), eq(catalogItems.active, true)));
+
+    // Artikel in den neuen Katalog kopieren – keine Bulk-Operation nötig, die Artikelanzahl
+    // ist klein (ADR-050 „Performance & Skalierung", Nichtanforderung).
+    for (const item of sourceItems) {
+      await tx.insert(catalogItems).values({
+        name: item.name,
+        size: item.size,
+        priceCents: item.priceCents,
+        category: item.category,
+        sortOrder: item.sortOrder,
+        catalogId: newCatalog.id,
+      });
+    }
+
+    return {
+      catalog: newCatalog,
+      itemCount: sourceItems.length,
+    };
+  });
 }
