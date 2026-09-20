@@ -1,11 +1,8 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
-import { db } from "@/db/index";
-import { catalog } from "@/db/schema";
 import {
   createItem,
   setItemActive,
@@ -14,6 +11,7 @@ import {
   renameCatalog,
   setCatalogActive,
   duplicateCatalog,
+  getCatalogById,
 } from "@/db/catalog";
 import { catalogItemSchema, catalogNameSchema } from "./schema";
 
@@ -39,6 +37,11 @@ function isUniqueViolation(error: unknown): boolean {
 // Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung. Das
 // Ergebnis wird durchgereicht statt verworfen: die guarded UPDATEs melden einen No-Match über
 // ihren Rückgabewert, nicht über eine Exception (Kern-Kurzregel 1).
+// Invariante: `ok: false` bedeutet IMMER eine echte Unique-Violation (23505) – jeder andere
+// Fehler wird weitergeworfen, nie hier abgefangen. Aufrufstellen dürfen die Fehlermeldung im
+// `ok: false`-Zweig deshalb gefahrlos auf eine katalogspezifische Duplikat-Meldung überschreiben;
+// andere Fehlerfälle (z. B. „Katalog nicht gefunden") gehören NICHT in diesen Wrapper, sondern in
+// eigene Guard-Checks davor (Review-Finding #345 Runde 1, Kritisch 1/2).
 type UniqueCheckOutcome<T> = { ok: true; value: T } | { ok: false; state: CatalogFormState };
 
 async function runWithUniqueCheck<T>(fn: () => Promise<T>): Promise<UniqueCheckOutcome<T>> {
@@ -184,18 +187,20 @@ export async function duplicateCatalogAction(
   const parsed = catalogNameSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
-  // Serverseitige Durchsetzung: nur aktive Kataloge sind Duplizier-Quellen (AK5, Defense in Depth)
-  const activeOnly = await runWithUniqueCheck(async () => {
-    // Quelle muss existieren und aktiv sein
-    const source = await db.select().from(catalog).where(eq(catalog.id, sourceId));
-    if (source.length === 0) throw new Error(CATALOG_NOT_FOUND);
-    if (!source[0].active) throw new Error(SOURCE_CATALOG_INACTIVE);
+  // Serverseitige Durchsetzung: nur aktive Kataloge sind Duplizier-Quellen (AK5, Defense in
+  // Depth). Diese Prüfung steht bewusst AUSSERHALB von `runWithUniqueCheck` (Review-Finding #345
+  // Runde 1, Kritisch 1): der Wrapper fängt nur Unique-Violations, alles andere wirft er weiter –
+  // ein hier geworfener `CATALOG_NOT_FOUND`/`SOURCE_CATALOG_INACTIVE`-Fehler würde also
+  // unkontrolliert bis zum Client durchschlagen statt einer Nutzermeldung.
+  const source = await getCatalogById(sourceId);
+  if (!source) return { error: CATALOG_NOT_FOUND };
+  if (!source.active) return { error: SOURCE_CATALOG_INACTIVE };
 
-    return duplicateCatalog(sourceId, parsed.data.name);
-  });
-
-  if (!activeOnly.ok) return activeOnly.state;
-  if (!activeOnly.value) return { error: CATALOG_NOT_FOUND };
+  // Ab hier ist die einzig mögliche Fehlerquelle eine Unique-Violation auf den neuen Namen
+  // (Transaktionsabbruch in `duplicateCatalog`) – exakt der Fall, für den `runWithUniqueCheck`
+  // gebaut ist, analog zu `createCatalogAction`/`renameCatalogAction`.
+  const outcome = await runWithUniqueCheck(() => duplicateCatalog(sourceId, parsed.data.name));
+  if (!outcome.ok) return { ...outcome.state, error: CATALOG_MANAGEMENT_DUPLICATE_MESSAGE };
   revalidatePath(CATALOG_PATH);
   return { ok: true };
 }

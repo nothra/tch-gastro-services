@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung → Implementierung abgeschlossen
 - [ ] Review bestanden
-- [x] Tests vollständig → 806 Tests grün
+- [x] Tests vollständig → 839 Tests grün (90 DB-Integrationstests ohne `DATABASE_URL` übersprungen)
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -80,6 +80,13 @@ in der jeweiligen Action, nicht im Data-Layer selbst – bestehendes Muster):**
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+
+**Runde 1 (NEEDS_REWORK) – behoben, siehe `tasks/review-345.md` „Rework Runde 1":**
+Die drei kritischen Findings (Error-Handling `duplicateCatalogAction`, Message-Mapping,
+Transaktions-Fehlerbehandlung `duplicateCatalog`) und das wichtige Finding
+(`CatalogManager.tsx` ohne `useActionState`) sind per TDD behoben. Neue Data-Layer-Funktion
+`getCatalogById`, neue Tests in `catalog-management-actions.test.ts` und
+`CatalogManager.test.tsx`. Wartet auf Review Runde 2.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

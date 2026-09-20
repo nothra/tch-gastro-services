@@ -128,6 +128,15 @@ export function listDuplicatableCatalogs(): Promise<Catalog[]> {
     .orderBy(asc(catalog.sortOrder), asc(catalog.name));
 }
 
+// Katalog per Id laden – u. a. für die Existenz-/Aktiv-Prüfung vor dem Duplizieren (AK5,
+// Review-Finding #345 Runde 1): die Prüfung braucht einen echten Lesezugriff statt eines
+// geworfenen Sonderfalls, damit sie außerhalb von `runWithUniqueCheck` steht (das nur für
+// Unique-Violations zuständig ist). `undefined` bei No-Match, analog zu `getCatalogItem`.
+export async function getCatalogById(id: string): Promise<Catalog | undefined> {
+  const [row] = await db.select().from(catalog).where(eq(catalog.id, id)).limit(1);
+  return row;
+}
+
 // Neuen Katalog anlegen (AK1). Unique-Violation auf `catalog.name` wird in der Server Action
 // via `runWithUniqueCheck` zu einer Nutzermeldung übersetzt (FS1).
 export async function createCatalog(name: string): Promise<Catalog> {

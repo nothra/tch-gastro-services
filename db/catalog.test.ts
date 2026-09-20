@@ -19,6 +19,7 @@ import {
   renameCatalog,
   setCatalogActive,
   duplicateCatalog,
+  getCatalogById,
   type CatalogItemData,
 } from "./catalog";
 
@@ -237,6 +238,23 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
     await trackCatalog("AK1-Unique");
 
     await expect(trackCatalog("AK1-Unique")).rejects.toThrow();
+  });
+
+  // Review-Finding #345 Runde 1 (Kritisch 1): die Existenz-/Aktiv-Prüfung vor dem Duplizieren
+  // braucht einen echten Lesezugriff statt eines geworfenen Sonderfalls in `duplicateCatalogAction`.
+  it("should_returnCatalog_when_getCatalogByIdFindsRow", async () => {
+    const k = await trackCatalog("GetById-Found");
+
+    const found = await getCatalogById(k.id);
+
+    expect(found?.id).toBe(k.id);
+    expect(found?.name).toBe(k.name);
+  });
+
+  it("should_returnUndefined_when_getCatalogByIdFindsNoRow", async () => {
+    const found = await getCatalogById("does-not-exist");
+
+    expect(found).toBeUndefined();
   });
 
   // ── AK2 – Standard-Katalog „Montagsrunde" mit allen Artikeln ───────────────
@@ -543,6 +561,18 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
     // Keine Artikel kopiert, da source leer ist.
     const items = await listCatalog(result.catalog.id);
     expect(items).toHaveLength(0);
+  });
+
+  // Review-Finding #345 Runde 1 (Kritisch 3): `duplicateCatalog` wirft bei einer Unique-Violation
+  // auf den neuen Namen (Transaktionsabbruch) statt `undefined` zu liefern – bewusst asymmetrisch
+  // zu den guarded UPDATEs (Kern-Kurzregel 1), weil die Action denselben `runWithUniqueCheck`-Pfad
+  // wie `createCatalog`/`renameCatalog` nutzt (Unique-Violation ist der einzige Fehlerfall, der
+  // hier auftreten kann – Existenz/Aktiv-Status sind bereits vorab per `getCatalogById` geprüft).
+  it("should_rejectDuplicate_when_duplicateCatalogTargetNameExists", async () => {
+    const source = await trackCatalog("DupFS1-Source");
+    const existing = await trackCatalog("DupFS1-Existing");
+
+    await expect(duplicateCatalog(source.id, existing.name)).rejects.toThrow();
   });
 
   it("should_returnUndefined_when_renamingNonexistentCatalog", async () => {

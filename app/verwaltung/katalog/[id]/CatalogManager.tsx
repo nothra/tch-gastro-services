@@ -1,43 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import type { Catalog } from "@/db/schema";
 import {
   createCatalogAction,
   renameCatalogAction,
   setCatalogActiveAction,
   duplicateCatalogAction,
+  type CatalogFormState,
 } from "../actions";
 
 interface CatalogManagerProps {
   currentCatalog?: Catalog;
 }
 
+type CatalogAction = (
+  prevState: CatalogFormState | undefined,
+  formData: FormData,
+) => Promise<CatalogFormState>;
+
 // Katalog-Management-Controls (#345): Buttons für Anlage, Umbenennen, Deaktivieren/Reaktivieren,
-// Duplizieren. Jede Action hat optional ein Modal für die Eingabe (Name, Name für Duplikat).
+// Duplizieren. Jede Action nutzt `useActionState` (wie `CatalogItemForm`/`CatalogRow`) statt
+// eines blinden `await` – Fehler werden sichtbar, und ein Modal schließt nur bei
+// `state.ok === true` (Review-Finding #345 Runde 1, Wichtig: das Modal schloss sich zuvor auch
+// bei einem Namenskonflikt kommentarlos).
 export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
-  const handleCreateCatalog = async (formData: FormData) => {
-    await createCatalogAction(undefined, formData);
-    setShowCreateModal(false);
-  };
+  // Schließt das jeweilige Modal nur bei Erfolg – per useCallback-Wrapper statt useEffect
+  // (Codify #49, analog zu CatalogRow.actionWithClose).
+  const createWithClose = useCallback<CatalogAction>(async (prev, formData) => {
+    const result = await createCatalogAction(prev, formData);
+    if (result.ok) setShowCreateModal(false);
+    return result;
+  }, []);
+  const [createState, createAction, createPending] = useActionState(createWithClose, undefined);
 
-  const handleRenameCatalog = async (formData: FormData) => {
-    await renameCatalogAction(undefined, formData);
-    setShowRenameModal(false);
-  };
+  const renameWithClose = useCallback<CatalogAction>(async (prev, formData) => {
+    const result = await renameCatalogAction(prev, formData);
+    if (result.ok) setShowRenameModal(false);
+    return result;
+  }, []);
+  const [renameState, renameAction, renamePending] = useActionState(renameWithClose, undefined);
 
-  const handleDuplicateCatalog = async (formData: FormData) => {
-    await duplicateCatalogAction(undefined, formData);
-    setShowDuplicateModal(false);
-  };
+  const duplicateWithClose = useCallback<CatalogAction>(async (prev, formData) => {
+    const result = await duplicateCatalogAction(prev, formData);
+    if (result.ok) setShowDuplicateModal(false);
+    return result;
+  }, []);
+  const [duplicateState, duplicateAction, duplicatePending] = useActionState(
+    duplicateWithClose,
+    undefined,
+  );
 
-  const handleToggleCatalogActive = async (formData: FormData) => {
-    await setCatalogActiveAction(undefined, formData);
-  };
+  // Kein Modal zu schließen – reiner Fehlerkanal für Deaktivieren/Reaktivieren.
+  const [setActiveState, setActiveAction] = useActionState(setCatalogActiveAction, undefined);
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -60,7 +79,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
           </button>
 
           {/* Deaktivieren/Reaktivieren als direkte Action (kein Modal) */}
-          <form action={handleToggleCatalogActive} className="inline">
+          <form action={setActiveAction} className="inline">
             <input type="hidden" name="id" value={currentCatalog.id} />
             <input type="hidden" name="active" value={String(!currentCatalog.active)} />
             <button
@@ -70,6 +89,9 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
               {currentCatalog.active ? "Deaktivieren" : "Reaktivieren"}
             </button>
           </form>
+          {setActiveState?.error && (
+            <p className="self-center text-sm text-red-600">{setActiveState.error}</p>
+          )}
 
           <button
             onClick={() => setShowDuplicateModal(true)}
@@ -85,7 +107,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
         <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
           <div className="flex max-h-[90vh] w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
             <h2 className="text-lg font-bold">Neuen Katalog anlegen</h2>
-            <form action={handleCreateCatalog} className="flex flex-col gap-3">
+            <form action={createAction} className="flex flex-col gap-3">
               <div>
                 <label className="block text-sm font-medium">Katalogname</label>
                 <input
@@ -95,6 +117,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
                   className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 />
               </div>
+              {createState?.error && <p className="text-sm text-red-600">{createState.error}</p>}
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -105,9 +128,10 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+                  disabled={createPending}
+                  className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  Anlegen
+                  {createPending ? "Speichern …" : "Anlegen"}
                 </button>
               </div>
             </form>
@@ -120,7 +144,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
         <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
           <div className="flex max-h-[90vh] w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
             <h2 className="text-lg font-bold">Katalog umbenennen</h2>
-            <form action={handleRenameCatalog} className="flex flex-col gap-3">
+            <form action={renameAction} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={currentCatalog.id} />
               <div>
                 <label className="block text-sm font-medium">Neuer Name</label>
@@ -131,6 +155,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
                   className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 />
               </div>
+              {renameState?.error && <p className="text-sm text-red-600">{renameState.error}</p>}
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -141,9 +166,10 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+                  disabled={renamePending}
+                  className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  Umbenennen
+                  {renamePending ? "Speichern …" : "Umbenennen"}
                 </button>
               </div>
             </form>
@@ -160,7 +186,7 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
               Der Katalog &quot;{currentCatalog.name}&quot; wird mit all seinen aktiven Artikeln
               kopiert.
             </p>
-            <form action={handleDuplicateCatalog} className="flex flex-col gap-3">
+            <form action={duplicateAction} className="flex flex-col gap-3">
               <input type="hidden" name="sourceId" value={currentCatalog.id} />
               <div>
                 <label className="block text-sm font-medium">Name der Kopie</label>
@@ -171,6 +197,9 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
                   className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 />
               </div>
+              {duplicateState?.error && (
+                <p className="text-sm text-red-600">{duplicateState.error}</p>
+              )}
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -181,9 +210,10 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+                  disabled={duplicatePending}
+                  className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  Duplizieren
+                  {duplicatePending ? "Speichern …" : "Duplizieren"}
                 </button>
               </div>
             </form>
