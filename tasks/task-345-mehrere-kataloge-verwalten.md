@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung → Implementierung abgeschlossen
-- [ ] Review bestanden
-- [x] Tests vollständig → 839 Tests grün (90 DB-Integrationstests ohne `DATABASE_URL` übersprungen)
+- [x] Review bestanden → Runde 3: APPROVED (Backend/Logik, Code-Qualität, Architektur)
+- [x] Tests vollständig → 841 Tests grün (89 DB-Integrationstests ohne `DATABASE_URL` übersprungen)
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -100,6 +100,16 @@ gegen eine echte lokale Postgres-DB (node-postgres) end-to-end verifiziert. Dabe
 vorbestehendes, unabhängiges Testhygiene-Problem im `afterEach` von `db/catalog.test.ts`
 gefunden (fehlende Cleanup-Registrierung für von `duplicateCatalog` erzeugte Artikel-Kopien) –
 keine Regression dieser Runde, separat geflaggt. Wartet auf Review Runde 3.
+
+**Runde 3 (APPROVED) – siehe `tasks/review-345.md` „Backend/Logik-Ergänzung (Runde 3)",
+„Code-Qualität-Ergänzung (Runde 3)", „Architektur & Patterns-Ergänzung (Runde 3)":** Alle drei
+Review-Perspektiven verifizieren den `runAtomic`-Fix aus Runde 2 unabhängig voneinander als
+vollständig und korrekt – u. a. empirisch am installierten Treiber-Code bestätigt, dass Neons
+`.batch()` eine echte serverseitige Transaktion ist (kein Rollback-Risiko). Kein neues Kritisch-
+oder Wichtig-Finding. Offen bleiben nur bereits akzeptierte Nitpicks (Code-Duplikation in
+`CatalogManager.tsx`, zwei kleine Doku-Nits zur ADR-Referenz/`db/atomic.ts`-Kommentar) sowie der
+separat geflaggte, vorbestehende FK-Cleanup-Nebenfund – kein Merge-Blocker. Review-Phase
+abgeschlossen, weiter zu `/test`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
