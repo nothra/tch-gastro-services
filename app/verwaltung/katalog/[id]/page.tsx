@@ -4,7 +4,7 @@ import { listCatalogs, listCatalog } from "@/db/catalog";
 import { CatalogItemForm } from "../CatalogItemForm";
 import { CatalogRow } from "../CatalogRow";
 import { CatalogSwitcher } from "./CatalogSwitcher";
-import { CatalogManager } from "./CatalogManager";
+import { CatalogControls } from "./CatalogControls";
 
 // Dynamische Katalog-Seite (#345). Der Parameter [id] gibt an, welcher Katalog
 // gerade gepflegt wird (Artikel anlegen/ändern/deaktivieren landen hier). Nur Verwalter.
@@ -40,7 +40,7 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Katalog-Management-Controls (#345): anlegen, umbenennen, deaktivieren, duplizieren */}
-      <CatalogManager currentCatalog={currentCatalog} />
+      <CatalogControls currentCatalog={currentCatalog} />
 
       <CatalogItemForm catalogId={catalogId} />
 

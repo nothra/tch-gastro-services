@@ -6,7 +6,7 @@
 - [x] Tests vollständig → 870 Tests grün (89 DB-Integrationstests ohne `DATABASE_URL` übersprungen),
       Coverage der #345-Dateien 96–100 % (Statements), CatalogManager.tsx 100 % Branches
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -168,6 +168,49 @@ projektweit; alle #345-Dateien (`actions.ts`, `schema.ts`, `CatalogManager.tsx`,
 `CatalogSwitcher.tsx`, `[id]/page.tsx`, `page.tsx`) bei 100 % Statement-Coverage,
 `CatalogManager.tsx` zusätzlich bei 100 % Branch-Coverage. `pnpm lint`/`typecheck`/`format:check`
 und `scripts/checks/pre-push.sh` grün. Kein Produktionscode geändert.
+
+## /refactor-Notizen
+
+Clean-Code-Pass über die fünf in `tasks/review-345.md` als Nitpick zurückgestellten Punkte
+(Runde 2/3) – reine Struktur-/Namens-/Kommentar-Änderungen, kein neues Verhalten:
+
+1. **Hook-Duplikation behoben:** `CatalogManager.tsx` (jetzt `CatalogControls.tsx`, s. Punkt 3)
+   hatte drei identische `useCallback`+`useActionState`-Kopien (create/rename/duplicate).
+   Extrahiert in `useCloseOnSuccess(action, setModalOpen)` – nimmt die Server-Action und den
+   `useState`-Setter (stabile Identität, damit die `useCallback`-Deps wie zuvor mit `[]` über
+   Re-Renders unverändert bleiben) entgegen und kapselt Wrapper + `useActionState`. Aufrufreihenfolge
+   (create, rename, duplicate, dann das separate `setActiveAction`) unverändert – wichtig, da
+   `CatalogControls.test.tsx` `useActionState`-Mock-Aufrufe positionsbasiert abgreift
+   (`nthWrappedAction`). Datei von 230 auf ca. 210 Zeilen, die Wiederholung ist weg.
+2. **Fehlermeldungs-Konstanten:** `"Kein Katalog angegeben."` war viermal als Literal dupliziert
+   (`actions.ts`). Da zwei semantisch verschiedene Fälle den Text zufällig teilten (Artikel ohne
+   `catalogId`-Bezug vs. Katalog ohne eigene `id`), zwei separate Konstanten eingeführt statt
+   einer gemeinsamen: `ITEM_CATALOG_REFERENCE_MISSING_MESSAGE` (Artikel-Actions) und
+   `CATALOG_ID_MISSING_MESSAGE` (Katalog-Actions) – künftig unabhängig änderbar.
+3. **Umbenennung `CatalogManager` → `CatalogControls`:** entfernt den in `clean-code.md` als
+   Negativbeispiel genannten Suffix „Manager", passt sich an die Geschwister-Namen
+   (`CatalogSwitcher`, `CatalogRow`) an. `CatalogManager.tsx`/`CatalogManager.test.tsx` per
+   `git mv` zu `CatalogControls.tsx`/`CatalogControls.test.tsx` – alte Dateien vollständig entfernt
+   (keine Kopie danebengelegt). Alle Importe/Referenzen mitgezogen (`page.tsx`, `page.test.tsx`
+   inkl. Mock-Pfad und `data-testid`). Dabei nebenbei einen bereits vorhandenen, unabhängigen
+   Lint-Warning-Fund behoben (`setCatalogActiveActionMock` unbenutzt in der Testdatei) –
+   Deklaration und der dafür nur noch benötigte Import entfernt.
+4. **Doku-Nit ADR-Referenz:** Der Kommentar über `duplicateCatalog` (`db/catalog.ts`) zitierte
+   fälschlich „ADR-050 D4" als Beleg für die Atomaritäts-Anforderung – D4 behandelt tatsächlich
+   den Pflicht-`catalogId`-Parameter. ADR-050 hat für Atomarität keinen eigenen D-Punkt (geprüft:
+   kein Treffer für „atomar"/„Transaktion"/„batch" im ADR); die einzige Nähe ist die beiläufige
+   Erwähnung „Duplizieren wird ein Kopiervorgang auf einer Tabelle" unter D1 Option A. Kommentar
+   entsprechend umformuliert (kein falsches Zitat mehr, Atomaritäts-Begründung bleibt inline aus
+   der Fachlogik hergeleitet).
+5. **Doku-Ergänzung `db/atomic.ts`:** Header-Kommentar ergänzt, dass `.batch()` beim Neon-HTTP-
+   Treiber eine echte serverseitige Alle-oder-keine-Transaktion ist, kein reines Netzwerk-
+   Pipelining (Verifikation bereits in `tasks/review-345.md` → „Architektur & Patterns-Ergänzung
+   (Runde 3)", Punkt 3 dokumentiert).
+
+**Ergebnis:** `pnpm lint`/`typecheck`/`format:check` grün (lint jetzt 0 Warnungen, vorher 1
+unabhängige), `pnpm test` unverändert 870 grün/89 skipped, `pnpm build` grün,
+`scripts/checks/pre-push.sh` vollständig grün (inkl. Routen-Doku-Drift, `@import`-Kontext-Grenze).
+Kein Testverhalten geändert – nur Struktur/Namen/Kommentare.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

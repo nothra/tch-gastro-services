@@ -10,7 +10,7 @@ import {
   type CatalogFormState,
 } from "../actions";
 
-interface CatalogManagerProps {
+interface CatalogControlsProps {
   currentCatalog?: Catalog;
 }
 
@@ -19,40 +19,45 @@ type CatalogAction = (
   formData: FormData,
 ) => Promise<CatalogFormState>;
 
+// Wrappt eine Katalog-Action mit `useActionState` und schließt das übergebene Modal nur bei
+// Erfolg (`result.ok === true`) – per `useCallback`-Wrapper statt `useEffect` (Codify #49, analog
+// zu `CatalogRow.actionWithClose`). Extrahiert aus drei identischen Kopien in `CatalogControls`
+// (create/rename/duplicate, Review-Finding #345 Runde 2/3, Nitpick). `setModalOpen` ist der
+// `useState`-Setter (stabile Identität), keine Inline-Closure – die Dependency-Liste bleibt damit
+// über Re-Renders hinweg unverändert, wie zuvor mit `[]`.
+function useCloseOnSuccess(action: CatalogAction, setModalOpen: (open: boolean) => void) {
+  const wrappedAction = useCallback<CatalogAction>(
+    async (prev, formData) => {
+      const result = await action(prev, formData);
+      if (result.ok) setModalOpen(false);
+      return result;
+    },
+    [action, setModalOpen],
+  );
+  return useActionState(wrappedAction, undefined);
+}
+
 // Katalog-Management-Controls (#345): Buttons für Anlage, Umbenennen, Deaktivieren/Reaktivieren,
 // Duplizieren. Jede Action nutzt `useActionState` (wie `CatalogItemForm`/`CatalogRow`) statt
 // eines blinden `await` – Fehler werden sichtbar, und ein Modal schließt nur bei
 // `state.ok === true` (Review-Finding #345 Runde 1, Wichtig: das Modal schloss sich zuvor auch
 // bei einem Namenskonflikt kommentarlos).
-export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
+export function CatalogControls({ currentCatalog }: CatalogControlsProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
-  // Schließt das jeweilige Modal nur bei Erfolg – per useCallback-Wrapper statt useEffect
-  // (Codify #49, analog zu CatalogRow.actionWithClose).
-  const createWithClose = useCallback<CatalogAction>(async (prev, formData) => {
-    const result = await createCatalogAction(prev, formData);
-    if (result.ok) setShowCreateModal(false);
-    return result;
-  }, []);
-  const [createState, createAction, createPending] = useActionState(createWithClose, undefined);
-
-  const renameWithClose = useCallback<CatalogAction>(async (prev, formData) => {
-    const result = await renameCatalogAction(prev, formData);
-    if (result.ok) setShowRenameModal(false);
-    return result;
-  }, []);
-  const [renameState, renameAction, renamePending] = useActionState(renameWithClose, undefined);
-
-  const duplicateWithClose = useCallback<CatalogAction>(async (prev, formData) => {
-    const result = await duplicateCatalogAction(prev, formData);
-    if (result.ok) setShowDuplicateModal(false);
-    return result;
-  }, []);
-  const [duplicateState, duplicateAction, duplicatePending] = useActionState(
-    duplicateWithClose,
-    undefined,
+  const [createState, createAction, createPending] = useCloseOnSuccess(
+    createCatalogAction,
+    setShowCreateModal,
+  );
+  const [renameState, renameAction, renamePending] = useCloseOnSuccess(
+    renameCatalogAction,
+    setShowRenameModal,
+  );
+  const [duplicateState, duplicateAction, duplicatePending] = useCloseOnSuccess(
+    duplicateCatalogAction,
+    setShowDuplicateModal,
   );
 
   // Kein Modal zu schließen – reiner Fehlerkanal für Deaktivieren/Reaktivieren.

@@ -91,7 +91,10 @@ und „Review Runde 2" unten. Ein neues Kritisch-Finding aus dem Architektur-Fok
 
 - [ ] **[app/verwaltung/katalog/actions.ts:195-197]** Kleine TOCTOU-Lücke in `duplicateCatalogAction`: `getCatalogById` prüft Existenz/Aktiv-Status des Quell-Katalogs, danach folgt der eigentliche `duplicateCatalog`-Aufruf in einer separaten Transaktion. Zwischen beiden Schritten könnte (theoretisch, bei zwei gleichzeitigen Verwaltern) der Quell-Katalog deaktiviert werden – die Kopie entstünde dann trotzdem. Bei der Nutzergröße dieses Projekts (ein Verein, wenige Verwalter) vernachlässigbares Risiko, kein Merge-Blocker.
 
-- [ ] **[app/verwaltung/katalog/[id]/CatalogManager.tsx:34-56]** Drei der vier Actions
+- [x] **[app/verwaltung/katalog/[id]/CatalogManager.tsx:34-56]** (Behoben im `/refactor`-Schritt:
+  `useCloseOnSuccess`-Hook extrahiert, s. `tasks/task-345-mehrere-kataloge-verwalten.md` →
+  „/refactor-Notizen" Punkt 1. Datei zwischenzeitlich zu `CatalogControls.tsx` umbenannt, s.
+  Nitpick weiter unten.) Drei der vier Actions
   (`createWithClose`, `renameWithClose`, `duplicateWithClose`) wiederholen exakt dasselbe Muster:
   `useCallback`-Wrapper, der die Action aufruft, bei `result.ok` das jeweilige Modal-`useState`
   schließt und das Ergebnis durchreicht, gefolgt vom `useActionState`-Aufruf. Einziger Unterschied
@@ -104,7 +107,9 @@ und „Review Runde 2" unten. Ein neues Kritisch-Finding aus dem Architektur-Fok
   Komponente von 225 auf spürbar weniger Zeilen bringen würde. Kein Korrektheitsproblem – reine
   Wartbarkeitsfrage, drei Kopien sind noch überschaubar.
 
-- [ ] **[app/verwaltung/katalog/actions.ts:62,91,151,171]** Die Meldung `"Kein Katalog
+- [x] **[app/verwaltung/katalog/actions.ts:62,91,151,171]** (Behoben im `/refactor`-Schritt: zwei
+  separate Konstanten `ITEM_CATALOG_REFERENCE_MISSING_MESSAGE`/`CATALOG_ID_MISSING_MESSAGE`
+  eingeführt statt einer gemeinsamen, s. „/refactor-Notizen" Punkt 2.) Die Meldung `"Kein Katalog
   angegeben."` ist viermal als Literal dupliziert (in `createCatalogItemAction`,
   `updateCatalogItemAction`, `renameCatalogAction`, `setCatalogActiveAction`) statt – wie die
   übrigen Katalog-Fehlermeldungen in derselben Datei (`DUPLICATE_MESSAGE`, `ITEM_NOT_FOUND`,
@@ -115,7 +120,9 @@ und „Review Runde 2" unten. Ein neues Kritisch-Finding aus dem Architektur-Fok
   nicht automatisch mitziehen. Kein Verhaltensproblem, aber eine Inkonsistenz gegenüber dem sonst
   in dieser Datei sauber eingehaltenen „keine Magic Strings"-Muster.
 
-- [ ] **[app/verwaltung/katalog/[id]/CatalogManager.tsx:27]** Komponentenname `CatalogManager`
+- [x] **[app/verwaltung/katalog/[id]/CatalogManager.tsx:27]** (Behoben im `/refactor`-Schritt:
+  umbenannt zu `CatalogControls` – Datei + Testdatei per `git mv`, alte Datei vollständig entfernt,
+  alle Importe/Referenzen mitgezogen, s. „/refactor-Notizen" Punkt 3.) Komponentenname `CatalogManager`
   nutzt den in `docs/factory/guidelines/clean-code.md` explizit als Negativbeispiel genannten
   Suffix „Manager" („Keine generischen Namen: nicht Manager, Processor, Handler ohne Kontext").
   Der Name trägt zwar Kontext („Catalog"), ist im Projekt aber der einzige `*Manager`-Name (alle

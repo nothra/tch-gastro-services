@@ -161,8 +161,11 @@ export async function setCatalogActive(id: string, active: boolean): Promise<Cat
 }
 
 // Katalog duplizieren (AK2): neuer Katalog + nur aktive Artikel kopieren. Beide Schritte
-// (Katalog + Artikel) gehören in eine atomare Klammer (ADR-050 D4), damit kein halb-befüllter
-// Katalog zurückbleibt, falls die Kopie mitten in der Liste abbricht. Nutzt `runAtomic`
+// (Katalog + Artikel) gehören in eine atomare Klammer, damit kein halb-befüllter Katalog
+// zurückbleibt, falls die Kopie mitten in der Liste abbricht (ADR-050 D1 Option A nennt das
+// Duplizieren nur beiläufig als „Kopiervorgang auf einer Tabelle" – die Atomaritäts-Anforderung
+// selbst hat dort keinen eigenen D-Punkt, sondern folgt aus der Fachlogik: AK2 verlangt einen
+// vollständigen, konsistenten Kopie-Katalog, nie einen halb-befüllten). Nutzt `runAtomic`
 // (db/atomic.ts) statt `db.transaction()` direkt: der in INT/PRD verwendete Neon-HTTP-Treiber
 // unterstützt keine interaktive `.transaction()` (Review-Finding #345 Runde 2, Kritisch) – die
 // neue Katalog-Id wird deshalb vorab client-seitig erzeugt (`catalog.id` nutzt `$defaultFn`,

@@ -13,25 +13,19 @@ vi.mock("../actions", () => ({
 
 // useActionState steuert Fehlerzustand/Pending direkt (etablierter Ansatz, Codify #49,
 // AuslageForm/WalkInForm). Vier Aufrufe pro Render in fester Reihenfolge: create, rename,
-// duplicate, setActive – siehe Aufrufreihenfolge in CatalogManager.tsx.
+// duplicate, setActive – siehe Aufrufreihenfolge in CatalogControls.tsx.
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
   return { ...actual, useActionState: vi.fn() };
 });
 
 import { useActionState } from "react";
-import {
-  createCatalogAction,
-  renameCatalogAction,
-  setCatalogActiveAction,
-  duplicateCatalogAction,
-} from "../actions";
-import { CatalogManager } from "./CatalogManager";
+import { createCatalogAction, renameCatalogAction, duplicateCatalogAction } from "../actions";
+import { CatalogControls } from "./CatalogControls";
 
 const useActionStateMock = vi.mocked(useActionState);
 const createCatalogActionMock = vi.mocked(createCatalogAction);
 const renameCatalogActionMock = vi.mocked(renameCatalogAction);
-const setCatalogActiveActionMock = vi.mocked(setCatalogActiveAction);
 const duplicateCatalogActionMock = vi.mocked(duplicateCatalogAction);
 const noopDispatch = vi.fn();
 
@@ -80,7 +74,7 @@ beforeEach(() => {
 
 afterEach(() => cleanup());
 
-// Holt den `useCallback`-Wrapper, den CatalogManager an das n-te useActionState übergeben hat
+// Holt den `useCallback`-Wrapper, den CatalogControls an das n-te useActionState übergeben hat
 // (0 = create, 1 = rename, 2 = duplicate) – analog zu AuslageForm.test.tsx. Wird direkt
 // aufgerufen, um das Schließen-bei-Erfolg-Verhalten ohne echte Formular-Submission zu prüfen.
 function nthWrappedAction(index: number) {
@@ -90,9 +84,9 @@ function nthWrappedAction(index: number) {
   ) => Promise<CatalogFormState>;
 }
 
-describe("CatalogManager – Grundstruktur", () => {
+describe("CatalogControls – Grundstruktur", () => {
   it("should_showOnlyCreateButton_when_noCurrentCatalog", () => {
-    render(<CatalogManager />);
+    render(<CatalogControls />);
 
     expect(screen.getByRole("button", { name: "+ Katalog anlegen" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Umbenennen" })).not.toBeInTheDocument();
@@ -100,7 +94,7 @@ describe("CatalogManager – Grundstruktur", () => {
   });
 
   it("should_showManagementButtons_when_currentCatalogGiven", () => {
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
 
     expect(screen.getByRole("button", { name: "Umbenennen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Duplizieren" })).toBeInTheDocument();
@@ -111,7 +105,7 @@ describe("CatalogManager – Grundstruktur", () => {
   // im Duplizieren-Fluss nicht mehr als Quelle auswählbar sein. Der Button verschwand bisher
   // nicht (unconditional gerendert), erst die serverseitige Ablehnung griff.
   it("should_hideDuplicateButton_when_currentCatalogIsInactive", () => {
-    render(<CatalogManager currentCatalog={{ ...currentCatalog, active: false }} />);
+    render(<CatalogControls currentCatalog={{ ...currentCatalog, active: false }} />);
 
     expect(screen.queryByRole("button", { name: "Duplizieren" })).not.toBeInTheDocument();
     // Umbenennen/Deaktivieren bleiben erreichbar (AK4: inaktiver Katalog bleibt editierbar) –
@@ -121,9 +115,9 @@ describe("CatalogManager – Grundstruktur", () => {
   });
 });
 
-describe("CatalogManager – Katalog anlegen", () => {
+describe("CatalogControls – Katalog anlegen", () => {
   it("should_openCreateModal_when_createButtonClicked", () => {
-    render(<CatalogManager />);
+    render(<CatalogControls />);
 
     fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
 
@@ -132,7 +126,7 @@ describe("CatalogManager – Katalog anlegen", () => {
 
   it("should_showErrorMessage_when_createStateHasError", () => {
     withStates({ create: { error: "Ein Katalog mit diesem Namen existiert bereits." } });
-    render(<CatalogManager />);
+    render(<CatalogControls />);
 
     fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
 
@@ -145,7 +139,7 @@ describe("CatalogManager – Katalog anlegen", () => {
     createCatalogActionMock.mockResolvedValue({
       error: "Ein Katalog mit diesem Namen existiert bereits.",
     });
-    render(<CatalogManager />);
+    render(<CatalogControls />);
     fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
 
     await act(async () => {
@@ -157,7 +151,7 @@ describe("CatalogManager – Katalog anlegen", () => {
 
   it("should_closeCreateModal_when_createSucceeds", async () => {
     createCatalogActionMock.mockResolvedValue({ ok: true });
-    render(<CatalogManager />);
+    render(<CatalogControls />);
     fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
 
     await act(async () => {
@@ -171,7 +165,7 @@ describe("CatalogManager – Katalog anlegen", () => {
 
   it("should_disableButtonWithPendingText_when_createPending", () => {
     withStates({}, { create: true });
-    render(<CatalogManager />);
+    render(<CatalogControls />);
     fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
 
     const button = screen.getByRole("button", { name: "Speichern …" });
@@ -179,7 +173,7 @@ describe("CatalogManager – Katalog anlegen", () => {
   });
 
   it("should_closeCreateModal_when_cancelClicked", () => {
-    render(<CatalogManager />);
+    render(<CatalogControls />);
     fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
@@ -191,10 +185,10 @@ describe("CatalogManager – Katalog anlegen", () => {
   });
 });
 
-describe("CatalogManager – Katalog umbenennen", () => {
+describe("CatalogControls – Katalog umbenennen", () => {
   it("should_showErrorMessage_when_renameStateHasError", () => {
     withStates({ rename: { error: "Katalog nicht gefunden." } });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
 
@@ -203,7 +197,7 @@ describe("CatalogManager – Katalog umbenennen", () => {
 
   it("should_keepRenameModalOpen_when_renameFails", async () => {
     renameCatalogActionMock.mockResolvedValue({ error: "Katalog nicht gefunden." });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
 
     await act(async () => {
@@ -215,7 +209,7 @@ describe("CatalogManager – Katalog umbenennen", () => {
 
   it("should_closeRenameModal_when_renameSucceeds", async () => {
     renameCatalogActionMock.mockResolvedValue({ ok: true });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
 
     await act(async () => {
@@ -227,7 +221,7 @@ describe("CatalogManager – Katalog umbenennen", () => {
 
   it("should_disableButtonWithPendingText_when_renamePending", () => {
     withStates({}, { rename: true });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
 
     const button = screen.getByRole("button", { name: "Speichern …" });
@@ -235,7 +229,7 @@ describe("CatalogManager – Katalog umbenennen", () => {
   });
 
   it("should_closeRenameModal_when_cancelClicked", () => {
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
@@ -245,10 +239,10 @@ describe("CatalogManager – Katalog umbenennen", () => {
   });
 });
 
-describe("CatalogManager – Katalog duplizieren", () => {
+describe("CatalogControls – Katalog duplizieren", () => {
   it("should_showErrorMessage_when_duplicateStateHasError", () => {
     withStates({ duplicate: { error: "Der Quell-Katalog ist nicht aktiv." } });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
 
@@ -257,7 +251,7 @@ describe("CatalogManager – Katalog duplizieren", () => {
 
   it("should_keepDuplicateModalOpen_when_duplicateFails", async () => {
     duplicateCatalogActionMock.mockResolvedValue({ error: "Der Quell-Katalog ist nicht aktiv." });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
 
     await act(async () => {
@@ -269,7 +263,7 @@ describe("CatalogManager – Katalog duplizieren", () => {
 
   it("should_closeDuplicateModal_when_duplicateSucceeds", async () => {
     duplicateCatalogActionMock.mockResolvedValue({ ok: true });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
 
     await act(async () => {
@@ -281,7 +275,7 @@ describe("CatalogManager – Katalog duplizieren", () => {
 
   it("should_disableButtonWithPendingText_when_duplicatePending", () => {
     withStates({}, { duplicate: true });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
 
     const button = screen.getByRole("button", { name: "Speichern …" });
@@ -289,7 +283,7 @@ describe("CatalogManager – Katalog duplizieren", () => {
   });
 
   it("should_closeDuplicateModal_when_cancelClicked", () => {
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
     fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
@@ -299,10 +293,10 @@ describe("CatalogManager – Katalog duplizieren", () => {
   });
 });
 
-describe("CatalogManager – Katalog deaktivieren/reaktivieren", () => {
+describe("CatalogControls – Katalog deaktivieren/reaktivieren", () => {
   it("should_showErrorMessage_when_setActiveStateHasError", () => {
     withStates({ setActive: { error: "Katalog nicht gefunden." } });
-    render(<CatalogManager currentCatalog={currentCatalog} />);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
 
     expect(screen.getByText("Katalog nicht gefunden.")).toBeInTheDocument();
   });

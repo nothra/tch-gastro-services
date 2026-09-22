@@ -3,7 +3,12 @@ import { db } from "./index";
 // Erste atomare Multi-Write-Klammer im Projekt (F8, #55, ADR-033 D3). Die beiden Treiber
 // (siehe db/index.ts) bieten unterschiedliche atomare Primitive:
 //   - neon-http (INT/PRD): nur `.batch()` – eine interaktive `.transaction()` wirft dort
-//     ("No transactions support in neon-http driver").
+//     ("No transactions support in neon-http driver"). `.batch()` ist dabei keine reine
+//     Netzwerk-Pipelining-Optimierung, sondern eine echte serverseitige Transaktion: Neon führt
+//     alle übergebenen Statements alle-oder-keine in einer einzigen Server-Transaktion aus
+//     (empirisch verifiziert gegen Neon/Drizzle, s. `tasks/review-345.md` → „Architektur &
+//     Patterns-Ergänzung (Runde 3)", Punkt 3) – kein Rollback-Risiko bei einem Fehler mitten in
+//     der Liste.
 //   - node-postgres (DEV/Test): `.transaction()`, aber KEIN `.batch()`.
 // `runAtomic` wählt zur Laufzeit die im aktuellen Treiber verfügbare Primitive – dieselbe SQL,
 // ein Aufrufweg. Die Query-Builder werden lazy gegen den übergebenen Executor gebaut (kein Await)

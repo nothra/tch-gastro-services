@@ -7,7 +7,7 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/catalog", () => ({ listCatalogs: vi.fn(), listCatalog: vi.fn() }));
 
 // Eingebettete Komponenten sind hier durch Stubs ersetzt – sie haben eigene Tests
-// (CatalogSwitcher.test.tsx, CatalogManager.test.tsx; CatalogItemForm/CatalogRow stammen aus
+// (CatalogSwitcher.test.tsx, CatalogControls.test.tsx; CatalogItemForm/CatalogRow stammen aus
 // #59 und haben eigene Coverage über CatalogFields.test.tsx). Für die Detailseite zählen RBAC
 // und die Datenzusammenstellung (welcher Katalog wird an wen durchgereicht).
 vi.mock("./CatalogSwitcher", () => ({
@@ -15,9 +15,9 @@ vi.mock("./CatalogSwitcher", () => ({
     <div data-testid="catalog-switcher">{currentId}</div>
   ),
 }));
-vi.mock("./CatalogManager", () => ({
-  CatalogManager: ({ currentCatalog }: { currentCatalog?: Catalog }) => (
-    <div data-testid="catalog-manager">{currentCatalog ? currentCatalog.id : "none"}</div>
+vi.mock("./CatalogControls", () => ({
+  CatalogControls: ({ currentCatalog }: { currentCatalog?: Catalog }) => (
+    <div data-testid="catalog-controls">{currentCatalog ? currentCatalog.id : "none"}</div>
   ),
 }));
 vi.mock("../CatalogItemForm", () => ({
@@ -90,7 +90,7 @@ describe("CatalogDetailPage", () => {
     // AK6: der Umschalter bekommt die gewählte Id, Management-Controls und Anlage-Formular
     // bekommen denselben Katalog als Parent-Key-Bindung (nicht irgendeinen anderen).
     expect(screen.getByTestId("catalog-switcher")).toHaveTextContent("cat-1");
-    expect(screen.getByTestId("catalog-manager")).toHaveTextContent("cat-1");
+    expect(screen.getByTestId("catalog-controls")).toHaveTextContent("cat-1");
     expect(screen.getByTestId("catalog-item-form")).toHaveTextContent("cat-1");
     expect(listCatalogMock).toHaveBeenCalledWith("cat-1");
   });
@@ -129,9 +129,9 @@ describe("CatalogDetailPage", () => {
 
   // Kein 404: eine unbekannte Katalog-ID wird von dieser Seite bewusst nicht abgewiesen – kein
   // AK/FS aus spec-345 verlangt das für die Verwaltungsseite selbst (anders als z. B.
-  // veranstaltung/[id], das bei fehlender Veranstaltung `notFound()` wirft). `CatalogManager`
+  // veranstaltung/[id], das bei fehlender Veranstaltung `notFound()` wirft). `CatalogControls`
   // bekommt dann kein `currentCatalog` und zeigt nur „+ Katalog anlegen" (siehe
-  // CatalogManager.test.tsx: should_showOnlyCreateButton_when_noCurrentCatalog).
+  // CatalogControls.test.tsx: should_showOnlyCreateButton_when_noCurrentCatalog).
   it("should_passUndefinedCurrentCatalog_when_catalogIdUnknown", async () => {
     authMock.mockResolvedValue(session(["verwalter"]));
     listCatalogsMock.mockResolvedValue([catalogA]);
@@ -139,7 +139,7 @@ describe("CatalogDetailPage", () => {
 
     render(await CatalogDetailPage({ params: params("does-not-exist") }));
 
-    expect(screen.getByTestId("catalog-manager")).toHaveTextContent("none");
+    expect(screen.getByTestId("catalog-controls")).toHaveTextContent("none");
     expect(screen.getByTestId("catalog-switcher")).toHaveTextContent("does-not-exist");
     expect(screen.getByTestId("catalog-item-form")).toHaveTextContent("does-not-exist");
   });

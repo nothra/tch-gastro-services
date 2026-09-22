@@ -18,6 +18,11 @@ import { catalogItemSchema, catalogNameSchema } from "./schema";
 const CATALOG_PATH = "/verwaltung/katalog";
 const DUPLICATE_MESSAGE = "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
+// Artikel-Actions: der Katalogbezug (`catalogId`-FormData-Feld) fehlt. Eigene Konstante statt
+// Wiederverwendung von `CATALOG_ID_MISSING_MESSAGE` (unten) – beide teilen sich zufällig denselben
+// Wortlaut, meinen aber semantisch Verschiedenes (Artikel ohne Katalogbezug vs. Katalog ohne
+// eigene Id) und könnten künftig unabhängig voneinander divergieren (Nitpick #345 Runde 2/3).
+const ITEM_CATALOG_REFERENCE_MISSING_MESSAGE = "Kein Katalog angegeben.";
 
 export type CatalogFormState = { ok?: boolean; error?: string };
 
@@ -59,7 +64,7 @@ export async function createCatalogItemAction(
 ): Promise<CatalogFormState> {
   await requireRole("verwalter");
   const catalogId = String(formData.get("catalogId") ?? "");
-  if (!catalogId) return { error: "Kein Katalog angegeben." };
+  if (!catalogId) return { error: ITEM_CATALOG_REFERENCE_MISSING_MESSAGE };
 
   // FormData-Einträge filtern: catalogId soll nicht in das Zod-Schema gehen
   const itemData = Object.fromEntries(
@@ -88,7 +93,7 @@ export async function updateCatalogItemAction(
   const id = String(formData.get("id") ?? "");
   const catalogId = String(formData.get("catalogId") ?? "");
   if (!id) return { error: "Kein Artikel angegeben." };
-  if (!catalogId) return { error: "Kein Katalog angegeben." };
+  if (!catalogId) return { error: ITEM_CATALOG_REFERENCE_MISSING_MESSAGE };
 
   // FormData-Einträge filtern
   const itemData = Object.fromEntries(
@@ -127,6 +132,9 @@ export async function setCatalogItemActiveAction(formData: FormData): Promise<vo
 const CATALOG_MANAGEMENT_DUPLICATE_MESSAGE = "Ein Katalog mit diesem Namen existiert bereits.";
 const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
 const SOURCE_CATALOG_INACTIVE = "Der Quell-Katalog ist nicht aktiv.";
+// Katalog-Actions: der Katalog selbst hat keine `id` in FormData (rename/setActive beziehen sich
+// auf den zu ändernden Katalog, nicht auf einen fremden Bezug wie oben bei den Artikel-Actions).
+const CATALOG_ID_MISSING_MESSAGE = "Kein Katalog angegeben.";
 
 export async function createCatalogAction(
   _prevState: CatalogFormState | undefined,
@@ -148,7 +156,7 @@ export async function renameCatalogAction(
 ): Promise<CatalogFormState> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
-  if (!id) return { error: "Kein Katalog angegeben." };
+  if (!id) return { error: CATALOG_ID_MISSING_MESSAGE };
 
   const parsed = catalogNameSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
@@ -168,7 +176,7 @@ export async function setCatalogActiveAction(
   const id = String(formData.get("id") ?? "");
   const active = formData.get("active") === "true";
 
-  if (!id) return { error: "Kein Katalog angegeben." };
+  if (!id) return { error: CATALOG_ID_MISSING_MESSAGE };
 
   const result = await setCatalogActive(id, active);
   if (!result) return { error: CATALOG_NOT_FOUND };
