@@ -1,9 +1,9 @@
 # Task 353: fk-violation-catalogid-abfangen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -21,14 +21,37 @@ nicht betroffen (Parent-Key in WHERE).
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ein POST an `createCatalogItemAction` mit einer nicht existenten `catalogId`
+- [x] GIVEN ein POST an `createCatalogItemAction` mit einer nicht existenten `catalogId`
       WHEN der INSERT eine FK-Violation (`23503`) auslöst
       THEN wird sie abgefangen und als Nutzermeldung (`CATALOG_NOT_FOUND` o. ä.) zurückgegeben,
       kein ungefangener 500er.
-- [ ] Bestehendes Verhalten bei Unique-Violation (`23505`) bleibt unverändert.
+- [x] Bestehendes Verhalten bei Unique-Violation (`23505`) bleibt unverändert.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+
+Root Cause [2026-09-22]: `app/verwaltung/katalog/actions.ts:66` (`createCatalogItemAction`) –
+`catalogId` wird seit #345 aus einem clientseitigen FormData-Feld gelesen und ungeprüft an
+`createItem` weitergegeben; `runWithUniqueCheck` fängt ausschließlich SQLSTATE `23505` ab, eine
+FK-Violation (`23503`) bei nicht existentem Katalog wurde ungefangen durchgereicht (500 statt
+Nutzermeldung).
+
+Fix: `app/verwaltung/katalog/actions.ts` – neuer Helper `isForeignKeyViolation` (23503), analog
+zu `isUniqueViolation`. Bewusst **nicht** in `runWithUniqueCheck` selbst ergänzt (dessen
+dokumentierte Invariante fängt nur 23505, #345 Review-Finding), sondern als zweiter `try/catch`
+direkt um den `createItem`-Aufruf in `createCatalogItemAction` – der einzigen Aufrufstelle, an
+der dieser Fehler auftreten kann (alle anderen Actions binden `catalogId` bereits ins WHERE).
+Bei FK-Violation liefert die Action jetzt `{ error: "Katalog nicht gefunden." }` (Konstante
+`CATALOG_NOT_FOUND`, an den Modulanfang verschoben, damit sie an beiden Stellen ohne
+Vorwärtsreferenz sichtbar ist).
+
+Reproduktionstest: `app/verwaltung/katalog/actions.test.ts` →
+`should_returnCatalogNotFoundMessage_when_foreignKeyViolation`.
+
+Hinweis für `/codify`: Muster „serverseitig-fix → client-gelesenes Feld öffnet neue
+DB-Fehlerklassen, die der bestehende Error-Translation-Wrapper nicht abdeckt" ist bereits als
+Lesson dokumentiert (`docs/factory/lessons/db-drizzle.md`, aus #345 Security-Review-Hinweis,
+Issue #353) – dieser Fix ist die Umsetzung, kein neues Learning.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
