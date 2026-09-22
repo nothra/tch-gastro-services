@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -68,6 +68,19 @@ Runde 1 ([tasks/review-353.md](review-353.md), NEEDS_REWORK):
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+## Refactoring [2026-09-22]
+
+Beide Nitpicks aus Review-Runde 2 ([tasks/review-353.md](review-353.md)) umgesetzt, kein neues
+Verhalten:
+- `runCreateItem` → `createItemOrCatalogNotFound` umbenannt (Name beschreibt jetzt beide
+  Zweige: erfolgreiches Anlegen oder „Katalog nicht gefunden", nicht nur den ersten Aufruf).
+- Parameter-/Rückgabetyp von `Parameters<typeof createItem>[1]` /
+  `Awaited<ReturnType<typeof createItem>>` auf benannte Importe umgestellt (`CatalogItemData`
+  aus `@/db/catalog`, `CatalogItem` aus `@/db/schema`) – lesbarer, konsistent mit dem bereits
+  vorhandenen Import-Stil in `actions.test.ts`.
+
+Tests vor/nach identisch grün (21/21), Typecheck und Lint unverändert sauber.
 
 ---
 Branch: `fix/353-fk-violation-catalogid-abfangen`

@@ -12,7 +12,9 @@ import {
   setCatalogActive,
   duplicateCatalog,
   getCatalogById,
+  type CatalogItemData,
 } from "@/db/catalog";
+import type { CatalogItem } from "@/db/schema";
 import { catalogItemSchema, catalogNameSchema } from "./schema";
 
 const CATALOG_PATH = "/verwaltung/katalog";
@@ -79,10 +81,10 @@ async function runWithUniqueCheck<T>(fn: () => Promise<T>): Promise<UniqueCheckO
 // Wichtig): fängt ausschließlich die FK-Violation dieses einen Aufrufs ab, nicht auch
 // nachfolgende, unabhängige Schritte wie `revalidatePath` – ein dort auftretender Fehler soll
 // nie fälschlich als „Katalog nicht gefunden" gemeldet werden.
-async function runCreateItem(
+async function createItemOrCatalogNotFound(
   catalogId: string,
-  data: Parameters<typeof createItem>[1],
-): Promise<UniqueCheckOutcome<Awaited<ReturnType<typeof createItem>>>> {
+  data: CatalogItemData,
+): Promise<UniqueCheckOutcome<CatalogItem>> {
   try {
     return await runWithUniqueCheck(() => createItem(catalogId, data));
   } catch (error) {
@@ -112,7 +114,7 @@ export async function createCatalogItemAction(
   // Nutzer-authentisch und keine Standardannahme.
   // `createItem` liefert immer den angelegten Artikel (kein `| undefined`) – ein No-Match-Zweig
   // wäre hier totes Verhalten (Clean-Code: keine Fallbacks für typseitig ausgeschlossene Fälle).
-  const outcome = await runCreateItem(catalogId, parsed.data);
+  const outcome = await createItemOrCatalogNotFound(catalogId, parsed.data);
   if (!outcome.ok) return outcome.state;
   revalidatePath(`/verwaltung/katalog/${catalogId}`);
   return { ok: true };
