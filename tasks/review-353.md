@@ -4,58 +4,38 @@
 _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] [app/verwaltung/katalog/actions.ts:97-108] Der neue `try`-Block um den `createItem`-Aufruf
-  in `createCatalogItemAction` umschließt mehr als die eigentlich riskante Operation: er läuft
-  bis inklusive `revalidatePath(...)` und dem finalen `return { ok: true }`. Würde
-  `revalidatePath` (oder ein künftig dort ergänzter Aufruf) je einen Fehler mit
-  `.code === "23503"` werfen, würde `isForeignKeyViolation` das fälschlich als „Katalog nicht
-  gefunden" melden – obwohl der Katalog in diesem Fall existiert und der `createItem`-Aufruf
-  bereits erfolgreich war. Aktuell praktisch nicht erreichbar (`revalidatePath` wirft keine
-  SQLSTATE-Fehler), aber der Scope des `catch` sollte exakt auf die eine riskante Operation
-  begrenzt sein – genau das Prinzip, das die Datei bei `runWithUniqueCheck` selbst durchsetzt
-  (Kommentar: „jeder andere Fehler wird weitergeworfen, nie hier abgefangen"). Enger fassen,
-  z. B.:
-  ```ts
-  let outcome: Awaited<ReturnType<typeof runWithUniqueCheck<CatalogItem>>>;
-  try {
-    outcome = await runWithUniqueCheck(() => createItem(catalogId, parsed.data));
-  } catch (error) {
-    if (isForeignKeyViolation(error)) return { error: CATALOG_NOT_FOUND };
-    throw error;
-  }
-  if (!outcome.ok) return outcome.state;
-  revalidatePath(`/verwaltung/katalog/${catalogId}`);
-  return { ok: true };
-  ```
+_Keine – das Wichtig-Finding aus Runde 1 (Catch-Scope in `createCatalogItemAction` zu breit)
+ist durch den neuen, eng gefassten Wrapper `runCreateItem` behoben: der `try/catch` umschließt
+jetzt ausschließlich den `createItem`-Aufruf, nicht mehr `revalidatePath` (verifiziert:
+[app/verwaltung/katalog/actions.ts:82-92](../app/verwaltung/katalog/actions.ts))._
 
 ## Nitpicks (optional)
-- [ ] [app/verwaltung/katalog/actions.ts:33-54] `isUniqueViolation` und `isForeignKeyViolation`
-  sind bis auf den SQLSTATE-Literal identisch (`typeof error === "object" && error !== null &&
-  "code" in error && (error as { code?: string }).code === "..."`). Ein gemeinsamer Helper
-  `hasSqlState(error: unknown, code: string): boolean` würde die Duplikation auflösen, ohne die
-  beiden benannten Prädikate (die an ihren Aufrufstellen weiterhin sprechend bleiben sollen) zu
-  verlieren.
+- [ ] [app/verwaltung/katalog/actions.ts:82-92] Der Name `runCreateItem` beschreibt nur die
+  Hälfte der Funktion (Aufruf von `createItem`), nicht die eigentliche Besonderheit ggü.
+  `runWithUniqueCheck` – die zusätzliche Übersetzung der FK-Violation in `CATALOG_NOT_FOUND`.
+  Ein Name wie `createItemOrCatalogNotFound` (analog zum Verhalten, nicht nur zum ersten
+  Statement) wäre selbsterklärender an der Aufrufstelle in `createCatalogItemAction`.
+- [ ] [app/verwaltung/katalog/actions.ts:82-85] Parameter- und Rückgabetyp von `runCreateItem`
+  sind über `Parameters<typeof createItem>[1]` / `Awaited<ReturnType<typeof createItem>>`
+  hergeleitet statt die bereits vorhandenen benannten Typen zu importieren (`CatalogItemData`
+  aus `@/db/catalog`, `CatalogItem` aus `@/db/schema` – letzterer wird bereits in
+  `actions.test.ts` so importiert). Funktional gleichwertig, aber die Typ-Herleitung ist an
+  dieser Stelle schwerer zu lesen als ein benannter Import.
 
 ## Positives
-- Root Cause präzise isoliert und in der Task-Datei dokumentiert; Fix ist chirurgisch – kein
-  Scope Creep, keine Änderung an `runWithUniqueCheck` selbst.
-- Die dokumentierte Invariante von `runWithUniqueCheck` („fängt ausschließlich 23505") wird
-  bewusst nicht verletzt; stattdessen ein zweiter, eigener Catch – exakt wie im Security-Review
-  zu #345 vorgeschlagen ("... in `runWithUniqueCheck` (oder einem zweiten Wrapper) abfangen").
-  Der neue Kommentar an `isForeignKeyViolation` begründet zusätzlich nachvollziehbar, warum
-  dieser Fehlerpfad nur an dieser einen Aufrufstelle erreichbar ist (durch Grep verifiziert:
-  `createItem` hat genau einen Aufrufer).
-- Reproduktionstest (`should_returnCatalogNotFoundMessage_when_foreignKeyViolation`) prüft nicht
-  nur die Fehlermeldung, sondern auch, dass `revalidatePath` in diesem Fall nicht aufgerufen
-  wird – echte Verhaltensabdeckung statt reinem Rückgabewert-Check.
-- Bestehender Test `should_rethrow_when_unexpectedDbError` (generischer Fehler ohne `code`)
-  bleibt unverändert grün – belegt, dass das Rethrow-Verhalten für unbekannte Fehler nicht
-  aufgeweicht wurde.
-- `CATALOG_NOT_FOUND` sinnvoll wiederverwendet statt einer zweiten, textgleichen Konstante mit
-  eigenem Namen (analog zur bereits dokumentierten `ITEM_CATALOG_REFERENCE_MISSING_MESSAGE` vs.
-  `CATALOG_ID_MISSING_MESSAGE`-Unterscheidung, hier aber korrekterweise dieselbe Semantik).
-- Task-Datei vollständig gepflegt: Root Cause, Fix-Beschreibung und Codify-Hinweis (Verweis auf
-  bereits existierende Lesson in `db-drizzle.md`) sind vorhanden.
+- Runde-1-Finding (Wichtig) korrekt und minimal behoben: `runCreateItem` kapselt exakt den
+  riskanten Aufruf, `revalidatePath`/`return { ok: true }` liegen jetzt außerhalb jedes
+  FK-Violation-Catches – kein Risiko mehr, einen unabhängigen Fehler fälschlich als „Katalog
+  nicht gefunden" zu melden.
+- Runde-1-Nitpick ebenfalls behoben: `hasSqlState(error, code)` als gemeinsame Grundlage für
+  `isUniqueViolation`/`isForeignKeyViolation` – keine Duplikation mehr, beide Prädikate bleiben
+  an ihren Aufrufstellen sprechend benannt.
+- Invariante von `runWithUniqueCheck` weiterhin unverändert und unverletzt; die Komposition
+  `runCreateItem` → `runWithUniqueCheck` ist klar geschichtet (erst Unique-Check, dann
+  FK-Check), beide mit eigenem, klar abgegrenztem Fehlerbereich.
+- Volle Test-Suite (871 Tests), Typecheck, Lint, Format weiterhin grün nach dem Rework.
+- Task-Datei dokumentiert den Rework nachvollziehbar unter „Review-Findings" mit Bezug auf
+  Runde 1.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED
