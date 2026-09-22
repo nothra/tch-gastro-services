@@ -59,6 +59,13 @@ Issue #353) – dieser Fix ist die Umsetzung, kein neues Learning.
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+Runde 1 ([tasks/review-353.md](review-353.md), NEEDS_REWORK):
+- Wichtig: `try`-Block um `createItem` war zu breit gefasst (reichte bis über `revalidatePath`
+  hinaus) – behoben durch eng gefassten Wrapper `runCreateItem`, der ausschließlich den
+  `createItem`-Aufruf umschließt.
+- Nitpick (übernommen): `isUniqueViolation`/`isForeignKeyViolation` teilten identischen Code bis
+  auf den SQLSTATE-Literal – auf gemeinsamen Helper `hasSqlState(error, code)` extrahiert.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

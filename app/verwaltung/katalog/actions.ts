@@ -27,32 +27,33 @@ const ITEM_CATALOG_REFERENCE_MISSING_MESSAGE = "Kein Katalog angegeben.";
 
 export type CatalogFormState = { ok?: boolean; error?: string };
 
-// Postgres unique_violation. node-postgres und der Neon-HTTP-Treiber legen den
-// SQLSTATE-Code auf `.code` – so wird der Duplikat-Fall (seit ADR-050 D2
-// UNIQUE(catalog_id, name, size)) von einem echten Fehler unterschieden und in eine
-// Nutzer-Meldung übersetzt (spec-49, unveränderter Wortlaut: spec-59 FS3).
-function isUniqueViolation(error: unknown): boolean {
+// node-postgres und der Neon-HTTP-Treiber legen den Postgres-SQLSTATE-Code eines DB-Fehlers auf
+// `.code` – gemeinsame Grundlage für die beiden Fehlerklassen-Prädikate unten (Review-Finding
+// #353 Runde 1, Nitpick).
+function hasSqlState(error: unknown, code: string): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    (error as { code?: string }).code === "23505"
+    (error as { code?: string }).code === code
   );
 }
 
-// Postgres foreign_key_violation. Nur an einer Stelle erreichbar: `createCatalogItemAction`
-// liest `catalogId` aus einem clientseitigen FormData-Feld (#345) statt ihn serverseitig fix
-// zu setzen; ein nicht (mehr) existierender Katalog löst beim INSERT diesen SQLSTATE aus statt
+// unique_violation: so wird der Duplikat-Fall (seit ADR-050 D2 UNIQUE(catalog_id, name, size))
+// von einem echten Fehler unterschieden und in eine Nutzer-Meldung übersetzt (spec-49,
+// unveränderter Wortlaut: spec-59 FS3).
+function isUniqueViolation(error: unknown): boolean {
+  return hasSqlState(error, "23505");
+}
+
+// foreign_key_violation. Nur an einer Stelle erreichbar: `createCatalogItemAction` liest
+// `catalogId` aus einem clientseitigen FormData-Feld (#345) statt ihn serverseitig fix zu
+// setzen; ein nicht (mehr) existierender Katalog löst beim INSERT diesen SQLSTATE aus statt
 // eine Zeile zu liefern. Alle anderen Actions binden `catalogId` bereits ins WHERE (Parent-Key)
 // und melden dort stattdessen `undefined`/„nicht gefunden" – für sie ist dieser Fehlerpfad
 // unerreichbar (Security-Review #345, Issue #353).
 function isForeignKeyViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "23503"
-  );
+  return hasSqlState(error, "23503");
 }
 
 // Führt eine DB-Operation aus und übersetzt Unique-Violations in eine Nutzermeldung. Das
@@ -70,6 +71,22 @@ async function runWithUniqueCheck<T>(fn: () => Promise<T>): Promise<UniqueCheckO
     return { ok: true, value: await fn() };
   } catch (error) {
     if (isUniqueViolation(error)) return { ok: false, state: { error: DUPLICATE_MESSAGE } };
+    throw error;
+  }
+}
+
+// Eng gefasster zweiter Wrapper nur um den `createItem`-INSERT (Review-Finding #353 Runde 1,
+// Wichtig): fängt ausschließlich die FK-Violation dieses einen Aufrufs ab, nicht auch
+// nachfolgende, unabhängige Schritte wie `revalidatePath` – ein dort auftretender Fehler soll
+// nie fälschlich als „Katalog nicht gefunden" gemeldet werden.
+async function runCreateItem(
+  catalogId: string,
+  data: Parameters<typeof createItem>[1],
+): Promise<UniqueCheckOutcome<Awaited<ReturnType<typeof createItem>>>> {
+  try {
+    return await runWithUniqueCheck(() => createItem(catalogId, data));
+  } catch (error) {
+    if (isForeignKeyViolation(error)) return { ok: false, state: { error: CATALOG_NOT_FOUND } };
     throw error;
   }
 }
@@ -95,18 +112,10 @@ export async function createCatalogItemAction(
   // Nutzer-authentisch und keine Standardannahme.
   // `createItem` liefert immer den angelegten Artikel (kein `| undefined`) – ein No-Match-Zweig
   // wäre hier totes Verhalten (Clean-Code: keine Fallbacks für typseitig ausgeschlossene Fälle).
-  // Zweiter, eigener Catch statt Erweiterung von `runWithUniqueCheck` (dessen Invariante bewusst
-  // nur 23505 abfängt, #345 Review-Finding) – fängt die FK-Violation aus #353 ab, die nur an
-  // dieser Aufrufstelle auftreten kann.
-  try {
-    const outcome = await runWithUniqueCheck(() => createItem(catalogId, parsed.data));
-    if (!outcome.ok) return outcome.state;
-    revalidatePath(`/verwaltung/katalog/${catalogId}`);
-    return { ok: true };
-  } catch (error) {
-    if (isForeignKeyViolation(error)) return { error: CATALOG_NOT_FOUND };
-    throw error;
-  }
+  const outcome = await runCreateItem(catalogId, parsed.data);
+  if (!outcome.ok) return outcome.state;
+  revalidatePath(`/verwaltung/katalog/${catalogId}`);
+  return { ok: true };
 }
 
 export async function updateCatalogItemAction(
