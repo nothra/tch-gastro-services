@@ -18,6 +18,7 @@ import { catalogItemSchema, catalogNameSchema } from "./schema";
 const CATALOG_PATH = "/verwaltung/katalog";
 const DUPLICATE_MESSAGE = "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
+const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
 // Artikel-Actions: der Katalogbezug (`catalogId`-FormData-Feld) fehlt. Eigene Konstante statt
 // Wiederverwendung von `CATALOG_ID_MISSING_MESSAGE` (unten) – beide teilen sich zufällig denselben
 // Wortlaut, meinen aber semantisch Verschiedenes (Artikel ohne Katalogbezug vs. Katalog ohne
@@ -36,6 +37,21 @@ function isUniqueViolation(error: unknown): boolean {
     error !== null &&
     "code" in error &&
     (error as { code?: string }).code === "23505"
+  );
+}
+
+// Postgres foreign_key_violation. Nur an einer Stelle erreichbar: `createCatalogItemAction`
+// liest `catalogId` aus einem clientseitigen FormData-Feld (#345) statt ihn serverseitig fix
+// zu setzen; ein nicht (mehr) existierender Katalog löst beim INSERT diesen SQLSTATE aus statt
+// eine Zeile zu liefern. Alle anderen Actions binden `catalogId` bereits ins WHERE (Parent-Key)
+// und melden dort stattdessen `undefined`/„nicht gefunden" – für sie ist dieser Fehlerpfad
+// unerreichbar (Security-Review #345, Issue #353).
+function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "23503"
   );
 }
 
@@ -79,10 +95,18 @@ export async function createCatalogItemAction(
   // Nutzer-authentisch und keine Standardannahme.
   // `createItem` liefert immer den angelegten Artikel (kein `| undefined`) – ein No-Match-Zweig
   // wäre hier totes Verhalten (Clean-Code: keine Fallbacks für typseitig ausgeschlossene Fälle).
-  const outcome = await runWithUniqueCheck(() => createItem(catalogId, parsed.data));
-  if (!outcome.ok) return outcome.state;
-  revalidatePath(`/verwaltung/katalog/${catalogId}`);
-  return { ok: true };
+  // Zweiter, eigener Catch statt Erweiterung von `runWithUniqueCheck` (dessen Invariante bewusst
+  // nur 23505 abfängt, #345 Review-Finding) – fängt die FK-Violation aus #353 ab, die nur an
+  // dieser Aufrufstelle auftreten kann.
+  try {
+    const outcome = await runWithUniqueCheck(() => createItem(catalogId, parsed.data));
+    if (!outcome.ok) return outcome.state;
+    revalidatePath(`/verwaltung/katalog/${catalogId}`);
+    return { ok: true };
+  } catch (error) {
+    if (isForeignKeyViolation(error)) return { error: CATALOG_NOT_FOUND };
+    throw error;
+  }
 }
 
 export async function updateCatalogItemAction(
@@ -130,7 +154,6 @@ export async function setCatalogItemActiveAction(formData: FormData): Promise<vo
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CATALOG_MANAGEMENT_DUPLICATE_MESSAGE = "Ein Katalog mit diesem Namen existiert bereits.";
-const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
 const SOURCE_CATALOG_INACTIVE = "Der Quell-Katalog ist nicht aktiv.";
 // Katalog-Actions: der Katalog selbst hat keine `id` in FormData (rename/setActive beziehen sich
 // auf den zu ändernden Katalog, nicht auf einen fremden Bezug wie oben bei den Artikel-Actions).
