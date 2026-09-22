@@ -142,6 +142,18 @@ describe("createCatalogItemAction", () => {
     expect(result.error).toMatch(/existiert bereits/);
   });
 
+  it("should_returnCatalogNotFoundMessage_when_foreignKeyViolation", async () => {
+    // #353: catalogId kommt aus einem clientseitigen FormData-Feld (#345) und kann auf einen
+    // nicht (mehr) existierenden Katalog zeigen – der INSERT wirft dann SQLSTATE 23503
+    // (foreign_key_violation) statt einer Zeile.
+    createItemMock.mockRejectedValue(Object.assign(new Error("fk"), { code: "23503" }));
+
+    const result = await createCatalogItemAction(undefined, form(validFields));
+
+    expect(result).toEqual({ error: "Katalog nicht gefunden." });
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+
   it("should_rethrow_when_unexpectedDbError", async () => {
     createItemMock.mockRejectedValue(new Error("boom"));
 
