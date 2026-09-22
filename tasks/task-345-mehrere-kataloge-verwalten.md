@@ -5,10 +5,10 @@
 - [x] Review bestanden → Runde 3: APPROVED (Backend/Logik, Code-Qualität, Architektur)
 - [x] Tests vollständig → 870 Tests grün (89 DB-Integrationstests ohne `DATABASE_URL` übersprungen),
       Coverage der #345-Dateien 96–100 % (Statements), CatalogManager.tsx 100 % Branches
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden → PASSED (keine kritischen/wichtigen Findings, siehe `tasks/security-345.md`)
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Rolle `verwalter` kann mehrere Kataloge (Preislisten) parallel pflegen: anlegen, umbenennen,
@@ -232,6 +232,24 @@ Vollständiger Report: [`tasks/codify-345.md`](codify-345.md). Kurzfassung:
 - Sandbox-Workaround für `. scripts/lib/create-issue.sh` bereits durch bestehende Lesson (#291)
   abgedeckt, kein Nachtrag nötig. Issues #351/#353 bereits korrekt über den zentralen Weg
   angelegt.
+
+## /security-review-Notizen
+
+**Ergebnis: PASSED** (`tasks/security-345.md`) – keine kritischen/wichtigen Findings. AK7
+(Rollen-Gate) für alle 7 Katalog-/Artikel-Actions einzeln per `grep` + Verhaltenstests
+verifiziert, AK5 (Duplizier-Quelle fail-closed) und AK6 (Parent-Key-Bindung) bestätigt korrekt.
+Drei Hinweise nach Schwelle (ADR-018/ADR-043) klassifiziert und verankert statt nur im Report
+belassen: Issue [#353](https://github.com/nothra/tch-gastro-services/issues/353) (unbehandelte
+FK-Violation `23503` bei ungültiger `catalogId`, `bug`), ein `kleinfunde.md`-Eintrag
+(Kommentar-Drift `db/catalog.ts`), ein reiner Doku-Hinweis ohne Handlungsbedarf (kein
+Besitzer-Konzept auf Katalogebene – fachlich korrekt gewollt).
+
+## PR-Shepherd
+
+PR-Shepherd [2026-09-22]: Merge freigegeben – alle Gates grün. Keine offenen Review-Kommentare
+(nur der automatische Vercel-Bot-Kommentar), Branch 0 Commits hinter `origin/main` (kein Rebase
+nötig), CI vollständig grün (`mergeStateStatus: CLEAN`), kein Approval erforderlich
+(`required_approving_review_count: 0`), Draft-Status aufgelöst (`gh pr ready`).
 
 ---
 Branch: `feature/345-mehrere-kataloge-verwalten`
