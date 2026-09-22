@@ -144,3 +144,67 @@ return { ok: true };
 Pflicht-Begleitung: ein Test, der die Data-Layer-Funktion zweimal hintereinander aufruft und die
 **tatsächliche** Semantik dokumentiert (z. B. Ereignis-Log-Länge), statt sie zu kaschieren.
 
+### Neue Mehrfach-Write-Funktion nutzt `db.transaction()` direkt statt `runAtomic` – Treiber-Inkompatibilität nur in Produktion sichtbar (aus #345, Review-Runde-2-Finding, Architektur-Fokus)
+
+`duplicateCatalog` (`db/catalog.ts`) legte einen neuen Katalog an und kopierte dessen Artikel in
+einem `db.transaction(async (tx) => {...})`-Block – lokal/in CI grün, weil die
+Integrationstests über node-postgres laufen, das `.transaction()` echt unterstützt. Der in
+INT/PRD verwendete Neon-HTTP-Treiber (`db/index.ts`, ADR-014) wirft bei `.transaction()` jedoch
+`"No transactions support in neon-http driver"` (`node_modules/drizzle-orm/neon-http/session.js`)
+– **AK2 wäre in der Zielumgebung bei jedem Aufruf fehlgeschlagen**, obwohl alle lokalen/CI-Tests
+grün waren. Genau für diesen Fall existiert bereits die projektweite Klammer `runAtomic`
+(`db/atomic.ts`, etabliert für `abschliessenVeranstaltung` in `db/veranstaltung.ts`, ADR-033 D3):
+sie wählt zur Laufzeit `.batch()` (neon-http) oder `.transaction()` (node-postgres). Weder die
+ursprüngliche Implementierung noch Review-Runde 1 noch der Backend/Logik-Teil von Review-Runde 2
+fanden das – nur der dedizierte Architektur-Review-Fokus, weil er gezielt auf
+Treiber-/Infrastruktur-Kompatibilität statt nur auf Fehlerbehandlungs-Korrektheit prüfte.
+
+**Smell:** „Meine neue Data-Layer-Funktion schreibt in **mehr als eine Tabelle/Zeile** und muss
+dafür atomar sein – rufe ich dafür `db.transaction()` direkt auf dem importierten `db`-Objekt
+auf, oder nutze ich `runAtomic` (`db/atomic.ts`)?" Ein reiner Integrationstest gegen die lokale
+Dev-DB (node-postgres) kann diesen Fehler **nicht** aufdecken, weil node-postgres
+`.transaction()` echt unterstützt – nur ein gezielter Mock-Test gegen den Neon-HTTP-Codepfad
+(oder ein dedizierter Architektur-Review mit Treiber-Kenntnis) findet ihn.
+
+**Regel:** Jede neue Data-Layer-Funktion in `db/`, die mehr als ein Insert/Update/Delete atomar
+zusammenfassen muss, ruft ausschließlich `runAtomic` (`db/atomic.ts`) auf – nie `db.transaction()`
+direkt auf dem `db`-Export. Ist eine ID vor der Ausführung nötig (z. B. für einen FK-Bezug
+zwischen zwei Inserts derselben Batch), sie **vorab client-seitig** erzeugen (`crypto.randomUUID()`,
+analog `$defaultFn` in `db/schema.ts`) statt aus dem `.returning()`-Ergebnis eines vorherigen
+Statements zu lesen – `runAtomic`s Neon-Zweig (`.batch()`) erlaubt keine Cross-Query-Abhängigkeit
+innerhalb derselben Batch (non-interactive). Pflicht-Begleitung: ein gezielter Mock-Test analog
+`db/catalog.duplicateCatalog-driver.test.ts`, der beweist, dass `runAtomic` aufgerufen wird und
+`db.transaction()` nicht – ein reiner Integrationstest über node-postgres reicht nicht. Bei
+`/review` gehört „nutzt eine neue Mehrfach-Write-Funktion `runAtomic` statt `db.transaction()`
+direkt?" explizit auf die Architektur-Checkliste (Perspektive „Architektur & Konsistenz"), nicht
+nur implizit über Schicht-/Pattern-Konsistenz.
+
+### Serverseitig-fix → client-gelesenes Feld öffnet neue DB-Fehlerklassen, die der bestehende Error-Translation-Wrapper nicht abdeckt (aus #345, Security-Review-Hinweis)
+
+Vor #345 war `catalogId` bei `createItem(STANDARD_CATALOG_ID, ...)` serverseitig fix verdrahtet –
+ein FK-Fehler auf `catalog_item.catalog_id` war strukturell unmöglich. Mit #345 liest
+`createCatalogItemAction` (`app/verwaltung/katalog/actions.ts`) denselben Wert erstmals aus einem
+**clientseitigen** Hidden-Field in `FormData`. `runWithUniqueCheck`/`isUniqueViolation` fängt
+weiterhin nur SQLSTATE `23505` (Unique-Violation) ab; ein nicht existierender `catalogId`-Wert
+löst beim `INSERT` stattdessen eine Fremdschlüssel-Verletzung (`23503`) aus, die ungefangen bis
+zum Client durchschlägt (unbehandelter 500 statt einer Nutzermeldung wie „Katalog nicht
+gefunden."). Kein Autorisierungsproblem in diesem Fall (jeder `verwalter` darf jeden Katalog
+verwalten, spec-345), aber ein neues, bis dahin unerreichbares Fehlerbild. Als Issue
+[#353](https://github.com/nothra/tch-gastro-services/issues/353) getrackt (Label `bug`,
+funktionaler Defekt mit reproduzierbarem Auslöser).
+
+**Smell:** „Ein Feld, das bisher serverseitig fix gesetzt war (Konstante, `STANDARD_...`,
+hartcodierter Parameter), wird mit dieser Task erstmals aus `FormData`/einem Client-Wert
+gelesen und dient weiterhin als FK-Bezug in einem `INSERT`/`UPDATE` – welche neuen
+Postgres-Fehlerklassen (nicht nur `23505`) kann ein **ungültiger** Wert jetzt auslösen, die der
+bestehende Error-Translation-Wrapper (`runWithUniqueCheck`/`isUniqueViolation`) nicht kennt?"
+
+**Regel:** Wechselt ein Feld, das eine Fremdschlüssel-Spalte befüllt, von „serverseitig fix" auf
+„aus einem Client-Wert gelesen" (auch wenn es weiterhin korrekt als Parent-Key im `WHERE`/`INSERT`
+gebunden wird, Kern-Kurzregel 2), prüfen, ob der bestehende Error-Wrapper auch die dadurch neu
+erreichbare FK-Violation (`23503`) abdeckt – nicht nur die bereits gehandhabte Unique-Violation
+(`23505`). Fehlt die Abdeckung, entweder im selben PR ergänzen (zweiter abgefangener Code neben
+`23505`, eigene Nutzermeldung) oder – wenn das Risiko nachweislich gering ist (keine
+Autorisierungslücke, nur ein unschöner 500 bei einer manuell verfälschten Anfrage) – bewusst als
+Folge-Issue auslagern, statt es unkommentiert stehen zu lassen.
+

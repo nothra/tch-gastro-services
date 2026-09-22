@@ -30,7 +30,8 @@
 | `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Fokus-Akkordeon + Chip-Leiste; Getränke, Essen, Kaffee); personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |
 | `/veranstaltung/[id]/auslagen` | Seite | Auslagenerstattung | `veranstalter` |
 | `/veranstaltung/[id]/kassieren` | Seite | Kassieren & Abschluss; personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |
-| `/verwaltung/katalog` | Seite | Katalog/Preise pflegen | `verwalter` |
+| `/verwaltung/katalog` | Seite | Leitet auf `/verwaltung/katalog/[id]` mit dem Standard-Katalog um (#345) | `verwalter` |
+| `/verwaltung/katalog/[id]` | Seite | Katalog/Preise pflegen; `[id]` wählt den gerade gepflegten Katalog (Umschalter + Katalog-Management: anlegen/umbenennen/deaktivieren/duplizieren, #345) | `verwalter` |
 | `/verwaltung/teilnehmer` | Seite | Teilnehmer-Stammdaten pflegen | `verwalter` |
 
 ## API-Route-Handler (`app/api/**/route.ts`)

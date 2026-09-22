@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { catalogItemSchema } from "./schema";
+import { catalogItemSchema, catalogNameSchema } from "./schema";
 import { firstIssueMessage } from "@/lib/form-errors";
 
 const valid = {
@@ -131,6 +131,54 @@ describe("catalogItemSchema", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(firstIssueMessage(result.error)).toBe("Sortierung ist zu hoch.");
+    }
+  });
+});
+
+// #345: Katalogname für Anlegen/Umbenennen/Duplizieren – bislang nur indirekt über
+// Action-Tests geprüft (Ablehnungs-Test), nie die konkrete Meldung oder die Grenzwerte
+// (Testing-Standards: „Zod-Fehlermeldung: Ablehnungs-Test ≠ Meldungs-Test").
+describe("catalogNameSchema", () => {
+  it("should_acceptName_when_valid", () => {
+    const result = catalogNameSchema.safeParse({ name: "Dorfmeisterschaften" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.name).toBe("Dorfmeisterschaften");
+  });
+
+  it("should_trimSurroundingWhitespace_when_namePadded", () => {
+    const result = catalogNameSchema.safeParse({ name: "  Dorfmeisterschaften  " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.name).toBe("Dorfmeisterschaften");
+  });
+
+  it("should_rejectName_when_empty", () => {
+    const result = catalogNameSchema.safeParse({ name: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Katalogname ist erforderlich.");
+    }
+  });
+
+  // FS4: ein nur aus Leerzeichen bestehender Name ist nach dem Trimmen leer.
+  it("should_rejectName_when_onlyWhitespace", () => {
+    const result = catalogNameSchema.safeParse({ name: "   " });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Katalogname ist erforderlich.");
+    }
+  });
+
+  it("should_acceptName_when_exactly100Chars", () => {
+    const result = catalogNameSchema.safeParse({ name: "A".repeat(100) });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.name).toHaveLength(100);
+  });
+
+  it("should_rejectName_when_101CharsOrMore", () => {
+    const result = catalogNameSchema.safeParse({ name: "A".repeat(101) });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Katalogname ist zu lang.");
     }
   });
 });

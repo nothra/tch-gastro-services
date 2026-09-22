@@ -36,3 +36,15 @@ export const catalogItemSchema = z.object({
 });
 
 export type CatalogItemInput = z.infer<typeof catalogItemSchema>;
+
+// Katalog-Name für Anlage, Umbenennen, Duplizieren. Trim entfernt Whitespace;
+// min(1) prüft auf echte Inhalte (FS4: leerer oder nur Leerzeichen bestehender Name).
+export const catalogNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Katalogname ist erforderlich.")
+    .max(100, "Katalogname ist zu lang."),
+});
+
+export type CatalogNameInput = z.infer<typeof catalogNameSchema>;

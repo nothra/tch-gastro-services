@@ -6,8 +6,14 @@ import type { CatalogItem } from "@/db/schema";
 import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
 import { CatalogFields, CATEGORY_LABEL } from "./CatalogFields";
 
+interface CatalogRowProps {
+  item: CatalogItem;
+  catalogId: string;
+}
+
 // Eine Katalog-Zeile: Anzeige, Inline-Bearbeitung und Deaktivieren/Reaktivieren.
-export function CatalogRow({ item }: { item: CatalogItem }) {
+// Der catalogId-Parameter wird in versteckten Feldern mitgesendet (#345).
+export function CatalogRow({ item, catalogId }: CatalogRowProps) {
   const [editing, setEditing] = useState(false);
 
   // Schließt die Inline-Bearbeitung nach erfolgreichem Speichern. setState in der
@@ -32,6 +38,7 @@ export function CatalogRow({ item }: { item: CatalogItem }) {
       {editing ? (
         <form action={formAction} className="flex flex-col gap-3">
           <input type="hidden" name="id" value={item.id} />
+          <input type="hidden" name="catalogId" value={catalogId} />
           <CatalogFields item={item} />
           <div className="flex items-center gap-3">
             <button
@@ -73,6 +80,7 @@ export function CatalogRow({ item }: { item: CatalogItem }) {
             </button>
             <form action={setCatalogItemActiveAction}>
               <input type="hidden" name="id" value={item.id} />
+              <input type="hidden" name="catalogId" value={catalogId} />
               <input type="hidden" name="active" value={item.active ? "false" : "true"} />
               <button
                 type="submit"

@@ -1,6 +1,13 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { catalogItems, type CatalogItem, type NewCatalogItem } from "./schema";
+import { runAtomic } from "./atomic";
+import {
+  catalog,
+  catalogItems,
+  type CatalogItem,
+  type NewCatalogItem,
+  type Catalog,
+} from "./schema";
 
 // Data-Layer des Getränke-Katalogs (F2, #49). Einziger Ort mit Drizzle-Queries auf
 // catalog_item – Actions/UI greifen nie direkt auf die Tabelle zu (PROJECT-CONTEXT,
@@ -98,4 +105,110 @@ export async function setItemActive(
     .where(and(eq(catalogItems.id, id), eq(catalogItems.catalogId, catalogId)))
     .returning();
   return updated;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Katalog-CRUD (#345): Preislisten verwalten
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Alle Kataloge (aktiv + inaktiv), sortiert für den Umschalter in der Verwaltung (AK1, AK3, AK6).
+// Der Sortier-Standard ist etabliert: `sortOrder` für die Admin-Reihenfolge, `name` als Fallback
+// für alphabetische Ordnung (dieselbe Reihenfolge wie `catalogOrder` für Artikel, ADR-050).
+export function listCatalogs(): Promise<Catalog[]> {
+  return db.select().from(catalog).orderBy(asc(catalog.sortOrder), asc(catalog.name));
+}
+
+// Katalog per Id laden – u. a. für die Existenz-/Aktiv-Prüfung vor dem Duplizieren (AK5,
+// Review-Finding #345 Runde 1): die Prüfung braucht einen echten Lesezugriff statt eines
+// geworfenen Sonderfalls, damit sie außerhalb von `runWithUniqueCheck` steht (das nur für
+// Unique-Violations zuständig ist). `undefined` bei No-Match, analog zu `getCatalogItem`.
+export async function getCatalogById(id: string): Promise<Catalog | undefined> {
+  const [row] = await db.select().from(catalog).where(eq(catalog.id, id)).limit(1);
+  return row;
+}
+
+// Neuen Katalog anlegen (AK1). Unique-Violation auf `catalog.name` wird in der Server Action
+// via `runWithUniqueCheck` zu einer Nutzermeldung übersetzt (FS1).
+export async function createCatalog(name: string): Promise<Catalog> {
+  const [created] = await db
+    .insert(catalog)
+    .values({ name, active: true, sortOrder: 0 })
+    .returning();
+  return created;
+}
+
+// Katalog umbenennen (AK3). Unique-Violation auf `catalog.name` wird in der Server Action
+// via `runWithUniqueCheck` zu einer Nutzermeldung übersetzt (FS1). `undefined` bei No-Match
+// ist Kern-Kurzregel 1 (Lesson #55): guarded UPDATE, Rückgabewert auswerten (FS2).
+export async function renameCatalog(id: string, name: string): Promise<Catalog | undefined> {
+  const [updated] = await db
+    .update(catalog)
+    .set({ name, updatedAt: new Date() })
+    .where(eq(catalog.id, id))
+    .returning();
+  return updated;
+}
+
+// Katalog deaktivieren/reaktivieren (AK4). Soft-Delete analog `catalogItems.active`.
+// `undefined` bei No-Match (FS2).
+export async function setCatalogActive(id: string, active: boolean): Promise<Catalog | undefined> {
+  const [updated] = await db
+    .update(catalog)
+    .set({ active, updatedAt: new Date() })
+    .where(eq(catalog.id, id))
+    .returning();
+  return updated;
+}
+
+// Katalog duplizieren (AK2): neuer Katalog + nur aktive Artikel kopieren. Beide Schritte
+// (Katalog + Artikel) gehören in eine atomare Klammer, damit kein halb-befüllter Katalog
+// zurückbleibt, falls die Kopie mitten in der Liste abbricht (ADR-050 D1 Option A nennt das
+// Duplizieren nur beiläufig als „Kopiervorgang auf einer Tabelle" – die Atomaritäts-Anforderung
+// selbst hat dort keinen eigenen D-Punkt, sondern folgt aus der Fachlogik: AK2 verlangt einen
+// vollständigen, konsistenten Kopie-Katalog, nie einen halb-befüllten). Nutzt `runAtomic`
+// (db/atomic.ts) statt `db.transaction()` direkt: der in INT/PRD verwendete Neon-HTTP-Treiber
+// unterstützt keine interaktive `.transaction()` (Review-Finding #345 Runde 2, Kritisch) – die
+// neue Katalog-Id wird deshalb vorab client-seitig erzeugt (`catalog.id` nutzt `$defaultFn`,
+// db/schema.ts), die Quell-Artikel werden vorab gelesen (unkritischer Snapshot-Read, keine
+// Atomarität nötig), und `runAtomic` bekommt eine synchron gebaute Query-Liste – exakt das
+// Muster aus `abschliessenVeranstaltung` (db/veranstaltung.ts). Unique-Violation auf den neuen
+// Katalog wird weiterhin in der Server Action via `runWithUniqueCheck` übersetzt (FS1).
+export async function duplicateCatalog(
+  sourceId: string,
+  newName: string,
+): Promise<{ catalog: Catalog; itemCount: number }> {
+  const newCatalogId = globalThis.crypto.randomUUID();
+
+  // Nur aktive Artikel aus der Quelle kopieren (AK2) – unkritischer Lesezugriff vor der
+  // atomaren Klammer, muss selbst nicht Teil der Atomarität sein.
+  const sourceItems = await db
+    .select()
+    .from(catalogItems)
+    .where(and(eq(catalogItems.catalogId, sourceId), eq(catalogItems.active, true)));
+
+  const results = await runAtomic((exec) => [
+    exec
+      .insert(catalog)
+      .values({ id: newCatalogId, name: newName, active: true, sortOrder: 0 })
+      .returning(),
+    // Keine Bulk-Operation nötig, die Artikelanzahl ist klein (ADR-050
+    // „Performance & Skalierung", Nichtanforderung).
+    ...sourceItems.map((item) =>
+      exec.insert(catalogItems).values({
+        name: item.name,
+        size: item.size,
+        priceCents: item.priceCents,
+        category: item.category,
+        sortOrder: item.sortOrder,
+        catalogId: newCatalogId,
+      }),
+    ),
+  ]);
+
+  const [newCatalog] = results[0] as Catalog[]; // Index 0 = Katalog-Insert (Query-Reihenfolge oben)
+
+  return {
+    catalog: newCatalog,
+    itemCount: sourceItems.length,
+  };
 }

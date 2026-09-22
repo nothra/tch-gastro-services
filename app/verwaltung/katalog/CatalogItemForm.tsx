@@ -4,9 +4,14 @@ import { useActionState } from "react";
 import { createCatalogItemAction } from "./actions";
 import { CatalogFields } from "./CatalogFields";
 
+interface CatalogItemFormProps {
+  catalogId: string;
+}
+
 // Anlege-Formular. Bei Erfolg leert `key` das Formular (frische Felder für den nächsten
-// Artikel); bei Fehlern (Validierung, Duplikat) bleibt die Eingabe stehen.
-export function CatalogItemForm() {
+// Artikel); bei Fehlern (Validierung, Duplikat) bleibt die Eingabe stehen. Der catalogId-
+// Parameter wird als verstecktes Feld mitgesendet (#345).
+export function CatalogItemForm({ catalogId }: CatalogItemFormProps) {
   const [state, formAction, pending] = useActionState(createCatalogItemAction, undefined);
   return (
     <form
@@ -15,6 +20,7 @@ export function CatalogItemForm() {
       className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
     >
       <h2 className="font-semibold">Artikel anlegen</h2>
+      <input type="hidden" name="catalogId" value={catalogId} />
       <CatalogFields />
       <div className="flex items-center gap-3">
         <button

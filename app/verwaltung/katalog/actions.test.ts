@@ -63,6 +63,7 @@ function sessionWithRoles(roles: string[]): Session {
 }
 
 const validFields = {
+  catalogId: "standard", // (#345) catalogId ist jetzt erforderlich
   name: "Cola",
   size: "0,5 l",
   priceCents: "2,10",
@@ -94,18 +95,13 @@ describe("createCatalogItemAction", () => {
     );
   });
 
-  it("should_neverTakeCatalogFromFormData_when_clientSendsCatalogId", async () => {
-    // ADR-050 D4: `catalogId` wird serverseitig gesetzt und nie aus `FormData` geparst – ein
-    // Client kann keinen fremden Katalog als Schreibziel angeben. Ohne diesen Test wäre die
-    // Zusicherung nur durch Codelesen belegt.
-    const result = await createCatalogItemAction(
-      undefined,
-      form({ ...validFields, catalogId: "fremd" }),
-    );
+  it("should_notPassCatalogIdToDataLayer_when_catalogIdInFormData", async () => {
+    // (#345) catalogId kommt jetzt aus FormData (von der Seite `/verwaltung/katalog/[id]`),
+    // wird aber nicht an die Data-Layer weitergegeben – nur zur Parametrisierung der Action.
+    const result = await createCatalogItemAction(undefined, form(validFields));
 
     expect(result).toEqual({ ok: true });
-    const [catalogId, data] = createItemMock.mock.calls[0];
-    expect(catalogId).toBe(STANDARD_CATALOG_ID);
+    const [, data] = createItemMock.mock.calls[0];
     expect(data).not.toHaveProperty("catalogId");
   });
 
@@ -115,6 +111,16 @@ describe("createCatalogItemAction", () => {
     await expect(createCatalogItemAction(undefined, form(validFields))).rejects.toThrow(
       ForbiddenError,
     );
+    expect(createItemMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_catalogIdMissing", async () => {
+    const { catalogId: _catalogId, ...withoutCatalogId } = validFields;
+    void _catalogId;
+
+    const result = await createCatalogItemAction(undefined, form(withoutCatalogId));
+
+    expect(result).toEqual({ error: "Kein Katalog angegeben." });
     expect(createItemMock).not.toHaveBeenCalled();
   });
 
@@ -171,9 +177,31 @@ describe("updateCatalogItemAction", () => {
   });
 
   it("should_returnError_when_idMissing", async () => {
-    const result = await updateCatalogItemAction(undefined, form(validFields));
+    const result = await updateCatalogItemAction(
+      undefined,
+      form({
+        name: "Cola",
+        size: "0,5 l",
+        priceCents: "2,10",
+        category: "getraenk",
+        catalogId: "standard",
+      }),
+    );
 
     expect(result.error).toBeDefined();
+    expect(updateItemMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_catalogIdMissing", async () => {
+    const { catalogId: _catalogId, ...withoutCatalogId } = validFields;
+    void _catalogId;
+
+    const result = await updateCatalogItemAction(
+      undefined,
+      form({ ...withoutCatalogId, id: "abc" }),
+    );
+
+    expect(result).toEqual({ error: "Kein Katalog angegeben." });
     expect(updateItemMock).not.toHaveBeenCalled();
   });
 
@@ -215,12 +243,12 @@ describe("updateCatalogItemAction", () => {
 
 describe("setCatalogItemActiveAction", () => {
   it("should_deactivate_when_activeFalse", async () => {
-    await setCatalogItemActiveAction(form({ id: "abc", active: "false" }));
+    await setCatalogItemActiveAction(form({ id: "abc", catalogId: "standard", active: "false" }));
     expect(setItemActiveMock).toHaveBeenCalledWith("abc", STANDARD_CATALOG_ID, false);
   });
 
   it("should_reactivate_when_activeTrue", async () => {
-    await setCatalogItemActiveAction(form({ id: "abc", active: "true" }));
+    await setCatalogItemActiveAction(form({ id: "abc", catalogId: "standard", active: "true" }));
     expect(setItemActiveMock).toHaveBeenCalledWith("abc", STANDARD_CATALOG_ID, true);
   });
 
@@ -230,6 +258,18 @@ describe("setCatalogItemActiveAction", () => {
     await expect(setCatalogItemActiveAction(form({ id: "abc", active: "false" }))).rejects.toThrow(
       ForbiddenError,
     );
+    expect(setItemActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notPersist_when_idMissing", async () => {
+    await setCatalogItemActiveAction(form({ catalogId: "standard", active: "false" }));
+
+    expect(setItemActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notPersist_when_catalogIdMissing", async () => {
+    await setCatalogItemActiveAction(form({ id: "abc", active: "false" }));
+
     expect(setItemActiveMock).not.toHaveBeenCalled();
   });
 });
