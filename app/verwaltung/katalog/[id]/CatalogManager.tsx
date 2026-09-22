@@ -93,12 +93,17 @@ export function CatalogManager({ currentCatalog }: CatalogManagerProps) {
             <p className="self-center text-sm text-red-600">{setActiveState.error}</p>
           )}
 
-          <button
-            onClick={() => setShowDuplicateModal(true)}
-            className="rounded-md bg-zinc-200 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
-          >
-            Duplizieren
-          </button>
+          {/* AK5: nur aktive Kataloge sind Duplizier-Quellen (Review-Finding #345 Runde 2,
+              Wichtig) – der Button verschwindet bei einem inaktiven Katalog, statt erst nach
+              dem Absenden serverseitig abgelehnt zu werden (`SOURCE_CATALOG_INACTIVE`). */}
+          {currentCatalog.active && (
+            <button
+              onClick={() => setShowDuplicateModal(true)}
+              className="rounded-md bg-zinc-200 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
+            >
+              Duplizieren
+            </button>
+          )}
         </>
       )}
 

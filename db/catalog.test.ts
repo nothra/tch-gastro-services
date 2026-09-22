@@ -14,7 +14,6 @@ import {
   setItemActive,
   updateItem,
   listCatalogs,
-  listDuplicatableCatalogs,
   createCatalog,
   renameCatalog,
   setCatalogActive,
@@ -456,20 +455,6 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
 
     expect(all.find((k) => k.id === k1.id)).toBeDefined();
     expect(all.find((k) => k.id === k2.id)).toBeDefined();
-  });
-
-  it("should_listOnlyActiveCatalogs_when_listDuplicatableCatalogsIsCalled", async () => {
-    // AK5: Duplizier-Quellenauswahl zeigt nur aktive Kataloge. Ein inaktiver Katalog
-    // erscheint nicht in der Liste.
-    const active = await trackCatalog("DupAK5-Active");
-    const inactive = await trackCatalog("DupAK5-Inactive");
-
-    await setCatalogActive(inactive.id, false);
-
-    const duplicatable = await listDuplicatableCatalogs();
-
-    expect(duplicatable.find((k) => k.id === active.id)).toBeDefined();
-    expect(duplicatable.find((k) => k.id === inactive.id)).toBeUndefined();
   });
 
   it("should_createNewCatalog_when_createCatalogIsCalledWithUniqueName", async () => {

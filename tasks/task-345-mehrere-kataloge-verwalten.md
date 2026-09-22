@@ -88,6 +88,19 @@ Transaktions-Fehlerbehandlung `duplicateCatalog`) und das wichtige Finding
 `getCatalogById`, neue Tests in `catalog-management-actions.test.ts` und
 `CatalogManager.test.tsx`. Wartet auf Review Runde 2.
 
+**Runde 2 (NEEDS_REWORK, Architektur-Fokus) – behoben, siehe `tasks/review-345.md` „Rework
+Runde 2":** Kritisches Finding: `duplicateCatalog` rief `db.transaction()` direkt auf – der in
+INT/PRD verwendete Neon-HTTP-Treiber unterstützt das nicht, AK2 wäre dort bei jedem Aufruf
+fehlgeschlagen. Umgestellt auf die projektweite `runAtomic`-Klammer (`db/atomic.ts`, Muster aus
+`abschliessenVeranstaltung`), RED per gezieltem Mock-Test (`db/catalog.duplicateCatalog-driver.test.ts`)
+verifiziert. Wichtiges Finding: „Duplizieren"-Button in `CatalogManager.tsx` erscheint jetzt nur
+noch bei `currentCatalog.active` (AK5); totes `listDuplicatableCatalogs()` entfernt (kein
+UI-Konsument, `CatalogSwitcher` zeigt bewusst alle Kataloge). Alle Gates grün, zusätzlich einmalig
+gegen eine echte lokale Postgres-DB (node-postgres) end-to-end verifiziert. Dabei ein
+vorbestehendes, unabhängiges Testhygiene-Problem im `afterEach` von `db/catalog.test.ts`
+gefunden (fehlende Cleanup-Registrierung für von `duplicateCatalog` erzeugte Artikel-Kopien) –
+keine Regression dieser Runde, separat geflaggt. Wartet auf Review Runde 3.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

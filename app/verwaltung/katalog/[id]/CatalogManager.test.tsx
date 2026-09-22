@@ -96,6 +96,19 @@ describe("CatalogManager – Grundstruktur", () => {
     expect(screen.getByRole("button", { name: "Duplizieren" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Deaktivieren" })).toBeInTheDocument();
   });
+
+  // Review-Finding #345 Runde 2 (Wichtig): AK5 erster Teil – ein deaktivierter Katalog darf
+  // im Duplizieren-Fluss nicht mehr als Quelle auswählbar sein. Der Button verschwand bisher
+  // nicht (unconditional gerendert), erst die serverseitige Ablehnung griff.
+  it("should_hideDuplicateButton_when_currentCatalogIsInactive", () => {
+    render(<CatalogManager currentCatalog={{ ...currentCatalog, active: false }} />);
+
+    expect(screen.queryByRole("button", { name: "Duplizieren" })).not.toBeInTheDocument();
+    // Umbenennen/Deaktivieren bleiben erreichbar (AK4: inaktiver Katalog bleibt editierbar) –
+    // nur das Duplizieren-Sourcing ist betroffen (AK5).
+    expect(screen.getByRole("button", { name: "Umbenennen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reaktivieren" })).toBeInTheDocument();
+  });
 });
 
 describe("CatalogManager – Katalog anlegen", () => {
