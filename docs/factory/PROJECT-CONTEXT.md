@@ -231,6 +231,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Soft-Delete: `active`-Prüfung nach jedem Laden by ID (aus #51, Review-Finding)
 - Orphan-sichere Joins: Snapshot-Referenz kann verschwinden, auch wenn die Business-Entity bleibt (aus #53, Review-Finding K1)
 - Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
+- Neue Mehrfach-Write-Funktion in `db/` nutzt `db.transaction()` statt `runAtomic` – Treiber-Inkompatibilität nur in Produktion (Neon-HTTP) sichtbar, lokale/CI-Tests bleiben grün (aus #345, Review-Runde-2-Finding, Architektur-Fokus) · **Laden bei:** `/implement`, `/review` (Architektur-Fokus) – bei neuer Mehrfach-Write-Funktion in `db/`
+- Serverseitig-fix → client-gelesenes Feld (FK-Bezug) öffnet neue DB-Fehlerklassen (z. B. `23503`), die der bestehende Error-Translation-Wrapper nicht abdeckt (aus #345, Security-Review-Hinweis, Issue #353)
 
 **[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test`, `/review` beim Testschreiben/Coverage
 
@@ -356,6 +358,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Content-scannender Anti-Regressions-Guard (`grep -r` über ein ganzes Verzeichnis, nicht nur Wiring-Anker) ist blind für Tracked-Status – ein gitignoretes `*.tmp.*`-Scratch-Artefakt aus einer vorherigen Session kann das verbotene Muster rein textuell enthalten (auch als Log-Zeile einer bestandenen Assertion); bei unerwartetem Rot zuerst `git status --ignored` prüfen, nicht den Guard abschwächen (aus #312, zweimal in derselben Task; drittes Vorkommnis aus #339 – „Artefakte entfernt" ist eine Momentaufnahme, vor jedem Suite-Lauf erneut prüfen) → `/review`, `/test`, `/refactor`, `/security-review` – bei unerwartetem Rot eines verzeichnisweiten Content-Scan-Guards in `run-tests.sh` trotz sauberem `git status`
 - Ein von einem Review-Report vorformulierter Fix-Text trägt die Deixis seiner eigenen Perspektive mit („diese Spec selbst" im Report meinte die besprochene Spec) – wörtlich in eine andere Zieldatei (Guideline) übernommen, verliert der Verweis sein Antezedens und geht ins Leere (aus #315, Review-Runde-5-Finding) → `/implement`, `/review` – beim wörtlichen Übernehmen eines Fix-Vorschlags aus einem Review-/Security-/Codify-Report in eine andere Zieldatei
 - Neues Gate verankern: prüfen, ob eine ADR den Ort für Gates dieser Klasse schon entschieden hat – ADR-047 wiederholte die von ADR-041 bereits verworfene „einzelne Testzeile als CI-Arm"-Konstruktion, ohne sie zu erwähnen (aus #319, Review-Runde-3-Finding) → `/architecture`, `/implement`, `/review` – bei neuem Check-Skript, Hook-Verdrahtung oder CI-Job
+- Als „separat geflaggt"/„Hinweis-Ebene" markierter Out-of-Scope-Fund bleibt Session-Notiz statt sofort kanonisch (Issue/`kleinfunde.md`) verankert zu werden – Klassifizierung und Anlage gehören in denselben Schritt, nicht als Orchestrator-Nacharbeit (aus #345, Orchestrator-Selbstfund) → `/review`, `/security-review`, `/test`, `/refactor`, `/codify` – sobald ein eigener Report das Wort „separat geflaggt"/„Hinweis-Ebene"/„außerhalb des Scopes" für einen Fund verwendet
 
 ---
 

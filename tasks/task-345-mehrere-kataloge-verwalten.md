@@ -7,7 +7,7 @@
       Coverage der #345-Dateien 96–100 % (Statements), CatalogManager.tsx 100 % Branches
 - [ ] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -214,6 +214,24 @@ Kein Testverhalten geändert – nur Struktur/Namen/Kommentare.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vollständiger Report: [`tasks/codify-345.md`](codify-345.md). Kurzfassung:
+
+- Neue Lesson `lessons/db-drizzle.md`: neue Mehrfach-Write-Data-Layer-Funktionen müssen
+  `runAtomic` statt `db.transaction()` direkt nutzen (Ursache des Runde-2-Kritisch-Fundes,
+  von lokalen/CI-Tests strukturell nicht erkennbar).
+- Neue Lesson `lessons/db-drizzle.md`: serverseitig-fix → client-gelesenes FK-Feld öffnet neue
+  DB-Fehlerklassen (`23503`), die der bestehende Error-Wrapper nicht abdeckt (Issue #353).
+- Neue Lesson `lessons/factory-workflow.md`: „separat geflaggte" Out-of-Scope-Funde müssen im
+  selben Schritt kanonisch angelegt werden (Issue/`kleinfunde.md`), nicht als Orchestrator-
+  Nacharbeit.
+- `agents/review-agent.md` Perspektive 3 um „Treiber-/Infrastruktur-Kompatibilität" als
+  expliziten Checklistenpunkt ergänzt.
+- Zwei bisher unverankerte Review-Runde-1-Nitpicks (TOCTOU-Lücke, Testpräfix-Doku) in
+  `kleinfunde.md` nachgetragen.
+- Sandbox-Workaround für `. scripts/lib/create-issue.sh` bereits durch bestehende Lesson (#291)
+  abgedeckt, kein Nachtrag nötig. Issues #351/#353 bereits korrekt über den zentralen Weg
+  angelegt.
 
 ---
 Branch: `feature/345-mehrere-kataloge-verwalten`
