@@ -484,7 +484,10 @@ behoben (TDD, RED vor jedem Fix verifiziert):
     angelegte Zeilen; die von `duplicateCatalog` selbst erzeugten `catalog_item`-Kopien werden nie
     registriert, wodurch das spätere `DELETE` des Kopie-Katalogs an der FK scheitert. Dieses
     Cleanup-Verhalten ist mit der alten `db.transaction()`-Implementierung identisch reproduzierbar
-    – keine Regression durch diesen Fix, außerhalb des Scopes dieser Runde, separat geflaggt.
+    – keine Regression durch diesen Fix, außerhalb des Scopes dieser Runde. Über den zentralen
+    Anlage-Weg (ADR-018) als Issue [#351](https://github.com/nothra/tch-gastro-services/issues/351)
+    angelegt (Labels `bug`, `test`) – reproduzierbarer funktionaler Defekt, daher Issue statt
+    `kleinfunde.md` (Schwelle ADR-043).
 - **`CatalogManager.tsx`: „Duplizieren"-Button erscheint nur noch bei `currentCatalog.active`**
   (AK5, erster Teil). „Umbenennen"/„Deaktivieren"/„Reaktivieren" bleiben bei einem inaktiven
   Katalog weiterhin sichtbar (AK4).
