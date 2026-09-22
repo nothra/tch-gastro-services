@@ -123,6 +123,15 @@ describe("renameCatalogAction", () => {
     expect(renameCatalogMock).not.toHaveBeenCalled();
   });
 
+  // FS4: leerer/nur-Leerzeichen-Name wird von der Zod-Validierung abgelehnt, bevor die DB
+  // erreicht wird – bislang nur für create/duplicate getestet, nicht für rename.
+  it("should_returnError_when_nameEmpty", async () => {
+    const result = await renameCatalogAction(undefined, form({ id: "cat-1", name: "   " }));
+
+    expect(result.error).toBeDefined();
+    expect(renameCatalogMock).not.toHaveBeenCalled();
+  });
+
   it("should_returnNotFound_when_renameMatchesNoRow", async () => {
     renameCatalogMock.mockResolvedValue(undefined);
 

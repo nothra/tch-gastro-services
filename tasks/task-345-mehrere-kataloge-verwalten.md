@@ -3,7 +3,8 @@
 ## Status
 - [x] In Bearbeitung → Implementierung abgeschlossen
 - [x] Review bestanden → Runde 3: APPROVED (Backend/Logik, Code-Qualität, Architektur)
-- [x] Tests vollständig → 841 Tests grün (89 DB-Integrationstests ohne `DATABASE_URL` übersprungen)
+- [x] Tests vollständig → 870 Tests grün (89 DB-Integrationstests ohne `DATABASE_URL` übersprungen),
+      Coverage der #345-Dateien 96–100 % (Statements), CatalogManager.tsx 100 % Branches
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -110,6 +111,63 @@ oder Wichtig-Finding. Offen bleiben nur bereits akzeptierte Nitpicks (Code-Dupli
 `CatalogManager.tsx`, zwei kleine Doku-Nits zur ADR-Referenz/`db/atomic.ts`-Kommentar) sowie der
 separat geflaggte, vorbestehende FK-Cleanup-Nebenfund – kein Merge-Blocker. Review-Phase
 abgeschlossen, weiter zu `/test`.
+
+## /test-Notizen
+
+Coverage-Analyse (`pnpm vitest run --coverage`, gescoped auf die #345-Dateien) fand sechs echte
+Lücken, alle per TDD geschlossen (nur Testdateien geändert, kein Produktionscode):
+
+- `catalogNameSchema` (`app/verwaltung/katalog/schema.ts`) hatte **keinen** eigenen Test – nur
+  indirekt über Action-Tests (Ablehnungs-Test, keine Meldungs-/Grenzwert-Prüfung). Ergänzt:
+  Trim-Verhalten, leer/nur-Leerzeichen (FS4), exakt 100/101 Zeichen, Meldungstexte
+  (`schema.test.ts`).
+- `renameCatalogAction`: FS4 (leerer Name) war für create/duplicate getestet, für rename nicht
+  (`catalog-management-actions.test.ts`).
+- `createCatalogItemAction`/`updateCatalogItemAction`: der `"Kein Katalog angegeben."`-Guard bei
+  fehlendem `catalogId` in FormData war ungetestet; `setCatalogItemActiveAction` hatte keinen Test
+  für fehlendes `id` bzw. `catalogId` (`actions.test.ts`).
+- `CatalogManager.tsx`: die drei „Abbrechen"-Buttons (Create/Rename/Duplicate-Modal) und die drei
+  Pending-Zustände (`disabled` + „Speichern …") waren ungetestet – Coverage zeigte 3 uncovered
+  Statement- und 3 uncovered Branch-Zeilen. Ergänzt nach dem etablierten
+  `AuslageForm.test.tsx`-Muster (`withStates`-Helfer um ein Pending-Flag je Action erweitert).
+  Damit 100 % Branch-Coverage für die Datei.
+- `CatalogSwitcher.tsx` hatte **keine eigene Testdatei** (nur indirekt über die jetzt neue
+  `page.test.tsx` mitgetestet). Neue `CatalogSwitcher.test.tsx`: Listing, Checked-Zustand,
+  AK4-Markierung „(inaktiv)", AK6-Navigation bei Auswahl.
+- `app/verwaltung/katalog/[id]/page.tsx` hatte **keine Testdatei** (Server Component). Neue
+  `page.test.tsx`: Rollen-Gate (inkl. fehlender Session), Datenzusammenstellung/Parent-Key-
+  Bindung (AK6), Artikel-Rendering, und das bewusste Fehlen einer 404-Behandlung bei unbekannter
+  Katalog-ID (kein AK/FS verlangt das – anders als `veranstaltung/[id]`; `CatalogManager` bekommt
+  dann `currentCatalog: undefined` und zeigt nur „+ Katalog anlegen", bereits durch
+  `CatalogManager.test.tsx` abgedeckt).
+- `db/catalog.test.ts` (Integrationstests, real gegen lokale Postgres verifiziert):
+  `should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled` um Feld-Paritäts-Assertions
+  (Größe/Preis/Kategorie/Sortierung) und die AK2-Unabhängigkeits-Prüfung erweitert (Kopie ändern
+  beeinflusst Original nicht). `should_rejectDuplicate_when_duplicateCatalogTargetNameExists` um
+  eine Rollback-Assertion erweitert (kein „geleaktes" Katalog mit dem Zielnamen, keine kopierten
+  Artikel außerhalb der Quelle) – deckt den in Review Runde 3 angemerkten Rollback-Aspekt ab,
+  soweit mit den bestehenden Schema-Constraints ohne Produktionscode-Änderung real testbar (ein
+  Fehlschlag *nach* dem ersten Batch-Element ist mit den aktuellen Unique-Constraints strukturell
+  nicht erzeugbar, da `newCatalogId` frisch/leer ist – siehe Analyse im Test-Report).
+
+**Bekannter, bewusst nicht behobener Nebenbefund (kein neuer Fund):** Das reale-DB-Testhygiene-
+Problem aus Review Runde 2 (`duplicateCatalog`-Inserts werden im `afterEach` von
+`db/catalog.test.ts` nicht über `track()` registriert, FK-Fehler beim Cleanup) wurde bei einem
+echten lokalen Postgres-Lauf (`DATABASE_URL` gesetzt) erneut reproduziert – identisch zum bereits
+als Issue [#351](https://github.com/nothra/tch-gastro-services/issues/351) getrackten Fund, keine
+Regression dieser Session. Absichtlich nicht gefixt (Scope-Grenze: Issue #351 ist explizit
+ausgelagert, kein #345-Merge-Blocker). Ebenfalls beobachtet, aber unabhängig von #345 und nicht
+gefixt: die lokale Dev-DB in dieser Sandbox hat keinen vollständigen Migrations-0004-Datenbestand
+(`should_containSeededReferenceList_when_freshlyMigrated` schlägt lokal fehl) – reines
+Umgebungs-/Seed-Problem dieser Sandbox, nicht Teil des CI-Gates (dort ohne `DATABASE_URL`
+übersprungen wie alle DB-Integrationstests).
+
+**Ergebnis:** `pnpm test` 870 grün (89 DB-Integrationstests ohne `DATABASE_URL` übersprungen,
++29 gegenüber dem Stand vor `/test`), `pnpm test:coverage` 90,63 % Statements/97,04 % Branches
+projektweit; alle #345-Dateien (`actions.ts`, `schema.ts`, `CatalogManager.tsx`,
+`CatalogSwitcher.tsx`, `[id]/page.tsx`, `page.tsx`) bei 100 % Statement-Coverage,
+`CatalogManager.tsx` zusätzlich bei 100 % Branch-Coverage. `pnpm lint`/`typecheck`/`format:check`
+und `scripts/checks/pre-push.sh` grün. Kein Produktionscode geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

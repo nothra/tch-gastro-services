@@ -36,7 +36,8 @@ const duplicateCatalogActionMock = vi.mocked(duplicateCatalogAction);
 const noopDispatch = vi.fn();
 
 // Setzt den Rückgabewert für alle vier useActionState-Aufrufe eines Renders (Reihenfolge:
-// create, rename, duplicate, setActive). Ohne explizit gesetzten State bleibt er `undefined`.
+// create, rename, duplicate, setActive). Ohne explizit gesetzten State bleibt er `undefined`,
+// ohne explizit gesetztes Pending-Flag bleibt es `false` (AuslageForm-Muster, Codify #49).
 function withStates(
   states: {
     create?: CatalogFormState;
@@ -44,13 +45,22 @@ function withStates(
     duplicate?: CatalogFormState;
     setActive?: CatalogFormState;
   } = {},
+  pending: { create?: boolean; rename?: boolean; duplicate?: boolean; setActive?: boolean } = {},
 ) {
-  const sequence = [states.create, states.rename, states.duplicate, states.setActive];
+  const stateSequence = [states.create, states.rename, states.duplicate, states.setActive];
+  const pendingSequence = [
+    pending.create ?? false,
+    pending.rename ?? false,
+    pending.duplicate ?? false,
+    pending.setActive ?? false,
+  ];
   let callIndex = 0;
   useActionStateMock.mockImplementation(() => {
-    const state = sequence[callIndex % sequence.length];
+    const index = callIndex % stateSequence.length;
+    const state = stateSequence[index];
+    const isPending = pendingSequence[index];
     callIndex += 1;
-    return [state, noopDispatch, false] as never;
+    return [state, noopDispatch, isPending] as never;
   });
 }
 
@@ -158,6 +168,27 @@ describe("CatalogManager – Katalog anlegen", () => {
       screen.queryByRole("heading", { name: "Neuen Katalog anlegen" }),
     ).not.toBeInTheDocument();
   });
+
+  it("should_disableButtonWithPendingText_when_createPending", () => {
+    withStates({}, { create: true });
+    render(<CatalogManager />);
+    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
+
+    const button = screen.getByRole("button", { name: "Speichern …" });
+    expect(button).toBeDisabled();
+  });
+
+  it("should_closeCreateModal_when_cancelClicked", () => {
+    render(<CatalogManager />);
+    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Neuen Katalog anlegen" }),
+    ).not.toBeInTheDocument();
+    expect(createCatalogActionMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("CatalogManager – Katalog umbenennen", () => {
@@ -193,6 +224,25 @@ describe("CatalogManager – Katalog umbenennen", () => {
 
     expect(screen.queryByRole("heading", { name: "Katalog umbenennen" })).not.toBeInTheDocument();
   });
+
+  it("should_disableButtonWithPendingText_when_renamePending", () => {
+    withStates({}, { rename: true });
+    render(<CatalogManager currentCatalog={currentCatalog} />);
+    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+
+    const button = screen.getByRole("button", { name: "Speichern …" });
+    expect(button).toBeDisabled();
+  });
+
+  it("should_closeRenameModal_when_cancelClicked", () => {
+    render(<CatalogManager currentCatalog={currentCatalog} />);
+    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+
+    expect(screen.queryByRole("heading", { name: "Katalog umbenennen" })).not.toBeInTheDocument();
+    expect(renameCatalogActionMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("CatalogManager – Katalog duplizieren", () => {
@@ -227,6 +277,25 @@ describe("CatalogManager – Katalog duplizieren", () => {
     });
 
     expect(screen.queryByRole("heading", { name: "Katalog duplizieren" })).not.toBeInTheDocument();
+  });
+
+  it("should_disableButtonWithPendingText_when_duplicatePending", () => {
+    withStates({}, { duplicate: true });
+    render(<CatalogManager currentCatalog={currentCatalog} />);
+    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
+
+    const button = screen.getByRole("button", { name: "Speichern …" });
+    expect(button).toBeDisabled();
+  });
+
+  it("should_closeDuplicateModal_when_cancelClicked", () => {
+    render(<CatalogManager currentCatalog={currentCatalog} />);
+    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+
+    expect(screen.queryByRole("heading", { name: "Katalog duplizieren" })).not.toBeInTheDocument();
+    expect(duplicateCatalogActionMock).not.toHaveBeenCalled();
   });
 });
 

@@ -519,9 +519,18 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
   });
 
   it("should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled", async () => {
-    // AK2: Katalog duplizieren kopiert nur aktive Artikel.
+    // AK2: Katalog duplizieren kopiert nur aktive Artikel, mit identischem Namen, Größe,
+    // Preis, Kategorie und Sortierung – aber als neue, eigenständige Zeile.
     const source = await trackCatalog("DupAK2-Source");
-    const active = await track(drink("DupAK2-Active"), source.id);
+    const active = await track(
+      drink("DupAK2-Active", {
+        size: "0,33 l",
+        priceCents: 333,
+        category: "kaffee",
+        sortOrder: 5,
+      }),
+      source.id,
+    );
     const inactive = await track(drink("DupAK2-Inactive"), source.id);
 
     // Einen Artikel deaktivieren
@@ -533,7 +542,25 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
 
     const copied = await listCatalog(result.catalog.id);
     expect(copied).toHaveLength(1);
-    expect(copied[0].name).toBe(active.name);
+    const copiedItem = copied[0];
+    expect(copiedItem.id).not.toBe(active.id); // eigenständige neue Zeile, kein geteilter Zustand
+    expect(copiedItem.name).toBe(active.name);
+    expect(copiedItem.size).toBe(active.size);
+    expect(copiedItem.priceCents).toBe(active.priceCents);
+    expect(copiedItem.category).toBe(active.category);
+    expect(copiedItem.sortOrder).toBe(active.sortOrder);
+
+    // AK2 zweiter Teil: Kopie und Original sind danach unabhängig voneinander editierbar –
+    // eine Änderung an der Kopie darf das Original nicht beeinflussen (kein geteilter Zustand).
+    await updateItem(copiedItem.id, result.catalog.id, {
+      name: copiedItem.name,
+      size: copiedItem.size,
+      priceCents: 999,
+      category: copiedItem.category,
+      sortOrder: copiedItem.sortOrder,
+    });
+    const originalAfterCopyEdit = await getCatalogItem(active.id, source.id);
+    expect(originalAfterCopyEdit?.priceCents).toBe(active.priceCents);
   });
 
   it("should_allowEmptyCatalogDuplication_when_sourceHasNoActiveArticles", async () => {
@@ -556,8 +583,23 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
   it("should_rejectDuplicate_when_duplicateCatalogTargetNameExists", async () => {
     const source = await trackCatalog("DupFS1-Source");
     const existing = await trackCatalog("DupFS1-Existing");
+    await track(drink("DupFS1-SourceItem"), source.id);
 
     await expect(duplicateCatalog(source.id, existing.name)).rejects.toThrow();
+
+    // Architektur-Review-Finding #345 Runde 2/3: `runAtomic` darf keinen halb-befüllten
+    // Katalog zurücklassen. Der Katalog-Insert ist immer die erste Anweisung der Batch
+    // (db/catalog.ts) – schlägt sie fehl, bleibt der Katalogbestand unverändert: kein drittes,
+    // „geleaktes" Katalog mit dem Zielnamen, und kein kopierter Artikel irgendwo außerhalb
+    // der Quelle.
+    const allWithTargetName = await listCatalogs();
+    expect(allWithTargetName.filter((c) => c.name === existing.name)).toHaveLength(1);
+    const itemsNamedLikeSource = await db
+      .select()
+      .from(catalogItems)
+      .where(eq(catalogItems.name, `${ITEM_PREFIX}DupFS1-SourceItem`));
+    expect(itemsNamedLikeSource).toHaveLength(1);
+    expect(itemsNamedLikeSource[0].catalogId).toBe(source.id);
   });
 
   it("should_returnUndefined_when_renamingNonexistentCatalog", async () => {

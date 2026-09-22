@@ -114,6 +114,16 @@ describe("createCatalogItemAction", () => {
     expect(createItemMock).not.toHaveBeenCalled();
   });
 
+  it("should_returnError_when_catalogIdMissing", async () => {
+    const { catalogId: _catalogId, ...withoutCatalogId } = validFields;
+    void _catalogId;
+
+    const result = await createCatalogItemAction(undefined, form(withoutCatalogId));
+
+    expect(result).toEqual({ error: "Kein Katalog angegeben." });
+    expect(createItemMock).not.toHaveBeenCalled();
+  });
+
   it("should_returnError_when_priceInvalid", async () => {
     const result = await createCatalogItemAction(
       undefined,
@@ -182,6 +192,19 @@ describe("updateCatalogItemAction", () => {
     expect(updateItemMock).not.toHaveBeenCalled();
   });
 
+  it("should_returnError_when_catalogIdMissing", async () => {
+    const { catalogId: _catalogId, ...withoutCatalogId } = validFields;
+    void _catalogId;
+
+    const result = await updateCatalogItemAction(
+      undefined,
+      form({ ...withoutCatalogId, id: "abc" }),
+    );
+
+    expect(result).toEqual({ error: "Kein Katalog angegeben." });
+    expect(updateItemMock).not.toHaveBeenCalled();
+  });
+
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
@@ -235,6 +258,18 @@ describe("setCatalogItemActiveAction", () => {
     await expect(setCatalogItemActiveAction(form({ id: "abc", active: "false" }))).rejects.toThrow(
       ForbiddenError,
     );
+    expect(setItemActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notPersist_when_idMissing", async () => {
+    await setCatalogItemActiveAction(form({ catalogId: "standard", active: "false" }));
+
+    expect(setItemActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notPersist_when_catalogIdMissing", async () => {
+    await setCatalogItemActiveAction(form({ id: "abc", active: "false" }));
+
     expect(setItemActiveMock).not.toHaveBeenCalled();
   });
 });
