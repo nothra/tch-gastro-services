@@ -35,6 +35,23 @@
 
 ## Offen
 
+### `db/catalog.ts`-Kommentar behauptet nach #345 nicht mehr zutreffend „kein fremder Katalog als Schreibziel"
+
+- **Wo:** [`db/catalog.ts:64-66`](../../db/catalog.ts) – Kommentar über `CatalogItemData`
+  (verifiziert am 2026-09-22).
+- **Was:** Der Kommentar sagt: „er wird serverseitig gesetzt und nie aus `FormData` geparst …
+  ein Client kann keinen fremden Katalog als Schreibziel angeben." Das war vor #345 wörtlich
+  wahr (`STANDARD_CATALOG_ID` fix verdrahtet); seit #345 wird `catalogId` in den Actions
+  (`app/verwaltung/katalog/actions.ts:66,94,122`) aus `FormData` gelesen und lediglich
+  serverseitig als Parent-Key ins `WHERE`/`INSERT` gebunden – ein Client *kann* eine
+  fremde/beliebige `catalogId` angeben, sie wird nur konsistent gebunden/geprüft statt blind
+  vertraut. Kein Sicherheitsrisiko (jeder `verwalter` darf ohnehin jeden Katalog verwalten),
+  aber eine überprüfbare Tatsachenbehauptung, die nicht mehr stimmt.
+- **Fix:** Zweiten Halbsatz präzisieren, z. B. „wird serverseitig als Parent-Key
+  gebunden/geprüft, nicht blind übernommen" statt „kann keinen fremden Katalog angeben" – 1-2
+  Zeilen.
+- **Herkunft:** `/security-review` zu #345 (Hinweis-Ebene, kein Blocker – Doku-Drift).
+
 ### Telemetrie-CSV: führende `+`/`-`/`@`-Zeichen in Feldwerten ungeschützt gegen CSV-Injection
 
 - **Wo:** [`scripts/lib/telemetry-harvest.sh:55`](../../scripts/lib/telemetry-harvest.sh) –
