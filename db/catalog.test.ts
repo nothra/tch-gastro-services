@@ -25,8 +25,12 @@ import {
 // Integrationstests gegen eine echte, migrierte Postgres-DB. Voraussetzung:
 // `pnpm db:up` + `pnpm db:migrate` (DATABASE_URL gesetzt). In CI ohne DB werden sie
 // übersprungen – die reine Logik (money.ts, Zod-Schema, Actions) ist dort mockfrei
-// abgedeckt. Tests sind nicht-destruktiv: sie räumen nur die selbst angelegten Zeilen
-// per id wieder ab und lassen den geseedeten Referenzbestand unangetastet.
+// abgedeckt. Die Tests räumen nur selbst angelegte Zeilen wieder ab – Artikel per id sowie
+// generisch alle Artikel der im Lauf angelegten Kataloge (#351); der geseedete
+// Standard-Katalog steht nie in dieser Liste, der Referenzbestand bleibt unangetastet.
+// Einzige Ausnahme von „nur Zeilen": der AK9-Replay legt ein Wegwerf-Schema an und verwirft
+// es wieder (`CREATE SCHEMA` / `DROP SCHEMA … CASCADE`, `search_path` ohne `public`) – die
+// Suite braucht auf der per `DATABASE_URL` verbundenen DB also Schema-Rechte.
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 // Präfix, damit Testdaten nie mit echten/geseedeten Bezeichnungen kollidieren.
@@ -147,17 +151,30 @@ async function withClient<T>(run: (client: Client) => Promise<T>): Promise<T> {
   }
 }
 
+// Aufräumroutine des `afterEach` als benannte Funktion: der Regressionstest unten führt damit
+// denselben vollen Codepfad aus, statt ein Fragment davon nachzubauen (Lesson „Mutationsbeleg
+// muss denselben Assert-Ausdruck ausführen", #286).
+async function cleanupCreatedRows() {
+  // Artikel vor Katalogen löschen – der Pflicht-FK ohne ON DELETE (ADR-050 D2) verbietet die
+  // umgekehrte Reihenfolge.
+  if (created.length > 0) {
+    await db.delete(catalogItems).where(inArray(catalogItems.id, created.splice(0)));
+  }
+  if (createdCatalogs.length > 0) {
+    const catalogIds = createdCatalogs.splice(0);
+    // Zusätzlich generisch über den Katalog: Artikel, die eine Data-Layer-Funktion selbst
+    // erzeugt (die Kopien aus `duplicateCatalog`), stehen in keiner `track()`-Liste und
+    // blockierten sonst das DELETE ihres Katalogs (#351). Deckt jede künftige
+    // artikel-erzeugende Funktion mit ab, ohne dass jeder Testfall nachtragen muss.
+    // `createdCatalogs` enthält ausschließlich in diesem Lauf angelegte Kataloge, nie
+    // `STANDARD_CATALOG_ID` – der geseedete Referenzbestand bleibt unangetastet.
+    await db.delete(catalogItems).where(inArray(catalogItems.catalogId, catalogIds));
+    await db.delete(catalog).where(inArray(catalog.id, catalogIds));
+  }
+}
+
 describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
-  afterEach(async () => {
-    // Artikel vor Katalogen löschen – der Pflicht-FK ohne ON DELETE (ADR-050 D2) verbietet die
-    // umgekehrte Reihenfolge.
-    if (created.length > 0) {
-      await db.delete(catalogItems).where(inArray(catalogItems.id, created.splice(0)));
-    }
-    if (createdCatalogs.length > 0) {
-      await db.delete(catalog).where(inArray(catalog.id, createdCatalogs.splice(0)));
-    }
-  });
+  afterEach(cleanupCreatedRows);
 
   it("should_persistAndListItem_when_created", async () => {
     const item = await track(drink("Testcola", { priceCents: 250 }));
@@ -600,6 +617,51 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
       .where(eq(catalogItems.name, `${ITEM_PREFIX}DupFS1-SourceItem`));
     expect(itemsNamedLikeSource).toHaveLength(1);
     expect(itemsNamedLikeSource[0].catalogId).toBe(source.id);
+  });
+
+  // ── #351: Aufräumen deckt auch nicht per `track()` registrierte Artikel ab ────
+
+  it("should_deleteCopiedArticles_when_cleanupRunsAfterDuplicateCatalog", async () => {
+    // AK1/AK5: `duplicateCatalog` legt Artikel-Zeilen an, die keine `track()`-Liste kennt.
+    // Ohne die generische Löschung über `catalog_id` bleibt die Kopie stehen und das DELETE
+    // des kopierten Katalogs scheitert an der Pflicht-FK (Postgres 23503, ADR-050 D2).
+    const source = await trackCatalog("Cleanup351-Source");
+    await track(drink("Cleanup351-Item"), source.id);
+
+    const copy = await duplicateCatalog(source.id, `${TEST_PREFIX}Cleanup351-Copy`);
+    createdCatalogs.push(copy.catalog.id);
+
+    // Vorbedingung: im kopierten Katalog liegt tatsächlich eine ungetrackte Artikel-Zeile –
+    // sonst bliebe der Testfall grün, ohne den Defekt je zu berühren.
+    expect(await listCatalog(copy.catalog.id)).toHaveLength(1);
+
+    await cleanupCreatedRows();
+
+    const remainingItems = await db
+      .select()
+      .from(catalogItems)
+      .where(inArray(catalogItems.catalogId, [source.id, copy.catalog.id]));
+    expect(remainingItems, "kopierte Artikel-Zeile muss mit aufgeräumt werden").toHaveLength(0);
+
+    const remainingCatalogs = await db
+      .select()
+      .from(catalog)
+      .where(inArray(catalog.id, [source.id, copy.catalog.id]));
+    expect(remainingCatalogs, "beide Kataloge müssen gelöscht sein").toHaveLength(0);
+  });
+
+  it("should_notThrow_when_cleanupDeletesSameArticleByIdAndByCatalog", async () => {
+    // AK3: Ein per `track()` registrierter Artikel wird zuerst über `created` gelöscht; die
+    // anschließende generische Löschung über `catalog_id` würde ihn ein zweites Mal treffen,
+    // falls er noch existierte. Das ist ein DELETE über 0 Zeilen, kein Fehler – ein Dedupe
+    // zwischen beiden Listen ist unnötig.
+    const k = await trackCatalog("Cleanup351-Doppelt");
+    const item = await track(drink("Cleanup351-DoppeltItem"), k.id);
+
+    await expect(cleanupCreatedRows()).resolves.toBeUndefined();
+
+    const remaining = await db.select().from(catalogItems).where(eq(catalogItems.id, item.id));
+    expect(remaining).toHaveLength(0);
   });
 
   it("should_returnUndefined_when_renamingNonexistentCatalog", async () => {
