@@ -165,9 +165,11 @@ wird das serverseitig abgelehnt").
       betroffen?~~ → Geklärt: nicht betroffen, siehe Kontext.
 - [x] ~~Braucht es in dieser Slice überhaupt einen Katalogwechsel-Weg nach der Anlage?~~ →
       Geklärt: ja, mit serverseitiger Sperre sobald Verzehr erfasst ist (AK3/AK4).
-- [ ] **ADR-Bedarf für `/architecture`:** Diese Slice fügt eine neue Pflichtspalte
-      (`veranstaltung.catalogId`) und eine neue Wechsel-Action nach demselben, in ADR-050 bereits
-      entschiedenen Muster hinzu (Pflicht-FK mit Default, Parent-Key-Bindung, aktive-Kataloge-
-      Filterung). Kein neuer ADR-Trigger erkennbar (Spec-002-Kriterien: keine neue Technologie,
-      kein neues Architekturmuster, kein neuer Schnittstellen-Vertrag, keine irreversible
-      Konsequenz über ADR-050 hinaus) – zu bestätigen in `/architecture`.
+- [x] ~~**ADR-Bedarf für `/architecture`:**~~ → Geklärt: kein neuer ADR-Trigger (Spec-002-Kriterien:
+      keine neue Technologie, kein neues Architekturmuster, kein Schnittstellen-Vertrag, keine
+      irreversible Konsequenz über ADR-050 hinaus – die Persistenz-Strategie für einen
+      Pflicht-FK mit stabilem Default ist mit D2/D3/D6 bereits entschieden). Stattdessen Nachtrag
+      an [ADR-050](../adr/050-katalog-als-template-entitaet.md#nachtrag-2026-09-24-346-d3-realisiert--veranstaltungcatalogid-ersetzt-standard_catalog_id-in-den-aufrufpfaden)
+      (2026-09-24, #346), der D3 als jetzt realisiert dokumentiert und die Schema-/Migrations-
+      Entscheidung (echter DB-Default statt Expand-Migration) sowie die Wechsel-Action-Guards
+      festhält. Implementierungs-Hinweise stehen in der Task-Datei.

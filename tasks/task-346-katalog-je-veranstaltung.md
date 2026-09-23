@@ -31,23 +31,39 @@ Vollständige GIVEN-WHEN-THEN-Formulierungen und Fehlerszenarien (FS1–FS4):
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
-- Schema/Migration nach demselben Muster wie ADR-050 D2/D6 (Pflicht-FK mit Default statt
-  nullable→backfill, da `catalog` schon existiert – keine Backfill-Phase nötig).
+**ADR:** Kein neuer ADR-Trigger (Spec-002-Kategorien geprüft: keine neue Technologie, kein
+neues Architekturmuster, kein Schnittstellen-Vertrag zwischen Teams/Services; die
+Persistenz-Strategie für einen Pflicht-FK mit stabilem Default ist mit ADR-050 D2/D3/D6 bereits
+entschieden). Stattdessen Nachtrag an
+[ADR-050](../docs/adr/050-katalog-als-template-entitaet.md#nachtrag-2026-09-24-346-d3-realisiert--veranstaltungcatalogid-ersetzt-standard_catalog_id-in-den-aufrufpfaden)
+(2026-09-24, #346), der D3 als jetzt realisiert dokumentiert. Details unten sind daraus
+übernommen.
+
+- **Schema:** `veranstaltung.catalog_id` (`text`, FK auf `catalog.id`) braucht einen **echten
+  SQL-`DEFAULT 'standard'`** im Drizzle-Schema (nicht nur `$defaultFn`) – dann emittiert
+  `drizzle-kit generate` ein einziges
+  `ALTER TABLE veranstaltung ADD COLUMN catalog_id text NOT NULL DEFAULT 'standard'
+  REFERENCES catalog(id)`, das auch auf der nicht-leeren Tabelle sofort durchläuft (kein
+  nullable→backfill→NOT-NULL-Expand wie bei ADR-050 D6 nötig, weil dort kein DB-Default
+  deklariert war).
 - Lesepfade, die von `STANDARD_CATALOG_ID` auf `veranstaltung.catalogId` umzustellen sind:
   `app/veranstaltung/[id]/verzehr/page.tsx` (`listActiveCatalog`),
   `app/veranstaltung/actions.ts` (`applyVerzehrAdjust` → `getCatalogItem`).
-  `app/theke/[token]/page.tsx` bleibt unverändert (AK7).
+  `app/theke/[token]/page.tsx` bleibt unverändert (AK7, Spalten-Default greift dort weiter).
 - Neue Wechsel-Action + UI analog `StatusToggle.tsx`-Pattern (`useActionState`, eigenes
-  verstecktes Feld) auf der Detailseite `app/veranstaltung/[id]/page.tsx`.
+  verstecktes Feld) auf der Detailseite `app/veranstaltung/[id]/page.tsx`. Guarded UPDATE:
+  `WHERE id = ? AND status = 'offen'`, Rückgabewert auswerten (Kern-Kurzregel „guarded UPDATE").
 - Sperre "kein Verzehr erfasst" prüft `menge > 0` über `listPositionen`, nicht bloße
   Zeilen-Existenz (eine Position kann auf `menge = 0` zurückgesetzt sein, s. spec-346 AK4).
+- Ziel-Katalog der Wechsel-Action gegen `catalog.active = true` prüfen, bevor geschrieben wird
+  (dieselbe Filterung wie bei der Anlage, FS1) – serverseitig, nicht nur über die
+  Dropdown-Optionsliste.
 - `VeranstaltungForm.tsx` braucht die Liste aktiver Kataloge als Prop aus
   `app/veranstaltung/page.tsx` (`listCatalogs()` gefiltert auf `active`, analog #345).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- ADR-Bedarf für `/architecture` zu bestätigen (siehe spec-346 „Offene Fragen") – vermutlich kein
-  neuer Trigger, da dasselbe Muster wie ADR-050 fortgeschrieben wird.
+_Keine offenen Fragen mehr – ADR-Bedarf durch /architecture geklärt (siehe Technische Notizen)._
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
