@@ -23,19 +23,30 @@ explizites Nachtragen), oder das `afterEach` so erweitern, dass es `catalog_item
 generisch über `catalog_id` statt nur über die `track()`-Liste löscht.
 
 ## Akzeptanzkriterien
-- [ ] GIVEN ein Duplizier-Test in `db/catalog.test.ts` ruft `duplicateCatalog()` auf
-      WHEN das `afterEach`-Cleanup läuft
-      THEN werden auch die kopierten `catalog_item`-Zeilen gelöscht (kein FK-Verstoß beim
-      Löschen des kopierten Katalogs)
-- [ ] GIVEN eine echte lokale Postgres-DB (`DATABASE_URL` gesetzt)
-      WHEN die Test-Suite für `db/catalog.test.ts` mehrfach hintereinander läuft
-      THEN bleibt kein verwaister `catalog_item`/`catalog`-Datensatz zurück
+Vollständig in [`docs/specs/spec-351-fk-cleanup-luecke-catalog-test.md`](../docs/specs/spec-351-fk-cleanup-luecke-catalog-test.md).
+- [ ] AK1: `afterEach` löscht kopierte `catalog_item`-Zeilen generisch über
+      `catalog_id IN createdCatalogs` (vor dem Katalog-`DELETE`)
+- [ ] AK2: zwei aufeinanderfolgende Läufe von `db/catalog.test.ts` gegen eine echte DB
+      hinterlassen keine verwaisten Zeilen
+- [ ] AK3: doppeltes Löschen (bereits über `created` entfernt + generisch über
+      `createdCatalogs`) verursacht keinen Fehler
+- [ ] AK4: die zwei nicht betroffenen Duplizier-Tests bleiben unverändert grün
+- [ ] AK5: Mutationsbeleg – ohne die neue generische Lösch-Zeile schlägt
+      `should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled` mit FK-Fehler fehl
+- [ ] AK6: Pre-Push-Gates grün
 
 ## Technische Notizen
 Herkunft: Rework Runde 2 zu #345 (Selbstfund während End-to-End-DB-Verifikation),
 siehe `tasks/review-345.md` → „Rework Runde 2 (behoben)". Kein Zusammenhang mit der
 `runAtomic`-Umstellung aus #345 – reiner Testhygiene-Defekt, identisch reproduzierbar
 mit der alten `db.transaction()`-Implementierung.
+
+Fix-Ansatz (in `/requirements` entschieden): generische Erweiterung des `afterEach`
+(löscht `catalog_item` zusätzlich über `catalog_id IN createdCatalogs`), nicht
+individuelles `track()`-Nachtragen im betroffenen Testfall – deckt automatisch jede
+aktuelle und künftige Katalog-Artikel-erzeugende Funktion ab. Betroffener Testfall:
+`should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled` (`db/catalog.test.ts:521`).
+Nur `db/catalog.test.ts` ändert sich – `db/catalog.ts` bleibt unangetastet.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
