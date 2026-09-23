@@ -208,3 +208,37 @@ erreichbare FK-Violation (`23503`) abdeckt – nicht nur die bereits gehandhabte
 Autorisierungslücke, nur ein unschöner 500 bei einer manuell verfälschten Anfrage) – bewusst als
 Folge-Issue auslagern, statt es unkommentiert stehen zu lassen.
 
+### Zweiter Fehler-Übersetzungs-Wrapper um einen einzelnen DB-Call: Catch-Scope exakt auf den riskanten Aufruf begrenzen (aus #353, Review-Runde-1-Finding)
+
+Beim Umsetzen der oben dokumentierten Regel (FK-Violation neben Unique-Violation abfangen)
+wickelte der erste Entwurf in `createCatalogItemAction` einen `try/catch` um den **gesamten
+restlichen Funktionskörper** – den `createItem`-Aufruf, den anschließenden
+`revalidatePath`-Aufruf und den finalen `return { ok: true }` – statt nur um den einen riskanten
+DB-Aufruf. Ein (praktisch unwahrscheinlicher, aber möglicher) Fehler aus `revalidatePath` oder
+einem künftig dort ergänzten Schritt hätte dieselbe FK-Violation-Prüfung durchlaufen und wäre
+fälschlich als „Katalog nicht gefunden" gemeldet worden – obwohl der Schreibvorgang selbst
+bereits erfolgreich war. Erst `/review` fand das, nicht die ursprüngliche Implementierung.
+
+**Smell:** „Mein neuer `try/catch` um einen DB-Aufruf reicht bis nach dessen Ergebnis-Auswertung
+hinein und schließt Folge-Schritte (Cache-Revalidierung, weitere Aufrufe, den Erfolgs-Return)
+mit ein, statt mit dem Auswerten des DB-Ergebnisses zu enden?"
+
+**Regel:** Ein zweiter, spezifischer Error-Translation-Wrapper (analog zu `runWithUniqueCheck`)
+fängt ausschließlich den einen riskanten DB-Aufruf ab, den er behandeln soll – nie zusätzlich
+unabhängige Folge-Schritte der aufrufenden Funktion. Den riskanten Aufruf dafür in eine eigene
+kleine Funktion extrahieren, die selbst `try/catch` macht und ein zum bestehenden
+`UniqueCheckOutcome<T>`-Muster passendes Ergebnis zurückgibt; die aufrufende Action wertet nur
+noch dieses Ergebnis aus (`if (!outcome.ok) return outcome.state;`), Revalidierung/Folge-Schritte
+stehen **außerhalb** jedes bekannten Catch-Bereichs:
+```ts
+async function createItemOrCatalogNotFound(catalogId: string, data: CatalogItemData) {
+  try {
+    return await runWithUniqueCheck(() => createItem(catalogId, data));
+  } catch (error) {
+    if (isForeignKeyViolation(error)) return { ok: false, state: { error: CATALOG_NOT_FOUND } };
+    throw error;
+  }
+}
+// Aufrufer: outcome auswerten, dann erst revalidatePath/weitere Schritte – außerhalb des Catches.
+```
+
