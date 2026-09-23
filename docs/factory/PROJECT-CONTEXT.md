@@ -233,6 +233,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
 - Neue Mehrfach-Write-Funktion in `db/` nutzt `db.transaction()` statt `runAtomic` – Treiber-Inkompatibilität nur in Produktion (Neon-HTTP) sichtbar, lokale/CI-Tests bleiben grün (aus #345, Review-Runde-2-Finding, Architektur-Fokus) · **Laden bei:** `/implement`, `/review` (Architektur-Fokus) – bei neuer Mehrfach-Write-Funktion in `db/`
 - Serverseitig-fix → client-gelesenes Feld (FK-Bezug) öffnet neue DB-Fehlerklassen (z. B. `23503`), die der bestehende Error-Translation-Wrapper nicht abdeckt (aus #345, Security-Review-Hinweis, Issue #353)
+- Zweiter Fehler-Übersetzungs-Wrapper um einen einzelnen DB-Call: Catch-Scope exakt auf den riskanten Aufruf begrenzen, nicht auf nachfolgende unabhängige Schritte (z. B. `revalidatePath`) ausweiten (aus #353, Review-Runde-1-Finding)
 
 **[`lessons/testing.md`](lessons/testing.md)** – Vitest, Coverage, Guard-Tests, Zod-Meldungs-Tests · **Laden bei:** `/implement`, `/test`, `/review` beim Testschreiben/Coverage
 
