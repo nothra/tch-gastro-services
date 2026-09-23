@@ -45,6 +45,29 @@ _Keine._
       = heutige `:534`). Nach dem Merge liest sich das wie Drift. Ein Halbsatz im Kontext
       („Zeilennummern beziehen sich auf den Stand vor dem Fix") verhindert, dass eine spätere
       Runde die Spec fälschlich als veraltet einstuft.
+- [ ] **(Runde 2)** `docs/factory/kleinfunde.md:388-389` – Der neue Eintrag ankert auf
+      `db/veranstaltung.test.ts:112-116`; dieser Bereich enthält den Katalog-Kommentar (`:112-113`)
+      und das `catalog`-`DELETE` (`:114-116`). Die zweite Hälfte der „Was"-Behauptung
+      („`catalog_item` aber ausschließlich über die `createdItems`-ID-Liste") steht bei
+      `:109-111` und liegt damit **außerhalb** des zitierten Ankers. Korrekt wäre `:109-116`.
+      Ein Zeichen Fix; die Lesson „`kleinfunde.md`-Eintrag mit `Datei:Zeile`-Ankern, im selben
+      PR angelegt, braucht denselben Drift-Check" (#291) zielt genau darauf.
+- [ ] **(Runde 2)** `tasks/task-351-…md:48` – Die Task-Datei nennt weiterhin
+      `db/catalog.test.ts:521` für `should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled`
+      (heute `:538`). Inhaltlich richtig als Vor-Fix-Anker, aber die Spec hat für genau diese
+      Situation im Rework einen Disclaimer bekommen – dieselbe Zeile im Task-Log nicht. Wenn
+      der Hinweis dort sinnvoll war, ist er hier symmetrisch fällig (oder der Anker wird auf
+      `:538` gezogen). Reines Doku-Log, kein Verhalten.
+- [ ] **(Runde 2)** `db/catalog.test.ts:169-171` – Die Sicherheit der generischen Löschung ruht
+      vollständig auf der Zusicherung im Kommentar („`createdCatalogs` … nie
+      `STANDARD_CATALOG_ID`"). Sie stimmt heute (alle vier `push`-Stellen `:138`, `:481`, `:558`,
+      `:632` tragen frisch angelegte bzw. duplizierte Kataloge ein – erneut nachgezählt), ist
+      aber von nichts erzwungen; gerät der Standard-Katalog je in die Liste, löscht das
+      `afterEach` den kompletten geseedeten Referenzbestand der Entwickler-DB. Eine Zeile machte
+      daraus fail-closed statt Konvention, z. B. vor dem `DELETE`:
+      `expect(catalogIds).not.toContain(STANDARD_CATALOG_ID)`. Bewusst als Nitpick und nicht als
+      Wichtig eingestuft: kein erreichbarer Auslöser, und die Spec begrenzt den Scope – bei
+      Nicht-Umsetzung gehört der Gedanke eher nach `kleinfunde.md` als in einen Rework.
 
 ## Positives
 
@@ -85,12 +108,14 @@ _Keine._
 
 ## Empfehlung
 
-NEEDS_REWORK
+APPROVED (Runde 2)
 
-Kein kritischer Fund – die Änderung ist inhaltlich richtig, gut begründet und sauber belegt.
-Rework-Grund ist allein das Wichtig-Finding: der PR macht den eigenen Dateikopf faktisch
-falsch. Das ist ein Zweizeiler und sollte zusammen mit dem Kleinfund zum selben Satz erledigt
-werden; die Nitpicks können dabei mitlaufen.
+Das einzige Wichtig-Finding aus Runde 1 ist behoben, alle drei Nitpicks sind mitgelaufen, und
+die Rework-Änderungen sind – wie behauptet – rein textuell (Dateikopf, ein Kommentar-Halbsatz,
+drei lokale Variablennamen, ein Spec-Hinweisblock). Die drei neu ergänzten Nitpicks sind
+optional und kein Rework-Grund.
+
+**Verdict-Historie:** Runde 1 = NEEDS_REWORK (siehe „Rework Runde 1" unten).
 
 ## Rework Runde 1 (behoben, `/implement` 2026-09-23)
 
@@ -113,3 +138,58 @@ werden; die Nitpicks können dabei mitlaufen.
   neue generische Lösch-Zeile und beide neuen Tests sind unverändert.
 - **Folge-Drift mitgezogen:** Der neu angelegte `veranstaltung.test.ts`-Kleinfund verwies auf
   `db/catalog.test.ts:159-168`; durch den vier Zeilen längeren Dateikopf jetzt `:163-172`.
+
+## Runde 2 – Nachprüfung des Rework (`/review`, 2026-09-23)
+
+Diff-Scope erneut `git diff origin/main...HEAD`: `db/catalog.test.ts`, `docs/factory/kleinfunde.md`,
+`docs/specs/spec-351-…md`, `tasks/task-351-…md`, `tasks/review-351.md`. Kein Produktionscode.
+
+**Runde 1 · Backend/Logik**
+
+- **Wichtig-Finding geschlossen.** Der Dateikopf (`:28-33`) nennt jetzt beide Aufräumwege und
+  trägt das Sicherheitsargument selbst. Die Formulierung „nur selbst angelegte Zeilen … Artikel
+  per id sowie generisch alle Artikel der im Lauf angelegten Kataloge" deckt den tatsächlichen
+  Radius von `cleanupCreatedRows()` – die `duplicateCatalog`-Kopien entstehen im Lauf, sind also
+  „selbst angelegt".
+- **Mitgenommene AK9-Aussage unabhängig verifiziert**, nicht nur gelesen: `CREATE SCHEMA` steht
+  bei `:699`, `DROP SCHEMA … CASCADE` bei `:762`, `SET search_path` ohne `public` bei `:703`.
+  Die Kopf-Behauptung ist damit eine geprüfte Tatsachenbehauptung, kein übernommener Satz
+  (Lesson „X erzwingt Y", #319/#59).
+- **Mutationssensitivität der Regression erneut durchgespielt** (statisch): Ohne `:171` bleibt
+  die Kopie in `catalog_item` stehen, `:172` läuft in den Pflicht-FK → `cleanupCreatedRows()`
+  rejected → `should_deleteCopiedArticles_when_cleanupRunsAfterDuplicateCatalog` **und** der
+  bestehende `should_copyOnlyActiveArticles_…` fallen. AK5 bleibt belegt.
+- **Kein neuer Fehlerpfad durch das Rework**: `created`/`createdCatalogs` werden weiter erst
+  gespliced und dann gelöscht (Muster unverändert aus `main` übernommen, auch in der
+  Schwesterdatei) – keine Regression dieses PRs.
+
+**Runde 2 · Code-Qualität**
+
+- Alle drei Runde-1-Nitpicks sind umgesetzt und nicht nur abgehakt: `remainingItems` /
+  `remainingCatalogs` / `remaining` (`:640,646,663`), der korrigierte Konjunktiv-Halbsatz
+  (`:655-656`), der Vor-Fix-Hinweisblock in der Spec (`:5-7`).
+- Test-Namen folgen weiter `should_…_when_…`; Arrange-Act-Assert eingehalten; die
+  Vorbedingungs-Assertion gegen Vakuum-Grün (`:636`) ist unverändert erhalten.
+- Neu gefunden: drei Nitpicks (oben, mit „(Runde 2)" markiert) – Anker-Präzision im eigenen
+  `kleinfunde.md`-Eintrag, fehlender Vor-Fix-Disclaimer im Task-Log, optionaler Fail-closed-Guard
+  auf `STANDARD_CATALOG_ID`.
+
+**Runde 3 · Architektur & Patterns**
+
+- Keine Schicht-Verletzung: `db/catalog.ts` bleibt unangetastet (per Diff belegt), geändert ist
+  ausschließlich Testinfrastruktur. Keine Route, keine `page.tsx`/`route.ts` → `docs/routes.md`
+  ist korrekt nicht betroffen (#145).
+- ADR-050 D2 (Pflicht-FK ohne `ON DELETE`) wird weiterhin respektiert statt umgangen – die
+  Reihenfolge Artikel → Kataloge ist der Fix, nicht ein `CASCADE`.
+- Der Kleinfund-Eintrag zur Asymmetrie mit `db/veranstaltung.test.ts` ist korrekt angelegt
+  (alter AK9-Eintrag **gelöscht**, nicht abgehakt – Regel aus dem `kleinfunde.md`-Kopf; neuer
+  Eintrag am Dateiende, Anker `db/catalog.test.ts:163-172` nachgerechnet und korrekt).
+
+**Gates in dieser Runde selbst gefahren:** `pnpm lint` (exit 0), `pnpm format:check`
+(„All matched files use Prettier code style!"), `pnpm exec tsc --noEmit` (exit 0).
+
+**Nicht verifizierbar in dieser Session:** die DB-gestützten AK1/AK2/AK3/AK5. `DATABASE_URL`
+ist im Worktree nicht gesetzt (`.env.local` fehlt, bekannte Lücke #228/#236), die
+`describe.skipIf(!hasDb)`-Blöcke werden also übersprungen. Die Belege stammen unverändert aus
+dem `/implement`-Lauf; das strukturelle Risiko daraus ist bereits als **Issue #357** verankert
+(CI setzt kein `DATABASE_URL`, kein Gate schützt die neuen Tests gegen Regression).

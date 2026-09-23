@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -128,6 +128,22 @@ ein erneuter Mutationsbeleg (AK5) war deshalb nicht nötig.
 - Gegen die lokale DEV-DB: zwei aufeinanderfolgende Läufe von `db/catalog.test.ts`,
   je 42/42 grün, danach 0 verwaiste `catalog_item`- und 0 verwaiste `catalog`-Zeilen
   (`__test__`-Zählung per `psql`) – AK2 bleibt belegt.
+
+### /test (2026-09-23)
+
+Coverage-/Vollständigkeitsprüfung nach `/review` Runde 2 (APPROVED): pro AK aus der Spec
+Happy Path, Fehlerfall und Boundary geprüft – keine Lücke gefunden, alle drei Runde-2-Nitpicks
+sind reine Doku-/Anker-Präzisierungen ohne Testbezug. Kein neuer Testcode nötig; die beiden
+Regressionstests aus `/implement` (`should_deleteCopiedArticles_when_cleanupRunsAfterDuplicateCatalog`,
+`should_notThrow_when_cleanupDeletesSameArticleByIdAndByCatalog`) decken AK1/AK3/AK5 bereits
+mit Vorbedingungs-Assertion (Vakuum-Grün-Schutz) und Mutationsbeleg ab.
+
+`scripts/checks/pre-push.sh` in diesem Worktree erneut vollständig grün: 871 Tests
+(4 Testdateien/91 Tests DB-abhängig übersprungen – kein `DATABASE_URL` in dieser Session,
+bekannte Lücke #228/#236, strukturelles CI-Risiko bereits als Issue #357 verankert), Lint,
+Typecheck, Format, Routen-Doku-Drift, Hooks, `@import`-Grenze. Die DB-gestützte Verifikation
+(AK2/AK5 gegen echte Postgres-DB) bleibt unverändert die aus `/implement`/`/review` Runde 2
+dokumentierte – ein erneuter Lauf war ohne `DATABASE_URL` in dieser Session nicht möglich.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
