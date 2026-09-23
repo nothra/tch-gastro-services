@@ -1254,7 +1254,7 @@ es ein echter Blocker. Unterscheidungskriterium: eine **Kommando-Allowlist-Lück
 den Wrapper-Ausweg; eine **Datei-Zugriffssperre auf Secrets/`.claude/**`** hat ihn nie – letztere
 ist bewusst so gebaut, dass kein Skript-Umweg sie umgeht.
 
-### Kleinfunde.md-Eintrag mit eigenen Zeilenankern braucht denselben Drift-Check wie ADR/Lesson/Spec – auch wenn er im selben PR entstand (aus #291, Review-Finding, erweitert #211/#176/#253)
+### Kleinfunde.md-Eintrag mit eigenen Zeilenankern braucht denselben Drift-Check wie ADR/Lesson/Spec – auch wenn er im selben PR entstand (aus #291, Review-Finding, erweitert #211/#176/#253; zweites Vorkommnis aus #351)
 
 `docs/factory/kleinfunde.md` verlangt in seinem eigenen Kopf „Fundstelle mit `Datei:Zeile`
 **verifiziert am Eintragsdatum**". Ein in Review-Runde 1 von #291 angelegter Eintrag zitierte
@@ -1277,6 +1277,16 @@ Einträge mit `Datei:Zeile`-Ankern, die im selben PR angelegt wurden**: vor dem 
 neu geschriebenen Kleinfund-Eintrag gegen den **aktuellen** Stand der zitierten Datei
 gegenprüfen (`sed -n '<n>,<m>p' <datei>` liest tatsächlich die behauptete Zeile?), nicht nur beim
 Anlegen einmalig verifizieren und dann als erledigt betrachten.
+
+**Zweites Vorkommnis (#351):** Ein in `/review` Runde 3 desselben PRs angelegter Kleinfund-Eintrag
+(`db/veranstaltung.test.ts`) zitierte `:112-116`; die eigene Rework-Runde davor hatte den
+Dateikopf der **zitierten** Datei nicht verändert – hier drifteten die Anker nicht durch eigene
+Folge-Commits, sondern weil die Anlage selbst schon einen falschen Bereich traf (die zweite Hälfte
+der „Was"-Behauptung lag bei `:109-111`, außerhalb des zitierten `:112-116`). Die Regel greift
+also nicht nur bei Drift **nach** der Anlage, sondern schon bei der **Erstverifikation**: die
+zitierte Zeilenspanne muss den **gesamten** im Eintrag beschriebenen Sachverhalt abdecken, nicht
+nur dessen auffälligsten Teil (hier: das `catalog`-`DELETE`, ohne den davorstehenden
+`catalog_item`-`DELETE`-Block).
 
 ### Fork-Subagent für eine Review-Runde: eigene Turns nach dem Spawn können in seinen Kontext bluten (aus #298, Selbstfund während `/review`)
 

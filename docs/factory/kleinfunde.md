@@ -385,7 +385,7 @@
 
 ### `db/veranstaltung.test.ts`-Cleanup hat dieselbe FK-Lücke, die #351 in `catalog.test.ts` schließt
 
-- **Wo:** [`db/veranstaltung.test.ts:112-116`](../../db/veranstaltung.test.ts) – `afterEach`
+- **Wo:** [`db/veranstaltung.test.ts:109-116`](../../db/veranstaltung.test.ts) – `afterEach`
   löscht `catalog` über `createdCatalogs`, `catalog_item` aber ausschließlich über die
   `createdItems`-ID-Liste (verifiziert am 2026-09-23).
 - **Was:** Strukturell identisch zu dem in #351 behobenen Defekt: Artikel-Zeilen, die eine
@@ -400,3 +400,19 @@
   `createdCatalogs.splice(0)` in eine lokale Variable ziehen, ca. 4 Zeilen.
 - **Herkunft:** `/review` zu #351 (Runde 3 Architektur/Konsistenz, out-of-scope – die Spec
   begrenzt den Fix ausdrücklich auf `db/catalog.test.ts`).
+
+### `cleanupCreatedRows()` in `db/catalog.test.ts` hat keinen Fail-closed-Guard gegen `STANDARD_CATALOG_ID` in `createdCatalogs`
+
+- **Wo:** [`db/catalog.test.ts:163-172`](../../db/catalog.test.ts) – die generische Löschung
+  (`catalog_id IN createdCatalogs`) verlässt sich vollständig auf die Konvention, dass
+  `createdCatalogs` nie `STANDARD_CATALOG_ID` enthält; das ist per Kommentar (`:169-170`)
+  dokumentiert und aktuell an allen vier `push`-Stellen (`:138`, `:481`, `:558`, `:632`)
+  eingehalten, aber von nichts erzwungen (verifiziert am 2026-09-23).
+- **Was:** Gerät `STANDARD_CATALOG_ID` künftig doch in `createdCatalogs` (z. B. durch eine neue
+  Test-Helper-Funktion, die ihn versehentlich trackt), löscht `cleanupCreatedRows()` den
+  kompletten geseedeten Referenzbestand der Entwickler-DB, statt fail-closed zu stoppen. Heute
+  kein erreichbarer Auslöser.
+- **Fix:** Vor dem `DELETE` eine Assertion `expect(catalogIds).not.toContain(STANDARD_CATALOG_ID)`
+  ergänzen, ca. 1 Zeile.
+- **Herkunft:** `/review` zu #351 (Runde 2, Nitpick, bewusst kein Rework-Grund – kein
+  erreichbarer Auslöser).

@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -152,7 +152,13 @@ dokumentierte – ein erneuter Lauf war ohne `DATABASE_URL` in dieser Session ni
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Voller Report: [`tasks/codify-351.md`](codify-351.md). Kurzfassung: keine neue Regel nötig –
+beide Findings (Dateikopf-Drift durch eigene PR, Kleinfunde-Anker-Ungenauigkeit) sind bereits
+durch bestehende Lessons (#211/#176 bzw. #291) abgedeckt. Lesson zu #291 um „zweites
+Vorkommnis" ergänzt (Drift kann schon bei Erstverifikation entstehen, nicht nur durch spätere
+Folge-Commits). Zwei `kleinfunde.md`-Pflege-Fixes: Anker-Korrektur (`db/veranstaltung.test.ts`)
+und neuer Eintrag für den unadressierten `STANDARD_CATALOG_ID`-Fail-closed-Guard-Nitpick.
 
 ---
 Branch: `fix/351-fk-cleanup-luecke-catalog-test`
