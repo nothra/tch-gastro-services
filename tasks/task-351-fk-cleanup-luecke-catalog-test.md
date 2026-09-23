@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -45,7 +45,8 @@ Fix-Ansatz (in `/requirements` entschieden): generische Erweiterung des `afterEa
 (löscht `catalog_item` zusätzlich über `catalog_id IN createdCatalogs`), nicht
 individuelles `track()`-Nachtragen im betroffenen Testfall – deckt automatisch jede
 aktuelle und künftige Katalog-Artikel-erzeugende Funktion ab. Betroffener Testfall:
-`should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled` (`db/catalog.test.ts:521`).
+`should_copyOnlyActiveArticles_when_duplicateCatalogIsCalled` (`db/catalog.test.ts:521`,
+Zeilennummer bezieht sich auf den Stand vor dem Fix, s. Spec-Hinweis).
 Nur `db/catalog.test.ts` ändert sich – `db/catalog.ts` bleibt unangetastet.
 
 ### Umsetzung (/implement, 2026-09-23)
@@ -144,6 +145,18 @@ bekannte Lücke #228/#236, strukturelles CI-Risiko bereits als Issue #357 verank
 Typecheck, Format, Routen-Doku-Drift, Hooks, `@import`-Grenze. Die DB-gestützte Verifikation
 (AK2/AK5 gegen echte Postgres-DB) bleibt unverändert die aus `/implement`/`/review` Runde 2
 dokumentierte – ein erneuter Lauf war ohne `DATABASE_URL` in dieser Session nicht möglich.
+
+### /refactor (2026-09-23)
+
+Clean-Code-Checkliste gegen `db/catalog.test.ts` durchlaufen: Naming, Funktionslänge,
+Verschachtelung, Kommentar-WHY/WHAT bereits durch die Rework-Runden aus `/review` sauber
+(keine neuen Struktur-Findings). Einziger noch offene Punkt aus Review-Runde 2 – der fehlende
+Vor-Fix-Disclaimer im Task-Log (Nitpick, symmetrisch zum bereits vorhandenen Spec-Hinweis) –
+nachgetragen (`db/catalog.test.ts:521` trägt jetzt denselben Hinweis wie die Spec). Der
+STANDARD_CATALOG_ID-Fail-closed-Guard-Nitpick bleibt bewusst unimplementiert (laut Review
+kein erreichbarer Auslöser, bereits als `kleinfunde.md`-Eintrag verankert). Kein neues
+Verhalten: `pre-push.sh` erneut vollständig grün (871 Tests, Lint, Typecheck, Format,
+Routen-Doku, Hooks, `@import`-Grenze).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
