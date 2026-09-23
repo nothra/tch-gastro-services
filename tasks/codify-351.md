@@ -44,12 +44,28 @@ Test-Datei, kein Produktionscode).
 
 ### Keine weiteren Änderungen nötig
 
-Die Task-Log-Symmetrie-Lücke (Runde-2-Nitpick zu `tasks/task-351-…md:48`, fehlender
+~~Die Task-Log-Symmetrie-Lücke (Runde-2-Nitpick zu `tasks/task-351-…md:48`, fehlender
 Vor-Fix-Disclaimer analog zur Spec) bleibt als reine Doku-Feinheit ohne Produktionscode-Bezug
-unadressiert – kein Merge-Blocker, keine Generalisierung über diese Task hinaus erkennbar.
-Kein neuer Check, keine neue CLAUDE.md-Regel: das Muster „Doku-Drift durch eigene PR-Änderung"
-und „Kleinfunde-Anker-Drift" sind bereits als generische, wiederholt zutreffende Lessons
-verankert; #351 bestätigt ihre Gültigkeit, statt eine neue Fehlerklasse aufzudecken.
+unadressiert~~ – **Korrektur (zweiter `/security-review`-Lauf, 2026-09-23):** `eb7cd0d`
+(`/refactor`, nach diesem Codify-Report entstanden) hat den Disclaimer nachgetragen
+(`tasks/task-351-…md:521`). Diese Zeile war zum Zeitpunkt ihres Schreibens korrekt, ist aber
+durch einen späteren Commit überholt worden – kein Merge-Blocker, keine Generalisierung über
+diese Task hinaus erkennbar. Kein neuer Check, keine neue CLAUDE.md-Regel: das Muster
+„Doku-Drift durch eigene PR-Änderung" und „Kleinfunde-Anker-Drift" sind bereits als generische,
+wiederholt zutreffende Lessons verankert; #351 bestätigt ihre Gültigkeit, statt eine neue
+Fehlerklasse aufzudecken.
+
+### Nachtrag: Skill-Reihenfolge-Verstoß führte zu teurem Security-Review-Re-Lauf
+
+Commit-Historie dieser Task: `2d88506` (`/security-review`, PASSED) lief **vor** `da0fb30`
+(`/codify`) und `eb7cd0d`/`9e90e7f` (`/refactor`) – entgegen der kanonischen Pipeline-Reihenfolge
+in `CLAUDE.md` (`/review → /test → /refactor → /security-review → /codify`). Dadurch deckte der
+erste Security-Report nur 5 der am Ende 10 geänderten Dateien ab und war beim tatsächlichen
+Abschluss der Task bereits stale; `/security-review` musste komplett erneut laufen (siehe
+`tasks/security-351.md`, „zweiter Lauf"). Neue Lesson dazu in
+[`lessons/factory-workflow.md`](../docs/factory/lessons/factory-workflow.md) + Index-Zeile in
+`PROJECT-CONTEXT.md` – Stage-2-Skills (manueller Einzelaufruf) prüfen die kanonische Reihenfolge
+nicht selbst; das bleibt in dieser Session zu beachten.
 
 ### Empfehlung für nächste Features
 

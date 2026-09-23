@@ -158,6 +158,19 @@ kein erreichbarer Auslöser, bereits als `kleinfunde.md`-Eintrag verankert). Kei
 Verhalten: `pre-push.sh` erneut vollständig grün (871 Tests, Lint, Typecheck, Format,
 Routen-Doku, Hooks, `@import`-Grenze).
 
+### /security-review, zweiter Lauf (2026-09-23)
+
+Der erste Security-Report (Commit `2d88506`) lief **vor** `/codify` und `/refactor` und deckte
+nur 5 der inzwischen 10 geänderten Dateien ab (565+/26− gegen jetzt 785+/28−) – er war damit
+stale. `tasks/security-351.md` wurde neu geschrieben und deckt jetzt auch `tasks/codify-351.md`,
+die Lesson-/PROJECT-CONTEXT-Ergänzungen, die korrigierte `kleinfunde.md` und die neue Zeile in
+`tasks/interrupt-log.jsonl` ab. Ergebnis erneut **PASSED**, keine kritischen und keine wichtigen
+Findings. Zusätzlich geprüft: Anker-Drift beider `kleinfunde.md`-Einträge (Lesson #291/#351,
+adressiert ausdrücklich `/security-review` vor Merge-Freigabe) – alle fünf Anker treffen; das
+Interrupt-Sentinel ist nachweislich entfernt (`git ls-files 'tasks/INTERRUPT-*'` → 0 Treffer).
+Ein Hinweis ohne Sicherheitsbezug bleibt offen: `tasks/codify-351.md:47-49` behauptet die
+Task-Log-Symmetrie-Lücke sei unadressiert, `eb7cd0d` hat sie jedoch behoben.
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 
@@ -172,6 +185,16 @@ durch bestehende Lessons (#211/#176 bzw. #291) abgedeckt. Lesson zu #291 um „z
 Vorkommnis" ergänzt (Drift kann schon bei Erstverifikation entstehen, nicht nur durch spätere
 Folge-Commits). Zwei `kleinfunde.md`-Pflege-Fixes: Anker-Korrektur (`db/veranstaltung.test.ts`)
 und neuer Eintrag für den unadressierten `STANDARD_CATALOG_ID`-Fail-closed-Guard-Nitpick.
+
+**Nachtrag (zweiter `/codify`-Lauf, 2026-09-23, nach dem zweiten `/security-review`):**
+Zwei weitere Punkte behoben/verankert – Details in `tasks/codify-351.md`:
+1. Die eigene Aussage in `tasks/codify-351.md`, die Task-Log-Symmetrie-Lücke bleibe
+   „unadressiert", war seit `eb7cd0d` überholt (dort nachgetragen) – korrigiert.
+2. Neue Lesson: `/security-review` lief in dieser Task **vor** `/codify`/`/refactor` statt
+   danach (entgegen der kanonischen Reihenfolge in `CLAUDE.md`) und wurde dadurch stale –
+   ein kompletter Re-Lauf war nötig. Neu in
+   [`lessons/factory-workflow.md`](../docs/factory/lessons/factory-workflow.md) + Index-Zeile
+   in `PROJECT-CONTEXT.md`.
 
 ---
 Branch: `fix/351-fk-cleanup-luecke-catalog-test`

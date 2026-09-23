@@ -1530,3 +1530,28 @@ ADR zur selben Frage, gehört der Unterschied **mit Begründung** in die neue AD
 Ruleset-Änderung braucht nach ADR-029 Adminrechte, also einen menschlichen Schritt – deshalb
 zunächst getragen und über ein Issue nachgezogen). Wird sie gar nicht bemerkt, wiederholt der
 Harness eine Lücke, die er schon einmal geschlossen hatte.
+
+### Stage-2-Skill außer der kanonischen Reihenfolge macht einen bereits fertigen Bericht stale (aus #351)
+
+Task #351 lief in Stage 2 (manuelle Einzelaufrufe, kein `run-pipeline.sh`). Die tatsächliche
+Commit-Reihenfolge war `/security-review` (PASSED) → `/codify` → `/refactor` (zwei Commits) –
+entgegen der in `CLAUDE.md` festgelegten Kette `/review → /test → /refactor → /security-review →
+/codify`. `/codify` und `/refactor` änderten danach noch fünf weitere Dateien (Lesson- und
+`kleinfunde.md`-Pflege, ein Task-Log-Nachtrag). Der bereits committete Security-Report deckte
+diese Dateien nie ab und war beim tatsächlichen Task-Abschluss inhaltlich überholt – bemerkt
+erst, als jemand den Diff-Umfang (5 vs. 10 Dateien) gegen den Report-Scope gegenprüfte. Der
+komplette `/security-review`-Lauf musste wiederholt werden, obwohl der ursprüngliche Code seit
+dem ersten Lauf gar nicht mehr verändert wurde.
+
+**Smell:** Ein bereits vorliegender `/security-review`- oder `/review`-Bericht wird nach seinem
+Commit noch von `/codify` oder `/refactor` berührten Dateien überholt, weil diese Skills in
+Stage 2 manuell und nicht in der kanonischen Reihenfolge aufgerufen wurden.
+
+**Regel:** Vor dem Aufruf eines Pipeline-Skills in Stage 2 die bereits vorhandenen Commits der
+Task gegen die kanonische Reihenfolge in `CLAUDE.md` (Abschnitt „Pipeline-Übersicht") prüfen.
+Liegt ein `/security-review`- oder `/review`-Commit bereits vor, aber `/refactor`/`/codify`
+folgen erst danach, gilt der vorherige Bericht als **stale**, sobald der nächste Skill auch nur
+eine Datei außerhalb des ursprünglich geprüften Diffs ändert – dann den betroffenen Bericht am
+Ende erneut laufen lassen, statt ihn unhinterfragt als „bereits bestanden" stehen zu lassen.
+Kanonisch bleibt die Reihenfolge in `CLAUDE.md`; kein automatisierter Gate erzwingt sie in
+Stage 2 (das leistet erst `run-pipeline.sh` in Stage 3).
