@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 <!-- Was soll implementiert werden? -->
@@ -88,6 +88,9 @@ Verhalten:
   vorhandenen Import-Stil in `actions.test.ts`.
 
 Tests vor/nach identisch grün (21/21), Typecheck und Lint unverändert sauber.
+
+PR-Shepherd [2026-09-23]: Merge freigegeben – alle Gates grün (CI grün, `mergeStateStatus:
+CLEAN`, kein ausstehendes Approval, Draft → ready).
 
 ---
 Branch: `fix/353-fk-violation-catalogid-abfangen`
