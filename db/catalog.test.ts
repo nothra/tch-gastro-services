@@ -25,8 +25,12 @@ import {
 // Integrationstests gegen eine echte, migrierte Postgres-DB. Voraussetzung:
 // `pnpm db:up` + `pnpm db:migrate` (DATABASE_URL gesetzt). In CI ohne DB werden sie
 // übersprungen – die reine Logik (money.ts, Zod-Schema, Actions) ist dort mockfrei
-// abgedeckt. Tests sind nicht-destruktiv: sie räumen nur die selbst angelegten Zeilen
-// per id wieder ab und lassen den geseedeten Referenzbestand unangetastet.
+// abgedeckt. Die Tests räumen nur selbst angelegte Zeilen wieder ab – Artikel per id sowie
+// generisch alle Artikel der im Lauf angelegten Kataloge (#351); der geseedete
+// Standard-Katalog steht nie in dieser Liste, der Referenzbestand bleibt unangetastet.
+// Einzige Ausnahme von „nur Zeilen": der AK9-Replay legt ein Wegwerf-Schema an und verwirft
+// es wieder (`CREATE SCHEMA` / `DROP SCHEMA … CASCADE`, `search_path` ohne `public`) – die
+// Suite braucht auf der per `DATABASE_URL` verbundenen DB also Schema-Rechte.
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 // Präfix, damit Testdaten nie mit echten/geseedeten Bezeichnungen kollidieren.
@@ -633,30 +637,31 @@ describe.skipIf(!hasDb)("catalog data-layer (integration)", () => {
 
     await cleanupCreatedRows();
 
-    const verbliebeneArtikel = await db
+    const remainingItems = await db
       .select()
       .from(catalogItems)
       .where(inArray(catalogItems.catalogId, [source.id, copy.catalog.id]));
-    expect(verbliebeneArtikel, "kopierte Artikel-Zeile muss mit aufgeräumt werden").toHaveLength(0);
+    expect(remainingItems, "kopierte Artikel-Zeile muss mit aufgeräumt werden").toHaveLength(0);
 
-    const verbliebeneKataloge = await db
+    const remainingCatalogs = await db
       .select()
       .from(catalog)
       .where(inArray(catalog.id, [source.id, copy.catalog.id]));
-    expect(verbliebeneKataloge, "beide Kataloge müssen gelöscht sein").toHaveLength(0);
+    expect(remainingCatalogs, "beide Kataloge müssen gelöscht sein").toHaveLength(0);
   });
 
   it("should_notThrow_when_cleanupDeletesSameArticleByIdAndByCatalog", async () => {
     // AK3: Ein per `track()` registrierter Artikel wird zuerst über `created` gelöscht; die
-    // anschließende generische Löschung über `catalog_id` trifft ihn ein zweites Mal. Das ist
-    // ein DELETE über 0 Zeilen, kein Fehler – ein Dedupe zwischen beiden Listen ist unnötig.
+    // anschließende generische Löschung über `catalog_id` würde ihn ein zweites Mal treffen,
+    // falls er noch existierte. Das ist ein DELETE über 0 Zeilen, kein Fehler – ein Dedupe
+    // zwischen beiden Listen ist unnötig.
     const k = await trackCatalog("Cleanup351-Doppelt");
     const item = await track(drink("Cleanup351-DoppeltItem"), k.id);
 
     await expect(cleanupCreatedRows()).resolves.toBeUndefined();
 
-    const verblieben = await db.select().from(catalogItems).where(eq(catalogItems.id, item.id));
-    expect(verblieben).toHaveLength(0);
+    const remaining = await db.select().from(catalogItems).where(eq(catalogItems.id, item.id));
+    expect(remaining).toHaveLength(0);
   });
 
   it("should_returnUndefined_when_renamingNonexistentCatalog", async () => {

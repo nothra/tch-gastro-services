@@ -96,6 +96,39 @@ abgeleitet):
 **Oberflächentests:** entfallen – die Task berührt keine UI, keine Route und keinen
 Produktionscode (nur eine Testdatei).
 
+### Rework nach `/review` Runde 1 (/implement, 2026-09-23)
+
+`/review` lieferte NEEDS_REWORK mit einem Wichtig-Finding (kein kritisches). Behoben:
+
+1. **Dateikopf `db/catalog.test.ts:25-33`** (Wichtig-Finding): Der Kopf behauptete weiter,
+   die Tests räumten „nur die selbst angelegten Zeilen **per id**" ab – seit diesem PR falsch,
+   weil `cleanupCreatedRows()` zusätzlich generisch über `catalog_id` löscht. Der Kopf nennt
+   jetzt beide Wege und trägt das Sicherheitsargument selbst (Standard-Katalog steht nie in
+   `createdCatalogs`). Drift vom PR selbst verursacht → gehört in denselben PR (#211/#176).
+2. **Kleinfund mitgenommen** (derselbe Satz, Mitnahme-Regel aus dem `kleinfunde.md`-Kopf):
+   Der Kopf benennt jetzt auch die AK9-Replay-Ausnahme (Wegwerf-Schema per `CREATE`/`DROP
+   SCHEMA`, die Suite braucht Schema-Rechte). Der Eintrag „`db/catalog.test.ts`-Dateikopf
+   behauptet ‚nicht-destruktiv‘, der AK9-Replay macht DDL" ist in `docs/factory/kleinfunde.md`
+   **gelöscht**, nicht abgehakt.
+3. **Nitpicks** (alle drei mitgelaufen): deutsche Test-Locals → `remainingItems` /
+   `remainingCatalogs` / `remaining`; der AK3-Kommentar sagt nicht mehr, die generische
+   Löschung „trifft" die bereits entfernte Zeile, sondern „würde sie treffen, falls sie noch
+   existierte"; die Spec trägt einen Hinweis, dass ihre `Datei:Zeile`-Anker den **Vor-Fix**-Stand
+   beschreiben.
+4. **Folge-Drift im eigenen PR:** Der neu angelegte `veranstaltung.test.ts`-Kleinfund verwies
+   auf `db/catalog.test.ts:159-168`; durch den vier Zeilen längeren Dateikopf nun `:163-172`.
+
+**Kein Verhaltensunterschied:** Die Änderungen sind Kommentar-/Doku-Text plus lokale
+Test-Variablennamen. Die generische Lösch-Zeile und beide neuen Tests sind unverändert –
+ein erneuter Mutationsbeleg (AK5) war deshalb nicht nötig.
+
+**Verifikation nach dem Rework:**
+- `scripts/checks/pre-push.sh` vollständig grün (Lint, 871 Tests, Typecheck, Format,
+  Routen-Doku, Hooks, `@import`-Grenze).
+- Gegen die lokale DEV-DB: zwei aufeinanderfolgende Läufe von `db/catalog.test.ts`,
+  je 42/42 grün, danach 0 verwaiste `catalog_item`- und 0 verwaiste `catalog`-Zeilen
+  (`__test__`-Zählung per `psql`) – AK2 bleibt belegt.
+
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 

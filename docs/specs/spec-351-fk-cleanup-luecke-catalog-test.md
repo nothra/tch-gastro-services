@@ -2,6 +2,10 @@
 
 ## Kontext
 
+> Alle `Datei:Zeile`-Anker dieser Spec beziehen sich auf den Stand **vor** dem Fix – sie
+> beschreiben den Defekt, nicht das Ergebnis. Nach dem Merge sind sie erwartungsgemäß
+> verschoben (kein Drift).
+
 `duplicateCatalog()` (`db/catalog.ts:176`) fügt kopierte `catalog_item`-Zeilen über einen
 eigenen `runAtomic`-Aufruf ein (`db/catalog.ts:196-205`), ohne sie über den Test-Helfer
 `track()` (`db/catalog.test.ts:121`) zu registrieren. Der einzige betroffene Testfall ist
