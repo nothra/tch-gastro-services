@@ -47,5 +47,5 @@ mit der alten `db.transaction()`-Implementierung.
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
 ---
-Branch: `claude/start-work-351-pynzpb`
+Branch: `fix/351-fk-cleanup-luecke-catalog-test`
 Erstellt: 2026-09-23
