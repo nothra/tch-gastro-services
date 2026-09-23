@@ -5,9 +5,39 @@ Diff-Scope: `git diff origin/main...HEAD` – `db/catalog.test.ts` (+77/−10),
 
 ## Kritische Findings (müssen behoben werden)
 
-_Keine._
+- [x] **(Runde 3)** `tasks/INTERRUPT-351.md` – Das transiente Interrupt-Sentinel liegt im
+      **PR-Diff**. Eingebracht hat es Commit `eb7cd0d` (ein `/refactor`-Commit, dessen Message
+      weder das Sentinel noch `tasks/interrupt-log.jsonl` erwähnt); der Working Tree hat die
+      Löschung bereits vorgenommen, aber **uncommittet** – der Branch trägt die Datei weiterhin.
+      Belegt, warum das nicht nach `main` darf: `scripts/metrics.sh:37` zählt offene Interrupts
+      per `find … -name 'INTERRUPT-*.md'` (Kennzahl in jedem Clone dauerhaft +1);
+      `scripts/factory-poll.sh:180` liest die Dateiexistenz als „Interrupt statt Fehler" und
+      labelt jeden fehlgeschlagenen Async-Lauf zu #351 `factory::interrupted` statt
+      `factory::failed`; `scripts/run-pipeline.sh:336-342` löscht das Sentinel im Pre-flight per
+      `rm -f` – bei einer **getrackten** Datei erzeugt genau das einen unsauberen Working Tree
+      und damit den `INCOMPLETE_OUTCOME`-Guard „Working Tree nicht sauber" (vgl.
+      `tasks/interrupt-log.jsonl`, Eintrag zu #315), also einen selbstverstärkenden Zustand.
+      Auf `origin/main` liegt bei 490 getrackten `tasks/`-Dateien **kein einziges**
+      `INTERRUPT-*.md` – die Konvention ist eindeutig, nur nicht erzwungen.
+      **Fix in diesem PR:** die vorhandene Löschung committen (`git rm`/`git add -A tasks/`),
+      Diff muss `tasks/INTERRUPT-351.md` **nicht** mehr enthalten. `tasks/interrupt-log.jsonl`
+      bleibt dagegen korrekt im Diff – der append-only Log ist laut `.gitignore:27` bewusst
+      getrackt. Die `.gitignore`-Härtung selbst ist out-of-scope → **Issue #359**.
 
 ## Wichtige Findings (sollten behoben werden)
+
+- [x] **(Runde 3)** `docs/factory/kleinfunde.md:409` – Der im `/codify`-Schritt dieses PRs
+      angelegte Eintrag behauptet, die Konvention sei „aktuell an allen **vier** `push`-Stellen
+      (`:138`, `:481`, `:558`, `:632`) eingehalten". Tatsächlich sind es **fünf**:
+      `grep -c "createdCatalogs.push" db/catalog.test.ts` liefert `5`, die fehlende Stelle ist
+      `:588` (`should_allowEmptyCatalogDuplication_when_sourceHasNoActiveArticles`). Die
+      Schlussfolgerung bleibt richtig – auch `:588` trägt einen frisch duplizierten Katalog ein,
+      nie `STANDARD_CATALOG_ID` –, aber die Behauptung „alle vier" ist als Vollständigkeits-
+      aussage falsch und steht in einer kuratierten Datei, die den PR überlebt. Sie widerspricht
+      zudem dem „Positives"-Abschnitt dieses Reports (`:85-88`), der korrekt fünf Stellen nennt.
+      Besonders relevant, weil derselbe Commit (`da0fb30`) die Lesson zu #291 um genau die Regel
+      erweitert, dass die im Eintrag zitierten Anker den **gesamten** behaupteten Sachverhalt
+      abdecken müssen. **Fix:** „vier" → „fünf" und `:588` in die Aufzählung.
 
 - [x] `db/catalog.test.ts:28-29` – Der Dateikopf behauptet weiterhin „Tests sind
       nicht-destruktiv: sie räumen nur die selbst angelegten Zeilen **per id** wieder ab und
@@ -193,3 +223,14 @@ ist im Worktree nicht gesetzt (`.env.local` fehlt, bekannte Lücke #228/#236), d
 `describe.skipIf(!hasDb)`-Blöcke werden also übersprungen. Die Belege stammen unverändert aus
 dem `/implement`-Lauf; das strukturelle Risiko daraus ist bereits als **Issue #357** verankert
 (CI setzt kein `DATABASE_URL`, kein Gate schützt die neuen Tests gegen Regression).
+
+## Rework Runde 3 (behoben, `/refactor` 2026-09-23)
+
+- **Kritisch-Finding (Interrupt-Sentinel im Diff):** `tasks/INTERRUPT-351.md` war im Working
+  Tree bereits gelöscht, aber uncommittet. Löschung jetzt gestaged/committet – der Branch
+  trägt die Datei nicht mehr, `tasks/interrupt-log.jsonl` bleibt unverändert getrackt.
+- **Wichtig-Finding (Zählfehler `kleinfunde.md:409`):** „vier" → „fünf", fehlende Stelle
+  `:588` in die Aufzählung ergänzt (`:138`, `:481`, `:558`, `:588`, `:632`) – gegen
+  `grep -c "createdCatalogs.push" db/catalog.test.ts` (liefert `5`) nachgezählt.
+- **Kein Verhaltensunterschied:** beide Fixes sind Doku-/Git-Housekeeping, kein Produktions-
+  oder Testcode geändert.

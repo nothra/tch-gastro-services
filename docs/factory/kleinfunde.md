@@ -406,7 +406,7 @@
 - **Wo:** [`db/catalog.test.ts:163-172`](../../db/catalog.test.ts) – die generische Löschung
   (`catalog_id IN createdCatalogs`) verlässt sich vollständig auf die Konvention, dass
   `createdCatalogs` nie `STANDARD_CATALOG_ID` enthält; das ist per Kommentar (`:169-170`)
-  dokumentiert und aktuell an allen vier `push`-Stellen (`:138`, `:481`, `:558`, `:632`)
+  dokumentiert und aktuell an allen fünf `push`-Stellen (`:138`, `:481`, `:558`, `:588`, `:632`)
   eingehalten, aber von nichts erzwungen (verifiziert am 2026-09-23).
 - **Was:** Gerät `STANDARD_CATALOG_ID` künftig doch in `createdCatalogs` (z. B. durch eine neue
   Test-Helper-Funktion, die ihn versehentlich trackt), löscht `cleanupCreatedRows()` den
