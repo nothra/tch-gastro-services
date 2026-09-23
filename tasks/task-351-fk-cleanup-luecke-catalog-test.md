@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `duplicateCatalog()` (`db/catalog.ts`) fügt kopierte `catalog_item`-Zeilen über einen
@@ -195,6 +195,12 @@ Zwei weitere Punkte behoben/verankert – Details in `tasks/codify-351.md`:
    ein kompletter Re-Lauf war nötig. Neu in
    [`lessons/factory-workflow.md`](../docs/factory/lessons/factory-workflow.md) + Index-Zeile
    in `PROJECT-CONTEXT.md`.
+
+### PR-Shepherd (2026-09-23)
+
+PR-Shepherd [2026-09-23]: Merge freigegeben – alle Gates grün. Keine offenen Review-
+Kommentare auf GitHub, Branch bereits aktuell zu `main` (`gh pr update-branch` meldet
+„already up-to-date"), kein Approval-Gate aktiv, PR nicht mehr im Draft-Status.
 
 ---
 Branch: `fix/351-fk-cleanup-luecke-catalog-test`
