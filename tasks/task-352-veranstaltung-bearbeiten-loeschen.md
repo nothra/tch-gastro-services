@@ -177,6 +177,36 @@ Lösch-Pfad wäre deshalb auch dann grün, wenn die Zeile hinter dem `redirect` 
 Produktion nie liefe. Der neue Test vergleicht daher `invocationCallOrder`; der Mutationslauf
 (Zeile hinter den `redirect` verschoben) macht genau diesen Vergleich rot.
 
+**Runde 3 (`tasks/review-352.md`): NEEDS_REWORK** – 0 kritisch, 3 wichtig, 6 Nitpicks. Drei
+Personas, jede Fremd-Behauptung vom Orchestrator an Datei/Zeile nachgeprüft, zwei Funde
+zusätzlich per eigener Messung belegt. Kurzfassung der Wichtig-Findings:
+
+- **`VeranstaltungMetaForm.tsx:73`** – der `onClick`-Reset am Submit-Button ist von keinem Test
+  ausgeführt (einzige unabgedeckte Zeile der Datei), und er feuert auch dann, wenn die
+  HTML-Constraint-Validierung die Absendung abbricht. Browser-Probe: bei leerem Pflichtfeld
+  `["click"]` ohne `submit`. Folge: eine alte „Änderungen gespeichert."-Meldung erscheint über
+  einem leeren Pflichtfeld wieder – derselbe Zustand, den Nitpick 3 der Runde 1 beseitigen
+  sollte, nur auf einem zweiten Pfad. Beides löst dieselbe Zeile: Reset an `onSubmit` des
+  Formulars statt an `onClick` des Buttons, plus der fehlende Test.
+- **`actions.ts:187-189`** – die Begründung „keine Fachsperre beim Bearbeiten" trägt für
+  `bezeichnung`/`datum`, aber nicht für `kasse` (Geldtopf, nicht Etikett). Dasselbe
+  `erhaltenCents`, das 30 Zeilen weiter das Löschen sperrt, lässt sich hier umhängen. AK1 nennt
+  die Kasse ausdrücklich als bearbeitbar – deshalb **dokumentieren statt sperren**; eine Sperre
+  widerspräche der Spec und braucht eine Nutzer-Entscheidung.
+- **`actions.ts:242-266`** – die drei Lösch-Sperren sind Vor-Checks, der guarded DELETE trägt
+  sie nicht. Der nebenläufige Schreiber ist unauthentifiziert (`adjustVerzehrByTokenAction` hat
+  bewusst kein `requireRole`), und unter `neon-http` ist jede der vier Vor-Abfragen ein eigener
+  Roundtrip. Die Entscheidung in den Technischen Notizen oben bleibt möglich, muss aber die
+  **Unumkehrbarkeit** adressieren statt auf die Konsistenz zu einem reversiblen UPDATE (#346)
+  zu verweisen.
+
+**Circuit Breaker:** Das war die dritte Review-Runde. Der Rework dazu ist der letzte innerhalb
+des CLAUDE.md-Limits – eine Runde 4 findet nicht statt; offene Punkte gehen danach an den
+Menschen bzw. in den Tracker.
+
+**Out-of-Scope (in `docs/factory/kleinfunde.md` verankert):** drei verbliebene Inline-Literale
+`"Keine Veranstaltung angegeben."` neben der von #352 eingeführten Konstante.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
