@@ -1,7 +1,7 @@
 # Task 352: veranstaltung-bearbeiten-loeschen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -17,26 +17,26 @@ Auslagenerstattung erfasst wurde. Hard-Delete, kein Soft-Delete. Die stehende Th
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN eine Veranstaltung im Status `offen` WHEN der Veranstalter Bezeichnung, Kasse
+- [x] GIVEN eine Veranstaltung im Status `offen` WHEN der Veranstalter Bezeichnung, Kasse
       und/oder Datum ändert und speichert THEN werden die neuen Werte übernommen.
-- [ ] GIVEN eine Veranstaltung im Status `offen` WHEN Bezeichnung leer oder Datum ungültig/leer
+- [x] GIVEN eine Veranstaltung im Status `offen` WHEN Bezeichnung leer oder Datum ungültig/leer
       ist THEN wird das Speichern serverseitig abgelehnt.
-- [ ] GIVEN eine Veranstaltung im Status `abgeschlossen` WHEN ein Bearbeiten-Request eintrifft
+- [x] GIVEN eine Veranstaltung im Status `abgeschlossen` WHEN ein Bearbeiten-Request eintrifft
       THEN wird er serverseitig abgelehnt.
-- [ ] GIVEN eine Veranstaltung ohne Verzehr-Position mit `menge > 0` und ohne `auslage`-Zeile
+- [x] GIVEN eine Veranstaltung ohne Verzehr-Position mit `menge > 0` und ohne `auslage`-Zeile
       WHEN der Veranstalter sie löscht THEN wird sie inkl. ihrer Zeilen endgültig entfernt.
-- [ ] GIVEN eine Veranstaltung mit mind. einer Verzehr-Position mit `menge > 0` WHEN ein
+- [x] GIVEN eine Veranstaltung mit mind. einer Verzehr-Position mit `menge > 0` WHEN ein
       Lösch-Request eintrifft THEN wird er serverseitig abgelehnt.
-- [ ] GIVEN eine Veranstaltung mit mind. einer `auslage`-Zeile WHEN ein Lösch-Request eintrifft
+- [x] GIVEN eine Veranstaltung mit mind. einer `auslage`-Zeile WHEN ein Lösch-Request eintrifft
       THEN wird er serverseitig abgelehnt.
-- [ ] GIVEN eine Veranstaltung mit Teilnehmer-Zeilen, aber ohne Verzehr/Auslage WHEN sie
+- [x] GIVEN eine Veranstaltung mit Teilnehmer-Zeilen, aber ohne Verzehr/Auslage WHEN sie
       gelöscht wird THEN ist das Löschen erlaubt.
-- [ ] GIVEN der Veranstalter klickt "Löschen" WHEN der Bestätigungsdialog erscheint THEN wird
+- [x] GIVEN der Veranstalter klickt "Löschen" WHEN der Bestätigungsdialog erscheint THEN wird
       erst nach expliziter Bestätigung gelöscht.
-- [ ] GIVEN eine erfolgreich gelöschte Veranstaltung THEN wird zur Übersicht weitergeleitet.
-- [ ] GIVEN eine Veranstaltung vom Typ `theke` WHEN Bearbeiten/Löschen versucht wird THEN wird
+- [x] GIVEN eine erfolgreich gelöschte Veranstaltung THEN wird zur Übersicht weitergeleitet.
+- [x] GIVEN eine Veranstaltung vom Typ `theke` WHEN Bearbeiten/Löschen versucht wird THEN wird
       serverseitig abgelehnt.
-- [ ] GIVEN eine Rolle ohne `veranstalter` WHEN Bearbeiten/Löschen versucht wird THEN wird
+- [x] GIVEN eine Rolle ohne `veranstalter` WHEN Bearbeiten/Löschen versucht wird THEN wird
       serverseitig abgelehnt.
 
 ## Technische Notizen
@@ -84,6 +84,46 @@ dem vorhandenen `<dialog open>`-Muster aus
 [`CatalogControls.tsx`](../app/verwaltung/katalog/%5Bid%5D/CatalogControls.tsx) – kein neues
 Dialog-Pattern erfinden). Beide nur rendern, wenn
 `veranstaltung.typ === "veranstaltung" && veranstaltung.status === "offen"`.
+
+## Umsetzungsnotizen (/implement, 2026-09-24)
+
+**Abweichung von der Architektur-Notiz:** Die Verzehr-Prüfung wurde nicht kopiert, sondern als
+geteilter Helfer `hatErfasstenVerzehr()` aus `setVeranstaltungCatalogAction` herausgezogen – zwei
+Kopien derselben `menge > 0`-Bedingung wären lautlos divergiert. Die **Meldung** bleibt beim
+Aufrufer: `VERZEHR_BEREITS_ERFASST` spricht vom Katalogwechsel und wäre beim Löschen fachlich
+falsch, deshalb eigene Konstanten `LOESCHEN_VERZEHR_ERFASST`/`LOESCHEN_AUSLAGE_ERFASST`.
+Analog teilen sich Anlage und Bearbeiten die Feldgruppe `veranstaltungStammdaten` im Zod-Schema
+und die beiden Schreibwege die guarded WHERE-Bedingung `datierteOffeneVeranstaltung()`.
+
+**Gates (alle grün):** `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, volle Vitest-Suite
+**1065/1065** (inkl. der 105 DB-Integrationstests, die nur mit gesetzter `DATABASE_URL` laufen –
+davon 38 in `db/veranstaltung.test.ts`), Routen-Doku-Drift-Check. `docs/routes.md` bleibt
+unverändert: die Task fügt Komponenten hinzu, keine Route.
+
+**Oberflächen-Verifikation (Schritt 4 des Skills):** neue Playwright-Spec
+`e2e/veranstaltung-bearbeiten-loeschen.spec.ts`, 2/2 grün gegen den lokalen Dev-Server. Sie deckt
+ab, was jsdom nicht belegen kann: den echten Server-Action-Roundtrip samt Persistenz über ein
+Neuladen (AK1), den zweistufigen Bestätigungsdialog (AK8), den Hard-Delete inklusive **404 auf
+der Detailroute** danach (AK4) und die Weiterleitung als echten Dokumentwechsel (AK9, in jsdom
+nur als „Not implemented: navigation to another Document" sichtbar). Hinter dem Env-Flag
+`E2E_VERANSTALTUNG_352=1`, weil sie Daten anlegt – dieselbe Konvention wie
+`wechsel-verzehr-kassieren.spec.ts`. Beide Tests räumen ihre Veranstaltung am Ende selbst ab und
+nutzen das `__test__`-Präfix der DB-Integrationstests (#346).
+
+**Mutationsbeleg zur AK8-Assertion:** Der erste Mutationsversuch (`Abbrechen` auf
+`type="submit"`, `onClick` behalten) blieb **grün** – das `onClick` unmountet das Formular im
+selben Event, die Mutation war verhaltensneutral und hätte einen Scheinbeleg geliefert. Erst die
+echte Mutation (`type="submit"` **ohne** `onClick`) machte den Test rot, und zwar exakt auf der
+AK8-Zeile. Die Assertion hat damit belegte Trennschärfe, nicht nur eine grüne Zeile.
+
+**Telemetrie-Lücke (ADR-049):** Dieser `/implement`-Schritt lief als manueller Stage-2-Aufruf,
+nicht über `run-pipeline.sh`. Die OTEL-Instrumentierung hängt am Pipeline-Wrapper, nicht am
+Skill-Begriff – für diesen Schritt existieren daher keine Token-/Kosten-Ist-Werte, und sie lassen
+sich nicht rückwirkend erheben (bekanntes Muster aus #346).
+
+**Stolperstein bestätigt (#337):** Der E2E-Lauf startet `next dev`, und das hängt einen
+`<!-- BEGIN:nextjs-agent-rules -->`-Block an `CLAUDE.md` an. Zweimal aufgetreten, beide Male
+verworfen – vor dem Commit gehört ein Blick auf `git status`, nicht nur auf den erwarteten Diff.
 
 ## Offene Fragen
 _Keine offenen architektonischen Fragen mehr._
