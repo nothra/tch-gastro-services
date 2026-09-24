@@ -82,6 +82,15 @@ export const verificationTokens = pgTable(
 export const catalogCategory = pgEnum("catalog_category", ["getraenk", "kaffee", "essen"]);
 export type CatalogCategory = (typeof catalogCategory.enumValues)[number];
 
+// Stabiler Text-Key des von der Migration geseedeten Standard-Katalogs (ADR-050 D3).
+// Der Key kodiert den Namen bewusst NICHT – ein Umbenennen des Katalogs ist damit
+// folgenlos (spec-59 AK5). Die Konstante steht hier statt in db/catalog.ts, weil der
+// SQL-`DEFAULT` von `veranstaltung.catalog_id` (unten, #346) sie schon zur
+// Schema-Definitionszeit braucht; `db/catalog.ts` re-exportiert sie, damit der etablierte
+// Importpfad unverändert bleibt. Das Literal liegt zusätzlich in den Migrationen; ein
+// Drift-Guard in catalog.test.ts hält beide gegeneinander.
+export const STANDARD_CATALOG_ID = "standard";
+
 // Der Katalog ist die benannte Preisliste und damit das Preis-Template (ADR-050 D1/D2, #59):
 // „Montagsrunde" und „Dorfmeisterschaften" sind zwei Kataloge mit eigenen Artikeln und Preisen.
 // `name` ist unique – bewusst anders als teilnehmer.name (ADR-022): der Katalogname ist ein
@@ -198,6 +207,18 @@ export const veranstaltung = pgTable(
     // Pflicht nur für `veranstaltung` (CHECK unten erzwingt es); `theke` hat kein Datum.
     datum: date("datum", { mode: "date" }),
     kasse: text("kasse").notNull(),
+    // Preisliste dieser Veranstaltung (#346, ADR-050-Nachtrag zu D3): ab hier bestimmt der
+    // gewählte Katalog die Preise, nicht mehr die Konstante an den Aufrufstellen. Der
+    // SQL-`DEFAULT` ist echt (nicht nur `$defaultFn`) – nur so legt die Migration die Spalte in
+    // EINEM Schritt als NOT NULL auf die bereits befüllte Tabelle, ohne die
+    // nullable→backfill→NOT-NULL-Sequenz aus D6. Er deckt zugleich die Theke ab, die bewusst
+    // keine eigene Auswahl bekommt (spec-346 AK7). Kein `onDelete` (Postgres-Default
+    // "no action", faktisch restriktiv) – analog catalog_item.catalog_id: Kataloge werden nie
+    // hart gelöscht, also kann es keine Veranstaltung ohne Katalog geben.
+    catalogId: text("catalog_id")
+      .notNull()
+      .default(STANDARD_CATALOG_ID)
+      .references(() => catalog.id),
     status: veranstaltungStatus("status").notNull().default("offen"),
     token: text("token").notNull().unique().$defaultFn(unguessableToken),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

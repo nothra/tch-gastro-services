@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
 import type {
   Auslage,
+  Catalog,
   CatalogItem,
   Teilnehmer,
   Veranstaltung,
@@ -25,11 +26,16 @@ vi.mock("@/db/veranstaltung", () => ({
   getZeileByTeilnehmer: vi.fn(),
   listZeilen: vi.fn(),
   ensureThekeForKasse: vi.fn(),
+  setVeranstaltungCatalog: vi.fn(),
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
 // Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
 // Action `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
-vi.mock("@/db/catalog", () => ({ getCatalogItem: vi.fn(), STANDARD_CATALOG_ID: "standard" }));
+vi.mock("@/db/catalog", () => ({
+  getCatalogItem: vi.fn(),
+  getCatalogById: vi.fn(),
+  STANDARD_CATALOG_ID: "standard",
+}));
 vi.mock("@/db/verzehr", () => ({
   adjustMenge: vi.fn(),
   getPosition: vi.fn(),
@@ -53,7 +59,7 @@ import { revalidatePath } from "next/cache";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
-import { getCatalogItem } from "@/db/catalog";
+import { getCatalogById, getCatalogItem } from "@/db/catalog";
 import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
 import {
   abschliessenVeranstaltung,
@@ -67,6 +73,7 @@ import {
   listZeilen,
   removeZeile,
   setErhalten,
+  setVeranstaltungCatalog,
   wiedereroeffnenVeranstaltung,
 } from "@/db/veranstaltung";
 import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
@@ -83,6 +90,7 @@ import {
   removeZeileAction,
   setAuslageStatusAction,
   setStatusAction,
+  setVeranstaltungCatalogAction,
   updateAuslageAction,
 } from "./actions";
 
@@ -104,6 +112,8 @@ const ensureThekeMock = vi.mocked(ensureThekeForKasse);
 const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
 const getCatalogItemMock = vi.mocked(getCatalogItem);
+const getCatalogByIdMock = vi.mocked(getCatalogById);
+const setVeranstaltungCatalogMock = vi.mocked(setVeranstaltungCatalog);
 const adjustMengeMock = vi.mocked(adjustMenge);
 const tryAcquireMock = vi.mocked(selfServiceVerzehrRateLimiter.tryAcquire);
 const getPositionMock = vi.mocked(getPosition);
@@ -125,14 +135,29 @@ function sessionWithRoles(roles: string[]): Session {
   } as Session;
 }
 
+// Bewusst NICHT der Standard-Katalog (#346): nur so unterscheidet die Wiring-Assertion an der
+// Verzehr-Grenze zwischen „löst über veranstaltung.catalogId auf" und „nimmt weiter die
+// Konstante". Mit 'standard' als Fixture-Wert wäre sie in beiden Fällen grün.
+const KATALOG_B_ID = "kat-b";
+
 const offeneVeranstaltung: Veranstaltung = {
   id: "v1",
   typ: "veranstaltung",
   bezeichnung: "Montagsrunde",
   datum: new Date("2026-07-13"),
   kasse: "montagsrunde",
+  catalogId: KATALOG_B_ID,
   status: "offen",
   token: "tok",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const katalogB: Catalog = {
+  id: KATALOG_B_ID,
+  name: "Dorfmeisterschaften",
+  active: true,
+  sortOrder: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -151,6 +176,7 @@ const validVeranstaltung = {
   bezeichnung: "Montagsrunde",
   datum: "2026-07-13",
   kasse: "montagsrunde",
+  catalogId: KATALOG_B_ID,
 };
 
 const zeile: VeranstaltungZeile = {
@@ -170,7 +196,7 @@ const STANDARD_CATALOG_ID = "standard";
 
 const cola: CatalogItem = {
   id: "c1",
-  catalogId: STANDARD_CATALOG_ID,
+  catalogId: KATALOG_B_ID,
   name: "Cola",
   size: "",
   priceCents: 250,
@@ -215,6 +241,8 @@ beforeEach(() => {
   getTeilnehmerMock.mockResolvedValue(person);
   createTeilnehmerMock.mockResolvedValue(person);
   getCatalogItemMock.mockResolvedValue(cola);
+  getCatalogByIdMock.mockResolvedValue(katalogB);
+  setVeranstaltungCatalogMock.mockResolvedValue({ ...offeneVeranstaltung, catalogId: "kat-c" });
   createAuslageMock.mockResolvedValue(auslage);
   updateAuslageMock.mockResolvedValue(auslage);
   setAuslageStatusMock.mockResolvedValue(auslage);
@@ -268,6 +296,174 @@ describe("createVeranstaltungAction", () => {
 
     expect(result.error).toBeDefined();
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("should_persistChosenCatalog_when_catalogActive", async () => {
+    // #346 AK1: der gewählte Katalog landet an der Veranstaltung – nicht der Spalten-Default.
+    await createVeranstaltungAction(undefined, form(validVeranstaltung));
+
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ catalogId: KATALOG_B_ID }));
+  });
+
+  it("should_returnErrorAndNotPersist_when_catalogUnknown", async () => {
+    // #346 FS1: Server-Grenze, nicht nur die Optionsliste des Formulars.
+    getCatalogByIdMock.mockResolvedValue(undefined);
+
+    const result = await createVeranstaltungAction(undefined, form(validVeranstaltung));
+
+    expect(result.error).toBe("Katalog nicht gefunden.");
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_catalogInactive", async () => {
+    // #346 AK6: ein deaktivierter Katalog ist nicht neu wählbar – auch nicht per direktem Request.
+    getCatalogByIdMock.mockResolvedValue({ ...katalogB, active: false });
+
+    const result = await createVeranstaltungAction(undefined, form(validVeranstaltung));
+
+    expect(result.error).toBe("Der Katalog ist nicht aktiv.");
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_catalogIdMissing", async () => {
+    const { catalogId, ...withoutCatalog } = validVeranstaltung;
+    void catalogId;
+
+    const result = await createVeranstaltungAction(undefined, form(withoutCatalog));
+
+    expect(result.error).toBe("Bitte einen Katalog wählen.");
+    expect(createMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("setVeranstaltungCatalogAction", () => {
+  const wechsel = { id: "v1", catalogId: "kat-c" };
+
+  it("should_switchCatalog_when_noVerzehrErfasst", async () => {
+    // #346 AK3: ohne erfassten Verzehr ist der Wechsel erlaubt.
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result).toEqual({ ok: true });
+    expect(setVeranstaltungCatalogMock).toHaveBeenCalledWith("v1", "kat-c");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/verzehr");
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    // #346 AK8: das Rollen-Gate greift serverseitig, unabhängig von der UI.
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+
+    await expect(setVeranstaltungCatalogAction(undefined, form(wechsel))).rejects.toThrow(
+      ForbiddenError,
+    );
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_verzehrBereitsErfasst", async () => {
+    // #346 AK4/FS2: die Sperre wird zum Zeitpunkt der Action geprüft, nicht beim Rendern.
+    listPositionenMock.mockResolvedValue([
+      {
+        zeileId: "z1",
+        catalogItemId: "c1",
+        menge: 1,
+        name: "Cola",
+        size: "",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
+    ]);
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result.error).toBe(
+      "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
+    );
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_switchCatalog_when_positionExistsButMengeZero", async () => {
+    // #346 AK4, zweite Hälfte: eine auf 0 zurückgesetzte Position ist KEIN erfasster Verzehr –
+    // eine reine Zeilen-Existenz-Prüfung auf verzehr_position würde hier falsch sperren.
+    listPositionenMock.mockResolvedValue([
+      {
+        zeileId: "z1",
+        catalogItemId: "c1",
+        menge: 0,
+        name: "Cola",
+        size: "",
+        priceCents: 250,
+        category: "getraenk",
+        active: true,
+      },
+    ]);
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result).toEqual({ ok: true });
+    expect(setVeranstaltungCatalogMock).toHaveBeenCalledWith("v1", "kat-c");
+  });
+
+  it("should_returnErrorAndNotPersist_when_veranstaltungNotFound", async () => {
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_veranstaltungAbgeschlossen", async () => {
+    // #346 AK5: abgeschlossene Veranstaltungen bleiben unveränderlich.
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_zielKatalogUnknown", async () => {
+    getCatalogByIdMock.mockResolvedValue(undefined);
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result.error).toBe("Katalog nicht gefunden.");
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_zielKatalogInactive", async () => {
+    // #346 AK6/FS1: deaktivierter Zielkatalog wird serverseitig abgelehnt.
+    getCatalogByIdMock.mockResolvedValue({ ...katalogB, active: false });
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result.error).toBe("Der Katalog ist nicht aktiv.");
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_idMissing", async () => {
+    const result = await setVeranstaltungCatalogAction(undefined, form({ catalogId: "kat-c" }));
+
+    expect(result.error).toBe("Keine Veranstaltung angegeben.");
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_catalogIdMissing", async () => {
+    const result = await setVeranstaltungCatalogAction(undefined, form({ id: "v1" }));
+
+    expect(result.error).toBe("Bitte einen Katalog wählen.");
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_guardedUpdateMatchedNoRow", async () => {
+    // #346 FS2/FS4: der guarded UPDATE meldet den nebenläufigen Abschluss über `undefined` –
+    // ohne Auswertung meldete die Action Erfolg für einen Schreibvorgang, der nie stattfand.
+    setVeranstaltungCatalogMock.mockResolvedValue(undefined);
+
+    const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
   });
 });
 
@@ -749,12 +945,14 @@ describe("adjustVerzehrAction", () => {
     expect(adjustMengeMock).not.toHaveBeenCalled();
   });
 
-  it("should_resolveItemInStandardCatalog_when_verzehrAdjusted", async () => {
-    // AK8/ADR-050 D4: die Verzehr-Grenze löst den Artikel bis #346 im Standard-Katalog auf.
-    // Ohne diese Wiring-Assertion bliebe ein `undefined` als Katalogbezug im Mock unauffällig.
+  it("should_resolveItemInCatalogOfVeranstaltung_when_verzehrAdjusted", async () => {
+    // #346 AK2/FS3 (ADR-050-Nachtrag zu D3): die Verzehr-Grenze löst den Artikel im Katalog
+    // DIESER Veranstaltung auf, nicht mehr über die Konstante. Der Fixture-Katalog ist bewusst
+    // nicht 'standard' – sonst wäre die Assertion vor wie nach der Umstellung grün.
     await boundAction(validAdjust);
 
-    expect(getCatalogItemMock).toHaveBeenCalledWith("c1", STANDARD_CATALOG_ID);
+    expect(getCatalogItemMock).toHaveBeenCalledWith("c1", KATALOG_B_ID);
+    expect(getCatalogItemMock).not.toHaveBeenCalledWith("c1", STANDARD_CATALOG_ID);
   });
 
   it("should_returnErrorAndNotPersist_when_catalogItemMissing", async () => {
@@ -859,6 +1057,22 @@ describe("adjustVerzehrByTokenAction", () => {
 
     expect(result.error).toBeDefined();
     expect(adjustMengeMock).not.toHaveBeenCalled();
+  });
+
+  it("should_resolveItemInStandardCatalog_when_thekeAdjusted", async () => {
+    // #346 AK7: die Theke bekommt keine eigene Auswahl und trägt den Spalten-Default – die
+    // gemeinsame Verzehr-Grenze löst für sie deshalb weiter im Standard-Katalog auf. Die
+    // Umstellung auf `veranstaltung.catalogId` ändert das Theken-Verhalten nicht.
+    getVeranstaltungByTokenMock.mockResolvedValue({
+      ...offeneVeranstaltung,
+      typ: "theke",
+      datum: null,
+      catalogId: STANDARD_CATALOG_ID,
+    });
+
+    await boundAction(validAdjust);
+
+    expect(getCatalogItemMock).toHaveBeenCalledWith("c1", STANDARD_CATALOG_ID);
   });
 
   it("should_rejectAndNotPersist_when_veranstaltungClosed", async () => {

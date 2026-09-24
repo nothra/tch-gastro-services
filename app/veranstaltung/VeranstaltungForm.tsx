@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { KASSEN } from "@/db/schema";
+import { KASSEN, STANDARD_CATALOG_ID, type Catalog } from "@/db/schema";
 import { createVeranstaltungAction } from "./actions";
 import { KASSE_LABEL } from "./labels";
 
@@ -9,8 +9,17 @@ const inputClass = "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-70
 
 // Anlege-Formular für eine datierte Veranstaltung. Bei Erfolg leert `key` die Felder für
 // die nächste Anlage; bei Fehlern bleibt die Eingabe stehen.
-export function VeranstaltungForm() {
+// `kataloge` sind die bereits auf `active` gefilterten Preislisten (#346 AK1/AK6) – die Seite
+// filtert, das Formular zeigt nur. Die Auswahl ist Bedien-Komfort; die Action prüft Existenz und
+// Aktiv-Status serverseitig erneut (FS1).
+export function VeranstaltungForm({ kataloge }: { kataloge: Catalog[] }) {
   const [state, formAction, pending] = useActionState(createVeranstaltungAction, undefined);
+  // Vorbelegung ist der Standard-Katalog – der Regelfall kostet damit keinen Klick (AK1). Ist er
+  // deaktiviert, fehlt er in `kataloge`; dann fällt die Vorbelegung auf die erste angebotene
+  // Option zurück, statt eine nicht wählbare Id an die Action zu schicken.
+  const vorbelegung = kataloge.some((katalog) => katalog.id === STANDARD_CATALOG_ID)
+    ? STANDARD_CATALOG_ID
+    : kataloge[0]?.id;
   return (
     <form
       key={state?.ok ? "reset" : "edit"}
@@ -33,6 +42,16 @@ export function VeranstaltungForm() {
             {KASSEN.map((kasse) => (
               <option key={kasse} value={kasse}>
                 {KASSE_LABEL[kasse]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Katalog
+          <select name="catalogId" defaultValue={vorbelegung} className={inputClass}>
+            {kataloge.map((katalog) => (
+              <option key={katalog.id} value={katalog.id}>
+                {katalog.name}
               </option>
             ))}
           </select>

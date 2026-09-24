@@ -5,10 +5,12 @@ import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveTeilnehmer } from "@/db/teilnehmer";
+import { listCatalogs } from "@/db/catalog";
 import { AddTeilnehmerForm } from "../AddTeilnehmerForm";
 import { WalkInForm } from "../WalkInForm";
 import { ZeileRow } from "../ZeileRow";
 import { StatusToggle } from "../StatusToggle";
+import { KatalogWechsel } from "../KatalogWechsel";
 import { ZugangTeilen } from "./ZugangTeilen";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
 import type { BerichtFormat, BerichtUmfang } from "../berichtDateiname";
@@ -81,6 +83,11 @@ export default async function VeranstaltungDetailPage({
   const bereitsErfasst = new Set(zeilen.map((zeile) => zeile.teilnehmerId));
   const verfuegbar = (await listActiveTeilnehmer()).filter((t) => !bereitsErfasst.has(t.id));
   const offen = veranstaltung.status === "offen";
+  // Wechselziele sind nur aktive Kataloge (#346 AK6) – dieselbe Filterung wie bei der Anlage.
+  // Ob der Wechsel im konkreten Fall noch erlaubt ist (kein Verzehr erfasst, AK4), entscheidet
+  // bewusst die Action und nicht diese Ansicht: der Zustand kann sich zwischen Rendern und
+  // Absenden ändern (FS2), und die Meldung gehört an die Server-Grenze.
+  const aktiveKataloge = offen ? (await listCatalogs()).filter((katalog) => katalog.active) : [];
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
@@ -101,6 +108,14 @@ export default async function VeranstaltungDetailPage({
       </div>
 
       <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
+
+      {offen && (
+        <KatalogWechsel
+          id={veranstaltung.id}
+          catalogId={veranstaltung.catalogId}
+          kataloge={aktiveKataloge}
+        />
+      )}
 
       {!offen && (
         <section className="flex flex-col gap-3">

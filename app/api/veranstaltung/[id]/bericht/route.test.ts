@@ -45,6 +45,9 @@ const abgeschlossen: Veranstaltung = {
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
   kasse: "montagsrunde",
+  // #346: Pflichtfeld der Entität. Der Bericht liest es nicht – er rechnet auf den beim
+  // Abschluss eingefrorenen Einzelpreisen der Positionen (ADR-033 D2), nicht auf dem Katalog.
+  catalogId: "standard",
   status: "abgeschlossen",
   token: "abc123",
   createdAt: new Date(),

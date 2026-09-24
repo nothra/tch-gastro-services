@@ -18,7 +18,16 @@ import {
 
 const THEKE_BEZEICHNUNG = "Stehende Theke";
 
-export type VeranstaltungData = { bezeichnung: string; datum: Date; kasse: Kasse };
+// `catalogId` ist Pflichtfeld ohne Default (#346, ADR-050-Nachtrag zu D3): der Spalten-DEFAULT
+// in der DB fängt nur die Theke und bestehende Zeilen ab – eine datierte Veranstaltung wird
+// immer mit einem bewusst gewählten Katalog angelegt, und der Compiler meldet jede Aufrufstelle,
+// die das vergisst (dieselbe Begründung wie ADR-050 D4 für die Katalog-Data-Layer).
+export type VeranstaltungData = {
+  bezeichnung: string;
+  datum: Date;
+  kasse: Kasse;
+  catalogId: string;
+};
 
 export async function createVeranstaltung(data: VeranstaltungData): Promise<Veranstaltung> {
   const [created] = await db.insert(veranstaltung).values(data).returning();
@@ -62,10 +71,30 @@ export async function getThekeForKasse(kasse: Kasse): Promise<Veranstaltung | un
   return row;
 }
 
+// Wechselt die Preisliste einer Veranstaltung (F4, #346, spec-346 AK3). Guarded UPDATE
+// (`WHERE status = 'offen'`, Kern-Kurzregel „guarded UPDATE"): eine abgeschlossene Veranstaltung
+// bleibt unveränderlich (AK5, ADR-033 D2) und eine unbekannte Id trifft keine Zeile – beides
+// liefert `undefined` statt eines stillen Erfolgs (FS4), den die Action auswertet. Die fachlichen
+// Vorbedingungen (Zielkatalog aktiv, noch kein Verzehr erfasst) prüft die Action: die Data-Layer
+// bleibt rollen- und regel-neutral wie der Rest dieser Datei.
+export async function setVeranstaltungCatalog(
+  veranstaltungId: string,
+  catalogId: string,
+): Promise<Veranstaltung | undefined> {
+  const [updated] = await db
+    .update(veranstaltung)
+    .set({ catalogId, updatedAt: new Date() })
+    .where(and(eq(veranstaltung.id, veranstaltungId), eq(veranstaltung.status, "offen")))
+    .returning();
+  return updated;
+}
+
 // Provisioniert die stehende Theke idempotent (ADR-023 D3): existiert bereits eine für die
 // Kasse, wird sie zurückgegeben; sonst neu angelegt. Der Partial-Unique-Index
 // `veranstaltung_eine_theke_je_kasse` ist die DB-seitige Idempotenz-Garantie (genau eine
-// Theke je Kasse), auch bei nebenläufigem Aufruf.
+// Theke je Kasse), auch bei nebenläufigem Aufruf. Setzt bewusst KEIN `catalogId` (spec-346 AK7):
+// die Theke hat keine eigene Katalogauswahl und bleibt über den Spalten-DEFAULT am
+// Standard-Katalog – verhaltensneutral gegenüber dem Stand vor #346.
 export async function ensureThekeForKasse(kasse: Kasse): Promise<Veranstaltung> {
   const existing = await getThekeForKasse(kasse);
   if (existing) return existing;

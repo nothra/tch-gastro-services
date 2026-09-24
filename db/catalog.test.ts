@@ -47,6 +47,11 @@ const createdCatalogs: string[] = [];
 // er lautlos: die Migration seedet 'standard', der Code fragt etwas anderes ab, und jede
 // Katalog-Abfrage liefert leere Listen statt eines Fehlers.
 const MIGRATION_FILE = "db/migrations/0012_catalog_als_entitaet.sql";
+// Dritte Fundstelle desselben Literals seit #346: der SQL-`DEFAULT` der Spalte
+// `veranstaltung.catalog_id`. Driftet er von der Konstante ab, zeigt der Spalten-Default auf
+// einen Katalog, den es nicht gibt – der FK lehnt dann jede Veranstaltungs-Anlage ohne
+// explizite Katalogwahl ab (Theke!), statt lautlos leere Listen zu liefern wie bei 0012.
+const VERANSTALTUNG_MIGRATION_FILE = "db/migrations/0013_katalog_je_veranstaltung.sql";
 const STATEMENT_SEPARATOR = "--> statement-breakpoint";
 
 // SQL-Anweisungen der Migration ohne Kommentarzeilen. Wirft absichtlich, wenn die Quelle fehlt
@@ -84,6 +89,14 @@ describe("Standard-Katalog-Key: Konstante gegen Seed-Migration (ADR-050 D3)", ()
   it("should_backfillWithConstant_when_migrationAssignsExistingItems", () => {
     expect(statementStartingWith('UPDATE "catalog_item"')).toBe(
       `UPDATE "catalog_item" SET "catalog_id" = '${STANDARD_CATALOG_ID}' WHERE "catalog_id" IS NULL;`,
+    );
+  });
+
+  it("should_defaultToConstant_when_migrationAddsVeranstaltungCatalogColumn", () => {
+    expect(
+      statementStartingWith('ALTER TABLE "veranstaltung" ADD COLUMN', VERANSTALTUNG_MIGRATION_FILE),
+    ).toBe(
+      `ALTER TABLE "veranstaltung" ADD COLUMN "catalog_id" text DEFAULT '${STANDARD_CATALOG_ID}' NOT NULL;`,
     );
   });
 

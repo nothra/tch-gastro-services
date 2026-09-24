@@ -17,12 +17,12 @@ import {
 // so findet der Compiler in #346 jede Aufrufstelle, die auf den Veranstaltungs-Katalog
 // umzustellen ist. Ein Default-Wert würde genau diese Prüfung ausschalten.
 
-// Stabiler Text-Key des von der Migration geseedeten Standard-Katalogs (ADR-050 D3).
-// Der Key kodiert den Namen bewusst NICHT – ein Umbenennen des Katalogs ist damit
-// folgenlos (spec-59 AK5). Übergangsmechanik: fällt mit #346 aus den Aufrufpfaden.
-// Das Literal liegt zusätzlich in der Seed-Migration; ein Drift-Guard in catalog.test.ts
-// hält beide gegeneinander.
-export const STANDARD_CATALOG_ID = "standard";
+// Stabiler Text-Key des geseedeten Standard-Katalogs (ADR-050 D3). Deklariert in db/schema.ts,
+// weil der SQL-`DEFAULT` von `veranstaltung.catalog_id` ihn zur Schema-Definitionszeit braucht
+// (#346); hier re-exportiert, damit der etablierte Importpfad `@/db/catalog` gültig bleibt.
+// Seit #346 ist die Konstante aus den Lesepfaden der datierten Veranstaltung verschwunden
+// (ADR-050-Nachtrag zu D3) und trägt nur noch Seed, Spalten-Default und die Theke.
+export { STANDARD_CATALOG_ID } from "./schema";
 
 const catalogOrder = [asc(catalogItems.sortOrder), asc(catalogItems.name), asc(catalogItems.size)];
 

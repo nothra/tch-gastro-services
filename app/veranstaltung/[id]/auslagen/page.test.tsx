@@ -54,6 +54,9 @@ const aVeranstaltung: Veranstaltung = {
   typ: "veranstaltung",
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
+  // #346: Pflichtfeld der Entität. Die Auslagen-Ansicht liest es nicht – Auslagen sind
+  // katalog-unabhängig (freier Betrag, keine Artikelbindung).
+  catalogId: "standard",
   kasse: "montagsrunde",
   status: "offen",
   token: "abc123",

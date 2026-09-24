@@ -88,6 +88,9 @@ const aVeranstaltung: Veranstaltung = {
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
   kasse: "montagsrunde",
+  // #346: Pflichtfeld der Entität. Das Kassieren liest es nicht – es rechnet auf den bereits
+  // erfassten Positionen, nicht auf dem Katalog.
+  catalogId: "standard",
   status: "offen",
   token: "abc123",
   createdAt: new Date(),

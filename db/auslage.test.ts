@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { db } from "./index";
 import { auslage, teilnehmer, veranstaltung } from "./schema";
+import { STANDARD_CATALOG_ID } from "./catalog";
 import { createTeilnehmer } from "./teilnehmer";
 import { addZeile, createVeranstaltung, removeZeile } from "./veranstaltung";
 import {
@@ -27,6 +28,9 @@ async function trackVeranstaltung() {
     bezeichnung: `${TEST_PREFIX}Montagsrunde`,
     datum: new Date("2026-07-13"),
     kasse: "montagsrunde",
+    // #346: `catalogId` ist Pflicht in `VeranstaltungData`. Auslagen sind katalog-unabhängig
+    // (freier Betrag, keine Artikelbindung) – der Standard-Katalog ist hier reine Pflichtangabe.
+    catalogId: STANDARD_CATALOG_ID,
   });
   createdVeranstaltungen.push(row.id);
   return row;

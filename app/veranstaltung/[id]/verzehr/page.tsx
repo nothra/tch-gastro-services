@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
-import { STANDARD_CATALOG_ID, listActiveCatalog } from "@/db/catalog";
+import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { FokusListe } from "@/app/_verzehr/FokusListe";
 import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrErfassung";
@@ -48,9 +48,12 @@ export default async function VerzehrPage({
 
   const [zeilen, artikel, positionen] = await Promise.all([
     listZeilen(id),
-    // Preisquelle ist bis #346 immer der Standard-Katalog (ADR-050 D3) – die Auswahl bleibt
-    // damit unverändert (spec-59 AK8).
-    listActiveCatalog(STANDARD_CATALOG_ID),
+    // Preisquelle ist seit #346 der Katalog DIESER Veranstaltung (ADR-050-Nachtrag zu D3):
+    // Auswahl und Preise der Erfassung folgen der bei der Anlage getroffenen Wahl (AK2), und ein
+    // Katalogwechsel schlägt hier sofort durch (AK3). Ein danach deaktivierter Katalog bleibt für
+    // die bereits zugeordnete Veranstaltung nutzbar – `listActiveCatalog` filtert nur
+    // `catalog_item.active`, nicht den Katalog selbst (AK6, ADR-050 D7).
+    listActiveCatalog(veranstaltung.catalogId),
     listPositionen(id),
   ]);
   const offen = veranstaltung.status === "offen";

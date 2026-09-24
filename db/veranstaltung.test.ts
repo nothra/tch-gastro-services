@@ -19,6 +19,7 @@ import {
   listZeilen,
   removeZeile,
   setErhalten,
+  setVeranstaltungCatalog,
   wiedereroeffnenVeranstaltung,
   type VeranstaltungData,
 } from "./veranstaltung";
@@ -76,6 +77,7 @@ function datierte(overrides: Partial<VeranstaltungData> = {}): VeranstaltungData
     bezeichnung: `${TEST_PREFIX}Montagsrunde`,
     datum: new Date("2026-07-13"),
     kasse: "montagsrunde",
+    catalogId: STANDARD_CATALOG_ID,
     ...overrides,
   };
 }
@@ -121,6 +123,22 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     expect(row.typ).toBe("veranstaltung");
     expect(row.status).toBe("offen");
     expect(row.token).toBeTruthy();
+  });
+
+  it("should_useGivenCatalog_when_created", async () => {
+    // #346 AK1 auf Data-Layer-Ebene: der Katalog kommt aus den Anlage-Daten, nicht aus dem
+    // Spalten-Default. Ohne Durchreichen liefe jede Veranstaltung weiter auf 'standard'.
+    const eigener = await trackCatalog("AK1-Anlagekatalog");
+    const row = await trackVeranstaltung(datierte({ catalogId: eigener.id }));
+    expect(row.catalogId).toBe(eigener.id);
+  });
+
+  it("should_useStandardCatalog_when_thekeProvisioned", async () => {
+    // #346 AK7: die Theke bekommt keine eigene Auswahl – sie fällt auf den Spalten-DEFAULT
+    // 'standard' zurück, weil `ensureThekeForKasse` `catalogId` bewusst nicht setzt.
+    const theke = await ensureThekeForKasse("vereinskasse");
+    createdVeranstaltungen.push(theke.id);
+    expect(theke.catalogId).toBe(STANDARD_CATALOG_ID);
   });
 
   it("should_returnCreatedVeranstaltung_when_getById", async () => {
@@ -314,6 +332,38 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     expect(updated).toBeUndefined();
     const [unchanged] = await listZeilen(fremde.id);
     expect(unchanged.erhaltenCents).toBeNull();
+  });
+
+  it("should_switchCatalog_when_veranstaltungOffen", async () => {
+    // #346 AK3 auf Data-Layer-Ebene. Die fachlichen Vorbedingungen (aktiver Zielkatalog, noch
+    // kein Verzehr) prüft die Action – hier zählt nur, dass der guarded UPDATE schreibt.
+    const ziel = await trackCatalog("AK3-Zielkatalog");
+    const v = await trackVeranstaltung(datierte());
+
+    const updated = await setVeranstaltungCatalog(v.id, ziel.id);
+
+    expect(updated?.catalogId).toBe(ziel.id);
+    expect((await getVeranstaltung(v.id))?.catalogId).toBe(ziel.id);
+  });
+
+  it("should_returnUndefined_when_switchCatalogOnAbgeschlossen", async () => {
+    // #346 AK5: eine abgeschlossene Veranstaltung ist schreibgeschützt. Der guarded UPDATE
+    // (`WHERE status = 'offen'`) trifft keine Zeile → `undefined` statt stillem Erfolg.
+    const ziel = await trackCatalog("AK5-Zielkatalog");
+    const v = await trackVeranstaltung(datierte());
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+
+    const updated = await setVeranstaltungCatalog(v.id, ziel.id);
+
+    expect(updated).toBeUndefined();
+    expect((await getVeranstaltung(v.id))?.catalogId).toBe(STANDARD_CATALOG_ID);
+  });
+
+  it("should_returnUndefined_when_switchCatalogOnUnknownVeranstaltung", async () => {
+    // #346 FS4: unbekannte Veranstaltungs-Id meldet No-Match, nicht stillen Erfolg.
+    expect(
+      await setVeranstaltungCatalog("__does_not_exist__", STANDARD_CATALOG_ID),
+    ).toBeUndefined();
   });
 
   it("should_freezePriceAndLogEvent_when_abschliessen", async () => {

@@ -1,7 +1,7 @@
 # Task 346: katalog-je-veranstaltung
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -17,14 +17,14 @@ Abgrenzung: [spec-346](../docs/specs/spec-346-katalog-je-veranstaltung.md).
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 – Katalog bei Anlage wählbar (nur aktive Kataloge, Standard vorbelegt)
-- [ ] AK2 – Gewählter Katalog bestimmt den Preis (live + Freeze)
-- [ ] AK3 – Katalogwechsel möglich, solange kein Verzehr (`menge > 0`) erfasst ist
-- [ ] AK4 – Katalogwechsel mit bereits erfasstem Verzehr wird serverseitig abgelehnt
-- [ ] AK5 – Abgeschlossene Veranstaltung bleibt unveränderlich (Regressions-AK, ADR-033 D2)
-- [ ] AK6 – Deaktivierter Katalog nicht neu wählbar, bestehende Zuordnung bleibt gültig
-- [ ] AK7 – Theke bleibt unverändert am Standard-Katalog (kein eigener Katalog in dieser Slice)
-- [ ] AK8 – Rollen-Gate (`requireRole("veranstalter")`) greift serverseitig für den Wechsel
+- [x] AK1 – Katalog bei Anlage wählbar (nur aktive Kataloge, Standard vorbelegt)
+- [x] AK2 – Gewählter Katalog bestimmt den Preis (live + Freeze)
+- [x] AK3 – Katalogwechsel möglich, solange kein Verzehr (`menge > 0`) erfasst ist
+- [x] AK4 – Katalogwechsel mit bereits erfasstem Verzehr wird serverseitig abgelehnt
+- [x] AK5 – Abgeschlossene Veranstaltung bleibt unveränderlich (Regressions-AK, ADR-033 D2)
+- [x] AK6 – Deaktivierter Katalog nicht neu wählbar, bestehende Zuordnung bleibt gültig
+- [x] AK7 – Theke bleibt unverändert am Standard-Katalog (kein eigener Katalog in dieser Slice)
+- [x] AK8 – Rollen-Gate (`requireRole("veranstalter")`) greift serverseitig für den Wechsel
 
 Vollständige GIVEN-WHEN-THEN-Formulierungen und Fehlerszenarien (FS1–FS4):
 [spec-346](../docs/specs/spec-346-katalog-je-veranstaltung.md).
@@ -60,6 +60,46 @@ entschieden). Stattdessen Nachtrag an
   Dropdown-Optionsliste.
 - `VeranstaltungForm.tsx` braucht die Liste aktiver Kataloge als Prop aus
   `app/veranstaltung/page.tsx` (`listCatalogs()` gefiltert auf `active`, analog #345).
+
+### Umsetzungs-Notizen /implement (2026-09-24)
+
+- **Typecheck-Gate-Lücke (Lesson #137) hat zugeschlagen.** Lint und `pnpm test` waren grün,
+  während `tsc --noEmit` fünf Fehler meldete: `catalogId` ist Pflichtfeld von `Veranstaltung`
+  bzw. `VeranstaltungData`, und fünf Fixtures kannten es noch nicht
+  (`app/api/veranstaltung/[id]/bericht/route.test.ts`,
+  `app/veranstaltung/[id]/auslagen/page.test.tsx`,
+  `app/veranstaltung/[id]/kassieren/page.test.tsx`, `db/auslage.test.ts`, `db/verzehr.test.ts`).
+  Ergänzt – jeweils mit einer Zeile Begründung, warum der Wert für den jeweiligen Test
+  fachlich neutral ist (Bericht rechnet auf eingefrorenen Preisen, Auslagen sind
+  katalog-unabhängig, Kassieren rechnet auf erfassten Positionen).
+- **Migration gegen die echte, befüllte DB verifiziert:** `pnpm db:migrate` läuft in einem
+  Schritt durch und bestätigt damit die Annahme aus den Technischen Notizen (echter
+  SQL-`DEFAULT` statt nullable→backfill→NOT-NULL-Expand). Danach alle 95 DB-Integrationstests
+  aus `db/veranstaltung|catalog|verzehr|auslage.test.ts` mit gesetzter `DATABASE_URL` grün –
+  im normalen `pnpm test`-Lauf sind sie mangels `DATABASE_URL` übersprungen.
+
+### Oberflächen-Verifikation (Schritt 4, nicht in den pre-push-Gates verankert)
+
+Gegen den lokal gestarteten Dev-Server mit einem **Wegwerf**-Playwright-Spec durchgespielt
+(bewusst nicht committet: er legt Daten an, analog zur Begründung des flag-gegateten
+`e2e/anleitung-veranstalter.spec.ts`). Abgedeckt und grün:
+
+- **AK1** – Veranstaltung über das Formular mit einem zweiten, nicht vorbelegten Katalog
+  angelegt; die Detailseite trägt exakt dessen Id im Wechsel-Select.
+- **AK2** – die Verzehrerfassung dieser Veranstaltung zeigt den nur in Katalog B existierenden
+  Artikel mit dessen Preis.
+- **AK3** – Wechsel auf den Standard-Katalog ohne erfassten Verzehr wird übernommen und
+  schlägt sofort in der Erfassung durch (Artikel aus Katalog B verschwindet).
+- **AK4** – nach einer Position mit `menge > 0` lehnt die Action den Wechsel mit der
+  erwarteten Meldung ab.
+- **AK6** – ein deaktivierter Katalog verschwindet aus der Auswahlliste des Anlage-Formulars.
+
+Der bestehende `pnpm test:e2e`-Lauf bleibt unverändert grün (8 bestanden, 3 vorbestehend per
+Env-Flag übersprungen) – das neue Pflichtfeld bricht den bisherigen Anlage-Weg nicht.
+
+Nicht über den Browser, sondern nur über Tests abgedeckt: **AK5** (Preis-Freeze-Regression,
+bestehende Mechanik) und **AK8** (Rollen-Gate) – beide brauchen einen Rollen-/Abschluss-Zustand,
+den der Seed-Admin nicht hergibt (er trägt beide Rollen).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

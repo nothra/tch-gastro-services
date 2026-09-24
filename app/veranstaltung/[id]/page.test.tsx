@@ -5,6 +5,7 @@ import type { Veranstaltung } from "@/db/schema";
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/veranstaltung", () => ({ getVeranstaltung: vi.fn(), listZeilen: vi.fn() }));
 vi.mock("@/db/teilnehmer", () => ({ listActiveTeilnehmer: vi.fn() }));
+vi.mock("@/db/catalog", () => ({ listCatalogs: vi.fn() }));
 
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -32,6 +33,15 @@ vi.mock("next/link", () => ({
 vi.mock("../AddTeilnehmerForm", () => ({ AddTeilnehmerForm: () => null }));
 vi.mock("../WalkInForm", () => ({ WalkInForm: () => null }));
 vi.mock("../StatusToggle", () => ({ StatusToggle: () => null }));
+// Der Katalogwechsel hat eigene Tests; hier zählt nur, OB die Seite ihn zeigt und mit welchen
+// Daten – deshalb ein Stub, der seine Props sichtbar macht statt sie zu verschlucken.
+vi.mock("../KatalogWechsel", () => ({
+  KatalogWechsel: ({ catalogId, kataloge }: { catalogId: string; kataloge: { id: string }[] }) => (
+    <div data-testid="katalog-wechsel" data-catalog-id={catalogId}>
+      {kataloge.map((k) => k.id).join(",")}
+    </div>
+  ),
+}));
 vi.mock("./ZugangTeilen", () => ({
   ZugangTeilen: ({ token }: { token: string }) => <div data-testid="zugang-teilen">{token}</div>,
 }));
@@ -42,13 +52,15 @@ vi.mock("../ZeileRow", () => ({
 import { auth } from "@/auth";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveTeilnehmer } from "@/db/teilnehmer";
-import type { VeranstaltungZeile } from "@/db/schema";
+import { listCatalogs } from "@/db/catalog";
+import type { Catalog, VeranstaltungZeile } from "@/db/schema";
 import VeranstaltungDetailPage from "./page";
 
 const authMock = vi.mocked(auth);
 const getVeranstaltungMock = vi.mocked(getVeranstaltung);
 const listZeilenMock = vi.mocked(listZeilen);
 const listActiveTeilnehmerMock = vi.mocked(listActiveTeilnehmer);
+const listCatalogsMock = vi.mocked(listCatalogs);
 
 function session(roles: string[]) {
   return { user: { roles }, expires: "" } as never;
@@ -60,11 +72,23 @@ const aVeranstaltung: Veranstaltung = {
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
   kasse: "montagsrunde",
+  catalogId: "kat-b",
   status: "offen",
   token: "abc123",
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+function katalog(id: string, name: string, active = true): Catalog {
+  return {
+    id,
+    name,
+    active,
+    sortOrder: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
 
 function params(id: string) {
   return Promise.resolve({ id });
@@ -72,6 +96,7 @@ function params(id: string) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  listCatalogsMock.mockResolvedValue([katalog("kat-b", "Dorfmeisterschaften")]);
 });
 
 describe("VeranstaltungDetailPage", () => {
@@ -141,6 +166,49 @@ describe("VeranstaltungDetailPage", () => {
 
     // Der Selbstbedienungs-Zugang (Link + QR) wird mit dem Veranstaltungs-Token gespeist (F7).
     expect(screen.getByTestId("zugang-teilen")).toHaveTextContent("abc123");
+  });
+
+  it("should_showKatalogWechselWithCurrentAndActiveKataloge_when_veranstaltungOffen", async () => {
+    // #346 AK3: solange die Veranstaltung offen ist, bietet die Detailseite den Wechsel an –
+    // vorbelegt mit dem aktuell zugeordneten Katalog.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.getByTestId("katalog-wechsel")).toHaveAttribute("data-catalog-id", "kat-b");
+  });
+
+  it("should_passOnlyActiveKatalogeToKatalogWechsel_when_veranstaltungOffen", async () => {
+    // #346 AK6, erste Hälfte: ein deaktivierter Katalog ist kein Wechselziel.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+    listCatalogsMock.mockResolvedValue([
+      katalog("kat-b", "Dorfmeisterschaften"),
+      katalog("kat-alt", "Sommerfest 2024", false),
+    ]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.getByTestId("katalog-wechsel")).toHaveTextContent("kat-b");
+    expect(screen.getByTestId("katalog-wechsel")).not.toHaveTextContent("kat-alt");
+  });
+
+  it("should_hideKatalogWechsel_when_veranstaltungAbgeschlossen", async () => {
+    // #346 AK5: eine abgeschlossene Veranstaltung bleibt unveränderlich – der Wechsel-Weg
+    // verschwindet (die Action lehnt ihn zusätzlich serverseitig ab).
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.queryByTestId("katalog-wechsel")).not.toBeInTheDocument();
   });
 
   it("should_hideZugangTeilen_when_veranstaltungAbgeschlossen", async () => {

@@ -5,7 +5,7 @@ import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
-import { STANDARD_CATALOG_ID, getCatalogItem } from "@/db/catalog";
+import { getCatalogById, getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
 import { KASSEN, veranstaltungStatus, type Kasse, type Veranstaltung } from "@/db/schema";
 import {
@@ -20,6 +20,7 @@ import {
   listZeilen,
   removeZeile,
   setErhalten,
+  setVeranstaltungCatalog,
   wiedereroeffnenVeranstaltung,
 } from "@/db/veranstaltung";
 import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
@@ -30,6 +31,7 @@ import {
   auslageSchema,
   auslageStatusSchema,
   kassiereSchema,
+  katalogWechselSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
 } from "./schema";
@@ -50,6 +52,10 @@ const TEILNEHMER_NOT_IN_VERANSTALTUNG = "Teilnehmer gehört nicht zu dieser Vera
 const TEILNEHMER_INACTIVE = "Teilnehmer nicht gefunden.";
 const AUSLAGE_NOT_FOUND = "Auslage nicht gefunden.";
 const TOO_MANY_REQUESTS = "Zu viele Anfragen – bitte kurz warten.";
+const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
+const CATALOG_INACTIVE = "Der Katalog ist nicht aktiv.";
+const VERZEHR_BEREITS_ERFASST =
+  "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
@@ -63,6 +69,18 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+// Serverseitige Durchsetzung der Katalogwahl (#346 FS1/AK6): eine Katalog-Id aus FormData ist
+// client-gesteuert, die Dropdown-Optionsliste also keine Grenze. Ein unbekannter oder
+// deaktivierter Katalog wird hier abgelehnt – dieselbe Prüfung für Anlage und Wechsel, damit
+// beide Wege nicht auseinanderlaufen. Gibt die Fehlermeldung zurück bzw. `undefined` bei OK
+// (Muster von `assertTeilnehmerInVeranstaltung` unten).
+async function assertKatalogWaehlbar(catalogId: string): Promise<string | undefined> {
+  const katalog = await getCatalogById(catalogId);
+  if (!katalog) return CATALOG_NOT_FOUND;
+  if (!katalog.active) return CATALOG_INACTIVE;
+  return undefined;
+}
+
 export async function createVeranstaltungAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
@@ -71,8 +89,52 @@ export async function createVeranstaltungAction(
   const parsed = veranstaltungSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
+  const katalogError = await assertKatalogWaehlbar(parsed.data.catalogId);
+  if (katalogError) return { error: katalogError };
+
   await createVeranstaltung(parsed.data);
   revalidatePath(LIST_PATH);
+  return { ok: true };
+}
+
+// Wechselt die Preisliste einer noch offenen Veranstaltung (F4, #346 AK3). Fail-closed in dieser
+// Reihenfolge: Veranstalter-Rolle (AK8) → Veranstaltung existiert & ist offen (AK5) → Zielkatalog
+// wählbar (AK6/FS1) → noch kein Verzehr erfasst (AK4) → guarded UPDATE. Die Verzehr-Sperre prüft
+// `menge > 0` statt bloßer Zeilen-Existenz: eine auf 0 zurückgesetzte Position (Strich hoch, dann
+// wieder runter) ist kein tatsächlicher Verzehr – konsistent mit der `menge > 0`-Filterung in
+// `verzehrPositionen`. Sie läuft zum Zeitpunkt der Action, nicht beim Rendern, und greift damit
+// auch im Race (FS2).
+export async function setVeranstaltungCatalogAction(
+  _prevState: VeranstaltungFormState | undefined,
+  formData: FormData,
+): Promise<VeranstaltungFormState> {
+  await requireRole("veranstalter");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Keine Veranstaltung angegeben." };
+
+  const parsed = katalogWechselSchema.safeParse({ catalogId: formData.get("catalogId") ?? "" });
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const ziel = await getVeranstaltung(id);
+  if (!ziel) return { error: NOT_FOUND };
+  if (ziel.status !== "offen") return { error: NOT_OFFEN };
+
+  const katalogError = await assertKatalogWaehlbar(parsed.data.catalogId);
+  if (katalogError) return { error: katalogError };
+
+  const positionen = await listPositionen(id);
+  if (positionen.some((position) => position.menge > 0)) {
+    return { error: VERZEHR_BEREITS_ERFASST };
+  }
+
+  // Guarded UPDATE (`WHERE status = 'offen'`): `undefined` heißt, dass eine nebenläufige Anfrage
+  // die Veranstaltung nach dem Vor-Check oben abgeschlossen hat (TOCTOU) – oder dass die Id
+  // inzwischen verschwunden ist (FS4). Beides ist ein Fehler, kein stiller Erfolg.
+  const updated = await setVeranstaltungCatalog(id, parsed.data.catalogId);
+  if (!updated) return { error: NOT_OFFEN };
+
+  revalidatePath(detailPath(id));
+  revalidatePath(verzehrPath(id));
   return { ok: true };
 }
 
@@ -270,7 +332,11 @@ async function applyVerzehrAdjust(
   // existiert (Korrektur eines bereits erfassten Verzehrs) – Neu-Erfassung bleibt blockiert.
   // Katalog-gebundene Abfrage (ADR-050 D4): ein Artikel aus einem fremden Katalog ist kein
   // Treffer und läuft in dieselbe bestehende Meldung wie ein unbekannter (spec-59 FS2).
-  const item = await getCatalogItem(catalogItemId, STANDARD_CATALOG_ID);
+  // Seit #346 ist die Bindung `veranstaltung.catalogId` statt der Konstante (ADR-050-Nachtrag
+  // zu D3) – damit gilt an dieser gemeinsamen Grenze automatisch für F5 die Preisliste DIESER
+  // Veranstaltung (AK2/FS3) und für die Theke weiter der Standard-Katalog, den sie über den
+  // Spalten-Default trägt (AK7). Der Wert stammt aus der geladenen Zeile, nicht vom Client.
+  const item = await getCatalogItem(catalogItemId, ziel.catalogId);
   if (!item) return { error: ITEM_NOT_FOUND };
   if (!item.active) {
     const existing = await getPosition(zeileId, catalogItemId);

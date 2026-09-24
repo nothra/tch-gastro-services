@@ -2,11 +2,27 @@ import { z } from "zod";
 import { KASSEN, auslageKategorie, auslageStatus } from "@/db/schema";
 import { EURO_INPUT_RE, INT4_MAX, parseEuroToCents } from "@/lib/money";
 
+// Die Katalogwahl als geteiltes Feld von Anlage und Wechsel (#346): beide Wege nehmen dieselbe
+// Eingabe entgegen und müssen dieselbe Meldung liefern – zwei Kopien würden lautlos divergieren.
+// Die Meldung steht doppelt (Typ-Ebene + `min`), weil die beiden Wege das Feld unterschiedlich
+// verfehlen können: der Wechsel normalisiert fehlend zu "" (→ `min`), die Anlage reicht
+// `Object.fromEntries` durch und liefert bei fehlendem Feld `undefined` (→ Typ-Ebene). Ohne die
+// Typ-Meldung träte dort Zods Entwickler-Text nach außen.
+const katalogWahl = {
+  catalogId: z
+    .string({ error: "Bitte einen Katalog wählen." })
+    .trim()
+    .min(1, "Bitte einen Katalog wählen."),
+};
+
 // Zod-Grenze für das Anlegen einer datierten Veranstaltung (Server Action, ADR-023 D6).
 // `datum` ist Pflicht (Datum ist erstklassiges Pflichtfeld, spec-51) und kommt aus einem
 // <input type="date"> als "YYYY-MM-DD"; es wird zu einem Date transformiert. `kasse` wird
 // gegen die kanonische KASSEN-Konstante geprüft (fail-closed). Kein Essenpreis-Feld – Essen
 // ist ein Katalogartikel (ADR-023 D4). Alle Meldungen sind für Konsumenten, nicht Entwickler.
+// `catalogId` (#346) ist hier bewusst nur auf Nicht-Leere geprüft: ob die Id existiert UND zu
+// einem aktiven Katalog gehört, ist ein Datenbank-Fakt und gehört in die Action (FS1), nicht in
+// eine synchrone Zod-Regel.
 export const veranstaltungSchema = z.object({
   bezeichnung: z
     .string()
@@ -20,9 +36,18 @@ export const veranstaltungSchema = z.object({
     .refine((value) => !Number.isNaN(Date.parse(value)), "Datum ist ungültig.")
     .transform((value) => new Date(value)),
   kasse: z.enum(KASSEN, { error: "Bitte eine gültige Kasse wählen." }),
+  ...katalogWahl,
 });
 
 export type VeranstaltungInput = z.infer<typeof veranstaltungSchema>;
+
+// Zod-Grenze für den Katalogwechsel einer bereits offenen Veranstaltung (#346 AK3). Teilt sich
+// die Feldregel mit der Anlage (oben) – dieselbe Eingabe, dieselbe Meldung. Die `id` der
+// Veranstaltung ist KEIN Feld hier: sie wird in der Action direkt aus FormData gelesen, wie bei
+// `setStatusAction`, weil sie nur auf Anwesenheit geprüft und nicht transformiert wird.
+export const katalogWechselSchema = z.object(katalogWahl);
+
+export type KatalogWechselInput = z.infer<typeof katalogWechselSchema>;
 
 // Zod-Grenze für die Verzehr-Erfassung (F5, ADR-025 D6). Der Client sendet ein Delta (±1),
 // nie ein absolutes `menge` – das ist die Konvention gegen Lost Update (ADR-025 D3), die die
