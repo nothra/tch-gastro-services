@@ -37,6 +37,7 @@ export function VeranstaltungMetaForm({
     <form
       action={formAction}
       onChange={() => setGeaendertSeitSpeichern(true)}
+      onSubmit={() => setGeaendertSeitSpeichern(false)}
       className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
     >
       <h2 className="font-semibold">Veranstaltung bearbeiten</h2>
@@ -70,7 +71,6 @@ export function VeranstaltungMetaForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          onClick={() => setGeaendertSeitSpeichern(false)}
           disabled={pending}
           className="w-fit rounded border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
         >

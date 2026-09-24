@@ -129,4 +129,23 @@ describe("VeranstaltungMetaForm", () => {
 
     expect(screen.getByRole("button", { name: /Speichern …/ })).toBeDisabled();
   });
+
+  it("should_keepSuccessMessageHidden_when_submitClickedWhileRequiredFieldInvalid", async () => {
+    // Review-Runde 3, Wichtig-Finding 1: der Reset saß am `onClick` des Buttons und feuerte
+    // auch dann, wenn die HTML-Constraint-Validierung die Absendung abbricht – eine alte
+    // „Änderungen gespeichert."-Meldung erschien so fälschlich wieder über einem leeren
+    // Pflichtfeld. Der Reset sitzt jetzt am `onSubmit` des Formulars, das jsdom bei einem
+    // ungültigen Pflichtfeld gar nicht erst auslöst.
+    const user = userEvent.setup();
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Bezeichnung"));
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+  });
 });

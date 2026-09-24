@@ -70,9 +70,14 @@ ADR dokumentiert.
    (dieselbe Prüfung, dieselbe Konstante `VERZEHR_BEREITS_ERFASST` wie beim Katalogwechsel);
    `listAuslagen(id).length > 0` → neue Fehlermeldung (Auslage erfasst)
 6. Guarded UPDATE/DELETE aufrufen, `undefined`-Rückgabe auswerten (TOCTOU-Fall, kein stiller
-   Erfolg) – **bewusst kein transaktionaler `NOT EXISTS`-Subquery**: dieselbe
-   Race-Toleranz wie beim bereits gemergten Katalogwechsel (#346), keine Verschärfung nur für
-   dieses Feature (Konsistenz > punktuelle Perfektion).
+   Erfolg) – **bewusst kein transaktionaler `NOT EXISTS`-Subquery**. *Korrigierte Begründung
+   nach Review-Runde 3 (Wichtig-Finding 3, Nutzer-Entscheidung 3b):* Der ursprüngliche Verweis
+   auf die Race-Toleranz-Konsistenz zu #346 trägt hier NICHT – jenes UPDATE (Katalogwechsel) ist
+   reversibel, dieser DELETE nicht. Das Restrisiko ist stattdessen bewusst und eigenständig
+   akzeptiert: Das Zeitfenster zwischen Vor-Check und DELETE ist klein (typisch < 1 s), ein
+   zusätzlicher `NOT EXISTS`-Guard im DELETE würde es nur verkleinern, nicht schließen – die
+   Unumkehrbarkeit bliebe bestehen. Begründung im Code bei `deleteVeranstaltungAction`
+   dokumentiert (`app/veranstaltung/actions.ts`).
 7. Löschen: bei Erfolg `redirect(LIST_PATH)` statt `revalidatePath` (Detailseite existiert
    danach nicht mehr).
 
@@ -206,6 +211,30 @@ Menschen bzw. in den Tracker.
 
 **Out-of-Scope (in `docs/factory/kleinfunde.md` verankert):** drei verbliebene Inline-Literale
 `"Keine Veranstaltung angegeben."` neben der von #352 eingeführten Konstante.
+
+## Manuelle Runde 4 (nach Circuit Breaker, 2026-09-25)
+
+Der automatische `run-pipeline.sh`-Lauf hat nach Review-Runde 3 (`NEEDS_REWORK`, 3x in Folge)
+den Circuit Breaker ausgelöst und für manuelles Eingreifen gestoppt. Nutzer-Entscheidungen zu
+den beiden Wichtig-Findings mit Entscheidungsbedarf:
+
+- **Finding 2 (`kasse` ohne Sperre beim Bearbeiten): Option 2a – dokumentieren, nicht sperren.**
+  WHY-Kommentar bei `updateVeranstaltungMetaAction` ergänzt (`app/veranstaltung/actions.ts`):
+  Kassenwechsel trotz bereits kassiertem Betrag bleibt bewusst erlaubt, weil AK1 die Kasse
+  ausdrücklich als bearbeitbares Feld nennt; kein Audit-Trail Teil dieser Task.
+- **Finding 3 (TOCTOU beim Löschen): Option 3b – Restrisiko bewusst akzeptieren.** WHY-Kommentar
+  bei `deleteVeranstaltungAction` ergänzt: Begründung adressiert jetzt die Unumkehrbarkeit
+  direkt (kleines, nicht automatisiert ausnutzbares Zeitfenster) statt auf die Konsistenz zum
+  reversiblen UPDATE aus #346 zu verweisen. Technische Notizen oben entsprechend korrigiert.
+
+**Finding 1 (`VeranstaltungMetaForm.tsx:73`) behoben:** Reset-Handler von `onClick` des
+Speichern-Buttons auf `onSubmit` des Formulars verschoben – `onSubmit` feuert nicht, wenn die
+HTML-Constraint-Validierung die Absendung abbricht. Neuer Test
+(`should_keepSuccessMessageHidden_when_submitClickedWhileRequiredFieldInvalid`), Mutationsbeleg
+(Rückbau auf `onClick`) macht ihn rot.
+
+**Gates:** Lint, `pnpm build` (Typecheck), `routes-doc-check`, Vitest mit DB-Integrationstests
+(`pnpm dotenv -e .env.local -- vitest run`) – **1074/1074 grün**.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

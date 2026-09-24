@@ -187,6 +187,14 @@ export async function setVeranstaltungCatalogAction(
 // `catalogId` ab, damit dieser Weg die Verzehr-Sperre des Katalogwechsels (#346 AK4) nicht
 // umgeht. Kein Verzehr-Check hier – Metadaten zu korrigieren bleibt auch mit erfasstem Verzehr
 // erlaubt (anders als der Katalogwechsel, der die Preis-Grundlage unter den Strichen austauschte).
+//
+// `kasse` bleibt dabei ausdrücklich ohne eigene Sperre, obwohl sie – anders als Bezeichnung und
+// Datum – ein Geldtopf und kein reines Etikett ist: AK1 nennt sie namentlich als bearbeitbares
+// Feld, eine Sperre widerspräche also der Spec (Review-Runde 3, Wichtig-Finding 2; Entscheidung
+// des Product Owners, nicht nachträglich am Code korrigiert). Ein Wechsel trotz bereits
+// kassiertem Betrag (`erhaltenCents` gesetzt) wird bewusst zugelassen und nicht protokolliert –
+// die Kassenzuordnung ist über `kassierSummen.ts` je Veranstaltung, nicht je Zeile ausgewertet,
+// ein Audit-Trail für Kassenwechsel ist kein Teil dieser Task (#352).
 export async function updateVeranstaltungMetaAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
@@ -231,6 +239,19 @@ export async function updateVeranstaltungMetaAction(
 // per Cascade. Alle drei Fachsperren laufen zum Zeitpunkt der Action, nicht
 // beim Rendern des Bestätigungsdialogs, und greifen damit auch im Race (FS3). Bei Erfolg
 // `redirect` statt `revalidatePath(detailPath)`: die Detailseite existiert danach nicht mehr (AK9).
+//
+// Restrisiko (bewusst akzeptiert, Review-Runde 3, Wichtig-Finding 3): Die drei Sperren oben sind
+// Vor-Checks, nicht Teil der `WHERE`-Bedingung des guarded DELETE selbst – zwischen letzter
+// Prüfung und `deleteVeranstaltung` kann ein nebenläufiger, unauthentifizierter Schreiber
+// (`adjustVerzehrByTokenAction`/`kassiereZeileAction` über den Theke-Link, kein `requireRole`)
+// noch Verzehr oder Kassierung eintragen – der Hard-Delete lässt sich dann nicht rückgängig
+// machen. Das Fenster ist trotzdem hingenommen und nicht per `NOT EXISTS` im DELETE geschlossen:
+// die vier Abfragen liefen unter `neon-http` bereits als vier serielle Roundtrips, ein fünfter,
+// in das DELETE verschachtelter Existenz-Check würde die Unumkehrbarkeit nicht aufheben, nur das
+// bereits enge Fenster (typisch < 1 s zwischen Löschbestätigung und Ausführung, keine
+// automatisierten Schreiber auf dieser Route) weiter verkleinern. Verweis auf die
+// UPDATE-Konsistenz zu #346 trägt hier bewusst NICHT als Begründung – jenes UPDATE ist
+// reversibel, dieses DELETE nicht.
 export async function deleteVeranstaltungAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
