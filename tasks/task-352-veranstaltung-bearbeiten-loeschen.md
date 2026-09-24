@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -248,6 +248,22 @@ HTML-Constraint-Validierung die Absendung abbricht. Neuer Test
 
 **Gates:** Lint, `pnpm build` (Typecheck), `routes-doc-check`, Vitest mit DB-Integrationstests
 (`pnpm dotenv -e .env.local -- vitest run`) – **1074/1074 grün**.
+
+## Test-Vollständigkeit (`/test`, 2026-09-26)
+
+Review-Runde 4 war APPROVED (0 kritisch, 0 wichtig). Coverage-Lauf
+(`pnpm dotenv -e .env.local -- vitest run --coverage`) fand eine echte Lücke im eigenen
+Rework: `VeranstaltungMetaForm.tsx:40` (der `onSubmit`-Reset selbst) war nie ausgeführt worden –
+der Test aus der manuellen Runde 4 deckte nur den blockierten (ungültigen) Pfad ab, nicht den
+Erfolgspfad. Ergänzt: `should_resetChangedFlag_when_submitClickedWhileAllRequiredFieldsValid`
+(Gegenrichtung zum bestehenden Test – gültige Pflichtfelder → `onSubmit` feuert tatsächlich).
+
+Alle übrigen unabgedeckten Zeilen (`actions.ts:340,558`, `db/veranstaltung.ts:202-212`, ein
+Filter-Callback in `page.tsx`) liegen außerhalb des #352-Diffs (Vor-Code, nicht Teil dieser
+Task) – keine Nachbesserung nötig.
+
+**Gates:** Lint, Format, Vitest mit DB-Integrationstests **1075/1075** grün, Coverage der neuen
+Dateien 100 % (Statements/Branches/Lines/Funcs) mit Ausnahme der oben genannten Vor-Code-Zeilen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

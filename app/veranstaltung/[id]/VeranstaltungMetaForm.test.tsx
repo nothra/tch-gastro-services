@@ -148,4 +148,23 @@ describe("VeranstaltungMetaForm", () => {
 
     expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
   });
+
+  it("should_resetChangedFlag_when_submitClickedWhileAllRequiredFieldsValid", async () => {
+    // Gegenrichtung zum Test darüber: bleiben alle Pflichtfelder gültig, feuert `onSubmit`
+    // tatsächlich und setzt `geaendertSeitSpeichern` zurück auf `false` – erkennbar daran, dass
+    // die (im Mock unveränderte) alte Erfolgsmeldung nach dem Klick wieder erscheint, obwohl das
+    // Formular zuvor bearbeitet wurde. Ohne diesen Test bliebe die `onSubmit`-Rückmeldung selbst
+    // ungetestet (Coverage-Lücke: Runde 4 deckte nur den blockierten Fall ab).
+    const user = userEvent.setup();
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Bezeichnung"), " – korrigiert");
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+  });
 });
