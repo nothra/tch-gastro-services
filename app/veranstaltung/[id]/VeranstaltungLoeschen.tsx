@@ -28,8 +28,8 @@ export function VeranstaltungLoeschen({ id, bezeichnung }: { id: string; bezeich
           <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 dark:bg-zinc-900">
             <h2 className="text-lg font-bold">Veranstaltung löschen?</h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              „{bezeichnung}“ wird endgültig entfernt – samt ihrer Teilnehmerzeilen. Das lässt
-              sich nicht rückgängig machen.
+              „{bezeichnung}“ wird endgültig entfernt – samt ihrer Teilnehmerzeilen. Das lässt sich
+              nicht rückgängig machen.
             </p>
             <form action={formAction} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={id} />

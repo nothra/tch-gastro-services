@@ -127,7 +127,10 @@ describe("veranstaltungMetaSchema", () => {
   });
 
   it("should_trimBezeichnung_when_surroundedByWhitespace", () => {
-    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, bezeichnung: "  Sommerfest  " });
+    const result = veranstaltungMetaSchema.safeParse({
+      ...validMeta,
+      bezeichnung: "  Sommerfest  ",
+    });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.bezeichnung).toBe("Sommerfest");
   });
@@ -141,7 +144,10 @@ describe("veranstaltungMetaSchema", () => {
   });
 
   it("should_reject_when_bezeichnungTooLong", () => {
-    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, bezeichnung: "x".repeat(201) });
+    const result = veranstaltungMetaSchema.safeParse({
+      ...validMeta,
+      bezeichnung: "x".repeat(201),
+    });
     expect(result.success).toBe(false);
   });
 
