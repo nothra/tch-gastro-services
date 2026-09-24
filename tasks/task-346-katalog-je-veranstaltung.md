@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -144,6 +144,12 @@ kritischen oder wichtigen Findings, nur optionale Nitpicks. Details: [review-346
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Zwei Lessons ergänzt: (1) Wegwerf-E2E-Verifikation gegen den lokalen Dev-Server pollutierte die
+geteilte Dev-DB (nicht `__test__`-präfixierte Testdaten brachen einen vorbestehenden #59-Test –
+vom Nutzer nach Verifikation fehlender Fremdreferenzen manuell bereinigt), (2) viertes
+Vorkommnis der Turn-Limit-Exhaustion in `/implement` trotz #348-Ceiling-Anhebung – Pipeline lief
+nach dem ersten (bereits erfolgreichen) Versuch 2× unnötig weiter, bevor abgebrochen wurde.
+Details: [codify-346](codify-346.md).
 
 ---
 Branch: `feature/346-katalog-je-veranstaltung`
