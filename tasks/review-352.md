@@ -1,7 +1,130 @@
 # Review: Task 352
 
-**Runde 3** gegen den Stand nach dem Rework von Runde 2 (Commit `523995c`). Diff-Scope:
-`git diff origin/main...HEAD` (18 Dateien, +2173/−11). Gegenprüfung gegen
+**Runde 4** gegen den Stand nach der manuellen Rework-Runde 3 (Commit `b7ff76e`), die nach dem
+Circuit Breaker (3x `NEEDS_REWORK` in Folge, Runde 3) außerhalb von `run-pipeline.sh` per
+menschlicher Entscheidung + manuellem `/implement`-Aufruf entstand. Diff-Scope:
+`git diff origin/main...HEAD` (19 Dateien, +2386/−11). Gegenprüfung gegen
+`docs/specs/spec-352-veranstaltung-bearbeiten-loeschen.md` (AK1–AK12, FS1–FS6) und
+`tasks/task-352-veranstaltung-bearbeiten-loeschen.md` (insb. Abschnitt „Manuelle Runde 4"). Drei
+Personas (Backend/Logik, Code-Qualität, Architektur), jede mit eigenem Lesezugriff auf Diff, Task-
+Datei, Spec und relevante ADRs; jede Tatsachenbehauptung wurde von der jeweiligen Persona selbst
+gegen den Code nachgeprüft (u. a. Guard-Reihenfolge, `kassierSummen.ts`-Aggregation je
+Veranstaltung, fehlendes `requireRole` in `adjustVerzehrByTokenAction`).
+
+**Vorbedingung dieser Runde:** Die manuelle Rework-Runde 3 lag bereits committet und gepusht vor
+(`b7ff76e`), alle Gates lokal grün (Lint, Typecheck/`pnpm build`, Format, `routes-doc-check`,
+Vitest **1074/1074** inkl. DB-Integrationstests via `dotenv -e .env.local`).
+
+Die Findings der Runden 1–3 stehen unverändert weiter unten unter „Historie"; die
+Überschriften hier oben tragen den **aktuellen** Stand.
+
+## Kritische Findings (müssen behoben werden)
+
+_Keine._ Alle drei Personas bestätigen unabhängig: keine kritischen Findings in diesem Diff.
+
+## Wichtige Findings (sollten behoben werden)
+
+_Keine._ Alle drei aus Runde 3 offenen Wichtig-Findings sind geschlossen:
+
+- **Finding 1** (`VeranstaltungMetaForm.tsx:73`, Reset feuert trotz blockierter Validierung) —
+  behoben: Reset-Handler sitzt jetzt am `onSubmit` des `<form>` statt am `onClick` des Buttons.
+  Neuer Test `should_keepSuccessMessageHidden_when_submitClickedWhileRequiredFieldInvalid`
+  (`VeranstaltungMetaForm.test.tsx:133-150`), per Mutationsbeleg (Rückbau auf `onClick`) als
+  trennscharf verifiziert.
+- **Finding 2** (`kasse` ohne Sperre beim Bearbeiten) — Nutzer-Entscheidung **2a: dokumentieren,
+  nicht sperren**. WHY-Kommentar in `updateVeranstaltungMetaAction` (`actions.ts:191-197`)
+  ergänzt; die Backend/Logik-Persona hat die fachliche Begründung (Kasse hängt an der
+  Veranstaltung, nicht an der Zeile, `kassierSummen.ts`) gegen den Code verifiziert und für
+  korrekt befunden.
+- **Finding 3** (TOCTOU beim Löschen) — Nutzer-Entscheidung **3b: Restrisiko bewusst
+  akzeptieren**. WHY-Kommentar bei `deleteVeranstaltungAction` (`actions.ts:243-254`) adressiert
+  jetzt die Unumkehrbarkeit direkt (statt nur auf die #346-UPDATE-Konsistenz zu verweisen); die
+  Architektur-Persona hat geprüft, dass dies keinen neuen ADR-Trigger auslöst (keine der vier
+  Kategorien aus `docs/specs/spec-002-adr-auto-detection.md` trifft zu – reine Präzisierung einer
+  bereits akzeptierten Race-Toleranz, keine neue Persistenz-/Architekturentscheidung).
+
+## Nitpicks (optional)
+
+- [ ] `app/veranstaltung/actions.ts:243-291` (`deleteVeranstaltungAction`) — Header-Kommentar
+      (inkl. dem in dieser Runde ergänzten Restrisiko-Absatz) + Funktionskörper bilden zusammen
+      einen ~64-Zeilen-Block, der auf einen Blick schwer scannbar ist. Vorbestehend aus Runde 1
+      (Funktion war schon vorher lang), durch den neuen Absatz weiter gewachsen. Eine Aufteilung
+      der drei Sperr-Checks in eigene Guard-Funktionen würde der Klarheit dienen, wäre aber
+      Scope-Erweiterung.
+- [ ] `app/veranstaltung/actions.ts:183-197` — Der neue Absatz zu `kasse` (Z. 191-197) ist mit
+      dem bestehenden Absatz davor (Z. 183-189) thematisch verwandt, aber durch eine Leerzeile in
+      zwei Blöcke getrennt statt mit gemeinsamem Einleitungssatz zusammengefasst. Sehr geringes
+      Gewicht.
+- [ ] `app/veranstaltung/[id]/VeranstaltungMetaForm.test.tsx:133-150` — Der neue Test enthält
+      zwei Act/Assert-Zyklen (`user.clear` + Assert, dann `user.click` + Assert) statt einer
+      einzelnen AAA-Sequenz. Die erste Assertion dient nur als Vorbedingung für den eigentlichen
+      Zielfall; ein Kommentar könnte das klarer als „Vorbedingung, nicht Ziel" markieren.
+- [ ] `tasks/task-352-veranstaltung-bearbeiten-loeschen.md` (Abschnitt „Manuelle Runde 4") — Die
+      beiden Risikoakzeptanz-Entscheidungen folgen inhaltlich sauber begründet, aber nicht dem
+      kanonischen Ablehnungs-Protokoll-Format `Nicht-ADR [Datum]: [Entscheidung] – bewusst kein
+      ADR (Begründung: [...])` aus dem ADR-Trigger-Check. Reine Formatkonsistenz, kein
+      inhaltlicher Mangel.
+- [ ] `app/veranstaltung/actions.ts:216-217` — *(aus Runde 3 unverändert übernommen, siehe
+      Historie unten – Tatsachenbehauptung zur `.returning()`-Quelle bei
+      `adjustVerzehrByTokenAction` weiterhin ungenau.)*
+- [ ] `app/veranstaltung/actions.ts:116-118` — *(aus Runde 3 unverändert übernommen, siehe
+      Historie unten – „dieselbe Reihenfolge wie `setVeranstaltungCatalogAction`" stimmt nur für
+      zwei von drei Schritten.)*
+- [ ] `app/veranstaltung/labels.test.ts:31-35` — *(aus Runde 3 unverändert übernommen, siehe
+      Historie unten – Zeitzonen-Test ohne Trennschärfe in der realen Runner-TZ.)*
+- [ ] `e2e/veranstaltung-bearbeiten-loeschen.spec.ts:26-28` — *(aus Runde 3 unverändert
+      übernommen, siehe Historie unten – Restdrift im Dateikopf-Kommentar zu `LAUF`.)*
+- [ ] `docs/adr/023-veranstaltung-datenmodell.md:131-134` — *(aus Runde 3 unverändert übernommen,
+      siehe Historie unten – D6-Funktionsliste bereits vor #352 veraltet.)*
+- [ ] `docs/routes.md:29` — *(aus Runde 3 unverändert übernommen, siehe Historie unten –
+      Detailseiten-Beschreibung nicht um „Metadaten bearbeiten"/„Löschen" ergänzt.)*
+
+## Positives
+
+- **Alle drei Wichtig-Findings aus Runde 3 sind vollständig und nachvollziehbar geschlossen** –
+  eines per Code-Fix mit Mutationsbeleg, zwei per begründeter, im Code UND in der Task-Datei
+  verankerter Risikoakzeptanz. Keine der beiden Akzeptanzen ist eine bloße Behauptung: beide
+  wurden von den Review-Personas gegen den echten Code nachgerechnet (Roundtrip-Zählung,
+  `kassierSummen.ts`-Aggregationsebene, `requireRole`-Abwesenheit).
+- **Der Fix zu Finding 1 ist minimal und präzise** (`VeranstaltungMetaForm.tsx:39-40`) – nur der
+  Reset-Handler wandert von `onClick` zu `onSubmit`, keine sonstige Logik berührt. Kein
+  Gold-Plating in der Circuit-Breaker-Situation.
+- **Beide neuen WHY-Kommentare sind echtes WHY**, nicht Paraphrase des Codes: konkrete
+  Geschäftsentscheidung + Review-Runde/Finding-Referenz, explizite Absage an den naheliegenden,
+  aber falschen Vergleich zur #346-UPDATE-Konsistenz (Z. 252-254) statt einer unbelegten
+  Tatsachenbehauptung.
+- **Schicht-Einhaltung, Guarded-UPDATE/DELETE-Konvention und Dialog-Pattern** durchgehend
+  konsistent zum bestehenden Code; keine neue Architekturentscheidung, kein Scope-Creep über die
+  begründete DRY-Extraktion (`hatErfasstenVerzehr()`) hinaus.
+- **Out-of-Scope-Fund korrekt kanalisiert:** drei `KEINE_VERANSTALTUNG`-Literal-Duplikate in
+  `docs/factory/kleinfunde.md` verankert statt selbst mitgefixt.
+
+## Empfehlung
+
+APPROVED
+
+0 kritisch, 0 wichtig, 10 Nitpicks (4 neu/präzisiert, 6 unverändert aus Runde 3 übernommen –
+keiner davon blockierend). Alle drei Personas (Backend/Logik, Code-Qualität, Architektur)
+empfehlen unabhängig APPROVED. Nächster Schritt laut Pipeline: `/test`.
+
+## Out-of-Scope
+
+- Drei weitere Vorkommen des Literals `"Keine Veranstaltung angegeben."` in fremden Actions
+  (`actions.ts:158`, `:316`, `:375`) neben der von diesem PR eingeführten Konstante
+  (`actions.ts:69`) → unter der Schwelle, als Eintrag in
+  [`docs/factory/kleinfunde.md`](../docs/factory/kleinfunde.md) festgehalten (aus Runde 3
+  unverändert).
+
+---
+
+## Historie: Runde 3 (2026-09-24)
+
+> Die Findings der dritten Runde im Wortlaut. Bewusst **ohne** die oben reservierten
+> Abschnitts-Überschriften, damit `run-pipeline.sh` sie nicht doppelt zählt.
+> Verdict der Runde 3: **NEEDS_REWORK** (0 kritisch, 3 wichtig, 6 Nitpicks) – Circuit Breaker
+> ausgelöst (3x in Folge nicht konvergiert), manuelle Runde 4 statt automatischem Rework.
+
+Diff-Scope: `git diff origin/main...HEAD` (18 Dateien, +2173/−11). Gegenprüfung gegen
 `docs/specs/spec-352-veranstaltung-bearbeiten-loeschen.md` (AK1–AK12, FS1–FS6) und
 `tasks/task-352-veranstaltung-bearbeiten-loeschen.md`. Drei Personas (Backend/Logik,
 Code-Qualität, Architektur); jede Tatsachenbehauptung eines Sub-Agenten wurde vom Orchestrator
@@ -14,210 +137,69 @@ Review committet (`523995c`, alle Gates grün) – sonst hätte jeder Sub-Agent 
 Commit entfernt: eine untracked Wegwerf-Probe (`scripts/click-validate-probe.tmp.mjs`) aus
 Runde 2, die `.gitignore` nicht abdeckt und die `git add -A` sonst in den PR gezogen hätte.
 
-Die Findings der Runden 1 und 2 stehen unverändert weiter unten unter „Historie"; die
-Überschriften hier oben tragen den **aktuellen** Stand.
+**Kritische Findings:** _Keine._ Die kritische Lücke aus Runde 1 (Löschen trotz kassiertem Geld)
+bleibt geschlossen; die vollständige AK1–AK12/FS1–FS6-Gegenprüfung dieser Runde fand kein
+weiteres Loch in den drei Fachsperren, und die Cascade-Inventur
+(`db/schema.ts:256`, `:294`, `:345`, `:385`) zeigt keine vierte Kind-Tabelle, die ungeprüft
+mitverschwände.
 
-## Kritische Findings (müssen behoben werden)
+**Wichtig 1.** `app/veranstaltung/[id]/VeranstaltungMetaForm.tsx:73` — Der `onClick`-Reset am
+Submit-Button ist ungetestet und feuert auch dann, wenn die Absendung gar nicht stattfindet
+(HTML-Constraint-Validierung bricht ab). Empirischer Beleg (Browser-Probe, Chromium): bei leerem
+Pflichtfeld feuert `click`, aber kein `submit`. Umsetzung: Reset vom `onClick` des Buttons an
+`onSubmit` des `<form>` hängen, dazu fehlenden Test ergänzen.
 
-_Keine._ Die kritische Lücke aus Runde 1 (Löschen trotz kassiertem Geld) bleibt geschlossen;
-die vollständige AK1–AK12/FS1–FS6-Gegenprüfung dieser Runde fand kein weiteres Loch in den drei
-Fachsperren, und die Cascade-Inventur (`db/schema.ts:256`, `:294`, `:345`, `:385`) zeigt keine
-vierte Kind-Tabelle, die ungeprüft mitverschwände.
+**Wichtig 2.** `app/veranstaltung/actions.ts:187-189` (Kommentar) + `app/veranstaltung/schema.ts:37`
+— Die Begründung für „keine Fachsperre beim Bearbeiten" deckt `kasse` nicht ab: `kasse` ist der
+Geldtopf, nicht die Beschriftung, und dasselbe `erhaltenCents`, das 30 Zeilen weiter das Löschen
+hart sperrt, lässt sich hier per Dropdown umhängen. Empfehlung: dokumentieren, nicht sperren –
+AK1 nennt die Kasse ausdrücklich als bearbeitbares Feld, eine Sperre widerspräche der Spec und
+braucht eine Nutzer-Entscheidung.
 
-## Wichtige Findings (sollten behoben werden)
+**Wichtig 3.** `app/veranstaltung/actions.ts:242-266` — Die drei Lösch-Sperren sind reine
+Vor-Checks; der guarded DELETE trägt sie nicht. Der nebenläufige Schreiber braucht keinen Login
+(`adjustVerzehrByTokenAction` hat bewusst kein `requireRole`), und unter `neon-http` ist jede
+Vor-Abfrage ein eigener Roundtrip. Die bisherige Begründung (Konsistenz zum reversiblen UPDATE aus
+#346) trägt hier nicht – die Unumkehrbarkeit des Hard-Deletes ist der Unterschied. Akzeptabel:
+(a) `NOT EXISTS`-Subqueries ins DELETE ziehen, (b) Vor-Checks parallelisieren + Begründung, die
+die Unumkehrbarkeit adressiert, oder (c) Entscheidung bleibt, aber neu begründet.
 
-- [ ] `app/veranstaltung/[id]/VeranstaltungMetaForm.tsx:73` — **Der `onClick`-Reset am
-      Submit-Button ist ungetestet, und er feuert auch dann, wenn die Absendung gar nicht
-      stattfindet.** Zwei Seiten derselben Zeile:
-      **(a) Testlücke, Mutation überlebt.** Kein Test in `VeranstaltungMetaForm.test.tsx` klickt
-      „Änderungen speichern" (`grep -n "click"` → kein Treffer; der einzige Button-Test, Z. 130,
-      prüft nur den `disabled`-Zustand). Coverage der Datei: 75 % Funcs, einzige unabgedeckte
-      Zeile ist 73. Ohne diese Zeile wäre die Erfolgsmeldung in Produktion **tot**, nicht nur
-      verzögert: `onChange` am Formular (Z. 39) setzt `geaendertSeitSpeichern = true`, jeder
-      reale Speichervorgang beginnt zwingend mit einer Feldänderung, und die Anzeigebedingung ist
-      `state?.ok && !geaendertSeitSpeichern` (Z. 80). Der einzige Test, der die Meldung sieht
-      (`should_showSuccessMessage_when_stateOk`, Z. 94-99), rendert `{ok:true}` bei unberührtem
-      Formular – eine Kombination, die über die UI nicht entstehen kann.
-      **(b) Verhaltensfehler.** Bricht die HTML-Constraint-Validierung die Absendung ab (leere
-      Bezeichnung, leeres/ungültiges Datum – alle drei Felder sind `required`), läuft der
-      `onClick` trotzdem und setzt `geaendertSeitSpeichern` auf `false`. Ein noch stehendes
-      `state.ok` einer **früheren** Speicherung lässt „Änderungen gespeichert." damit wieder
-      erscheinen – über einem leeren Pflichtfeld, das nie gespeichert wurde. Das ist genau der
-      Zustand, den Nitpick 3 der Runde 1 beseitigen sollte; der Fix hat ihn auf einen zweiten
-      Pfad verschoben.
-      **Empirischer Beleg (eigene Browser-Probe, Chromium):** bei leerem Pflichtfeld feuert
-      `click`, aber **kein** `submit` (`["click"]`); bei gefülltem Feld beide
-      (`["click","click","submit"]`).
-      **Umsetzung (löst beide Seiten mit einer Zeile):** den Reset vom `onClick` des Buttons an
-      `onSubmit` des `<form>` hängen – das Submit-Event feuert laut derselben Probe nur, wenn die
-      Validierung durch ist. Dazu der fehlende Test: tippen → absenden → mit `{ok:true}` rendern
-      → Meldung sichtbar; Mutation (Reset entfernen) muss ihn rot machen.
+**Nitpicks (6, unverändert in die aktuellen Abschnitte oben übernommen):**
+`actions.ts:216-217` (Token-Quellen-Behauptung ungenau), `actions.ts:116-118`
+(Reihenfolge-Vergleich zu `setVeranstaltungCatalogAction` stimmt nur teilweise),
+`labels.test.ts:31-35` (Zeitzonen-Test ohne echte Trennschärfe), `e2e/…spec.ts:26-28`
+(Restdrift im Dateikopf-Kommentar), `docs/adr/023-…:131-134` (D6-Funktionsliste veraltet),
+`docs/routes.md:29` (Detailseiten-Beschreibung nicht nachgezogen).
 
-- [ ] `app/veranstaltung/actions.ts:187-189` (Kommentar) + `app/veranstaltung/schema.ts:37` —
-      **Die Begründung für „keine Fachsperre beim Bearbeiten" deckt `kasse` nicht ab.** Der
-      Kommentar rechtfertigt den fehlenden Check mit: „Metadaten zu korrigieren bleibt auch mit
-      erfasstem Verzehr erlaubt (anders als der Katalogwechsel, der die Preis-Grundlage unter den
-      Strichen austauschte)". Das Argument trennt „Etikett korrigieren" von „Rechen-Grundlage
-      austauschen" – und trägt damit für `bezeichnung` und `datum`, aber nicht für `kasse`:
-      `kasse` ist der Geldtopf, nicht die Beschriftung
-      (`docs/factory/PROJECT-CONTEXT.md:44` „Kasse = Geldtopf, Katalog = Preisliste";
-      `spec-51:39-40` „Die zugeordnete Kasse bestimmt, wohin Einnahmen und Auslagenerstattungen
-      wirken"). `app/veranstaltung/[id]/kassieren/page.tsx:234` rendert „Gesamtabrechnung (Kasse:
-      …)" und Z. 251 die „Kassenveränderung" – nach einem Wechsel steht dieselbe Summe unter der
-      anderen Kasse, ohne Protokoll-Eintrag (`db/schema.ts:371-375` kennt nur `abgeschlossen` |
-      `wiedereroeffnet`). **Die Asymmetrie zum Nachbar-Pfad ist das Eigentliche:** dasselbe
-      `erhaltenCents`, das 30 Zeilen weiter das Löschen hart sperrt (AK12), lässt sich hier per
-      Dropdown umhängen.
-      **Impact ehrlich eingegrenzt:** ein laufender Saldo je Kasse existiert noch nicht
-      (`PROJECT-CONTEXT.md:62-63`, Backlog #57), und der Wechsel ist auf `status = 'offen'`
-      beschränkt – heute also auf die Abrechnung dieser einen Veranstaltung begrenzt, mit #57
-      kumulativ.
-      **Empfehlung: dokumentieren, nicht sperren.** AK1 der Spec nennt die Kasse ausdrücklich als
-      bearbeitbares Feld – das ist eine Entscheidung aus der Requirements-Session, keine
-      Nachlässigkeit der Umsetzung. Eine Sperre würde ihr widersprechen und gehört nicht ohne
-      Rücksprache in einen Review-Rework. Zu tun ist deshalb: den Kommentar Z. 187-189 um
-      `kasse` ergänzen (warum ein Umhängen mit bereits kassiertem Geld zulässig ist – das
-      Korrigieren einer falsch gewählten Kasse ist vermutlich genau der Anwendungsfall) und
-      denselben Satz als Notiz in spec-352 verankern, damit die Asymmetrie zu AK12 als
-      **entschieden** lesbar ist statt als übersehen.
+**Positives (Auszug):** vollständige Revalidierungs-Inventur (sechs von sechs Routen belegt),
+Sperren nicht durch Join-Blindstelle umgehbar, `typ`-Sperre doppelt (Vor-Check + WHERE), Katalog
+strukturell aus dem Bearbeiten-Pfad ausgeschlossen, Neon-HTTP-Falle vermieden (FK-Kaskaden statt
+Mehrfach-Write), Reihenfolge-Assertion über `invocationCallOrder` statt Präsenz-Assertion, alle
+AK1–AK12/FS1–FS6 einzeln belegt.
 
-- [ ] `app/veranstaltung/actions.ts:242-266` — **Die drei Lösch-Sperren sind reine Vor-Checks;
-      der guarded DELETE trägt sie nicht.** Vier nacheinander awaitete Abfragen
-      (`getVeranstaltung`, `listPositionen`, `listZeilen`, `listAuslagen`), dann feuert der DELETE
-      mit `datierteOffeneVeranstaltung()` (`db/veranstaltung.ts:95-101`) – dessen WHERE kennt nur
-      `id`, `typ`, `status`, **keine** der drei Fachbedingungen. Was im Fenster entsteht,
-      verschwindet per Cascade, ohne Fehler.
-      **Warum das mehr ist als eine Lehrbuch-TOCTOU:** Der nebenläufige Schreiber braucht keinen
-      Login. `adjustVerzehrByTokenAction` (`actions.ts:516-529`) hat bewusst kein `requireRole`
-      (Kommentar Z. 509, capability-based) – jeder Teilnehmer mit dem QR-Link, den
-      `ZugangTeilen` für jede offene Veranstaltung ausgibt, kann in diesem Fenster Verzehr
-      erzeugen. Und das Fenster ist in INT/PRD nicht mikroskopisch: `db/index.ts:20-22` wählt für
-      Neon-URLs `neon-http`, wo jede Query ein eigener HTTPS-Roundtrip ist – die lokale
-      node-postgres-Verbindung, gegen die die Tests laufen, ist strukturell schneller und damit
-      kein Beleg für die Enge.
-      **Zum Status als bewusste Entscheidung:** `task-352:72-75` entscheidet das explizit
-      („dieselbe Race-Toleranz wie beim bereits gemergten Katalogwechsel (#346)"). Die Begründung
-      vergleicht aber ein **reversibles UPDATE auf `catalogId`** mit einem **unumkehrbaren
-      Hard-Delete mit Cascade über vier Kind-Tabellen** – und die Unumkehrbarkeit ist der Grund,
-      warum es die Sperren überhaupt gibt (spec-352, „Gesetzte Entscheidungen"). FS3 ist im
-      Wortlaut erfüllt (Prüfung zum Ausführungszeitpunkt, kein Client-Snapshot); das Restfenster
-      liegt genau dort, wo spec-352 „Offene Fragen" Punkt 3 die Frage gestellt hatte.
-      **Akzeptabel ist jede der drei Auflösungen:** (a) die drei Bedingungen als
-      `NOT EXISTS`-Subqueries in die bereits vorhandene Delete-Bedingung ziehen – der
-      No-Match-Zweig (`actions.ts:267`) existiert schon; (b) die Vor-Checks parallelisieren
-      (`Promise.all`) **plus** eine Begründung, die die Unumkehrbarkeit adressiert; (c) die
-      Entscheidung bleibt, wird aber in `task-352` neu begründet – dann steht sie wie „Nitpick 2
-      der Runde 1" und ist erledigt.
+> **Circuit Breaker (CLAUDE.md: max. 3 Review↔Implement-Iterationen).** Dies war die dritte
+> Review-Runde in Folge ohne Konvergenz. `run-pipeline.sh` hat daraufhin gestoppt und an den
+> Menschen eskaliert, statt einen vierten automatischen Rework zu starten.
 
-## Nitpicks (optional)
+### Manuelle Rework-Runde 3 (2026-09-25, nach Circuit Breaker)
 
-- [ ] `app/veranstaltung/actions.ts:216-217` — Tatsachenbehauptung über fremden Code trifft nicht
-      zu: „Den Token liefert die `.returning()`-Zeile des UPDATE – **dieselbe Quelle**, aus der
-      `adjustVerzehrByTokenAction` revalidiert." Diese Action bezieht den Token nicht aus
-      `.returning()`, sondern als gebundenes Routen-Argument (`actions.ts:517` Parameter `token`,
-      `:527` `revalidatePath(thekePath(token))`, gebunden in `app/theke/[token]/page.tsx`).
-      Gemeint ist offenbar „derselbe Pfad/Präzedenzfall" – dann sollte es das sagen. Genau die
-      Art Behauptung, die beim nächsten Lesen als belegt gilt (Lesson „X erzwingt Y").
+Nutzer-Entscheidungen zu den beiden Findings mit Entscheidungsbedarf: **2a** (Kasse:
+dokumentieren, nicht sperren) und **3b** (TOCTOU: Restrisiko bewusst akzeptieren). Umgesetzt
+außerhalb von `run-pipeline.sh` per manuellem `/implement`-Aufruf:
 
-- [ ] `app/veranstaltung/actions.ts:116-118` — „dieselbe Reihenfolge wie bei
-      `setVeranstaltungCatalogAction` – Existenz → Typ → Status" stimmt nur für zwei der drei
-      aufgezählten Schritte: die Schwester-Action hat den Typ-Check nicht (`actions.ts:163-165`,
-      nur Existenz + Status – die Theke darf ihren Katalog wechseln). Die Nicht-Adaption ist
-      sachlich richtig (der Guard dort einzusetzen verböte den Katalogwechsel für die Theke, eine
-      #346-Verhaltensänderung außerhalb dieses Scopes), steht aber nirgends. Einzeiler:
-      „…, **erweitert um den Typ-Check (AK10)**; die Schwester-Action bleibt bewusst inline, weil
-      der Typ-Check dort #346-Verhalten änderte."
+**Finding 1 — behoben.** Reset-Handler von `onClick` auf `onSubmit` verschoben
+(`VeranstaltungMetaForm.tsx:39-40`), neuer Test mit Mutationsbeleg
+(`VeranstaltungMetaForm.test.tsx:133-150`).
 
-- [ ] `app/veranstaltung/labels.test.ts:31-35` — Der Test
-      `should_keepUtcDay_when_localTimezoneWouldShiftIt` hat in der realen Runner-Zeitzone keine
-      Trennschärfe und wiederholt den Test darüber. Eigene Messung: `new Date("2026-07-13")` und
-      `new Date("2026-07-13T00:00:00.000Z")` sind **derselbe Zeitpunkt** (`getTime()`-Vergleich
-      `true`), und die im Kommentar behauptete Mutante (lokalzeit-basierte Formatierung) liefert
-      unter `TZ=Europe/Berlin` ebenfalls `2026-07-13` – erst unter `TZ=America/New_York`
-      `2026-07-12`. Ein `TZ`-Pinning gibt es nicht (`vitest.config.ts`, `package.json`: kein
-      Treffer). Entweder streichen (die UTC-Semantik steckt schon in Z. 25-29) oder ehrlich
-      machen: Runner-TZ für diesen Test auf einen negativen Offset fixieren.
+**Finding 2 — Option 2a umgesetzt.** WHY-Kommentar in `updateVeranstaltungMetaAction`
+(`actions.ts:191-197`) ergänzt.
 
-- [ ] `e2e/veranstaltung-bearbeiten-loeschen.spec.ts:26-28` — Restdrift im in Runde 2
-      nachgebesserten Dateikopf: „damit die **parallel laufenden Tests** sich nicht gegenseitig
-      die Namen wegnehmen". `LAUF` wird einmal auf Modulebene gelesen (Z. 28) und ist für alle
-      drei Tests desselben Laufs identisch – er trennt parallele **Läufe**, nicht Tests; die
-      Tests trennen ihre Basisnamen (Z. 110 „Bearbeiten", Z. 150 „Loeschen", Z. 195 „Kassiert").
-      In Runde 2 wurde das Zahlwort korrigiert, die Aussage selbst blieb. Daneben kosmetisch:
-      `const PREFIX = ` mit Backticks ohne Interpolation (Z. 29).
+**Finding 3 — Option 3b umgesetzt.** WHY-Kommentar in `deleteVeranstaltungAction`
+(`actions.ts:243-254`) ergänzt, adressiert jetzt die Unumkehrbarkeit direkt statt nur auf #346
+zu verweisen. Technische Notizen in `task-352` entsprechend korrigiert.
 
-- [ ] `docs/adr/023-veranstaltung-datenmodell.md:131-134` — D6 zählt den Funktionsbestand von
-      `db/veranstaltung.ts` namentlich auf; dieser PR fügt dort zwei Funktionen hinzu
-      (`updateVeranstaltungMeta`, `deleteVeranstaltung`) und lässt die Liste unberührt (Lesson
-      „PR ändert die von einer ADR namentlich beschriebene Mechanik"). Die Liste ist allerdings
-      **schon vor #352** falsch: sie nennt `setStatus(id, status)`, das es nicht mehr gibt
-      (heute `abschliessenVeranstaltung`/`wiedereroeffnenVeranstaltung`), und ihr fehlen
-      `setVeranstaltungCatalog`, `setErhalten`, `getZeile` u. a. Billigster korrekter Fix ist
-      deshalb nicht das Nachtragen, sondern die Liste als beispielhaft zu kennzeichnen („u. a.")
-      – ein Wort, und die Drift kann nicht wiederkehren.
-
-- [ ] `docs/routes.md:29` — `/veranstaltung/[id]` steht weiter nur als „Veranstaltung führen
-      (Detail)". Kein Gate bricht (der Drift-Check prüft den `app/`-Baum, der CLAUDE.md-Guardrail
-      triggert auf Pfad/Zugriff) – die Datei pflegt funktionale Erweiterungen an unveränderten
-      Routen aber nachweislich mit: Z. 30 und 32 („personenbezogener Einstieg via `?zeile=…`"),
-      Z. 34 („+ Katalog-Management: anlegen/umbenennen/deaktivieren/duplizieren, #345"). #352
-      ergänzt der Detailseite „Metadaten bearbeiten" und „Veranstaltung löschen".
-
-## Positives
-
-- **Die vollständige Revalidierungs-Inventur geht jetzt auf.** Genau sechs Routen rendern
-  Veranstaltungsfelder (`/veranstaltung`, `/veranstaltung/[id]`, `…/verzehr`, `…/auslagen`,
-  `…/kassieren`, `/theke/[token]`), und alle sechs stehen in `actions.ts:218-223`. Die einzige
-  weitere Leserin, der Bericht-Route-Handler, ist auf `status === "abgeschlossen"` gegated und
-  für eine bearbeitbare Veranstaltung unerreichbar. Das war in Runde 1 und 2 je unvollständig –
-  jetzt ist es geprüft statt behauptet.
-- **Die Sperren lassen sich nicht durch eine Join-Blindstelle umgehen** – das war der naheliegende
-  Verdacht auf eine Wiederholung des Runde-1-Fundes, und er trägt nicht: `listPositionen` joint
-  Katalogartikel ohne `active`-Filter (die nie hart gelöscht werden), `listZeilen` ist ein
-  filterloses `select()`, `listAuslagen` joint Teilnehmer, die ebenfalls nur soft-gelöscht werden.
-  Keine Zeile mit Fachdaten kann sich vor einer Sperre verstecken.
-- **Die `typ`-Sperre sitzt doppelt** – als Vor-Check (`actions.ts:124`) *und* in der
-  WHERE-Bedingung beider Schreibwege (`db/veranstaltung.ts:98`), mit einem Data-Layer-Test, der
-  sie ohne die Action prüft. Ein geschmuggelter Theken-`id` scheitert auch dann, wenn der
-  Vor-Check je wegrefaktoriert würde.
-- **Der Katalog ist aus dem Bearbeiten-Pfad strukturell ausgeschlossen**, nicht nur UI-seitig:
-  weder `veranstaltungMetaSchema` noch `VeranstaltungMetaData` kennen `catalogId`, und
-  `should_notForwardCatalogId_when_itIsSubmittedAnyway` belegt es am Verhalten. Die
-  Verzehr-Sperre aus #346 lässt sich über keinen der beiden Layer umgehen.
-- **Die Neon-HTTP-Falle wurde strukturell vermieden:** Der Hard-Delete verlässt sich auf
-  FK-Kaskaden statt auf eine clientseitige Mehrfach-Write-Sequenz – die einzige Variante, die
-  unter beiden Treibern identisch atomar ist. Lesson #345 richtig angewandt, nicht formal erfüllt.
-- **Die Reihenfolge-Assertion über `invocationCallOrder`** (`actions.test.ts:680-687`) ist die
-  richtige Antwort darauf, dass der `redirect`-Mock kein NEXT_REDIRECT wirft – eine
-  „wurde aufgerufen"-Prüfung wäre auch bei toter Zeile grün gewesen, und der Mutationsbeleg zeigt
-  genau den Positionsvergleich rot.
-- **Die Abweichung vom `CatalogControls`-Vorbild steht im Code selbst**
-  (`VeranstaltungLoeschen.tsx:13-17`) – nachgeprüft: dort hat „Abbrechen" tatsächlich kein
-  `disabled`. So kann die bewusste Abweichung nicht später als Drift zurückgebaut werden.
-- **Alle AK1–AK12 und FS1–FS6 sind einzeln gegen Code *und* Test belegt**, mehrere davon doppelt
-  (Action-Ebene + Data-Layer-Ebene). Kein Soft-Delete-, Papierkorb- oder Force-Delete-Apparat,
-  den die Spec ausschließt – kein Gold-Plating.
-
-## Empfehlung
-
-NEEDS_REWORK
-
-0 kritisch, 3 wichtig, 6 Nitpicks. Keines der drei Wichtig-Findings ist ein Defekt des normalen
-Bedienwegs; zwei davon (Kasse, TOCTOU) sind vollständig durch eine **begründete Entscheidung**
-auflösbar statt durch Code. Nur Finding 1 verlangt echte Änderung – eine verschobene Zeile plus
-einen Test.
-
-> **Circuit Breaker (CLAUDE.md: max. 3 Review↔Implement-Iterationen).** Dies ist die dritte
-> Review-Runde. Der folgende Rework ist der letzte innerhalb des Limits: Eine Runde 4 findet
-> **nicht** statt. Bleiben danach Punkte offen, gehen sie an den Menschen – oder als Issue in den
-> Tracker –, nicht in eine weitere Schleife.
-
-## Out-of-Scope
-
-- Drei weitere Vorkommen des Literals `"Keine Veranstaltung angegeben."` in fremden Actions
-  (`actions.ts:158`, `:316`, `:375`) neben der von diesem PR eingeführten Konstante
-  (`actions.ts:69`) → unter der Schwelle, als Eintrag in
-  [`docs/factory/kleinfunde.md`](../docs/factory/kleinfunde.md) festgehalten.
+**Gates nach dem Rework:** Lint, `pnpm build` (Typecheck), `routes-doc-check`, Vitest mit
+DB-Integrationstests **1074/1074** grün. Commit: `b7ff76e`.
 
 ---
 
@@ -308,11 +290,12 @@ Kommentars war nur zur Hälfte belegt: der Integrationstest deckte Zeilen + Posi
 **Nitpick 2 (bewusst abgelehnt).** `actions.ts:206, 242` — Der No-Match des guarded UPDATE/DELETE
 meldet `NOT_OFFEN`, obwohl der Kommentar selbst „oder gelöscht" als zweite Ursache nennt. Bewusst
 konsistent mit `setVeranstaltungCatalogAction`; eine Änderung an allen drei Stellen berührt #346
-und gehört nicht in diese Task. **Bleibt in Runde 2 und 3 abgelehnt.**
+und gehört nicht in diese Task. **Bleibt in Runde 2, 3 und 4 abgelehnt.**
 
 **Nitpick 3 (behoben, aber nur halb).** `VeranstaltungMetaForm.tsx:72` — „Änderungen
 gespeichert." blieb stehen, während der Nutzer die Felder erneut änderte. *(Nachtrag Runde 3: der
-Fix verschob den Zustand auf einen zweiten Pfad – siehe Wichtig-Finding 1 oben.)*
+Fix verschob den Zustand auf einen zweiten Pfad – siehe Wichtig-Finding 1 der Runde 3. Nachtrag
+Runde 4: in der manuellen Rework-Runde 3 endgültig auf `onSubmit` korrigiert.)*
 
 ### Rework-Runde 1 (`/implement`, 2026-09-24)
 

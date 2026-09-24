@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -226,6 +226,19 @@ den beiden Wichtig-Findings mit Entscheidungsbedarf:
   bei `deleteVeranstaltungAction` ergänzt: Begründung adressiert jetzt die Unumkehrbarkeit
   direkt (kleines, nicht automatisiert ausnutzbares Zeitfenster) statt auf die Konsistenz zum
   reversiblen UPDATE aus #346 zu verweisen. Technische Notizen oben entsprechend korrigiert.
+
+Protokoll-Einträge nach dem in Schritt 0 des `/implement`-Skills vorgegebenen Format (Nitpick aus
+Review-Runde 4):
+
+- `Nicht-ADR [2026-09-25]: Kassenwechsel bei bereits kassiertem Betrag bleibt ohne Sperre –
+  bewusst kein ADR (Begründung: reine Produktentscheidung innerhalb eines laut AK1 bereits
+  bearbeitbaren Feldes, keine neue Technologie/Architektur/Schnittstelle, keine irreversible
+  Konsequenz im Sinne von Kategorie 4).`
+- `Nicht-ADR [2026-09-25]: TOCTOU-Restfenster zwischen Vor-Check und guarded DELETE beim
+  Veranstaltung-Löschen bleibt offen – bewusst kein ADR (Begründung: Präzisierung einer bereits
+  in der Architekturphase als nicht-ADR-würdig bewerteten Race-Toleranz, keine neue
+  Persistenzstrategie; das Zeitfenster wird verkleinert statt geschlossen, weil ein
+  `NOT EXISTS`-Guard die Unumkehrbarkeit des Hard-Deletes nicht aufheben würde).`
 
 **Finding 1 (`VeranstaltungMetaForm.tsx:73`) behoben:** Reset-Handler von `onClick` des
 Speichern-Buttons auf `onSubmit` des Formulars verschoben – `onSubmit` feuert nicht, wenn die
