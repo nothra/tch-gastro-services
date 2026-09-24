@@ -7,7 +7,12 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
+
+PR-Shepherd 2026-09-24: Merge freigegeben – alle Gates grün (CI komplett grün inkl. CodeQL,
+lint, test, factory-self-test; keine offenen Review-Kommentare außer dem automatischen
+Vercel-Preview-Kommentar; Branch bereits auf aktuellem `main`, kein Rebase nötig; PR #361
+war Draft und wurde jetzt auf „ready for review" gesetzt).
 
 ## Beschreibung
 Slice 3 von 3 (nach #59, #345): `veranstaltung` bekommt einen eigenen Katalogbezug
