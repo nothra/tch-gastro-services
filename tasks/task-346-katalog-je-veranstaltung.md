@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -100,6 +100,23 @@ Env-Flag übersprungen) – das neue Pflichtfeld bricht den bisherigen Anlage-We
 Nicht über den Browser, sondern nur über Tests abgedeckt: **AK5** (Preis-Freeze-Regression,
 bestehende Mechanik) und **AK8** (Rollen-Gate) – beide brauchen einen Rollen-/Abschluss-Zustand,
 den der Seed-Admin nicht hergibt (er trägt beide Rollen).
+
+### /test (2026-09-24)
+
+- **Coverage:** `pnpm test:coverage` – 90,78 % Statements / 97,17 % Branches / 90,49 % Lines
+  gesamt (Schwelle 80 %), neuer Code aus #346 (`app/veranstaltung/actions.ts`, `schema.ts`,
+  `KatalogWechsel.tsx`, `[id]/page.tsx`) praktisch bei 100 % – keine Lücken gegenüber AK1–AK8/
+  FS1–FS4 (per Review-Runde 1 einzeln gegen die Spec verifiziert).
+- **DB-Integrationstests** (`DATABASE_URL` gesetzt, 95 Tests in `db/veranstaltung|catalog|
+  verzehr|auslage.test.ts`) grün. Dabei ein Fund: die im Umsetzungs-Notizen-Abschnitt erwähnte
+  Wegwerf-Playwright-Verifikation hatte reale, nicht `__test__`-präfixierte Zeilen (3 Kataloge
+  „E2E346 Zweitkatalog …", je ein Artikel, 1 Veranstaltung) in der lokalen Dev-DB hinterlassen
+  und nie aufgeräumt – das brach `should_assignEveryPreexistingItemToStandardCatalog_when_
+  migrated` in `db/catalog.test.ts` (vorbestehender Test aus #59, nicht durch #346 verändert;
+  Migration 0013 rührt `catalog_item` nicht an). Nutzer hat die 5 Zeilen nach Verifikation
+  fehlender Fremdreferenzen (`veranstaltung_zeile`/`auslage`/`veranstaltung_ereignis` = 0
+  Treffer) manuell gelöscht; Suite danach grün (43 bzw. 95 von 95 Tests).
+- Keine fehlenden Tests identifiziert, keine Produktionscode-Änderung in diesem Schritt.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
