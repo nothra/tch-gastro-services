@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
@@ -12,6 +13,7 @@ import {
   abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
+  deleteVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
   getVeranstaltungByToken,
@@ -21,10 +23,17 @@ import {
   removeZeile,
   setErhalten,
   setVeranstaltungCatalog,
+  updateVeranstaltungMeta,
   wiedereroeffnenVeranstaltung,
 } from "@/db/veranstaltung";
 import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
-import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
+import {
+  createAuslage,
+  listAuslagen,
+  removeAuslage,
+  setAuslageStatus,
+  updateAuslage,
+} from "@/db/auslage";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
 import { kassierTagessummen, kassierZeilen } from "./kassierSummen";
 import {
@@ -32,6 +41,7 @@ import {
   auslageStatusSchema,
   kassiereSchema,
   katalogWechselSchema,
+  veranstaltungMetaSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
 } from "./schema";
@@ -56,6 +66,15 @@ const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
 const CATALOG_INACTIVE = "Der Katalog ist nicht aktiv.";
 const VERZEHR_BEREITS_ERFASST =
   "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
+const KEINE_VERANSTALTUNG = "Keine Veranstaltung angegeben.";
+const THEKE_NICHT_AENDERBAR = "Die stehende Theke kann nicht bearbeitet oder gelöscht werden.";
+// Eigene Meldungen fürs Löschen (#352 AK5/AK6): die Sperre ist dieselbe Bedingung wie beim
+// Katalogwechsel, der Vorgang aber ein anderer – `VERZEHR_BEREITS_ERFASST` spräche hier vom
+// Wechsel und wäre für den Thekenwart schlicht falsch.
+const LOESCHEN_VERZEHR_ERFASST =
+  "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
+const LOESCHEN_AUSLAGE_ERFASST =
+  "Löschen nicht möglich: für diese Veranstaltung ist bereits eine Auslage erstattet oder erfasst.";
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
@@ -78,6 +97,30 @@ async function assertKatalogWaehlbar(catalogId: string): Promise<string | undefi
   const katalog = await getCatalogById(catalogId);
   if (!katalog) return CATALOG_NOT_FOUND;
   if (!katalog.active) return CATALOG_INACTIVE;
+  return undefined;
+}
+
+// Ist für diese Veranstaltung tatsächlich Verzehr erfasst? Gefiltert wird auf `menge > 0` statt
+// auf bloße Zeilen-Existenz: `verzehr_position` löscht seine Zeile bei `menge = 0` nicht (Upsert
+// mit `GREATEST(0, …)`, db/verzehr.ts), eine hoch- und wieder runtergezählte Position ist also
+// kein tatsächlicher Verzehr (#346 AK4, #352 FS1). Geteilt von Katalogwechsel und Löschen –
+// zwei Kopien derselben Bedingung würden lautlos divergieren; die Meldung bleibt beim Aufrufer,
+// weil sie den jeweiligen Vorgang benennt.
+async function hatErfasstenVerzehr(veranstaltungId: string): Promise<boolean> {
+  const positionen = await listPositionen(veranstaltungId);
+  return positionen.some((position) => position.menge > 0);
+}
+
+// Gemeinsame Guard-Sequenz für Bearbeiten und Löschen (#352): dieselbe Reihenfolge wie bei
+// `setVeranstaltungCatalogAction` – Existenz (FS4) → Typ (AK10, die stehende Theke ist nicht
+// Teil dieses Features) → Status (AK3). Gibt die Fehlermeldung zurück bzw. `undefined` bei OK
+// (Muster von `assertKatalogWaehlbar` oben). Sie ist ein Vor-Check: die verbindliche Grenze
+// bleibt die guarded WHERE-Bedingung der Data-Layer, deren `undefined` der Aufrufer auswertet.
+async function assertVeranstaltungAenderbar(id: string): Promise<string | undefined> {
+  const ziel = await getVeranstaltung(id);
+  if (!ziel) return NOT_FOUND;
+  if (ziel.typ !== "veranstaltung") return THEKE_NICHT_AENDERBAR;
+  if (ziel.status !== "offen") return NOT_OFFEN;
   return undefined;
 }
 
@@ -122,10 +165,7 @@ export async function setVeranstaltungCatalogAction(
   const katalogError = await assertKatalogWaehlbar(parsed.data.catalogId);
   if (katalogError) return { error: katalogError };
 
-  const positionen = await listPositionen(id);
-  if (positionen.some((position) => position.menge > 0)) {
-    return { error: VERZEHR_BEREITS_ERFASST };
-  }
+  if (await hatErfasstenVerzehr(id)) return { error: VERZEHR_BEREITS_ERFASST };
 
   // Guarded UPDATE (`WHERE status = 'offen'`): `undefined` heißt, dass eine nebenläufige Anfrage
   // die Veranstaltung nach dem Vor-Check oben abgeschlossen hat (TOCTOU) – oder dass die Id
@@ -136,6 +176,73 @@ export async function setVeranstaltungCatalogAction(
   revalidatePath(detailPath(id));
   revalidatePath(verzehrPath(id));
   return { ok: true };
+}
+
+// Ändert Bezeichnung, Datum und Kasse einer noch offenen, datierten Veranstaltung (#352 AK1).
+// Fail-closed in dieser Reihenfolge: Veranstalter-Rolle (AK11) → Pflichtfelder (AK2) →
+// Veranstaltung existiert, ist datiert und offen (AK3/AK10/FS4) → guarded UPDATE. Der Katalog
+// ist bewusst NICHT Teil der Eingabe: `veranstaltungMetaSchema` streift ein mitgeschicktes
+// `catalogId` ab, damit dieser Weg die Verzehr-Sperre des Katalogwechsels (#346 AK4) nicht
+// umgeht. Kein Verzehr-Check hier – Metadaten zu korrigieren bleibt auch mit erfasstem Verzehr
+// erlaubt (anders als der Katalogwechsel, der die Preis-Grundlage unter den Strichen austauschte).
+export async function updateVeranstaltungMetaAction(
+  _prevState: VeranstaltungFormState | undefined,
+  formData: FormData,
+): Promise<VeranstaltungFormState> {
+  await requireRole("veranstalter");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: KEINE_VERANSTALTUNG };
+
+  const parsed = veranstaltungMetaSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const guardError = await assertVeranstaltungAenderbar(id);
+  if (guardError) return { error: guardError };
+
+  // `undefined` = der guarded UPDATE traf keine Zeile: eine nebenläufige Anfrage hat die
+  // Veranstaltung nach dem Vor-Check abgeschlossen oder gelöscht (TOCTOU, FS3/FS5). Ein Fehler,
+  // kein stiller Erfolg (Kern-Kurzregel „guarded UPDATE").
+  const updated = await updateVeranstaltungMeta(id, parsed.data);
+  if (!updated) return { error: NOT_OFFEN };
+
+  revalidatePath(detailPath(id));
+  revalidatePath(LIST_PATH);
+  return { ok: true };
+}
+
+// Entfernt eine noch offene, datierte Veranstaltung endgültig (#352 AK4, Hard-Delete). Fail-closed
+// in dieser Reihenfolge: Veranstalter-Rolle (AK11) → Veranstaltung existiert, ist datiert und offen
+// (AK3/AK10/FS4) → kein Verzehr erfasst (AK5) → keine Auslage erfasst (AK6) → guarded DELETE.
+// Teilnehmer-Zeilen ohne Fachdaten sperren NICHT (AK7) – sie verschwinden per Cascade, weshalb
+// diese Action sie gar nicht erst abfragt. Beide Fachsperren laufen zum Zeitpunkt der Action, nicht
+// beim Rendern des Bestätigungsdialogs, und greifen damit auch im Race (FS3). Bei Erfolg
+// `redirect` statt `revalidatePath(detailPath)`: die Detailseite existiert danach nicht mehr (AK9).
+export async function deleteVeranstaltungAction(
+  _prevState: VeranstaltungFormState | undefined,
+  formData: FormData,
+): Promise<VeranstaltungFormState> {
+  await requireRole("veranstalter");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: KEINE_VERANSTALTUNG };
+
+  const guardError = await assertVeranstaltungAenderbar(id);
+  if (guardError) return { error: guardError };
+
+  if (await hatErfasstenVerzehr(id)) return { error: LOESCHEN_VERZEHR_ERFASST };
+
+  // Anders als beim Verzehr zählt hier die reine Zeilen-Existenz: `removeAuslage` ist ein echtes
+  // DELETE (ADR-028 D2), eine zurückgenommene Auslage hinterlässt also keine Zeile (FS2). Der
+  // Status (offen/erstattet) spielt keine Rolle – beide sperren (AK6).
+  const auslagen = await listAuslagen(id);
+  if (auslagen.length > 0) return { error: LOESCHEN_AUSLAGE_ERFASST };
+
+  // `undefined` = der guarded DELETE traf keine Zeile (nebenläufiger Abschluss oder
+  // Zweit-Löschung, FS3/FS4) – kein Weiterleiten nach einem Löschvorgang, der nie stattfand.
+  const removed = await deleteVeranstaltung(id);
+  if (!removed) return { error: NOT_OFFEN };
+
+  revalidatePath(LIST_PATH);
+  redirect(LIST_PATH);
 }
 
 // Anzeigename-Snapshot wird serverseitig aus den Stammdaten geholt (nicht vom Client),

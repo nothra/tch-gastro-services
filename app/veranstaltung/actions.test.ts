@@ -27,6 +27,8 @@ vi.mock("@/db/veranstaltung", () => ({
   listZeilen: vi.fn(),
   ensureThekeForKasse: vi.fn(),
   setVeranstaltungCatalog: vi.fn(),
+  updateVeranstaltungMeta: vi.fn(),
+  deleteVeranstaltung: vi.fn(),
 }));
 vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
 // Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
@@ -46,8 +48,13 @@ vi.mock("@/db/auslage", () => ({
   updateAuslage: vi.fn(),
   setAuslageStatus: vi.fn(),
   removeAuslage: vi.fn(),
+  listAuslagen: vi.fn(),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// Der echte `redirect` wirft eine NEXT_REDIRECT-Kontrollfluss-Exception; der Mock tut das nicht.
+// Für die Tests reicht das: geprüft wird, OB und WOHIN umgeleitet wird – und beim Ablehnungspfad,
+// dass es gar nicht passiert.
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 // Der Limiter ist modul-lokaler Singleton-State (ADR-044 D1) – gemockt, damit jeder Test
 // seinen Zustand selbst setzt und keine Testreihenfolge-Abhängigkeit entsteht. Die echte
 // Fenster-Arithmetik inkl. der produktiven Parameter ist in `lib/rate-limit.test.ts` getestet.
@@ -56,6 +63,7 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
@@ -65,6 +73,7 @@ import {
   abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
+  deleteVeranstaltung,
   ensureThekeForKasse,
   getVeranstaltung,
   getVeranstaltungByToken,
@@ -74,9 +83,16 @@ import {
   removeZeile,
   setErhalten,
   setVeranstaltungCatalog,
+  updateVeranstaltungMeta,
   wiedereroeffnenVeranstaltung,
 } from "@/db/veranstaltung";
-import { createAuslage, removeAuslage, setAuslageStatus, updateAuslage } from "@/db/auslage";
+import {
+  createAuslage,
+  listAuslagen,
+  removeAuslage,
+  setAuslageStatus,
+  updateAuslage,
+} from "@/db/auslage";
 import {
   addZeileAction,
   adjustVerzehrAction,
@@ -84,6 +100,7 @@ import {
   createAuslageAction,
   createVeranstaltungAction,
   createWalkInAction,
+  deleteVeranstaltungAction,
   ensureThekeAction,
   kassiereZeileAction,
   removeAuslageAction,
@@ -92,6 +109,7 @@ import {
   setStatusAction,
   setVeranstaltungCatalogAction,
   updateAuslageAction,
+  updateVeranstaltungMetaAction,
 } from "./actions";
 
 const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
@@ -114,6 +132,10 @@ const createTeilnehmerMock = vi.mocked(createTeilnehmer);
 const getCatalogItemMock = vi.mocked(getCatalogItem);
 const getCatalogByIdMock = vi.mocked(getCatalogById);
 const setVeranstaltungCatalogMock = vi.mocked(setVeranstaltungCatalog);
+const updateVeranstaltungMetaMock = vi.mocked(updateVeranstaltungMeta);
+const deleteVeranstaltungMock = vi.mocked(deleteVeranstaltung);
+const listAuslagenMock = vi.mocked(listAuslagen);
+const redirectMock = vi.mocked(redirect);
 const adjustMengeMock = vi.mocked(adjustMenge);
 const tryAcquireMock = vi.mocked(selfServiceVerzehrRateLimiter.tryAcquire);
 const getPositionMock = vi.mocked(getPosition);
@@ -243,6 +265,9 @@ beforeEach(() => {
   getCatalogItemMock.mockResolvedValue(cola);
   getCatalogByIdMock.mockResolvedValue(katalogB);
   setVeranstaltungCatalogMock.mockResolvedValue({ ...offeneVeranstaltung, catalogId: "kat-c" });
+  listAuslagenMock.mockResolvedValue([]);
+  updateVeranstaltungMetaMock.mockResolvedValue(offeneVeranstaltung);
+  deleteVeranstaltungMock.mockResolvedValue(offeneVeranstaltung);
   createAuslageMock.mockResolvedValue(auslage);
   updateAuslageMock.mockResolvedValue(auslage);
   setAuslageStatusMock.mockResolvedValue(auslage);
@@ -464,6 +489,289 @@ describe("setVeranstaltungCatalogAction", () => {
     const result = await setVeranstaltungCatalogAction(undefined, form(wechsel));
 
     expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+  });
+});
+
+describe("updateVeranstaltungMetaAction", () => {
+  const meta = {
+    id: "v1",
+    bezeichnung: "Sommerfest",
+    datum: "2026-08-01",
+    kasse: "vereinskasse",
+  };
+
+  it("should_persistAllThreeFields_when_inputValid", async () => {
+    // #352 AK1: Bezeichnung, Kasse und Datum werden übernommen; das Datum passiert die
+    // Zod-Grenze als Date, nicht als String.
+    const result = await updateVeranstaltungMetaAction(undefined, form(meta));
+
+    expect(result).toEqual({ ok: true });
+    expect(updateVeranstaltungMetaMock).toHaveBeenCalledWith("v1", {
+      bezeichnung: "Sommerfest",
+      datum: new Date("2026-08-01"),
+      kasse: "vereinskasse",
+    });
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung");
+  });
+
+  it("should_notForwardCatalogId_when_itIsSubmittedAnyway", async () => {
+    // #352: das Bearbeiten-Formular darf den Katalog nicht mitändern – sonst umginge es die
+    // Verzehr-Sperre des eigenen Katalogwechsel-Wegs (#346 AK4).
+    await updateVeranstaltungMetaAction(undefined, form({ ...meta, catalogId: "kat-fremd" }));
+
+    expect(updateVeranstaltungMetaMock).toHaveBeenCalledWith(
+      "v1",
+      expect.not.objectContaining({ catalogId: expect.anything() }),
+    );
+    expect(setVeranstaltungCatalogMock).not.toHaveBeenCalled();
+  });
+
+  it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    // #352 AK11: das Rollen-Gate greift serverseitig, unabhängig von der UI.
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+
+    await expect(updateVeranstaltungMetaAction(undefined, form(meta))).rejects.toThrow(
+      ForbiddenError,
+    );
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_bezeichnungEmpty", async () => {
+    // #352 AK2, erste Hälfte – serverseitig, nicht nur per `required` im Formular.
+    const result = await updateVeranstaltungMetaAction(
+      undefined,
+      form({ ...meta, bezeichnung: "   " }),
+    );
+
+    expect(result.error).toBe("Bezeichnung ist erforderlich.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_datumEmpty", async () => {
+    // #352 AK2, zweite Hälfte: leeres Datum.
+    const result = await updateVeranstaltungMetaAction(undefined, form({ ...meta, datum: "" }));
+
+    expect(result.error).toBe("Datum ist erforderlich.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_datumInvalid", async () => {
+    // #352 AK2, zweite Hälfte: ungültiges Datum – eigene Meldung, eigener Zweig.
+    const result = await updateVeranstaltungMetaAction(
+      undefined,
+      form({ ...meta, datum: "kein-datum" }),
+    );
+
+    expect(result.error).toBe("Datum ist ungültig.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_veranstaltungNotFound", async () => {
+    // #352 FS4: fremde/unbekannte Id läuft in einen neutralen Fehler, kein IDOR.
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await updateVeranstaltungMetaAction(undefined, form(meta));
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_veranstaltungAbgeschlossen", async () => {
+    // #352 AK3/FS5: abgeschlossene Veranstaltungen bleiben schreibgeschützt.
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+
+    const result = await updateVeranstaltungMetaAction(undefined, form(meta));
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotPersist_when_typTheke", async () => {
+    // #352 AK10: die stehende Theke ist nicht Teil dieses Features – serverseitig abgelehnt,
+    // auch wenn die UI die Aktion ohnehin nicht anbietet.
+    getVeranstaltungMock.mockResolvedValue({
+      ...offeneVeranstaltung,
+      typ: "theke",
+      datum: null,
+      bezeichnung: "Stehende Theke",
+    });
+
+    const result = await updateVeranstaltungMetaAction(undefined, form(meta));
+
+    expect(result.error).toBe("Die stehende Theke kann nicht bearbeitet oder gelöscht werden.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_idMissing", async () => {
+    const { id, ...withoutId } = meta;
+    void id;
+
+    const result = await updateVeranstaltungMetaAction(undefined, form(withoutId));
+
+    expect(result.error).toBe("Keine Veranstaltung angegeben.");
+    expect(updateVeranstaltungMetaMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_guardedUpdateMatchedNoRow", async () => {
+    // #352 FS3/FS5: der guarded UPDATE meldet den nebenläufigen Abschluss über `undefined` –
+    // ohne Auswertung meldete die Action Erfolg für einen Schreibvorgang, der nie stattfand.
+    updateVeranstaltungMetaMock.mockResolvedValue(undefined);
+
+    const result = await updateVeranstaltungMetaAction(undefined, form(meta));
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteVeranstaltungAction", () => {
+  const loeschen = { id: "v1" };
+
+  // Eine erfasste Verzehr-Position dieser Veranstaltung; `menge` variiert je Testfall.
+  function position(menge: number) {
+    return {
+      zeileId: "z1",
+      catalogItemId: "c1",
+      menge,
+      name: "Cola",
+      size: "",
+      priceCents: 250,
+      category: "getraenk" as const,
+      active: true,
+    };
+  }
+
+  it("should_deleteAndRedirectToList_when_noVerzehrAndNoAuslage", async () => {
+    // #352 AK4 + AK9: Hard-Delete, danach zurück zur Übersicht (die Detailseite existiert nicht
+    // mehr) – deshalb `redirect` statt `revalidatePath` auf den Detailpfad.
+    await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung");
+    expect(revalidatePathMock).not.toHaveBeenCalledWith("/veranstaltung/v1");
+    expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
+  });
+
+  it("should_deleteWithoutConsultingZeilen_when_noVerzehrAndNoAuslage", async () => {
+    // #352 AK7: Teilnehmer-Zeilen ohne Fachdaten sperren das Löschen NICHT – die Action fragt
+    // sie deshalb gar nicht erst ab (sie verschwinden per Cascade, siehe db/veranstaltung.test).
+    await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(listZeilenMock).not.toHaveBeenCalled();
+    expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
+  });
+
+  it("should_rejectAndNotDelete_when_userLacksVeranstalterRole", async () => {
+    // #352 AK11.
+    authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
+
+    await expect(deleteVeranstaltungAction(undefined, form(loeschen))).rejects.toThrow(
+      ForbiddenError,
+    );
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotDelete_when_verzehrErfasst", async () => {
+    // #352 AK5/FS3: die Sperre wird zum Zeitpunkt der Action geprüft, nicht beim Rendern des
+    // Bestätigungsdialogs. Eigene Meldung – die des Katalogwechsels spräche hier vom Wechsel.
+    listPositionenMock.mockResolvedValue([position(1)]);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe(
+      "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
+    );
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("should_deleteAndRedirect_when_positionExistsButMengeZero", async () => {
+    // #352 FS1: `verzehr_position` löscht seine Zeile bei menge = 0 nicht. Eine reine
+    // Zeilen-Existenz-Prüfung würde hier falsch sperren – gefiltert wird auf `menge > 0`.
+    listPositionenMock.mockResolvedValue([position(0)]);
+
+    await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
+    expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
+  });
+
+  it("should_returnErrorAndNotDelete_when_auslageErfasst", async () => {
+    // #352 AK6: eine Auslage sperrt unabhängig von ihrem Status (offen/erstattet).
+    listAuslagenMock.mockResolvedValue([
+      {
+        id: "a1",
+        teilnehmerId: "t1",
+        anzeigename: "Anna Beispiel",
+        kategorie: "sonstiges",
+        betragCents: 550,
+        zweck: "Grillfleisch",
+        status: "erstattet",
+      },
+    ]);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe(
+      "Löschen nicht möglich: für diese Veranstaltung ist bereits eine Auslage erstattet oder erfasst.",
+    );
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotDelete_when_veranstaltungNotFound", async () => {
+    // #352 FS4: kein IDOR über eine fremde Veranstaltung.
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotDelete_when_veranstaltungAbgeschlossen", async () => {
+    // #352: abgeschlossene Veranstaltungen sind auch gegen Löschen geschützt.
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotDelete_when_typTheke", async () => {
+    // #352 AK10: die stehende Theke lässt sich über diesen Weg nicht entfernen.
+    getVeranstaltungMock.mockResolvedValue({
+      ...offeneVeranstaltung,
+      typ: "theke",
+      datum: null,
+      bezeichnung: "Stehende Theke",
+    });
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe("Die stehende Theke kann nicht bearbeitet oder gelöscht werden.");
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_idMissing", async () => {
+    const result = await deleteVeranstaltungAction(undefined, form({}));
+
+    expect(result.error).toBe("Keine Veranstaltung angegeben.");
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotRedirect_when_guardedDeleteMatchedNoRow", async () => {
+    // #352 FS3/FS4: der guarded DELETE meldet über `undefined`, dass er keine Zeile traf
+    // (nebenläufiger Abschluss oder Zweit-Löschung). Ohne Auswertung leitete die Action nach
+    // einem Löschvorgang weiter, der nie stattfand.
+    deleteVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 });
 

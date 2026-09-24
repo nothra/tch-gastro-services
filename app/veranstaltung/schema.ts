@@ -15,15 +15,14 @@ const katalogWahl = {
     .min(1, "Bitte einen Katalog wählen."),
 };
 
-// Zod-Grenze für das Anlegen einer datierten Veranstaltung (Server Action, ADR-023 D6).
+// Die Metadaten einer datierten Veranstaltung als geteilte Feldgruppe von Anlage und Bearbeiten
+// (#352): beide Wege nehmen dieselben drei Eingaben entgegen und müssen dieselben Meldungen
+// liefern – zwei Kopien würden lautlos divergieren (dieselbe Begründung wie `katalogWahl` oben).
 // `datum` ist Pflicht (Datum ist erstklassiges Pflichtfeld, spec-51) und kommt aus einem
 // <input type="date"> als "YYYY-MM-DD"; es wird zu einem Date transformiert. `kasse` wird
 // gegen die kanonische KASSEN-Konstante geprüft (fail-closed). Kein Essenpreis-Feld – Essen
 // ist ein Katalogartikel (ADR-023 D4). Alle Meldungen sind für Konsumenten, nicht Entwickler.
-// `catalogId` (#346) ist hier bewusst nur auf Nicht-Leere geprüft: ob die Id existiert UND zu
-// einem aktiven Katalog gehört, ist ein Datenbank-Fakt und gehört in die Action (FS1), nicht in
-// eine synchrone Zod-Regel.
-export const veranstaltungSchema = z.object({
+const veranstaltungStammdaten = {
   bezeichnung: z
     .string()
     .trim()
@@ -36,10 +35,28 @@ export const veranstaltungSchema = z.object({
     .refine((value) => !Number.isNaN(Date.parse(value)), "Datum ist ungültig.")
     .transform((value) => new Date(value)),
   kasse: z.enum(KASSEN, { error: "Bitte eine gültige Kasse wählen." }),
+};
+
+// Zod-Grenze für das Anlegen einer datierten Veranstaltung (Server Action, ADR-023 D6).
+// `catalogId` (#346) ist hier bewusst nur auf Nicht-Leere geprüft: ob die Id existiert UND zu
+// einem aktiven Katalog gehört, ist ein Datenbank-Fakt und gehört in die Action (FS1), nicht in
+// eine synchrone Zod-Regel.
+export const veranstaltungSchema = z.object({
+  ...veranstaltungStammdaten,
   ...katalogWahl,
 });
 
 export type VeranstaltungInput = z.infer<typeof veranstaltungSchema>;
+
+// Zod-Grenze für das Bearbeiten der Metadaten einer bereits angelegten Veranstaltung (#352 AK1/
+// AK2). Teilt sich die Feldregeln mit der Anlage (oben) – dieselben Pflichtfeld-Regeln, dieselben
+// Meldungen. Bewusst OHNE `catalogId`: der Katalogwechsel bleibt der eigene Weg aus #346 mit
+// seiner eigenen Verzehr-Sperre (AK4), die ein mitgeändertes Feld hier umgehen würde. Die `id`
+// der Veranstaltung ist ebenfalls kein Feld – sie wird in der Action direkt aus FormData gelesen
+// (wie bei `setStatusAction`), weil sie nur auf Anwesenheit geprüft und nicht transformiert wird.
+export const veranstaltungMetaSchema = z.object(veranstaltungStammdaten);
+
+export type VeranstaltungMetaInput = z.infer<typeof veranstaltungMetaSchema>;
 
 // Zod-Grenze für den Katalogwechsel einer bereits offenen Veranstaltung (#346 AK3). Teilt sich
 // die Feldregel mit der Anlage (oben) – dieselbe Eingabe, dieselbe Meldung. Die `id` der

@@ -7,6 +7,7 @@ import {
   AUSLAGE_STATUS_LABEL,
   EREIGNIS_ART_LABEL,
   formatDatum,
+  formatDatumInput,
   formatZeitpunkt,
 } from "./labels";
 
@@ -17,6 +18,26 @@ describe("formatDatum", () => {
 
   it("should_returnDash_when_null", () => {
     expect(formatDatum(null)).toBe("—");
+  });
+});
+
+describe("formatDatumInput", () => {
+  it("should_formatAsIsoDayInUtc_when_dateGiven", () => {
+    // #352 AK1: die Vorbelegung des <input type="date"> braucht exakt "YYYY-MM-DD". In UTC
+    // formatiert, damit eine westliche Zeitzone den Tag nicht auf den Vortag zurückzieht.
+    expect(formatDatumInput(new Date("2026-07-13"))).toBe("2026-07-13");
+  });
+
+  it("should_keepUtcDay_when_localTimezoneWouldShiftIt", () => {
+    // UTC-Mitternacht ist in Amerika noch der Vortag – eine `getFullYear()`-basierte
+    // Formatierung lieferte hier den 12.07. und das Formular zeigte das falsche Datum.
+    expect(formatDatumInput(new Date("2026-07-13T00:00:00.000Z"))).toBe("2026-07-13");
+  });
+
+  it("should_returnEmptyString_when_null", () => {
+    // `veranstaltung.datum` ist typseitig `Date | null` (die Theke hat keins) – ein leerer
+    // Wert ist die einzige Vorbelegung, die ein date-Input akzeptiert.
+    expect(formatDatumInput(null)).toBe("");
   });
 });
 

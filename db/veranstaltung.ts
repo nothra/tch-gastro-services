@@ -89,6 +89,59 @@ export async function setVeranstaltungCatalog(
   return updated;
 }
 
+// Die guarded WHERE-Bedingung, die Bearbeiten und Löschen teilen (#352): genau diese Zeile, nur
+// wenn sie eine datierte Veranstaltung (nicht die Theke, AK10) im Status `offen` (AK3) ist. Als
+// gemeinsamer Ausdruck, damit die beiden Schreibwege nicht auseinanderlaufen.
+function datierteOffeneVeranstaltung(veranstaltungId: string) {
+  return and(
+    eq(veranstaltung.id, veranstaltungId),
+    eq(veranstaltung.typ, "veranstaltung"),
+    eq(veranstaltung.status, "offen"),
+  );
+}
+
+// Die nachträglich änderbaren Metadaten einer datierten Veranstaltung (#352). Bewusst OHNE
+// `catalogId`: der Katalogwechsel bleibt der eigene Weg aus #346 mit eigener Verzehr-Sperre.
+export type VeranstaltungMetaData = {
+  bezeichnung: string;
+  datum: Date;
+  kasse: Kasse;
+};
+
+// Ändert die Metadaten einer datierten Veranstaltung (#352 AK1). Guarded UPDATE nach dem Muster
+// von `setVeranstaltungCatalog`, mit einer zusätzlichen Bedingung: `typ = 'veranstaltung'` hält
+// die stehende Theke außerhalb (AK10) – sie ist ein dauerhafter Sondervorgang ohne Datum
+// (spec-51), den ein gesetztes `datum` zur Pseudo-Veranstaltung machen würde. Unbekannte Id,
+// falscher Typ und abgeschlossener Status liefern alle `undefined` statt eines stillen Erfolgs
+// (FS4), den die Action auswertet. Die Data-Layer bleibt rollen- und regel-neutral.
+export async function updateVeranstaltungMeta(
+  veranstaltungId: string,
+  data: VeranstaltungMetaData,
+): Promise<Veranstaltung | undefined> {
+  const [updated] = await db
+    .update(veranstaltung)
+    .set({ ...data, updatedAt: new Date() })
+    .where(datierteOffeneVeranstaltung(veranstaltungId))
+    .returning();
+  return updated;
+}
+
+// Entfernt eine datierte Veranstaltung endgültig (#352 AK4, Hard-Delete – kein Soft-Delete,
+// weil ohne Verzehr/Auslage nichts zu bewahren ist). Zeilen, deren Verzehr-Positionen, Auslagen
+// und Protokoll-Einträge verschwinden FK-seitig per `onDelete: "cascade"` (db/schema.ts).
+// Dieselbe guarded Bedingung wie beim Meta-UPDATE: die Theke und abgeschlossene Veranstaltungen
+// treffen keine Zeile. Die fachliche Verzehr-/Auslagen-Sperre (AK5/AK6) sitzt bewusst NICHT hier,
+// sondern in der Action – die Data-Layer bleibt regel-neutral wie der Rest dieser Datei.
+export async function deleteVeranstaltung(
+  veranstaltungId: string,
+): Promise<Veranstaltung | undefined> {
+  const [removed] = await db
+    .delete(veranstaltung)
+    .where(datierteOffeneVeranstaltung(veranstaltungId))
+    .returning();
+  return removed;
+}
+
 // Provisioniert die stehende Theke idempotent (ADR-023 D3): existiert bereits eine für die
 // Kasse, wird sie zurückgegeben; sonst neu angelegt. Der Partial-Unique-Index
 // `veranstaltung_eine_theke_je_kasse` ist die DB-seitige Idempotenz-Garantie (genau eine

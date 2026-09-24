@@ -58,6 +58,15 @@ export function formatDatum(datum: Date | null): string {
   }).format(datum);
 }
 
+// Dasselbe date-only-Datum als Vorbelegung für ein <input type="date"> (#352 AK1), das strikt
+// "YYYY-MM-DD" erwartet. `toISOString()` schneidet in UTC – aus demselben Grund wie bei
+// `formatDatum` oben: lokalzeit-basierte Formatierung verschöbe den Tag (ADR-023). `null` (die
+// stehende Theke hat kein Datum) wird zur leeren Vorbelegung.
+export function formatDatumInput(datum: Date | null): string {
+  if (!datum) return "";
+  return datum.toISOString().slice(0, 10);
+}
+
 // Datum + Uhrzeit eines Protokoll-Eintrags (`createdAt` ist ein echter Zeitstempel, nicht
 // date-only wie `datum`). Fest in der Vereins-Zeitzone (Europe/Berlin) formatiert – so ist die
 // Anzeige unabhängig von der Server-/Client-Zeitzone deterministisch und fachlich korrekt.
