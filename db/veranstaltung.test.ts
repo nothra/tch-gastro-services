@@ -5,6 +5,7 @@ import { catalog, catalogItems, teilnehmer, veranstaltung } from "./schema";
 import { createTeilnehmer } from "./teilnehmer";
 import { STANDARD_CATALOG_ID, createItem, updateItem } from "./catalog";
 import { adjustMenge, listPositionen } from "./verzehr";
+import { createAuslage, listAuslagen } from "./auslage";
 import { listEreignisse } from "./veranstaltung-ereignis";
 import {
   abschliessenVeranstaltung,
@@ -446,15 +447,33 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     ).toBeUndefined();
   });
 
-  it("should_hardDeleteWithZeilenAndPositionen_when_veranstaltungOffen", async () => {
+  it("should_hardDeleteWithAllChildRows_when_veranstaltungOffen", async () => {
     // #352 AK4/AK7: Hard-Delete inklusive Cascade. Die menge-0-Position ist der realistische
     // Fall (FS1: hochgezählt und wieder runter) – genau der, den die Action noch durchlässt.
+    // Geprüft werden ALLE vier Kind-Tabellen, die der Kommentar an `deleteVeranstaltung`
+    // zusichert: ohne `onDelete: "cascade"` läuft das DELETE dort nicht in einen sauberen
+    // Fehler, sondern in einen rohen FK-Verstoß (23503), den kein Wrapper übersetzt (#345/#353).
     const v = await trackVeranstaltung(datierte());
     const person = await trackTeilnehmer("Kim");
     const zeile = await addZeile(v.id, person);
     const item = await trackItem("Loesch-Cola", 250);
     await adjustMenge(zeile.id, item.id, 1);
     await adjustMenge(zeile.id, item.id, -1);
+    await createAuslage({
+      veranstaltungId: v.id,
+      teilnehmerId: person.id,
+      kategorie: "sonstiges",
+      betragCents: 550,
+      zweck: `${TEST_PREFIX}Grillfleisch`,
+    });
+    // Protokoll-Einträge entstehen nur über Abschluss/Wiedereröffnung – der Umweg ist der
+    // einzige Weg, eine offene Veranstaltung MIT `veranstaltung_ereignis`-Zeilen zu erzeugen.
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+    await wiedereroeffnenVeranstaltung(v.id, AKTEUR);
+    // Ausgangslage explizit festhalten: sonst könnte das erwartete `[]` nach dem DELETE auch
+    // daher rühren, dass hier nie etwas angelegt wurde – die Assertion wäre leer-grün.
+    expect(await listAuslagen(v.id)).toHaveLength(1);
+    expect(await listEreignisse(v.id)).toHaveLength(2);
 
     const removed = await deleteVeranstaltung(v.id);
 
@@ -462,6 +481,8 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     expect(await getVeranstaltung(v.id)).toBeUndefined();
     expect(await listZeilen(v.id)).toEqual([]);
     expect(await listPositionen(v.id)).toEqual([]);
+    expect(await listAuslagen(v.id)).toEqual([]);
+    expect(await listEreignisse(v.id)).toEqual([]);
   });
 
   it("should_returnUndefined_when_deleteOnAbgeschlossen", async () => {

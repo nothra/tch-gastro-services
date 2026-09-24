@@ -75,6 +75,8 @@ const LOESCHEN_VERZEHR_ERFASST =
   "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
 const LOESCHEN_AUSLAGE_ERFASST =
   "Löschen nicht möglich: für diese Veranstaltung ist bereits eine Auslage erstattet oder erfasst.";
+const LOESCHEN_KASSIERT_ERFASST =
+  "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.";
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
@@ -205,16 +207,23 @@ export async function updateVeranstaltungMetaAction(
   const updated = await updateVeranstaltungMeta(id, parsed.data);
   if (!updated) return { error: NOT_OFFEN };
 
+  // Jede Route, deren gerenderter Inhalt sich ändert, wird revalidiert – dieselbe Regel, nach der
+  // der Katalogwechsel `verzehrPath` und der Statuswechsel `kassierenPath` mitnimmt. Die drei
+  // Unterseiten tragen die Bezeichnung in ihrer Überschrift, die Übersicht zusätzlich Datum und
+  // Kasse.
   revalidatePath(detailPath(id));
+  revalidatePath(verzehrPath(id));
+  revalidatePath(auslagenPath(id));
+  revalidatePath(kassierenPath(id));
   revalidatePath(LIST_PATH);
   return { ok: true };
 }
 
 // Entfernt eine noch offene, datierte Veranstaltung endgültig (#352 AK4, Hard-Delete). Fail-closed
 // in dieser Reihenfolge: Veranstalter-Rolle (AK11) → Veranstaltung existiert, ist datiert und offen
-// (AK3/AK10/FS4) → kein Verzehr erfasst (AK5) → keine Auslage erfasst (AK6) → guarded DELETE.
-// Teilnehmer-Zeilen ohne Fachdaten sperren NICHT (AK7) – sie verschwinden per Cascade, weshalb
-// diese Action sie gar nicht erst abfragt. Beide Fachsperren laufen zum Zeitpunkt der Action, nicht
+// (AK3/AK10/FS4) → kein Verzehr erfasst (AK5) → nichts kassiert (AK12) → keine Auslage erfasst
+// (AK6) → guarded DELETE. Teilnehmer-Zeilen ohne Fachdaten sperren NICHT (AK7) – sie verschwinden
+// per Cascade. Alle drei Fachsperren laufen zum Zeitpunkt der Action, nicht
 // beim Rendern des Bestätigungsdialogs, und greifen damit auch im Race (FS3). Bei Erfolg
 // `redirect` statt `revalidatePath(detailPath)`: die Detailseite existiert danach nicht mehr (AK9).
 export async function deleteVeranstaltungAction(
@@ -229,6 +238,17 @@ export async function deleteVeranstaltungAction(
   if (guardError) return { error: guardError };
 
   if (await hatErfasstenVerzehr(id)) return { error: LOESCHEN_VERZEHR_ERFASST };
+
+  // Bar kassiertes Geld sperrt ebenfalls (AK12) – und zwar unabhängig vom Verzehr: `kassiereZeile`
+  // verlangt keinen Verzehr, eine reine Spende ist ein erstklassiger Fall (`kassierSummen.ts`).
+  // Ohne diese Sperre verschwände ein `Σ Erhalten`-Datensatz – die eine Hälfte der
+  // Kassenveränderung (PROJECT-CONTEXT) – unwiederbringlich im Cascade. `erhaltenCents === null`
+  // heißt „noch nicht kassiert"; `setErhalten(null)` nimmt ein Kassieren vollständig zurück und
+  // gibt das Löschen wieder frei (FS6, analog zur Auslagen-Rücknahme unten).
+  const zeilen = await listZeilen(id);
+  if (zeilen.some((zeile) => zeile.erhaltenCents !== null)) {
+    return { error: LOESCHEN_KASSIERT_ERFASST };
+  }
 
   // Anders als beim Verzehr zählt hier die reine Zeilen-Existenz: `removeAuslage` ist ein echtes
   // DELETE (ADR-028 D2), eine zurückgenommene Auslage hinterlässt also keine Zeile (FS2). Der

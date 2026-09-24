@@ -38,6 +38,9 @@ Auslagenerstattung erfasst wurde. Hard-Delete, kein Soft-Delete. Die stehende Th
       serverseitig abgelehnt.
 - [x] GIVEN eine Rolle ohne `veranstalter` WHEN Bearbeiten/Löschen versucht wird THEN wird
       serverseitig abgelehnt.
+- [x] AK12 (nachgetragen aus Review-Runde 1): GIVEN eine Veranstaltung mit mind. einer Zeile mit
+      gesetztem `erhaltenCents` WHEN ein Lösch-Request eintrifft THEN wird er serverseitig
+      abgelehnt – auch ohne Verzehr und ohne Auslage.
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -129,7 +132,24 @@ verworfen – vor dem Commit gehört ein Blick auf `git status`, nicht nur auf d
 _Keine offenen architektonischen Fragen mehr._
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+
+**Runde 1 (`tasks/review-352.md`): NEEDS_REWORK** – 1 kritisch, 2 wichtig, 3 Nitpicks.
+Rework in dieser Task erledigt; Details und Mutationsbelege je Fund im Abschnitt „Rework-Runde 1"
+desselben Reports. Kurzfassung:
+
+- **Kritisch:** Die Lösch-Sperre ignorierte bereits **kassiertes Geld**. `kassiereZeile` verlangt
+  keinen Verzehr – eine reine Spende hinterlässt eine Zeile mit `erhaltenCents`, aber keine
+  Position mit `menge > 0` und keine Auslage, und fiel damit durch beide bestehenden Sperren. Der
+  Hard-Delete hätte den Betrag per Cascade unwiederbringlich entfernt. Behoben durch eine dritte
+  Sperre (`erhaltenCents !== null`) plus **AK12/FS6 in der Spec** – die Lücke saß auch im
+  Spec-Wortlaut, nicht nur im Code (Lesson #253: eine im selben PR entstandene Spec ist selbst
+  prüfpflichtig).
+- **Wichtig:** `updateVeranstaltungMetaAction` revalidierte die drei Unterseiten nicht, die die
+  Bezeichnung anzeigen; der Cascade-Integrationstest deckte nur zwei der vier Kind-Tabellen ab.
+- **Nitpicks 1 + 3 behoben** (veraltete Status-Meldungen), **Nitpick 2 bewusst abgelehnt**: eine
+  neutrale No-Match-Meldung nur an den #352-Stellen wäre inkonsistent zu
+  `setVeranstaltungCatalogAction` – genau die Konsistenz, mit der der Report die Einstufung als
+  Nitpick begründet. Eine Änderung an allen drei Stellen berührt #346 und gehört nicht hierher.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

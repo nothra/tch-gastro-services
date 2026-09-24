@@ -515,6 +515,17 @@ describe("updateVeranstaltungMetaAction", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung");
   });
 
+  it("should_revalidateEveryRouteShowingTheBezeichnung_when_metaChanged", async () => {
+    // Die drei Unterseiten rendern `veranstaltung.bezeichnung` in ihrer Überschrift – ohne
+    // Revalidierung zeigten sie nach dem Umbenennen weiter den alten Namen. Dieselbe Regel,
+    // nach der der Katalogwechsel `verzehr` und der Statuswechsel `kassieren` mitnimmt.
+    await updateVeranstaltungMetaAction(undefined, form(meta));
+
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/verzehr");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/auslagen");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/kassieren");
+  });
+
   it("should_notForwardCatalogId_when_itIsSubmittedAnyway", async () => {
     // #352: das Bearbeiten-Formular darf den Katalog nicht mitändern – sonst umginge es die
     // Verzehr-Sperre des eigenen Katalogwechsel-Wegs (#346 AK4).
@@ -653,13 +664,46 @@ describe("deleteVeranstaltungAction", () => {
     expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
   });
 
-  it("should_deleteWithoutConsultingZeilen_when_noVerzehrAndNoAuslage", async () => {
-    // #352 AK7: Teilnehmer-Zeilen ohne Fachdaten sperren das Löschen NICHT – die Action fragt
-    // sie deshalb gar nicht erst ab (sie verschwinden per Cascade, siehe db/veranstaltung.test).
+  it("should_delete_when_zeilenExistButNothingKassiert", async () => {
+    // #352 AK7 + FS6: Teilnehmer-Zeilen ohne Fachdaten sperren das Löschen NICHT. `erhaltenCents
+    // = null` ist zugleich der Zustand nach einem zurückgenommenen Kassiervorgang
+    // (`setErhalten(null)`) – auch der gibt das Löschen wieder frei.
+    listZeilenMock.mockResolvedValue([zeile, { ...zeile, id: "z2", erhaltenCents: null }]);
+
     await deleteVeranstaltungAction(undefined, form(loeschen));
 
-    expect(listZeilenMock).not.toHaveBeenCalled();
     expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
+    expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
+  });
+
+  it("should_returnErrorAndNotDelete_when_geldKassiertOhneVerzehr", async () => {
+    // #352 AK12: `kassiereZeile` verlangt keinen Verzehr – eine reine Spende hinterlässt eine
+    // Zeile mit `erhaltenCents`, aber keine Position mit `menge > 0` und keine Auslage. Ohne
+    // eigene Sperre fiele dieses Bargeld beim Hard-Delete lautlos aus der Kasse.
+    listPositionenMock.mockResolvedValue([]);
+    listAuslagenMock.mockResolvedValue([]);
+    listZeilenMock.mockResolvedValue([{ ...zeile, erhaltenCents: 1000 }]);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe(
+      "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.",
+    );
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnErrorAndNotDelete_when_kassiertBetragIsZero", async () => {
+    // #352 AK12, Grenzfall: `0` heißt „kassiert, und zwar nichts" – nur `null` heißt „noch nicht
+    // kassiert". Eine Truthiness-Prüfung statt `!== null` ließe genau diese Zeile durch.
+    listZeilenMock.mockResolvedValue([{ ...zeile, erhaltenCents: 0 }]);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe(
+      "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.",
+    );
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
   });
 
   it("should_rejectAndNotDelete_when_userLacksVeranstalterRole", async () => {

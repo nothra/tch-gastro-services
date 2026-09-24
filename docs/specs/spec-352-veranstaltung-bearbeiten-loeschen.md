@@ -71,6 +71,14 @@ und eine fälschlich angelegte Veranstaltung lässt sich nicht wieder entfernen.
 - [ ] GIVEN eine andere Rolle als Veranstalter (z. B. `verwalter` ohne `veranstalter`-Rolle)
       WHEN sie Bearbeiten/Löschen versucht THEN wird das serverseitig abgelehnt (RBAC-Guard
       analog den übrigen Veranstaltungs-Actions).
+- [ ] GIVEN eine Veranstaltung, für die mindestens eine Zeile mit gesetztem `erhaltenCents`
+      existiert (bar kassiert, `null` = nicht kassiert) WHEN ein Lösch-Request eintrifft THEN
+      wird er abgelehnt (serverseitig erzwungen) – auch dann, wenn weder Verzehr noch Auslage
+      erfasst ist. Nachgetragen im Review zu #352: `kassiereZeile` verlangt keinen Verzehr, eine
+      reine Spende ist ein erstklassiger Fall (`kassierSummen.ts`). Ohne diese Sperre fiele ein
+      `Σ Erhalten`-Datensatz – die eine Hälfte der Kassenveränderung (PROJECT-CONTEXT) – beim
+      Hard-Delete lautlos aus der Kasse. Ein kassierter Betrag ist Fachdaten im Sinne des
+      Scope-Satzes „Zeilen ohne Fachdaten sperren nicht".
 
 ## Fehlerszenarien
 
@@ -87,6 +95,10 @@ und eine fälschlich angelegte Veranstaltung lässt sich nicht wieder entfernen.
       Ausführungszeitpunkt** serverseitig neu prüfen (kein rein clientseitiger Snapshot-Check).
 - [ ] Ungültige/fremde Veranstaltungs-ID beim Bearbeiten/Löschen → neutraler Fehler
       (`notFound()`/kein stiller Erfolg), kein IDOR über eine andere Veranstaltung.
+- [ ] Kassierter Betrag wurde wieder zurückgenommen (`setErhalten(null)`, `erhaltenCents` steht
+      wieder auf `null`) → Löschen der Veranstaltung wieder erlaubt, analog zur zurückgenommenen
+      Auslage. Abzugrenzen von `erhaltenCents = 0`: das heißt „kassiert, und zwar nichts" und
+      sperrt weiterhin – die Prüfung ist `!== null`, keine Truthiness-Prüfung.
 - [ ] Bearbeiten einer `abgeschlossenen` Veranstaltung direkt per Server-Request (UI umgangen)
       → serverseitig abgelehnt, `undefined`-Rückgabe der Data-Layer auswerten (Kern-Kurzregel
       „guarded UPDATE", nicht `{ok:true}` annehmen).

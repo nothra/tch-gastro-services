@@ -72,6 +72,31 @@ async function oeffneLoeschDialog(page: Page) {
   await expect(page.getByRole("heading", { name: "Veranstaltung löschen?" })).toBeVisible();
 }
 
+// Teilnehmer per Walk-in erfassen (Muster aus wechsel-verzehr-kassieren.spec.ts).
+async function walkIn(page: Page, name: string) {
+  const formular = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
+  await formular.getByLabel("Anzeigename").fill(name);
+  await formular.getByRole("button", { name: "Anlegen & erfassen" }).click();
+  await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
+}
+
+// Die Kassierzeile eines Teilnehmers (Muster aus wechsel-verzehr-kassieren.spec.ts).
+function kassierZeile(page: Page, name: string) {
+  return page.getByRole("listitem").filter({ hasText: name }).first();
+}
+
+// Setzt `Erhalten` einer Zeile auf den übergebenen Wert; `""` nimmt das Kassieren zurück
+// (`kassiereSchema` mappt den Leerstring auf `null`).
+async function kassiere(page: Page, detailPfad: string, name: string, betrag: string) {
+  await page.goto(`${detailPfad}/kassieren`);
+  const zeile = kassierZeile(page, name);
+  await zeile.getByLabel("Erhalten (EUR)").fill(betrag);
+  await zeile.getByRole("button", { name: "Kassieren" }).click();
+  await expect(zeile.getByText("Gespeichert.")).toBeVisible();
+}
+
 test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
   test.skip(!process.env.E2E_VERANSTALTUNG_352, "nur mit E2E_VERANSTALTUNG_352=1 (legt Daten an)");
   test.skip(!email || !password, "SEED_ADMIN_* nicht gesetzt");
@@ -127,12 +152,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await page.goto(detailPfad);
 
     // ── AK7: eine Teilnehmer-Zeile ohne jeden Verzehr darf das Löschen NICHT sperren ────────
-    const walkIn = page
-      .locator("form")
-      .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
-    await walkIn.getByLabel("Anzeigename").fill(`${PREFIX} Gast ${LAUF}`);
-    await walkIn.getByRole("button", { name: "Anlegen & erfassen" }).click();
-    await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
+    await walkIn(page, `${PREFIX} Gast ${LAUF}`);
 
     // ── AK8: der erste Klick öffnet nur den Dialog ──────────────────────────────────────────
     await oeffneLoeschDialog(page);
@@ -158,6 +178,48 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await expect(page.locator(`a[href="${detailPfad}"]`)).toHaveCount(0);
 
     // ── AK4: und die Detailroute existiert nicht mehr (Hard-Delete, kein Soft-Delete) ───────
+    const weg = await page.goto(detailPfad);
+    expect(weg?.status()).toBe(404);
+  });
+
+  test("AK12/FS6: kassiertes Geld ohne Verzehr sperrt das Löschen – bis es zurückgenommen wird", async ({
+    page,
+  }) => {
+    // Belegt die Prämisse des Review-Funds auf der echten Oberfläche: eine reine Spende ist über
+    // die normale UI erreichbar (Kassieren verlangt keinen Verzehr) und hinterlässt WEDER eine
+    // Position mit `menge > 0` NOCH eine Auslage. Vor AK12 wäre diese Veranstaltung löschbar
+    // gewesen und die 10,00 € wären lautlos aus der Kasse verschwunden.
+    test.setTimeout(120_000);
+    await login(page);
+
+    const bezeichnung = `${PREFIX} Kassiert ${LAUF}`;
+    const gast = `${PREFIX} Spender ${LAUF}`;
+    const detailPfad = await createVeranstaltung(page, bezeichnung);
+    await page.goto(detailPfad);
+    await walkIn(page, gast);
+
+    // ── Reine Spende: Geld kassiert, kein einziger Strich erfasst ───────────────────────────
+    await kassiere(page, detailPfad, gast, "10,00");
+
+    // ── AK12: der Lösch-Versuch wird serverseitig abgelehnt, der Grund steht im Dialog ───────
+    await page.goto(detailPfad);
+    await oeffneLoeschDialog(page);
+    await page.getByRole("button", { name: "Endgültig löschen" }).click();
+    await expect(
+      page.getByText("Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert."),
+    ).toBeVisible();
+
+    // Gegenbeweis nach echtem Neuladen: die Veranstaltung existiert noch (keine 404-Route).
+    const nochDa = await page.goto(detailPfad);
+    expect(nochDa?.status()).toBe(200);
+
+    // ── FS6: das Kassieren zurücknehmen (Leerstring → `null`) gibt das Löschen wieder frei ──
+    await kassiere(page, detailPfad, gast, "");
+    await page.goto(detailPfad);
+    await oeffneLoeschDialog(page);
+    await page.getByRole("button", { name: "Endgültig löschen" }).click();
+    await expect(page).toHaveURL(/\/veranstaltung$/);
+
     const weg = await page.goto(detailPfad);
     expect(weg?.status()).toBe(404);
   });

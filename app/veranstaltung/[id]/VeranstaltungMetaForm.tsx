@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { KASSEN, type Kasse } from "@/db/schema";
 import { updateVeranstaltungMetaAction } from "../actions";
 import { KASSE_LABEL, formatDatumInput } from "../labels";
@@ -15,6 +15,11 @@ const inputClass = "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-70
 // Alle drei Felder sind mit dem Ist-Zustand vorbelegt: das Formular schickt immer alle drei, wer
 // nur eines ändert, darf die anderen nicht versehentlich überschreiben. Ein Katalog-Feld gibt es
 // bewusst NICHT – der Wechsel bleibt der eigene Weg aus #346 mit eigener Verzehr-Sperre.
+//
+// „Änderungen gespeichert." behauptet einen Speicherstand und verschwindet deshalb, sobald der
+// Nutzer weitertippt – sonst stünde die Bestätigung über einem Formularinhalt, der so nie
+// gespeichert wurde. Die Fehlermeldung bleibt bewusst stehen: sie ist kein Zustandsbericht,
+// sondern die Aufforderung, die gerade laufende Korrektur zu Ende zu bringen.
 export function VeranstaltungMetaForm({
   id,
   bezeichnung,
@@ -27,9 +32,11 @@ export function VeranstaltungMetaForm({
   kasse: Kasse;
 }) {
   const [state, formAction, pending] = useActionState(updateVeranstaltungMetaAction, undefined);
+  const [geaendertSeitSpeichern, setGeaendertSeitSpeichern] = useState(false);
   return (
     <form
       action={formAction}
+      onChange={() => setGeaendertSeitSpeichern(true)}
       className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
     >
       <h2 className="font-semibold">Veranstaltung bearbeiten</h2>
@@ -63,13 +70,16 @@ export function VeranstaltungMetaForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
+          onClick={() => setGeaendertSeitSpeichern(false)}
           disabled={pending}
           className="w-fit rounded border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
         >
           {pending ? "Speichern …" : "Änderungen speichern"}
         </button>
         {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-        {state?.ok && <p className="text-sm text-green-700">Änderungen gespeichert.</p>}
+        {state?.ok && !geaendertSeitSpeichern && (
+          <p className="text-sm text-green-700">Änderungen gespeichert.</p>
+        )}
       </div>
     </form>
   );

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { VeranstaltungFormState } from "../actions";
 
 // Externe Grenze: Server Action aus derselben Feature-Schicht.
@@ -95,6 +96,31 @@ describe("VeranstaltungMetaForm", () => {
     render(<VeranstaltungMetaForm {...props} />);
 
     expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+  });
+
+  it("should_hideSuccessMessage_when_fieldEditedAfterSaving", async () => {
+    // „Änderungen gespeichert." behauptet einen Speicherstand. Bleibt sie stehen, während der
+    // Nutzer weitertippt, bestätigt sie einen Formularinhalt, der so nie gespeichert wurde.
+    const user = userEvent.setup();
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Bezeichnung"), " – verschoben");
+
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+  });
+
+  it("should_keepRejectionErrorVisible_when_fieldEditedAfterRejection", async () => {
+    // Gegenrichtung zum Test darüber: die Fehlermeldung ist kein Zustandsbericht, sondern die
+    // Aufforderung zur Korrektur – sie darf beim Tippen NICHT verschwinden.
+    const user = userEvent.setup();
+    withState({ error: "Bezeichnung ist erforderlich." });
+    render(<VeranstaltungMetaForm {...props} />);
+
+    await user.type(screen.getByLabelText("Bezeichnung"), "Sommerfest");
+
+    expect(screen.getByText("Bezeichnung ist erforderlich.")).toBeInTheDocument();
   });
 
   it("should_disableButtonWithPendingText_when_pending", () => {

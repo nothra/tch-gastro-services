@@ -89,8 +89,8 @@ describe("VeranstaltungLoeschen", () => {
     expect(dispatchMock).toHaveBeenCalled();
   });
 
-  it("should_showRejectionErrorInsideDialog_when_stateHasError", async () => {
-    // #352 AK5/AK6: die serverseitige Sperre wird sichtbar – und zwar dort, wo der Nutzer
+  it("should_showRejectionErrorInsideDialog_when_submittedAndStateHasError", async () => {
+    // #352 AK5/AK6/AK12: die serverseitige Sperre wird sichtbar – und zwar dort, wo der Nutzer
     // gerade steht (im offenen Dialog), statt hinter ihm zu verschwinden.
     const user = userEvent.setup();
     withState({
@@ -99,10 +99,30 @@ describe("VeranstaltungLoeschen", () => {
     render(<VeranstaltungLoeschen {...props} />);
 
     await user.click(screen.getByRole("button", { name: "Veranstaltung löschen" }));
+    await user.click(screen.getByRole("button", { name: "Endgültig löschen" }));
 
     expect(screen.getByRole("dialog")).toHaveTextContent(
       "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
     );
+  });
+
+  it("should_notShowPreviousError_when_dialogReopenedAfterCancel", async () => {
+    // Der `useActionState`-State überlebt das Schließen des Dialogs. Ohne Bindung an den
+    // Öffnungs-Zyklus stünde die alte Ablehnung sofort wieder da – über einem Löschvorgang, der
+    // in diesem Zyklus noch gar nicht versucht wurde.
+    const user = userEvent.setup();
+    const fehler = "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.";
+    withState({ error: fehler });
+    render(<VeranstaltungLoeschen {...props} />);
+
+    await user.click(screen.getByRole("button", { name: "Veranstaltung löschen" }));
+    await user.click(screen.getByRole("button", { name: "Endgültig löschen" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent(fehler); // Ausgangslage: Fehler steht
+
+    await user.click(screen.getByRole("button", { name: "Abbrechen" }));
+    await user.click(screen.getByRole("button", { name: "Veranstaltung löschen" }));
+
+    expect(screen.getByRole("dialog")).not.toHaveTextContent(fehler);
   });
 
   it("should_disableConfirmButtonWithPendingText_when_pending", async () => {
