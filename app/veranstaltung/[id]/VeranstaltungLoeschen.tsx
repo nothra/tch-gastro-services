@@ -10,6 +10,12 @@ import { deleteVeranstaltungAction } from "../actions";
 // erscheint IM Dialog, weil der Nutzer nach dem Absenden dort steht; er bleibt dafür offen. Bei
 // Erfolg leitet die Action selbst zur Übersicht (AK9), dieser Zustand wird hier also nie gerendert.
 //
+// Eine bewusste Abweichung vom Vorbild: dort bleibt „Abbrechen" während des laufenden Requests
+// klickbar. Hier ist der Vorgang ein unumkehrbarer Hard-Delete – ein Abbrechen im Pending-Fenster
+// schlösse nur den Dialog, während die abgesetzte Action serverseitig zu Ende löscht. Die
+// Beschriftung verspräche dann das Gegenteil dessen, was geschieht; deshalb `disabled={pending}`
+// an beiden Buttons.
+//
 // `abgeschickt` bindet die Fehleranzeige an den aktuellen Öffnungs-Zyklus: der `useActionState`-
 // State überlebt das Schließen des Dialogs, sonst stünde beim erneuten Öffnen sofort die alte
 // Ablehnung da – über einem Vorgang, der noch gar nicht versucht wurde.
@@ -48,7 +54,8 @@ export function VeranstaltungLoeschen({ id, bezeichnung }: { id: string; bezeich
                 <button
                   type="button"
                   onClick={() => setShowConfirm(false)}
-                  className="flex-1 rounded bg-zinc-200 px-3 py-2 text-sm dark:bg-zinc-700"
+                  disabled={pending}
+                  className="flex-1 rounded bg-zinc-200 px-3 py-2 text-sm disabled:opacity-60 dark:bg-zinc-700"
                 >
                   Abbrechen
                 </button>

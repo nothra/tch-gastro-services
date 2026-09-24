@@ -151,6 +151,32 @@ desselben Reports. Kurzfassung:
   `setVeranstaltungCatalogAction` – genau die Konsistenz, mit der der Report die Einstufung als
   Nitpick begründet. Eine Änderung an allen drei Stellen berührt #346 und gehört nicht hierher.
 
+**Runde 2 (`tasks/review-352.md`): NEEDS_REWORK** – 0 kritisch, 1 wichtig, 2 Nitpicks. Rework in
+dieser Task erledigt; Details und Mutationsbelege im Abschnitt „Rework-Runde 2" desselben Reports.
+Kurzfassung:
+
+- **Wichtig:** Der Revalidierungs-Sweep aus Runde 1 ließ ausgerechnet die Route aus, bei der das
+  Caching real greift: `/theke/<token>` rendert Bezeichnung, Datum und Kasse und ist die einzige
+  betroffene Route **ohne** Auth-Gate, also full-route-cache-fähig. Folge: Der bereits an die
+  Teilnehmer verteilte QR-Link zeigte nach einer Korrektur dauerhaft den alten Stand, und nach dem
+  Hard-Delete lieferte er die gelöschte Veranstaltung weiter aus. Behoben in **beiden** Actions.
+- **Nitpick 1 umgesetzt** (`disabled={pending}` am Abbrechen-Button – bei einem unumkehrbaren
+  Hard-Delete wiegt die irreführende Beschriftung schwerer als die Musterkonsistenz zu
+  `CatalogControls`), **Nitpick 2 behoben** (Zahlwort-Drift im E2E-Dateikopf, an beiden Stellen).
+  **Nitpick 2 der Runde 1 bleibt abgelehnt.**
+
+**Abweichung vom vorgeschlagenen Fix-Weg:** Der Report empfahl, `assertVeranstaltungAenderbar` das
+geladene `ziel` zurückgeben zu lassen. Das war nicht nötig – `updateVeranstaltungMeta` und
+`deleteVeranstaltung` liefern ihre Zeile schon per `.returning()`, inklusive `token`. Der Token
+stammt damit aus dem tatsächlich geschriebenen bzw. entfernten Datensatz, und der Guard bleibt der
+rückgabefreie Vor-Check, als den ihn sein Kommentar beschreibt.
+
+**Testnachweis mit Reihenfolge statt Präsenz:** Der `redirect`-Mock in `actions.test.ts` wirft
+bewusst kein NEXT_REDIRECT. Eine bloße „wurde aufgerufen"-Assertion auf die Theke-Revalidierung im
+Lösch-Pfad wäre deshalb auch dann grün, wenn die Zeile hinter dem `redirect` stünde – wo sie in
+Produktion nie liefe. Der neue Test vergleicht daher `invocationCallOrder`; der Mutationslauf
+(Zeile hinter den `redirect` verschoben) macht genau diesen Vergleich rot.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

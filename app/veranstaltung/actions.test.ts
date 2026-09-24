@@ -524,6 +524,11 @@ describe("updateVeranstaltungMetaAction", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/verzehr");
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/auslagen");
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/kassieren");
+    // Die öffentliche Teilnehmer-Route rendert alle drei geänderten Felder (`/theke/[token]`:
+    // Bezeichnung als h1, Datum und Kasse in der Unterzeile) und ist als einzige der betroffenen
+    // Routen ohne Auth-Gate full-route-cache-fähig – ohne diese Zeile zeigt der bereits geteilte
+    // QR-Link dauerhaft den alten Stand. Präzedenzfall: `adjustVerzehrByTokenAction`.
+    expect(revalidatePathMock).toHaveBeenCalledWith("/theke/tok");
   });
 
   it("should_notForwardCatalogId_when_itIsSubmittedAnyway", async () => {
@@ -662,6 +667,24 @@ describe("deleteVeranstaltungAction", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung");
     expect(revalidatePathMock).not.toHaveBeenCalledWith("/veranstaltung/v1");
     expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
+  });
+
+  it("should_revalidateThekeRouteBeforeRedirecting_when_deleted", async () => {
+    // Der geteilte QR-Link (`/theke/<token>`) überlebt den Hard-Delete: ohne Revalidierung
+    // liefert die einzige auth-freie – und damit full-route-cache-fähige – Route der
+    // Veranstaltung sie weiter aus, und ein Strich darauf läuft in „Veranstaltung nicht
+    // gefunden." statt in die 404-Seite. Der Token stammt aus der `.returning()`-Zeile des
+    // guarded DELETE, also aus dem tatsächlich entfernten Datensatz.
+    await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    const thekeCall = revalidatePathMock.mock.calls.findIndex(([pfad]) => pfad === "/theke/tok");
+    expect(thekeCall).toBeGreaterThanOrEqual(0);
+    // Reihenfolge explizit: der echte `redirect` wirft NEXT_REDIRECT, eine hinter ihm stehende
+    // Revalidierung liefe in Produktion nie. Der Mock wirft nicht – eine bloße
+    // „wurde aufgerufen"-Assertion wäre also auch bei falscher Reihenfolge grün.
+    expect(revalidatePathMock.mock.invocationCallOrder[thekeCall]).toBeLessThan(
+      redirectMock.mock.invocationCallOrder[0],
+    );
   });
 
   it("should_delete_when_zeilenExistButNothingKassiert", async () => {

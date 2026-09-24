@@ -134,4 +134,19 @@ describe("VeranstaltungLoeschen", () => {
 
     expect(screen.getByRole("button", { name: /Löschen …/ })).toBeDisabled();
   });
+
+  it("should_disableCancelButton_when_pending", async () => {
+    // Bliebe „Abbrechen" im Pending-Fenster klickbar, verspräche die Beschriftung das Gegenteil
+    // dessen, was geschieht: der Dialog schlösse sich, die bereits abgesetzte Action liefe
+    // serverseitig zu Ende und löschte. Bewusste Abweichung vom Vorbild `CatalogControls`, das
+    // „Abbrechen" aktiv lässt – dort begleitet es ein reversibles Anlegen/Umbenennen, hier einen
+    // unumkehrbaren Hard-Delete.
+    const user = userEvent.setup();
+    withState(undefined, true);
+    render(<VeranstaltungLoeschen {...props} />);
+
+    await user.click(screen.getByRole("button", { name: "Veranstaltung löschen" }));
+
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+  });
 });

@@ -210,11 +210,16 @@ export async function updateVeranstaltungMetaAction(
   // Jede Route, deren gerenderter Inhalt sich ändert, wird revalidiert – dieselbe Regel, nach der
   // der Katalogwechsel `verzehrPath` und der Statuswechsel `kassierenPath` mitnimmt. Die drei
   // Unterseiten tragen die Bezeichnung in ihrer Überschrift, die Übersicht zusätzlich Datum und
-  // Kasse.
+  // Kasse. `/theke/<token>` rendert alle drei geänderten Felder und wiegt am schwersten: sie ist
+  // die einzige betroffene Route ohne Auth-Gate und damit full-route-cache-fähig, während
+  // `/veranstaltung/**` über den Session-Zugriff ohnehin dynamisch rendert. Den Token liefert die
+  // `.returning()`-Zeile des UPDATE – dieselbe Quelle, aus der `adjustVerzehrByTokenAction`
+  // revalidiert.
   revalidatePath(detailPath(id));
   revalidatePath(verzehrPath(id));
   revalidatePath(auslagenPath(id));
   revalidatePath(kassierenPath(id));
+  revalidatePath(thekePath(updated.token));
   revalidatePath(LIST_PATH);
   return { ok: true };
 }
@@ -261,6 +266,12 @@ export async function deleteVeranstaltungAction(
   const removed = await deleteVeranstaltung(id);
   if (!removed) return { error: NOT_OFFEN };
 
+  // Der geteilte QR-Link überlebt den Hard-Delete: ohne Revalidierung liefert die auth-freie
+  // Teilnehmer-Route die gelöschte Veranstaltung weiter aus, und ein Strich darauf läuft in
+  // „Veranstaltung nicht gefunden." statt in die 404-Seite. Der Token kommt aus der
+  // `.returning()`-Zeile des guarded DELETE, also aus dem tatsächlich entfernten Datensatz.
+  // Beide Revalidierungen müssen VOR dem `redirect` stehen – der wirft NEXT_REDIRECT.
+  revalidatePath(thekePath(removed.token));
   revalidatePath(LIST_PATH);
   redirect(LIST_PATH);
 }

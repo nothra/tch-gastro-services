@@ -15,7 +15,7 @@ import { test, expect, type Page } from "@playwright/test";
 //   pnpm db:up && pnpm db:seed
 //   E2E_VERANSTALTUNG_352=1 pnpm exec dotenv -e .env.local -- playwright test e2e/veranstaltung-bearbeiten-loeschen.spec.ts
 //
-// Beide Tests räumen ihre Veranstaltung am Ende selbst wieder ab (der Lösch-Weg ist ohnehin Teil
+// Alle drei Tests räumen ihre Veranstaltung am Ende selbst wieder ab (der Lösch-Weg ist ohnehin Teil
 // des Prüfgegenstands). Alle angelegten Namen tragen das `__test__`-Präfix der
 // DB-Integrationstests: die Spec schreibt in dieselbe geteilte Dev-DB, und ein Name ohne Präfix
 // bliebe als Fremdbestand liegen, den eine spätere DB-Regressionsannahme mitzählt (#346).
@@ -24,7 +24,7 @@ const email = process.env.SEED_ADMIN_EMAIL ?? "";
 const password = process.env.SEED_ADMIN_PASSWORD ?? "";
 
 // Lauf-Suffix, damit wiederholte Läufe auf derselben lokalen DB nicht auf Altbestand matchen –
-// und damit die beiden parallel laufenden Tests sich nicht gegenseitig die Namen wegnehmen.
+// und damit die parallel laufenden Tests sich nicht gegenseitig die Namen wegnehmen.
 const LAUF = String(process.env.E2E_VERANSTALTUNG_352_SUFFIX ?? "a");
 const PREFIX = `__test__E2E352`;
 
