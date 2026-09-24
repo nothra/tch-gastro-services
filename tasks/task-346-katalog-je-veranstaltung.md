@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -107,6 +107,8 @@ _Keine offenen Fragen mehr – ADR-Bedarf durch /architecture geklärt (siehe Te
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Drei Runden (Logik/Korrektheit, Code-Qualität, Architektur/Konsistenz) – **APPROVED**, keine
+kritischen oder wichtigen Findings, nur optionale Nitpicks. Details: [review-346](review-346.md).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
