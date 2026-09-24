@@ -66,7 +66,7 @@ describe("veranstaltungSchema", () => {
     if (result.success) expect(result.data.catalogId).toBe("kat-2");
   });
 
-  it("should_reject_when_catalogIdMissing", () => {
+  it("should_reject_when_catalogIdBlank", () => {
     const result = veranstaltungSchema.safeParse({ ...valid, catalogId: "   " });
     expect(result.success).toBe(false);
   });

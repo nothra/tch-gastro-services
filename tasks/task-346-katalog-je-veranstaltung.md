@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -117,6 +117,21 @@ den der Seed-Admin nicht hergibt (er trägt beide Rollen).
   fehlender Fremdreferenzen (`veranstaltung_zeile`/`auslage`/`veranstaltung_ereignis` = 0
   Treffer) manuell gelöscht; Suite danach grün (43 bzw. 95 von 95 Tests).
 - Keine fehlenden Tests identifiziert, keine Produktionscode-Änderung in diesem Schritt.
+
+### /refactor (2026-09-24)
+
+Review-Nitpicks durchgegangen: die meisten sind bewusst nicht behoben (YAGNI bei nur zwei
+`KatalogWechsel`/`StatusToggle`-Instanzen; `inputClass`-Duplikation ist vorbestehendes,
+projektweites Muster – guter `/codify`-Kandidat, aber kein Scope dieser Task; TOCTOU-Fenster
+und Edge-Case „alle Kataloge deaktiviert" sind funktional korrekt/kein Bug). Ein Fund war eine
+reine Struktur-Verbesserung ohne Verhaltensänderung:
+
+- `app/veranstaltung/schema.test.ts`: Testname `should_reject_when_catalogIdMissing` →
+  `should_reject_when_catalogIdBlank` (der Input war Whitespace, nicht ein fehlendes Feld).
+
+Keine sonstigen Refactorings – der Code aus `/implement` war bereits sauber (Review-Runde 2:
+keine kritischen/wichtigen Findings zu Clean Code/Testqualität). Tests vor und nach dem
+Refactoring identisch grün (`pnpm test`, DB-Integrationstests).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
