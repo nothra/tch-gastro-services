@@ -22,6 +22,10 @@ async function trackVeranstaltung() {
     bezeichnung: `${TEST_PREFIX}Verzehr`,
     datum: new Date("2026-07-13"),
     kasse: "montagsrunde",
+    // #346: `catalogId` ist Pflicht in `VeranstaltungData`. Diese Datei prüft die
+    // Verzehr-Mechanik, nicht die Katalogwahl – sie legt ihre Artikel im Standard-Katalog an
+    // (siehe `createItem`-Aufrufe unten), also gehört die Veranstaltung in denselben.
+    catalogId: STANDARD_CATALOG_ID,
   });
   createdVeranstaltungen.push(row.id);
   return row;

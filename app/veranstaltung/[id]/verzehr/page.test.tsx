@@ -6,12 +6,7 @@ import type { VerzehrPositionRow } from "@/db/verzehr";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/veranstaltung", () => ({ getVeranstaltung: vi.fn(), listZeilen: vi.fn() }));
-// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
-// Seite `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
-vi.mock("@/db/catalog", () => ({
-  listActiveCatalog: vi.fn(),
-  STANDARD_CATALOG_ID: "standard",
-}));
+vi.mock("@/db/catalog", () => ({ listActiveCatalog: vi.fn() }));
 vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
 vi.mock("../../actions", () => ({ adjustVerzehrAction: vi.fn() }));
 
@@ -63,12 +58,18 @@ function session(roles: string[]) {
   return { user: { roles }, expires: "" } as never;
 }
 
+// Bewusst NICHT der Standard-Katalog (#346): nur so unterscheidet die Wiring-Assertion unten
+// zwischen „lädt die Auswahl aus veranstaltung.catalogId" und „nimmt weiter die Konstante".
+// Mit 'standard' als Fixture-Wert wäre sie vor wie nach der Umstellung grün.
+const KATALOG_B_ID = "kat-b";
+
 const aVeranstaltung: Veranstaltung = {
   id: "v-1",
   typ: "veranstaltung",
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
   kasse: "montagsrunde",
+  catalogId: KATALOG_B_ID,
   status: "offen",
   token: "abc123",
   createdAt: new Date(),
@@ -94,12 +95,13 @@ const bZeile: VeranstaltungZeile = {
 
 // Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Der Drift-Guard in
 // db/catalog.test.ts hält Produktions-Konstante und Migrations-Literal gegeneinander – er liest
-// dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
+// dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt. Seit #346 dient es
+// hier nur noch als Gegenprobe: die Seite darf gerade NICHT mehr über die Konstante auflösen.
 const STANDARD_CATALOG_ID = "standard";
 
 const cola: CatalogItem = {
   id: "c-1",
-  catalogId: STANDARD_CATALOG_ID,
+  catalogId: KATALOG_B_ID,
   name: "Cola",
   size: "0,5l",
   category: "getraenk",
@@ -202,9 +204,11 @@ describe("VerzehrPage", () => {
     // … aber initial keine Karte offen → keine MengeControl gerendert.
     expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
-    // AK8: die Verzehrerfassung bleibt verhaltensneutral, weil sie bis #346 die Auswahl aus dem
-    // Standard-Katalog lädt (ADR-050 D3) – Wiring-Assertion gegen ein `undefined` im Mock.
-    expect(listActiveCatalogMock).toHaveBeenCalledWith(STANDARD_CATALOG_ID);
+    // #346 AK2/AK3: die Erfassung lädt die Auswahl aus dem Katalog DIESER Veranstaltung
+    // (ADR-050-Nachtrag zu D3), nicht mehr über die Konstante. Der Fixture-Katalog ist bewusst
+    // nicht 'standard' – sonst wäre die Assertion vor wie nach der Umstellung grün.
+    expect(listActiveCatalogMock).toHaveBeenCalledWith(KATALOG_B_ID);
+    expect(listActiveCatalogMock).not.toHaveBeenCalledWith(STANDARD_CATALOG_ID);
   });
 
   it("should_openCardEditable_when_chipTappedOnOpenVeranstaltung", async () => {

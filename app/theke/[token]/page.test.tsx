@@ -41,12 +41,20 @@ const listZeilenMock = vi.mocked(listZeilen);
 const listActiveCatalogMock = vi.mocked(listActiveCatalog);
 const listPositionenMock = vi.mocked(listPositionen);
 
+// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Der Drift-Guard in
+// db/catalog.test.ts hält Produktions-Konstante und Migrations-Literal gegeneinander – er liest
+// dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
+const STANDARD_CATALOG_ID = "standard";
+
 const aVeranstaltung: Veranstaltung = {
   id: "v-1",
   typ: "veranstaltung",
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
   kasse: "montagsrunde",
+  // #346 AK7: die Theke bekommt keine eigene Katalogauswahl und trägt deshalb den
+  // Spalten-Default – `ensureThekeForKasse` setzt die Spalte nie.
+  catalogId: STANDARD_CATALOG_ID,
   status: "offen",
   token: "tok-1",
   createdAt: new Date(),
@@ -62,11 +70,6 @@ const aZeile: VeranstaltungZeile = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
-
-// Soll-Wert als Literal, nicht aus dem Mock gelesen (Testing-Standards). Der Drift-Guard in
-// db/catalog.test.ts hält Produktions-Konstante und Migrations-Literal gegeneinander – er liest
-// dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
-const STANDARD_CATALOG_ID = "standard";
 
 const cola: CatalogItem = {
   id: "c-1",

@@ -4,6 +4,7 @@ import {
   auslageSchema,
   auslageStatusSchema,
   kassiereSchema,
+  katalogWechselSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
 } from "./schema";
@@ -12,6 +13,7 @@ const valid = {
   bezeichnung: "Montagsrunde",
   datum: "2026-07-13",
   kasse: "montagsrunde",
+  catalogId: "kat-1",
 };
 
 describe("veranstaltungSchema", () => {
@@ -55,6 +57,41 @@ describe("veranstaltungSchema", () => {
   it("should_reject_when_bezeichnungTooLong", () => {
     const result = veranstaltungSchema.safeParse({ ...valid, bezeichnung: "x".repeat(201) });
     expect(result.success).toBe(false);
+  });
+
+  it("should_keepCatalogId_when_inputValid", () => {
+    // #346 AK1: der gewählte Katalog passiert die Server-Grenze als eigenes Pflichtfeld.
+    const result = veranstaltungSchema.safeParse({ ...valid, catalogId: "kat-2" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.catalogId).toBe("kat-2");
+  });
+
+  it("should_reject_when_catalogIdBlank", () => {
+    const result = veranstaltungSchema.safeParse({ ...valid, catalogId: "   " });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reportCatalogMessage_when_catalogIdMissing", () => {
+    // Ablehnungs-Test ≠ Meldungs-Test (Lesson #116): die Meldung ist eigener Vertrag zum Nutzer.
+    const result = veranstaltungSchema.safeParse({ ...valid, catalogId: "" });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(firstIssueMessage(result.error)).toBe("Bitte einen Katalog wählen.");
+  });
+});
+
+describe("katalogWechselSchema", () => {
+  it("should_parse_when_catalogIdGiven", () => {
+    const result = katalogWechselSchema.safeParse({ catalogId: " kat-3 " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.catalogId).toBe("kat-3");
+  });
+
+  it("should_reportCatalogMessage_when_catalogIdMissing", () => {
+    const result = katalogWechselSchema.safeParse({ catalogId: "" });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(firstIssueMessage(result.error)).toBe("Bitte einen Katalog wählen.");
   });
 });
 

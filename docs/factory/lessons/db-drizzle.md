@@ -242,3 +242,34 @@ async function createItemOrCatalogNotFound(catalogId: string, data: CatalogItemD
 // Aufrufer: outcome auswerten, dann erst revalidatePath/weitere Schritte – außerhalb des Catches.
 ```
 
+### Wegwerf-E2E-Verifikation gegen den lokalen Dev-Server pollutiert dieselbe (geteilte) Dev-DB, gegen die DB-Integrationstests laufen (aus #346, /test-Selbstfund)
+
+Der `/implement`-Schritt aus #346 folgte korrekt der Empfehlung, AK1–AK4/AK6 zusätzlich manuell
+über einen Wegwerf-Playwright-Spec gegen den lokal gestarteten Dev-Server durchzuspielen (Spec
+selbst bewusst nicht committet, siehe `lessons/build-tooling.md` #67/#324 zur Artefakt-Hygiene).
+Diese Verifikation schrieb dabei aber **echte Zeilen** in dieselbe lokale Postgres-Dev-DB, gegen
+die auch `db/*.test.ts` (DB-Integrationstests, nur bei gesetzter `DATABASE_URL` gelaufen) ihre
+Annahmen prüfen – drei Kataloge „E2E346 Zweitkatalog …" samt je einem Artikel und eine
+Veranstaltung, alle **ohne** das projektweite `__test__`-Präfix, das Testfixtures normalerweise
+tragen (Testkonvention aus #59, Zeile ~301 in `db/catalog.test.ts`). Erst der spätere `/test`-
+Schritt derselben Task deckte es auf: `should_assignEveryPreexistingItemToStandardCatalog_
+when_migrated` (vorbestehender Test aus #59, von #346 nicht verändert) brach, weil er
+„jeder Bestandsartikel ohne Test-Präfix gehört zum Standard-Katalog" prüft – eine durch
+Codelesen und Diff-Vergleich (Migration 0013 rührt `catalog_item` nicht an) zweifelsfrei
+umgebungsbedingte, nicht durch den PR-Diff verursachte Regression (Muster aus #239).
+
+**Smell:** „Meine manuelle Browser-/Playwright-Verifikation legt über eine echte Server Action
+Datensätze in der lokalen Dev-DB an – tragen deren Namen das `__test__`-Präfix (oder ein anderes
+Muster, an dem DB-Integrationstests Fremddaten erkennen), und lösche ich sie nach der
+Verifikation wieder?"
+
+**Regel:** Jede manuelle/Wegwerf-Verifikation, die über eine echte Server Action oder einen
+echten DB-Schreibpfad läuft (nicht nur liest), braucht entweder (a) Namen mit dem projektweiten
+Test-Präfix `__test__` – dann ignorieren die vorhandenen Filter der DB-Integrationstests sie
+automatisch – oder (b), falls das Präfix aus UI-Gründen nicht passt (z. B. weil die Bezeichnung
+im Screenshot lesbar sein soll), eine **explizite Aufräum-Notiz im selben Schritt**: die
+angelegten Zeilen nach der Verifikation gezielt löschen (per SQL/Skript, mit vorheriger
+FK-Referenz-Prüfung auf abhängige Tabellen) und das in der Task-Datei festhalten. „Wegwerf" gilt
+für die Verifikations-**Datei**, nicht automatisch für die von ihr erzeugten **Daten** in einer
+geteilten, persistenten Dev-DB.
+

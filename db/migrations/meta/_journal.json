@@ -92,6 +92,13 @@
       "when": 1789668489301,
       "tag": "0012_catalog_als_entitaet",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790208475428,
+      "tag": "0013_katalog_je_veranstaltung",
+      "breakpoints": true
     }
   ]
 }

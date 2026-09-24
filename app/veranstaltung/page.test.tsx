@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { Veranstaltung } from "@/db/schema";
+import type { Catalog, Veranstaltung } from "@/db/schema";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/veranstaltung", () => ({ listVeranstaltungen: vi.fn() }));
+vi.mock("@/db/catalog", () => ({ listCatalogs: vi.fn() }));
 
 // Server Actions der eingebetteten Client-Komponenten (VeranstaltungForm, ThekeSetup).
 vi.mock("./actions", () => ({
@@ -39,10 +40,12 @@ vi.mock("next/link", () => ({
 import { useActionState } from "react";
 import { auth } from "@/auth";
 import { listVeranstaltungen } from "@/db/veranstaltung";
+import { listCatalogs } from "@/db/catalog";
 import VeranstaltungenPage from "./page";
 
 const authMock = vi.mocked(auth);
 const listVeranstaltungenMock = vi.mocked(listVeranstaltungen);
+const listCatalogsMock = vi.mocked(listCatalogs);
 const useActionStateMock = vi.mocked(useActionState);
 
 function session(roles: string[]) {
@@ -55,16 +58,32 @@ const aVeranstaltung: Veranstaltung = {
   bezeichnung: "Montagsrunde Juli",
   datum: new Date("2026-07-14"),
   kasse: "montagsrunde",
+  catalogId: "standard",
   status: "offen",
   token: "abc123",
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
+function katalog(id: string, name: string, active = true): Catalog {
+  return {
+    id,
+    name,
+    active,
+    sortOrder: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+const aktiverKatalog = katalog("kat-b", "Dorfmeisterschaften");
+const inaktiverKatalog = katalog("kat-alt", "Sommerfest 2024", false);
+
 beforeEach(() => {
   vi.resetAllMocks();
   // Stabiler Leerzustand für alle eingebetteten Client-Formulare.
   useActionStateMock.mockReturnValue([undefined, vi.fn(), false] as never);
+  listCatalogsMock.mockResolvedValue([aktiverKatalog]);
 });
 
 describe("VeranstaltungenPage", () => {
@@ -75,6 +94,7 @@ describe("VeranstaltungenPage", () => {
 
     expect(screen.getByText(/Kein Zugriff/)).toBeInTheDocument();
     expect(listVeranstaltungenMock).not.toHaveBeenCalled();
+    expect(listCatalogsMock).not.toHaveBeenCalled();
   });
 
   it("should_denyAccess_when_noSession", async () => {
@@ -108,5 +128,20 @@ describe("VeranstaltungenPage", () => {
     // Datum in der Metazeile ist eindeutig (getByText wäre für "offen"/"Montagsrunde" ambig,
     // da die eingebetteten Formulare Selects mit denselben Worten rendern).
     expect(screen.getByText(/14\.07\.2026/)).toBeInTheDocument();
+  });
+
+  it("should_offerOnlyActiveKatalogeInForm_when_veranstalter", async () => {
+    // #346 AK6, erste Hälfte: ein deaktivierter Katalog ist nicht neu wählbar. Die Filterung
+    // passiert hier auf der Seite; die Action prüft sie serverseitig nochmals (Defense in Depth).
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    listVeranstaltungenMock.mockResolvedValue([]);
+    listCatalogsMock.mockResolvedValue([aktiverKatalog, inaktiverKatalog]);
+
+    render(await VeranstaltungenPage());
+
+    const select = screen.getByLabelText("Katalog");
+    expect([...select.querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "Dorfmeisterschaften",
+    ]);
   });
 });

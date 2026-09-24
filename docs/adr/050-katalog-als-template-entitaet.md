@@ -365,3 +365,46 @@ Zweite entsteht erst mit #346 und bekommt dort, falls nötig, seine eigene Aktiv
 Interpretation von D7, die sich in #345 (ohne #346) tatsächlich durch einen Test belegen lässt;
 #346 kann `catalog.active` bei Bedarf zusätzlich an die Veranstaltungs-Katalog-Auswahl koppeln,
 ohne dass diese ADR dafür erneut geändert werden müsste.
+
+## Nachtrag (2026-09-24, #346): D3 realisiert – `veranstaltung.catalogId` ersetzt `STANDARD_CATALOG_ID` in den Aufrufpfaden
+
+**Kontext.** D3 hat diese Umstellung selbst angekündigt: „In #346 kommt der Katalog aus der
+Veranstaltung; die Konstante verschwindet aus den Aufrufpfaden und bleibt höchstens als
+Migrations-/Seed-Bezug stehen." #346 ([spec-346](../specs/spec-346-katalog-je-veranstaltung.md))
+setzt genau das um; kein neuer ADR-Trigger (keine neue Technologie, kein neues
+Architekturmuster, kein Schnittstellen-Vertrag zwischen Teams/Services – die Persistenz-
+Strategie für einen Pflicht-FK mit stabilem Default ist mit D2/D3/D6 bereits entschieden und wird
+hier nur auf eine zweite Tabelle angewandt, nicht neu erfunden).
+
+**Entscheidung.**
+
+- `veranstaltung` bekommt eine Pflichtspalte `catalog_id` (`text`, FK auf `catalog.id`, **mit
+  echtem SQL-`DEFAULT 'standard'`**, kein `onDelete` – analog zur restriktiven Referenz aus D2).
+  Anders als bei `catalog_item.catalog_id` (D6) braucht diese Migration **keine**
+  nullable→backfill→NOT-NULL-Expand-Sequenz: weil die Spalte einen echten DB-`DEFAULT`-Wert
+  trägt (nicht nur eine App-seitige `$defaultFn`), erfüllt ein einziges
+  `ALTER TABLE veranstaltung ADD COLUMN catalog_id text NOT NULL DEFAULT 'standard'
+  REFERENCES catalog(id)` sowohl bestehende als auch künftige Zeilen in einem Schritt – Postgres
+  muss dafür die Tabelle nicht zeilenweise umschreiben (konstanter Default). Der Fall aus D6 (das
+  von `drizzle-kit generate` emittierte `NOT NULL` ohne `DEFAULT` schlägt auf einer nicht-leeren
+  Tabelle fehl) tritt hier nicht auf, solange das Drizzle-Schema den Default explizit deklariert.
+- Betroffene Lesepfade lösen ab sofort über `veranstaltung.catalogId` auf statt über die
+  Konstante: `listActiveCatalog` in `app/veranstaltung/[id]/verzehr/page.tsx` und `getCatalogItem`
+  in `applyVerzehrAdjust` (`app/veranstaltung/actions.ts`). `STANDARD_CATALOG_ID` bleibt als
+  Seed-/Migrations-Referenz und als Spalten-Default bestehen (letzter Absatz von D3 trifft
+  weiterhin zu).
+- Die Dauer-Theke bleibt **bewusst ausgenommen**: sie bezieht ihren Katalog weiterhin über den
+  Spalten-Default, ohne eigene Auswahl (Nutzer-Entscheidung zu #346, kein Widerspruch zu D3 –
+  D3 kündigt die Umstellung für die datierte Veranstaltung an, nicht für jeden Zeilentyp der
+  `veranstaltung`-Tabelle).
+- Der neue Katalogwechsel-Weg (Bearbeiten einer bereits offenen Veranstaltung) folgt demselben
+  Guarded-UPDATE-Muster wie `setStatusAction` (`db/veranstaltung.ts`): serverseitige
+  `WHERE`-Bindung an `status = 'offen'`, plus eine vorgelagerte Prüfung, dass keine
+  Verzehr-Position dieser Veranstaltung `menge > 0` trägt (spec-346 AK3/AK4) – eine reine
+  Zeilen-Existenz-Prüfung auf `verzehr_position` genügt nicht, da eine auf 0 zurückgesetzte
+  Position kein tatsächlicher Verzehr ist. Das Ziel `catalogId` wird gegen `catalog.active = true`
+  geprüft, bevor geschrieben wird (dieselbe Filterung wie bei der Anlage).
+
+**Konsequenz.** Kein Superseding, keine Korrektur von D1–D7. Mit #346 verlässt
+`STANDARD_CATALOG_ID` die produktiven Lese-/Schreibpfade vollständig (außer Theke, s. o.) und
+bleibt nur noch Seed-Konstante – exakt der in D3 vorgezeichnete Endzustand.
