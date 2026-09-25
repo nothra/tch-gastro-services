@@ -113,11 +113,13 @@ async function hatErfasstenVerzehr(veranstaltungId: string): Promise<boolean> {
   return positionen.some((position) => position.menge > 0);
 }
 
-// Gemeinsame Guard-Sequenz für Bearbeiten und Löschen (#352): dieselbe Reihenfolge wie bei
-// `setVeranstaltungCatalogAction` – Existenz (FS4) → Typ (AK10, die stehende Theke ist nicht
-// Teil dieses Features) → Status (AK3). Gibt die Fehlermeldung zurück bzw. `undefined` bei OK
-// (Muster von `assertKatalogWaehlbar` oben). Sie ist ein Vor-Check: die verbindliche Grenze
-// bleibt die guarded WHERE-Bedingung der Data-Layer, deren `undefined` der Aufrufer auswertet.
+// Gemeinsame Guard-Sequenz für Bearbeiten und Löschen (#352): Existenz (FS4) → Typ (AK10, die
+// stehende Theke ist nicht Teil dieses Features) → Status (AK3), erweitert um den Typ-Check
+// gegenüber `setVeranstaltungCatalogAction` – die Schwester-Action bleibt bewusst ohne Typ-Check,
+// weil er dort den Katalogwechsel für die Theke verbieten würde (#346-Verhaltensänderung außerhalb
+// dieses Scopes). Gibt die Fehlermeldung zurück bzw. `undefined` bei OK (Muster von
+// `assertKatalogWaehlbar` oben). Sie ist ein Vor-Check: die verbindliche Grenze bleibt die
+// guarded WHERE-Bedingung der Data-Layer, deren `undefined` der Aufrufer auswertet.
 async function assertVeranstaltungAenderbar(id: string): Promise<string | undefined> {
   const ziel = await getVeranstaltung(id);
   if (!ziel) return NOT_FOUND;
@@ -186,9 +188,8 @@ export async function setVeranstaltungCatalogAction(
 // ist bewusst NICHT Teil der Eingabe: `veranstaltungMetaSchema` streift ein mitgeschicktes
 // `catalogId` ab, damit dieser Weg die Verzehr-Sperre des Katalogwechsels (#346 AK4) nicht
 // umgeht. Kein Verzehr-Check hier – Metadaten zu korrigieren bleibt auch mit erfasstem Verzehr
-// erlaubt (anders als der Katalogwechsel, der die Preis-Grundlage unter den Strichen austauschte).
-//
-// `kasse` bleibt dabei ausdrücklich ohne eigene Sperre, obwohl sie – anders als Bezeichnung und
+// erlaubt (anders als der Katalogwechsel, der die Preis-Grundlage unter den Strichen austauschte);
+// dasselbe gilt ausdrücklich auch für `kasse`, obwohl sie – anders als Bezeichnung und
 // Datum – ein Geldtopf und kein reines Etikett ist: AK1 nennt sie namentlich als bearbeitbares
 // Feld, eine Sperre widerspräche also der Spec (Review-Runde 3, Wichtig-Finding 2; Entscheidung
 // des Product Owners, nicht nachträglich am Code korrigiert). Ein Wechsel trotz bereits
@@ -221,8 +222,9 @@ export async function updateVeranstaltungMetaAction(
   // Kasse. `/theke/<token>` rendert alle drei geänderten Felder und wiegt am schwersten: sie ist
   // die einzige betroffene Route ohne Auth-Gate und damit full-route-cache-fähig, während
   // `/veranstaltung/**` über den Session-Zugriff ohnehin dynamisch rendert. Den Token liefert die
-  // `.returning()`-Zeile des UPDATE – dieselbe Quelle, aus der `adjustVerzehrByTokenAction`
-  // revalidiert.
+  // `.returning()`-Zeile des UPDATE – derselbe Präzedenzfall, nach dem `adjustVerzehrByTokenAction`
+  // bereits revalidiert (dort kommt der Token allerdings als gebundenes Routen-Argument, nicht
+  // aus `.returning()`).
   revalidatePath(detailPath(id));
   revalidatePath(verzehrPath(id));
   revalidatePath(auslagenPath(id));

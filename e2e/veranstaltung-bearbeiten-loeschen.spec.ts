@@ -24,9 +24,10 @@ const email = process.env.SEED_ADMIN_EMAIL ?? "";
 const password = process.env.SEED_ADMIN_PASSWORD ?? "";
 
 // Lauf-Suffix, damit wiederholte Läufe auf derselben lokalen DB nicht auf Altbestand matchen –
-// und damit die parallel laufenden Tests sich nicht gegenseitig die Namen wegnehmen.
+// er trennt parallel laufende AUSFÜHRUNGEN dieser Datei, nicht die drei Tests untereinander
+// (die trennen ihre Basisnamen selbst: "Bearbeiten", "Loeschen", "Kassiert").
 const LAUF = String(process.env.E2E_VERANSTALTUNG_352_SUFFIX ?? "a");
-const PREFIX = `__test__E2E352`;
+const PREFIX = "__test__E2E352";
 
 async function login(page: Page) {
   await page.goto("/login");

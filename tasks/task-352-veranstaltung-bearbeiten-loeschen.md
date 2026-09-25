@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -264,6 +264,33 @@ Task) – keine Nachbesserung nötig.
 
 **Gates:** Lint, Format, Vitest mit DB-Integrationstests **1075/1075** grün, Coverage der neuen
 Dateien 100 % (Statements/Branches/Lines/Funcs) mit Ausnahme der oben genannten Vor-Code-Zeilen.
+
+## Refactoring (`/refactor`, 2026-09-26)
+
+Kein neues Verhalten – nur die restlichen Nitpicks aus Review-Runde 3/4 abgearbeitet, soweit
+ohne Scope-Erweiterung möglich (die Aufteilung von `deleteVeranstaltungAction` in eigene
+Guard-Funktionen wurde bewusst NICHT gemacht, das ist laut Review selbst Scope-Erweiterung):
+
+- `actions.ts` – zwei ungenaue Kommentar-Behauptungen korrigiert: `assertVeranstaltungAenderbar`
+  behauptete fälschlich dieselbe Guard-Reihenfolge wie `setVeranstaltungCatalogAction` (die hat
+  keinen Typ-Check); die Theke-Revalidierung behauptete fälschlich dieselbe `.returning()`-Quelle
+  wie `adjustVerzehrByTokenAction` (die bezieht den Token als Routen-Argument). Zusätzlich den
+  `kasse`-Absatz mit dem davor liegenden WHY-Absatz zusammengeführt (war unnötig in zwei Blöcke
+  getrennt).
+- `e2e/veranstaltung-bearbeiten-loeschen.spec.ts` – Kommentar zu `LAUF` korrigiert: trennt
+  parallele **Ausführungen** der Datei, nicht die drei Tests untereinander; `PREFIX` von
+  Template-Literal ohne Interpolation auf normalen String.
+- `app/veranstaltung/labels.test.ts` – `should_keepUtcDay_when_localTimezoneWouldShiftIt` hatte
+  unter der Berlin-Runner-TZ keine Trennschärfe (positiver Offset kann den behaupteten
+  Rückfall-auf-Vortag-Bug nie zeigen). Mit `process.env.TZ = "America/New_York"` (negativer
+  Offset) gepinnt; Mutationsbeleg (lokale-Getter-Implementierung) macht ihn jetzt tatsächlich rot.
+- `docs/adr/023-veranstaltung-datenmodell.md` (D6) – Funktionsliste als „u. a." markiert statt
+  falsch vollständig wirkend (nannte u. a. das nicht mehr existierende `setStatus`).
+- `docs/routes.md` – Detailseiten-Beschreibung um „Metadaten bearbeiten + löschen" ergänzt.
+
+**Gates:** Lint, Format, `pnpm build` (Typecheck), `routes-doc-check`, Vitest mit
+DB-Integrationstests **1075/1075** grün (identisch zu vor dem Refactoring – kein Verhalten
+geändert).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -26,7 +26,7 @@
 | `/login` | Seite | Anmeldung (Credentials) | öffentlich |
 | `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (kein Auth-Gate, Token; Rate-Limit im Proxy, ADR-048) |
 | `/veranstaltung` | Seite | Veranstaltungs-Liste | `veranstalter` |
-| `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail) | `veranstalter` |
+| `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail); Metadaten bearbeiten + löschen für datierte, offene Veranstaltungen (#352) | `veranstalter` |
 | `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Fokus-Akkordeon + Chip-Leiste; Getränke, Essen, Kaffee); personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |
 | `/veranstaltung/[id]/auslagen` | Seite | Auslagenerstattung | `veranstalter` |
 | `/veranstaltung/[id]/kassieren` | Seite | Kassieren & Abschluss; personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |
