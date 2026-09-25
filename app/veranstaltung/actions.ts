@@ -242,18 +242,23 @@ export async function updateVeranstaltungMetaAction(
 // beim Rendern des Bestätigungsdialogs, und greifen damit auch im Race (FS3). Bei Erfolg
 // `redirect` statt `revalidatePath(detailPath)`: die Detailseite existiert danach nicht mehr (AK9).
 //
-// Restrisiko (bewusst akzeptiert, Review-Runde 3, Wichtig-Finding 3): Die drei Sperren oben sind
-// Vor-Checks, nicht Teil der `WHERE`-Bedingung des guarded DELETE selbst – zwischen letzter
-// Prüfung und `deleteVeranstaltung` kann ein nebenläufiger, unauthentifizierter Schreiber
-// (`adjustVerzehrByTokenAction`/`kassiereZeileAction` über den Theke-Link, kein `requireRole`)
-// noch Verzehr oder Kassierung eintragen – der Hard-Delete lässt sich dann nicht rückgängig
-// machen. Das Fenster ist trotzdem hingenommen und nicht per `NOT EXISTS` im DELETE geschlossen:
-// die vier Abfragen liefen unter `neon-http` bereits als vier serielle Roundtrips, ein fünfter,
-// in das DELETE verschachtelter Existenz-Check würde die Unumkehrbarkeit nicht aufheben, nur das
-// bereits enge Fenster (typisch < 1 s zwischen Löschbestätigung und Ausführung, keine
-// automatisierten Schreiber auf dieser Route) weiter verkleinern. Verweis auf die
-// UPDATE-Konsistenz zu #346 trägt hier bewusst NICHT als Begründung – jenes UPDATE ist
-// reversibel, dieses DELETE nicht.
+// Restrisiko (bewusst akzeptiert, Review-Runde 3, Wichtig-Finding 3; Genauigkeit der Begründung
+// korrigiert in Security-Review): Die drei Sperren oben sind Vor-Checks, nicht Teil der
+// `WHERE`-Bedingung des guarded DELETE selbst – zwischen letzter Prüfung und
+// `deleteVeranstaltung` kann ein nebenläufiger, unauthentifizierter Schreiber
+// (`adjustVerzehrByTokenAction` über den Theke-Link, kein `requireRole`) noch Verzehr eintragen
+// – der Hard-Delete lässt sich dann nicht rückgängig machen. `kassiereZeileAction` ist davon
+// AUSGENOMMEN: sie verlangt selbst `requireRole("veranstalter")` und ist nicht über den
+// öffentlichen Theke-Link erreichbar, kann die Kassiert-Sperre also nicht im Race unterlaufen.
+// Das Fenster ist trotzdem hingenommen und nicht per `NOT EXISTS` im DELETE geschlossen: die
+// vier Abfragen liefen unter `neon-http` bereits als vier serielle Roundtrips, ein fünfter, in
+// das DELETE verschachtelter Existenz-Check würde die Unumkehrbarkeit nicht aufheben, nur das
+// bereits enge Fenster (grobe Schätzung, nicht gemessen: deutlich unter 1 s zwischen
+// Löschbestätigung und Ausführung) weiter verkleinern. Ein Treffer setzt außerdem voraus, den
+// exakten Lösch-Moment zu kennen – das hat ein externer Angreifer nicht, der Rate-Limiter aus
+// ADR-044 begrenzt zusätzlich das Volumen (nicht das Timing). Verweis auf die UPDATE-Konsistenz
+// zu #346 trägt hier bewusst NICHT als Begründung – jenes UPDATE ist reversibel, dieses DELETE
+// nicht.
 export async function deleteVeranstaltungAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,

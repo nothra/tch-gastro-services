@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -291,6 +291,31 @@ Guard-Funktionen wurde bewusst NICHT gemacht, das ist laut Review selbst Scope-E
 **Gates:** Lint, Format, `pnpm build` (Typecheck), `routes-doc-check`, Vitest mit
 DB-Integrationstests **1075/1075** grün (identisch zu vor dem Refactoring – kein Verhalten
 geändert).
+
+## Security-Review (`/security-review`, 2026-09-26)
+
+**Ergebnis: PASSED** (0 kritisch, 0 wichtig, 3 Hinweise, siehe `tasks/security-352.md`). Kein
+neues Risiko in Input-Validierung, RBAC/IDOR, Secrets, Dependencies oder Error-Handling. Die
+beiden bewussten Risikoakzeptanzen aus Runde 3/4 wurden gesondert aus Security-Sicht bewertet:
+
+- **Kassenwechsel ohne Sperre:** bestätigt unbedenklich – nur ein bereits authentifizierter
+  `veranstalter` kann das auslösen, keine Rechteausweitung, kein IDOR.
+- **TOCTOU vor Hard-Delete:** Risikoakzeptanz bleibt vertretbar, aber die Begründung im Code war
+  an einer Stelle sachlich falsch – `kassiereZeileAction` wurde fälschlich als unauthentifiziert
+  über den Theke-Link erreichbar genannt; sie verlangt tatsächlich selbst `requireRole` und ist
+  nur unter der authentifizierten Route `/veranstaltung/[id]/kassieren` verdrahtet. Real
+  unauthentifiziert erreichbar ist ausschließlich `adjustVerzehrByTokenAction` (Verzehr, nicht
+  Kassieren) – die Kassiert-Sperre kann über den Theke-Link also gar nicht unterlaufen werden.
+
+**Zwei Hinweise sofort behoben** (Kommentar bei `deleteVeranstaltungAction`,
+`app/veranstaltung/actions.ts`): (1) nennt jetzt nur noch `adjustVerzehrByTokenAction` als
+unauthentifizierten Pfad, (2) die „< 1 s"-Zeitfenster-Angabe ist jetzt explizit als Schätzung
+gekennzeichnet, nicht als gemessene Tatsache. **Dritter Hinweis (optionale `NOT EXISTS`-Härtung
+im DELETE) bewusst nicht umgesetzt** – der Security-Report selbst stuft sie als nicht nötig ein
+(Restrisiko klein, nicht automatisiert ausnutzbar, kein Angreifer kennt den exakten
+Lösch-Moment).
+
+**Gates:** Lint, Format grün. Kein Produktionsverhalten geändert (reiner Kommentar-Fix).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
