@@ -5,6 +5,7 @@ import {
   auslageStatusSchema,
   kassiereSchema,
   katalogWechselSchema,
+  veranstaltungMetaSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
 } from "./schema";
@@ -92,6 +93,83 @@ describe("katalogWechselSchema", () => {
     expect(result.success).toBe(false);
     if (!result.success)
       expect(firstIssueMessage(result.error)).toBe("Bitte einen Katalog wählen.");
+  });
+});
+
+describe("veranstaltungMetaSchema", () => {
+  // Die Metadaten ohne Katalogwahl (#352 AK1): dieselben drei Feldregeln wie beim Anlegen, aber
+  // `catalogId` bleibt draußen – der Katalogwechsel ist ein eigener Weg (#346).
+  const validMeta = { bezeichnung: "Montagsrunde", datum: "2026-07-13", kasse: "montagsrunde" };
+
+  it("should_parseAndTransformDatumToDate_when_inputValid", () => {
+    const result = veranstaltungMetaSchema.safeParse(validMeta);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.bezeichnung).toBe("Montagsrunde");
+      expect(result.data.kasse).toBe("montagsrunde");
+      expect(result.data.datum.toISOString()).toContain("2026-07-13");
+    }
+  });
+
+  it("should_ignoreCatalogId_when_itIsSubmittedAnyway", () => {
+    // #352: der Bearbeiten-Weg darf den Katalog NICHT mitändern. Ein mitgeschicktes Feld wird
+    // vom Schema abgestreift statt durchgereicht – sonst umginge das Edit-Formular die
+    // Verzehr-Sperre des Katalogwechsels (#346 AK4).
+    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, catalogId: "kat-fremd" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty("catalogId");
+  });
+
+  it("should_parse_when_catalogIdAbsent", () => {
+    // Abgrenzung zu `veranstaltungSchema`: dort ist `catalogId` Pflicht, hier darf es fehlen.
+    expect(veranstaltungMetaSchema.safeParse(validMeta).success).toBe(true);
+    expect(veranstaltungSchema.safeParse(validMeta).success).toBe(false);
+  });
+
+  it("should_trimBezeichnung_when_surroundedByWhitespace", () => {
+    const result = veranstaltungMetaSchema.safeParse({
+      ...validMeta,
+      bezeichnung: "  Sommerfest  ",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.bezeichnung).toBe("Sommerfest");
+  });
+
+  it("should_reportBezeichnungMessage_when_bezeichnungEmpty", () => {
+    // #352 AK2, erste Hälfte. Ablehnungs-Test ≠ Meldungs-Test (Lesson #116).
+    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, bezeichnung: "   " });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(firstIssueMessage(result.error)).toBe("Bezeichnung ist erforderlich.");
+  });
+
+  it("should_reject_when_bezeichnungTooLong", () => {
+    const result = veranstaltungMetaSchema.safeParse({
+      ...validMeta,
+      bezeichnung: "x".repeat(201),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should_reportDatumMessage_when_datumEmpty", () => {
+    // #352 AK2, zweite Hälfte: leeres Datum.
+    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, datum: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(firstIssueMessage(result.error)).toBe("Datum ist erforderlich.");
+  });
+
+  it("should_reportDatumMessage_when_datumInvalid", () => {
+    // #352 AK2, zweite Hälfte: ungültiges Datum – andere Meldung als das leere.
+    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, datum: "kein-datum" });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(firstIssueMessage(result.error)).toBe("Datum ist ungültig.");
+  });
+
+  it("should_reportKasseMessage_when_kasseNotInSet", () => {
+    const result = veranstaltungMetaSchema.safeParse({ ...validMeta, kasse: "sparkasse" });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(firstIssueMessage(result.error)).toBe("Bitte eine gültige Kasse wählen.");
   });
 });
 

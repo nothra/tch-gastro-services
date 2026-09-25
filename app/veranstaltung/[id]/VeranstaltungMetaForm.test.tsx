@@ -1,0 +1,170 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { VeranstaltungFormState } from "../actions";
+
+// Externe Grenze: Server Action aus derselben Feature-Schicht.
+vi.mock("../actions", () => ({ updateVeranstaltungMetaAction: vi.fn() }));
+
+// useActionState steuert Fehler/Pending direkt (Codify #49, analog KatalogWechsel) – so ist die
+// serverseitige Ablehnung ohne echten Submit prüfbar.
+vi.mock("react", async () => {
+  const actual = await vi.importActual<typeof import("react")>("react");
+  return { ...actual, useActionState: vi.fn() };
+});
+
+import { useActionState } from "react";
+import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
+
+const useActionStateMock = vi.mocked(useActionState);
+const noopDispatch = vi.fn();
+
+function withState(state: VeranstaltungFormState | undefined, isPending = false) {
+  useActionStateMock.mockReturnValue([state, noopDispatch, isPending] as never);
+}
+
+const props = {
+  id: "v-1",
+  bezeichnung: "Montagsrunde Juli",
+  datum: new Date("2026-07-13"),
+  kasse: "montagsrunde" as const,
+};
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  withState(undefined);
+});
+
+describe("VeranstaltungMetaForm", () => {
+  it("should_preselectCurrentValues_when_rendered", () => {
+    // #352 AK1: das Formular zeigt den Ist-Zustand – wer nur ein Feld ändert, darf die beiden
+    // anderen nicht versehentlich überschreiben, weil sie leer bzw. auf dem Default stünden.
+    render(<VeranstaltungMetaForm {...props} />);
+
+    expect(screen.getByLabelText("Bezeichnung")).toHaveValue("Montagsrunde Juli");
+    expect(screen.getByLabelText("Datum")).toHaveValue("2026-07-13");
+    expect(screen.getByLabelText("Kasse")).toHaveValue("montagsrunde");
+  });
+
+  it("should_useFieldNamesExpectedByAction_when_rendered", () => {
+    // Die Feldnamen sind der Vertrag zum `veranstaltungMetaSchema` – ein Tippfehler liefe
+    // sonst erst zur Laufzeit in eine Pflichtfeld-Ablehnung.
+    render(<VeranstaltungMetaForm {...props} />);
+
+    expect(screen.getByLabelText("Bezeichnung")).toHaveAttribute("name", "bezeichnung");
+    expect(screen.getByLabelText("Datum")).toHaveAttribute("name", "datum");
+    expect(screen.getByLabelText("Kasse")).toHaveAttribute("name", "kasse");
+  });
+
+  it("should_offerBothKassen_when_rendered", () => {
+    render(<VeranstaltungMetaForm {...props} />);
+
+    const select = screen.getByLabelText("Kasse");
+    expect([...select.querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "Montagsrunde",
+      "Vereinskasse",
+    ]);
+  });
+
+  it("should_includeHiddenId_when_rendered", () => {
+    // Die Action liest die Veranstaltung aus FormData (analog setStatusAction/KatalogWechsel).
+    render(<VeranstaltungMetaForm {...props} id="v-42" />);
+
+    expect(screen.getByDisplayValue("v-42")).toHaveAttribute("name", "id");
+  });
+
+  it("should_notOfferCatalogField_when_rendered", () => {
+    // #352: der Katalog bleibt dem eigenen Wechsel-Weg (#346) vorbehalten – ein Feld hier
+    // würde dessen Verzehr-Sperre (AK4) umgehen.
+    const { container } = render(<VeranstaltungMetaForm {...props} />);
+
+    expect(container.querySelector("[name='catalogId']")).toBeNull();
+  });
+
+  it("should_showRejectionError_when_stateHasError", () => {
+    // #352 AK2/AK3: die serverseitige Ablehnung wird im Formular sichtbar, nicht verschluckt.
+    withState({ error: "Die Veranstaltung ist abgeschlossen und schreibgeschützt." });
+    render(<VeranstaltungMetaForm {...props} />);
+
+    expect(
+      screen.getByText("Die Veranstaltung ist abgeschlossen und schreibgeschützt."),
+    ).toBeInTheDocument();
+  });
+
+  it("should_showSuccessMessage_when_stateOk", () => {
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+  });
+
+  it("should_hideSuccessMessage_when_fieldEditedAfterSaving", async () => {
+    // „Änderungen gespeichert." behauptet einen Speicherstand. Bleibt sie stehen, während der
+    // Nutzer weitertippt, bestätigt sie einen Formularinhalt, der so nie gespeichert wurde.
+    const user = userEvent.setup();
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Bezeichnung"), " – verschoben");
+
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+  });
+
+  it("should_keepRejectionErrorVisible_when_fieldEditedAfterRejection", async () => {
+    // Gegenrichtung zum Test darüber: die Fehlermeldung ist kein Zustandsbericht, sondern die
+    // Aufforderung zur Korrektur – sie darf beim Tippen NICHT verschwinden.
+    const user = userEvent.setup();
+    withState({ error: "Bezeichnung ist erforderlich." });
+    render(<VeranstaltungMetaForm {...props} />);
+
+    await user.type(screen.getByLabelText("Bezeichnung"), "Sommerfest");
+
+    expect(screen.getByText("Bezeichnung ist erforderlich.")).toBeInTheDocument();
+  });
+
+  it("should_disableButtonWithPendingText_when_pending", () => {
+    withState(undefined, true);
+    render(<VeranstaltungMetaForm {...props} />);
+
+    expect(screen.getByRole("button", { name: /Speichern …/ })).toBeDisabled();
+  });
+
+  it("should_keepSuccessMessageHidden_when_submitClickedWhileRequiredFieldInvalid", async () => {
+    // Review-Runde 3, Wichtig-Finding 1: der Reset saß am `onClick` des Buttons und feuerte
+    // auch dann, wenn die HTML-Constraint-Validierung die Absendung abbricht – eine alte
+    // „Änderungen gespeichert."-Meldung erschien so fälschlich wieder über einem leeren
+    // Pflichtfeld. Der Reset sitzt jetzt am `onSubmit` des Formulars, das jsdom bei einem
+    // ungültigen Pflichtfeld gar nicht erst auslöst.
+    const user = userEvent.setup();
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Bezeichnung"));
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+  });
+
+  it("should_resetChangedFlag_when_submitClickedWhileAllRequiredFieldsValid", async () => {
+    // Gegenrichtung zum Test darüber: bleiben alle Pflichtfelder gültig, feuert `onSubmit`
+    // tatsächlich und setzt `geaendertSeitSpeichern` zurück auf `false` – erkennbar daran, dass
+    // die (im Mock unveränderte) alte Erfolgsmeldung nach dem Klick wieder erscheint, obwohl das
+    // Formular zuvor bearbeitet wurde. Ohne diesen Test bliebe die `onSubmit`-Rückmeldung selbst
+    // ungetestet (Coverage-Lücke: Runde 4 deckte nur den blockierten Fall ab).
+    const user = userEvent.setup();
+    withState({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Bezeichnung"), " – korrigiert");
+    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+
+    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+  });
+});

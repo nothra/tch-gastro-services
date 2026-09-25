@@ -129,9 +129,10 @@ verhindert Doppel-Zeilen desselben Teilnehmers je Veranstaltung.
 ### D6 — Data-Layer, Actions, RBAC, Route-Schnitt
 
 - **Data-Layer** `db/veranstaltung.ts` als einziger Ort mit Drizzle-Queries (rollen-neutral,
-  analog `db/teilnehmer.ts`): `createVeranstaltung`, `listVeranstaltungen`,
-  `getVeranstaltung(id)`, `setStatus(id, status)`, `ensureThekeForKasse(kasse)`,
-  `addZeile(veranstaltungId, teilnehmer)`, `removeZeile(zeileId)`, `listZeilen(veranstaltungId)`.
+  analog `db/teilnehmer.ts`), u. a.: `createVeranstaltung`, `listVeranstaltungen`,
+  `getVeranstaltung(id)`, `ensureThekeForKasse(kasse)`, `addZeile(veranstaltungId, teilnehmer)`,
+  `removeZeile(zeileId)`, `listZeilen(veranstaltungId)` – die Liste ist beispielhaft, nicht
+  vollständig, und wird bei neuen Funktionen bewusst nicht nachgepflegt.
   UPDATE/DELETE-Funktionen mit `.returning()` deklarieren `Promise<T | undefined>` (Codify #50).
 - **Actions** unter neuem Abrechner-Bereich `app/abrechnung/veranstaltung/` mit
   `requireRole("abrechner")` (Anlegen/Führen/Status). Zod-Schema an der Grenze:

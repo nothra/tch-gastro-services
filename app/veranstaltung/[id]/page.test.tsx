@@ -42,6 +42,31 @@ vi.mock("../KatalogWechsel", () => ({
     </div>
   ),
 }));
+// Bearbeiten und Löschen haben eigene Tests; hier zählt nur, OB die Seite sie zeigt und mit
+// welchen Daten – deshalb Stubs, die ihre Props sichtbar machen statt sie zu verschlucken.
+vi.mock("./VeranstaltungMetaForm", () => ({
+  VeranstaltungMetaForm: ({
+    bezeichnung,
+    datum,
+    kasse,
+  }: {
+    bezeichnung: string;
+    datum: Date | null;
+    kasse: string;
+  }) => (
+    <div
+      data-testid="meta-form"
+      data-bezeichnung={bezeichnung}
+      data-kasse={kasse}
+      data-datum={datum?.toISOString().slice(0, 10)}
+    />
+  ),
+}));
+vi.mock("./VeranstaltungLoeschen", () => ({
+  VeranstaltungLoeschen: ({ bezeichnung }: { bezeichnung: string }) => (
+    <div data-testid="veranstaltung-loeschen">{bezeichnung}</div>
+  ),
+}));
 vi.mock("./ZugangTeilen", () => ({
   ZugangTeilen: ({ token }: { token: string }) => <div data-testid="zugang-teilen">{token}</div>,
 }));
@@ -209,6 +234,70 @@ describe("VeranstaltungDetailPage", () => {
     render(await VeranstaltungDetailPage({ params: params("v-1") }));
 
     expect(screen.queryByTestId("katalog-wechsel")).not.toBeInTheDocument();
+  });
+
+  it("should_showMetaFormWithCurrentValues_when_veranstaltungOffen", async () => {
+    // #352 AK1: der Bearbeiten-Weg steht auf der Detailseite und kennt den Ist-Zustand.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    const form = screen.getByTestId("meta-form");
+    expect(form).toHaveAttribute("data-bezeichnung", "Montagsrunde Juli");
+    expect(form).toHaveAttribute("data-kasse", "montagsrunde");
+    expect(form).toHaveAttribute("data-datum", "2026-07-14");
+  });
+
+  it("should_showLoeschenWithBezeichnung_when_veranstaltungOffen", async () => {
+    // #352 AK4/AK8: der Lösch-Weg steht daneben und kennt die Bezeichnung für den Dialogtext.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.getByTestId("veranstaltung-loeschen")).toHaveTextContent("Montagsrunde Juli");
+  });
+
+  it("should_hideMetaFormAndLoeschen_when_veranstaltungAbgeschlossen", async () => {
+    // #352 AK3: eine abgeschlossene Veranstaltung ist schreibgeschützt – beide Wege
+    // verschwinden (die Actions lehnen sie zusätzlich serverseitig ab).
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.queryByTestId("meta-form")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("veranstaltung-loeschen")).not.toBeInTheDocument();
+  });
+
+  it("should_hideMetaFormAndLoeschen_when_typTheke", async () => {
+    // #352 AK10: die stehende Theke ist nicht Teil dieses Features. Sie ist `offen`, das
+    // Status-Kriterium allein würde die Aktionen also fälschlich anbieten – der Typ-Zweig ist
+    // die eigentliche Trennlinie und braucht deshalb einen eigenen Test.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({
+      ...aVeranstaltung,
+      typ: "theke",
+      datum: null,
+      bezeichnung: "Stehende Theke",
+    });
+    listZeilenMock.mockResolvedValue([]);
+    listActiveTeilnehmerMock.mockResolvedValue([]);
+
+    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+
+    expect(screen.queryByTestId("meta-form")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("veranstaltung-loeschen")).not.toBeInTheDocument();
+    // Gegenkontrolle: die Seite rendert normal weiter – es fehlen nur die beiden neuen Wege,
+    // nicht die ganze Theken-Ansicht.
+    expect(screen.getByTestId("katalog-wechsel")).toBeInTheDocument();
   });
 
   it("should_hideZugangTeilen_when_veranstaltungAbgeschlossen", async () => {

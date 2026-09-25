@@ -249,3 +249,26 @@ billige Fix und in diesem Fall (native `<details>`, kein Client-JS) korrekt – 
 Reordering/Filtering/State ist (a) Pflicht, sonst verschiebt React beim Umsortieren den falschen
 DOM-Knoten-State.
 
+### Reset-Handler, der eine gültige Absendung begleiten soll, gehört an `onSubmit` des `<form>`, nicht an `onClick` des Submit-Buttons (aus #352, Review-Runde-3-Finding)
+
+`VeranstaltungMetaForm.tsx` setzte `geaendertSeitSpeichern(false)` im `onClick` des
+Speichern-Buttons, um die veraltete Erfolgsmeldung „Änderungen gespeichert." beim nächsten
+Speichern auszublenden. `onClick` feuert aber **unabhängig** von der nativen
+HTML-Constraint-Validierung: brach ein leeres/ungültiges Pflichtfeld die Absendung ab (kein
+`submit`-Event, kein Server-Roundtrip), lief der Reset trotzdem – und die alte Erfolgsmeldung
+erschien wieder über einem Formular, das gerade **nicht** gespeichert wurde. Der Reflex, einen
+Button-Klick als Proxy für „wird jetzt abgesendet" zu behandeln, übersieht, dass zwischen Klick
+und Submit-Event bei einem `required`-Feld eine unsichtbare Weiche liegt.
+
+**Smell:** Ein Handler an einem `type="submit"`-Button (`onClick`) setzt State zurück, der nur
+gültig ist, wenn die Absendung tatsächlich passiert – ohne dass irgendwo geprüft wird, ob das
+Formular zu diesem Zeitpunkt überhaupt valide ist.
+
+**Regel:** Zustand, der einen erfolgreichen/gültigen Submit-Versuch markieren soll, an das
+`onSubmit` des `<form>` hängen, nicht an das `onClick` des Buttons – das native `submit`-Event
+feuert nur, wenn die Constraint-Validierung aller `required`/`pattern`/… Felder durchkommt.
+Empirisch mit einer Browser-Probe verifizieren, nicht annehmen: bei leerem Pflichtfeld feuert
+`click` immer, `submit` nur bei gültigem Formular. Ein Test dafür braucht zwei Fälle mit
+eigener Assertion – gültige UND ungültige Pflichtfelder (Rezidiv der Symmetrie-Lesson unten in
+`lessons/testing.md`, hier erstmals in einem Bugfix statt einem Spec-AK-Paar).
+

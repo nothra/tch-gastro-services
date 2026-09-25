@@ -212,6 +212,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Route-neutrale Komponente: Fremd-Layout-Offset vom Konsumenten via `className` steuern, nicht hardcoden/an fremd-semantischen Prop koppeln (aus #188, Review-Finding; Nachtrag aus #187)
 - Verschieben eines route-neutralen Moduls: alte Datei löschen ist Teil des Moves, nicht optional (aus #187, Review-Eskalation Runde 1–4)
 - `.map`-Key aus Anzeigefeldern statt stabilem Identifier ist eine latente Kollisionsquelle (aus #206, Review-Runde-2-Finding)
+- Reset-Handler für einen gültigen Submit gehört an `onSubmit` des `<form>`, nicht an `onClick` des Buttons – `onClick` feuert auch, wenn die native Pflichtfeld-Validierung die Absendung abbricht (aus #352, Review-Runde-3-Finding)
 
 **[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
 
@@ -245,7 +246,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Neue gesourcte Lib in run-pipeline.sh → alle Temp-Repo-Scaffoldings in run-tests.sh mitkopieren (aus #197)
 - Layout-Timing-Test-Stub (rAF) vor dem Neuschreiben im selben Verzeichnis suchen, nicht duplizieren (aus #194, Review-Finding)
 - Callback-Prop nur durch Codelesen belegt ist keine Testabdeckung – Coverage-Report gegen jedes Review-Positiv gegenprüfen (aus #187, /test-Selbstfund)
-- Spiegel-/Symmetrie-Akzeptanzkriterien beide Richtungen explizit assertieren – Wiring-/Abwesenheits-Guard ersetzt die zweite Assertion nicht (aus #211, Review-Finding)
+- Spiegel-/Symmetrie-Akzeptanzkriterien beide Richtungen explizit assertieren – Wiring-/Abwesenheits-Guard ersetzt die zweite Assertion nicht (aus #211, Review-Finding); Rezidiv außerhalb eines Spec-AK-Paars bei einem Bugfix, der einen Code-Zweig in zwei Verhaltensweisen aufspaltet – Coverage-Lauf nach dem eigenen Fix deckte die ungetestete Gegenrichtung auf (aus #352, `/test`-Selbstfund)
 - Strict-mode-/Umgebungs-Kontrakt-Tests auf die Fehler-/No-Match-Zweige legen, nicht den früh-returnenden Happy-Path (aus #207, Review-Finding W3)
 - Deterministisches Gate/Backstop im Orchestrator-Skript braucht E2E-Verhaltenstest, nicht nur Wiring-Grep (aus #212, Review-Finding)
 - Negativ-Test mit mehreren Fail-Pfaden auf den Ziel-Pfad isolieren (nur er darf greifen) + pfadspezifisches Signal assertieren – sonst grün aus dem falschen Grund (aus #214, Review-Finding W1)
@@ -306,7 +307,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - „Empirisch verifiziert" im Kommentar ohne tatsächliche Prüfung in dieser Session – Rezidiv an anderer Stelle trotz Fix, plus Versionsangabe unbemerkt auf 7 Stellen kopiert (aus #268, Review-Runde 2 W3 + Runde 4 W1)
 - JSDoc auf einem geteilten Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten mit abweichendem Wert – gleiches Muster an einem Nachbarfeld derselben Struktur übersehen (aus #182, Review-Runde 1 W2 + Runde 2 Nitpick 1)
 - TL;DR-Merksatz über einem umformulierten Detail-Absatz im selben Abschnitt nicht mitgezogen – Widerspruch existiert rein innerhalb der eigenen, im selben PR neu verfassten Prosa, keine externe Referenz nötig, um ihn zu finden (aus #322, Review-Runde-3-Finding)
-- „X erzwingt Y" ist eine überprüfbare Tatsachenbehauptung über fremden Code – vor dem Schreiben den Enforcer öffnen (wo verdrahtet? was lehnt er ab?); dreimal falsch im selben PR, einmal gegen Information aus derselben Session (aus #319); Rezidiv beim **Kopieren** eines bereits geschriebenen Kommentars in vier Geschwisterdateien, erst in `/review` gefunden (aus #59)
+- „X erzwingt Y" ist eine überprüfbare Tatsachenbehauptung über fremden Code – vor dem Schreiben den Enforcer öffnen (wo verdrahtet? was lehnt er ab?); dreimal falsch im selben PR, einmal gegen Information aus derselben Session (aus #319); Rezidiv beim **Kopieren** eines bereits geschriebenen Kommentars in vier Geschwisterdateien, erst in `/review` gefunden (aus #59); Rezidiv als falsche Aufzählung mehrerer Funktionen mit gemeinsamer Eigenschaftsbehauptung in einer sicherheitsrelevanten Risikoakzeptanz-Begründung, erst in `/security-review` gefunden (aus #352)
 - Massen-Ersetzung beim Extrahieren eines Helfers trifft auch dessen eigenen Rumpf → Selbstrekursion; „null verbliebene Vorkommen" ist das Warnzeichen, nicht der Erfolg (aus #319, /refactor-Selbstfund)
 
 **[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile

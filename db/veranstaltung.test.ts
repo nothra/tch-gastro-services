@@ -5,11 +5,13 @@ import { catalog, catalogItems, teilnehmer, veranstaltung } from "./schema";
 import { createTeilnehmer } from "./teilnehmer";
 import { STANDARD_CATALOG_ID, createItem, updateItem } from "./catalog";
 import { adjustMenge, listPositionen } from "./verzehr";
+import { createAuslage, listAuslagen } from "./auslage";
 import { listEreignisse } from "./veranstaltung-ereignis";
 import {
   abschliessenVeranstaltung,
   addZeile,
   createVeranstaltung,
+  deleteVeranstaltung,
   ensureThekeForKasse,
   getThekeForKasse,
   getVeranstaltung,
@@ -20,6 +22,7 @@ import {
   removeZeile,
   setErhalten,
   setVeranstaltungCatalog,
+  updateVeranstaltungMeta,
   wiedereroeffnenVeranstaltung,
   type VeranstaltungData,
 } from "./veranstaltung";
@@ -364,6 +367,149 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     expect(
       await setVeranstaltungCatalog("__does_not_exist__", STANDARD_CATALOG_ID),
     ).toBeUndefined();
+  });
+
+  it("should_updateAllThreeMetaFields_when_veranstaltungOffen", async () => {
+    // #352 AK1 auf Data-Layer-Ebene: Bezeichnung, Datum und Kasse werden gemeinsam geschrieben.
+    const v = await trackVeranstaltung(datierte());
+
+    const updated = await updateVeranstaltungMeta(v.id, {
+      bezeichnung: `${TEST_PREFIX}Sommerfest`,
+      datum: new Date("2026-08-01"),
+      kasse: "vereinskasse",
+    });
+
+    expect(updated?.bezeichnung).toBe(`${TEST_PREFIX}Sommerfest`);
+    expect(updated?.datum?.toISOString()).toContain("2026-08-01");
+    expect(updated?.kasse).toBe("vereinskasse");
+    const persisted = await getVeranstaltung(v.id);
+    expect(persisted?.bezeichnung).toBe(`${TEST_PREFIX}Sommerfest`);
+    expect(persisted?.kasse).toBe("vereinskasse");
+  });
+
+  it("should_keepCatalogId_when_metaUpdated", async () => {
+    // #352: der Bearbeiten-Weg fasst den Katalog nicht an – er bleibt der eigene Weg aus #346.
+    const eigener = await trackCatalog("352-Meta-Katalog");
+    const v = await trackVeranstaltung(datierte({ catalogId: eigener.id }));
+
+    const updated = await updateVeranstaltungMeta(v.id, {
+      bezeichnung: `${TEST_PREFIX}Umbenannt`,
+      datum: new Date("2026-08-02"),
+      kasse: "montagsrunde",
+    });
+
+    expect(updated?.catalogId).toBe(eigener.id);
+  });
+
+  it("should_returnUndefined_when_metaUpdateOnAbgeschlossen", async () => {
+    // #352 AK3: eine abgeschlossene Veranstaltung ist schreibgeschützt. Der guarded UPDATE
+    // (`WHERE status = 'offen'`) trifft keine Zeile → `undefined` statt stillem Erfolg.
+    const v = await trackVeranstaltung(datierte());
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+
+    const updated = await updateVeranstaltungMeta(v.id, {
+      bezeichnung: `${TEST_PREFIX}Verboten`,
+      datum: new Date("2026-08-03"),
+      kasse: "vereinskasse",
+    });
+
+    expect(updated).toBeUndefined();
+    expect((await getVeranstaltung(v.id))?.bezeichnung).toBe(`${TEST_PREFIX}Montagsrunde`);
+  });
+
+  it("should_returnUndefined_when_metaUpdateOnTheke", async () => {
+    // #352 AK10: die stehende Theke ist kein Ziel dieses Features. Der `typ`-Guard im WHERE
+    // ist die Data-Layer-seitige Hälfte – ohne ihn ließe sich die offene Theke umbenennen
+    // und würde durch ein gesetztes `datum` zur Pseudo-Veranstaltung.
+    const theke = await ensureThekeForKasse("vereinskasse");
+    createdVeranstaltungen.push(theke.id);
+
+    const updated = await updateVeranstaltungMeta(theke.id, {
+      bezeichnung: `${TEST_PREFIX}Gekaperte Theke`,
+      datum: new Date("2026-08-04"),
+      kasse: "montagsrunde",
+    });
+
+    expect(updated).toBeUndefined();
+    const unchanged = await getVeranstaltung(theke.id);
+    expect(unchanged?.bezeichnung).toBe("Stehende Theke");
+    expect(unchanged?.datum).toBeNull();
+  });
+
+  it("should_returnUndefined_when_metaUpdateOnUnknownVeranstaltung", async () => {
+    // #352 FS4: unbekannte Id meldet No-Match, nicht stillen Erfolg.
+    expect(
+      await updateVeranstaltungMeta("__does_not_exist__", {
+        bezeichnung: `${TEST_PREFIX}Geist`,
+        datum: new Date("2026-08-05"),
+        kasse: "montagsrunde",
+      }),
+    ).toBeUndefined();
+  });
+
+  it("should_hardDeleteWithAllChildRows_when_veranstaltungOffen", async () => {
+    // #352 AK4/AK7: Hard-Delete inklusive Cascade. Die menge-0-Position ist der realistische
+    // Fall (FS1: hochgezählt und wieder runter) – genau der, den die Action noch durchlässt.
+    // Geprüft werden ALLE vier Kind-Tabellen, die der Kommentar an `deleteVeranstaltung`
+    // zusichert: ohne `onDelete: "cascade"` läuft das DELETE dort nicht in einen sauberen
+    // Fehler, sondern in einen rohen FK-Verstoß (23503), den kein Wrapper übersetzt (#345/#353).
+    const v = await trackVeranstaltung(datierte());
+    const person = await trackTeilnehmer("Kim");
+    const zeile = await addZeile(v.id, person);
+    const item = await trackItem("Loesch-Cola", 250);
+    await adjustMenge(zeile.id, item.id, 1);
+    await adjustMenge(zeile.id, item.id, -1);
+    await createAuslage({
+      veranstaltungId: v.id,
+      teilnehmerId: person.id,
+      kategorie: "sonstiges",
+      betragCents: 550,
+      zweck: `${TEST_PREFIX}Grillfleisch`,
+    });
+    // Protokoll-Einträge entstehen nur über Abschluss/Wiedereröffnung – der Umweg ist der
+    // einzige Weg, eine offene Veranstaltung MIT `veranstaltung_ereignis`-Zeilen zu erzeugen.
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+    await wiedereroeffnenVeranstaltung(v.id, AKTEUR);
+    // Ausgangslage explizit festhalten: sonst könnte das erwartete `[]` nach dem DELETE auch
+    // daher rühren, dass hier nie etwas angelegt wurde – die Assertion wäre leer-grün.
+    expect(await listAuslagen(v.id)).toHaveLength(1);
+    expect(await listEreignisse(v.id)).toHaveLength(2);
+
+    const removed = await deleteVeranstaltung(v.id);
+
+    expect(removed?.id).toBe(v.id);
+    expect(await getVeranstaltung(v.id)).toBeUndefined();
+    expect(await listZeilen(v.id)).toEqual([]);
+    expect(await listPositionen(v.id)).toEqual([]);
+    expect(await listAuslagen(v.id)).toEqual([]);
+    expect(await listEreignisse(v.id)).toEqual([]);
+  });
+
+  it("should_returnUndefined_when_deleteOnAbgeschlossen", async () => {
+    // #352 AK3-Analogon fürs Löschen: abgeschlossen bleibt unantastbar.
+    const v = await trackVeranstaltung(datierte());
+    await abschliessenVeranstaltung(v.id, AKTEUR);
+
+    const removed = await deleteVeranstaltung(v.id);
+
+    expect(removed).toBeUndefined();
+    expect(await getVeranstaltung(v.id)).toBeDefined();
+  });
+
+  it("should_returnUndefined_when_deleteOnTheke", async () => {
+    // #352 AK10: die stehende Theke lässt sich über diesen Weg nicht entfernen.
+    const theke = await ensureThekeForKasse("vereinskasse");
+    createdVeranstaltungen.push(theke.id);
+
+    const removed = await deleteVeranstaltung(theke.id);
+
+    expect(removed).toBeUndefined();
+    expect(await getVeranstaltung(theke.id)).toBeDefined();
+  });
+
+  it("should_returnUndefined_when_deleteOnUnknownVeranstaltung", async () => {
+    // #352 FS4: unbekannte Id meldet No-Match, nicht stillen Erfolg.
+    expect(await deleteVeranstaltung("__does_not_exist__")).toBeUndefined();
   });
 
   it("should_freezePriceAndLogEvent_when_abschliessen", async () => {

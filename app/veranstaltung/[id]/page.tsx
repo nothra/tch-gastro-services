@@ -11,6 +11,8 @@ import { WalkInForm } from "../WalkInForm";
 import { ZeileRow } from "../ZeileRow";
 import { StatusToggle } from "../StatusToggle";
 import { KatalogWechsel } from "../KatalogWechsel";
+import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
+import { VeranstaltungLoeschen } from "./VeranstaltungLoeschen";
 import { ZugangTeilen } from "./ZugangTeilen";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
 import type { BerichtFormat, BerichtUmfang } from "../berichtDateiname";
@@ -83,6 +85,11 @@ export default async function VeranstaltungDetailPage({
   const bereitsErfasst = new Set(zeilen.map((zeile) => zeile.teilnehmerId));
   const verfuegbar = (await listActiveTeilnehmer()).filter((t) => !bereitsErfasst.has(t.id));
   const offen = veranstaltung.status === "offen";
+  // Bearbeiten und Löschen gelten nur für datierte Veranstaltungen im Status `offen` (#352
+  // AK3/AK10). Die stehende Theke ist ebenfalls `offen`, aber ein dauerhafter Sondervorgang
+  // ohne Datum (spec-51) – der Status allein wäre hier also die falsche Bedingung. Die Actions
+  // erzwingen beides zusätzlich serverseitig; das hier ist nur die Anzeige-Hälfte.
+  const bearbeitbar = offen && veranstaltung.typ === "veranstaltung";
   // Wechselziele sind nur aktive Kataloge (#346 AK6) – dieselbe Filterung wie bei der Anlage.
   // Ob der Wechsel im konkreten Fall noch erlaubt ist (kein Verzehr erfasst, AK4), entscheidet
   // bewusst die Action und nicht diese Ansicht: der Zustand kann sich zwischen Rendern und
@@ -114,6 +121,15 @@ export default async function VeranstaltungDetailPage({
           id={veranstaltung.id}
           catalogId={veranstaltung.catalogId}
           kataloge={aktiveKataloge}
+        />
+      )}
+
+      {bearbeitbar && (
+        <VeranstaltungMetaForm
+          id={veranstaltung.id}
+          bezeichnung={veranstaltung.bezeichnung}
+          datum={veranstaltung.datum}
+          kasse={veranstaltung.kasse as Kasse}
         />
       )}
 
@@ -167,6 +183,12 @@ export default async function VeranstaltungDetailPage({
           </ul>
         )}
       </section>
+
+      {/* Zerstörerische Aktion bewusst ganz unten, abgesetzt vom Führen der Veranstaltung –
+          erreichbar, aber nicht auf dem Weg der täglichen Bedienung (#352 AK4/AK8). */}
+      {bearbeitbar && (
+        <VeranstaltungLoeschen id={veranstaltung.id} bezeichnung={veranstaltung.bezeichnung} />
+      )}
     </main>
   );
 }
