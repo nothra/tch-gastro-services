@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -318,7 +318,22 @@ Lösch-Moment).
 **Gates:** Lint, Format grün. Kein Produktionsverhalten geändert (reiner Kommentar-Fix).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+Vollständiger Report: `tasks/codify-352.md`. Drei Learnings extrahiert, alle als Volltext in
+`docs/factory/lessons/` + Index-Zeile in `PROJECT-CONTEXT.md` (ADR-037):
+
+- **`frontend-react.md`** (neu): Reset-Handler für gültigen Submit gehört an `onSubmit` des
+  `<form>`, nicht an `onClick` des Buttons (aus Review-Runde-3-Finding 1).
+- **`testing.md`** (Rezidiv zu #211): Symmetrie-Pflicht gilt auch für Bugfixes, die einen
+  Code-Zweig in zwei Verhaltensweisen aufspalten – nicht nur für Spec-AK-Paare (aus
+  `/test`-Selbstfund, eigener Rework-Fix nur einseitig getestet).
+- **`code-style.md`** (Rezidiv zu #319/#59): Aufzählungen mehrerer Funktionen mit gemeinsamer
+  Eigenschaftsbehauptung – jede einzeln öffnen, besonders wenn die Behauptung eine
+  Sicherheitseinstufung trägt (aus Security-Review-Finding: `kassiereZeileAction` fälschlich
+  als unauthentifiziert genannt).
+
+Keine neuen CLAUDE.md-Regeln nötig – Circuit Breaker und Risikoakzeptanz-Prozess funktionierten
+wie spezifiziert. `@import`-Kontext bleibt bei 903/1100 Zeilen.
 
 ---
 Branch: `feature/352-veranstaltung-bearbeiten-loeschen`
