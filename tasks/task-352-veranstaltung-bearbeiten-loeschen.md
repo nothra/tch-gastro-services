@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Veranstalter kann Metadaten (Bezeichnung, Kasse, Datum) einer offenen, datierten Veranstaltung
@@ -334,6 +334,12 @@ Vollständiger Report: `tasks/codify-352.md`. Drei Learnings extrahiert, alle al
 
 Keine neuen CLAUDE.md-Regeln nötig – Circuit Breaker und Risikoakzeptanz-Prozess funktionierten
 wie spezifiziert. `@import`-Kontext bleibt bei 903/1100 Zeilen.
+
+---
+
+PR-Shepherd [2026-09-26]: Merge freigegeben – alle Gates grün. Branch bereits auf aktuellem
+`main` (kein Rebase nötig), keine offenen Review-Kommentare, CI vollständig grün (PR #360, Head
+`bf67d2b`), keine ausstehenden Approvals, Draft → ready for review.
 
 ---
 Branch: `feature/352-veranstaltung-bearbeiten-loeschen`
