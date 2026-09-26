@@ -188,6 +188,7 @@ describe("ThekePage", () => {
     render(await ThekePage({ params: params("tok-1") }));
 
     expect(listActiveCatalogMock).toHaveBeenCalledWith(KATALOG_B_ID);
+    expect(listActiveCatalogMock).not.toHaveBeenCalledWith(STANDARD_CATALOG_ID);
   });
 
   it("should_notOfferNewParticipant_when_openAndNoStoredName", async () => {

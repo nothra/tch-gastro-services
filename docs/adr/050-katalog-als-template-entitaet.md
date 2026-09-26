@@ -408,3 +408,23 @@ hier nur auf eine zweite Tabelle angewandt, nicht neu erfunden).
 **Konsequenz.** Kein Superseding, keine Korrektur von D1–D7. Mit #346 verlässt
 `STANDARD_CATALOG_ID` die produktiven Lese-/Schreibpfade vollständig (außer Theke, s. o.) und
 bleibt nur noch Seed-Konstante – exakt der in D3 vorgezeichnete Endzustand.
+
+## Nachtrag (2026-09-26, #365): dritter Aufrufort bei #346 übersehen – Korrektur der obigen Aussage
+
+Die Aussage im Absatz „Betroffene Lesepfade" (oben) war unvollständig: `app/theke/[token]/page.tsx`
+– die öffentliche, login-freie Token-Route (F7, #54) – bedient **sowohl** die datierte
+Veranstaltung **als auch** die Dauer-Theke über dieselbe Seite (unterschieden nur über
+`veranstaltung.typ`, nicht über die Route). Sie ist damit kein Fall der oben bewusst
+ausgenommenen „Dauer-Theke" (das betrifft nur `typ: "theke"`), sondern ein bei #346 übersehener
+zweiter Aufrufort für die datierte Veranstaltung – analog zu `app/veranstaltung/[id]/verzehr/page.tsx`,
+aber für den unauthentifizierten Link. Sie blieb fälschlich auf `STANDARD_CATALOG_ID` stehen, wodurch
+ein Katalogwechsel (#346) über den öffentlichen Link nicht durchschlug (Anzeige zeigte den alten
+Katalog, Verzehr-Erfassung scheiterte mit „Artikel nicht gefunden", da `applyVerzehrAdjust` bereits
+korrekt gegen `veranstaltung.catalogId` prüfte). #365 stellt `app/theke/[token]/page.tsx` auf
+`listActiveCatalog(veranstaltung.catalogId)` um – für `typ: "theke"` bleibt das Verhalten
+unverändert, weil `ensureThekeForKasse` die Spalte nie setzt und sie dort beim Default
+`STANDARD_CATALOG_ID` bleibt.
+
+**Konsequenz.** Kein Superseding, keine Korrektur von D1–D7. Der Satz „verlässt die produktiven
+Lese-/Schreibpfade vollständig (außer Theke, s. o.)" im vorherigen Nachtrag gilt erst ab #365 –
+vorher war er sachlich falsch für den Token-Pfad der datierten Veranstaltung.
