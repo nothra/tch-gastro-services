@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -77,6 +77,10 @@ Keine.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Siehe `tasks/review-365.md`. Ergebnis: APPROVED (3 Runden). Ein Wichtig-Finding (ADR-050
+nannte den öffentlichen Token-Pfad nicht als migrierten Lesepfad) wurde im selben Zyklus
+behoben. Ein optionaler Nitpick (Kommentar-Querverweis auf bestehenden Theke-Test) offen,
+nicht blockierend.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
