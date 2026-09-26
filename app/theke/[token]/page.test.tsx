@@ -6,12 +6,7 @@ vi.mock("@/db/veranstaltung", () => ({
   getVeranstaltungByToken: vi.fn(),
   listZeilen: vi.fn(),
 }));
-// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
-// Seite `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
-vi.mock("@/db/catalog", () => ({
-  listActiveCatalog: vi.fn(),
-  STANDARD_CATALOG_ID: "standard",
-}));
+vi.mock("@/db/catalog", () => ({ listActiveCatalog: vi.fn() }));
 vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
 vi.mock("@/app/veranstaltung/actions", () => ({ adjustVerzehrByTokenAction: vi.fn() }));
 
@@ -134,8 +129,9 @@ describe("ThekePage", () => {
     expect(getByTokenMock).toHaveBeenCalledWith("tok-1");
     expect(listZeilenMock).toHaveBeenCalledWith("v-1");
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
-    // AK8: die Theke bleibt verhaltensneutral, weil sie bis #346 die Auswahl aus dem
-    // Standard-Katalog lädt (ADR-050 D3) – Wiring-Assertion gegen ein `undefined` im Mock.
+    // Diese Fixture trägt den Standard-Katalog (Default), daher hier weiterhin dieser Wert –
+    // die Umstellung auf veranstaltung.catalogId (#365) zeigt sich erst mit einer abweichenden
+    // Katalog-Id, siehe should_loadCatalogFromVeranstaltung_when_catalogWasSwitchedAwayFromStandard.
     expect(listActiveCatalogMock).toHaveBeenCalledWith(STANDARD_CATALOG_ID);
     // Kein gemerkter Name → Namens-Picker UND bereits Liste + Summen sichtbar (spec-54 AC B1),
     // aber die Erfassungs-Controls bleiben read-only, bis ein Name gewählt wurde.
