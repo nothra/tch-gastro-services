@@ -6,12 +6,7 @@ vi.mock("@/db/veranstaltung", () => ({
   getVeranstaltungByToken: vi.fn(),
   listZeilen: vi.fn(),
 }));
-// Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
-// Seite `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
-vi.mock("@/db/catalog", () => ({
-  listActiveCatalog: vi.fn(),
-  STANDARD_CATALOG_ID: "standard",
-}));
+vi.mock("@/db/catalog", () => ({ listActiveCatalog: vi.fn() }));
 vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
 vi.mock("@/app/veranstaltung/actions", () => ({ adjustVerzehrByTokenAction: vi.fn() }));
 
@@ -45,6 +40,13 @@ const listPositionenMock = vi.mocked(listPositionen);
 // db/catalog.test.ts hält Produktions-Konstante und Migrations-Literal gegeneinander – er liest
 // dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
 const STANDARD_CATALOG_ID = "standard";
+
+// Bewusst NICHT der Standard-Katalog (#365 Regression zu #346): nur so unterscheidet die
+// Wiring-Assertion unten zwischen „lädt die Auswahl aus veranstaltung.catalogId" und „nimmt
+// weiter die hart codierte Konstante" – analog zur Assertion in
+// app/veranstaltung/[id]/verzehr/page.test.tsx (KATALOG_B_ID). Mit 'standard' als Fixture-Wert
+// wäre sie vor wie nach dem Fix grün.
+const KATALOG_B_ID = "kat-b";
 
 const aVeranstaltung: Veranstaltung = {
   id: "v-1",
@@ -127,8 +129,9 @@ describe("ThekePage", () => {
     expect(getByTokenMock).toHaveBeenCalledWith("tok-1");
     expect(listZeilenMock).toHaveBeenCalledWith("v-1");
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
-    // AK8: die Theke bleibt verhaltensneutral, weil sie bis #346 die Auswahl aus dem
-    // Standard-Katalog lädt (ADR-050 D3) – Wiring-Assertion gegen ein `undefined` im Mock.
+    // Diese Fixture trägt den Standard-Katalog (Default), daher hier weiterhin dieser Wert –
+    // die Umstellung auf veranstaltung.catalogId (#365) zeigt sich erst mit einer abweichenden
+    // Katalog-Id, siehe should_loadCatalogFromVeranstaltung_when_catalogWasSwitchedAwayFromStandard.
     expect(listActiveCatalogMock).toHaveBeenCalledWith(STANDARD_CATALOG_ID);
     // Kein gemerkter Name → Namens-Picker UND bereits Liste + Summen sichtbar (spec-54 AC B1),
     // aber die Erfassungs-Controls bleiben read-only, bis ein Name gewählt wurde.
@@ -175,6 +178,17 @@ describe("ThekePage", () => {
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
     expect(screen.getByText(/Cola/)).toBeInTheDocument();
     expect(screen.getByText(/Kuchen/)).toBeInTheDocument();
+  });
+
+  it("should_loadCatalogFromVeranstaltung_when_catalogWasSwitchedAwayFromStandard", async () => {
+    // #365: Nach einem Katalog-Wechsel (#346) muss die öffentliche Route dieselbe Katalog-Id
+    // wie die Veranstaltung verwenden – nicht länger die hart codierte Standard-Konstante.
+    getByTokenMock.mockResolvedValue({ ...aVeranstaltung, catalogId: KATALOG_B_ID });
+
+    render(await ThekePage({ params: params("tok-1") }));
+
+    expect(listActiveCatalogMock).toHaveBeenCalledWith(KATALOG_B_ID);
+    expect(listActiveCatalogMock).not.toHaveBeenCalledWith(STANDARD_CATALOG_ID);
   });
 
   it("should_notOfferNewParticipant_when_openAndNoStoredName", async () => {

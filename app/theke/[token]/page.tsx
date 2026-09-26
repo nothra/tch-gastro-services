@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltungByToken, listZeilen } from "@/db/veranstaltung";
-import { STANDARD_CATALOG_ID, listActiveCatalog } from "@/db/catalog";
+import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { adjustVerzehrByTokenAction } from "@/app/veranstaltung/actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "@/app/veranstaltung/labels";
@@ -21,9 +21,13 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
 
   const [zeilen, artikel, positionen] = await Promise.all([
     listZeilen(veranstaltung.id),
-    // Wie die authentifizierte F5-Seite: Preisquelle ist bis #346 der Standard-Katalog
-    // (ADR-050 D3), die angebotene Auswahl bleibt unverändert (spec-59 AK8).
-    listActiveCatalog(STANDARD_CATALOG_ID),
+    // Wie die authentifizierte F5-Seite (#346, ADR-050-Nachtrag zu D3): Preisquelle ist der
+    // Katalog DIESER Veranstaltung, ein Katalogwechsel schlägt also auch hier durch. Für die
+    // stehende Theke bleibt das verhaltensneutral, da `ensureThekeForKasse` die Spalte nie
+    // setzt und `catalogId` dort beim Standard-Katalog bleibt (#346 AK7). Die Route verzweigt
+    // dafür bewusst nirgends auf `veranstaltung.typ` (siehe Test
+    // should_workSameWayIncludingEssen_when_veranstaltungTypIsTheke).
+    listActiveCatalog(veranstaltung.catalogId),
     listPositionen(veranstaltung.id),
   ]);
   const editable = veranstaltung.status === "offen";
