@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [ ] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -64,6 +64,14 @@ Reproduktionstest: neuer Testfall
 `catalogId`, analog zu `KATALOG_B_ID` in `app/veranstaltung/[id]/verzehr/page.test.tsx`).
 Zusätzlich einen stale gewordenen Test-Kommentar korrigiert und den nicht mehr benötigten
 `STANDARD_CATALOG_ID`-Export aus dem `@/db/catalog`-Mock entfernt.
+
+Security-Review: Siehe `tasks/security-365.md`. Ergebnis: PASSED, keine Blocker/wichtigen
+Findings, ein informativer Hinweis zur Threat-Model-Einordnung (kein privater/öffentlicher
+Katalog-Unterschied in diesem Projekt).
+
+Hinweis auf Prozess: Auf Wunsch endet dieser Durchlauf nach `/security-review` – `/test`
+(Coverage-Vervollständigung), `/refactor`, `/codify` und `/pr-shepherd` (Merge) wurden bewusst
+nicht ausgeführt. PR #366 bleibt offen/Draft zur manuellen Freigabe.
 
 Hinweis für `/codify`: Bei einem Feature, das eine bestehende Mechanik an mehreren
 Aufruforten (hier: authentifizierte + öffentliche Seite derselben Domäne) ändert, per Grep
