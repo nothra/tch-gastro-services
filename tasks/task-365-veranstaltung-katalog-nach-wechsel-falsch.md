@@ -95,11 +95,15 @@ Keine.
 <!-- Wird durch /review befüllt -->
 Siehe `tasks/review-365.md`. Ergebnis: APPROVED (3 Runden). Ein Wichtig-Finding (ADR-050
 nannte den öffentlichen Token-Pfad nicht als migrierten Lesepfad) wurde im selben Zyklus
-behoben. Ein optionaler Nitpick (Kommentar-Querverweis auf bestehenden Theke-Test) offen,
-nicht blockierend.
+behoben. Der optionale Nitpick (Kommentar-Querverweis auf bestehenden Theke-Test) wurde in
+`/refactor` behoben.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+`/codify` wurde für diese Task **bewusst nicht ausgeführt** (Anweisung Ralf, 2026-09-26). Der
+Hinweis für einen möglichen `/codify`-Lesson-Vorschlag steht weiterhin oben unter „Technische
+Notizen" (Grep-Sweep über alle Aufrufer einer geänderten Konstante) – bei Bedarf später manuell
+nachziehen.
 
 ---
 Branch: `fix/365-veranstaltung-katalog-nach-wechsel-falsch`
