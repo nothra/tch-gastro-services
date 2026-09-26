@@ -46,6 +46,13 @@ const listPositionenMock = vi.mocked(listPositionen);
 // dieses Literal hier nicht mit; es ist unabhängig auf denselben Wert gesetzt.
 const STANDARD_CATALOG_ID = "standard";
 
+// Bewusst NICHT der Standard-Katalog (#365 Regression zu #346): nur so unterscheidet die
+// Wiring-Assertion unten zwischen „lädt die Auswahl aus veranstaltung.catalogId" und „nimmt
+// weiter die hart codierte Konstante" – analog zur Assertion in
+// app/veranstaltung/[id]/verzehr/page.test.tsx (KATALOG_B_ID). Mit 'standard' als Fixture-Wert
+// wäre sie vor wie nach dem Fix grün.
+const KATALOG_B_ID = "kat-b";
+
 const aVeranstaltung: Veranstaltung = {
   id: "v-1",
   typ: "veranstaltung",
@@ -175,6 +182,16 @@ describe("ThekePage", () => {
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
     expect(screen.getByText(/Cola/)).toBeInTheDocument();
     expect(screen.getByText(/Kuchen/)).toBeInTheDocument();
+  });
+
+  it("should_loadCatalogFromVeranstaltung_when_catalogWasSwitchedAwayFromStandard", async () => {
+    // #365: Nach einem Katalog-Wechsel (#346) muss die öffentliche Route dieselbe Katalog-Id
+    // wie die Veranstaltung verwenden – nicht länger die hart codierte Standard-Konstante.
+    getByTokenMock.mockResolvedValue({ ...aVeranstaltung, catalogId: KATALOG_B_ID });
+
+    render(await ThekePage({ params: params("tok-1") }));
+
+    expect(listActiveCatalogMock).toHaveBeenCalledWith(KATALOG_B_ID);
   });
 
   it("should_notOfferNewParticipant_when_openAndNoStoredName", async () => {
