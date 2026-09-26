@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -73,8 +73,13 @@ Test-Vollständigkeit: Siehe `tasks/coverage-365.md`. 100 % Coverage auf dem ein
 geänderten Produktionscode (`app/theke/[token]/page.tsx`), beide Akzeptanzkriterien
 testabgedeckt. Kein Produktionscode in diesem Schritt geändert.
 
-Hinweis auf Prozess: `/refactor`, `/codify` und `/pr-shepherd` (Merge) wurden bislang bewusst
-nicht ausgeführt. PR #366 bleibt offen/Draft zur manuellen Freigabe.
+Refactoring: Nur der optionale Nitpick aus `tasks/review-365.md` behoben (Kommentar-Ergänzung
+in `app/theke/[token]/page.tsx` mit Querverweis auf den bestehenden Theke-Test). Kein neues
+Verhalten, Tests vor/nach identisch grün. Sonst keine Struktur-/Naming-/Duplikations-Findings
+am 1-Zeilen-Produktionscode-Diff dieser Task.
+
+Hinweis auf Prozess: `/codify` und `/pr-shepherd` (Merge) wurden bislang bewusst nicht
+ausgeführt. PR #366 bleibt offen/Draft zur manuellen Freigabe.
 
 Hinweis für `/codify`: Bei einem Feature, das eine bestehende Mechanik an mehreren
 Aufruforten (hier: authentifizierte + öffentliche Seite derselben Domäne) ändert, per Grep

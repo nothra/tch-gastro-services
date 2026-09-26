@@ -24,7 +24,9 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
     // Wie die authentifizierte F5-Seite (#346, ADR-050-Nachtrag zu D3): Preisquelle ist der
     // Katalog DIESER Veranstaltung, ein Katalogwechsel schlägt also auch hier durch. Für die
     // stehende Theke bleibt das verhaltensneutral, da `ensureThekeForKasse` die Spalte nie
-    // setzt und `catalogId` dort beim Standard-Katalog bleibt (#346 AK7).
+    // setzt und `catalogId` dort beim Standard-Katalog bleibt (#346 AK7). Die Route verzweigt
+    // dafür bewusst nirgends auf `veranstaltung.typ` (siehe Test
+    // should_workSameWayIncludingEssen_when_veranstaltungTypIsTheke).
     listActiveCatalog(veranstaltung.catalogId),
     listPositionen(veranstaltung.id),
   ]);

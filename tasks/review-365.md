@@ -18,10 +18,11 @@ dritten Aufrufort dokumentiert. Runde 3 hat den Nachtrag als inhaltlich korrekt 
 widerspruchsfrei bestätigt.)
 
 ## Nitpicks (optional)
-- [ ] [app/theke/[token]/page.tsx:24-27] Der Kommentar könnte zusätzlich auf den bestehenden
+- [x] [app/theke/[token]/page.tsx:24-29] Der Kommentar könnte zusätzlich auf den bestehenden
       Test `should_workSameWayIncludingEssen_when_veranstaltungTypIsTheke` verweisen, der die
       Design-Entscheidung "diese Route verzweigt nirgends auf `typ`" bereits belegt – rein
-      optionale Lesbarkeits-Verbesserung, kein Verhaltensrisiko.
+      optionale Lesbarkeits-Verbesserung, kein Verhaltensrisiko. Behoben in `/refactor`
+      (Kommentar-Ergänzung, kein Verhaltensunterschied, Tests weiterhin grün).
 
 ## Positives
 - Der Fix trifft exakt die Root Cause und ist konsistent mit dem etablierten Vorbild
