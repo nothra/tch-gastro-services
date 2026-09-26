@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [x] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -69,8 +69,11 @@ Security-Review: Siehe `tasks/security-365.md`. Ergebnis: PASSED, keine Blocker/
 Findings, ein informativer Hinweis zur Threat-Model-Einordnung (kein privater/öffentlicher
 Katalog-Unterschied in diesem Projekt).
 
-Hinweis auf Prozess: Auf Wunsch endet dieser Durchlauf nach `/security-review` – `/test`
-(Coverage-Vervollständigung), `/refactor`, `/codify` und `/pr-shepherd` (Merge) wurden bewusst
+Test-Vollständigkeit: Siehe `tasks/coverage-365.md`. 100 % Coverage auf dem einzigen
+geänderten Produktionscode (`app/theke/[token]/page.tsx`), beide Akzeptanzkriterien
+testabgedeckt. Kein Produktionscode in diesem Schritt geändert.
+
+Hinweis auf Prozess: `/refactor`, `/codify` und `/pr-shepherd` (Merge) wurden bislang bewusst
 nicht ausgeführt. PR #366 bleibt offen/Draft zur manuellen Freigabe.
 
 Hinweis für `/codify`: Bei einem Feature, das eine bestehende Mechanik an mehreren
