@@ -78,8 +78,12 @@ in `app/theke/[token]/page.tsx` mit Querverweis auf den bestehenden Theke-Test).
 Verhalten, Tests vor/nach identisch grün. Sonst keine Struktur-/Naming-/Duplikations-Findings
 am 1-Zeilen-Produktionscode-Diff dieser Task.
 
-Hinweis auf Prozess: `/codify` und `/pr-shepherd` (Merge) wurden bislang bewusst nicht
-ausgeführt. PR #366 bleibt offen/Draft zur manuellen Freigabe.
+Hinweis auf Prozess: `/codify` wurde für diese Task bewusst nicht ausgeführt (siehe
+Codify-Notizen unten).
+
+PR-Shepherd [2026-09-26]: Merge freigegeben – alle Gates grün. Kein Rebase nötig (main
+unverändert seit Branch-Start), keine offenen menschlichen Review-Kommentare, CI grün
+(10 passing, 0 failing, kein Approval-Gate erforderlich), Draft über `gh pr ready` aufgelöst.
 
 Hinweis für `/codify`: Bei einem Feature, das eine bestehende Mechanik an mehreren
 Aufruforten (hier: authentifizierte + öffentliche Seite derselben Domäne) ändert, per Grep
