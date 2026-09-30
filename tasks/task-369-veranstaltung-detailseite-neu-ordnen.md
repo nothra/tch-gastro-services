@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -124,6 +124,11 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
 - Bewusst nicht geändert: `if (!dialog) return;` in `Dialog.tsx`. Der Guard wirkt im Laufzeitverhalten tot, ist
   aber für die Typverengung (`useRef<HTMLDialogElement>(null)` → `HTMLDialogElement | null`) nötig; ein `!`
   würde nichts verbessern.
+
+### /security-review (2026-10-01)
+- Ergebnis PASSED (`tasks/security-369.md`): keine kritischen/wichtigen Findings, keine neuen Abhängigkeiten,
+  Rollen-Check in allen drei Actions fail-closed, IDOR-Grenze beim Entfernen, Namens-Snapshot serverseitig.
+- Out-of-Scope: Status-Prüfung und Schreibzugriff sind nicht atomar (vorbestehend) → Issue #387.
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).
