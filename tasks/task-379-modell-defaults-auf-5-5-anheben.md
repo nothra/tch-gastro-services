@@ -1,20 +1,21 @@
 # Task 379: modell-defaults-auf-5-5-anheben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+Modell-Defaults der Tiers auf die aktuellen Modelle anheben: heavy `claude-opus-5` → `claude-opus-5-5`, light `claude-sonnet-5` → `claude-sonnet-5-5` (`factory.defaults.yml`, Fallback in `run-pipeline.sh`, Erwartungswerte in `run-tests.sh`). Kleine Chore-Änderung, bewusst ohne Spec/Pipeline-Lauf.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] GIVEN die Defaults WHEN die Pipeline startet THEN laufen heavy auf `claude-opus-5-5` und light auf `claude-sonnet-5-5`.
+- [x] `run-tests.sh` grün (1564/0).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
