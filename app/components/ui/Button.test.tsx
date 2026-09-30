@@ -59,7 +59,7 @@ describe("Button – Zustände (AK2.2)", () => {
   });
 
   // Ein deaktivierter Button darf keine Hover-Farbe zeigen, sonst wirkt er bedienbar.
-  it.each(BUTTON_VARIANTS)("should_notHoverWhileDisabled_when_variantIs%s", (variant) => {
+  it.each(BUTTON_VARIANTS)("should_guardHoverWithNotDisabled_when_variantIs%s", (variant) => {
     render(<Button variant={variant}>Aktion</Button>);
 
     expect(screen.getByRole("button").className).not.toMatch(/(^|\s)hover:/);

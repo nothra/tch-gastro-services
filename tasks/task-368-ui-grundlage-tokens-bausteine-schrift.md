@@ -153,6 +153,19 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
 - [ ] **N6** Nicht umgesetzt. Das Verhalten gab es schon vorher. Der Reviewer ordnet es den
   Folge-Issues #369–#374 zu.
 
+**Runde 2** ([`review-368.md`](review-368.md), NEEDS_REWORK). Rework in `/implement`:
+
+- [x] **W3** `scripts/pr368-body.tmp.md` per `git rm` entfernt. Der Inhalt steht im PR-Body
+  von #378. Die `.gitignore`-Lücke für `*.tmp.md` liegt außerhalb des Scopes (Kleinfund aus
+  Runde 2).
+- [ ] **W2** Weiter offen, **menschliche Aktion vor dem Merge**: die 12 PNGs aus
+  `test-results/ux368/` als Kommentar an PR #378 anhängen. Das löst kein weiterer
+  `/implement`-Lauf (Circuit Breaker).
+- [x] **N7** Farb-Gate erkennt jetzt eine Ebene verschachtelter Arbitrary-Varianten
+  (`[&_[data-x]]:`) und die Opazitäts-Kurzform `/(--a)`. Je Form ein `invalid`-Fall (erst rot,
+  dann grün). ADR-052 D3 nachgezogen.
+- [x] **N8** Test umbenannt in `should_guardHoverWithNotDisabled_when_variantIs%s`.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

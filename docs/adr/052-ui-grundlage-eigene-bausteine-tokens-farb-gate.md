@@ -114,8 +114,9 @@ Dateien.
 - Die Regel prüft String-`Literal`s und `TemplateElement`s (deckt `className="…"`,
   `className={`…`}` über mehrere Zeilen und Hilfsaufrufe ab) und meldet **jede** gefundene
   Klasse mit Zeile/Spalte. Erkannt werden, mit beliebigen Varianten-Präfixen (`dark:`,
-  `hover:`, `sm:`, `data-[…]:`, `[&>*]:`, `group-hover/item:`, `@sm:` …), optionalem `!`
-  (vorn oder hinten) und optionalem Opazitäts-Suffix (`/50`):
+  `hover:`, `sm:`, `data-[…]:`, `[&>*]:`, eine Ebene verschachtelt wie `[&_[data-x]]:`,
+  `group-hover/item:`, `@sm:` …), optionalem `!` (vorn oder hinten) und optionalem
+  Opazitäts-Suffix (`/50`, `/[0.35]`, `/(--a)`):
   - Farb-Utilities (`bg`, `text`, `border`/`border-{t,r,b,l,x,y,s,e}`, `ring`, `ring-offset`,
     `inset-ring`, `outline`, `divide`, `fill`, `stroke`, `from`, `via`, `to`, `placeholder`,
     `decoration`, `accent`, `caret`, `shadow`, `inset-shadow`, `drop-shadow`, `text-shadow`) +

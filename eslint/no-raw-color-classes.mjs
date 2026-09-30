@@ -46,8 +46,11 @@ const COLOR_UTILITY =
 
 // Beliebig viele Varianten-Präfixe. Ein Präfix ist alles bis zum nächsten `:`, wobei ein `:`
 // innerhalb von `[…]` nicht zählt – so fallen `dark:hover:`, `data-[open]:`, `[&>*]:`,
-// `supports-[display:grid]:`, `group-hover/item:` und `@sm:` gleichermaßen darunter.
-const VARIANT_PREFIX = "(?:(?:[^\\s:[\\]]|\\[[^\\]\\s]*\\])+:)*";
+// `supports-[display:grid]:`, `group-hover/item:` und `@sm:` gleichermaßen darunter. Eine
+// Verschachtelungsebene (`[&_[data-x]]:`) ist erlaubt, damit die innere `]` das Präfix nicht
+// vorzeitig beendet.
+const BRACKET = "\\[(?:[^[\\]\\s]|\\[[^[\\]\\s]*\\])*\\]";
+const VARIANT_PREFIX = `(?:(?:[^\\s:[\\]]|${BRACKET})+:)*`;
 
 // `!` für `important` darf vor dem Utility stehen (v3-Schreibweise, in v4 weiter gültig).
 const LEADING_IMPORTANT = "!?";
@@ -63,8 +66,9 @@ const COLOR_VALUE = [
   "\\[(?:#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color)\\([^)\\s]*\\))\\]",
 ].join("|");
 
-// Optionale Opazität (`/50`, `/[0.35]`) und optionales nachgestelltes `!` für `important`.
-const OPACITY = "(?:\\/(?:\\d{1,3}|\\[[^\\]\\s]+\\]))?";
+// Optionale Opazität (`/50`, `/[0.35]`, v4-Kurzform `/(--a)`) und optionales nachgestelltes
+// `!` für `important`.
+const OPACITY = "(?:\\/(?:\\d{1,3}|\\[[^\\]\\s]+\\]|\\([^)\\s]+\\)))?";
 
 const RAW_COLOR_CLASS = new RegExp(
   `^${VARIANT_PREFIX}${LEADING_IMPORTANT}${COLOR_UTILITY}-(?:${COLOR_VALUE})${OPACITY}!?$`,

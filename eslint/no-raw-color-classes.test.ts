@@ -139,6 +139,16 @@ ruleTester.run("no-raw-color-classes", rule, {
       code: 'const c = <div className="@sm:bg-red-500" />;',
       errors: [{ messageId: "rawColorClass", data: { className: "@sm:bg-red-500" } }],
     },
+    // Verschachtelte Arbitrary-Variante: Die innere `]` darf das Präfix nicht vorzeitig beenden.
+    {
+      code: 'const c = <div className="[&_[data-x]]:bg-red-500" />;',
+      errors: [{ messageId: "rawColorClass", data: { className: "[&_[data-x]]:bg-red-500" } }],
+    },
+    // v4-Kurzform der Opazität über eine CSS-Variable.
+    {
+      code: 'const c = <div className="bg-red-500/(--a)" />;',
+      errors: [{ messageId: "rawColorClass", data: { className: "bg-red-500/(--a)" } }],
+    },
     // `!` für `important` vorn (v3-Schreibweise, in v4 weiter gültig) und hinten.
     {
       code: 'const c = <div className="!bg-red-500 hover:!bg-red-600 bg-red-700!" />;',
