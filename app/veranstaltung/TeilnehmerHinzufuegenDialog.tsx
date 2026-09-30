@@ -165,9 +165,13 @@ function GastBereich({ veranstaltungId, onErfolg }: BereichProps) {
         {/* Jede Ablehnung des Walk-in betrifft den eingegebenen Gast oder den Zustand der
             Veranstaltung; das Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb
             als Feldfehler (FS3). */}
-        <Field label="Name" name="name" required
+        <Field
+          label="Name"
+          name="name"
+          required
           maxLength={TEILNEHMER_NAME_MAX}
-          error={state?.error} />
+          error={state?.error}
+        />
         <SelectField label="Typ" name="typ" defaultValue="person">
           {(Object.entries(TYP_LABEL) as [Teilnehmer["typ"], string][]).map(([value, label]) => (
             <option key={value} value={value}>
