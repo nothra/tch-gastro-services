@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -174,6 +174,14 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
 - Volle Suite grün: 92 Dateien, 1187 Tests; 105 DB-Tests ohne `dotenv` übersprungen (nicht
   betroffen, keine DB-Änderung). Keine neuen Tests nötig, kein Produktionscode geändert.
 - Offen bleibt W2 (menschliche Aktion: PNGs an PR #378).
+
+## Refactoring-Notizen (`/refactor`, 2026-09-30)
+
+- Sechsfach kopiertes `[…, className].filter(Boolean).join(" ")` in `Button`, `Field`, `Card`,
+  `Badge`, `Notice`, `PageHeader` zu `joinClasses()` (`app/components/ui/joinClasses.ts`, mit
+  eigenem Test) zusammengezogen. Kein neues Verhalten; `app`+`eslint`-Tests (1061), Lint und
+  Format grün. Sonst keine Befunde (Namen, Funktionslängen, Kommentare unauffällig).
+- W2 (PNGs an PR #378) bleibt eine menschliche Aktion vor dem Merge.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

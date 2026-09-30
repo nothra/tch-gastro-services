@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, type ComponentProps, type ReactNode } from "react";
+import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1). `"use client"`, weil `useId` ein Hook ist und die
 // Label-/Hinweis-Verknüpfung ohne übergebene `id` eine generierte, kollisionsfreie braucht.
@@ -45,7 +46,7 @@ function FieldShell({ label, id, hint, error, className, children }: FieldShellP
   const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ");
 
   return (
-    <div className={["flex flex-col gap-1", className].filter(Boolean).join(" ")}>
+    <div className={joinClasses("flex flex-col gap-1", className)}>
       <label htmlFor={controlId} className="text-sm font-medium text-foreground">
         {label}
       </label>

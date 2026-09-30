@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1).
 
@@ -46,7 +47,7 @@ export function Notice({ kind, className, children }: NoticeProps) {
 
   const { role, glyph, classes } = KIND_STYLES[kind];
   return (
-    <p role={role} className={[BASE_CLASSES, classes, className].filter(Boolean).join(" ")}>
+    <p role={role} className={joinClasses(BASE_CLASSES, classes, className)}>
       <span aria-hidden="true" className="font-bold">
         {glyph}
       </span>

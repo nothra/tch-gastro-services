@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1).
 
@@ -30,8 +31,6 @@ interface BadgeProps {
 /** Status-Kennzeichnung: Ton an der Farbe erkennbar, Status zusätzlich als Text. */
 export function Badge({ tone = "neutral", className, children }: BadgeProps) {
   return (
-    <span className={[BASE_CLASSES, TONE_CLASSES[tone], className].filter(Boolean).join(" ")}>
-      {children}
-    </span>
+    <span className={joinClasses(BASE_CLASSES, TONE_CLASSES[tone], className)}>{children}</span>
   );
 }

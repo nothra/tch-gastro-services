@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1). Die Größe des Titels kommt aus der Typo-Skala in
 // `globals.css` (@layer base), nicht aus einer Utility-Klasse hier.
@@ -21,7 +22,7 @@ interface PageHeaderProps {
 /** Seitenkopf: Titel als `h1`, Zurück-Link, Meta-Zeile und Aktion je optional (spec AK2.11). */
 export function PageHeader({ title, back, meta, action, className }: PageHeaderProps) {
   return (
-    <header className={["flex flex-col gap-2", className].filter(Boolean).join(" ")}>
+    <header className={joinClasses("flex flex-col gap-2", className)}>
       {back && (
         <Link
           href={back.href}

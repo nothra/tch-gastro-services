@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
+import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1): keine Feature-Imports, kein Auth-/DB-Wissen.
 // Farben ausschließlich über die semantischen Tokens aus `app/globals.css`.
@@ -49,9 +50,7 @@ export function buttonClasses({
   size = "md",
   className,
 }: ButtonStyleProps = {}): string {
-  return [BASE_CLASSES, VARIANT_CLASSES[variant], SIZE_CLASSES[size], className]
-    .filter(Boolean)
-    .join(" ");
+  return joinClasses(BASE_CLASSES, VARIANT_CLASSES[variant], SIZE_CLASSES[size], className);
 }
 
 type ButtonProps = ComponentProps<"button"> & ButtonStyleProps;
