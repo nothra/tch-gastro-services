@@ -44,7 +44,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
+      {/* `font-sans` löst auf `--font-geist-sans` auf (globals.css → @theme inline). Bis #368
+          verdeckte ein Arial-Override in `globals.css` die geladene Schrift Geist. */}
+      <body className="flex min-h-full flex-col font-sans">
         <StageBanner />
         <AppHeader />
         {children}
