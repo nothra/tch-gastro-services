@@ -457,9 +457,16 @@ describe("zeilenAnlageSchema (#369 AK12/AK14, ADR-053 D3)", () => {
     expect(zeilenAnlageSchema.safeParse({ teilnehmerIds: ids }).success).toBe(true);
   });
 
-  it("should_reject_when_idTooLong", () => {
+  it("should_accept_when_idExactly100Chars", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["x".repeat(100)] });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should_rejectWithMessage_when_idTooLong", () => {
     const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["x".repeat(101)] });
 
     expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toBe("Ungültige Teilnehmer-Auswahl.");
   });
 });

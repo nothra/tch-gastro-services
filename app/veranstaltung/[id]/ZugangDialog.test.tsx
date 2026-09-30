@@ -32,10 +32,10 @@ describe("ZugangDialog (spec-369 AK22, AK30)", () => {
   });
 
   it("should_closeAndFocusTrigger_when_schliessenTapped", () => {
-    // AK30: dieselbe Dialog-Grundlage mit Fokusführung.
+    // AK30: dieselbe Dialog-Grundlage mit Fokusführung. Kein `trigger.focus()` vorab: Safari
+    // fokussiert einen getippten Button nicht, der Rücksprung darf daran nicht hängen.
     renderDialog();
     const trigger = screen.getByRole("button", { name: "Link & QR teilen" });
-    trigger.focus();
     fireEvent.click(trigger);
 
     fireEvent.click(screen.getByRole("button", { name: "Schließen" }));

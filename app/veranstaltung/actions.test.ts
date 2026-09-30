@@ -853,6 +853,12 @@ describe("deleteVeranstaltungAction", () => {
   });
 });
 
+// Wie Drizzle ≥ 0.44 einen Treiberfehler umhüllt: SQLSTATE auf `cause`, nicht am Fehler selbst
+// (belegt im DB-Integrationstest von `addZeilen`).
+function umhuellterDbFehler(code: string) {
+  return Object.assign(new Error("Failed query"), { cause: { code } });
+}
+
 describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
   const berta: Teilnehmer = { ...person, id: "t2", name: "Berta Beispiel" };
 
@@ -862,12 +868,6 @@ describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
     if (veranstaltungId !== null) data.append("veranstaltungId", veranstaltungId);
     for (const id of teilnehmerIds) data.append("teilnehmerId", id);
     return data;
-  }
-
-  // Wie Drizzle ≥ 0.44 einen Treiberfehler umhüllt: SQLSTATE auf `cause`, nicht am Fehler selbst
-  // (belegt im DB-Integrationstest von `addZeilen`).
-  function umhuellterDbFehler(code: string) {
-    return Object.assign(new Error("Failed query"), { cause: { code } });
   }
 
   it("should_addAllSelectedWithServerSideSnapshotNames_when_inputValid", async () => {
@@ -946,8 +946,9 @@ describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
 
     const result = await addZeilenAction(undefined, auswahl("v1", ["t1", "gibt-es-nicht"]));
 
-    expect(result.error).toBe("Teilnehmer nicht gefunden.");
+    expect(result.error).toBe("Teilnehmer nicht gefunden. Es wurde niemand hinzugefügt.");
     expect(addZeilenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
   it("should_nameAlreadyErfasstTeilnehmerAndPersistNothing_when_oneAddedMeanwhile", async () => {
@@ -962,6 +963,11 @@ describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
+  // Im Rennen kennt die Action die Betroffenen nicht mehr; sie sagt aber wie die Vor-Checks, dass
+  // niemand angelegt wurde (FS2).
+  const RENNEN_MELDUNG =
+    "Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt.";
+
   it("should_returnDuplicateMessage_when_insertHitsUniqueViolationInRace", async () => {
     // Das Rennen NACH dem Vor-Check: der Unique-Index ist die verbindliche Grenze. Der Fehler
     // kommt so an, wie Drizzle ihn tatsächlich wirft.
@@ -969,7 +975,7 @@ describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
 
     const result = await addZeilenAction(undefined, auswahl("v1", ["t1"]));
 
-    expect(result.error).toBe("Dieser Teilnehmer ist bereits erfasst.");
+    expect(result.error).toBe(RENNEN_MELDUNG);
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
@@ -978,7 +984,7 @@ describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
 
     const result = await addZeilenAction(undefined, auswahl("v1", ["t1"]));
 
-    expect(result.error).toBe("Dieser Teilnehmer ist bereits erfasst.");
+    expect(result.error).toBe(RENNEN_MELDUNG);
   });
 
   it("should_rethrow_when_insertFailsWithOtherDbError", async () => {
@@ -1073,7 +1079,8 @@ describe("removeZeileAction", () => {
     const result = await removeZeileAction(undefined, entfernen);
 
     expect(result.error).toBe("Teilnehmerzeile nicht gefunden.");
-    expect(revalidatePathMock).not.toHaveBeenCalled();
+    // Neu rendern, damit eine auf einem anderen Gerät schon entfernte Zeile aus der Liste fällt.
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
@@ -1327,6 +1334,14 @@ describe("ensureThekeAction", () => {
 
   it("should_reportOk_when_thekeAlreadyExistsRace", async () => {
     ensureThekeMock.mockRejectedValue({ code: "23505" });
+    const result = await ensureThekeAction(undefined, form({ kasse: "montagsrunde" }));
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("should_reportOk_when_thekeAlreadyExistsRaceWithWrappedDbError", async () => {
+    // Seit #369 prüft `isUniqueViolation` auch `cause` – die Form, in der Drizzle den Fehler
+    // tatsächlich wirft. Vorher lief dieser Fall still in einen Fehler statt in `ok`.
+    ensureThekeMock.mockRejectedValue(umhuellterDbFehler("23505"));
     const result = await ensureThekeAction(undefined, form({ kasse: "montagsrunde" }));
     expect(result).toEqual({ ok: true });
   });

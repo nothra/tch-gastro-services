@@ -7,15 +7,12 @@ import type { KachelKennzahlen } from "../kachelKennzahlen";
 // sie (AK6): der Abschlussbericht übernimmt deren Rolle, die Links bleiben der Weg zu den
 // schreibgeschützten Unterseiten und zu „Wieder öffnen" (AK7).
 
+// `schritt` ist zugleich Routen-Segment der Unterseite und Schlüssel der Kennzahl.
 const SCHRITTE = [
-  { segment: "verzehr", titel: "Verzehr", kennzahl: "verzehr" },
-  { segment: "auslagen", titel: "Auslagen", kennzahl: "auslagen" },
-  { segment: "kassieren", titel: "Kassieren", kennzahl: "kassieren" },
-] as const satisfies readonly {
-  segment: string;
-  titel: string;
-  kennzahl: keyof KachelKennzahlen;
-}[];
+  { schritt: "verzehr", titel: "Verzehr" },
+  { schritt: "auslagen", titel: "Auslagen" },
+  { schritt: "kassieren", titel: "Kassieren" },
+] as const satisfies readonly { schritt: keyof KachelKennzahlen; titel: string }[];
 
 interface ArbeitsschrittKachelnProps {
   veranstaltungId: string;
@@ -26,16 +23,16 @@ export function ArbeitsschrittKacheln({ veranstaltungId, kennzahlen }: Arbeitssc
   return (
     <nav aria-label="Arbeitsschritte">
       <ul className="grid grid-cols-3 gap-2">
-        {SCHRITTE.map((schritt) => (
-          <li key={schritt.segment} className="min-w-0">
+        {SCHRITTE.map(({ schritt, titel }) => (
+          <li key={schritt} className="min-w-0">
             <Link
-              href={`/veranstaltung/${veranstaltungId}/${schritt.segment}`}
+              href={`/veranstaltung/${veranstaltungId}/${schritt}`}
               className="flex h-full min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-3 text-foreground hover:border-accent hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              <span className="font-semibold break-words">{schritt.titel}</span>
+              <span className="font-semibold break-words">{titel}</span>
               {kennzahlen && (
                 <span className="text-sm break-words text-muted tabular-nums">
-                  {kennzahlen[schritt.kennzahl]}
+                  {kennzahlen[schritt]}
                 </span>
               )}
             </Link>

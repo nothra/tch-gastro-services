@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Dialog } from "./Dialog";
 
@@ -82,6 +82,38 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     trigger.focus();
     fireEvent.click(trigger);
     screen.getByRole("textbox", { name: "Suche" }).focus();
+
+    fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
+
+    expect(trigger).toHaveFocus();
+  });
+
+  it("should_returnFocusToReturnFocusRef_when_triggerWasNotFocused", () => {
+    // Safari fokussiert einen getippten Button nicht – `document.activeElement` ist dann `<body>`.
+    // Das explizit übergebene Rücksprungziel gilt trotzdem.
+    function MitRuecksprungziel() {
+      const [open, setOpen] = useState(false);
+      const ausloeserRef = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={ausloeserRef} type="button" onClick={() => setOpen(true)}>
+            Öffnen
+          </button>
+          <Dialog
+            open={open}
+            onClose={() => setOpen(false)}
+            title="T"
+            returnFocusRef={ausloeserRef}
+          >
+            x
+          </Dialog>
+        </>
+      );
+    }
+    render(<MitRuecksprungziel />);
+    const trigger = screen.getByRole("button", { name: "Öffnen" });
+    fireEvent.click(trigger);
+    expect(trigger).not.toHaveFocus();
 
     fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
 

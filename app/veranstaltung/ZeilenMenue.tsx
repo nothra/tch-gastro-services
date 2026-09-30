@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
-import { removeZeileAction, type VeranstaltungFormState } from "./actions";
+import { removeZeileAction } from "./actions";
+import { useSchliessendeAction } from "./useSchliessendeAction";
 
 // Zeilenmenü einer Teilnehmerzeile (spec-369 AK18–AK20, ADR-053 D2). Bewusst feature-lokal und
 // nicht unter `ui/`: es hat genau einen Konsumenten, ein projektweites Menü-Muster ist noch nicht
@@ -19,7 +20,9 @@ export function ZeilenMenue({ veranstaltungId, zeileId, name }: ZeilenMenueProps
   const [menueOffen, setMenueOffen] = useState(false);
   const [bestaetigungOffen, setBestaetigungOffen] = useState(false);
   // Jedes Öffnen der Bestätigung ist ein neuer Versuch: der wechselnde `key` setzt den
-  // Action-Zustand zurück, damit keine Ablehnung aus einem früheren Durchlauf stehen bleibt.
+  // Action-Zustand zurück, damit keine Ablehnung aus einem früheren Durchlauf stehen bleibt. Das
+  // frische Mounten des Dialogs reicht dafür nicht – der Zustand liegt hier beim Konsumenten, nicht
+  // in den Kindern des Dialogs (ConfirmDialog-JSDoc, ADR-053 D1).
   const [durchlauf, setDurchlauf] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -42,8 +45,6 @@ export function ZeilenMenue({ veranstaltungId, zeileId, name }: ZeilenMenueProps
   }
 
   function entfernenWaehlen() {
-    // Den Fokus VOR dem Öffnen auf den Auslöser legen: der Dialog merkt sich das fokussierte
-    // Element als Rücksprungziel, und der Menüeintrag verschwindet gleich.
     menueSchliessen();
     setDurchlauf((bisher) => bisher + 1);
     setBestaetigungOffen(true);
@@ -92,6 +93,7 @@ export function ZeilenMenue({ veranstaltungId, zeileId, name }: ZeilenMenueProps
         veranstaltungId={veranstaltungId}
         zeileId={zeileId}
         name={name}
+        returnFocusRef={triggerRef}
       />
     </div>
   );
@@ -100,6 +102,7 @@ export function ZeilenMenue({ veranstaltungId, zeileId, name }: ZeilenMenueProps
 interface EntfernenBestaetigungProps extends ZeilenMenueProps {
   open: boolean;
   onClose: () => void;
+  returnFocusRef: RefObject<HTMLElement | null>;
 }
 
 function EntfernenBestaetigung({
@@ -108,22 +111,15 @@ function EntfernenBestaetigung({
   veranstaltungId,
   zeileId,
   name,
+  returnFocusRef,
 }: EntfernenBestaetigungProps) {
-  // Die Hülle umschließt die Action und schließt den Dialog bei Erfolg – ohne `useEffect` auf den
-  // Rückgabe-State (Lesson `react-hooks/set-state-in-effect`, ADR-053 Implementierungs-Hinweise).
-  const [state, formAction, pending] = useActionState(
-    async (prevState: VeranstaltungFormState | undefined, formData: FormData) => {
-      const result = await removeZeileAction(prevState, formData);
-      if (result.ok) onClose();
-      return result;
-    },
-    undefined,
-  );
+  const [state, formAction, pending] = useSchliessendeAction(removeZeileAction, onClose);
 
   return (
     <ConfirmDialog
       open={open}
       onClose={onClose}
+      returnFocusRef={returnFocusRef}
       title="Teilnehmer entfernen?"
       description={`„${name}“ wird aus dieser Veranstaltung entfernt.`}
       confirmLabel="Entfernen"

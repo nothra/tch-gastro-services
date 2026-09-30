@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
 
@@ -9,14 +9,26 @@ import { Dialog } from "@/app/components/ui/Dialog";
 // Client-Bundle (ADR-034 D5/D6, #307).
 export function ZugangDialog({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const ausloeserRef = useRef<HTMLButtonElement>(null);
   const schliessen = () => setOpen(false);
 
   return (
     <>
-      <Button variant="secondary" size="sm" onClick={() => setOpen(true)} className="self-start">
+      <Button
+        ref={ausloeserRef}
+        variant="secondary"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="self-start"
+      >
         Link & QR teilen
       </Button>
-      <Dialog open={open} onClose={schliessen} title="Link & QR teilen">
+      <Dialog
+        open={open}
+        onClose={schliessen}
+        title="Link & QR teilen"
+        returnFocusRef={ausloeserRef}
+      >
         {children}
         <div className="flex justify-end">
           <Button variant="secondary" onClick={schliessen}>

@@ -17,9 +17,9 @@ function berichtHref(veranstaltungId: string, format: BerichtFormat, umfang: Ber
 
 export function Abschlussbericht({ veranstaltungId }: { veranstaltungId: string }) {
   return (
-    <Card className="flex flex-col gap-3">
-      <section className="flex flex-col gap-3">
-        <h2>Abschlussbericht</h2>
+    <Card>
+      <section aria-labelledby="abschlussbericht" className="flex flex-col gap-3">
+        <h2 id="abschlussbericht">Abschlussbericht</h2>
         <BerichtGruppe veranstaltungId={veranstaltungId} titel="Vollständig" umfang="voll" />
         <BerichtGruppe veranstaltungId={veranstaltungId} titel="Nur Getränke" umfang="getraenke" />
       </section>

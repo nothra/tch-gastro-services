@@ -160,6 +160,17 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(dialogElement()).not.toHaveAttribute("open");
   });
 
+  it("should_limitGastNameToSchemaMaximum_when_rendered", () => {
+    // Dieselbe Grenze wie `teilnehmerSchema` (200 Zeichen) – keine zweite, abweichende Zahl.
+    renderDialog();
+    oeffnen();
+
+    expect(gastBereich().getByRole("textbox", { name: "Name" })).toHaveAttribute(
+      "maxLength",
+      "200",
+    );
+  });
+
   it("should_stayOpenAndShowFieldError_when_gastNameRejected", async () => {
     // FS3: Feldfehler aus der Validierung des Walk-in.
     createWalkInActionMock.mockResolvedValue({ error: "Anzeigename ist erforderlich." });
@@ -178,10 +189,10 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
   });
 
   it("should_closeWithoutChangeAndFocusTrigger_when_abbrechenTapped", () => {
-    // AK15
+    // AK15. Kein `trigger.focus()` vorab: Safari fokussiert einen getippten Button nicht, der
+    // Rücksprung darf daran nicht hängen.
     renderDialog();
     const trigger = screen.getByRole("button", { name: "+ Teilnehmer" });
-    trigger.focus();
     oeffnen();
 
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
@@ -192,14 +203,36 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(createWalkInActionMock).not.toHaveBeenCalled();
   });
 
-  it("should_closeWithoutChange_when_escapePressed", () => {
+  it("should_closeWithoutChangeAndFocusTrigger_when_escapePressed", () => {
+    // AK15 verlangt den Fokus-Rücksprung auch bei Escape.
     renderDialog();
     oeffnen();
 
     fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
 
     expect(dialogElement()).not.toHaveAttribute("open");
+    expect(screen.getByRole("button", { name: "+ Teilnehmer" })).toHaveFocus();
     expect(addZeilenActionMock).not.toHaveBeenCalled();
+  });
+
+  it("should_keepRejectionVisible_when_lastAvailablePersonWasRejected", async () => {
+    // FS2: war die abgelehnte Person die letzte verfügbare, ist `verfuegbar` nach dem
+    // Neu-Rendern leer – die Meldung mit ihrem Namen muss trotzdem stehen bleiben.
+    const meldung = "Nicht mehr wählbar: Anna Beispiel. Es wurde niemand hinzugefügt.";
+    addZeilenActionMock.mockResolvedValue({ error: meldung });
+    const { rerender } = render(
+      <TeilnehmerHinzufuegenDialog veranstaltungId="v-1" verfuegbar={[VERFUEGBAR[0]]} />,
+    );
+    oeffnen();
+    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+
+    rerender(<TeilnehmerHinzufuegenDialog veranstaltungId="v-1" verfuegbar={[]} />);
+
+    expect(auswahlBereich().getByRole("alert")).toHaveTextContent(meldung);
+    expect(
+      auswahlBereich().getByText("Alle aktiven Stammteilnehmer sind bereits erfasst."),
+    ).toBeVisible();
   });
 
   it("should_startFresh_when_reopenedAfterRejection", async () => {

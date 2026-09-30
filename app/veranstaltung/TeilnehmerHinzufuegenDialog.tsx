@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
 import { Field, SelectField } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
+import { TEILNEHMER_NAME_MAX } from "@/app/verwaltung/teilnehmer/schema";
 import { TYP_LABEL } from "@/app/verwaltung/teilnehmer/TeilnehmerFields";
 import type { Teilnehmer } from "@/db/schema";
-import { addZeilenAction, createWalkInAction, type VeranstaltungFormState } from "./actions";
+import { addZeilenAction, createWalkInAction } from "./actions";
+import { useSchliessendeAction } from "./useSchliessendeAction";
 
 // Der eine „+ Teilnehmer"-Dialog der Detailseite (spec-369 AK10–AK16, ADR-053 D1/D3): oben die
 // Auswahl aus den noch nicht erfassten aktiven Stammteilnehmern, darunter „Neuer Gast". Er ersetzt
@@ -27,14 +29,20 @@ export function TeilnehmerHinzufuegenDialog({
   verfuegbar,
 }: TeilnehmerHinzufuegenDialogProps) {
   const [open, setOpen] = useState(false);
+  const ausloeserRef = useRef<HTMLButtonElement>(null);
   const schliessen = () => setOpen(false);
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)}>
+      <Button ref={ausloeserRef} size="sm" onClick={() => setOpen(true)}>
         + Teilnehmer
       </Button>
-      <Dialog open={open} onClose={schliessen} title="Teilnehmer hinzufügen">
+      <Dialog
+        open={open}
+        onClose={schliessen}
+        title="Teilnehmer hinzufügen"
+        returnFocusRef={ausloeserRef}
+      >
         <StammteilnehmerBereich
           veranstaltungId={veranstaltungId}
           verfuegbar={verfuegbar}
@@ -48,24 +56,6 @@ export function TeilnehmerHinzufuegenDialog({
         </div>
       </Dialog>
     </>
-  );
-}
-
-type FormAction = (
-  prevState: VeranstaltungFormState | undefined,
-  formData: FormData,
-) => Promise<VeranstaltungFormState>;
-
-// Umschließt die Action und schließt den Dialog bei Erfolg – ohne `useEffect` auf den
-// Rückgabe-State (Lesson `react-hooks/set-state-in-effect`, ADR-053 Implementierungs-Hinweise).
-function useSchliessendeAction(action: FormAction, onErfolg: () => void) {
-  return useActionState(
-    async (prevState: VeranstaltungFormState | undefined, formData: FormData) => {
-      const result = await action(prevState, formData);
-      if (result.ok) onErfolg();
-      return result;
-    },
-    undefined,
   );
 }
 
@@ -84,9 +74,12 @@ function StammteilnehmerBereich({
   const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
 
   if (verfuegbar.length === 0) {
+    // Die Meldung bleibt auch hier stehen: war die abgelehnte Person die letzte verfügbare, ist
+    // die Auswahl nach dem Neu-Rendern leer, ihr Name gehört trotzdem angezeigt (FS2).
     return (
       <section role="group" aria-label="Stammteilnehmer" className="flex flex-col gap-2">
         <p className="text-sm text-muted">Alle aktiven Stammteilnehmer sind bereits erfasst.</p>
+        <Notice kind="fehler">{state?.error}</Notice>
       </section>
     );
   }
@@ -152,6 +145,11 @@ function StammteilnehmerBereich({
   );
 }
 
+// Name/Typ/Mitglied bewusst NICHT über `TeilnehmerFields` (anders als der frühere `WalkInForm`):
+// jene Felder tragen noch rohe Farbklassen, die neue Oberfläche darf nur Bausteine und Tokens
+// nutzen (spec-369 AK31, ADR-052). Die Zusammenführung – `TeilnehmerFields` auf die Bausteine
+// umstellen und hier wiederverwenden – steht in `kleinfunde.md`. Bis dahin hält die gemeinsame
+// Konstante wenigstens die Längengrenze an der Zod-Grenze fest.
 function GastBereich({ veranstaltungId, onErfolg }: BereichProps) {
   const [state, formAction, pending] = useSchliessendeAction(createWalkInAction, onErfolg);
 
@@ -167,7 +165,9 @@ function GastBereich({ veranstaltungId, onErfolg }: BereichProps) {
         {/* Jede Ablehnung des Walk-in betrifft den eingegebenen Gast oder den Zustand der
             Veranstaltung; das Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb
             als Feldfehler (FS3). */}
-        <Field label="Name" name="name" required maxLength={200} error={state?.error} />
+        <Field label="Name" name="name" required
+          maxLength={TEILNEHMER_NAME_MAX}
+          error={state?.error} />
         <SelectField label="Typ" name="typ" defaultValue="person">
           {(Object.entries(TYP_LABEL) as [Teilnehmer["typ"], string][]).map(([value, label]) => (
             <option key={value} value={value}>

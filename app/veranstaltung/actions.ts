@@ -63,7 +63,6 @@ const thekePath = (token: string) => `/theke/${token}`;
 
 const NOT_FOUND = "Veranstaltung nicht gefunden.";
 const NOT_OFFEN = "Die Veranstaltung ist abgeschlossen und schreibgeschützt.";
-const DUPLICATE_ZEILE = "Dieser Teilnehmer ist bereits erfasst.";
 const ZEILE_NOT_FOUND = "Teilnehmerzeile nicht gefunden.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
 const TEILNEHMER_NOT_IN_VERANSTALTUNG = "Teilnehmer gehört nicht zu dieser Veranstaltung.";
@@ -88,11 +87,17 @@ const LOESCHEN_KASSIERT_ERFASST =
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
-// Nennt die abgelehnten Teilnehmer einer Mehrfach-Anlage und stellt klar, dass kein Teilerfolg
-// entstanden ist (#369 FS2).
+// Jede Ablehnung der Mehrfach-Anlage stellt klar, dass kein Teilerfolg entstanden ist (#369 FS2).
+const NIEMAND_ANGELEGT = "Es wurde niemand hinzugefügt.";
+const TEILNEHMER_UNBEKANNT = `${TEILNEHMER_INACTIVE} ${NIEMAND_ANGELEGT}`;
+// Im Rennen nach dem Vor-Check meldet nur der Unique-Index, WER inzwischen erfasst ist, sagt es
+// aber nicht – die Meldung kann deshalb keinen Namen nennen.
+const GLEICHZEITIG_ERFASST = `Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. ${NIEMAND_ANGELEGT}`;
+
+// Nennt die abgelehnten Teilnehmer einer Mehrfach-Anlage beim Namen (#369 FS2).
 function nichtsAngelegt(grund: string, personen: readonly Teilnehmer[]): string {
   const namen = personen.map((person) => person.name).join(", ");
-  return `${grund}: ${namen}. Es wurde niemand hinzugefügt.`;
+  return `${grund}: ${namen}. ${NIEMAND_ANGELEGT}`;
 }
 
 // Postgres unique_violation (SQLSTATE 23505) – unterscheidet den Duplikat-Fall von einem echten
@@ -175,7 +180,7 @@ export async function setVeranstaltungCatalogAction(
 ): Promise<VeranstaltungFormState> {
   await requireRole("veranstalter");
   const id = String(formData.get("id") ?? "");
-  if (!id) return { error: "Keine Veranstaltung angegeben." };
+  if (!id) return { error: KEINE_VERANSTALTUNG };
 
   const parsed = katalogWechselSchema.safeParse({ catalogId: formData.get("catalogId") ?? "" });
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
@@ -336,7 +341,7 @@ async function waehlbareTeilnehmer(
     getTeilnehmerByIds(teilnehmerIds),
     listZeilen(veranstaltungId),
   ]);
-  if (personen.length !== teilnehmerIds.length) return { error: TEILNEHMER_INACTIVE };
+  if (personen.length !== teilnehmerIds.length) return { error: TEILNEHMER_UNBEKANNT };
 
   const inaktive = personen.filter((person) => !person.active);
   if (inaktive.length > 0) return { error: nichtsAngelegt("Nicht mehr wählbar", inaktive) };
@@ -383,7 +388,7 @@ export async function addZeilenAction(
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     revalidatePath(detailPath(veranstaltungId));
-    return { error: DUPLICATE_ZEILE };
+    return { error: GLEICHZEITIG_ERFASST };
   }
   revalidatePath(detailPath(veranstaltungId));
   return { ok: true };
@@ -396,7 +401,7 @@ export async function createWalkInAction(
 ): Promise<VeranstaltungFormState> {
   await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
-  if (!veranstaltungId) return { error: "Keine Veranstaltung angegeben." };
+  if (!veranstaltungId) return { error: KEINE_VERANSTALTUNG };
 
   const ziel = await getVeranstaltung(veranstaltungId);
   if (!ziel) return { error: NOT_FOUND };
@@ -429,9 +434,10 @@ export async function removeZeileAction(
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
   const removed = await removeZeile(zeileId, veranstaltungId);
-  if (!removed) return { error: ZEILE_NOT_FOUND };
-
   revalidatePath(detailPath(veranstaltungId));
+  // Auch ohne Treffer neu rendern: war die Zeile schon auf einem anderen Gerät entfernt, fällt
+  // sie so aus der Liste, statt veraltet stehen zu bleiben.
+  if (!removed) return { error: ZEILE_NOT_FOUND };
   return { ok: true };
 }
 
@@ -465,7 +471,7 @@ export async function setStatusAction(
   const session = await requireRole("veranstalter");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
-  if (!id) return { error: "Keine Veranstaltung angegeben." };
+  if (!id) return { error: KEINE_VERANSTALTUNG };
   if (
     !veranstaltungStatus.enumValues.includes(
       status as (typeof veranstaltungStatus.enumValues)[number],

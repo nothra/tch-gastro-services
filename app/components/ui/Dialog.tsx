@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 import { joinClasses } from "./joinClasses";
 
-// Route-neutraler Baustein (ADR-053 D1): modaler Dialog auf nativem `<dialog>`. Escape,
-// inerter Hintergrund (damit kein eigener Fokus-Trap wie in #134) und Fokus-Rücksprung kommen
-// von der Plattform; der Baustein merkt sich den Auslöser zusätzlich selbst, weil jsdom und
-// ältere Browser den Rücksprung nicht leisten.
+// Route-neutraler Baustein (ADR-053 D1): modaler Dialog auf nativem `<dialog>`. Escape und
+// inerter Hintergrund (damit kein eigener Fokus-Trap wie in #134) kommen von der Plattform. Den
+// Fokus-Rücksprung setzt der Baustein selbst: jsdom und ältere Browser leisten ihn nicht, und
+// Safari fokussiert einen getippten Button gar nicht erst – deshalb das explizite
+// `returnFocusRef`.
 
 interface DialogProps {
   open: boolean;
@@ -14,6 +15,11 @@ interface DialogProps {
   onClose: () => void;
   title: string;
   description?: ReactNode;
+  /**
+   * Rücksprungziel beim Schließen, in der Regel der Auslöser. Ohne Angabe gilt das beim Öffnen
+   * fokussierte Element – in Safari ist das nach einem Tipp nur `<body>`.
+   */
+  returnFocusRef?: RefObject<HTMLElement | null>;
   /** Layout des Dialog-Inhalts (Abstände) – nicht für Farben (ADR-052 D1). */
   className?: string;
   children: ReactNode;
@@ -21,10 +27,19 @@ interface DialogProps {
 
 /**
  * Kontrollierter modaler Dialog. Die Kinder werden nur bei geöffnetem Dialog gemountet: jedes
- * Öffnen beginnt mit frischem Formularzustand, ein Fehler aus dem letzten Durchlauf kann nicht
- * stehen bleiben (ADR-053 D1).
+ * Öffnen beginnt für Zustand **in den Kindern** frisch, ein Fehler aus dem letzten Durchlauf
+ * kann dort nicht stehen bleiben (ADR-053 D1). Zustand beim Konsumenten (z. B. ein
+ * `useActionState` außerhalb des Dialogs) überlebt das Schließen dagegen.
  */
-export function Dialog({ open, onClose, title, description, className, children }: DialogProps) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  description,
+  returnFocusRef,
+  className,
+  children,
+}: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<Element | null>(null);
   const titleId = useId();
@@ -51,7 +66,8 @@ export function Dialog({ open, onClose, title, description, className, children 
   }
 
   function handleClose() {
-    if (triggerRef.current instanceof HTMLElement) triggerRef.current.focus();
+    const ruecksprungziel = returnFocusRef?.current ?? triggerRef.current;
+    if (ruecksprungziel instanceof HTMLElement) ruecksprungziel.focus();
     triggerRef.current = null;
     // Nur ein Schließen, das nicht vom Konsumenten selbst ausging, wird zurückgemeldet.
     if (open) onClose();

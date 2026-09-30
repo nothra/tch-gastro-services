@@ -311,7 +311,8 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
     await renderSeite(abgeschlossen);
 
     const bloecke = Array.from(screen.getByRole("main").children);
-    const bericht = screen.getByRole("heading", { name: "Abschlussbericht" }).closest("section")!;
+    // Ein benannter Bereich (`aria-labelledby`), damit er als Landmarke angesprungen werden kann.
+    const bericht = screen.getByRole("region", { name: "Abschlussbericht" });
     expect(bloecke[1]).toContainElement(bericht);
     expect(bloecke[2]).toBe(screen.getByRole("navigation", { name: "Arbeitsschritte" }));
     expect(kachel(/Kassieren/)).toHaveTextContent(/^Kassieren$/);
@@ -383,14 +384,6 @@ describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
     const knopf = screen.getByTestId("teilnehmer-dialog");
     expect(ueberschrift.parentElement).toBe(knopf.parentElement);
     expect(knopf).toHaveTextContent("+ Teilnehmer (t-9)");
-  });
-
-  it("should_notRenderOldForms_when_veranstaltungOffen", async () => {
-    // AK8, zweite Hälfte: die früheren Formulare sind verschwunden.
-    await renderSeite();
-
-    expect(screen.queryByRole("button", { name: "Anlegen & erfassen" })).toBeNull();
-    expect(screen.queryByLabelText("Teilnehmer hinzufügen")).toBeNull();
   });
 
   it("should_renderRowsEditable_when_veranstaltungOffen", async () => {
