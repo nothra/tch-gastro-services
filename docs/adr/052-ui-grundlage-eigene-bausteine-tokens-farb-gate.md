@@ -46,6 +46,9 @@ Dateien.
 - Je Baustein eine Datei + Test in `app/components/ui/` (`Button.tsx`, `Field.tsx`, `Card.tsx`,
   `Badge.tsx`, `Notice.tsx`, `PageHeader.tsx`). Die Bausteine sind route-neutral: keine
   Feature-Imports, kein Auth-/DB-Wissen (Lesson „Route-neutrale Module").
+  > **Nachtrag (#369):** [ADR-053](053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md)
+  > D1 ergänzt `Dialog` und `ConfirmDialog`; die Regeln dieser Entscheidung gelten für sie
+  > unverändert.
 - Varianten als typisierte `Record<Variante, string>`-Tabellen mit Tailwind-**Token**-Klassen,
   kein `cva`, kein `tailwind-merge`. Ein optionaler `className`-Prop wird angehängt und ist
   für **Layout** gedacht (Abstand, Breite, Ausrichtung), nicht für Farben. Farben erzwingt das

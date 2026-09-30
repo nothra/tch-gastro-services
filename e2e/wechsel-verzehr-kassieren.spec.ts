@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { gastHinzufuegen } from "./helpers/detailseite";
 
 // Oberflächen-Nachweis für den personenbezogenen Wechsel zwischen Verzehrerfassung und Kassieren
 // (#308, spec-308). Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass der
@@ -53,17 +54,6 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
-// Neuer Gast über den „+ Teilnehmer"-Dialog der Detailseite (#369 AK13, früher Walk-in-Formular).
-async function walkIn(page: Page, name: string) {
-  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
-  const dialog = page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
-  const gast = dialog.getByRole("group", { name: "Neuer Gast" });
-  await gast.getByLabel("Name").fill(name);
-  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
-  await expect(dialog).toBeHidden();
-  await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
-}
-
 // Karte eines Teilnehmers über die sticky Chip-Leiste öffnen (= Fokus wählen).
 async function oeffneKarte(page: Page, name: string) {
   await page
@@ -89,8 +79,8 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     const detailPfad = await createVeranstaltung(page, `Wechsel-Hin-Rueck ${LAUF}`);
     await page.goto(detailPfad);
-    await walkIn(page, ZIEL);
-    await walkIn(page, ANDERE);
+    await gastHinzufuegen(page, ZIEL);
+    await gastHinzufuegen(page, ANDERE);
 
     // ── AK7: ohne geöffnete Karte gibt es keine Wechsel-Aktion ──────────────────────────────
     await page.goto(`${detailPfad}/verzehr`);
@@ -167,7 +157,7 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     const detailPfad = await createVeranstaltung(page, `Wechsel-Fremdbezug ${LAUF}`);
     await page.goto(detailPfad);
-    await walkIn(page, ZIEL);
+    await gastHinzufuegen(page, ZIEL);
 
     // Zufallswert, der in dieser Veranstaltung keine Zeile ist – fail-soft, kein 404, keine Meldung.
     const fremd = "00000000-0000-4000-8000-000000000000";

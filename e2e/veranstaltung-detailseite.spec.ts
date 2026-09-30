@@ -1,5 +1,11 @@
 import path from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import {
+  gastHinzufuegen,
+  oeffneEinstellungen,
+  oeffneTeilnehmerDialog,
+  teilnehmerDialog,
+} from "./helpers/detailseite";
 
 // Oberflächen-Nachweis für die neu geordnete Detailseite (#369, spec-369). Prüft gegen einen
 // echten Server, was jsdom nicht belegen kann: das native modale `<dialog>` (Escape, Fokus-
@@ -67,35 +73,12 @@ async function createStammteilnehmer(page: Page, name: string) {
   await expect(page.getByText(name, { exact: true })).toBeVisible();
 }
 
-function teilnehmerDialog(page: Page) {
-  return page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
-}
-
-async function oeffneTeilnehmerDialog(page: Page) {
-  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
-  await expect(teilnehmerDialog(page)).toBeVisible();
-}
-
-// „Neuer Gast" im „+ Teilnehmer"-Dialog (AK13).
-async function gastHinzufuegen(page: Page, name: string) {
-  await oeffneTeilnehmerDialog(page);
-  const gast = teilnehmerDialog(page).getByRole("group", { name: "Neuer Gast" });
-  await gast.getByLabel("Name").fill(name);
-  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
-  await expect(teilnehmerDialog(page)).toBeHidden();
-  await expect(teilnehmerZeile(page, name)).toBeVisible();
-}
-
 function teilnehmerListe(page: Page) {
   return page.getByRole("region", { name: /^Teilnehmer \(/ });
 }
 
 function teilnehmerZeile(page: Page, name: string) {
   return teilnehmerListe(page).getByRole("listitem").filter({ hasText: name });
-}
-
-async function oeffneEinstellungen(page: Page) {
-  await page.getByText("Einstellungen", { exact: true }).click();
 }
 
 // Aufräumen über die bestehende Lösch-Funktion (AK23) – nur ohne Verzehr/Kassiertes möglich.

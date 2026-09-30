@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { gastHinzufuegen, oeffneEinstellungen } from "./helpers/detailseite";
 
 // Oberflächen-Nachweis für das Bearbeiten und Löschen einer Veranstaltung (#352, spec-352).
 // Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass die geänderten Metadaten
@@ -59,17 +60,8 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
-// Bearbeiten und Löschen liegen seit #369 im eingeklappten Bereich „Einstellungen" (AK21/AK23).
-async function oeffneEinstellungen(page: Page) {
-  const einstellungen = page.locator("details").filter({ hasText: "Einstellungen" });
-  // Ein offenes `<details>` trägt `open=""` – geprüft wird die Anwesenheit, nicht der Wert.
-  if ((await einstellungen.getAttribute("open")) === null) {
-    await einstellungen.getByText("Einstellungen", { exact: true }).click();
-  }
-}
-
-// Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil die
-// Seite mehrere Formulare trägt (Katalogwechsel, Teilnehmer erfassen, Status).
+// Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil der
+// Bereich „Einstellungen" (#369) mehrere Formulare trägt (Katalogwechsel, Bearbeiten, Löschen).
 function metaForm(page: Page) {
   return page
     .locator("form")
@@ -81,17 +73,6 @@ async function oeffneLoeschDialog(page: Page) {
   await oeffneEinstellungen(page);
   await page.getByRole("button", { name: "Veranstaltung löschen", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Veranstaltung löschen?" })).toBeVisible();
-}
-
-// Neuer Gast über den „+ Teilnehmer"-Dialog (#369 AK13, Muster aus wechsel-verzehr-kassieren.spec.ts).
-async function walkIn(page: Page, name: string) {
-  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
-  const dialog = page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
-  const gast = dialog.getByRole("group", { name: "Neuer Gast" });
-  await gast.getByLabel("Name").fill(name);
-  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
-  await expect(dialog).toBeHidden();
-  await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
 }
 
 // Die Kassierzeile eines Teilnehmers (Muster aus wechsel-verzehr-kassieren.spec.ts).
@@ -166,7 +147,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await page.goto(detailPfad);
 
     // ── AK7: eine Teilnehmer-Zeile ohne jeden Verzehr darf das Löschen NICHT sperren ────────
-    await walkIn(page, `${PREFIX} Gast ${LAUF}`);
+    await gastHinzufuegen(page, `${PREFIX} Gast ${LAUF}`);
 
     // ── AK8: der erste Klick öffnet nur den Dialog ──────────────────────────────────────────
     await oeffneLoeschDialog(page);
@@ -210,7 +191,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     const gast = `${PREFIX} Spender ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, bezeichnung);
     await page.goto(detailPfad);
-    await walkIn(page, gast);
+    await gastHinzufuegen(page, gast);
 
     // ── Reine Spende: Geld kassiert, kein einziger Strich erfasst ───────────────────────────
     await kassiere(page, detailPfad, gast, "10,00");

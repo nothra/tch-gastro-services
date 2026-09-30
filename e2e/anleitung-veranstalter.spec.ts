@@ -1,6 +1,13 @@
 import path from "node:path";
 import { mkdirSync } from "node:fs";
 import { test, expect, type Page, type Locator } from "@playwright/test";
+import {
+  gastHinzufuegen,
+  oeffneEinstellungen,
+  oeffneTeilnehmerDialog,
+  schliesseEinstellungen,
+  teilnehmerDialog,
+} from "./helpers/detailseite";
 
 // Capture-Spec für die Veranstalter-Bedienungsanleitung (#221). Fährt den kompletten
 // Veranstalter-Workflow gegen den lokalen Dev-Server durch, legt dabei die Demo-Daten live über
@@ -123,14 +130,9 @@ async function createVeranstaltung(page: Page): Promise<string> {
   return neu as string;
 }
 
-// Der „+ Teilnehmer"-Dialog der Detailseite (#369): oben Stammteilnehmer, darunter „Neuer Gast".
-function teilnehmerDialog(page: Page) {
-  return page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
-}
-
 // Alle Stammteilnehmer in einem Schwung anhaken; der Screenshot zeigt den Dialog mit der Auswahl.
 async function addStammTeilnehmer(page: Page, namen: readonly string[]) {
-  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
+  await oeffneTeilnehmerDialog(page);
   const auswahl = teilnehmerDialog(page).getByRole("group", { name: "Stammteilnehmer" });
   for (const name of namen) await auswahl.getByRole("checkbox", { name }).check();
   await shotEl(page, "06-teilnehmer-hinzufuegen.png", teilnehmerDialog(page));
@@ -138,23 +140,14 @@ async function addStammTeilnehmer(page: Page, namen: readonly string[]) {
   await expect(teilnehmerDialog(page)).toBeHidden();
 }
 
-async function walkIn(page: Page, name: string) {
-  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
-  const gast = teilnehmerDialog(page).getByRole("group", { name: "Neuer Gast" });
-  await gast.getByLabel("Name").fill(name);
-  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
-  await expect(teilnehmerDialog(page)).toBeHidden();
-  await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
-}
-
 // „Link & QR teilen" liegt im eingeklappten Bereich „Einstellungen" (#369 AK21/AK22).
 async function shotZugang(page: Page) {
-  await page.getByText("Einstellungen", { exact: true }).click();
+  await oeffneEinstellungen(page);
   await page.getByRole("button", { name: "Link & QR teilen" }).click();
   const dialog = page.getByRole("dialog", { name: "Link & QR teilen" });
   await shotEl(page, "07-zugang-teilen.png", dialog);
   await dialog.getByRole("button", { name: "Schließen" }).click();
-  await page.getByText("Einstellungen", { exact: true }).click();
+  await schliesseEinstellungen(page);
 }
 
 async function verzehrPlus(page: Page, artikel: string, anzahl: number) {
@@ -229,7 +222,7 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
       page,
       STAMMTEILNEHMER.map((person) => person.name),
     );
-    await walkIn(page, "Gastspieler");
+    await gastHinzufuegen(page, "Gastspieler");
     await shot(page, "05-veranstaltung-fuehren.png");
 
     // Schritt 4 – Verzehr erfassen

@@ -84,6 +84,8 @@ Der Link/QR braucht eine **absolute** URL (`https://<host>/theke/<token>`). Sie 
 local/int/prd, ohne zusätzliche Env-Pflege); nur falls ein Header fehlt, greift ein
 env-Fallback (`AUTH_URL`/`NEXTAUTH_URL`). Anzeige beim **Veranstalter** auf `app/veranstaltung/[id]`
 in einem Abschnitt „Zugang teilen" (Link als Text zum Kopieren + QR-SVG).
+> **Nachtrag (#369, ADR-053 D5):** Der Abschnitt ist seit #369 ein Dialog „Link & QR teilen" im
+> eingeklappten Bereich „Einstellungen"; `ZugangTeilen` rendert weiter serverseitig.
 
 ### D7 · Missbrauchsbremse (Rate-Limit) bewusst NICHT in #54 — nachgeliefert in #182
 Die token-scoped Action ist die **einzige öffentliche Schreib-Grenze**. Eine Missbrauchsbremse

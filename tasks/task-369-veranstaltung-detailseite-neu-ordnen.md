@@ -78,7 +78,13 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
   - Anleitungs-Bilder `05`/`06`/`07` passen noch zum alten Layout; der Text in `docs/anleitung/veranstalter/anleitung.md`
     ist schon aktualisiert. Die Capture-Spec (`CAPTURE_ANLEITUNG=1`) braucht eine frisch geseedete DB und wurde deshalb
     nicht gegen die geteilte Dev-DB gefahren. Vorbestehender Bruch dort (#345: „+ Katalog anlegen" machte
-    `name: "Anlegen"` mehrdeutig) per `exact: true` behoben.
+    `name: "Anlegen"` mehrdeutig) per `exact: true` behoben. Seit dem Review-Rework kanonisch in
+    `docs/factory/kleinfunde.md` („Anleitungs-Screenshots `05`–`07`").
+
+### Review-Rework (/implement, 2026-10-01)
+- Alle Kritisch-/Wichtig-Findings und Nitpicks aus `tasks/review-369.md` erledigt (Code in `c4f2ae5`,
+  ADR-Drift + E2E-Helfer im Folge-Commit). Bewusst offen: Auslagen-Kachel-Hinweis (durch ADR-053 D4 gedeckt).
+- Die E2E-Helfer der Detailseite liegen jetzt in `e2e/helpers/detailseite.ts` (vorher vier Kopien).
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).

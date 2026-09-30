@@ -39,16 +39,25 @@ Dialog-Grundlage):
 - `app/components/ui/Dialog.tsx` (Client Component, route-neutral wie die übrigen Bausteine):
   kontrolliertes `open`/`onClose`, `showModal()`/`close()` per Ref, Escape über das native
   `cancel`-Event, Titel und Beschreibung per `aria-labelledby`/`aria-describedby`. Den
-  Fokus-Rücksprung auf das auslösende Element übernimmt der Browser beim Schließen eines
-  modalen `<dialog>`; der Baustein merkt sich das Auslöser-Element zusätzlich selbst als
-  Absicherung (jsdom und ältere Browser).
+  Fokus-Rücksprung setzt der Baustein selbst: auf `returnFocusRef` (in der Regel der Auslöser),
+  ohne Angabe auf das beim Öffnen fokussierte Element. Das explizite Ziel ist nötig, weil
+  Safari (macOS/iOS) einen getippten `<button>` nicht fokussiert – `activeElement` wäre dann
+  `<body>`; jsdom und ältere Browser leisten den Rücksprung ohnehin nicht.
 - **Kinder werden nur bei geöffnetem Dialog gemountet.** Das gibt jedem Öffnen frischen
-  Formularzustand (keine Reste aus dem letzten Durchlauf) und vermeidet die Fehlerstand-Falle,
-  die `VeranstaltungLoeschen` mit `abgeschickt` umgehen muss.
+  Zustand **in den Kindern** (keine Reste aus dem letzten Durchlauf) und vermeidet die
+  Fehlerstand-Falle, die `VeranstaltungLoeschen` mit `abgeschickt` umgehen muss. Zustand beim
+  **Konsumenten** (z. B. ein `useActionState` außerhalb des Dialogs, wie beim `ConfirmDialog`)
+  überlebt das Schließen; der Konsument erneuert ihn je Öffnen selbst (z. B. per `key`).
 - `app/components/ui/ConfirmDialog.tsx` setzt auf `Dialog`: Titel, Beschreibung, Bestätigen-
   Schaltfläche (Variante `primary` oder `danger`), „Abbrechen", optionaler Fehlertext
-  (`role="alert"`) und ein `pending`-Zustand, der beide Schaltflächen sperrt. Die Bestätigung
-  ist ein `<form action>`, damit Server Actions direkt angeschlossen werden können.
+  (`role="alert"`) und ein `pending`-Zustand, der beide Schaltflächen **und Escape** sperrt –
+  sonst schlösse sich der Dialog, während der Server den Vorgang trotzdem ausführt, und eine
+  Ablehnung sähe niemand. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
+  angeschlossen werden können.
+- „Bei Erfolg schließen" liegt einmal im Hook `app/veranstaltung/useSchliessendeAction.ts`
+  (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`); beide
+  Konsumenten (`TeilnehmerHinzufuegenDialog`, `ZeilenMenue`) nutzen ihn. Er bleibt
+  feature-lokal, bis #372 einen zweiten Bereich mitbringt.
 - Die vier bestehenden Dialoge werden in #369 **nicht** migriert (das ist #372 AK1). Sie dürfen
   aber nach dieser ADR nicht als Vorbild für neue Dialoge dienen.
 - Keine neue Abhängigkeit (ADR-052 D1). Ein Fokus-Trap ist beim nativen modalen `<dialog>`
@@ -60,6 +69,10 @@ Dialog-Grundlage):
   `aria-expanded`, `aria-label` mit Personenname, 44 × 44 px), darunter ein `role="menu"` mit
   einem `role="menuitem"` „Entfernen". Schließt bei Escape, Klick außerhalb und nach Auswahl.
   „Entfernen" öffnet den `ConfirmDialog` (D1), der `removeZeileAction` absendet.
+- `removeZeileAction` wechselt dafür von fire-and-forget (`void`) auf einen Rückgabe-State
+  (`{ ok }` / `{ error }`): nur so kann die Bestätigung eine Ablehnung anzeigen und offen
+  bleiben (AK20). `revalidatePath` läuft auch ohne Treffer, damit eine auf einem anderen Gerät
+  schon entfernte Zeile aus der Liste fällt.
 - Bewusst **nicht** unter `ui/`: einziger Konsument, Menü-Verhalten ist noch nicht als
   projektweites Muster belegt (YAGNI). Wandert nach `ui/`, sobald ein zweiter Konsument da ist.
 - Tipp auf den Namen ist ein normaler `next/link` auf `…/verzehr?zeile=<id>`; der Personenbezug
@@ -75,15 +88,21 @@ Dialog-Grundlage):
 - Neue Action `addZeilenAction` ersetzt `addZeileAction` (Einzelfall = Liste der Länge 1; die
   alte Action hat nach dem Umbau keinen Aufrufer mehr und wird entfernt). Reihenfolge fail-closed
   wie bisher: Rolle → Eingabe (Zod) → Veranstaltung existiert und ist `offen` → alle Teilnehmer
-  existieren **und** sind aktiv (ADR-022) → `addZeilen`.
+  existieren, sind aktiv (ADR-022) **und** noch nicht erfasst → `addZeilen`.
 - Eingabe: `teilnehmerIds` als Liste, **Zod** mit `min(1)` (Meldung „Bitte mindestens einen
   Teilnehmer wählen.", AK14), Obergrenze (`max(200)`, Lesson „Zod-Obergrenzen") und Duplikat-
-  Bereinigung vor der Prüfung. Die Aktivprüfung lädt die Teilnehmer in einer Abfrage
-  (`getTeilnehmerByIds`, `inArray`) und vergleicht die Anzahl – kein N+1.
-- **Unique-Verletzung (`23505`)** ⇒ der ganze Insert scheitert; die Action meldet den
-  bekannten Duplikat-Text, **nichts** wurde angelegt, und `revalidatePath` aktualisiert die
-  Auswahl (FS2). Kein `onConflictDoNothing`: stille Teilerfolge wären die verwirrendere
-  Variante.
+  Bereinigung vor der Prüfung.
+- Vor-Check in zwei parallelen Abfragen – kein N+1: `getTeilnehmerByIds` (`inArray`, unabhängig
+  von `active`) und `listZeilen`. Fehlt eine Id (Anzahl weicht ab), sind Gewählte inaktiv oder
+  schon erfasst, lehnt die Action ab und nennt die Betroffenen beim Namen („Nicht mehr wählbar:
+  …" / „Bereits erfasst: …"), stets mit dem Zusatz „Es wurde niemand hinzugefügt." (FS2).
+- Bei **jeder** Ablehnung des Vor-Checks läuft `revalidatePath`, damit die Auswahl im Dialog
+  den aktuellen Stand zeigt.
+- **Unique-Verletzung (`23505`)** fängt nur noch das Rennen zweier Geräte zwischen Vor-Check und
+  Insert ab: der ganze Insert scheitert, **nichts** wurde angelegt, die Action meldet „Bereits
+  erfasst: … auf einem anderen Gerät …" mit demselben Zusatz, und `revalidatePath` aktualisiert
+  die Auswahl. `isUniqueViolation` prüft dafür auch `error.cause` (Drizzle umhüllt den
+  SQLSTATE). Kein `onConflictDoNothing`: stille Teilerfolge wären die verwirrendere Variante.
 - „Neuer Gast" bleibt `createWalkInAction` unverändert (legt Teilnehmer an und erfasst ihn). Die
   dort liegende Zweischritt-Schreibung (Teilnehmer anlegen, dann Zeile) ist vorbestehend und
   nicht Teil dieser Entscheidung.
