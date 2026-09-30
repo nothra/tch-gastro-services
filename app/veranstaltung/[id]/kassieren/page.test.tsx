@@ -43,7 +43,13 @@ vi.mock("next/link", () => ({
 // `autoFocusErhalten` liegt aus demselben Grund als Attribut vor: dass GENAU die Zeile des
 // Personenbezugs den Eingabefokus anfordert, ist eine Entscheidung dieser Seite (#308 AK3) – den
 // Fokus selbst setzt und testet die Formular-Komponente.
-vi.mock("../../StatusToggle", () => ({ StatusToggle: () => null }));
+// Der StatusToggle-Stub macht nur Position und Status sichtbar – wo er steht, entscheidet diese
+// Seite (spec-369 AK25/AK26), sein Verhalten testet `StatusToggle.test.tsx`.
+vi.mock("../../StatusToggle", () => ({
+  StatusToggle: ({ status }: { status: string }) => (
+    <div data-testid="status-toggle" data-status={status} />
+  ),
+}));
 vi.mock("../../KassiereZeileForm", () => ({
   KassiereZeileForm: ({
     zeileId,
@@ -846,5 +852,37 @@ describe("KassierenPage", () => {
     render(await KassierenPage(seite("v-1")));
 
     expect(screen.getByText("Noch keine Teilnehmer erfasst.")).toBeInTheDocument();
+  });
+
+  // spec-369 AK25/AK26: Abschließen/Wieder öffnen steht am Seitenende – als letzter Block von
+  // <main>, unverändert mit dem aktuellen Status gespeist.
+  it("should_placeStatusToggleAtPageEnd_when_veranstaltungOffen", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    const toggle = screen.getByTestId("status-toggle");
+    expect(screen.getByRole("main").lastElementChild).toBe(toggle);
+    expect(toggle).toHaveAttribute("data-status", "offen");
+  });
+
+  it("should_placeStatusToggleAtPageEnd_when_veranstaltungAbgeschlossen", async () => {
+    arrangeHappyPath();
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+
+    render(await KassierenPage(seite("v-1")));
+
+    const toggle = screen.getByTestId("status-toggle");
+    expect(screen.getByRole("main").lastElementChild).toBe(toggle);
+    expect(toggle).toHaveAttribute("data-status", "abgeschlossen");
+  });
+
+  it("should_renderStatusToggleOnlyOnce_when_rendered", async () => {
+    // Umzug, keine Kopie: der frühere Platz im Seitenkopf ist leer.
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(screen.getAllByTestId("status-toggle")).toHaveLength(1);
   });
 });

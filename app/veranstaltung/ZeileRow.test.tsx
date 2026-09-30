@@ -1,9 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { VeranstaltungZeile } from "@/db/schema";
 
-// Externe Grenze: Server Action aus derselben Feature-Schicht.
-vi.mock("./actions", () => ({ removeZeileAction: vi.fn() }));
+// Das Zeilenmenü hat eigene Tests; hier zählt nur, OB die Zeile es zeigt und mit welchen Daten.
+vi.mock("./ZeilenMenue", () => ({
+  ZeilenMenue: ({ zeileId, name }: { zeileId: string; name: string }) => (
+    <div data-testid="zeilen-menue" data-zeile-id={zeileId}>
+      {name}
+    </div>
+  ),
+}));
 
 import { ZeileRow } from "./ZeileRow";
 
@@ -17,31 +23,49 @@ const aZeile: VeranstaltungZeile = {
   updatedAt: new Date(),
 };
 
-beforeEach(() => vi.clearAllMocks());
+describe("ZeileRow (spec-369 AK17/AK18/AK9)", () => {
+  it("should_linkNameToVerzehrOfThisPerson_when_editable", () => {
+    // AK17: Tipp auf den Namen öffnet die Verzehr-Seite mit Personenbezug (#308).
+    render(<ZeileRow zeile={aZeile} veranstaltungId="v-1" editable />);
 
-describe("ZeileRow", () => {
-  it("should_showAnzeigename_when_rendered", () => {
+    expect(screen.getByRole("link", { name: "Erika Mustermann" })).toHaveAttribute(
+      "href",
+      "/veranstaltung/v-1/verzehr?zeile=z-1",
+    );
+  });
+
+  it("should_showZeilenMenueForThisZeile_when_editable", () => {
+    render(<ZeileRow zeile={aZeile} veranstaltungId="v-1" editable />);
+
+    expect(screen.getByTestId("zeilen-menue")).toHaveAttribute("data-zeile-id", "z-1");
+    expect(screen.getByTestId("zeilen-menue")).toHaveTextContent("Erika Mustermann");
+  });
+
+  it("should_notShowZeilenMenue_when_notEditable", () => {
+    // AK9: abgeschlossene Veranstaltung – kein Zeilenmenü.
     render(<ZeileRow zeile={aZeile} veranstaltungId="v-1" editable={false} />);
 
-    expect(screen.getByText("Erika Mustermann")).toBeInTheDocument();
+    expect(screen.queryByTestId("zeilen-menue")).not.toBeInTheDocument();
   });
 
-  it("should_showEntfernenButton_when_editable", () => {
-    render(<ZeileRow zeile={aZeile} veranstaltungId="v-1" editable={true} />);
-
-    expect(screen.getByRole("button", { name: "Entfernen" })).toBeInTheDocument();
-  });
-
-  it("should_notShowEntfernenButton_when_notEditable", () => {
+  it("should_keepNameAsReadOnlyLink_when_notEditable", () => {
+    // Nachschlagen bleibt erlaubt: die Verzehr-Seite ist bei Abschluss schreibgeschützt.
     render(<ZeileRow zeile={aZeile} veranstaltungId="v-1" editable={false} />);
 
-    expect(screen.queryByRole("button", { name: "Entfernen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Erika Mustermann" })).toHaveAttribute(
+      "href",
+      "/veranstaltung/v-1/verzehr?zeile=z-1",
+    );
   });
 
-  it("should_includeHiddenIds_when_editable", () => {
-    render(<ZeileRow zeile={aZeile} veranstaltungId="v-1" editable={true} />);
+  it("should_allowLongNamesToWrap_when_nameIsVeryLong", () => {
+    // FS6: lange Namen brechen um und verdrängen das Menü nicht.
+    const langerName = "Familie Sehr-Lange-Doppelnamen-Mustermann-Beispielhausen ".repeat(3);
+    render(
+      <ZeileRow zeile={{ ...aZeile, anzeigename: langerName }} veranstaltungId="v-1" editable />,
+    );
 
-    expect(screen.getByDisplayValue("v-1")).toHaveAttribute("name", "veranstaltungId");
-    expect(screen.getByDisplayValue("z-1")).toHaveAttribute("name", "zeileId");
+    const link = screen.getByRole("link");
+    expect(link).toHaveClass("min-w-0", "break-words");
   });
 });

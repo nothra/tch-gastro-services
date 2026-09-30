@@ -12,7 +12,22 @@ import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 /** Pfade relativ zum Repo-Root. */
-export const UI_TOKEN_FILES = ["app/components/ui/", "app/login/", "app/verwaltung/katalog/"];
+export const UI_TOKEN_FILES = [
+  "app/components/ui/",
+  "app/login/",
+  "app/verwaltung/katalog/",
+  // #369: die neu geordnete Detailseite samt ihrer neuen Bausteine. Die Unterseiten
+  // (verzehr/auslagen/kassieren) und die unveränderten Altformulare bleiben bis #370–#372 außen vor.
+  "app/veranstaltung/[id]/page.tsx",
+  "app/veranstaltung/[id]/Abschlussbericht.tsx",
+  "app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx",
+  "app/veranstaltung/[id]/LinkKopieren.tsx",
+  "app/veranstaltung/[id]/ZugangDialog.tsx",
+  "app/veranstaltung/[id]/ZugangTeilen.tsx",
+  "app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx",
+  "app/veranstaltung/ZeileRow.tsx",
+  "app/veranstaltung/ZeilenMenue.tsx",
+];
 
 /**
  * Übersetzt die Liste in ESLint-`files`-Muster und prüft dabei jeden Eintrag auf Existenz.
@@ -42,6 +57,17 @@ export function uiTokenFilePatterns(entries = UI_TOKEN_FILES, repoRoot = process
           `(erwartet unter ${absolute}) – bitte Liste korrigieren (spec-368 AK6.4).`,
       );
     }
-    return statSync(absolute).isDirectory() ? `${entry.replace(/\/+$/, "")}/**/*.{ts,tsx}` : entry;
+    const pattern = escapeGlobBrackets(entry);
+    return statSync(absolute).isDirectory()
+      ? `${pattern.replace(/\/+$/, "")}/**/*.{ts,tsx}`
+      : pattern;
   });
+}
+
+/**
+ * Maskiert eckige Klammern, damit ein App-Router-Segment wie `[id]` im Glob als Text statt als
+ * Zeichenklasse gilt (`[` → `[[]`, `]` → `[]]`) – unmaskiert liefe der Eintrag still leer (#369).
+ */
+function escapeGlobBrackets(entry) {
+  return entry.replace(/[[\]]/g, (bracket) => `[${bracket}]`);
 }

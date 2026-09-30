@@ -1,66 +1,31 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
-import type { Kasse } from "@/db/schema";
+import type { Kasse, Veranstaltung } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveTeilnehmer } from "@/db/teilnehmer";
 import { listCatalogs } from "@/db/catalog";
-import { AddTeilnehmerForm } from "../AddTeilnehmerForm";
-import { WalkInForm } from "../WalkInForm";
+import { listPositionen } from "@/db/verzehr";
+import { listAuslagen } from "@/db/auslage";
+import { Badge } from "@/app/components/ui/Badge";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import { ZeileRow } from "../ZeileRow";
-import { StatusToggle } from "../StatusToggle";
 import { KatalogWechsel } from "../KatalogWechsel";
+import { TeilnehmerHinzufuegenDialog } from "../TeilnehmerHinzufuegenDialog";
+import { kachelKennzahlen } from "../kachelKennzahlen";
+import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
+import { Abschlussbericht } from "./Abschlussbericht";
+import { ArbeitsschrittKacheln } from "./ArbeitsschrittKacheln";
 import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
 import { VeranstaltungLoeschen } from "./VeranstaltungLoeschen";
+import { ZugangDialog } from "./ZugangDialog";
 import { ZugangTeilen } from "./ZugangTeilen";
-import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
-import type { BerichtFormat, BerichtUmfang } from "../berichtDateiname";
 
-// Detailansicht einer Veranstaltung: Teilnehmer führen (hinzufügen/entfernen/Walk-in) und
-// Status setzen. Nur Veranstalter (serverseitig durchgesetzt in den Actions). Abgeschlossene
-// Veranstaltungen sind schreibgeschützt – nur der Status-Umschalter (Wiederöffnen) bleibt.
-
-const AKTION_LINK_KLASSE =
-  "inline-flex w-fit items-center rounded border border-cyan-700 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950";
-
-// Der vollständige Bericht behält seinen bestehenden Link OHNE `umfang` – die Route setzt für
-// einen fehlenden Parameter den Default `voll` (ADR-046 D1), und spec-324 AC14 verlangt die
-// Gruppe „Vollständig" unverändert.
-function berichtHref(veranstaltungId: string, format: BerichtFormat, umfang: BerichtUmfang) {
-  const query = umfang === "voll" ? `format=${format}` : `format=${format}&umfang=${umfang}`;
-  return `/api/veranstaltung/${veranstaltungId}/bericht?${query}`;
-}
-
-// Eine Umfangs-Gruppe der Bericht-Sektion (spec-324 AC14): Überschrift + beide Formate desselben
-// Umfangs. Die Link-Beschriftungen sind in beiden Gruppen gleich – die Zuordnung tragen die
-// Überschrift und das `role="group"`/`aria-labelledby`-Paar, damit sie auch vorgelesen wird.
-function BerichtGruppe({
-  veranstaltungId,
-  titel,
-  umfang,
-}: {
-  veranstaltungId: string;
-  titel: string;
-  umfang: BerichtUmfang;
-}) {
-  const ueberschriftId = `bericht-${umfang}`;
-  return (
-    <div role="group" aria-labelledby={ueberschriftId} className="flex flex-col gap-2">
-      <h3 id={ueberschriftId} className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-        {titel}
-      </h3>
-      <div className="flex flex-wrap gap-3">
-        <a href={berichtHref(veranstaltungId, "xlsx", umfang)} className={AKTION_LINK_KLASSE}>
-          Excel (.xlsx) herunterladen
-        </a>
-        <a href={berichtHref(veranstaltungId, "pdf", umfang)} className={AKTION_LINK_KLASSE}>
-          PDF herunterladen
-        </a>
-      </div>
-    </div>
-  );
-}
+// Detailansicht einer Veranstaltung (spec-369, ADR-053 D6): reine Komposition aus Kopf →
+// Arbeitsschritt-Kacheln → Teilnehmerliste → eingeklappten Einstellungen. Nur Veranstalter; alle
+// Schreibwege prüfen Rolle und Status zusätzlich serverseitig in den Actions. Abgeschlossene
+// Veranstaltungen sind schreibgeschützt: Bericht statt Kennzahlen, keine Einstellungen.
+// Abschließen/Wieder öffnen liegt auf der Kassieren-Seite (AK24–AK26).
 export default async function VeranstaltungDetailPage({
   params,
 }: {
@@ -71,9 +36,7 @@ export default async function VeranstaltungDetailPage({
   if (!hasRole(session?.user?.roles, "veranstalter")) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Kein Zugriff – nur Veranstalter dürfen Veranstaltungen führen.
-        </p>
+        <p className="text-muted">Kein Zugriff – nur Veranstalter dürfen Veranstaltungen führen.</p>
       </main>
     );
   }
@@ -81,114 +44,156 @@ export default async function VeranstaltungDetailPage({
   const veranstaltung = await getVeranstaltung(id);
   if (!veranstaltung) notFound();
 
-  const zeilen = await listZeilen(id);
+  if (veranstaltung.status !== "offen") {
+    return (
+      <AbgeschlosseneVeranstaltung
+        veranstaltung={veranstaltung}
+        zeilen={await listZeilen(veranstaltung.id)}
+      />
+    );
+  }
+  return <OffeneVeranstaltung veranstaltung={veranstaltung} {...await ladeOffeneDaten(id)} />;
+}
+
+type Zeilen = Awaited<ReturnType<typeof listZeilen>>;
+
+async function ladeOffeneDaten(id: string) {
+  const [zeilen, positionen, auslagen, aktiveTeilnehmer, kataloge] = await Promise.all([
+    listZeilen(id),
+    listPositionen(id),
+    listAuslagen(id),
+    listActiveTeilnehmer(),
+    listCatalogs(),
+  ]);
   const bereitsErfasst = new Set(zeilen.map((zeile) => zeile.teilnehmerId));
-  const verfuegbar = (await listActiveTeilnehmer()).filter((t) => !bereitsErfasst.has(t.id));
-  const offen = veranstaltung.status === "offen";
-  // Bearbeiten und Löschen gelten nur für datierte Veranstaltungen im Status `offen` (#352
-  // AK3/AK10). Die stehende Theke ist ebenfalls `offen`, aber ein dauerhafter Sondervorgang
-  // ohne Datum (spec-51) – der Status allein wäre hier also die falsche Bedingung. Die Actions
-  // erzwingen beides zusätzlich serverseitig; das hier ist nur die Anzeige-Hälfte.
-  const bearbeitbar = offen && veranstaltung.typ === "veranstaltung";
-  // Wechselziele sind nur aktive Kataloge (#346 AK6) – dieselbe Filterung wie bei der Anlage.
-  // Ob der Wechsel im konkreten Fall noch erlaubt ist (kein Verzehr erfasst, AK4), entscheidet
-  // bewusst die Action und nicht diese Ansicht: der Zustand kann sich zwischen Rendern und
-  // Absenden ändern (FS2), und die Meldung gehört an die Server-Grenze.
-  const aktiveKataloge = offen ? (await listCatalogs()).filter((katalog) => katalog.active) : [];
+  return {
+    zeilen,
+    kennzahlen: kachelKennzahlen({ zeilen, positionen, auslagen }),
+    verfuegbar: aktiveTeilnehmer.filter((teilnehmer) => !bereitsErfasst.has(teilnehmer.id)),
+    // Wechselziele sind nur aktive Kataloge (#346 AK6) – dieselbe Filterung wie bei der Anlage.
+    // Ob der Wechsel im konkreten Fall noch erlaubt ist, entscheidet die Action (#346 FS2).
+    aktiveKataloge: kataloge.filter((katalog) => katalog.active),
+  };
+}
+
+function OffeneVeranstaltung({
+  veranstaltung,
+  zeilen,
+  kennzahlen,
+  verfuegbar,
+  aktiveKataloge,
+}: { veranstaltung: Veranstaltung } & Awaited<ReturnType<typeof ladeOffeneDaten>>) {
+  const { id } = veranstaltung;
+  // Bearbeiten und Löschen gelten nur für datierte Veranstaltungen (#352 AK3/AK10). Die stehende
+  // Theke ist ebenfalls `offen`, aber ein dauerhafter Sondervorgang ohne Datum (spec-51, FS5).
+  const bearbeitbar = veranstaltung.typ === "veranstaltung";
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href="/veranstaltung"
-          className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
-        >
-          ← Alle Veranstaltungen
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {veranstaltung.bezeichnung}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
-          {STATUS_LABEL[veranstaltung.status]}
-        </p>
-      </div>
+    <DetailRahmen veranstaltung={veranstaltung}>
+      <ArbeitsschrittKacheln veranstaltungId={id} kennzahlen={kennzahlen} />
+      <Teilnehmerliste
+        veranstaltungId={id}
+        zeilen={zeilen}
+        editable
+        aktion={<TeilnehmerHinzufuegenDialog veranstaltungId={id} verfuegbar={verfuegbar} />}
+      />
+      <details className="rounded-lg border border-line-subtle bg-surface">
+        <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-accent">
+          Einstellungen
+        </summary>
+        <div className="flex flex-col gap-6 border-t border-line-subtle p-4">
+          <KatalogWechsel id={id} catalogId={veranstaltung.catalogId} kataloge={aktiveKataloge} />
+          {bearbeitbar && (
+            <VeranstaltungMetaForm
+              id={id}
+              bezeichnung={veranstaltung.bezeichnung}
+              datum={veranstaltung.datum}
+              kasse={veranstaltung.kasse as Kasse}
+            />
+          )}
+          <ZugangDialog>
+            <ZugangTeilen token={veranstaltung.token} />
+          </ZugangDialog>
+          {/* Zerstörerische Aktion bewusst zuletzt (#352 AK4/AK8). */}
+          {bearbeitbar && <VeranstaltungLoeschen id={id} bezeichnung={veranstaltung.bezeichnung} />}
+        </div>
+      </details>
+    </DetailRahmen>
+  );
+}
 
-      <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
+// Schreibgeschützt (AK6/AK7): Bericht über den Kacheln, Kacheln ohne Kennzahl – deren Daten
+// werden gar nicht erst geladen (ADR-053 D4) –, keine Einstellungen.
+function AbgeschlosseneVeranstaltung({
+  veranstaltung,
+  zeilen,
+}: {
+  veranstaltung: Veranstaltung;
+  zeilen: Zeilen;
+}) {
+  return (
+    <DetailRahmen veranstaltung={veranstaltung}>
+      <Abschlussbericht veranstaltungId={veranstaltung.id} />
+      <ArbeitsschrittKacheln veranstaltungId={veranstaltung.id} />
+      <Teilnehmerliste veranstaltungId={veranstaltung.id} zeilen={zeilen} editable={false} />
+    </DetailRahmen>
+  );
+}
 
-      {offen && (
-        <KatalogWechsel
-          id={veranstaltung.id}
-          catalogId={veranstaltung.catalogId}
-          kataloge={aktiveKataloge}
-        />
-      )}
-
-      {bearbeitbar && (
-        <VeranstaltungMetaForm
-          id={veranstaltung.id}
-          bezeichnung={veranstaltung.bezeichnung}
-          datum={veranstaltung.datum}
-          kasse={veranstaltung.kasse as Kasse}
-        />
-      )}
-
-      {!offen && (
-        <section className="flex flex-col gap-3">
-          <h2 className="font-semibold">Abschlussbericht</h2>
-          <BerichtGruppe veranstaltungId={veranstaltung.id} titel="Vollständig" umfang="voll" />
-          <BerichtGruppe
-            veranstaltungId={veranstaltung.id}
-            titel="Nur Getränke"
-            umfang="getraenke"
-          />
-        </section>
-      )}
-
-      <div className="flex flex-wrap gap-3">
-        <Link href={`/veranstaltung/${veranstaltung.id}/verzehr`} className={AKTION_LINK_KLASSE}>
-          Verzehr erfassen →
-        </Link>
-        <Link href={`/veranstaltung/${veranstaltung.id}/auslagen`} className={AKTION_LINK_KLASSE}>
-          Auslagen erstatten →
-        </Link>
-        <Link href={`/veranstaltung/${veranstaltung.id}/kassieren`} className={AKTION_LINK_KLASSE}>
-          Kassieren →
-        </Link>
-      </div>
-
-      {offen && <ZugangTeilen token={veranstaltung.token} />}
-
-      {offen && (
-        <section className="flex flex-col gap-4">
-          <AddTeilnehmerForm veranstaltungId={veranstaltung.id} verfuegbar={verfuegbar} />
-          <WalkInForm veranstaltungId={veranstaltung.id} />
-        </section>
-      )}
-
-      <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">Teilnehmer ({zeilen.length})</h2>
-        {zeilen.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {zeilen.map((zeile) => (
-              <ZeileRow
-                key={zeile.id}
-                zeile={zeile}
-                veranstaltungId={veranstaltung.id}
-                editable={offen}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Zerstörerische Aktion bewusst ganz unten, abgesetzt vom Führen der Veranstaltung –
-          erreichbar, aber nicht auf dem Weg der täglichen Bedienung (#352 AK4/AK8). */}
-      {bearbeitbar && (
-        <VeranstaltungLoeschen id={veranstaltung.id} bezeichnung={veranstaltung.bezeichnung} />
-      )}
+function DetailRahmen({
+  veranstaltung,
+  children,
+}: {
+  veranstaltung: Veranstaltung;
+  children: React.ReactNode;
+}) {
+  const offen = veranstaltung.status === "offen";
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 p-4 sm:p-6">
+      <PageHeader
+        title={veranstaltung.bezeichnung}
+        back={{ href: "/veranstaltung", label: "Alle Veranstaltungen" }}
+        meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]}`}
+        action={
+          <Badge tone={offen ? "akzent" : "neutral"}>{STATUS_LABEL[veranstaltung.status]}</Badge>
+        }
+      />
+      {children}
     </main>
+  );
+}
+
+function Teilnehmerliste({
+  veranstaltungId,
+  zeilen,
+  editable,
+  aktion,
+}: {
+  veranstaltungId: string;
+  zeilen: Zeilen;
+  editable: boolean;
+  aktion?: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby="teilnehmer-ueberschrift" className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="teilnehmer-ueberschrift">Teilnehmer ({zeilen.length})</h2>
+        {aktion}
+      </div>
+      {zeilen.length === 0 ? (
+        <p className="text-sm text-muted">Noch keine Teilnehmer erfasst.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {zeilen.map((zeile) => (
+            <ZeileRow
+              key={zeile.id}
+              zeile={zeile}
+              veranstaltungId={veranstaltungId}
+              editable={editable}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

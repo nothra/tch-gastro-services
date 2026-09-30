@@ -35,7 +35,7 @@ import {
 // Authentifizierte Kassier-Seite (F8, #55, ADR-033 D6): kassiert je Teilnehmerzeile den vollen
 // Verzehr-Gesamt bar (`Erhalten`), zeigt die abgeleitete Spende + den Zeilenstatus (bezahlt/offen),
 // die Tagessummen und die Veranstaltungs-Gesamtabrechnung je zugeordneter Kasse. Abschluss/
-// Wiederöffnen (mit fail-closed Ablehnung bei offener Zeile) über den StatusToggle. Nur
+// Wiederöffnen (mit fail-closed Ablehnung bei offener Zeile) über den StatusToggle am Seitenende. Nur
 // Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter dem bereits von
 // `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
 // Der Aufruf kann einen Personenbezug tragen (#308): dann wird die Zeile dieser Person hervorgehoben,
@@ -125,8 +125,6 @@ export default async function KassierenPage({
           {STATUS_LABEL[veranstaltung.status]}
         </p>
       </div>
-
-      <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">Teilnehmer ({zeilen.length})</h2>
@@ -277,6 +275,10 @@ export default async function KassierenPage({
           </ul>
         )}
       </section>
+
+      {/* Abschließen/Wieder öffnen am Seitenende (spec-369 AK25/AK26, ADR-053 D6): der letzte
+          Schritt nach dem Kassieren, Verhalten unverändert. Bestätigung folgt in #371. */}
+      <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
     </main>
   );
 }
