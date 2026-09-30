@@ -160,7 +160,10 @@ ruleTester.run("no-raw-color-classes", rule, {
 // Drift-Guard gegen das installierte Tailwind: Jede Palette aus dessen `theme.css` muss die
 // Regel melden. Sonst öffnet ein Tailwind-Bump mit neuen Paletten die Lücke still wieder
 // (so geschehen mit `mauve`/`mist`/`olive`/`taupe` in 4.x).
-const tailwindTheme = readFileSync(createRequire(import.meta.url).resolve("tailwindcss/theme.css"), "utf8");
+const tailwindTheme = readFileSync(
+  createRequire(import.meta.url).resolve("tailwindcss/theme.css"),
+  "utf8",
+);
 const tailwindPalettes = [...tailwindTheme.matchAll(/--color-([a-z]+)-500:/g)].map((m) => m[1]);
 
 describe("no-raw-color-classes – Tailwind-Paletten", () => {
