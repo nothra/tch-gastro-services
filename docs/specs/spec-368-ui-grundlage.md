@@ -53,8 +53,9 @@ dunkler Umgebung (Dunkelmodus des Geräts).
   `dark:`-Variante setzt. GIVEN Hellmodus THEN den Hell-Wert.
 - [ ] **AK1.3** GIVEN die Token-Paare (Text auf Fläche, gedämpfter Text auf Fläche, Button-Text
   auf Akzent/Gefahr, Gefahr/Erfolg/Warnung als Text auf Fläche) WHEN der Kontrast gemessen wird
-  THEN erreicht jedes Paar in hell **und** dunkel mindestens WCAG AA (4,5 : 1 für Text). Linien
-  und Fokus-Rahmen erreichen mindestens 3 : 1 gegen die Fläche.
+  THEN erreicht jedes Paar in hell **und** dunkel mindestens WCAG AA (4,5 : 1 für Text). Rahmen
+  von Bedienelementen (Eingabe, Secondary-Button) und Fokus-Rahmen erreichen mindestens 3 : 1
+  gegen die Fläche. Rein dekorative Trenner sind nach WCAG 1.4.11 ausgenommen (ADR-052 D2).
 - [ ] **AK1.4** GIVEN der Akzent-Ton WHEN er mit dem bisher genutzten `cyan-700` verglichen
   wird THEN bleibt er erkennbar derselbe Vereins-Cyan (keine neue Markenfarbe). Blau
   (`blue-*`) kommt als Akzent nicht mehr vor.
@@ -127,7 +128,7 @@ dunkler Umgebung (Dunkelmodus des Geräts).
 - [ ] **AK6.1** GIVEN eine Datei auf der Liste der umgestellten Dateien WHEN sie eine rohe
   Tailwind-Farbklasse enthält (Palette-Farbe mit Stufe, z. B. `text-red-600`, `bg-cyan-700`,
   `border-zinc-300`, auch mit Präfix wie `dark:`/`hover:`) THEN schlägt die automatische Prüfung
-  im Push-Gate fehl und nennt Datei und Fundstelle.
+  im Lint-Gate fehl (`pnpm lint`: `pre-commit`-Hook und required CI-Check `lint`, ADR-052 D3) und nennt Datei und Fundstelle.
 - [ ] **AK6.2** GIVEN eine Datei **nicht** auf der Liste WHEN sie rohe Farbklassen enthält THEN
   schlägt die Prüfung **nicht** fehl (Nicht-umgestellte Seiten bleiben bis #369–#374 unberührt).
 - [ ] **AK6.3** GIVEN eine umgestellte Datei, die nur Token-Klassen nutzt, WHEN geprüft wird
@@ -138,7 +139,8 @@ dunkler Umgebung (Dunkelmodus des Geräts).
   (fail-closed, kein stilles Durchwinken).
 - [ ] **AK6.5** GIVEN die Prüfung WHEN ihre Tests laufen THEN belegen sie je einen Positiv- und
   Negativfall für AK6.1–AK6.4 gegen das echte Gate (`clean-code.md` → Portabilität), und die
-  Prüfung läuft auf macOS/BSD und in CI (POSIX-Regex).
+  Prüfung läuft lokal (macOS) und in CI gleich (ESLint-Regel in Node, ADR-052 D3, statt
+  Shell-Regex).
 - [ ] **AK6.6** GIVEN ein Folge-Issue (#369–#374) stellt eine Seite um WHEN es die Datei in die
   Liste aufnimmt THEN greift die Prüfung für sie ohne weitere Änderung am Gate. Wo die Liste
   liegt und wie man sie erweitert, ist dokumentiert.
@@ -158,15 +160,24 @@ dunkler Umgebung (Dunkelmodus des Geräts).
 
 ## Offene Fragen
 
-- [ ] **→ `/architecture` (ADR-Trigger):** Komponenten-Ansatz: shadcn/ui wie in ADR-014
+- [x] **→ `/architecture` (ADR-Trigger, entschieden in ADR-052 D1):** Komponenten-Ansatz: shadcn/ui wie in ADR-014
   vorgesehen (dafür wäre es zu installieren) oder eigene, schlanke Bausteine? Dazu gehört auch
   der Ablageort der Bausteine (route-neutral, vgl. Lesson „Route-neutrale Module").
-- [ ] **→ `/architecture`:** Exakte Token-Werte (hell/dunkel) inkl. Nachweis zu AK1.3. Dazu
+- [x] **→ `/architecture` (ADR-052 D2):** Exakte Token-Werte (hell/dunkel) inkl. Nachweis zu AK1.3. Dazu
   der Mechanismus, über den Tokens dem Gerätemodus folgen.
-- [ ] **→ `/architecture`:** Ort und Format der Liste umgestellter Dateien sowie Verankerung
+- [x] **→ `/architecture` (ADR-052 D3):** Ort und Format der Liste umgestellter Dateien sowie Verankerung
   des Farb-Gates (nur `pre-push.sh` oder zusätzlich eigener CI-Check). Vorher prüfen, ob eine
   bestehende ADR den Ort für Gates dieser Klasse schon entschieden hat (ADR-041/ADR-047,
   Lesson aus #319).
+
+## Entschiedene Punkte aus `/architecture` (ADR-052, 30.09.2026)
+
+- Eigene schlanke Bausteine unter `app/components/ui/`, kein shadcn/ui, keine neue Abhängigkeit.
+- Token-Satz und Werte hell/dunkel inkl. Kontrastnachweis: ADR-052 D2. Umschaltung über
+  `prefers-color-scheme` auf CSS-Variablen.
+- Farb-Gate als lokale ESLint-Regel `tch/no-raw-color-classes`. Die Liste liegt in
+  `eslint/ui-token-files.mjs`. Verankert über `pnpm lint` (pre-commit + required CI-Check).
+  Erkennt zusätzlich `black`/`white` und Arbitrary-Farbwerte (strenger als AK6.1-Wortlaut).
 
 ## Entschiedene Punkte (aus `/requirements`, 30.09.2026)
 
