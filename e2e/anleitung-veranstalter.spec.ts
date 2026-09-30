@@ -77,7 +77,8 @@ async function createKatalogArtikel(page: Page) {
     await page.getByLabel("Bezeichnung").fill(artikel.name);
     await page.getByLabel("Preis (EUR)").fill(artikel.preis);
     await page.getByLabel("Kategorie").selectOption({ label: artikel.kategorie });
-    await page.getByRole("button", { name: "Anlegen" }).click();
+    // exact: seit #345 steht daneben „+ Katalog anlegen".
+    await page.getByRole("button", { name: "Anlegen", exact: true }).click();
     await expect(page.getByRole("heading", { name: `Artikel (${i + 1})` })).toBeVisible();
   }
 }
@@ -122,21 +123,38 @@ async function createVeranstaltung(page: Page): Promise<string> {
   return neu as string;
 }
 
-async function addStammTeilnehmer(page: Page, name: string) {
-  await page.getByLabel("Teilnehmer hinzufügen").selectOption({ label: name });
-  await page.getByRole("button", { name: "Hinzufügen" }).click();
-  await expect(page.getByLabel("Teilnehmer hinzufügen").getByRole("option", { name })).toHaveCount(
-    0,
-  );
+// Der „+ Teilnehmer"-Dialog der Detailseite (#369): oben Stammteilnehmer, darunter „Neuer Gast".
+function teilnehmerDialog(page: Page) {
+  return page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
+}
+
+// Alle Stammteilnehmer in einem Schwung anhaken; der Screenshot zeigt den Dialog mit der Auswahl.
+async function addStammTeilnehmer(page: Page, namen: readonly string[]) {
+  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
+  const auswahl = teilnehmerDialog(page).getByRole("group", { name: "Stammteilnehmer" });
+  for (const name of namen) await auswahl.getByRole("checkbox", { name }).check();
+  await shotEl(page, "06-teilnehmer-hinzufuegen.png", teilnehmerDialog(page));
+  await auswahl.getByRole("button", { name: "Hinzufügen" }).click();
+  await expect(teilnehmerDialog(page)).toBeHidden();
 }
 
 async function walkIn(page: Page, name: string) {
-  const form = page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
-  await form.getByLabel("Anzeigename").fill(name);
-  await form.getByRole("button", { name: "Anlegen & erfassen" }).click();
-  await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
+  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
+  const gast = teilnehmerDialog(page).getByRole("group", { name: "Neuer Gast" });
+  await gast.getByLabel("Name").fill(name);
+  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
+  await expect(teilnehmerDialog(page)).toBeHidden();
+  await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
+}
+
+// „Link & QR teilen" liegt im eingeklappten Bereich „Einstellungen" (#369 AK21/AK22).
+async function shotZugang(page: Page) {
+  await page.getByText("Einstellungen", { exact: true }).click();
+  await page.getByRole("button", { name: "Link & QR teilen" }).click();
+  const dialog = page.getByRole("dialog", { name: "Link & QR teilen" });
+  await shotEl(page, "07-zugang-teilen.png", dialog);
+  await dialog.getByRole("button", { name: "Schließen" }).click();
+  await page.getByText("Einstellungen", { exact: true }).click();
 }
 
 async function verzehrPlus(page: Page, artikel: string, anzahl: number) {
@@ -204,19 +222,13 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     await page.goto(detailPfad);
     await expect(page.getByRole("heading", { name: VERANSTALTUNG.bezeichnung })).toBeVisible();
 
-    // Schritt 3 – führen: Zugang teilen + Teilnehmer-Formulare (Element-Shots, solange das Select
-    // noch verfügbar ist), dann Teilnehmer erfassen und die Übersicht oben aufnehmen.
-    await shotEl(
+    // Schritt 3 – führen: Zugang teilen (Dialog aus den Einstellungen), Teilnehmer über den
+    // „+ Teilnehmer"-Dialog erfassen, dann die Übersicht oben aufnehmen.
+    await shotZugang(page);
+    await addStammTeilnehmer(
       page,
-      "07-zugang-teilen.png",
-      page.locator("section").filter({ has: page.getByRole("heading", { name: "Zugang teilen" }) }),
+      STAMMTEILNEHMER.map((person) => person.name),
     );
-    await shotEl(
-      page,
-      "06-teilnehmer-hinzufuegen.png",
-      page.locator("section").filter({ has: page.getByLabel("Teilnehmer hinzufügen") }),
-    );
-    for (const person of STAMMTEILNEHMER) await addStammTeilnehmer(page, person.name);
     await walkIn(page, "Gastspieler");
     await shot(page, "05-veranstaltung-fuehren.png");
 

@@ -59,6 +59,15 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
+// Bearbeiten und Löschen liegen seit #369 im eingeklappten Bereich „Einstellungen" (AK21/AK23).
+async function oeffneEinstellungen(page: Page) {
+  const einstellungen = page.locator("details").filter({ hasText: "Einstellungen" });
+  // Ein offenes `<details>` trägt `open=""` – geprüft wird die Anwesenheit, nicht der Wert.
+  if ((await einstellungen.getAttribute("open")) === null) {
+    await einstellungen.getByText("Einstellungen", { exact: true }).click();
+  }
+}
+
 // Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil die
 // Seite mehrere Formulare trägt (Katalogwechsel, Teilnehmer erfassen, Status).
 function metaForm(page: Page) {
@@ -69,18 +78,20 @@ function metaForm(page: Page) {
 
 // Löschen bis zum offenen Bestätigungsdialog – der erste Klick darf noch nichts entfernen (AK8).
 async function oeffneLoeschDialog(page: Page) {
+  await oeffneEinstellungen(page);
   await page.getByRole("button", { name: "Veranstaltung löschen", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Veranstaltung löschen?" })).toBeVisible();
 }
 
-// Teilnehmer per Walk-in erfassen (Muster aus wechsel-verzehr-kassieren.spec.ts).
+// Neuer Gast über den „+ Teilnehmer"-Dialog (#369 AK13, Muster aus wechsel-verzehr-kassieren.spec.ts).
 async function walkIn(page: Page, name: string) {
-  const formular = page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
-  await formular.getByLabel("Anzeigename").fill(name);
-  await formular.getByRole("button", { name: "Anlegen & erfassen" }).click();
-  await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
+  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
+  const dialog = page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
+  const gast = dialog.getByRole("group", { name: "Neuer Gast" });
+  await gast.getByLabel("Name").fill(name);
+  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
 }
 
 // Die Kassierzeile eines Teilnehmers (Muster aus wechsel-verzehr-kassieren.spec.ts).
@@ -112,6 +123,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     const neu = `${PREFIX} Bearbeitet ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, alt);
     await page.goto(detailPfad);
+    await oeffneEinstellungen(page);
 
     // Ausgangszustand: das Formular ist mit den Ist-Werten vorbelegt – insbesondere das Datum im
     // "YYYY-MM-DD"-Format, das <input type="date"> allein akzeptiert (AK1, `formatDatumInput`).
@@ -127,11 +139,12 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
 
     // Die Seite selbst zeigt den neuen Stand – nicht nur das Formular (revalidatePath wirkt).
     await expect(page.getByRole("heading", { level: 1, name: neu })).toBeVisible();
-    await expect(page.getByText("21.09.2026 · Vereinskasse · offen")).toBeVisible();
+    await expect(page.getByText("21.09.2026 · Vereinskasse", { exact: true })).toBeVisible();
 
     // ── AK1: und der Stand ist wirklich persistiert, nicht nur im Client-State ──────────────
     await page.reload();
     await expect(page.getByRole("heading", { level: 1, name: neu })).toBeVisible();
+    await oeffneEinstellungen(page);
     await expect(metaForm(page).getByLabel("Bezeichnung")).toHaveValue(neu);
     await expect(metaForm(page).getByLabel("Datum")).toHaveValue("2026-09-21");
     await expect(metaForm(page).getByLabel("Kasse")).toHaveValue("vereinskasse");

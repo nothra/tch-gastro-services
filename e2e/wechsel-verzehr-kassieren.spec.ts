@@ -53,13 +53,15 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
+// Neuer Gast über den „+ Teilnehmer"-Dialog der Detailseite (#369 AK13, früher Walk-in-Formular).
 async function walkIn(page: Page, name: string) {
-  const form = page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
-  await form.getByLabel("Anzeigename").fill(name);
-  await form.getByRole("button", { name: "Anlegen & erfassen" }).click();
-  await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
+  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
+  const dialog = page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
+  const gast = dialog.getByRole("group", { name: "Neuer Gast" });
+  await gast.getByLabel("Name").fill(name);
+  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
 }
 
 // Karte eines Teilnehmers über die sticky Chip-Leiste öffnen (= Fokus wählen).

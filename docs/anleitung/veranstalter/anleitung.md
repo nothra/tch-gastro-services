@@ -90,29 +90,35 @@ Tippen Sie in der Liste auf den Namen der Veranstaltung, um sie zu **öffnen**.
 
 ## Schritt 3 – Veranstaltung führen (Teilnehmer erfassen)
 
-Auf der Veranstaltungs-Seite steuern Sie alles Weitere. Oben sehen Sie die Schaltflächen
-**„Verzehr erfassen →"**, **„Auslagen erstatten →"** und **„Kassieren →"** – damit gelangen Sie zu
-den nächsten Schritten.
+Auf der Veranstaltungs-Seite steuern Sie alles Weitere. Unter dem Titel stehen drei **Kacheln**
+– **„Verzehr"**, **„Auslagen"** und **„Kassieren"** – mit je einer Kurzkennzahl (Verzehr-Summe,
+Auslagen-Summe, „x von n bezahlt"). Ein Tipp auf eine Kachel führt zum jeweiligen Schritt. Darunter
+folgt die Liste der **Teilnehmer**, ganz unten der eingeklappte Bereich **„Einstellungen"**.
 
-![Übersicht der Veranstaltung mit den Schaltflächen „Verzehr erfassen", „Auslagen erstatten" und „Kassieren".](bilder/05-veranstaltung-fuehren.png)
+![Übersicht der Veranstaltung mit den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
 
-**Was tue ich?** Fügen Sie die anwesenden **Teilnehmer** hinzu:
+**Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„+ Teilnehmer"**. Es öffnet
+sich ein Fenster mit zwei Bereichen:
 
-- **Bekannte Person/Familie:** Wählen Sie sie unter **„Teilnehmer hinzufügen"** aus der Liste und
-  tippen Sie auf **„Hinzufügen"**.
-- **Neu, noch nicht in der Liste (Walk-in):** Tragen Sie unter **„Neuen Teilnehmer anlegen
-  (Walk-in)"** den **Anzeigenamen** ein, wählen Sie **Person** oder **Familie**, setzen Sie bei
-  Vereinsmitgliedern den Haken **„Mitglied"** und tippen Sie auf **„Anlegen & erfassen"**.
+- **Bekannte Personen/Familien:** Suchen Sie oben nach dem Namen, haken Sie **eine oder mehrere**
+  Personen an und tippen Sie auf **„Hinzufügen"**.
+- **Neuer Gast, noch nicht in der Liste:** Tragen Sie unter **„Neuer Gast"** den **Namen** ein,
+  wählen Sie **Person** oder **Familie**, setzen Sie bei Vereinsmitgliedern den Haken
+  **„Mitglied"** und tippen Sie auf **„Gast hinzufügen"**.
 
-**Was passiert?** Jeder erfasste Teilnehmer erscheint unten in der Liste **„Teilnehmer"**.
+**Was passiert?** Das Fenster schließt sich, und die Teilnehmer erscheinen in der Liste. Ein Tipp
+auf einen Namen öffnet direkt die Verzehr-Erfassung dieser Person. Über **„⋯"** am Zeilenende
+können Sie eine Person wieder **entfernen** – die App fragt vorher nach.
 
-![Formulare „Teilnehmer hinzufügen" und „Neuen Teilnehmer anlegen (Walk-in)".](bilder/06-teilnehmer-hinzufuegen.png)
+![Fenster „Teilnehmer hinzufügen" mit Suche, Auswahl und dem Bereich „Neuer Gast".](bilder/06-teilnehmer-hinzufuegen.png)
 
 ### Zugang teilen (Selbstbedienung)
 
-Im Bereich **„Zugang teilen"** finden Sie einen **Link** und einen **QR-Code**.
+Klappen Sie **„Einstellungen"** auf und tippen Sie auf **„Link & QR teilen"**. Das Fenster zeigt
+einen **Link** (mit **„Link kopieren"**) und einen **QR-Code**. Unter „Einstellungen" finden Sie
+außerdem den Katalogwechsel sowie – bei datierten Veranstaltungen – Bearbeiten und Löschen.
 
-![Bereich „Zugang teilen" mit Selbstbedienungs-Link und QR-Code.](bilder/07-zugang-teilen.png)
+![Fenster „Link & QR teilen" mit Selbstbedienungs-Link und QR-Code.](bilder/07-zugang-teilen.png)
 
 > **Tipp:** Teilnehmer können ihren Verzehr auch **selbst** erfassen – ganz ohne Anmeldung. Zeigen
 > Sie dazu den QR-Code, oder geben Sie den Link weiter. Wer ihn öffnet, wählt seinen Namen und
@@ -123,7 +129,7 @@ Im Bereich **„Zugang teilen"** finden Sie einen **Link** und einen **QR-Code**
 
 ## Schritt 4 – Verzehr erfassen
 
-**Was tue ich?** Tippen Sie auf **„Verzehr erfassen →"**. Oben wählen Sie über die Namensleiste
+**Was tue ich?** Tippen Sie auf die Kachel **„Verzehr"**. Oben wählen Sie über die Namensleiste
 einen **Teilnehmer** aus; seine Karte klappt auf. Erhöhen oder verringern Sie je Artikel die Menge
 mit den Schaltflächen **„+"** und **„−"** (Getränke, Essen, Kaffee).
 
@@ -143,7 +149,7 @@ gespeichert und oben in der Karte angezeigt.
 Hat jemand etwas **vorgestreckt** (z. B. Getränke gekauft), erfassen Sie das hier. Auslagen sind
 ein **eigener Vorgang** und werden **nicht** mit dem Verzehr verrechnet.
 
-**Was tue ich?** Tippen Sie auf **„Auslagen erstatten →"**. Wählen Sie den **Teilnehmer** und die
+**Was tue ich?** Tippen Sie auf die Kachel **„Auslagen"**. Wählen Sie den **Teilnehmer** und die
 **Kategorie** (Getränke, Essen oder Sonstiges), tragen Sie den **Betrag (EUR)** ein (z. B. „15,00"),
 optional eine **Notiz**, und tippen Sie auf **„Auslage erfassen"**.
 
@@ -159,7 +165,7 @@ verringert die Kassenveränderung.
 
 ## Schritt 6 – Kassieren & Abschluss
 
-**Was tue ich?** Tippen Sie auf **„Kassieren →"**. Jede Teilnehmer-Karte zeigt den
+**Was tue ich?** Tippen Sie auf die Kachel **„Kassieren"**. Jede Teilnehmer-Karte zeigt den
 **Verzehr-Gesamt**. Tragen Sie im Feld **„Erhalten (EUR)"** ein, wie viel der Teilnehmer **bar
 bezahlt** hat, und tippen Sie auf **„Kassieren"**.
 
@@ -174,17 +180,18 @@ Einnahmen, erstatteter Auslagen und der **Kassenveränderung**.
 ![Tagessummen und Gesamtabrechnung mit Einnahmen, Auslagenerstattungen und Kassenveränderung.](bilder/11-abrechnung.png)
 
 **Abschließen:** Sind **alle** Teilnehmer „bezahlt" (Anzeige **„Offene Zeilen: 0"**), tippen Sie
-auf **„Abschließen"**. Ist noch eine Zeile offen, weist die App Sie darauf hin und schließt nicht ab.
+ganz unten auf der Kassieren-Seite auf **„Abschließen"**. Ist noch eine Zeile offen, weist die App
+Sie darauf hin und schließt nicht ab.
 
-> Versehentlich abgeschlossen? Über **„Wieder öffnen"** lässt sich die Veranstaltung erneut
-> bearbeiten.
+> Versehentlich abgeschlossen? Über **„Wieder öffnen"** – ebenfalls ganz unten auf der
+> Kassieren-Seite – lässt sich die Veranstaltung erneut bearbeiten.
 
 ---
 
 ## Schritt 7 – Abschlussbericht herunterladen
 
-**Was tue ich?** Nach dem Abschließen erscheint auf der Veranstaltungs-Seite der Bereich
-**„Abschlussbericht"**. Darin stehen **zwei Gruppen** – wählen Sie zuerst die Gruppe, dann das
+**Was tue ich?** Nach dem Abschließen erscheint auf der Veranstaltungs-Seite direkt unter dem Titel
+der Bereich **„Abschlussbericht"**. Darin stehen **zwei Gruppen** – wählen Sie zuerst die Gruppe, dann das
 Format:
 
 - **„Vollständig"** – der komplette Bericht mit allem: Getränke, Essen, Kaffee, Spenden, dem
@@ -213,6 +220,8 @@ und `getraenke` im Dateinamen, damit Sie die beiden Fassungen nicht verwechseln.
   Kassieren. Notfalls die abgeschlossene Veranstaltung **„Wieder öffnen"**.
 - **Der Abschluss funktioniert nicht.** Es ist noch mindestens eine Teilnehmer-Zeile **offen**.
   Prüfen Sie unter „Kassieren" die Anzeige **„Offene Zeilen"** und kassieren Sie die restlichen.
+- **Ich finde „Abschließen" nicht mehr auf der Veranstaltungs-Seite.** Es steht seit der neuen
+  Seitenordnung ganz unten auf der Seite **„Kassieren"**.
 
 ---
 

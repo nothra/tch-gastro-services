@@ -1,7 +1,7 @@
 # Task 369: veranstaltung-detailseite-neu-ordnen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -14,44 +14,44 @@ Detailseite `/veranstaltung/[id]` neu ordnen: Kopf → drei Arbeitsschritt-Kache
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] Siehe `docs/specs/spec-369-veranstaltung-detailseite-neu-ordnen.md` (AK1–AK31, FS1–FS6); kurz:
-- [ ] AK1: GIVEN eine offene Veranstaltung WHEN die Detailseite geöffnet wird THEN erscheinen
-- [ ] AK2: GIVEN die Detailseite WHEN sie gerendert wird THEN zeigt der Kopf Titel, Datum und
-- [ ] AK3: GIVEN eine offene Veranstaltung WHEN die Kacheln angezeigt werden THEN gibt es
-- [ ] AK4: GIVEN eine offene Veranstaltung mit erfasstem Verzehr WHEN die Kacheln angezeigt
-- [ ] AK5: GIVEN eine offene Veranstaltung ohne Teilnehmer, ohne Verzehr oder ohne Auslagen
-- [ ] AK6: GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
-- [ ] AK7: GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
-- [ ] AK8: GIVEN eine offene Veranstaltung WHEN die Teilnehmerliste angezeigt wird THEN steht
-- [ ] AK9: GIVEN die Liste einer abgeschlossenen Veranstaltung WHEN sie angezeigt wird THEN
-- [ ] AK10: GIVEN eine offene Veranstaltung WHEN „+ Teilnehmer" getippt wird THEN öffnet sich
-- [ ] AK11: GIVEN der Dialog WHEN ein Suchbegriff eingegeben wird THEN zeigt die Auswahl nur
-- [ ] AK12: GIVEN der Dialog WHEN mehrere Stammteilnehmer angehakt und „Hinzufügen" getippt
-- [ ] AK13: GIVEN der Dialog WHEN bei „Neuer Gast" ein Name eingegeben und bestätigt wird THEN
-- [ ] AK14: GIVEN der Dialog WHEN „Hinzufügen" ohne Auswahl getippt wird THEN bleibt der
-- [ ] AK15: GIVEN der Dialog WHEN Escape gedrückt oder „Abbrechen" getippt wird THEN schließt
-- [ ] AK16: GIVEN alle aktiven Stammteilnehmer sind bereits erfasst WHEN der Dialog geöffnet
-- [ ] AK17: GIVEN eine Teilnehmerzeile einer offenen Veranstaltung WHEN auf den Namen
-- [ ] AK18: GIVEN eine Teilnehmerzeile einer offenen Veranstaltung WHEN das Zeilenmenü
-- [ ] AK19: GIVEN das Zeilenmenü WHEN „Entfernen" gewählt wird THEN öffnet ein
-- [ ] AK20: GIVEN die Bestätigung WHEN der Server das Entfernen ablehnt (z. B. weil die
-- [ ] AK21: GIVEN die Detailseite WHEN sie geöffnet wird THEN ist „Einstellungen" standardmäßig
-- [ ] AK22: GIVEN der Bereich „Einstellungen" WHEN „Link & QR teilen" getippt wird THEN öffnet
-- [ ] AK23: GIVEN die bestehende Löschen-Funktion WHEN sie unter „Einstellungen" bedient wird
-- [ ] AK24: GIVEN die Detailseite WHEN sie gerendert wird THEN enthält sie weder „Abschließen"
-- [ ] AK25: GIVEN die Kassieren-Seite einer offenen Veranstaltung WHEN sie geöffnet wird THEN
-- [ ] AK26: GIVEN die Kassieren-Seite einer abgeschlossenen Veranstaltung WHEN sie geöffnet
-- [ ] AK27: GIVEN ein Viewport von 375 × 812 px und eine offene Veranstaltung mit mindestens
-- [ ] AK28: GIVEN die Detailseite bei 375 px WHEN sie gerendert wird THEN gibt es keinen
-- [ ] AK29: GIVEN der `ConfirmDialog` WHEN er geöffnet wird THEN ist er ein natives
-- [ ] AK30: GIVEN die Dialoge „+ Teilnehmer" und „Link & QR teilen" WHEN sie geöffnet werden
-- [ ] AK31: GIVEN die neu gebauten Oberflächen WHEN sie gestylt sind THEN verwenden sie nur die
-- [ ] FS1: Zwei Geräte: Während ein Dialog offen ist, wird die Veranstaltung abgeschlossen →
-- [ ] FS2: Ein Stammteilnehmer wird im Dialog gewählt, ist aber inzwischen deaktiviert oder
-- [ ] FS3: Gast-Name leer, nur Leerzeichen oder zu lang → Feldfehler im Dialog, wie beim
-- [ ] FS4: Kein Zugriff (nicht `veranstalter`) → unveränderte Meldung „Kein Zugriff"; die
-- [ ] FS5: Stehende Theke: Einstellungen zeigen weder Bearbeiten noch Löschen (#352); die
-- [ ] FS6: Sehr lange Teilnehmernamen und Veranstaltungsbezeichnungen brechen um und
+- [x] Siehe `docs/specs/spec-369-veranstaltung-detailseite-neu-ordnen.md` (AK1–AK31, FS1–FS6); kurz:
+- [x] AK1: GIVEN eine offene Veranstaltung WHEN die Detailseite geöffnet wird THEN erscheinen
+- [x] AK2: GIVEN die Detailseite WHEN sie gerendert wird THEN zeigt der Kopf Titel, Datum und
+- [x] AK3: GIVEN eine offene Veranstaltung WHEN die Kacheln angezeigt werden THEN gibt es
+- [x] AK4: GIVEN eine offene Veranstaltung mit erfasstem Verzehr WHEN die Kacheln angezeigt
+- [x] AK5: GIVEN eine offene Veranstaltung ohne Teilnehmer, ohne Verzehr oder ohne Auslagen
+- [x] AK6: GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
+- [x] AK7: GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
+- [x] AK8: GIVEN eine offene Veranstaltung WHEN die Teilnehmerliste angezeigt wird THEN steht
+- [x] AK9: GIVEN die Liste einer abgeschlossenen Veranstaltung WHEN sie angezeigt wird THEN
+- [x] AK10: GIVEN eine offene Veranstaltung WHEN „+ Teilnehmer" getippt wird THEN öffnet sich
+- [x] AK11: GIVEN der Dialog WHEN ein Suchbegriff eingegeben wird THEN zeigt die Auswahl nur
+- [x] AK12: GIVEN der Dialog WHEN mehrere Stammteilnehmer angehakt und „Hinzufügen" getippt
+- [x] AK13: GIVEN der Dialog WHEN bei „Neuer Gast" ein Name eingegeben und bestätigt wird THEN
+- [x] AK14: GIVEN der Dialog WHEN „Hinzufügen" ohne Auswahl getippt wird THEN bleibt der
+- [x] AK15: GIVEN der Dialog WHEN Escape gedrückt oder „Abbrechen" getippt wird THEN schließt
+- [x] AK16: GIVEN alle aktiven Stammteilnehmer sind bereits erfasst WHEN der Dialog geöffnet
+- [x] AK17: GIVEN eine Teilnehmerzeile einer offenen Veranstaltung WHEN auf den Namen
+- [x] AK18: GIVEN eine Teilnehmerzeile einer offenen Veranstaltung WHEN das Zeilenmenü
+- [x] AK19: GIVEN das Zeilenmenü WHEN „Entfernen" gewählt wird THEN öffnet ein
+- [x] AK20: GIVEN die Bestätigung WHEN der Server das Entfernen ablehnt (z. B. weil die
+- [x] AK21: GIVEN die Detailseite WHEN sie geöffnet wird THEN ist „Einstellungen" standardmäßig
+- [x] AK22: GIVEN der Bereich „Einstellungen" WHEN „Link & QR teilen" getippt wird THEN öffnet
+- [x] AK23: GIVEN die bestehende Löschen-Funktion WHEN sie unter „Einstellungen" bedient wird
+- [x] AK24: GIVEN die Detailseite WHEN sie gerendert wird THEN enthält sie weder „Abschließen"
+- [x] AK25: GIVEN die Kassieren-Seite einer offenen Veranstaltung WHEN sie geöffnet wird THEN
+- [x] AK26: GIVEN die Kassieren-Seite einer abgeschlossenen Veranstaltung WHEN sie geöffnet
+- [x] AK27: GIVEN ein Viewport von 375 × 812 px und eine offene Veranstaltung mit mindestens
+- [x] AK28: GIVEN die Detailseite bei 375 px WHEN sie gerendert wird THEN gibt es keinen
+- [x] AK29: GIVEN der `ConfirmDialog` WHEN er geöffnet wird THEN ist er ein natives
+- [x] AK30: GIVEN die Dialoge „+ Teilnehmer" und „Link & QR teilen" WHEN sie geöffnet werden
+- [x] AK31: GIVEN die neu gebauten Oberflächen WHEN sie gestylt sind THEN verwenden sie nur die
+- [x] FS1: Zwei Geräte: Während ein Dialog offen ist, wird die Veranstaltung abgeschlossen →
+- [x] FS2: Ein Stammteilnehmer wird im Dialog gewählt, ist aber inzwischen deaktiviert oder
+- [x] FS3: Gast-Name leer, nur Leerzeichen oder zu lang → Feldfehler im Dialog, wie beim
+- [x] FS4: Kein Zugriff (nicht `veranstalter`) → unveränderte Meldung „Kein Zugriff"; die
+- [x] FS5: Stehende Theke: Einstellungen zeigen weder Bearbeiten noch Löschen (#352); die
+- [x] FS6: Sehr lange Teilnehmernamen und Veranstaltungsbezeichnungen brechen um und
 
 ## Technische Notizen
 ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md) (Accepted).
@@ -62,6 +62,23 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
 - D5 `ZugangTeilen` bleibt Server Component, Client-Hülle `ZugangDialog` öffnet sie (kein `qrcode` im Client).
 - D6 `StatusToggle` unverändert ans Ende von Kassieren; Bericht bei `abgeschlossen` über den Kacheln, Kacheln bleiben als Links ohne Kennzahl (Spec AK6/AK7 dazu korrigiert).
 - Reihenfolge und Fallen: siehe ADR-053 → „Implementierungs-Hinweise". Branch vor /implement auf `origin/main` bringen (#368).
+
+### Implementierungs-Notizen (/implement, 2026-10-01)
+- Gates: `pre-commit.sh` + `pre-push.sh` grün (1264 Tests, Typecheck, Format, Routen-Doku). DB-Integrationstests
+  mit `.env.local` separat: 684/684 grün (`db/`, `app/veranstaltung/`). Routen unverändert → `docs/routes.md` bleibt.
+- Oberflächentests gegen eigenen Dev-Server (`next dev -p 3369`, Lesson #368): `veranstaltung-detailseite.spec.ts`
+  (neu, AK8–AK28), `veranstaltung-bearbeiten-loeschen.spec.ts` (#352) und `wechsel-verzehr-kassieren.spec.ts` (#308)
+  – 9/9 grün. Stolperstein: `PLAYWRIGHT_BASE_URL=http://127.0.0.1:…` scheitert komplett, weil `next dev` `/_next`-
+  Ressourcen fremder Origins blockt (`allowedDevOrigins`) – die Seite hydriert nicht, kein Dialog öffnet sich.
+  `localhost:<port>` + Config ohne `webServer` benutzen.
+- Kachel „x von n bezahlt": Zeilen mit 0,00 € Verzehr zählen als bezahlt – identisch mit „Offene Zeilen" der
+  Kassieren-Seite (gleiche Quelle `kassierTagessummen`, AK4), keine eigene Regel.
+- **Offen (menschlicher Schritt vor dem Merge):**
+  - AK27-Screenshot (`test-results/369-detailseite-375.png`, gitignoret) von Hand an den PR hängen (Lesson #368).
+  - Anleitungs-Bilder `05`/`06`/`07` passen noch zum alten Layout; der Text in `docs/anleitung/veranstalter/anleitung.md`
+    ist schon aktualisiert. Die Capture-Spec (`CAPTURE_ANLEITUNG=1`) braucht eine frisch geseedete DB und wurde deshalb
+    nicht gegen die geteilte Dev-DB gefahren. Vorbestehender Bruch dort (#345: „+ Katalog anlegen" machte
+    `name: "Anlegen"` mehrdeutig) per `exact: true` behoben.
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).
