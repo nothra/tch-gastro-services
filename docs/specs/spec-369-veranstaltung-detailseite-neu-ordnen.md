@@ -73,12 +73,13 @@ und mit einem Tipp in den nächsten Arbeitsschritt kommen.
   WHEN die Kacheln angezeigt werden THEN zeigen sie „0,00 €" bzw. „0 von 0 bezahlt" statt
   leerer oder fehlerhafter Werte.
 - [ ] **AK6** GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
-  ersetzt der Abschlussbericht (Gruppen „Vollständig" und „Nur Getränke" mit je Excel und PDF,
-  Links unverändert zu spec-324 AK14) die Kacheln samt Kennzahlen; die Teilnehmerliste bleibt
-  schreibgeschützt sichtbar.
+  steht zwischen Kopf und Kacheln der Abschlussbericht (Gruppen „Vollständig" und „Nur Getränke"
+  mit je Excel und PDF, Links unverändert zu spec-324 AK14); die drei Kacheln bleiben als Links
+  auf die (schreibgeschützten) Unterseiten erhalten, **zeigen aber keine Kurzkennzahl mehr**; die
+  Teilnehmerliste bleibt schreibgeschützt sichtbar.
 - [ ] **AK7** GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
-  ist „Wieder öffnen" erreichbar (auf der Kassieren-Seite, siehe AK26), und der Bereich
-  „Einstellungen" enthält keine Schreib-Aktionen.
+  führt die Kassieren-Kachel zur Kassieren-Seite, auf der „Wieder öffnen" erreichbar ist (AK26),
+  und der Bereich „Einstellungen" entfällt (er enthielte nur Schreib-Aktionen).
 
 ### Teilnehmerliste und „+ Teilnehmer"
 
@@ -201,20 +202,19 @@ und mit einem Tipp in den nächsten Arbeitsschritt kommen.
 
 ## Offene Fragen
 
-- [ ] **Q1 (für /architecture, ADR-Trigger prüfen):** Wo liegt der gemeinsame Dialog-Baustein
+- [x] **Q1 (entschieden in ADR-053 D1/D2, ADR-Trigger prüfen):** Wo liegt der gemeinsame Dialog-Baustein
   (`app/components/ui/`), und wie teilen sich `ConfirmDialog` und die Formular-Dialoge ihre
   Grundlage? Zeilenmenü: eigener Baustein oder `<details>`? Wie wird der
   „+ Teilnehmer"-Dialog mit Server Actions und `useActionState` verdrahtet?
-- [ ] **Q2 (für /architecture):** Mehrfachauswahl „Hinzufügen" – eine neue Action, die mehrere
+- [x] **Q2 (entschieden in ADR-053 D3):** Mehrfachauswahl „Hinzufügen" – eine neue Action, die mehrere
   Zeilen atomar anlegt, oder wiederholte Einzelaufrufe? Teilerfolg-Verhalten siehe FS2.
   (Lesson `db-drizzle.md`: Mehrfach-Write nutzt `db.transaction()` nur, wenn der Treiber es
   trägt.)
-- [ ] **Q3 (für /architecture):** Wie kommt die Kurzkennzahl „x von n bezahlt" ohne zweite
+- [x] **Q3 (entschieden in ADR-053 D4):** Wie kommt die Kurzkennzahl „x von n bezahlt" ohne zweite
   Berechnung aus den bestehenden Summen-Modulen auf die Detailseite?
 - [ ] **Q4:** Dialog „Link & QR teilen" vs. #307 Teil 2/#181 (Druck): Dieser Dialog liefert die
   kompakte Darstellung; die Druckbarkeit bleibt in #307/#181. Reicht diese Abgrenzung, oder
   soll #307 nach diesem Issue als erledigt (Teil 1) geführt werden?
-- [ ] **Q5:** Inhalt der Kacheln bei abgeschlossener Veranstaltung: Der Bericht ersetzt sie
-  (AK6). Sollen die Unterseiten (Verzehr, Auslagen, Kassieren) als Nachschlage-Ansicht trotzdem
-  erreichbar bleiben, und wenn ja wo? (Vorschlag: über die Kassieren-Seite, die „Wieder öffnen"
-  ohnehin enthält; noch zu bestätigen.)
+- [x] **Q5 (beantwortet in /architecture):** Die Kacheln bleiben auch bei abgeschlossenen
+  Veranstaltungen als Links erhalten (AK6); sonst wäre „Wieder öffnen" auf der Kassieren-Seite
+  unerreichbar. Nur die Kurzkennzahlen entfallen, der Bericht übernimmt deren Rolle.

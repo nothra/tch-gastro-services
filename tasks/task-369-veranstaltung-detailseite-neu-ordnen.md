@@ -54,7 +54,14 @@ Detailseite `/veranstaltung/[id]` neu ordnen: Kopf → drei Arbeitsschritt-Kache
 - [ ] FS6: Sehr lange Teilnehmernamen und Veranstaltungsbezeichnungen brechen um und
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md) (Accepted).
+- D1 `Dialog`/`ConfirmDialog` auf nativem `<dialog>` in `app/components/ui/` (Kinder nur bei offenem Dialog gemountet; jsdom-Stub in `vitest.setup.ts`).
+- D2 `ZeilenMenue` feature-lokal; Tipp auf Namen = Link auf `…/verzehr?zeile=<id>` (#308 existiert).
+- D3 `addZeilen` = ein Multi-Row-INSERT (atomar, kein `runAtomic`), `addZeilenAction` ersetzt `addZeileAction`; Zod min 1/max 200; `23505` ⇒ nichts angelegt.
+- D4 `kachelKennzahlen.ts` als reiner Adapter über `kassierZeilen`/`kassierTagessummen`/`auslagenSummen`.
+- D5 `ZugangTeilen` bleibt Server Component, Client-Hülle `ZugangDialog` öffnet sie (kein `qrcode` im Client).
+- D6 `StatusToggle` unverändert ans Ende von Kassieren; Bericht bei `abgeschlossen` über den Kacheln, Kacheln bleiben als Links ohne Kennzahl (Spec AK6/AK7 dazu korrigiert).
+- Reihenfolge und Fallen: siehe ADR-053 → „Implementierungs-Hinweise". Branch vor /implement auf `origin/main` bringen (#368).
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).
