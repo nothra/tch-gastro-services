@@ -1030,6 +1030,17 @@ describe("createWalkInAction", () => {
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
   });
 
+  it("should_returnNotFound_when_veranstaltungUnknown", async () => {
+    // Guard-Branch (Codify #51): ohne diesen Test bliebe das Anlegen für eine gelöschte
+    // Veranstaltung ungeprüft – der Gast dürfte dann nicht entstehen.
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await createWalkInAction(undefined, form(walkIn));
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+  });
+
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
 

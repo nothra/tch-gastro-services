@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -101,6 +101,17 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
   die CloseWatcher-Härtung (laut Review nur „plausibel" – vorher im Browser prüfen). Das E2E-Kopiermuster für
   `login`/`createVeranstaltung` über drei Specs steht kanonisch in `docs/factory/kleinfunde.md`.
 - Gates: Lint, Format, Typecheck grün; E2E der drei Specs 9/9 grün; Vitest 717 + `actions.test.ts` grün.
+
+### /test (2026-10-01)
+- Vollständiger Lauf mit `.env.local` (DB-Tests laufen, keine übersprungen): 102 Dateien, 1389 Tests grün;
+  Coverage gesamt 98,2 % Statements / 98 % Branches (Schwelle 80 %).
+- Drei Verhaltenslücken im neuen Code geschlossen: Abwählen einer angehakten Person im Dialog
+  (`umschalten`-Zweig), andere Taste im Zeilenmenü schließt nicht, `createWalkInAction` mit unbekannter
+  Veranstaltung (Guard-Branch, Codify #51).
+- Bewusst nicht angefasst (kein Produktionscode in `/test`): `Dialog.tsx:59` – `if (!dialog) return;` ist
+  im Effekt nicht erreichbar, weil die Ref nach dem Mount gesetzt ist (toter Guard, Kandidat für `/refactor`).
+  `actions.ts:636` (`ensureThekeAction`, Kasse-Guard) und `db/veranstaltung.ts` `getZeile` sind Altbestand
+  ohne Änderung durch #369.
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).

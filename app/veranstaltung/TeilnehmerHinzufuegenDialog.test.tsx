@@ -127,6 +127,18 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(addZeilenActionMock.mock.calls[0][1].getAll("teilnehmerId")).toEqual(["t-1", "t-2"]);
   });
 
+  it("should_notSubmitPerson_when_checkedThenUnchecked", async () => {
+    renderDialog();
+    oeffnen();
+    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Bernd Muster" }));
+    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+
+    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+
+    expect(addZeilenActionMock.mock.calls[0][1].getAll("teilnehmerId")).toEqual(["t-2"]);
+  });
+
   it("should_stayOpenAndShowReason_when_serverRejectsSelection", async () => {
     // AK14 (Meldung aus der Zod-Grenze der Action) – ebenso FS1/FS2: der Dialog bleibt offen.
     addZeilenActionMock.mockResolvedValue({ error: "Bitte mindestens einen Teilnehmer wählen." });

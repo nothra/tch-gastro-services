@@ -65,6 +65,15 @@ describe("ZeilenMenue (spec-369 AK18/AK19/AK20, ADR-053 D2)", () => {
     expect(trigger()).toHaveFocus();
   });
 
+  it("should_keepMenuOpen_when_otherKeyPressedInMenu", () => {
+    renderMenue();
+    fireEvent.click(trigger());
+
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
   it("should_closeMenu_when_pointerDownOutside", () => {
     renderMenue();
     fireEvent.click(trigger());
