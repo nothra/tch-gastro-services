@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -165,6 +165,15 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
   (`[&_[data-x]]:`) und die Opazitäts-Kurzform `/(--a)`. Je Form ein `invalid`-Fall (erst rot,
   dann grün). ADR-052 D3 nachgezogen.
 - [x] **N8** Test umbenannt in `should_guardHoverWithNotDisabled_when_variantIs%s`.
+
+## Test-Notizen (`/test`, 2026-09-30)
+
+- Coverage-Lauf über `app/components/ui/**`, `eslint/**`, `app/login/**`, `app/verwaltung/katalog/**`:
+  alle geänderten/neuen Dateien 100 % (Stmts/Branch/Funcs/Lines). Einzige Lücke:
+  `app/login/actions.ts` (0 %), unverändert und außerhalb des Scopes (siehe Umsetzungs-Notizen).
+- Volle Suite grün: 92 Dateien, 1187 Tests; 105 DB-Tests ohne `dotenv` übersprungen (nicht
+  betroffen, keine DB-Änderung). Keine neuen Tests nötig, kein Produktionscode geändert.
+- Offen bleibt W2 (menschliche Aktion: PNGs an PR #378).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
