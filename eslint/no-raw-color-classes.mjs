@@ -9,12 +9,18 @@
 // Nicht erkennbar sind aus Variablen zusammengesetzte Klassennamen (`bg-${farbe}-600`); das
 // ist bei Tailwind ohnehin ein Anti-Pattern, weil der Compiler solche Klassen nicht erzeugt.
 
+// Stand Tailwind 4.3 (`node_modules/tailwindcss/theme.css`). Ein Drift-Test gleicht die Liste
+// gegen das installierte Tailwind ab, damit ein Bump mit neuen Paletten sie nicht still veraltet.
 const PALETTE_COLORS = [
   "slate",
   "gray",
   "zinc",
   "neutral",
   "stone",
+  "mauve",
+  "mist",
+  "olive",
+  "taupe",
   "red",
   "orange",
   "amber",
@@ -36,10 +42,15 @@ const PALETTE_COLORS = [
 
 // Utilities, deren Wert eine Farbe ist.
 const COLOR_UTILITY =
-  "(?:bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|outline|divide|fill|stroke|from|via|to|placeholder|decoration|accent|caret|shadow)";
+  "(?:bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|inset-ring|outline|divide|fill|stroke|from|via|to|placeholder|decoration|accent|caret|shadow|inset-shadow|drop-shadow|text-shadow)";
 
-// Beliebig viele Varianten-Präfixe: `dark:`, `hover:`, `sm:`, `dark:hover:`, `group-hover:` …
-const VARIANT_PREFIX = "(?:[a-z0-9-]+:)*";
+// Beliebig viele Varianten-Präfixe. Ein Präfix ist alles bis zum nächsten `:`, wobei ein `:`
+// innerhalb von `[…]` nicht zählt – so fallen `dark:hover:`, `data-[open]:`, `[&>*]:`,
+// `supports-[display:grid]:`, `group-hover/item:` und `@sm:` gleichermaßen darunter.
+const VARIANT_PREFIX = "(?:(?:[^\\s:[\\]]|\\[[^\\]\\s]*\\])+:)*";
+
+// `!` für `important` darf vor dem Utility stehen (v3-Schreibweise, in v4 weiter gültig).
+const LEADING_IMPORTANT = "!?";
 
 const SHADE = "(?:50|100|200|300|400|500|600|700|800|900|950)";
 
@@ -52,11 +63,11 @@ const COLOR_VALUE = [
   "\\[(?:#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color)\\([^)\\s]*\\))\\]",
 ].join("|");
 
-// Optionale Opazität (`/50`, `/[0.35]`) und optionales `!` für `important`.
+// Optionale Opazität (`/50`, `/[0.35]`) und optionales nachgestelltes `!` für `important`.
 const OPACITY = "(?:\\/(?:\\d{1,3}|\\[[^\\]\\s]+\\]))?";
 
 const RAW_COLOR_CLASS = new RegExp(
-  `^${VARIANT_PREFIX}${COLOR_UTILITY}-(?:${COLOR_VALUE})${OPACITY}!?$`,
+  `^${VARIANT_PREFIX}${LEADING_IMPORTANT}${COLOR_UTILITY}-(?:${COLOR_VALUE})${OPACITY}!?$`,
 );
 
 /**

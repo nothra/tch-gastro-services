@@ -8,6 +8,8 @@
  * Die Kontrastpaare (WCAG AA) rechnet `app/components/ui/tokens.test.ts` bei jedem Lauf nach.
  */
 :root {
+  /* Native Teile (Auswahl-Popup, Zahlen-Spinner, Scrollbalken) folgen so ebenfalls dem Gerätemodus. */
+  color-scheme: light dark;
   --background: #f4f4f5;
   --surface: #ffffff;
   --foreground: #18181b;

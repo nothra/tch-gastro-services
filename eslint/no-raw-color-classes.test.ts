@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { RuleTester } from "eslint";
 import { describe, it, expect } from "vitest";
 import rule from "./no-raw-color-classes.mjs";
@@ -21,6 +23,7 @@ ruleTester.run("no-raw-color-classes", rule, {
     // Token-Klassen sind der erwünschte Normalfall (AK6.3).
     { code: 'const c = <div className="bg-surface text-muted border-line-subtle" />;' },
     { code: 'const c = <div className="bg-accent text-on-accent hover:bg-accent-hover" />;' },
+    { code: 'const c = <div className="data-[open]:bg-surface !text-muted @sm:border-line" />;' },
     // Klassen ohne Farbbezug (AK6.3).
     { code: 'const c = <div className="text-sm border-2 bg-transparent bg-current" />;' },
     { code: 'const c = <div className="divide-y ring-2 outline-none shadow-lg" />;' },
@@ -92,6 +95,59 @@ ruleTester.run("no-raw-color-classes", rule, {
       code: 'const inputClass = "rounded border border-zinc-300 px-3";',
       errors: [{ messageId: "rawColorClass", data: { className: "border-zinc-300" } }],
     },
+    // Weitere Farb-Utilities aus Tailwind 4.
+    {
+      code: 'const c = <div className="inset-shadow-red-500 inset-ring-red-500" />;',
+      errors: [
+        { messageId: "rawColorClass", data: { className: "inset-shadow-red-500" } },
+        { messageId: "rawColorClass", data: { className: "inset-ring-red-500" } },
+      ],
+    },
+    {
+      code: 'const c = <div className="drop-shadow-red-500 text-shadow-red-500" />;',
+      errors: [
+        { messageId: "rawColorClass", data: { className: "drop-shadow-red-500" } },
+        { messageId: "rawColorClass", data: { className: "text-shadow-red-500" } },
+      ],
+    },
+    // Präfix-Formen jenseits `wort:` umgehen die Regel ebenfalls nicht (AK6.1).
+    {
+      code: 'const c = <div className="data-[open]:bg-red-500" />;',
+      errors: [{ messageId: "rawColorClass", data: { className: "data-[open]:bg-red-500" } }],
+    },
+    {
+      code: 'const c = <div className="aria-[invalid=true]:border-red-500" />;',
+      errors: [
+        { messageId: "rawColorClass", data: { className: "aria-[invalid=true]:border-red-500" } },
+      ],
+    },
+    {
+      code: 'const c = <div className="[&>*]:text-red-500" />;',
+      errors: [{ messageId: "rawColorClass", data: { className: "[&>*]:text-red-500" } }],
+    },
+    {
+      code: 'const c = <div className="supports-[display:grid]:bg-red-500" />;',
+      errors: [
+        { messageId: "rawColorClass", data: { className: "supports-[display:grid]:bg-red-500" } },
+      ],
+    },
+    {
+      code: 'const c = <div className="group-hover/item:bg-red-500" />;',
+      errors: [{ messageId: "rawColorClass", data: { className: "group-hover/item:bg-red-500" } }],
+    },
+    {
+      code: 'const c = <div className="@sm:bg-red-500" />;',
+      errors: [{ messageId: "rawColorClass", data: { className: "@sm:bg-red-500" } }],
+    },
+    // `!` für `important` vorn (v3-Schreibweise, in v4 weiter gültig) und hinten.
+    {
+      code: 'const c = <div className="!bg-red-500 hover:!bg-red-600 bg-red-700!" />;',
+      errors: [
+        { messageId: "rawColorClass", data: { className: "!bg-red-500" } },
+        { messageId: "rawColorClass", data: { className: "hover:!bg-red-600" } },
+        { messageId: "rawColorClass", data: { className: "bg-red-700!" } },
+      ],
+    },
     // Getaggtes Template mit ungültiger Escape-Sequenz: `cooked` ist dann `null`, geprüft wird
     // der Rohtext – sonst schlüpfte die Klasse durch.
     {
@@ -99,6 +155,28 @@ ruleTester.run("no-raw-color-classes", rule, {
       errors: [{ messageId: "rawColorClass", data: { className: "bg-red-500" } }],
     },
   ],
+});
+
+// Drift-Guard gegen das installierte Tailwind: Jede Palette aus dessen `theme.css` muss die
+// Regel melden. Sonst öffnet ein Tailwind-Bump mit neuen Paletten die Lücke still wieder
+// (so geschehen mit `mauve`/`mist`/`olive`/`taupe` in 4.x).
+const tailwindTheme = readFileSync(createRequire(import.meta.url).resolve("tailwindcss/theme.css"), "utf8");
+const tailwindPalettes = [...tailwindTheme.matchAll(/--color-([a-z]+)-500:/g)].map((m) => m[1]);
+
+describe("no-raw-color-classes – Tailwind-Paletten", () => {
+  it("should_findPalettesInTailwindTheme_when_themeIsParsed", () => {
+    // Fail-closed: Ändert Tailwind das Variablenformat, fände der Parser nichts, und die
+    // generierten Fälle unten wären leer – dann soll dieser Test rot werden, nicht still grün.
+    expect(tailwindPalettes.length).toBeGreaterThanOrEqual(20);
+  });
+});
+
+ruleTester.run("no-raw-color-classes (Tailwind-Paletten)", rule, {
+  valid: [],
+  invalid: tailwindPalettes.map((palette) => ({
+    code: `const c = "bg-${palette}-500";`,
+    errors: [{ messageId: "rawColorClass", data: { className: `bg-${palette}-500` } }],
+  })),
 });
 
 // AK6.1 verlangt, dass die Meldung die Fundstelle nennt: die konkrete Klasse plus die

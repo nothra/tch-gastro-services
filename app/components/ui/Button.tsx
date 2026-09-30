@@ -10,11 +10,13 @@ export const BUTTON_SIZES = ["md", "sm"] as const;
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 export type ButtonSize = (typeof BUTTON_SIZES)[number];
 
+// Hover nur, solange nicht deaktiviert (spec AK2.2). `not-disabled:` statt `enabled:`, weil
+// `:enabled` auf dem `<a>` von `ButtonLink` nie zutrifft und dort den Hover abschalten würde.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-on-accent hover:bg-accent-hover",
-  secondary: "border border-line bg-surface text-foreground hover:bg-background",
-  danger: "bg-danger text-on-danger hover:bg-danger-hover",
-  ghost: "text-accent hover:bg-accent-subtle",
+  primary: "bg-accent text-on-accent not-disabled:hover:bg-accent-hover",
+  secondary: "border border-line bg-surface text-foreground not-disabled:hover:bg-background",
+  danger: "bg-danger text-on-danger not-disabled:hover:bg-danger-hover",
+  ghost: "text-accent not-disabled:hover:bg-accent-subtle",
 };
 
 // Beide Größen halten die Touch-Mindesthöhe von 44 px (spec AK2.1); sie unterscheiden sich

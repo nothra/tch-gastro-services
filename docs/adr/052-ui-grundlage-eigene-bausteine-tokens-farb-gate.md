@@ -114,10 +114,13 @@ Dateien.
 - Die Regel prüft String-`Literal`s und `TemplateElement`s (deckt `className="…"`,
   `className={`…`}` über mehrere Zeilen und Hilfsaufrufe ab) und meldet **jede** gefundene
   Klasse mit Zeile/Spalte. Erkannt werden, mit beliebigen Varianten-Präfixen (`dark:`,
-  `hover:`, `sm:` …) und optionalem Opazitäts-Suffix (`/50`):
+  `hover:`, `sm:`, `data-[…]:`, `[&>*]:`, `group-hover/item:`, `@sm:` …), optionalem `!`
+  (vorn oder hinten) und optionalem Opazitäts-Suffix (`/50`):
   - Farb-Utilities (`bg`, `text`, `border`/`border-{t,r,b,l,x,y,s,e}`, `ring`, `ring-offset`,
-    `outline`, `divide`, `fill`, `stroke`, `from`, `via`, `to`, `placeholder`, `decoration`,
-    `accent`, `caret`, `shadow`) + Tailwind-Palettenfarbe + Stufe (`50`, `100`–`900`, `950`),
+    `inset-ring`, `outline`, `divide`, `fill`, `stroke`, `from`, `via`, `to`, `placeholder`,
+    `decoration`, `accent`, `caret`, `shadow`, `inset-shadow`, `drop-shadow`, `text-shadow`) +
+    Tailwind-Palettenfarbe + Stufe (`50`, `100`–`900`, `950`). Die Palettenliste gleicht ein
+    Drift-Test gegen die `theme.css` des installierten Tailwind ab,
   - dieselben Utilities mit `black`/`white` und mit Arbitrary-Farbwert (`-[#…]`, `-[rgb…]`).
 
   Das ist strenger als der Spec-Wortlaut „Palette-Farbe mit Stufe": Auch `bg-white`/`text-black`

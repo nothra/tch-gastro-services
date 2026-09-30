@@ -56,7 +56,9 @@ const TEXT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["muted", "surface"],
   ["muted", "background"],
   ["on-accent", "accent"],
+  ["on-accent", "accent-hover"],
   ["on-danger", "danger"],
+  ["on-danger", "danger-hover"],
   ["accent", "surface"],
   ["accent", "background"],
   ["accent", "accent-subtle"],
@@ -68,12 +70,11 @@ const TEXT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["warning", "warning-subtle"],
 ];
 
-// Rahmen von Bedienelementen und Fokus-Rahmen: 3:1 genügt (WCAG 1.4.11).
+// Rahmen von Bedienelementen: 3:1 genügt (WCAG 1.4.11). Den Fokus-Rahmen in `accent` deckt
+// bereits das strengere Text-Paar `accent` auf `surface`/`background` oben ab.
 const NON_TEXT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["line", "surface"],
   ["line", "background"],
-  ["accent", "surface"],
-  ["accent", "background"],
 ];
 
 // Die semantischen Token, die spec AK1.1 namentlich verlangt.
@@ -138,6 +139,12 @@ describe("Farb-Tokens in globals.css (AK1)", () => {
     const dark = darkTokens();
 
     expect(contrastRatio(dark[fg], dark[bg])).toBeGreaterThanOrEqual(3);
+  });
+
+  // Ohne `color-scheme` blieben native Teile (Auswahl-Popup, Zahlen-Spinner, Scrollbalken)
+  // im Dunkelmodus hell, obwohl die Tokens umschalten.
+  it("should_declareLightAndDarkColorScheme_when_rootIsRead", () => {
+    expect(CSS).toMatch(/:root\s*\{[^}]*color-scheme:\s*light dark;/);
   });
 
   // AK1.4: Der Akzent bleibt der bisher genutzte Vereins-Cyan (`cyan-700` = #0e7490).

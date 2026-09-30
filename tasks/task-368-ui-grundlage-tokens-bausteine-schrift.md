@@ -129,6 +129,30 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
+**Runde 1** ([`review-368.md`](review-368.md), NEEDS_REWORK). Rework in `/implement`:
+
+- [x] **W1** Farb-Gate-Lücken: Paletten `mauve`/`mist`/`olive`/`taupe`, Utilities
+  `inset-shadow`/`inset-ring`/`drop-shadow`/`text-shadow`, Präfixe mit `[…]`, `/name`, `@`
+  sowie führendes `!` ergänzt. Je Form ein `invalid`-Fall (erst rot, dann grün). Dazu ein
+  Drift-Test: Er liest die Paletten aus `tailwindcss/theme.css` und erzeugt je Palette einen
+  `invalid`-Fall. Er ist fail-closed, wenn der Parser weniger als 20 findet. ADR-052 D3 ist
+  nachgezogen.
+- [ ] **W2** AK5.3-Nachweis: Der PR-Body von #378 enthält jetzt Zusammenfassung und
+  Screenshot-Tabelle. **Offen:** Die 12 PNGs aus `test-results/ux368/` müssen per Drag & Drop
+  an den PR. `gh` kann keine Bilder hochladen, das muss ein Mensch machen.
+- [x] **N1** `color-scheme: light dark` auf `:root`, mit Test.
+- [x] **N2** Hover-Paare `on-accent`/`accent-hover` und `on-danger`/`danger-hover` stehen in
+  `TEXT_PAIRS`. Das doppelte `accent`-Paar ist aus `NON_TEXT_PAIRS` entfernt.
+- [x] **N3** Den tautologischen Disabled-Test habe ich als Klassen-Kontrakt umbenannt. Das
+  Verhalten prüft weiter `should_beDisabledAndNotFire_when_disabled`.
+- [x] **N4** Hover ist jetzt `not-disabled:hover:`. Bewusst nicht `enabled:`: `:enabled` trifft
+  auf das `<a>` von `ButtonLink` nie zu und würde dort den Hover abschalten. Per
+  Tailwind-Compile-Probe geprüft: Die Ausgabe ist `:not(:disabled):hover`.
+- [ ] **N5** Nicht umgesetzt (optional). Heute nutzt niemand ein eigenes
+  `aria-describedby`/`aria-invalid`, das Zusammenführen wäre YAGNI.
+- [ ] **N6** Nicht umgesetzt. Das Verhalten gab es schon vorher. Der Reviewer ordnet es den
+  Folge-Issues #369–#374 zu.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

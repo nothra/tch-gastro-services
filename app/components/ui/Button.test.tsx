@@ -55,13 +55,22 @@ describe("Button – Zustände (AK2.2)", () => {
   it.each(BUTTON_VARIANTS)("should_defineHoverState_when_variantIs%s", (variant) => {
     render(<Button variant={variant}>Aktion</Button>);
 
-    expect(screen.getByRole("button").className).toMatch(/\bhover:/);
+    expect(screen.getByRole("button").className).toMatch(/\bnot-disabled:hover:/);
   });
 
-  it("should_markDisabledOptically_when_disabled", () => {
-    render(<Button disabled>Aktion</Button>);
+  // Ein deaktivierter Button darf keine Hover-Farbe zeigen, sonst wirkt er bedienbar.
+  it.each(BUTTON_VARIANTS)("should_notHoverWhileDisabled_when_variantIs%s", (variant) => {
+    render(<Button variant={variant}>Aktion</Button>);
 
-    expect(screen.getByRole("button").className).toMatch(/disabled:/);
+    expect(screen.getByRole("button").className).not.toMatch(/(^|\s)hover:/);
+  });
+
+  // Klassen-Kontrakt: Die Deaktiviert-Optik hängt an der CSS-Pseudoklasse `:disabled`, nicht
+  // am Prop – sie steht deshalb auf jedem Button und greift erst, wenn er deaktiviert ist.
+  it("should_carryDisabledStyling_when_rendered", () => {
+    render(<Button>Aktion</Button>);
+
+    expect(screen.getByRole("button")).toHaveClass("disabled:opacity-60");
   });
 });
 
