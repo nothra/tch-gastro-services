@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Gemeinsame UI-Grundlage für die UX-Überarbeitung (UX-1): semantische Farb-Tokens (hell/dunkel),
@@ -137,7 +137,7 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
   Drift-Test: Er liest die Paletten aus `tailwindcss/theme.css` und erzeugt je Palette einen
   `invalid`-Fall. Er ist fail-closed, wenn der Parser weniger als 20 findet. ADR-052 D3 ist
   nachgezogen.
-- [ ] **W2** AK5.3-Nachweis: Der PR-Body von #378 enthält jetzt Zusammenfassung und
+- [x] **W2** AK5.3-Nachweis: Der PR-Body von #378 enthält jetzt Zusammenfassung und
   Screenshot-Tabelle. **Offen:** Die 12 PNGs aus `test-results/ux368/` müssen per Drag & Drop
   an den PR. `gh` kann keine Bilder hochladen, das muss ein Mensch machen.
 - [x] **N1** `color-scheme: light dark` auf `:root`, mit Test.
@@ -158,7 +158,7 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
 - [x] **W3** `scripts/pr368-body.tmp.md` per `git rm` entfernt. Der Inhalt steht im PR-Body
   von #378. Die `.gitignore`-Lücke für `*.tmp.md` liegt außerhalb des Scopes (Kleinfund aus
   Runde 2).
-- [ ] **W2** Weiter offen, **menschliche Aktion vor dem Merge**: die 12 PNGs aus
+- [x] **W2** Erledigt (Screenshots von Hand als PR-Kommentar angehängt, 2026-09-30); war **menschliche Aktion vor dem Merge**: die 12 PNGs aus
   `test-results/ux368/` als Kommentar an PR #378 anhängen. Das löst kein weiterer
   `/implement`-Lauf (Circuit Breaker).
 - [x] **N7** Farb-Gate erkennt jetzt eine Ebene verschachtelter Arbitrary-Varianten
@@ -192,3 +192,7 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
 ---
 Branch: `feature/368-ui-grundlage-tokens-bausteine-schrift`
 Erstellt: 2026-09-30 21:42
+
+Blocker 2026-09-30 (AUFGELÖST: Screenshots angehängt): Pipeline pausiert – APPROVAL_PENDING: W2/AK5.3: 12 Screenshots aus test-results/ux368/ muessen von Hand an PR #378 angehaengt werden (gh kann keine Bilder hochladen). Danach /pr-shepherd erneut: Draft aufloesen, Task-Datei abschliessen, Merge freigeben. (/architecture ausführen, dann Pipeline neu starten)
+
+PR-Shepherd 2026-09-30: Screenshots (W2) angehängt; Merge freigegeben – alle Gates grün.
