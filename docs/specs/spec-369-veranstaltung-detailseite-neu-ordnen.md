@@ -77,7 +77,7 @@ und mit einem Tipp in den nächsten Arbeitsschritt kommen.
   Links unverändert zu spec-324 AK14) die Kacheln samt Kennzahlen; die Teilnehmerliste bleibt
   schreibgeschützt sichtbar.
 - [ ] **AK7** GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
-  ist „Wieder öffnen" erreichbar (auf der Kassieren-Seite, siehe AK22), und der Bereich
+  ist „Wieder öffnen" erreichbar (auf der Kassieren-Seite, siehe AK26), und der Bereich
   „Einstellungen" enthält keine Schreib-Aktionen.
 
 ### Teilnehmerliste und „+ Teilnehmer"
@@ -137,7 +137,7 @@ und mit einem Tipp in den nächsten Arbeitsschritt kommen.
   Detailseite selbst ist weder Link noch QR sichtbar, solange der Dialog zu ist. Der QR-Code
   wird weiterhin serverseitig erzeugt (kein `qrcode` im Client-Bundle, #307).
 - [ ] **AK23** GIVEN die bestehende Löschen-Funktion WHEN sie unter „Einstellungen" bedient wird
-  THEN verhält sie sich unverändert (Bestätigungsdialog mit Namenseingabe bzw. wie in spec-352;
+  THEN verhält sie sich unverändert (Bestätigungsdialog und Ablehnungsregeln wie in spec-352;
   Ablehnung bei erfasstem Verzehr, Kassiertem oder Auslagen).
 
 ### Abschließen / Wieder öffnen
