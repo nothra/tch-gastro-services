@@ -100,7 +100,7 @@ folgt die Liste der **Teilnehmer**, ganz unten der eingeklappte Bereich **„Ein
 **Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„+ Teilnehmer"**. Es öffnet
 sich ein Fenster mit zwei Bereichen:
 
-- **Bekannte Personen/Familien:** Suchen Sie oben nach dem Namen, haken Sie **eine oder mehrere**
+- **Bekannte Personen/Familien (oben im Fenster):** Suchen Sie nach dem Namen, haken Sie **eine oder mehrere**
   Personen an und tippen Sie auf **„Hinzufügen"**.
 - **Neuer Gast, noch nicht in der Liste:** Tragen Sie unter **„Neuer Gast"** den **Namen** ein,
   wählen Sie **Person** oder **Familie**, setzen Sie bei Vereinsmitgliedern den Haken

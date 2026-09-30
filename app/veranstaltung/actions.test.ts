@@ -1010,7 +1010,14 @@ describe("createWalkInAction", () => {
   it("should_returnError_when_nameEmpty", async () => {
     const result = await createWalkInAction(undefined, form({ ...walkIn, name: "   " }));
 
-    expect(result.error).toBeDefined();
+    expect(result.error).toBe("Anzeigename ist erforderlich.");
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_nameTooLong", async () => {
+    const result = await createWalkInAction(undefined, form({ ...walkIn, name: "x".repeat(201) }));
+
+    expect(result.error).toBe("Anzeigename ist zu lang.");
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
   });
 

@@ -66,7 +66,7 @@ const NOT_OFFEN = "Die Veranstaltung ist abgeschlossen und schreibgeschützt.";
 const ZEILE_NOT_FOUND = "Teilnehmerzeile nicht gefunden.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
 const TEILNEHMER_NOT_IN_VERANSTALTUNG = "Teilnehmer gehört nicht zu dieser Veranstaltung.";
-const TEILNEHMER_INACTIVE = "Teilnehmer nicht gefunden.";
+const TEILNEHMER_NICHT_GEFUNDEN = "Teilnehmer nicht gefunden.";
 const AUSLAGE_NOT_FOUND = "Auslage nicht gefunden.";
 const TOO_MANY_REQUESTS = "Zu viele Anfragen – bitte kurz warten.";
 const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
@@ -89,7 +89,7 @@ export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
 // Jede Ablehnung der Mehrfach-Anlage stellt klar, dass kein Teilerfolg entstanden ist (#369 FS2).
 const NIEMAND_ANGELEGT = "Es wurde niemand hinzugefügt.";
-const TEILNEHMER_UNBEKANNT = `${TEILNEHMER_INACTIVE} ${NIEMAND_ANGELEGT}`;
+const TEILNEHMER_UNBEKANNT = `${TEILNEHMER_NICHT_GEFUNDEN} ${NIEMAND_ANGELEGT}`;
 // Im Rennen nach dem Vor-Check meldet nur der Unique-Index, WER inzwischen erfasst ist, sagt es
 // aber nicht – die Meldung kann deshalb keinen Namen nennen.
 const GLEICHZEITIG_ERFASST = `Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. ${NIEMAND_ANGELEGT}`;
@@ -434,9 +434,9 @@ export async function removeZeileAction(
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
   const removed = await removeZeile(zeileId, veranstaltungId);
-  revalidatePath(detailPath(veranstaltungId));
   // Auch ohne Treffer neu rendern: war die Zeile schon auf einem anderen Gerät entfernt, fällt
   // sie so aus der Liste, statt veraltet stehen zu bleiben.
+  revalidatePath(detailPath(veranstaltungId));
   if (!removed) return { error: ZEILE_NOT_FOUND };
   return { ok: true };
 }
@@ -659,7 +659,7 @@ async function assertTeilnehmerInVeranstaltung(
   if (!zeile) return TEILNEHMER_NOT_IN_VERANSTALTUNG;
 
   const person = await getTeilnehmer(teilnehmerId);
-  if (!person || !person.active) return TEILNEHMER_INACTIVE;
+  if (!person || !person.active) return TEILNEHMER_NICHT_GEFUNDEN;
 
   return undefined;
 }

@@ -4,8 +4,8 @@
 
 Accepted
 
-> Erweitert **ADR-052** D1 um zwei Bausteine (`Dialog`, `ConfirmDialog`); der dort festgelegte
-> Satz von sechs Bausteinen, die Token-Regeln und das Farb-Gate gelten unverändert. Berührt
+> Erweitert **ADR-052** D1 um zwei Bausteine (`Dialog`, `ConfirmDialog`); die dort
+> festgelegten Regeln, das Token-Modell und das Farb-Gate gelten unverändert. Berührt
 > **ADR-033** (Abschluss) nur in der Platzierung des Buttons, nicht im Verhalten.
 
 ## Datum
@@ -52,7 +52,10 @@ Dialog-Grundlage):
   Schaltfläche (Variante `primary` oder `danger`), „Abbrechen", optionaler Fehlertext
   (`role="alert"`) und ein `pending`-Zustand, der beide Schaltflächen **und Escape** sperrt –
   sonst schlösse sich der Dialog, während der Server den Vorgang trotzdem ausführt, und eine
-  Ablehnung sähe niemand. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
+  Ablehnung sähe niemand. Die Escape-Sperre liegt im `Dialog` selbst (Prop `schliessbar`), damit
+  jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf beider
+  Bereiche dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`), weil ein `setState`
+  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
   angeschlossen werden können.
 - „Bei Erfolg schließen" liegt einmal im Hook `app/veranstaltung/useSchliessendeAction.ts`
   (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`); beide
@@ -93,9 +96,10 @@ Dialog-Grundlage):
   Teilnehmer wählen.", AK14), Obergrenze (`max(200)`, Lesson „Zod-Obergrenzen") und Duplikat-
   Bereinigung vor der Prüfung.
 - Vor-Check in zwei parallelen Abfragen – kein N+1: `getTeilnehmerByIds` (`inArray`, unabhängig
-  von `active`) und `listZeilen`. Fehlt eine Id (Anzahl weicht ab), sind Gewählte inaktiv oder
-  schon erfasst, lehnt die Action ab und nennt die Betroffenen beim Namen („Nicht mehr wählbar:
-  …" / „Bereits erfasst: …"), stets mit dem Zusatz „Es wurde niemand hinzugefügt." (FS2).
+  von `active`) und `listZeilen`. Fehlt eine Id (Anzahl weicht ab), lehnt die Action ohne Namen
+  ab („Teilnehmer nicht gefunden."); sind Gewählte inaktiv oder schon erfasst, nennt sie die
+  Betroffenen beim Namen („Nicht mehr wählbar: …" / „Bereits erfasst: …"). Beide Meldungen tragen
+  den Zusatz „Es wurde niemand hinzugefügt." (FS2).
 - Bei **jeder** Ablehnung des Vor-Checks läuft `revalidatePath`, damit die Auswahl im Dialog
   den aktuellen Stand zeigt.
 - **Unique-Verletzung (`23505`)** fängt nur noch das Rennen zweier Geräte zwischen Vor-Check und
@@ -147,8 +151,8 @@ Dialog-Grundlage):
 
 ### D1
 
-**A – Eigener `Dialog` auf nativem `<dialog>` (gewählt).** Vorteile: Escape, inerter Hintergrund
-und Fokus-Rücksprung kommen von der Plattform; passt zu ADR-052 (keine Abhängigkeit) und zu
+**A – Eigener `Dialog` auf nativem `<dialog>` (gewählt).** Vorteile: Escape und inerter Hintergrund
+kommen von der Plattform (den Fokus-Rücksprung setzt der Baustein selbst, siehe D1); passt zu ADR-052 (keine Abhängigkeit) und zu
 #372 AK1. Nachteile: jsdom implementiert `showModal()` nicht – Tests brauchen einen Stub.
 **B – shadcn/ui-Dialog (Radix).** Vorteile: fertig, gut getestet. Nachteile: neue Abhängigkeiten,
 widerspricht ADR-052 D1 und bräuchte eine eigene ADR; für zwei Dialoge Überdimensionierung.

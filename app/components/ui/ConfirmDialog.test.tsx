@@ -115,20 +115,24 @@ describe("ConfirmDialog (ADR-053 D1, spec-369 AK29)", () => {
     // Das Rücksprungziel reicht der ConfirmDialog an die Dialog-Grundlage durch (AK29).
     const ausloeser = document.createElement("button");
     document.body.append(ausloeser);
-    const props = {
-      onClose: vi.fn(),
-      title: "Teilnehmer entfernen?",
-      description: "„Anna Beispiel“ wird entfernt.",
-      confirmLabel: "Entfernen",
-      action: vi.fn(),
-      returnFocusRef: { current: ausloeser },
-    };
-    const { rerender } = render(<ConfirmDialog open {...props} />);
+    // `finally`: schlägt die Assertion fehl, darf der Auslöser nicht für Folgetests liegen bleiben.
+    try {
+      const props = {
+        onClose: vi.fn(),
+        title: "Teilnehmer entfernen?",
+        description: "„Anna Beispiel“ wird entfernt.",
+        confirmLabel: "Entfernen",
+        action: vi.fn(),
+        returnFocusRef: { current: ausloeser },
+      };
+      const { rerender } = render(<ConfirmDialog open {...props} />);
 
-    rerender(<ConfirmDialog open={false} {...props} />);
+      rerender(<ConfirmDialog open={false} {...props} />);
 
-    expect(ausloeser).toHaveFocus();
-    ausloeser.remove();
+      expect(ausloeser).toHaveFocus();
+    } finally {
+      ausloeser.remove();
+    }
   });
 
   it("should_keepConfirmLabel_when_pendingWithoutPendingLabel", () => {

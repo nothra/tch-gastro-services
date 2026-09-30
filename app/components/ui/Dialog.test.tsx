@@ -137,6 +137,27 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("should_closeWithoutError_when_returnTargetIsNoHtmlElement", () => {
+    // Ein SVG-Auslöser (oder `null`) ist kein `HTMLElement`: der Rücksprung entfällt, der
+    // Schließvorgang läuft trotzdem durch.
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <Dialog open onClose={onClose} title="T" returnFocusRef={{ current: svg as never }}>
+        x
+      </Dialog>,
+    );
+
+    rerender(
+      <Dialog open={false} onClose={onClose} title="T" returnFocusRef={{ current: svg as never }}>
+        x
+      </Dialog>,
+    );
+
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(document.body).toHaveFocus();
+  });
+
   it("should_callOnClose_when_closedNatively", () => {
     // Ein nativer Schließweg (z. B. `<form method="dialog">`) umgeht `cancel` – auch dann muss
     // der Konsument davon erfahren, sonst hielte er den Dialog für offen.
