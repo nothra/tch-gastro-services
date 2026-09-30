@@ -262,4 +262,51 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(auswahlBereich().queryByRole("button", { name: "Hinzufügen" })).not.toBeInTheDocument();
     expect(gastBereich().getByRole("button", { name: "Gast hinzufügen" })).toBeEnabled();
   });
+
+  describe("während eine Action läuft", () => {
+    function neverResolving() {
+      return new Promise<never>(() => {});
+    }
+
+    it("should_lockCloseAndShowPendingLabel_when_stammteilnehmerActionRuns", async () => {
+      addZeilenActionMock.mockImplementation(neverResolving);
+      renderDialog();
+      oeffnen();
+      fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+
+      await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+      const cancel = new Event("cancel", { cancelable: true });
+      fireEvent(dialogElement(), cancel);
+
+      expect(cancel.defaultPrevented).toBe(true);
+      expect(dialogElement()).toHaveAttribute("open");
+      expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Hinzufügen …" })).toBeDisabled();
+    });
+
+    it("should_lockCloseAndShowPendingLabel_when_gastActionRuns", async () => {
+      createWalkInActionMock.mockImplementation(neverResolving);
+      renderDialog();
+      oeffnen();
+      fireEvent.change(gastBereich().getByLabelText("Name"), { target: { value: "Gast Eins" } });
+
+      await absenden(gastBereich().getByRole("button", { name: "Gast hinzufügen" }));
+      fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
+
+      expect(dialogElement()).toHaveAttribute("open");
+      expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Anlegen …" })).toBeDisabled();
+    });
+
+    it("should_unlockClose_when_actionRejected", async () => {
+      addZeilenActionMock.mockResolvedValue({ error: "Nicht mehr wählbar: Anna Beispiel" });
+      renderDialog();
+      oeffnen();
+      fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+
+      await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+
+      expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
+    });
+  });
 });

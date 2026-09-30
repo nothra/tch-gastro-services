@@ -30,7 +30,11 @@ export function TeilnehmerHinzufuegenDialog({
 }: TeilnehmerHinzufuegenDialogProps) {
   const [open, setOpen] = useState(false);
   const ausloeserRef = useRef<HTMLButtonElement>(null);
+  const [laufendeActions, setLaufendeActions] = useState(0);
   const schliessen = () => setOpen(false);
+  // Zähler statt Boolean: beide Bereiche können gleichzeitig abschicken.
+  const meldeLauf = (laeuft: boolean) => setLaufendeActions((n) => n + (laeuft ? 1 : -1));
+  const gesperrt = laufendeActions > 0;
 
   return (
     <>
@@ -40,6 +44,7 @@ export function TeilnehmerHinzufuegenDialog({
       <Dialog
         open={open}
         onClose={schliessen}
+        schliessbar={!gesperrt}
         title="Teilnehmer hinzufügen"
         returnFocusRef={ausloeserRef}
       >
@@ -47,10 +52,15 @@ export function TeilnehmerHinzufuegenDialog({
           veranstaltungId={veranstaltungId}
           verfuegbar={verfuegbar}
           onErfolg={schliessen}
+          onLaeuftChange={meldeLauf}
         />
-        <GastBereich veranstaltungId={veranstaltungId} onErfolg={schliessen} />
+        <GastBereich
+          veranstaltungId={veranstaltungId}
+          onErfolg={schliessen}
+          onLaeuftChange={meldeLauf}
+        />
         <div className="flex justify-end">
-          <Button variant="secondary" onClick={schliessen}>
+          <Button variant="secondary" onClick={schliessen} disabled={gesperrt}>
             Abbrechen
           </Button>
         </div>
@@ -62,14 +72,20 @@ export function TeilnehmerHinzufuegenDialog({
 interface BereichProps {
   veranstaltungId: string;
   onErfolg: () => void;
+  onLaeuftChange: (laeuft: boolean) => void;
 }
 
 function StammteilnehmerBereich({
   veranstaltungId,
   verfuegbar,
   onErfolg,
+  onLaeuftChange,
 }: BereichProps & { verfuegbar: readonly StammteilnehmerAuswahl[] }) {
-  const [state, formAction, pending] = useSchliessendeAction(addZeilenAction, onErfolg);
+  const [state, formAction, pending] = useSchliessendeAction(
+    addZeilenAction,
+    onErfolg,
+    onLaeuftChange,
+  );
   const [suche, setSuche] = useState("");
   const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
 
@@ -127,7 +143,11 @@ function StammteilnehmerBereich({
           ))}
         </ul>
       )}
-      <form action={formAction} className="flex flex-col gap-3">
+      <form
+        action={formAction}
+        onSubmit={() => onLaeuftChange(true)}
+        className="flex flex-col gap-3"
+      >
         <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
         {/* Die Auswahl wird aus dem Zustand abgeschickt, nicht aus den sichtbaren Checkboxen:
             die Suche filtert nur die Anzeige, eine angehakte Person bleibt gewählt. */}
@@ -150,8 +170,12 @@ function StammteilnehmerBereich({
 // nutzen (spec-369 AK31, ADR-052). Die Zusammenführung – `TeilnehmerFields` auf die Bausteine
 // umstellen und hier wiederverwenden – steht in `kleinfunde.md`. Bis dahin hält die gemeinsame
 // Konstante wenigstens die Längengrenze an der Zod-Grenze fest.
-function GastBereich({ veranstaltungId, onErfolg }: BereichProps) {
-  const [state, formAction, pending] = useSchliessendeAction(createWalkInAction, onErfolg);
+function GastBereich({ veranstaltungId, onErfolg, onLaeuftChange }: BereichProps) {
+  const [state, formAction, pending] = useSchliessendeAction(
+    createWalkInAction,
+    onErfolg,
+    onLaeuftChange,
+  );
 
   return (
     <section
@@ -160,7 +184,11 @@ function GastBereich({ veranstaltungId, onErfolg }: BereichProps) {
       className="flex flex-col gap-3 border-t border-line-subtle pt-4"
     >
       <h3 className="text-sm font-semibold">Neuer Gast</h3>
-      <form action={formAction} className="flex flex-col gap-3">
+      <form
+        action={formAction}
+        onSubmit={() => onLaeuftChange(true)}
+        className="flex flex-col gap-3"
+      >
         <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
         {/* Jede Ablehnung des Walk-in betrifft den eingegebenen Gast oder den Zustand der
             Veranstaltung; das Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb

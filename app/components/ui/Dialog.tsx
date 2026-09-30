@@ -13,6 +13,12 @@ interface DialogProps {
   open: boolean;
   /** Meldet jedes Schließen durch den Nutzer (Escape, nativer Schließweg). */
   onClose: () => void;
+  /**
+   * `false` sperrt Escape: ein Schließen während einer laufenden Action schlösse nur den Dialog,
+   * während der Server den Vorgang trotzdem ausführt – eine Ablehnung sähe dann niemand. Die
+   * Schaltflächen im Inhalt sperrt der Konsument selbst.
+   */
+  schliessbar?: boolean;
   title: string;
   description?: ReactNode;
   /**
@@ -34,6 +40,7 @@ interface DialogProps {
 export function Dialog({
   open,
   onClose,
+  schliessbar = true,
   title,
   description,
   returnFocusRef,
@@ -62,7 +69,7 @@ export function Dialog({
     // Den nativen Schließvorgang übernimmt der Effekt, sobald der Konsument `open` zurücknimmt –
     // so bleibt der React-Zustand die einzige Quelle für „offen".
     event.preventDefault();
-    onClose();
+    if (schliessbar) onClose();
   }
 
   function handleClose() {

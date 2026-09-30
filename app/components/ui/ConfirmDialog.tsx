@@ -37,8 +37,6 @@ interface ConfirmDialogProps {
   children?: ReactNode;
 }
 
-function schliessenGesperrt() {}
-
 export function ConfirmDialog({
   open,
   onClose,
@@ -56,7 +54,8 @@ export function ConfirmDialog({
   return (
     <Dialog
       open={open}
-      onClose={pending ? schliessenGesperrt : onClose}
+      onClose={onClose}
+      schliessbar={!pending}
       title={title}
       description={description}
       returnFocusRef={returnFocusRef}

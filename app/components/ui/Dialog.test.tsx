@@ -76,6 +76,23 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     expect(screen.queryByRole("textbox", { name: "Suche", hidden: true })).not.toBeInTheDocument();
   });
 
+  it("should_ignoreEscapeAndStayOpen_when_notDismissible", () => {
+    // Sperre im Baustein selbst (Review #369, Iteration 2): alle Konsumenten folgen derselben Regel.
+    const onClose = vi.fn();
+    render(
+      <Dialog open onClose={onClose} title="T" schliessbar={false}>
+        x
+      </Dialog>,
+    );
+    const cancel = new Event("cancel", { cancelable: true });
+
+    fireEvent(dialogElement(), cancel);
+
+    expect(cancel.defaultPrevented).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(dialogElement()).toHaveAttribute("open");
+  });
+
   it("should_returnFocusToTrigger_when_closed", () => {
     render(<Harness />);
     const trigger = screen.getByRole("button", { name: "Öffnen" });
