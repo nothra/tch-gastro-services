@@ -47,7 +47,7 @@ export async function getTeilnehmerByIds(ids: readonly string[]): Promise<Teilne
     .orderBy(...teilnehmerOrder);
 }
 
-export type TeilnehmerData =Omit<NewTeilnehmer, "id" | "createdAt" | "updatedAt" | "active">;
+export type TeilnehmerData = Omit<NewTeilnehmer, "id" | "createdAt" | "updatedAt" | "active">;
 
 export async function createTeilnehmer(data: TeilnehmerData): Promise<Teilnehmer> {
   const [created] = await db.insert(teilnehmer).values(data).returning();
