@@ -27,7 +27,9 @@ Modell-Defaults der Tiers auf die aktuellen Modelle anheben: heavy `claude-opus-
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Keine Learnings – reine Konfigurationsanhebung, Modell-IDs per `claude --print --model` verifiziert.
+
+PR-Shepherd 2026-09-30: Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `chore/379-modell-defaults-auf-5-5-anheben`
