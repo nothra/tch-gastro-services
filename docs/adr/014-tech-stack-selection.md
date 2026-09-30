@@ -3,6 +3,10 @@
 ## Status
 Accepted
 
+> **Teilweise abgelöst durch [ADR-052](052-ui-grundlage-eigene-bausteine-tokens-farb-gate.md)**
+> (#368): Die UI-Zeile lautet jetzt „Tailwind CSS + eigene Bausteine (`app/components/ui/`)“,
+> shadcn/ui wird nicht installiert. Alle übrigen Zeilen gelten unverändert.
+
 ## Datum
 2026-07-08
 

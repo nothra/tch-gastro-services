@@ -5,6 +5,9 @@ import { formatCents } from "@/lib/money";
 import type { CatalogItem } from "@/db/schema";
 import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
 import { CatalogFields, CATEGORY_LABEL } from "./CatalogFields";
+import { Badge } from "@/app/components/ui/Badge";
+import { Button } from "@/app/components/ui/Button";
+import { Notice } from "@/app/components/ui/Notice";
 
 interface CatalogRowProps {
   item: CatalogItem;
@@ -31,7 +34,7 @@ export function CatalogRow({ item, catalogId }: CatalogRowProps) {
 
   return (
     <li
-      className={`flex flex-col gap-2 rounded border border-zinc-200 p-3 dark:border-zinc-800 ${
+      className={`flex flex-col gap-2 rounded-lg border border-line-subtle bg-surface p-3 ${
         item.active ? "" : "opacity-60"
       }`}
     >
@@ -40,54 +43,44 @@ export function CatalogRow({ item, catalogId }: CatalogRowProps) {
           <input type="hidden" name="id" value={item.id} />
           <input type="hidden" name="catalogId" value={catalogId} />
           <CatalogFields item={item} />
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded bg-cyan-700 px-3 py-1 text-sm font-medium text-white disabled:opacity-60"
-            >
-              Speichern
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-            >
-              Abbrechen
-            </button>
-            {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" size="sm" disabled={pending}>
+                Speichern
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>
+                Abbrechen
+              </Button>
+            </div>
+            <Notice kind="fehler">{state?.error}</Notice>
           </div>
         </form>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="font-medium">
+          <div className="flex min-w-0 flex-col">
+            <span className="font-medium break-words">
               {item.name}
               {item.size ? ` · ${item.size}` : " · ohne Größe"}
             </span>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-              {formatCents(item.priceCents)} · {CATEGORY_LABEL[item.category]}
-              {item.active ? "" : " · deaktiviert"}
+            <span className="text-sm text-muted">
+              {/* Beträge in Ziffern gleicher Breite, damit Preise untereinander bündig
+                  stehen (spec AK4.2). */}
+              <span className="tabular-nums">{formatCents(item.priceCents)}</span> ·{" "}
+              {CATEGORY_LABEL[item.category]}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-            >
+            {!item.active && <Badge tone="neutral">deaktiviert</Badge>}
+            <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)}>
               Bearbeiten
-            </button>
+            </Button>
             <form action={setCatalogItemActiveAction}>
               <input type="hidden" name="id" value={item.id} />
               <input type="hidden" name="catalogId" value={catalogId} />
               <input type="hidden" name="active" value={item.active ? "false" : "true"} />
-              <button
-                type="submit"
-                className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-              >
+              <Button type="submit" variant="secondary" size="sm">
                 {item.active ? "Deaktivieren" : "Aktivieren"}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

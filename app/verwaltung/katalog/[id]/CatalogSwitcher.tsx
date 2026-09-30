@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { Catalog } from "@/db/schema";
+import { Badge } from "@/app/components/ui/Badge";
 
 interface CatalogSwitcherProps {
   currentId: string;
@@ -16,12 +17,10 @@ export function CatalogSwitcher({ currentId, allCatalogs }: CatalogSwitcherProps
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-        Katalog wählen
-      </legend>
+      <legend className="text-sm font-medium text-foreground">Katalog wählen</legend>
       <div className="flex flex-col gap-2">
         {allCatalogs.map((cat) => (
-          <label key={cat.id} className="flex items-center gap-2">
+          <label key={cat.id} className="flex min-h-11 items-center gap-2">
             <input
               type="radio"
               name="catalog"
@@ -30,11 +29,14 @@ export function CatalogSwitcher({ currentId, allCatalogs }: CatalogSwitcherProps
               onChange={() => {
                 router.push(`/verwaltung/katalog/${cat.id}`);
               }}
-              className="cursor-pointer"
+              // `accent-accent`: die Utility `accent` (accent-color) auf das Token `accent`.
+              className="accent-accent cursor-pointer"
             />
-            <span className={cat.active ? "" : "text-zinc-500 dark:text-zinc-400"}>{cat.name}</span>
+            <span className={cat.active ? "" : "text-muted"}>{cat.name}</span>
             {!cat.active && (
-              <span className="ml-auto text-xs text-zinc-500 dark:text-zinc-400">(inaktiv)</span>
+              <Badge tone="neutral" className="ml-auto">
+                (inaktiv)
+              </Badge>
             )}
           </label>
         ))}

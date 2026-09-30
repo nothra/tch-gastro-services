@@ -1,26 +1,113 @@
 @import "tailwindcss";
 
+/*
+ * Semantische Farb-Tokens (ADR-052 D2). Seiten und Bausteine setzen NIE eine rohe
+ * Tailwind-Farbklasse und NIE eine `dark:`-Variante – sie nutzen die hier veröffentlichten
+ * Token-Klassen (`bg-surface`, `text-muted`, …), die dem Gerätemodus von selbst folgen.
+ * Ein Farbwechsel oder Kontrast-Fix ist damit eine Änderung genau in dieser Datei.
+ * Die Kontrastpaare (WCAG AA) rechnet `app/components/ui/tokens.test.ts` bei jedem Lauf nach.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Native Teile (Auswahl-Popup, Zahlen-Spinner, Scrollbalken) folgen so ebenfalls dem Gerätemodus. */
+  color-scheme: light dark;
+  --background: #f4f4f5;
+  --surface: #ffffff;
+  --foreground: #18181b;
+  --muted: #52525b;
+  --line: #71717a;
+  --line-subtle: #e4e4e7;
+  --accent: #0e7490;
+  --accent-hover: #155e75;
+  --on-accent: #ffffff;
+  --accent-subtle: #ecfeff;
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --on-danger: #ffffff;
+  --danger-subtle: #fef2f2;
+  --success: #15803d;
+  --success-subtle: #f0fdf4;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --overlay: #09090b8c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #09090b;
+    --surface: #18181b;
+    --foreground: #f4f4f5;
+    --muted: #a1a1aa;
+    --line: #71717a;
+    --line-subtle: #27272a;
+    /* Der Akzent wird im Dunkeln aufgehellt und trägt dunklen Text: Weiß auf Cyan-600
+       erreicht nur 3,7 : 1 (ADR-052 D2). */
+    --accent: #22d3ee;
+    --accent-hover: #67e8f9;
+    --on-accent: #083344;
+    --accent-subtle: #083344;
+    --danger: #f87171;
+    --danger-hover: #fca5a5;
+    --on-danger: #450a0a;
+    --danger-subtle: #450a0a;
+    --success: #4ade80;
+    --success-subtle: #052e16;
+    --warning: #fbbf24;
+    --warning-subtle: #451a03;
+    --overlay: #09090bcc;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-subtle: var(--line-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-on-danger: var(--on-danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-overlay: var(--overlay);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/*
+ * Typo-Skala (ADR-052 D2): global statt je Baustein, damit die Hierarchie sofort auf allen
+ * Seiten gilt. In `@layer base`, damit eine explizite Utility-Klasse auf einer noch nicht
+ * umgestellten Seite weiterhin gewinnt.
+ */
+@layer base {
+  h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
