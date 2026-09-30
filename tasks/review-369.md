@@ -1,9 +1,11 @@
 # Review: Task 369
 
-Runde 1 (Logik), Runde 2 (Code-Qualität) und Runde 3 (Architektur) liefen nacheinander über
-`git diff origin/main...HEAD` (Stand `7123c8c`). Die tragenden Behauptungen der Wichtig-Findings
-hat der Orchestrator selbst im Code nachgeprüft (`Dialog.tsx`/`ConfirmDialog.tsx`, `hasSqlState`
-im Katalog gegen `drizzle-orm/pg-core/session.js`).
+**Review-Iteration 2** (nach dem Rework `c4f2ae5`, `c7952f3`, `525ef32`). Runde 1 (Logik), Runde 2
+(Code-Qualität) und Runde 3 (Architektur) liefen als eigene Sub-Agenten auf dem Stand `525ef32`. Die
+Agenten hatten keinen Bash-Zugriff und haben die Dateien auf HEAD direkt gelesen. Den Diff
+(`git diff origin/main...HEAD`, `7123c8c..HEAD`) und die tragenden Behauptungen hat der Orchestrator
+selbst nachgeprüft (`TeilnehmerHinzufuegenDialog.tsx`, `ConfirmDialog.tsx`, `Dialog.tsx`,
+ADR-053 Z. 7-8/96-98/150-151, `actions.ts:69,92`, `anleitung.md:103`).
 
 ## Kritische Findings (müssen behoben werden)
 
@@ -11,154 +13,121 @@ _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [x] [app/components/ui/ConfirmDialog.tsx:46 · app/components/ui/Dialog.tsx:46-51] Escape umgeht die
-  `pending`-Sperre. `pending` sperrt nur die beiden Schaltflächen. `Dialog.handleCancel` ruft bei
-  Escape aber immer `onClose()` auf. Damit tritt genau der Fall ein, vor dem der JSDoc
-  (`ConfirmDialog.tsx:23-26`) warnt: Der Dialog schließt, der Server entfernt trotzdem. Lehnt der
-  Server ab (AK20), sieht niemand die Meldung, denn beim nächsten Öffnen setzt `key={durchlauf}` sie
-  zurück. Vorschlag: Während `pending` an `Dialog` ein No-op-`onClose` reichen (oder ein
-  `dismissible`-Prop). Test: `cancel`-Event bei `pending: true` → `onClose` wird nicht aufgerufen.
-- [x] [app/components/ui/Dialog.tsx:39] Der Fokus-Rücksprung (AK15/AK30) hängt an
-  `document.activeElement` beim Öffnen. Safari (macOS und iOS, eine Zielplattform der PWA) fokussiert
-  einen `<button>` beim Tipp nicht; `activeElement` ist dann `<body>`. Dadurch kehrt der Fokus bei
-  „+ Teilnehmer" und „Link & QR teilen" nicht zurück. Die Tests rufen vorher `trigger.focus()` auf
-  (`TeilnehmerHinzufuegenDialog.test.tsx:184`) und belegen deshalb nur den Chromium-Fall.
-  `ZeilenMenue` ist nicht betroffen, weil es den Auslöser selbst fokussiert. Vorschlag: Das
-  Rücksprungziel explizit übergeben (z. B. `returnFocusRef` oder den Auslöser im Öffnen-Handler
-  fokussieren, wie es `ZeilenMenue` schon tut).
-- [x] [app/components/ui/ConfirmDialog.tsx:32 · app/veranstaltung/ZeilenMenue.tsx:21-23,48,89,112-121 ·
-  docs/adr/053-…:45-47 · app/components/ui/Dialog.tsx:22-26] Das Versprechen „jedes Öffnen beginnt mit
-  frischem Formularzustand" gilt nur für Zustand **in** den Kindern. Beim `ConfirmDialog` liegt
-  `useActionState` beim Konsumenten. `ZeilenMenue` braucht deshalb den `durchlauf`-Key-Trick und
-  kopiert zusätzlich den Wrapper „Action umschließen, bei `ok` schließen" fast wörtlich aus
-  `TeilnehmerHinzufuegenDialog.tsx:59-70` (`useSchliessendeAction`). #372 würde beides für vier
-  weitere Dialoge wiederholen. Vorschlag: Den Hook in ein gemeinsames Modul ziehen und in beiden
-  Konsumenten nutzen. Zusätzlich die Einschränkung in `ConfirmDialog`-JSDoc und ADR-053 D1 nennen,
-  alternativ den Action-State in `ConfirmDialog` verlegen (`action` + `onSuccess`).
-- [x] [app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:155-188] „Neuer Gast" (`GastBereich`) baut
-  Name, Typ (samt `TYP_LABEL`) und Mitglied aus `TeilnehmerFields` nach. Die gelöschte `WalkInForm`
-  nutzte `TeilnehmerFields` ausdrücklich gegen Duplikation
-  (`app/verwaltung/teilnehmer/TeilnehmerFields.tsx:11`). Beide Varianten laufen schon auseinander:
-  nur die neue hat `maxLength={200}` (Z. 170, magische Zahl aus `teilnehmerSchema`), und die
-  Beschriftung heißt einmal „Name", einmal „Anzeigename". Der vermutliche Grund (rohe Farbklassen in
-  `TeilnehmerFields`, AK31) steht nirgends. Vorschlag: WHY-Kommentar mit Verweis ergänzen, die Grenze
-  200 aus einer benannten Konstante beziehen und die Zusammenführung kanonisch festhalten
-  (`kleinfunde.md`). Alternativ `TeilnehmerFields` auf Bausteine umstellen und wiederverwenden.
-- [x] [docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md:75-86] ADR-Drift zu D3 und
-  D2 (ADR im selben PR entstanden, Lessons #55/#211). Der Code (`actions.ts:331-350,375-378`) prüft vorab
-  auch **bereits erfasst** (zweite Abfrage `listZeilen`) und liefert namentliche Meldungen („Bereits
-  erfasst: …" / „Nicht mehr wählbar: …" + „Es wurde niemand hinzugefügt."). `revalidatePath` läuft
-  bei jeder Ablehnung, `23505` fängt nur noch das Rennen zweier Geräte ab. Die Aktivprüfung zählt
-  **und** filtert `!active`. In D2 fehlt, dass `removeZeileAction` von `void` auf einen
-  Rückgabe-State wechselt (Voraussetzung für AK20). Vorschlag: D3/D2 nachziehen.
-- [x] [docs/anleitung/veranstalter/anleitung.md:98,111,121] Die Bilder `05`/`06`/`07` zeigen noch das
-  alte Layout. Text und Alt-Texte beschreiben schon Kacheln und Dialoge. Die Lücke steht nur als
-  Task-Notiz. Vorschlag: Vor dem Merge gegen eine frisch geseedete DB mit `CAPTURE_ANLEITUNG=1` neu
-  erzeugen und dabei `10`/`11` (Abschließen am Ende von Kassieren) mitprüfen. Sonst die Lücke
-  kanonisch festhalten, nicht nur als Task-Notiz (Lesson #345).
-- [x] [e2e/anleitung-veranstalter.spec.ts:141 · e2e/wechsel-verzehr-kassieren.spec.ts:57 ·
-  e2e/veranstaltung-bearbeiten-loeschen.spec.ts:87 · e2e/veranstaltung-detailseite.spec.ts:80,97-99]
-  Den E2E-Helfer für den Gast-Dialog gibt es jetzt viermal, `oeffneEinstellungen` zweimal in
-  unterschiedlicher Form. Die Variante in `veranstaltung-detailseite.spec.ts:97-99` klickt ohne
-  `open`-Prüfung und würde ein offenes `<details>` wieder schließen. Vorschlag: gemeinsames Modul
-  `e2e/helpers/…` mit der abgesicherten Variante.
+- [ ] [app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:40-56 (dazu :72, :140-141, :154, :186-187)]
+  Im „+ Teilnehmer"-Dialog bleiben Escape und „Abbrechen" während einer laufenden Action aktiv. Das
+  ist dasselbe Muster wie Runde-1-W1, der Rework hat es nur im `ConfirmDialog` behoben.
+  - `Dialog` bekommt immer `onClose={schliessen}` (Z. 42), „Abbrechen" (Z. 53) hat kein `disabled`.
+    `pending` entsteht nur in `StammteilnehmerBereich`/`GastBereich` und wird nicht nach oben gereicht.
+  - Hier wiegt es schwerer als beim `ConfirmDialog`: Der `useActionState` liegt in den Kindern, und
+    die werden beim Schließen ausgehängt (`Dialog.tsx:85`). Eine Ablehnung (FS1 „abgeschlossen",
+    FS2 „Nicht mehr wählbar: …") geht deshalb still verloren, obwohl FS1/FS2 die Meldung **im Dialog**
+    verlangen. ADR-053 D1 (Z. 53-55) begründet die Sperre mit genau diesem Fall.
+  - Nebenwirkung beim Gast: Schließen, neu öffnen und erneut abschicken, während der erste Aufruf
+    noch läuft, legt den Gast doppelt an (`createTeilnehmer` prüft keine Namens-Eindeutigkeit).
+  - Die Pending-Zweige („Hinzufügen …", „Anlegen …", `disabled={pending}`) sind ungetestet. Alle
+    Tests arbeiten mit sofort aufgelösten Mocks, das Ziel „neuer Code 100 %" ist damit verfehlt.
+  - Vorschlag: Die Sperre in `Dialog` selbst verlegen (z. B. Prop `schliessbar`). Dann entfällt
+    `schliessenGesperrt` im `ConfirmDialog`, und beide Konsumenten folgen derselben Regel. Den
+    Pending-Zustand beider Bereiche an den Dialog melden und „Abbrechen" währenddessen sperren.
+    Test mit einem nie auflösenden Promise: `cancel` auslösen, dann erwarten, dass der Dialog offen
+    bleibt, die Schaltflächen gesperrt sind und „Hinzufügen …" angezeigt wird (analog
+    `ConfirmDialog.test.tsx:100-112`). Soll nur der `ConfirmDialog` sperren, gehört die Begründung
+    in ADR-053 D1.
 
 ## Nitpicks (optional)
 
-- [x] [app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:86-92] FS2-Meldung kann verschwinden: War der
-  abgelehnte der letzte verfügbare Stammteilnehmer, wird `verfuegbar` leer, und der Zweig „Alle
-  aktiven Stammteilnehmer sind bereits erfasst" rendert keine `Notice` mit `state?.error`.
-- [x] [app/veranstaltung/actions.ts:384-386] Die Meldung im Rennen („Dieser Teilnehmer ist bereits
-  erfasst.") steht in der Einzahl, nennt keinen Namen und lässt „Es wurde niemand hinzugefügt." weg.
-  FS2 verlangt die Namensnennung. Mindestens den Zusatz aus `nichtsAngelegt` angleichen.
-- [x] [app/veranstaltung/actions.ts:339] Unbekannte Ids → „Teilnehmer nicht gefunden." ohne den
-  Zusatz „Es wurde niemand hinzugefügt.". Der Test `should_rejectAndPersistNothing_when_teilnehmerIdUnknown`
-  prüft `revalidatePath` nicht, obwohl der Zweig ihn auslöst.
-- [x] [app/veranstaltung/actions.ts:431-432] Bei `ZEILE_NOT_FOUND` (schon auf einem anderen Gerät
-  entfernt) fehlt `revalidatePath`, die veraltete Zeile bleibt in der Liste stehen.
-- [x] [app/veranstaltung/TeilnehmerHinzufuegenDialog.test.tsx:195] Der Escape-Test prüft nicht den
-  Fokus-Rücksprung (AK15 verlangt ihn auch bei Escape), nur generisch in `Dialog.test.tsx:79`.
-- [x] [app/veranstaltung/schema.test.ts] `should_reject_when_idTooLong` prüft nur die Ablehnung, nicht
-  die Meldung „Ungültige Teilnehmer-Auswahl." (Lesson #116). Der Grenzfall „genau 100 Zeichen
-  akzeptiert" fehlt.
-- [x] [app/veranstaltung/actions.test.ts:1329] `ensureThekeAction` profitiert jetzt nebenbei von der
-  `cause`-Prüfung in `isUniqueViolation` (alter stiller Fehler behoben). Der Test nutzt aber noch die
-  unumhüllte Form `{ code: "23505" }`. Fall mit umhülltem Fehler ergänzen und in den Task-Notizen
-  vermerken.
-- [x] [app/veranstaltung/actions.ts:399,178,468] Das Literal „Keine Veranstaltung angegeben." steht
-  neben der vorhandenen Konstante `KEINE_VERANSTALTUNG`.
-- [x] [app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:10-18] `segment` und `kennzahl` sind in allen
-  drei Einträgen identisch. Ein Feld `schritt: keyof KachelKennzahlen` reicht.
-- [x] [app/veranstaltung/[id]/Abschlussbericht.tsx:20-26] `flex flex-col gap-3` steht doppelt (auf
-  `Card` und `<section>`). `<section>` ohne `aria-labelledby` ist kein benannter Bereich.
-- [x] [app/veranstaltung/[id]/page.test.tsx:388-394] `should_notRenderOldForms…` ist immer grün (Dialog
-  gestubbt, Altformulare gelöscht) und belegt nichts. Entfernen oder umformulieren.
-- [x] [e2e/veranstaltung-bearbeiten-loeschen.spec.ts:71-72] Der Kommentar nennt noch „Teilnehmer
-  erfassen, Status" als Formulare der Detailseite.
-- [x] [docs/adr/034-selbstbedienung-token-zugang.md:85-86 · docs/adr/052-*.md:18,44-47] ADR-034 D6
-  spricht noch vom Abschnitt „Zugang teilen". ADR-052 D1 nennt „sechs Bausteine" (jetzt acht) ohne
-  Rückverweis auf ADR-053 D1. Je ein Satz Nachtrag reicht (Lesson #211).
-- [ ] (bewusst offen, siehe Rework) [app/veranstaltung/kachelKennzahlen.ts:37-39] Die Auslagen-Kachel zeigt offen + erstattet als
-  eine Zahl, die Unterseite beide getrennt. Durch ADR-053 D4 gedeckt; eventuell in der Anleitung
-  erwähnen.
-
-### Außerhalb des Scopes (über den Seam angelegt, ADR-018/ADR-043)
-
-- **#385** (`bug`, `test`): `hasSqlState` in `app/verwaltung/katalog/actions.ts:35-49` prüft nur
-  `error.code`. Drizzle ≥ 0.44 legt den SQLSTATE auf `DrizzleQueryError.cause`
-  (`drizzle-orm/pg-core/session.js:41ff`, auch neon-http; belegt durch `db/veranstaltung.test.ts:284`).
-  Duplikat- und FK-Meldungen greifen in Produktion vermutlich nie, die Unit-Tests stellen die
-  unumhüllte Form nach.
-- **#386** (`enhancement`): „Entfernen" löscht Verzehr (`onDelete: cascade`, `db/schema.ts:294`) und
-  Kassiertes ohne Warnung. Auslagen bleiben stehen, sind danach aber nicht mehr bearbeitbar.
-  Fachlich zu klären; spec-369 schließt neue Geschäftsregeln aus.
-- Vorbestehend, nur zur Kenntnis: Statusprüfung und INSERT in `addZeilenAction` (`actions.ts:370-376`)
-  sind wie beim alten `addZeile`/Walk-in nicht atomar. Das Abschluss-Gate bleibt unberührt.
+- [ ] [docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md:150-151] Alternative A
+  sagt „Escape, inerter Hintergrund und Fokus-Rücksprung kommen von der Plattform". Das widerspricht
+  D1 nach dem Rework: Den Rücksprung setzt der Baustein selbst (`returnFocusRef`, Safari/jsdom). Die
+  ADR ist im selben PR entstanden (Lesson #55/#211).
+- [ ] [docs/adr/053-…:7-8] „der dort festgelegte Satz von sechs Bausteinen … gilt unverändert"
+  widerspricht dem Nachtrag in ADR-052 D1 (jetzt acht). Vorschlag: „Regeln, Token-Modell und
+  Farb-Gate gelten unverändert".
+- [ ] [docs/adr/053-…:96-98] D3 sagt, bei fehlender Id nenne die Action die Betroffenen beim Namen.
+  Unbekannte Ids liefern aber `TEILNEHMER_UNBEKANNT` ohne Namen (`actions.ts:92,344`); Namen gibt
+  es dort auch nicht. Den Satz auf „inaktiv oder schon erfasst" einschränken.
+- [ ] [app/veranstaltung/actions.ts:92] `TEILNEHMER_UNBEKANNT` wird aus `TEILNEHMER_INACTIVE` (Z. 69)
+  gebaut. Der Text passt, der Konstantenname „inaktiv" führt beim Lesen in die Irre. Vorschlag:
+  eigene Konstante `TEILNEHMER_NICHT_GEFUNDEN`.
+- [ ] [app/veranstaltung/actions.ts:437-440] Der WHY-Kommentar „Auch ohne Treffer neu rendern" steht
+  unter dem `revalidatePath`, das er begründet, und liest sich wie eine Erklärung zum folgenden `if`.
+  Er gehört über Z. 437.
+- [ ] [app/components/ui/Dialog.tsx:68-74 · ConfirmDialog.tsx:59] (plausibel, nicht im Browser
+  geprüft) Chromium bindet `<dialog>` an CloseWatcher. Nach einem per `preventDefault` abgefangenen
+  `cancel` ohne neue Nutzeraktivierung schließt ein zweites Escape bzw. die Android-Zurück-Geste den
+  Dialog ohne abbrechbares `cancel`. Dann ist das DOM zu, React hält `open=true`, eine Ablehnung
+  bleibt unsichtbar. Das Fenster ist klein, und das nächste Öffnen heilt es über `key={durchlauf}`.
+  Beim Umbau der Sperre (Wichtig-Finding) mitbedenken, z. B. in `handleClose` bei gesperrtem Zustand
+  erneut `showModal()` aufrufen. Vorher im Browser prüfen.
+- [ ] [app/veranstaltung/ZeilenMenue.tsx:96 · Dialog.tsx:69-70] Nach erfolgreichem Entfernen springt
+  der Fokus auf `triggerRef`. Dieser Button verschwindet mit der Zeile, der Fokus landet auf
+  `<body>`. AK19/AK29 sind nicht verletzt. Ein Ersatzziel (z. B. „+ Teilnehmer") wäre für Tastatur
+  und Screenreader besser.
+- [ ] [app/components/ui/Dialog.tsx:70] Der Zweig „Rücksprungziel ist kein `HTMLElement`" ist
+  ungetestet (z. B. `activeElement` ist ein SVG oder `null`).
+- [ ] [app/components/ui/ConfirmDialog.test.tsx:116-131] Der Test hängt den Auslöser von Hand in
+  `document.body` und entfernt ihn erst nach der Assertion. Schlägt er fehl, bleibt das Element für
+  Folgetests liegen. Einen Button im Harness rendern (wie `Dialog.test.tsx:94-112`) oder
+  `try/finally` verwenden.
+- [ ] [app/veranstaltung/actions.test.ts:1010-1024] Die Walk-in-Tests prüfen `error` nur auf
+  `toBeDefined()`, ein Test für „Name zu lang" fehlt. Das bestand schon vorher. AK13/FS3 verlangen
+  aber „gleiche Validierung wie bisher", deshalb wäre der wörtliche Meldungstext sinnvoll
+  (Lesson #116).
+- [ ] [e2e/veranstaltung-detailseite.spec.ts:40-66,85-91] `login`, `createVeranstaltung` und
+  `loescheVeranstaltung` kopieren Helfer aus `e2e/veranstaltung-bearbeiten-loeschen.spec.ts:33-61,72-76`.
+  Das Kopiermuster ist älter, `e2e/helpers/` existiert jetzt aber.
+- [ ] [e2e/helpers/detailseite.ts:39-49] `oeffneEinstellungen` und `schliesseEinstellungen`
+  unterscheiden sich nur in der Negation. Eine Funktion `setzeEinstellungen(page, offen)` reicht.
+- [ ] [e2e/veranstaltung-detailseite.spec.ts:138-141] `boundingBox()!` ohne Null-Prüfung, obwohl
+  `hoehe()` (Z. 93-97) genau diese Prüfung kapselt.
+- [ ] [docs/anleitung/veranstalter/anleitung.md:103 · TeilnehmerHinzufuegenDialog.tsx:80,102] Die
+  Anleitung nennt den oberen Bereich „Bekannte Personen/Familien". Im Dialog hat er keine sichtbare
+  Überschrift (nur `aria-label="Stammteilnehmer"`), der untere heißt sichtbar „Neuer Gast". In der
+  Anleitung „oben im Fenster" schreiben oder eine kleine Überschrift ergänzen.
 
 ## Positives
 
-- `addZeilen` (`db/veranstaltung.ts:179-195`) ist ein einziges Multi-Row-INSERT: atomar ohne
-  `db.transaction()`/`runAtomic`, damit Neon-HTTP-tauglich. Leere Liste früh abgefangen,
-  Alles-oder-nichts per DB-Integrationstest mit Dublette belegt, einschließlich der umhüllten
-  `cause`-Fehlerform.
-- `addZeilenAction` prüft fail-closed in sauberer Reihenfolge: Rolle, Zod (min 1/max 200, Länge je
-  Id, Bereinigung vor der Prüfung), Existenz/Status, Aktiv, Dubletten mit Namen, Unique-Index als
-  letzte Grenze. Jeder Guard-Zweig hat einen eigenen Test mit wörtlicher Meldung.
-- `removeZeileAction` wertet den `undefined`-Rückgabewert aus (Kern-Kurzregel 1) und behält den
-  Parent-Key im WHERE (IDOR).
-- Der FS2-Fall im Dialog ist robust: Die versteckten Felder entstehen aus `verfuegbar ∩ gewaehlt`,
-  abgelehnte Personen fallen nach dem Neu-Rendern automatisch heraus.
-- `kachelKennzahlen` ist ein reiner Adapter über `kassierZeilen`/`kassierTagessummen`/
-  `auslagenSummen`, damit dieselben Zahlen wie auf der Kassieren-Seite. Die Tests nutzen von Hand
-  gerechnete Literale.
-- Server-/Client-Grenze sauber: `ZugangTeilen` bleibt Server Component und wird als `children` an
-  `ZugangDialog` gereicht. `qrcode` kommt in keiner `"use client"`-Datei vor.
-- `Dialog`/`ConfirmDialog` sind route-neutral, Escape läuft über `cancel` + `preventDefault`, React
-  bleibt die einzige Quelle für „offen". Fokus-Rücksprung, Escape, nativer Schließweg und
-  „kein doppeltes onClose" sind einzeln getestet.
-- `page.tsx` ist reine Komposition. Abgeschlossene Veranstaltungen laden keine Kennzahlen (getestet).
-  Der `StatusToggle` ist verschoben statt kopiert und exakt über `lastElementChild` plus
-  „nur einmal" geprüft (AK25/AK26).
-- Altkomponenten `AddTeilnehmerForm`/`WalkInForm` samt Tests und `addZeileAction` sind restlos
-  entfernt, keine verwaisten Imports.
-- ADR-052: Alle neuen Dateien stehen in `eslint/ui-token-files.mjs`. Die Maskierung von `[id]` im
-  Glob ist in beide Richtungen getestet, inklusive Nachbarpfad.
-- Routen unverändert (`?zeile=` stammt aus #308), `docs/routes.md` muss nicht angepasst werden. Der Code
-  entspricht der im PR korrigierten Spec (AK6/AK7/AK21, FS5). ADR-053 steht auf Accepted.
+- **Rework aus Iteration 1 vollständig und gezielt getestet:**
+  - Die Escape-Sperre bei `pending` im `ConfirmDialog` prüft `defaultPrevented`, dass `onClose`
+    nicht aufgerufen wird und `open` bestehen bleibt (`ConfirmDialog.test.tsx:100-112`).
+  - Die `returnFocusRef`-Tests fokussieren den Auslöser vorher nicht und belegen damit den
+    Safari-Fall. Die Vorrangregel ist abgesichert: Ein Vertauschen mit `triggerRef` machte sie rot.
+  - `useSchliessendeAction` existiert genau einmal, ohne `useEffect`, mit WHY-Kommentar. Beide
+    Konsumenten nutzen ihn.
+  - Der FS2-Test „letzte verfügbare Person abgelehnt" rendert zweimal mit schrumpfender Liste und
+    wäre ohne die neue `Notice` rot.
+- **Kern-Kurzregeln eingehalten:** Parent-Key im WHERE von `removeZeile`
+  (`db/veranstaltung.ts:207-212`), `undefined`-Rückgabe ausgewertet (`actions.ts:440`),
+  `active`-Prüfung nach dem Laden (`actions.ts:346`), Zod-Grenzen für Anzahl und Id-Länge an beiden
+  Rändern getestet (200/201, 100/101).
+- `addZeilen` bleibt ein einziges Multi-Row-INSERT, atomar und Neon-HTTP-tauglich. Die Meldungen
+  sind über `nichtsAngelegt`/`NIEMAND_ANGELEGT` vereinheitlicht, `revalidatePath` ist in jedem
+  Ablehnungszweig getestet, und `umhuellterDbFehler` bildet die echte Drizzle-Fehlerform nach.
+- `kachelKennzahlen` nutzt dieselbe Quelle wie die Kassieren-Seite. „x von n bezahlt" stimmt deshalb
+  mit „Offene Zeilen" überein (AK4/AK5).
+- ADR-053 D1–D6 decken sich nach dem Rework mit dem Code (bis auf die Nitpicks oben). Die Nachträge
+  in ADR-034 D6 und ADR-052 D1 sind korrekt.
+- Schichten und Grenzen sind sauber: `ui/`-Bausteine sind route-neutral, `qrcode` kommt nur in der
+  Server Component `ZugangTeilen` vor, alle neuen Dateien stehen in `eslint/ui-token-files.mjs`,
+  und es gibt keine rohen Farbklassen oder `dark:`.
+- Routen sind unverändert, `docs/routes.md` muss nicht angepasst werden. Die `kleinfunde.md`-Anker
+  aus diesem PR stimmen mit dem aktuellen Stand.
+- Der gemeinsame E2E-Helfer `e2e/helpers/detailseite.ts` nutzt überall die abgesicherte
+  `oeffneEinstellungen`.
 
-## Rework (nach Runde 1–3)
+## Verlauf
 
-- `c4f2ae5`: Escape-Sperre bei `pending`, `returnFocusRef` (Safari), gemeinsamer Hook
-  `useSchliessendeAction`, `TEILNEHMER_NAME_MAX` + WHY-Kommentar in `GastBereich`, einheitliche
-  Ablehnungsmeldungen, `revalidatePath` bei schon entfernter Zeile, Nitpicks in Actions, Tests,
-  Kacheln und Abschlussbericht.
-- Folge-Commit: ADR-053 D1/D2/D3 auf den Code nachgezogen, Nachträge in ADR-034 D6 und ADR-052 D1,
-  gemeinsamer E2E-Helfer `e2e/helpers/detailseite.ts` (abgesicherte `oeffneEinstellungen`),
-  Zusammenführung `GastBereich`/`TeilnehmerFields` und Anleitungs-Screenshots kanonisch in
-  `docs/factory/kleinfunde.md`; der dortige Eintrag zum Literal `KEINE_VERANSTALTUNG` ist erledigt
-  und entfernt.
-- Bewusst offen: Die Auslagen-Kachel (Summe aus offen + erstattet) ist durch ADR-053 D4 gedeckt.
-  Die Anleitung wird mit den neuen Screenshots ohnehin überarbeitet.
+- **Iteration 1** (Stand `7123c8c`): 0 kritische, 7 wichtige Findings, 13 Nitpicks, `NEEDS_REWORK`.
+  Alle bis auf einen bewusst offenen Nitpick sind im Rework behoben; die Sub-Agenten haben das in
+  Iteration 2 einzeln nachgeprüft. Bewusst offen bleibt die Auslagen-Kachel (Summe aus offen +
+  erstattet), die durch ADR-053 D4 gedeckt ist.
+- Außerhalb des Scopes, in Iteration 1 über den Seam angelegt: **#385** (`hasSqlState` im Katalog
+  prüft `cause` nicht) und **#386** („Entfernen" löscht Verzehr ohne Warnung). Zur Kenntnis,
+  vorbestehend: Statusprüfung und INSERT in `addZeilenAction` sind nicht atomar.
+- In Iteration 2 gibt es keine neuen Out-of-Scope-Funde. Das E2E-Kopiermuster ist ein Nitpick im
+  Scope, weil der PR selbst eine weitere Kopie hinzufügt.
+- **Circuit Breaker:** Das war die 2. Review-Iteration. Eine dritte Rückweisung wird an einen
+  Menschen eskaliert.
 
 ## Empfehlung
 
