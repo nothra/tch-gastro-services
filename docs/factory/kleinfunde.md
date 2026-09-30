@@ -37,7 +37,7 @@
 
 ### `.gitignore` deckt `*.tmp.md` nicht ab – Wegwerf-PR-Body landete im Commit
 
-- **Wo:** [`.gitignore:18-22`](../../.gitignore) – `*.tmp.txt`/`.sh`/`.py`/`.spec.ts`/`.spec.tsx`,
+- **Wo:** [`.gitignore:17-21`](../../.gitignore) – `*.tmp.txt`/`.sh`/`.py`/`.spec.ts`/`.spec.tsx`,
   kein `*.tmp.md` (verifiziert am 2026-09-30).
 - **Was:** Die Wegwerf-Konvention `*.tmp.*` gilt nur für die aufgezählten Endungen. Eine
   PR-Body-Vorlage `scripts/pr368-body.tmp.md` war deshalb nicht ignoriert und wurde in #368

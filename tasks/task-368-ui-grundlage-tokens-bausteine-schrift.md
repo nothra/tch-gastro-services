@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -183,8 +183,11 @@ Beim Umsetzen den ADR-Status auf `Accepted` setzen (Lesson aus #197).
   Format grün. Sonst keine Befunde (Namen, Funktionslängen, Kommentare unauffällig).
 - W2 (PNGs an PR #378) bleibt eine menschliche Aktion vor dem Merge.
 
-## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+## Codify-Notizen (`/codify`, 2026-09-30)
+
+- Drei Lessons (Drift-Test für Gate-Enumeration, fremder Playwright-Dev-Server, Binär-AK am PR)
+  plus Index-Zeilen; `kleinfunde.md`-Anker korrigiert (N9). Details: [`codify-368.md`](codify-368.md).
+- **Offen, menschlich vor dem Merge:** W2 – 12 PNGs an PR #378.
 
 ---
 Branch: `feature/368-ui-grundlage-tokens-bausteine-schrift`
