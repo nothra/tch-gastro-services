@@ -137,25 +137,27 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     expect(trigger).toHaveFocus();
   });
 
-  it("should_closeWithoutError_when_returnTargetIsNoHtmlElement", () => {
-    // Ein SVG-Auslöser (oder `null`) ist kein `HTMLElement`: der Rücksprung entfällt, der
-    // Schließvorgang läuft trotzdem durch.
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    const onClose = vi.fn();
+  it("should_skipFocus_when_returnTargetIsNoHtmlElement", () => {
+    // Ein Ziel, das kein `HTMLElement` ist (z. B. ein SVG-Auslöser), bekommt keinen Fokus. Ein
+    // Stellvertreter mit `focus`-Spion macht den Unterschied sichtbar: in jsdom hätte schon ein
+    // echtes `SVGElement` eine `focus()`-Methode, die nichts bewirkt.
+    const focus = vi.fn();
+    const keinHtmlElement = { focus } as unknown as HTMLElement;
+    const ref = { current: keinHtmlElement };
     const { rerender } = render(
-      <Dialog open onClose={onClose} title="T" returnFocusRef={{ current: svg as never }}>
+      <Dialog open onClose={() => {}} title="T" returnFocusRef={ref}>
         x
       </Dialog>,
     );
 
     rerender(
-      <Dialog open={false} onClose={onClose} title="T" returnFocusRef={{ current: svg as never }}>
+      <Dialog open={false} onClose={() => {}} title="T" returnFocusRef={ref}>
         x
       </Dialog>,
     );
 
     expect(dialogElement()).not.toHaveAttribute("open");
-    expect(document.body).toHaveFocus();
+    expect(focus).not.toHaveBeenCalled();
   });
 
   it("should_callOnClose_when_closedNatively", () => {

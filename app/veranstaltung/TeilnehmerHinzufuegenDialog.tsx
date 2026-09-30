@@ -81,7 +81,7 @@ function StammteilnehmerBereich({
   onErfolg,
   onLaeuftChange,
 }: BereichProps & { verfuegbar: readonly StammteilnehmerAuswahl[] }) {
-  const [state, formAction, pending] = useSchliessendeAction(
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(
     addZeilenAction,
     onErfolg,
     onLaeuftChange,
@@ -143,11 +143,7 @@ function StammteilnehmerBereich({
           ))}
         </ul>
       )}
-      <form
-        action={formAction}
-        onSubmit={() => onLaeuftChange(true)}
-        className="flex flex-col gap-3"
-      >
+      <form action={formAction} onSubmit={meldeStart} className="flex flex-col gap-3">
         <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
         {/* Die Auswahl wird aus dem Zustand abgeschickt, nicht aus den sichtbaren Checkboxen:
             die Suche filtert nur die Anzeige, eine angehakte Person bleibt gewählt. */}
@@ -171,7 +167,7 @@ function StammteilnehmerBereich({
 // umstellen und hier wiederverwenden – steht in `kleinfunde.md`. Bis dahin hält die gemeinsame
 // Konstante wenigstens die Längengrenze an der Zod-Grenze fest.
 function GastBereich({ veranstaltungId, onErfolg, onLaeuftChange }: BereichProps) {
-  const [state, formAction, pending] = useSchliessendeAction(
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(
     createWalkInAction,
     onErfolg,
     onLaeuftChange,
@@ -184,11 +180,7 @@ function GastBereich({ veranstaltungId, onErfolg, onLaeuftChange }: BereichProps
       className="flex flex-col gap-3 border-t border-line-subtle pt-4"
     >
       <h3 className="text-sm font-semibold">Neuer Gast</h3>
-      <form
-        action={formAction}
-        onSubmit={() => onLaeuftChange(true)}
-        className="flex flex-col gap-3"
-      >
+      <form action={formAction} onSubmit={meldeStart} className="flex flex-col gap-3">
         <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
         {/* Jede Ablehnung des Walk-in betrifft den eingegebenen Gast oder den Zustand der
             Veranstaltung; das Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb

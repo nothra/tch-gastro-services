@@ -471,7 +471,8 @@
 - **Was:** `login` und `createVeranstaltung` (Link-Zuwachs-Identifikation) sind je Spec kopiert; sie
   unterscheiden sich nur im Datum und in der Kommentierung. `e2e/helpers/detailseite.ts` (#369)
   bündelt bislang nur die Detailseiten-Schritte. Das Kopiermuster ist älter als #369; der PR
-  hat es nicht vergrößert, sondern die eigenen Kopien auf den gemeinsamen Helfer reduziert.
+  fügt mit der neuen `veranstaltung-detailseite.spec.ts` allerdings die dritte Kopie hinzu und hat
+  nur die Gast- und Einstellungs-Schritte auf den gemeinsamen Helfer reduziert.
 - **Fix:** `e2e/helpers/veranstaltung.ts` mit `login(page)` und `createVeranstaltung(page,
   bezeichnung, datum)` anlegen und die drei Specs umstellen. Braucht einen Lauf aller drei Specs
   gegen eine lokale DB (`scripts/e2e-369.tmp.sh` als Vorlage) – deshalb nicht im Review-Rework.

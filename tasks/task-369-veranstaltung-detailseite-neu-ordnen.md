@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -112,6 +112,18 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
   im Effekt nicht erreichbar, weil die Ref nach dem Mount gesetzt ist (toter Guard, Kandidat für `/refactor`).
   `actions.ts:636` (`ensureThekeAction`, Kasse-Guard) und `db/veranstaltung.ts` `getZeile` sind Altbestand
   ohne Änderung durch #369.
+
+### /refactor (2026-10-01)
+- `useSchliessendeAction` liefert `meldeStart` als viertes Tupel-Element; beide Bereiche des
+  „+ Teilnehmer"-Dialogs nutzen es als `onSubmit` statt je einer eigenen Lambda. Start- und Ende-Meldung
+  sind damit an einer Stelle erklärt (Review-Iteration-3-Nitpick). Kein neues Verhalten, Lock-Tests unverändert grün.
+- Test für das Nicht-`HTMLElement`-Rücksprungziel diskriminiert jetzt: Stellvertreter mit `focus`-Spion statt
+  SVG (in jsdom hat `SVGElement` ein wirkungsloses `focus()`). Mutationsbeleg: ohne die `instanceof`-Prüfung rot,
+  mit ihr grün.
+- `kleinfunde.md`: falsche Aussage zum E2E-Kopiermuster berichtigt (die neue Spec fügt die dritte Kopie hinzu).
+- Bewusst nicht geändert: `if (!dialog) return;` in `Dialog.tsx`. Der Guard wirkt im Laufzeitverhalten tot, ist
+  aber für die Typverengung (`useRef<HTMLDialogElement>(null)` → `HTMLDialogElement | null`) nötig; ein `!`
+  würde nichts verbessern.
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).
