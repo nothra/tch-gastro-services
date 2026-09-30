@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > Löst **ADR-014** in genau einem Punkt ab: Die UI-Zeile „Tailwind CSS + shadcn/ui" wird zu
 > „Tailwind CSS + eigene Bausteine (`app/components/ui/`)". Alle übrigen Stack-Entscheidungen
@@ -83,6 +83,11 @@ Dateien.
   | `success-subtle` | Erfolgs-Hintergrund | `#f0fdf4` | `#052e16` |
   | `warning` | Warnung | `#b45309` | `#fbbf24` |
   | `warning-subtle` | Warn-Hintergrund | `#fffbeb` | `#451a03` |
+  | `overlay` | Abdunkler hinter Dialogen | `#09090b8c` | `#09090bcc` |
+
+  `overlay` kam bei der Umsetzung hinzu: Der Katalog-Dialog (`CatalogControls.tsx`) brauchte
+  einen halbtransparenten Abdunkler, und `bg-black/50` fällt unter das Gate. Er trägt keinen
+  Text und ist deshalb nicht Teil der Kontrastpaare.
 
   Hell entspricht `accent` dem bisherigen `cyan-700` (spec AK1.4). Im Dunkelmodus wird der
   Akzent aufgehellt und trägt dunklen Text, weil Weiß auf Cyan-600 nur 3,7 : 1 erreicht.

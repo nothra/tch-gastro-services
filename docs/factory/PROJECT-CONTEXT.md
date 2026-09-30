@@ -76,7 +76,7 @@ Teilnehmer erfassen ohne Konto per Veranstaltungs-Link/QR + Namenswahl. Details 
 | **Framework / Runtime** | Next.js (App Router) / Node 24+ · Hosting: Vercel (Region fra1) |
 | **Datenbank** | PostgreSQL (Neon, Free-Tarif, Region Frankfurt/EU) |
 | **Build-Tool** | pnpm + Next.js |
-| **Weitere Technologien** | PWA (@serwist/next), Tailwind CSS + shadcn/ui, Drizzle ORM, Zod, Auth.js (NextAuth v5) |
+| **Weitere Technologien** | PWA (@serwist/next), Tailwind CSS + eigene Bausteine (`app/components/ui/`, ADR-052), Drizzle ORM, Zod, Auth.js (NextAuth v5) |
 
 ---
 
@@ -163,6 +163,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Secrets (DB-URL, Auth-Secret) nur als Env-Vars (Vercel), nie im Repo.
 - **Login/Credential-Prüfung in konstanter Zeit:** `bcrypt.compare` immer ausführen – bei unbekanntem Nutzer gegen einen konstanten Dummy-Hash (`lib/credentials.ts`), damit die Antwortzeit keine User-Enumeration erlaubt.
 - **Rollen als Enum-Array** (`roles user_role[]`, ADR-016); Prüfung über den Guard `lib/authz.ts` (`requireRole`/`requireAnyRole`, fail-closed), nie über clientseitig ausgeblendete UI.
+- **Neue UI nutzt die Bausteine aus `app/components/ui/` und Token-Klassen** (`bg-surface`, `text-muted` …), keine rohen Tailwind-Farben und kein `dark:` (ADR-052). Umgestellte Pfade in `eslint/ui-token-files.mjs` eintragen – ab da lehnt `pnpm lint` rohe Farbklassen dort ab.
 
 ---
 

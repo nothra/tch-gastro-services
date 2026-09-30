@@ -31,6 +31,8 @@ ruleTester.run("no-raw-color-classes", rule, {
     { code: 'const c = "gap-red-500";' },
     // Freitext, der zufällig eine Farbe nennt.
     { code: 'const c = "Der Hintergrund ist bg-red-500.";' },
+    // Nicht-String-Literale (Zahl, Boolean, RegExp) tragen keine Klassen.
+    { code: "const n = 42; const b = true; const r = /bg-red-500/;" },
   ],
   invalid: [
     {
@@ -89,6 +91,12 @@ ruleTester.run("no-raw-color-classes", rule, {
     {
       code: 'const inputClass = "rounded border border-zinc-300 px-3";',
       errors: [{ messageId: "rawColorClass", data: { className: "border-zinc-300" } }],
+    },
+    // Getaggtes Template mit ungültiger Escape-Sequenz: `cooked` ist dann `null`, geprüft wird
+    // der Rohtext – sonst schlüpfte die Klasse durch.
+    {
+      code: "const c = String.raw`\\u bg-red-500`;",
+      errors: [{ messageId: "rawColorClass", data: { className: "bg-red-500" } }],
     },
   ],
 });
