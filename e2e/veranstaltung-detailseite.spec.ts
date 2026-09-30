@@ -90,10 +90,14 @@ async function loescheVeranstaltung(page: Page, detailPfad: string) {
   await expect(page).toHaveURL(/\/veranstaltung$/);
 }
 
-async function hoehe(locator: Locator): Promise<number> {
+async function groesse(locator: Locator): Promise<{ width: number; height: number }> {
   const box = await locator.boundingBox();
   expect(box, "Element hat eine Box").not.toBeNull();
-  return box!.height;
+  return box!;
+}
+
+async function hoehe(locator: Locator): Promise<number> {
+  return (await groesse(locator)).height;
 }
 
 test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
@@ -136,9 +140,9 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
       MIN_TIPP_HOEHE,
     );
     const menue = page.getByRole("button", { name: `Aktionen für ${PREFIX} Gast1 ${LAUF}` });
-    const menueBox = await menue.boundingBox();
-    expect(menueBox!.height).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
-    expect(menueBox!.width).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
+    const menueBox = await groesse(menue);
+    expect(menueBox.height).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
+    expect(menueBox.width).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
 
     await oeffneTeilnehmerDialog(page);
     for (const knopf of await teilnehmerDialog(page).getByRole("button").all()) {

@@ -461,3 +461,18 @@
   playwright test e2e/anleitung-veranstalter.spec.ts` laufen lassen, die neuen PNGs sichten und
   committen – kein Code, nur Bilder. Idealerweise noch vor dem Merge von #369.
 - **Herkunft:** `/review` zu #369 (Runde 2, Wichtig-Finding; vorher nur Task-Notiz).
+
+### E2E-Helfer `login` und `createVeranstaltung` liegen in drei Specs fast identisch kopiert
+
+- **Wo:** [`e2e/veranstaltung-detailseite.spec.ts:40-66`](../../e2e/veranstaltung-detailseite.spec.ts),
+  [`e2e/veranstaltung-bearbeiten-loeschen.spec.ts:33-61`](../../e2e/veranstaltung-bearbeiten-loeschen.spec.ts),
+  [`e2e/wechsel-verzehr-kassieren.spec.ts:25-55`](../../e2e/wechsel-verzehr-kassieren.spec.ts)
+  (verifiziert am 2026-10-01).
+- **Was:** `login` und `createVeranstaltung` (Link-Zuwachs-Identifikation) sind je Spec kopiert; sie
+  unterscheiden sich nur im Datum und in der Kommentierung. `e2e/helpers/detailseite.ts` (#369)
+  bündelt bislang nur die Detailseiten-Schritte. Das Kopiermuster ist älter als #369; der PR
+  hat es nicht vergrößert, sondern die eigenen Kopien auf den gemeinsamen Helfer reduziert.
+- **Fix:** `e2e/helpers/veranstaltung.ts` mit `login(page)` und `createVeranstaltung(page,
+  bezeichnung, datum)` anlegen und die drei Specs umstellen. Braucht einen Lauf aller drei Specs
+  gegen eine lokale DB (`scripts/e2e-369.tmp.sh` als Vorlage) – deshalb nicht im Review-Rework.
+- **Herkunft:** `/review` zu #369 (Runde 2, Iteration 2, Nitpick), klassifiziert im Rework.

@@ -34,16 +34,18 @@ async function istEingeklappt(page: Page): Promise<boolean> {
   return (await einstellungen(page).getAttribute("open")) === null;
 }
 
-// Klappt „Einstellungen" (spec-369 AK21) auf. Ein Klick auf die Zusammenfassung schaltet nur um –
-// ohne Prüfung schlösse er einen bereits offenen Bereich wieder.
-export async function oeffneEinstellungen(page: Page) {
-  if (await istEingeklappt(page)) {
+// Klappt „Einstellungen" (spec-369 AK21) auf oder zu. Ein Klick auf die Zusammenfassung schaltet
+// nur um – ohne Prüfung des Ist-Zustands kehrte er einen bereits passenden Zustand um.
+async function setzeEinstellungen(page: Page, offen: boolean) {
+  if ((await istEingeklappt(page)) === offen) {
     await einstellungen(page).getByText("Einstellungen", { exact: true }).click();
   }
 }
 
-export async function schliesseEinstellungen(page: Page) {
-  if (!(await istEingeklappt(page))) {
-    await einstellungen(page).getByText("Einstellungen", { exact: true }).click();
-  }
+export function oeffneEinstellungen(page: Page) {
+  return setzeEinstellungen(page, true);
+}
+
+export function schliesseEinstellungen(page: Page) {
+  return setzeEinstellungen(page, false);
 }

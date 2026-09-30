@@ -86,6 +86,22 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
   ADR-Drift + E2E-Helfer im Folge-Commit). Bewusst offen: Auslagen-Kachel-Hinweis (durch ADR-053 D4 gedeckt).
 - Die E2E-Helfer der Detailseite liegen jetzt in `e2e/helpers/detailseite.ts` (vorher vier Kopien).
 
+### Review-Rework Iteration 2 (/implement, manuell, 2026-10-01)
+- Die Pipeline brach nach dem dritten `/review`-Versuch ab (Verdict unverändert `NEEDS_REWORK`); der Rework
+  lief manuell in einer Session. **Die OTEL-Telemetrie (ADR-049) fehlt für diesen Teil** – sie hängt am
+  `run-pipeline.sh`-Wrapper, eine rückwirkende Erhebung gibt es nicht.
+- Wichtig-Finding behoben: Escape-Sperre liegt jetzt im `Dialog` selbst (Prop `schliessbar`); `ConfirmDialog`
+  und `TeilnehmerHinzufuegenDialog` folgen derselben Regel. Stolperstein: ein `setState` am Anfang einer
+  Form-Action gehört zur Transition und wird erst mit deren Ende sichtbar – der Start wird deshalb aus dem
+  `onSubmit` gemeldet, das Ende aus `useSchliessendeAction`.
+- Nitpicks erledigt: ADR-053 (Drift zu D1/D3, Kopfsatz), `TEILNEHMER_NICHT_GEFUNDEN`, Kommentar-Position,
+  Nicht-`HTMLElement`-Test, `try/finally` im ConfirmDialog-Test, exakte Walk-in-Meldungstexte inkl. „zu lang",
+  `setzeEinstellungen`, `groesse()` statt `boundingBox()!`, Anleitungs-Wortlaut.
+- Bewusst nicht umgesetzt: Fokus-Ersatzziel nach „Entfernen" (Gestaltungsfrage, AK19/AK29 nicht verletzt) und
+  die CloseWatcher-Härtung (laut Review nur „plausibel" – vorher im Browser prüfen). Das E2E-Kopiermuster für
+  `login`/`createVeranstaltung` über drei Specs steht kanonisch in `docs/factory/kleinfunde.md`.
+- Gates: Lint, Format, Typecheck grün; E2E der drei Specs 9/9 grün; Vitest 717 + `actions.test.ts` grün.
+
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).
 
