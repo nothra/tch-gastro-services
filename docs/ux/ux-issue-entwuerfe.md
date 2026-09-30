@@ -192,6 +192,10 @@ Gesamtabrechnung und Protokoll sind drei lange Tabellen hintereinander. Der offe
 - **AK4** – Jede erfolgreiche Schreibaktion gibt eine Rückmeldung über **einen** Mechanismus
   (Notice/Toast mit `role="status"`); Fehler über `role="alert"`.
 - **AK5** – Meldungstexte nach dem Glossar (UX-8).
+- **AK6** – Ist eine Aktion nicht ausführbar (z. B. „Veranstaltung löschen", wenn Verzehr,
+  Kassiertes oder Auslagen erfasst sind), nennt der Dialog das **sofort beim Öffnen** samt Grund
+  und bietet keine Bestätigung an; die Ablehnung kommt nicht erst nach dem Absenden. Dafür wird
+  die Löschbarkeit vor dem Öffnen geprüft (Datenlage in `/requirements` klären).
 
 ---
 
@@ -216,6 +220,8 @@ Gesamtabrechnung und Protokoll sind drei lange Tabellen hintereinander. Der offe
   auf die Zeile, Deaktivieren im Bearbeiten-Dialog.
 - **AK5** – Katalogwahl als Auswahlliste im Seitenkopf statt Radiobuttons.
 - **AK6** – Leere Zustände enthalten die passende Anlege-Aktion.
+- **AK7** – Jede Veranstaltungszeile zeigt neben Datum und Bezeichnung auch **Katalog** und
+  **Kasse** (Badges oder Meta-Zeile); seit #346 ist der Katalog je Veranstaltung wählbar.
 
 ---
 
