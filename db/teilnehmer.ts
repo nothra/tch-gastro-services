@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "./index";
 import { teilnehmer, type NewTeilnehmer, type Teilnehmer } from "./schema";
 
@@ -35,7 +35,19 @@ export async function getTeilnehmer(id: string): Promise<Teilnehmer | undefined>
   return row;
 }
 
-export type TeilnehmerData = Omit<NewTeilnehmer, "id" | "createdAt" | "updatedAt" | "active">;
+// Mehrere Teilnehmer per id in EINER Abfrage (#369, ADR-053 D3) – für die Mehrfach-Anlage, damit
+// die Aktivprüfung nicht zu N Einzelabfragen wird. Selektiert wie `getTeilnehmer` unabhängig von
+// `active`: die Action prüft das selbst und nennt Abgelehnte beim Namen (FS2).
+export async function getTeilnehmerByIds(ids: readonly string[]): Promise<Teilnehmer[]> {
+  if (ids.length === 0) return [];
+  return db
+    .select()
+    .from(teilnehmer)
+    .where(inArray(teilnehmer.id, [...ids]))
+    .orderBy(...teilnehmerOrder);
+}
+
+export type TeilnehmerData =Omit<NewTeilnehmer, "id" | "createdAt" | "updatedAt" | "active">;
 
 export async function createTeilnehmer(data: TeilnehmerData): Promise<Teilnehmer> {
   const [created] = await db.insert(teilnehmer).values(data).returning();

@@ -5,6 +5,7 @@ import { teilnehmer } from "./schema";
 import {
   createTeilnehmer,
   findActiveByName,
+  getTeilnehmerByIds,
   listActiveTeilnehmer,
   listTeilnehmer,
   setTeilnehmerActive,
@@ -100,5 +101,23 @@ describe.skipIf(!hasDb)("teilnehmer data-layer (integration)", () => {
     await setTeilnehmerActive(row.id, false);
     const afterDeactivate = await findActiveByName(`${TEST_PREFIX}Suchbar`);
     expect(afterDeactivate).toBeUndefined();
+  });
+
+  it("should_loadExactlyRequestedTeilnehmerInclInactive_when_getTeilnehmerByIds", async () => {
+    // #369 / ADR-053 D3: eine Abfrage für die ganze Auswahl. Inaktive kommen bewusst mit – die
+    // Aktivprüfung ist Sache der Action, die sie dann namentlich ablehnen kann (FS2).
+    const aktiv = await track(person("ByIds-Aktiv"));
+    const inaktiv = await track(person("ByIds-Inaktiv"));
+    await track(person("ByIds-NichtGefragt"));
+    await setTeilnehmerActive(inaktiv.id, false);
+
+    const rows = await getTeilnehmerByIds([aktiv.id, inaktiv.id]);
+
+    expect(rows.map((row) => row.id).sort()).toEqual([aktiv.id, inaktiv.id].sort());
+    expect(rows.find((row) => row.id === inaktiv.id)?.active).toBe(false);
+  });
+
+  it("should_returnEmpty_when_getTeilnehmerByIdsGetsNoIds", async () => {
+    expect(await getTeilnehmerByIds([])).toEqual([]);
   });
 });
