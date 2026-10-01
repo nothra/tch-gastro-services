@@ -1,7 +1,7 @@
 # Task 388: anleitungs-screenshots-05-07-neu-erzeugen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -18,13 +18,13 @@ Herkunft: `docs/factory/kleinfunde.md` („Anleitungs-Screenshots `05`–`07`").
 <!-- Von /requirements befüllt oder manuell eingeben -->
 - [ ] Siehe `docs/specs/spec-388-anleitungs-screenshots-05-07-neu-erzeugen.md` (AK1–AK9, FS1–FS4); kurz:
 - [ ] AK1: frisch geseedete DB → Capture-Spec läuft durch, zwölf Bilder geschrieben
-- [ ] AK2: `05` zeigt Kacheln und Teilnehmerliste
-- [ ] AK3: `06` zeigt den Dialog „Teilnehmer hinzufügen"
-- [ ] AK4: `07` zeigt den Dialog „Link & QR teilen"
+- [x] AK2: `05` zeigt Kacheln und Teilnehmerliste
+- [x] AK3: `06` zeigt den Dialog „Teilnehmer hinzufügen"
+- [x] AK4: `07` zeigt den Dialog „Link & QR teilen"
 - [ ] AK5: `10`–`12` nur bei sichtbarer Abweichung ersetzt, Entscheidung je Bild notiert
-- [ ] AK6: `01`–`04`, `08`, `09` unverändert (byte-identisch zu `main`)
-- [ ] AK7: Alt-/Umgebungstext nur angeglichen, wenn er nicht mehr passt
-- [ ] AK8: Bilder zeigen nur Demo-Daten, keine Zugangsdaten/Klarnamen
+- [x] AK6: `01`–`04`, `08`, `09` unverändert (byte-identisch zu `main`)
+- [x] AK7: Alt-/Umgebungstext nur angeglichen, wenn er nicht mehr passt
+- [x] AK8: Bilder zeigen nur Demo-Daten, keine Zugangsdaten/Klarnamen
 - [ ] AK9: Kleinfund-Eintrag entfernt, Gates grün
 
 ## Technische Notizen
@@ -32,6 +32,26 @@ Herkunft: `docs/factory/kleinfunde.md` („Anleitungs-Screenshots `05`–`07`").
 
 ## Offene Fragen
 Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu geseedet – zerstört den Bestand, auch für die parallele Session #370.
+
+### Implementierungs-Notizen (/implement, 2026-10-01)
+- Dev-DB wie entschieden zurückgesetzt (`DROP/CREATE DATABASE tch_dev` im Container `tch-gastro-db`, kein
+  `docker compose` aus dem Worktree wegen festem `container_name`), dann `db:migrate` + `db:seed`; insgesamt
+  viermal, weil jeder gescheiterte Lauf Demo-Daten anlegt (Spec-FS2). Eigener `next dev` auf Port 3388 und
+  Config ohne `webServer` (Lesson #368). Seed-Admin als `admin@tch.example`, damit `05` zu den unveränderten Bildern
+  passt (die zeigen diese Adresse; `.env.local` hat `admin@tch.local`).
+- **Neu: `05`, `06`, `07`.** `07`: Das native `<dialog>` fokussiert das Link-Feld und scrollt es ans URL-Ende – die
+  Capture-Spec setzt Fokus und Scroll vor dem Bild zurück (sonst nur „…ffb7cff344" sichtbar, mit Fokusring).
+  Der Link zeigt `localhost:3388` (Port des Wegwerf-Servers; Port 3000 war durch eine fremde Dev-Instanz belegt, die ich
+  nicht angefasst habe) – die alten Bilder zeigten `:3000`.
+- **Capture-Spec repariert (FS1):** Katalog-Zähler relativ zum Startwert (die frische DB bringt 16 Standard-Artikel mit,
+  #59) und der `07`-Schritt. Weiter ist **nicht** repariert: der Verzehr-/Kassieren-Schritt (Seed-„Bier"-Varianten
+  kollidieren mit dem Demo-„Bier"); der Lauf endet dort mit rotem Test, `08`–`12` sind deshalb **nicht** neu und bleiben
+  auf `main` (AK1/AK5 nicht erfüllt, bewusst – Entscheidung Ralf: „nur 05–07 liefern"). Kanonisch festgehalten in
+  `docs/factory/kleinfunde.md` („Capture-Spec der Anleitung läuft nicht bis zum Ende durch").
+- AK9 entsprechend: Der alte Kleinfund-Eintrag ist durch einen engeren ersetzt (nur noch Capture-Spec + `10`–`12`).
+- Nicht geprüft: Ob `10`–`12` tatsächlich veraltet sind.
+- `docs/anleitung/veranstalter/anleitung.pdf` (manueller Browser-Druck) ist seit #221 nicht neu erzeugt und zeigt noch die
+  alte Detailseite; als eigener Kleinfund festgehalten, nicht Teil dieses PRs.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

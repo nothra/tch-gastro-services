@@ -69,12 +69,21 @@ async function shotEl(page: Page, name: string, locator: Locator) {
   await locator.screenshot({ path: path.join(BILDER_DIR, name), animations: "disabled" });
 }
 
+// Anzahl der Artikel im Katalog, aus der Überschrift „Artikel (n)" der Katalog-Seite.
+async function artikelAnzahl(page: Page): Promise<number> {
+  const text = await page.getByRole("heading", { name: /^Artikel \(\d+\)$/ }).innerText();
+  return Number(/\((\d+)\)/.exec(text)?.[1]);
+}
+
 // Setzt eine frisch geseedete DB voraus (siehe Header) und legt die Demo-Stammdaten deterministisch
 // an – bewusst ohne „existiert schon"-Sprung: das wäre bei Fehlläufen die Quelle inkonsistenter
 // Daten. Neu erzeugen ⇒ DB vorher zurücksetzen (Kommando im Datei-Header).
 async function createKatalogArtikel(page: Page) {
   await page.goto("/verwaltung/katalog");
   await expect(page.getByRole("heading", { name: "Katalog" })).toBeVisible();
+  // Die frisch migrierte DB bringt schon die Preisliste des Standardkatalogs mit (#59); gezählt
+  // wird deshalb relativ zum Startwert, nicht ab 1.
+  const startAnzahl = await artikelAnzahl(page);
   for (let i = 0; i < KATALOG.length; i++) {
     const artikel = KATALOG[i];
     // Erst wenn das Formular vom vorherigen Erfolg zurückgesetzt ist, befüllen – sonst leert der
@@ -86,7 +95,9 @@ async function createKatalogArtikel(page: Page) {
     await page.getByLabel("Kategorie").selectOption({ label: artikel.kategorie });
     // exact: seit #345 steht daneben „+ Katalog anlegen".
     await page.getByRole("button", { name: "Anlegen", exact: true }).click();
-    await expect(page.getByRole("heading", { name: `Artikel (${i + 1})` })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: `Artikel (${startAnzahl + i + 1})` }),
+    ).toBeVisible();
   }
 }
 
@@ -145,6 +156,15 @@ async function shotZugang(page: Page) {
   await oeffneEinstellungen(page);
   await page.getByRole("button", { name: "Link & QR teilen" }).click();
   const dialog = page.getByRole("dialog", { name: "Link & QR teilen" });
+  // Das native `<dialog>` fokussiert beim Öffnen das erste Bedienelement – das Link-Feld. Es
+  // scrollt dabei ans Ende der URL und trägt einen Fokusring; fürs Bild zeigt es den Anfang
+  // („http://…/theke/…") ohne Fokus, wie es ein Nutzer vor dem Antippen sieht.
+  await dialog
+    .getByLabel("Selbstbedienungs-Link", { exact: true })
+    .evaluate((feld: HTMLInputElement) => {
+      feld.blur();
+      feld.scrollLeft = 0;
+    });
   await shotEl(page, "07-zugang-teilen.png", dialog);
   await dialog.getByRole("button", { name: "Schließen" }).click();
   await schliesseEinstellungen(page);
