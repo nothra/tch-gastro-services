@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -61,6 +61,14 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
 - Nitpick behoben: PDF-Eintrag nennt jetzt #324 und #369 für den Text und #388 für die Bilder. Port `3388` in `07` und „4 von 4
   bezahlt" in `05` bleiben bewusst (dokumentiert, kein Handlungsbedarf).
 - Bilder und Capture-Spec unverändert.
+
+### /test (2026-10-01)
+- Regulärer Lauf ohne `.env.local` (DB-Integrationstests übersprungen): 98 Dateien / 1279 Tests grün, 110 übersprungen,
+  Coverage gesamt 91,8 % Statements / 97,3 % Branches (Schwelle 80 %). Factory-Self-Tests (`scripts/checks/tests/run-tests.sh`):
+  1564 grün, 0 rot – sie hätten `kleinfunde.md` und Doku-Guards erfasst.
+- Keine neuen Tests: Der Task ändert keinen Produktionscode (drei Bilder, Doku, Capture-Spec, die ohne `CAPTURE_ANLEITUNG=1`
+  übersprungen wird). Die Akzeptanzkriterien sind Bild-/Diff-Prüfungen und stehen belegt in den Implementierungs-Notizen
+  und in `tasks/review-388.md`; die Capture-Spec ist selbst die Prüfung der Bilder (Lauf bis zum bekannten Abbruch im Kassieren-Schritt).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
