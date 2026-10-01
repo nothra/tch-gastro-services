@@ -134,6 +134,12 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
 - Sechs Learnings in `docs/factory/lessons/` + Index (siehe `tasks/codify-369.md`); keine Änderung an
   `CLAUDE.md`/Guidelines. Folge-Issues: #385, #386, #387.
 
+### /pr-shepherd (2026-10-01)
+PR-Shepherd 2026-10-01: Merge freigegeben – alle lokalen Gates grün. Branch nicht hinter `main`, keine offenen
+Review-Kommentare, PR-Body trägt `Closes #369`, CI zum Zeitpunkt der Freigabe noch laufend (`--auto` wartet
+serverseitig). Offen für den Menschen: AK27-Screenshot (`test-results/369-detailseite-375.png`) von Hand an den PR
+hängen; Anleitungs-Bilder `05`–`07` stehen in `docs/factory/kleinfunde.md`.
+
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).
 
