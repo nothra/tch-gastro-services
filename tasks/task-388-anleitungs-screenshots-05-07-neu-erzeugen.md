@@ -95,6 +95,12 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
 - AK-Wortlaut der Task-Datei an Q3 angeglichen (Review-Nitpick Iteration 2) und abgehakt; alle Checkboxen stehen vor dem
   Merge auf dem Branch.
 
+### /pr-shepherd (2026-10-01)
+PR-Shepherd 2026-10-01: Merge freigegeben – alle Gates grün. Branch nicht hinter `main`, keine offenen Review-Kommentare,
+PR-Body trägt `Closes #388`, CI vollständig bestanden (test, lint, factory-self-test, config-validation, issue-sync,
+pr-closes-issue, CodeQL, Vercel). Folgearbeit steht in `docs/factory/kleinfunde.md` (Capture-Spec-Verzehr-Schritt,
+`10`–`12`, `anleitung.pdf`).
+
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 
