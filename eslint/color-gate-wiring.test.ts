@@ -56,6 +56,25 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
     expect(messages.length).toBeGreaterThan(0);
   });
 
+  // Datei-Eintrag in einem dynamischen Segment (#369): die Klammern von `[id]` müssen im Muster
+  // maskiert sein, sonst greift die Regel für die echte Datei nicht.
+  it("should_reportRawColorClass_when_listedFileLiesInDynamicSegment", async () => {
+    const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, "app/veranstaltung/[id]/page.tsx");
+
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
+  // Gegenrichtung mit ähnlichem Nachbarpfad: die Unterseiten der Detailseite stellen erst
+  // #370/#371 um und bleiben bis dahin außerhalb des Gates.
+  it("should_notReport_when_fileIsSiblingSubpageOfListedDynamicSegmentFile", async () => {
+    const messages = await rawColorMessages(
+      CODE_WITH_RAW_COLOR,
+      "app/veranstaltung/[id]/kassieren/page.tsx",
+    );
+
+    expect(messages).toEqual([]);
+  });
+
   // Diskriminierungs-Kontrolle mit einem ÄHNLICHEN Nachbarpfad, nicht einem entfernten
   // (Lesson aus #172/#297): `app/verwaltung/teilnehmer/` liegt direkt neben dem gelisteten
   // `app/verwaltung/katalog/` und ist bis #369–#374 bewusst nicht umgestellt.

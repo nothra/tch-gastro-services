@@ -10,6 +10,7 @@ import { listEreignisse } from "./veranstaltung-ereignis";
 import {
   abschliessenVeranstaltung,
   addZeile,
+  addZeilen,
   createVeranstaltung,
   deleteVeranstaltung,
   ensureThekeForKasse,
@@ -249,6 +250,47 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const person = await trackTeilnehmer("Clara");
     await addZeile(v.id, person);
     await expect(addZeile(v.id, person)).rejects.toThrow();
+  });
+
+  it("should_addAllZeilenWithNameSnapshots_when_addZeilen", async () => {
+    // #369 AK12 / ADR-053 D3: mehrere Stammteilnehmer in einem Schwung.
+    const v = await trackVeranstaltung(datierte());
+    const emil = await trackTeilnehmer("Emil");
+    const frieda = await trackTeilnehmer("Frieda");
+
+    const angelegt = await addZeilen(v.id, [emil, frieda]);
+
+    expect(angelegt.map((zeile) => zeile.anzeigename).sort()).toEqual(
+      [emil.name, frieda.name].sort(),
+    );
+    const zeilen = await listZeilen(v.id);
+    expect(zeilen.map((zeile) => zeile.teilnehmerId).sort()).toEqual([emil.id, frieda.id].sort());
+  });
+
+  it("should_addNothingAndThrowUniqueViolation_when_oneTeilnehmerAlreadyErfasst", async () => {
+    // ADR-053 D3 / spec-369 FS2: ein einziges Statement ist atomar – eine Dublette lässt den
+    // ganzen Schwung scheitern, auch die gültige zweite Auswahl wird NICHT angelegt.
+    const v = await trackVeranstaltung(datierte());
+    const greta = await trackTeilnehmer("Greta");
+    const hans = await trackTeilnehmer("Hans");
+    await addZeile(v.id, greta);
+
+    const fehler = await addZeilen(v.id, [hans, greta]).catch((error: unknown) => error);
+
+    // Die Action erkennt die Dublette am SQLSTATE. Drizzle (≥ 0.44) umhüllt den Treiberfehler in
+    // einen `DrizzleQueryError` – der Code liegt deshalb auf `cause`, nicht am Fehler selbst. Der
+    // Test hält diese Form fest, weil die Unit-Tests der Action sie nur nachstellen können.
+    expect((fehler as { code?: string }).code).toBeUndefined();
+    expect((fehler as { cause?: { code?: string } }).cause?.code).toBe("23505");
+    const zeilen = await listZeilen(v.id);
+    expect(zeilen.map((zeile) => zeile.teilnehmerId)).toEqual([greta.id]);
+  });
+
+  it("should_returnEmptyWithoutInsert_when_addZeilenGetsNoTeilnehmer", async () => {
+    const v = await trackVeranstaltung(datierte());
+
+    expect(await addZeilen(v.id, [])).toEqual([]);
+    expect(await listZeilen(v.id)).toEqual([]);
   });
 
   it("should_removeZeile_when_removeZeile", async () => {

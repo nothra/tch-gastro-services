@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { gastHinzufuegen, oeffneEinstellungen } from "./helpers/detailseite";
 
 // Oberflächen-Nachweis für das Bearbeiten und Löschen einer Veranstaltung (#352, spec-352).
 // Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass die geänderten Metadaten
@@ -59,8 +60,8 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
-// Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil die
-// Seite mehrere Formulare trägt (Katalogwechsel, Teilnehmer erfassen, Status).
+// Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil der
+// Bereich „Einstellungen" (#369) mehrere Formulare trägt (Katalogwechsel, Bearbeiten, Löschen).
 function metaForm(page: Page) {
   return page
     .locator("form")
@@ -69,18 +70,9 @@ function metaForm(page: Page) {
 
 // Löschen bis zum offenen Bestätigungsdialog – der erste Klick darf noch nichts entfernen (AK8).
 async function oeffneLoeschDialog(page: Page) {
+  await oeffneEinstellungen(page);
   await page.getByRole("button", { name: "Veranstaltung löschen", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Veranstaltung löschen?" })).toBeVisible();
-}
-
-// Teilnehmer per Walk-in erfassen (Muster aus wechsel-verzehr-kassieren.spec.ts).
-async function walkIn(page: Page, name: string) {
-  const formular = page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
-  await formular.getByLabel("Anzeigename").fill(name);
-  await formular.getByRole("button", { name: "Anlegen & erfassen" }).click();
-  await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
 }
 
 // Die Kassierzeile eines Teilnehmers (Muster aus wechsel-verzehr-kassieren.spec.ts).
@@ -112,6 +104,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     const neu = `${PREFIX} Bearbeitet ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, alt);
     await page.goto(detailPfad);
+    await oeffneEinstellungen(page);
 
     // Ausgangszustand: das Formular ist mit den Ist-Werten vorbelegt – insbesondere das Datum im
     // "YYYY-MM-DD"-Format, das <input type="date"> allein akzeptiert (AK1, `formatDatumInput`).
@@ -127,11 +120,12 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
 
     // Die Seite selbst zeigt den neuen Stand – nicht nur das Formular (revalidatePath wirkt).
     await expect(page.getByRole("heading", { level: 1, name: neu })).toBeVisible();
-    await expect(page.getByText("21.09.2026 · Vereinskasse · offen")).toBeVisible();
+    await expect(page.getByText("21.09.2026 · Vereinskasse", { exact: true })).toBeVisible();
 
     // ── AK1: und der Stand ist wirklich persistiert, nicht nur im Client-State ──────────────
     await page.reload();
     await expect(page.getByRole("heading", { level: 1, name: neu })).toBeVisible();
+    await oeffneEinstellungen(page);
     await expect(metaForm(page).getByLabel("Bezeichnung")).toHaveValue(neu);
     await expect(metaForm(page).getByLabel("Datum")).toHaveValue("2026-09-21");
     await expect(metaForm(page).getByLabel("Kasse")).toHaveValue("vereinskasse");
@@ -153,7 +147,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await page.goto(detailPfad);
 
     // ── AK7: eine Teilnehmer-Zeile ohne jeden Verzehr darf das Löschen NICHT sperren ────────
-    await walkIn(page, `${PREFIX} Gast ${LAUF}`);
+    await gastHinzufuegen(page, `${PREFIX} Gast ${LAUF}`);
 
     // ── AK8: der erste Klick öffnet nur den Dialog ──────────────────────────────────────────
     await oeffneLoeschDialog(page);
@@ -197,7 +191,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     const gast = `${PREFIX} Spender ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, bezeichnung);
     await page.goto(detailPfad);
-    await walkIn(page, gast);
+    await gastHinzufuegen(page, gast);
 
     // ── Reine Spende: Geld kassiert, kein einziger Strich erfasst ───────────────────────────
     await kassiere(page, detailPfad, gast, "10,00");

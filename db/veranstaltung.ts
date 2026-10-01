@@ -171,6 +171,29 @@ export async function addZeile(
   return created;
 }
 
+// Legt mehrere Zeilen mit Namens-Snapshot an (#369, ADR-053 D3). Bewusst EIN Multi-Row-INSERT:
+// ein einzelnes Statement ist in PostgreSQL atomar, ohne Transaktionsklammer – deshalb weder
+// `db.transaction()` noch `runAtomic`, und der Neon-HTTP-Treiber braucht keinen Sonderfall. Eine
+// Dublette (Unique-Index je Veranstaltung und Teilnehmer) lässt den ganzen Schwung scheitern;
+// ein stiller Teilerfolg per `onConflictDoNothing` wäre die verwirrendere Variante (FS2).
+export async function addZeilen(
+  veranstaltungId: string,
+  teilnehmerListe: readonly { id: string; name: string }[],
+): Promise<VeranstaltungZeile[]> {
+  // Drizzle lehnt ein leeres `values([])` ab – ohne Teilnehmer gibt es schlicht nichts anzulegen.
+  if (teilnehmerListe.length === 0) return [];
+  return db
+    .insert(veranstaltungZeile)
+    .values(
+      teilnehmerListe.map((person) => ({
+        veranstaltungId,
+        teilnehmerId: person.id,
+        anzeigename: person.name,
+      })),
+    )
+    .returning();
+}
+
 // Löscht eine Zeile nur, wenn sie zur angegebenen Veranstaltung gehört. Die Bindung an
 // veranstaltungId ist der serverseitige Schreibschutz: ohne sie könnte ein manipulierter
 // Request über eine offene Veranstaltung eine fremde Zeile (abgeschlossene Veranstaltung

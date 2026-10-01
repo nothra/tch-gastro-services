@@ -8,6 +8,7 @@ import {
   veranstaltungMetaSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
+  zeilenAnlageSchema,
 } from "./schema";
 
 const valid = {
@@ -397,5 +398,75 @@ describe("kassiereSchema", () => {
     const result = kassiereSchema.safeParse({ erhalten: "99999999999" });
     expect(result.success).toBe(false);
     if (!result.success) expect(firstIssueMessage(result.error)).toBe("Betrag ist zu hoch.");
+  });
+});
+
+describe("zeilenAnlageSchema (#369 AK12/AK14, ADR-053 D3)", () => {
+  function distinctIds(anzahl: number): string[] {
+    return Array.from({ length: anzahl }, (_, index) => `t-${index}`);
+  }
+
+  it("should_acceptIds_when_atLeastOneGiven", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["t-1", "t-2"] });
+
+    expect(result.success && result.data.teilnehmerIds).toEqual(["t-1", "t-2"]);
+  });
+
+  it("should_removeDuplicates_when_idRepeated", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["t-1", "t-1", "t-2"] });
+
+    expect(result.success && result.data.teilnehmerIds).toEqual(["t-1", "t-2"]);
+  });
+
+  it("should_rejectWithHint_when_noIdGiven", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: [] });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Bitte mindestens einen Teilnehmer wählen.");
+    }
+  });
+
+  it("should_rejectWithHint_when_onlyBlankIdsGiven", () => {
+    // Leere Werte zählen nicht als Auswahl – sonst wäre AK14 per Leerfeld umgehbar.
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["", "  "] });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Bitte mindestens einen Teilnehmer wählen.");
+    }
+  });
+
+  it("should_acceptExactlyMaximum_when_200DistinctIds", () => {
+    expect(zeilenAnlageSchema.safeParse({ teilnehmerIds: distinctIds(200) }).success).toBe(true);
+  });
+
+  it("should_rejectWithMessage_when_moreThan200DistinctIds", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: distinctIds(201) });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(firstIssueMessage(result.error)).toBe("Zu viele Teilnehmer auf einmal.");
+    }
+  });
+
+  it("should_countDistinctIdsForMaximum_when_duplicatesExceedLimit", () => {
+    // Obergrenze nach der Bereinigung: 201 Kopien derselben Id sind EINE Auswahl.
+    const ids = Array.from({ length: 201 }, () => "t-1");
+
+    expect(zeilenAnlageSchema.safeParse({ teilnehmerIds: ids }).success).toBe(true);
+  });
+
+  it("should_accept_when_idExactly100Chars", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["x".repeat(100)] });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should_rejectWithMessage_when_idTooLong", () => {
+    const result = zeilenAnlageSchema.safeParse({ teilnehmerIds: ["x".repeat(101)] });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toBe("Ungültige Teilnehmer-Auswahl.");
   });
 });

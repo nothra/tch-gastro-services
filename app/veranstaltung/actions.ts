@@ -5,13 +5,20 @@ import { redirect } from "next/navigation";
 import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
-import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
+import { createTeilnehmer, getTeilnehmer, getTeilnehmerByIds } from "@/db/teilnehmer";
 import { getCatalogById, getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
-import { KASSEN, veranstaltungStatus, type Kasse, type Veranstaltung } from "@/db/schema";
+import {
+  KASSEN,
+  veranstaltungStatus,
+  type Kasse,
+  type Teilnehmer,
+  type Veranstaltung,
+} from "@/db/schema";
 import {
   abschliessenVeranstaltung,
   addZeile,
+  addZeilen,
   createVeranstaltung,
   deleteVeranstaltung,
   ensureThekeForKasse,
@@ -44,6 +51,7 @@ import {
   veranstaltungMetaSchema,
   veranstaltungSchema,
   verzehrAdjustSchema,
+  zeilenAnlageSchema,
 } from "./schema";
 
 const LIST_PATH = "/veranstaltung";
@@ -55,11 +63,10 @@ const thekePath = (token: string) => `/theke/${token}`;
 
 const NOT_FOUND = "Veranstaltung nicht gefunden.";
 const NOT_OFFEN = "Die Veranstaltung ist abgeschlossen und schreibgeschützt.";
-const DUPLICATE_ZEILE = "Dieser Teilnehmer ist bereits erfasst.";
 const ZEILE_NOT_FOUND = "Teilnehmerzeile nicht gefunden.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
 const TEILNEHMER_NOT_IN_VERANSTALTUNG = "Teilnehmer gehört nicht zu dieser Veranstaltung.";
-const TEILNEHMER_INACTIVE = "Teilnehmer nicht gefunden.";
+const TEILNEHMER_NICHT_GEFUNDEN = "Teilnehmer nicht gefunden.";
 const AUSLAGE_NOT_FOUND = "Auslage nicht gefunden.";
 const TOO_MANY_REQUESTS = "Zu viele Anfragen – bitte kurz warten.";
 const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
@@ -80,13 +87,29 @@ const LOESCHEN_KASSIERT_ERFASST =
 
 export type VeranstaltungFormState = { ok?: boolean; error?: string };
 
-// Postgres unique_violation (SQLSTATE 23505) – unterscheidet den Duplikat-Fall von einem echten Fehler.
+// Jede Ablehnung der Mehrfach-Anlage stellt klar, dass kein Teilerfolg entstanden ist (#369 FS2).
+const NIEMAND_ANGELEGT = "Es wurde niemand hinzugefügt.";
+const TEILNEHMER_UNBEKANNT = `${TEILNEHMER_NICHT_GEFUNDEN} ${NIEMAND_ANGELEGT}`;
+// Im Rennen nach dem Vor-Check meldet nur der Unique-Index, WER inzwischen erfasst ist, sagt es
+// aber nicht – die Meldung kann deshalb keinen Namen nennen.
+const GLEICHZEITIG_ERFASST = `Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. ${NIEMAND_ANGELEGT}`;
+
+// Nennt die abgelehnten Teilnehmer einer Mehrfach-Anlage beim Namen (#369 FS2).
+function nichtsAngelegt(grund: string, personen: readonly Teilnehmer[]): string {
+  const namen = personen.map((person) => person.name).join(", ");
+  return `${grund}: ${namen}. ${NIEMAND_ANGELEGT}`;
+}
+
+// Postgres unique_violation (SQLSTATE 23505) – unterscheidet den Duplikat-Fall von einem echten
+// Fehler. Drizzle (≥ 0.44) umhüllt den Treiberfehler in einen `DrizzleQueryError` und legt ihn auf
+// `cause` (belegt in db/veranstaltung.test.ts); geprüft werden deshalb beide Stellen.
 function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "23505"
+  const kandidaten = [error, (error as { cause?: unknown } | null)?.cause];
+  return kandidaten.some(
+    (kandidat) =>
+      typeof kandidat === "object" &&
+      kandidat !== null &&
+      (kandidat as { code?: unknown }).code === "23505",
   );
 }
 
@@ -157,7 +180,7 @@ export async function setVeranstaltungCatalogAction(
 ): Promise<VeranstaltungFormState> {
   await requireRole("veranstalter");
   const id = String(formData.get("id") ?? "");
-  if (!id) return { error: "Keine Veranstaltung angegeben." };
+  if (!id) return { error: KEINE_VERANSTALTUNG };
 
   const parsed = katalogWechselSchema.safeParse({ catalogId: formData.get("catalogId") ?? "" });
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
@@ -304,31 +327,68 @@ export async function deleteVeranstaltungAction(
   redirect(LIST_PATH);
 }
 
-// Anzeigename-Snapshot wird serverseitig aus den Stammdaten geholt (nicht vom Client),
-// damit die Zeile den autoritativen Namen konserviert.
-export async function addZeileAction(
+// Prüft die gewählten Stammteilnehmer VOR dem Insert (#369 FS2): alle existieren, sind aktiv
+// (ADR-022 – `getTeilnehmerByIds` selektiert unabhängig von `active`, ein manipulierter Request
+// darf keinen soft-gelöschten Teilnehmer erfassen) und sind noch nicht erfasst. Liefert die
+// geladenen Personen oder eine Meldung, die die Betroffenen beim Namen nennt. Der Unique-Index
+// bleibt die verbindliche Grenze für das Rennen danach; dieser Vor-Check macht nur die Meldung
+// sprechend.
+async function waehlbareTeilnehmer(
+  veranstaltungId: string,
+  teilnehmerIds: readonly string[],
+): Promise<{ personen: Teilnehmer[] } | { error: string }> {
+  const [personen, zeilen] = await Promise.all([
+    getTeilnehmerByIds(teilnehmerIds),
+    listZeilen(veranstaltungId),
+  ]);
+  if (personen.length !== teilnehmerIds.length) return { error: TEILNEHMER_UNBEKANNT };
+
+  const inaktive = personen.filter((person) => !person.active);
+  if (inaktive.length > 0) return { error: nichtsAngelegt("Nicht mehr wählbar", inaktive) };
+
+  const erfasst = new Set(zeilen.map((zeile) => zeile.teilnehmerId));
+  const doppelte = personen.filter((person) => erfasst.has(person.id));
+  if (doppelte.length > 0) return { error: nichtsAngelegt("Bereits erfasst", doppelte) };
+
+  return { personen };
+}
+
+// Legt die im „+ Teilnehmer"-Dialog gewählten Stammteilnehmer als Zeilen an (#369 AK12, ADR-053
+// D3) – ersetzt die frühere Einzel-Action, der Einzelfall ist eine Liste der Länge 1. Fail-closed
+// in dieser Reihenfolge: Rolle (FS4) → Eingabe (Zod, AK14) → Veranstaltung existiert und ist
+// `offen` (FS1) → alle Teilnehmer wählbar (FS2) → EIN Multi-Row-INSERT. Alles oder nichts: bei
+// jeder Ablehnung wird niemand angelegt. Der Anzeigename-Snapshot kommt serverseitig aus den
+// Stammdaten, nicht vom Client (ADR-023 D5).
+export async function addZeilenAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
 ): Promise<VeranstaltungFormState> {
   await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
-  const teilnehmerId = String(formData.get("teilnehmerId") ?? "");
-  if (!veranstaltungId || !teilnehmerId) return { error: "Teilnehmer und Veranstaltung nötig." };
+  if (!veranstaltungId) return { error: KEINE_VERANSTALTUNG };
+
+  const parsed = zeilenAnlageSchema.safeParse({
+    teilnehmerIds: formData.getAll("teilnehmerId").map(String),
+  });
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
   const ziel = await getVeranstaltung(veranstaltungId);
   if (!ziel) return { error: NOT_FOUND };
   if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
-  // getTeilnehmer selektiert unabhängig von `active` – hier explizit prüfen, damit ein
-  // manipulierter Request keinen soft-gelöschten Teilnehmer erfassen kann (ADR-022).
-  const person = await getTeilnehmer(teilnehmerId);
-  if (!person || !person.active) return { error: "Teilnehmer nicht gefunden." };
+  const auswahl = await waehlbareTeilnehmer(veranstaltungId, parsed.data.teilnehmerIds);
+  // Auch bei Ablehnung neu rendern: die Auswahl im Dialog soll den aktuellen Stand zeigen (FS2).
+  if ("error" in auswahl) {
+    revalidatePath(detailPath(veranstaltungId));
+    return { error: auswahl.error };
+  }
 
   try {
-    await addZeile(veranstaltungId, person);
+    await addZeilen(veranstaltungId, auswahl.personen);
   } catch (error) {
-    if (isUniqueViolation(error)) return { error: DUPLICATE_ZEILE };
-    throw error;
+    if (!isUniqueViolation(error)) throw error;
+    revalidatePath(detailPath(veranstaltungId));
+    return { error: GLEICHZEITIG_ERFASST };
   }
   revalidatePath(detailPath(veranstaltungId));
   return { ok: true };
@@ -341,7 +401,7 @@ export async function createWalkInAction(
 ): Promise<VeranstaltungFormState> {
   await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
-  if (!veranstaltungId) return { error: "Keine Veranstaltung angegeben." };
+  if (!veranstaltungId) return { error: KEINE_VERANSTALTUNG };
 
   const ziel = await getVeranstaltung(veranstaltungId);
   if (!ziel) return { error: NOT_FOUND };
@@ -356,18 +416,29 @@ export async function createWalkInAction(
   return { ok: true };
 }
 
-// Noch keine erfassten Positionen (F5/ADR-023 D7) – das Entfernen ist bedingungslos.
-export async function removeZeileAction(formData: FormData): Promise<void> {
+// Entfernt eine Teilnehmerzeile einer offenen Veranstaltung (ADR-023 D7: fachlich bedingungslos).
+// Seit #369 mit Rückgabe-State statt fire-and-forget: die Bestätigung im Dialog zeigt eine
+// Ablehnung an und bleibt dafür offen (AK20). Der an die veranstaltungId gebundene DELETE ist die
+// IDOR-Grenze (Codify #51); trifft er nichts, ist das ein Fehler, kein stiller Erfolg.
+export async function removeZeileAction(
+  _prevState: VeranstaltungFormState | undefined,
+  formData: FormData,
+): Promise<VeranstaltungFormState> {
   await requireRole("veranstalter");
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
   const zeileId = String(formData.get("zeileId") ?? "");
-  if (!veranstaltungId || !zeileId) return;
+  if (!veranstaltungId || !zeileId) return { error: ZEILE_NOT_FOUND };
 
   const ziel = await getVeranstaltung(veranstaltungId);
-  if (!ziel || ziel.status !== "offen") return;
+  if (!ziel) return { error: NOT_FOUND };
+  if (ziel.status !== "offen") return { error: NOT_OFFEN };
 
-  await removeZeile(zeileId, veranstaltungId);
+  const removed = await removeZeile(zeileId, veranstaltungId);
+  // Auch ohne Treffer neu rendern: war die Zeile schon auf einem anderen Gerät entfernt, fällt
+  // sie so aus der Liste, statt veraltet stehen zu bleiben.
   revalidatePath(detailPath(veranstaltungId));
+  if (!removed) return { error: ZEILE_NOT_FOUND };
+  return { ok: true };
 }
 
 const THEKE_NICHT_ABSCHLIESSBAR = "Die Theke wird nicht abgeschlossen.";
@@ -400,7 +471,7 @@ export async function setStatusAction(
   const session = await requireRole("veranstalter");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
-  if (!id) return { error: "Keine Veranstaltung angegeben." };
+  if (!id) return { error: KEINE_VERANSTALTUNG };
   if (
     !veranstaltungStatus.enumValues.includes(
       status as (typeof veranstaltungStatus.enumValues)[number],
@@ -588,7 +659,7 @@ async function assertTeilnehmerInVeranstaltung(
   if (!zeile) return TEILNEHMER_NOT_IN_VERANSTALTUNG;
 
   const person = await getTeilnehmer(teilnehmerId);
-  if (!person || !person.active) return TEILNEHMER_INACTIVE;
+  if (!person || !person.active) return TEILNEHMER_NICHT_GEFUNDEN;
 
   return undefined;
 }

@@ -21,6 +21,20 @@ describe("uiTokenFilePatterns – Liste der umgestellten Dateien (AK6.6)", () =>
     expect(patterns).toEqual(["package.json"]);
   });
 
+  // App-Router-Segmente wie `[id]` sind im Glob eine Zeichenklasse – unmaskiert träfe das Muster
+  // `app/veranstaltung/i/page.tsx`, aber nie die echte Datei (#369).
+  it("should_escapeBracketsOfDynamicSegment_when_entryIsFileInDynamicRoute", () => {
+    const patterns = uiTokenFilePatterns(["app/veranstaltung/[id]/page.tsx"]);
+
+    expect(patterns).toEqual(["app/veranstaltung/[[]id[]]/page.tsx"]);
+  });
+
+  it("should_escapeBracketsOfDynamicSegment_when_entryIsDirectoryInDynamicRoute", () => {
+    const patterns = uiTokenFilePatterns(["app/veranstaltung/[id]/"]);
+
+    expect(patterns).toEqual(["app/veranstaltung/[[]id[]]/**/*.{ts,tsx}"]);
+  });
+
   it("should_coverEveryConfiguredPath_when_defaultListIsUsed", () => {
     const patterns = uiTokenFilePatterns();
 

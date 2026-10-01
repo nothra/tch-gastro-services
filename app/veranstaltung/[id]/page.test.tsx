@@ -6,6 +6,8 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/veranstaltung", () => ({ getVeranstaltung: vi.fn(), listZeilen: vi.fn() }));
 vi.mock("@/db/teilnehmer", () => ({ listActiveTeilnehmer: vi.fn() }));
 vi.mock("@/db/catalog", () => ({ listCatalogs: vi.fn() }));
+vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
+vi.mock("@/db/auslage", () => ({ listAuslagen: vi.fn() }));
 
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -28,13 +30,9 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-// Eingebettete Client-Komponenten sind hier durch leere Stubs ersetzt – sie haben eigene Tests.
-// Für die Detailseite zählen RBAC, die Teilnehmerliste und der Verzehr-Link.
-vi.mock("../AddTeilnehmerForm", () => ({ AddTeilnehmerForm: () => null }));
-vi.mock("../WalkInForm", () => ({ WalkInForm: () => null }));
-vi.mock("../StatusToggle", () => ({ StatusToggle: () => null }));
-// Der Katalogwechsel hat eigene Tests; hier zählt nur, OB die Seite ihn zeigt und mit welchen
-// Daten – deshalb ein Stub, der seine Props sichtbar macht statt sie zu verschlucken.
+// Eingebettete Client-Komponenten sind hier durch Stubs ersetzt – sie haben eigene Tests. Für die
+// Detailseite zählen RBAC, der Aufbau, OB ein Baustein erscheint und mit welchen Daten – deshalb
+// Stubs, die ihre Props sichtbar machen statt sie zu verschlucken.
 vi.mock("../KatalogWechsel", () => ({
   KatalogWechsel: ({ catalogId, kataloge }: { catalogId: string; kataloge: { id: string }[] }) => (
     <div data-testid="katalog-wechsel" data-catalog-id={catalogId}>
@@ -42,8 +40,6 @@ vi.mock("../KatalogWechsel", () => ({
     </div>
   ),
 }));
-// Bearbeiten und Löschen haben eigene Tests; hier zählt nur, OB die Seite sie zeigt und mit
-// welchen Daten – deshalb Stubs, die ihre Props sichtbar machen statt sie zu verschlucken.
 vi.mock("./VeranstaltungMetaForm", () => ({
   VeranstaltungMetaForm: ({
     bezeichnung,
@@ -70,15 +66,31 @@ vi.mock("./VeranstaltungLoeschen", () => ({
 vi.mock("./ZugangTeilen", () => ({
   ZugangTeilen: ({ token }: { token: string }) => <div data-testid="zugang-teilen">{token}</div>,
 }));
+vi.mock("./ZugangDialog", () => ({
+  ZugangDialog: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="zugang-dialog">{children}</div>
+  ),
+}));
+vi.mock("../TeilnehmerHinzufuegenDialog", () => ({
+  TeilnehmerHinzufuegenDialog: ({ verfuegbar }: { verfuegbar: { id: string }[] }) => (
+    <button type="button" data-testid="teilnehmer-dialog">
+      + Teilnehmer ({verfuegbar.map((t) => t.id).join(",")})
+    </button>
+  ),
+}));
 vi.mock("../ZeileRow", () => ({
-  ZeileRow: ({ zeile }: { zeile: { anzeigename: string } }) => <li>{zeile.anzeigename}</li>,
+  ZeileRow: ({ zeile, editable }: { zeile: { anzeigename: string }; editable: boolean }) => (
+    <li data-editable={String(editable)}>{zeile.anzeigename}</li>
+  ),
 }));
 
 import { auth } from "@/auth";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveTeilnehmer } from "@/db/teilnehmer";
 import { listCatalogs } from "@/db/catalog";
-import type { Catalog, VeranstaltungZeile } from "@/db/schema";
+import { listPositionen } from "@/db/verzehr";
+import { listAuslagen } from "@/db/auslage";
+import type { Catalog, Teilnehmer, VeranstaltungZeile } from "@/db/schema";
 import VeranstaltungDetailPage from "./page";
 
 const authMock = vi.mocked(auth);
@@ -86,6 +98,8 @@ const getVeranstaltungMock = vi.mocked(getVeranstaltung);
 const listZeilenMock = vi.mocked(listZeilen);
 const listActiveTeilnehmerMock = vi.mocked(listActiveTeilnehmer);
 const listCatalogsMock = vi.mocked(listCatalogs);
+const listPositionenMock = vi.mocked(listPositionen);
+const listAuslagenMock = vi.mocked(listAuslagen);
 
 function session(roles: string[]) {
   return { user: { roles }, expires: "" } as never;
@@ -104,6 +118,15 @@ const aVeranstaltung: Veranstaltung = {
   updatedAt: new Date(),
 };
 
+const abgeschlossen: Veranstaltung = { ...aVeranstaltung, status: "abgeschlossen" };
+
+const theke: Veranstaltung = {
+  ...aVeranstaltung,
+  typ: "theke",
+  datum: null,
+  bezeichnung: "Stehende Theke",
+};
+
 function katalog(id: string, name: string, active = true): Catalog {
   return {
     id,
@@ -115,17 +138,62 @@ function katalog(id: string, name: string, active = true): Catalog {
   };
 }
 
+function zeile(id: string, anzeigename: string, erhaltenCents: number | null = null) {
+  return {
+    id,
+    veranstaltungId: "v-1",
+    teilnehmerId: `t-${id}`,
+    anzeigename,
+    erhaltenCents,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } satisfies VeranstaltungZeile;
+}
+
+function teilnehmer(id: string, name: string) {
+  return {
+    id,
+    name,
+    typ: "person",
+    mitglied: false,
+    active: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as Teilnehmer;
+}
+
 function params(id: string) {
   return Promise.resolve({ id });
 }
 
+async function renderSeite(veranstaltung: Veranstaltung = aVeranstaltung) {
+  authMock.mockResolvedValue(session(["veranstalter"]));
+  getVeranstaltungMock.mockResolvedValue(veranstaltung);
+  render(await VeranstaltungDetailPage({ params: params("v-1") }));
+}
+
+function einstellungen() {
+  return screen.getByText("Einstellungen", { selector: "summary" }).closest("details")!;
+}
+
+function kachel(name: RegExp) {
+  return within(screen.getByRole("navigation", { name: "Arbeitsschritte" })).getByRole("link", {
+    name,
+  });
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
+  listZeilenMock.mockResolvedValue([]);
+  listActiveTeilnehmerMock.mockResolvedValue([]);
+  listPositionenMock.mockResolvedValue([]);
+  listAuslagenMock.mockResolvedValue([]);
   listCatalogsMock.mockResolvedValue([katalog("kat-b", "Dorfmeisterschaften")]);
 });
 
-describe("VeranstaltungDetailPage", () => {
+describe("VeranstaltungDetailPage – Zugriff", () => {
   it("should_denyAccess_when_userIsNotVeranstalter", async () => {
+    // FS4: unveränderte Meldung, keine Daten geladen.
     authMock.mockResolvedValue(session(["verwalter"]));
 
     render(await VeranstaltungDetailPage({ params: params("v-1") }));
@@ -137,190 +205,134 @@ describe("VeranstaltungDetailPage", () => {
   it("should_notFound_when_veranstaltungMissing", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(undefined);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
 
     await expect(VeranstaltungDetailPage({ params: params("v-1") })).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
   });
+});
 
-  it("should_linkToVerzehrPage_when_veranstalter", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+describe("VeranstaltungDetailPage – Aufbau und Kopf (AK1, AK2)", () => {
+  it("should_orderHeaderKachelnTeilnehmerEinstellungen_when_veranstaltungOffen", async () => {
+    // AK1: von oben nach unten Kopf, Kacheln, Teilnehmerliste, Einstellungen – sonst nichts.
+    await renderSeite();
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    const link = screen.getByRole("link", { name: /Verzehr erfassen/ });
-    expect(link).toHaveAttribute("href", "/veranstaltung/v-1/verzehr");
+    const bloecke = Array.from(screen.getByRole("main").children);
+    expect(bloecke).toHaveLength(4);
+    expect(bloecke[0].tagName).toBe("HEADER");
+    expect(bloecke[1]).toBe(screen.getByRole("navigation", { name: "Arbeitsschritte" }));
+    expect(bloecke[2]).toBe(screen.getByRole("region", { name: /Teilnehmer/ }));
+    expect(bloecke[3]).toBe(einstellungen());
   });
 
-  it("should_linkToAuslagenPage_when_veranstalter", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+  it("should_showTitleMetaStatusBadgeAndBackLink_when_rendered", async () => {
+    // AK2
+    await renderSeite();
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    const link = screen.getByRole("link", { name: /Auslagen erstatten/ });
-    expect(link).toHaveAttribute("href", "/veranstaltung/v-1/auslagen");
+    const kopf = within(screen.getByRole("banner"));
+    expect(kopf.getByRole("heading", { level: 1 })).toHaveTextContent("Montagsrunde Juli");
+    expect(kopf.getByText("14.07.2026 · Montagsrunde")).toBeInTheDocument();
+    expect(kopf.getByText("offen")).toHaveClass("rounded-full");
+    expect(kopf.getByRole("link", { name: "Alle Veranstaltungen" })).toHaveAttribute(
+      "href",
+      "/veranstaltung",
+    );
   });
 
-  it("should_linkToKassierenPage_when_veranstalter", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+  it("should_showAbgeschlossenBadge_when_veranstaltungAbgeschlossen", async () => {
+    await renderSeite(abgeschlossen);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    const link = screen.getByRole("link", { name: /Kassieren/ });
-    expect(link).toHaveAttribute("href", "/veranstaltung/v-1/kassieren");
+    expect(within(screen.getByRole("banner")).getByText("abgeschlossen")).toHaveClass(
+      "rounded-full",
+    );
   });
 
-  it("should_showZugangTeilen_when_veranstaltungOffen", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
-
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    // Der Selbstbedienungs-Zugang (Link + QR) wird mit dem Veranstaltungs-Token gespeist (F7).
-    expect(screen.getByTestId("zugang-teilen")).toHaveTextContent("abc123");
+  it("should_notOfferAbschliessenOrWiederOeffnen_when_rendered", async () => {
+    // AK24: der Status-Umschalter ist auf die Kassieren-Seite umgezogen – in beiden Zuständen.
+    await renderSeite();
+    expect(screen.queryByRole("button", { name: /Abschließen|Wieder öffnen/ })).toBeNull();
   });
 
-  it("should_showKatalogWechselWithCurrentAndActiveKataloge_when_veranstaltungOffen", async () => {
-    // #346 AK3: solange die Veranstaltung offen ist, bietet die Detailseite den Wechsel an –
-    // vorbelegt mit dem aktuell zugeordneten Katalog.
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
-
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    expect(screen.getByTestId("katalog-wechsel")).toHaveAttribute("data-catalog-id", "kat-b");
+  it("should_notOfferWiederOeffnen_when_veranstaltungAbgeschlossen", async () => {
+    await renderSeite(abgeschlossen);
+    expect(screen.queryByRole("button", { name: /Abschließen|Wieder öffnen/ })).toBeNull();
   });
+});
 
-  it("should_passOnlyActiveKatalogeToKatalogWechsel_when_veranstaltungOffen", async () => {
-    // #346 AK6, erste Hälfte: ein deaktivierter Katalog ist kein Wechselziel.
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
-    listCatalogsMock.mockResolvedValue([
-      katalog("kat-b", "Dorfmeisterschaften"),
-      katalog("kat-alt", "Sommerfest 2024", false),
+describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
+  it("should_linkThreeKachelnToSubpages_when_veranstaltungOffen", async () => {
+    // AK3
+    await renderSeite();
+
+    const links = within(screen.getByRole("navigation", { name: "Arbeitsschritte" })).getAllByRole(
+      "link",
+    );
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/veranstaltung/v-1/verzehr",
+      "/veranstaltung/v-1/auslagen",
+      "/veranstaltung/v-1/kassieren",
     ]);
-
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    expect(screen.getByTestId("katalog-wechsel")).toHaveTextContent("kat-b");
-    expect(screen.getByTestId("katalog-wechsel")).not.toHaveTextContent("kat-alt");
   });
 
-  it("should_hideKatalogWechsel_when_veranstaltungAbgeschlossen", async () => {
-    // #346 AK5: eine abgeschlossene Veranstaltung bleibt unveränderlich – der Wechsel-Weg
-    // verschwindet (die Action lehnt ihn zusätzlich serverseitig ab).
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+  it("should_showKennzahlenFromSummen_when_verzehrAndAuslagenErfasst", async () => {
+    // AK4: Anna hat 2 × 2,50 € und hat bezahlt, Bernd 1 × 4,00 € offen; eine Auslage von 12,50 €
+    // (offen) plus 3,00 € (erstattet). Soll-Werte von Hand gerechnet.
+    listZeilenMock.mockResolvedValue([zeile("z-1", "Anna", 500), zeile("z-2", "Bernd")]);
+    listPositionenMock.mockResolvedValue([
+      { zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk" },
+      { zeileId: "z-2", menge: 1, priceCents: 400, category: "essen" },
+    ] as never);
+    listAuslagenMock.mockResolvedValue([
+      { kategorie: "essen", betragCents: 1250, status: "offen" },
+      { kategorie: "sonstiges", betragCents: 300, status: "erstattet" },
+    ] as never);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+    await renderSeite();
 
-    expect(screen.queryByTestId("katalog-wechsel")).not.toBeInTheDocument();
+    expect(kachel(/Verzehr/)).toHaveTextContent(/9,00\s€/);
+    expect(kachel(/Auslagen/)).toHaveTextContent(/15,50\s€/);
+    expect(kachel(/Kassieren/)).toHaveTextContent("1 von 2 bezahlt");
+    expect(listPositionenMock).toHaveBeenCalledWith("v-1");
+    expect(listAuslagenMock).toHaveBeenCalledWith("v-1");
   });
 
-  it("should_showMetaFormWithCurrentValues_when_veranstaltungOffen", async () => {
-    // #352 AK1: der Bearbeiten-Weg steht auf der Detailseite und kennt den Ist-Zustand.
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+  it("should_showZeroValues_when_nothingErfasst", async () => {
+    // AK5
+    await renderSeite();
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    const form = screen.getByTestId("meta-form");
-    expect(form).toHaveAttribute("data-bezeichnung", "Montagsrunde Juli");
-    expect(form).toHaveAttribute("data-kasse", "montagsrunde");
-    expect(form).toHaveAttribute("data-datum", "2026-07-14");
+    expect(kachel(/Verzehr/)).toHaveTextContent(/0,00\s€/);
+    expect(kachel(/Auslagen/)).toHaveTextContent(/0,00\s€/);
+    expect(kachel(/Kassieren/)).toHaveTextContent("0 von 0 bezahlt");
   });
 
-  it("should_showLoeschenWithBezeichnung_when_veranstaltungOffen", async () => {
-    // #352 AK4/AK8: der Lösch-Weg steht daneben und kennt die Bezeichnung für den Dialogtext.
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+  it("should_showBerichtBetweenHeaderAndKachelnWithoutKennzahlen_when_abgeschlossen", async () => {
+    // AK6: Bericht zwischen Kopf und Kacheln; Kacheln bleiben Links, aber ohne Kennzahl – und
+    // die Kennzahl-Daten werden gar nicht erst geladen (ADR-053 D4).
+    await renderSeite(abgeschlossen);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    expect(screen.getByTestId("veranstaltung-loeschen")).toHaveTextContent("Montagsrunde Juli");
+    const bloecke = Array.from(screen.getByRole("main").children);
+    // Ein benannter Bereich (`aria-labelledby`), damit er als Landmarke angesprungen werden kann.
+    const bericht = screen.getByRole("region", { name: "Abschlussbericht" });
+    expect(bloecke[1]).toContainElement(bericht);
+    expect(bloecke[2]).toBe(screen.getByRole("navigation", { name: "Arbeitsschritte" }));
+    expect(kachel(/Kassieren/)).toHaveTextContent(/^Kassieren$/);
+    expect(kachel(/Verzehr/)).toHaveTextContent(/^Verzehr$/);
+    expect(listPositionenMock).not.toHaveBeenCalled();
+    expect(listAuslagenMock).not.toHaveBeenCalled();
   });
 
-  it("should_hideMetaFormAndLoeschen_when_veranstaltungAbgeschlossen", async () => {
-    // #352 AK3: eine abgeschlossene Veranstaltung ist schreibgeschützt – beide Wege
-    // verschwinden (die Actions lehnen sie zusätzlich serverseitig ab).
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+  it("should_linkKassierenAndDropEinstellungen_when_abgeschlossen", async () => {
+    // AK7
+    await renderSeite(abgeschlossen);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    expect(screen.queryByTestId("meta-form")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("veranstaltung-loeschen")).not.toBeInTheDocument();
-  });
-
-  it("should_hideMetaFormAndLoeschen_when_typTheke", async () => {
-    // #352 AK10: die stehende Theke ist nicht Teil dieses Features. Sie ist `offen`, das
-    // Status-Kriterium allein würde die Aktionen also fälschlich anbieten – der Typ-Zweig ist
-    // die eigentliche Trennlinie und braucht deshalb einen eigenen Test.
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({
-      ...aVeranstaltung,
-      typ: "theke",
-      datum: null,
-      bezeichnung: "Stehende Theke",
-    });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
-
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    expect(screen.queryByTestId("meta-form")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("veranstaltung-loeschen")).not.toBeInTheDocument();
-    // Gegenkontrolle: die Seite rendert normal weiter – es fehlen nur die beiden neuen Wege,
-    // nicht die ganze Theken-Ansicht.
-    expect(screen.getByTestId("katalog-wechsel")).toBeInTheDocument();
-  });
-
-  it("should_hideZugangTeilen_when_veranstaltungAbgeschlossen", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
-
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    expect(screen.queryByTestId("zugang-teilen")).not.toBeInTheDocument();
+    expect(kachel(/Kassieren/)).toHaveAttribute("href", "/veranstaltung/v-1/kassieren");
+    expect(screen.queryByText("Einstellungen")).not.toBeInTheDocument();
   });
 
   it("should_showBerichtDownloads_when_veranstaltungAbgeschlossen", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+    // spec-324 AC14 / spec-369 AK6: Links unverändert.
+    await renderSeite(abgeschlossen);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    // AC1 (#185): Excel- UND PDF-Download des vollständigen Berichts aus der Detailansicht einer
-    // abgeschlossenen Veranstaltung – unverändert ohne `umfang` (Default `voll`, spec-324 AC14).
     const vollstaendig = within(screen.getByRole("group", { name: "Vollständig" }));
     expect(vollstaendig.getByRole("link", { name: /Excel .* herunterladen/ })).toHaveAttribute(
       "href",
@@ -330,18 +342,6 @@ describe("VeranstaltungDetailPage", () => {
       "href",
       "/api/veranstaltung/v-1/bericht?format=pdf",
     );
-  });
-
-  it("should_showGetraenkeBerichtDownloads_when_veranstaltungAbgeschlossen", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
-
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    // spec-324 AC14: zweite Gruppe „Nur Getränke" mit denselben zwei Formaten, beide Links auf
-    // dieselbe Route mit `umfang=getraenke`.
     const nurGetraenke = within(screen.getByRole("group", { name: "Nur Getränke" }));
     expect(nurGetraenke.getByRole("link", { name: /Excel .* herunterladen/ })).toHaveAttribute(
       "href",
@@ -354,54 +354,121 @@ describe("VeranstaltungDetailPage", () => {
   });
 
   it("should_groupBothBerichtVariantsUnderOneSection_when_veranstaltungAbgeschlossen", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+    await renderSeite(abgeschlossen);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    // spec-324 AC14: EINE gemeinsame Sektion „Abschlussbericht", darin genau die zwei Gruppen –
-    // und insgesamt genau vier Downloads (nicht mehr).
     const sektion = screen.getByRole("heading", { name: "Abschlussbericht" }).closest("section")!;
     expect(within(sektion).getAllByRole("group")).toHaveLength(2);
-    expect(
-      within(sektion)
-        .getAllByRole("heading", { level: 3 })
-        .map((ueberschrift) => ueberschrift.textContent),
-    ).toEqual(["Vollständig", "Nur Getränke"]);
     expect(within(sektion).getAllByRole("link", { name: /herunterladen/ })).toHaveLength(4);
   });
 
   it("should_hideBerichtDownloads_when_veranstaltungOffen", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung); // status: "offen"
-    listZeilenMock.mockResolvedValue([]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+    await renderSeite();
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
-
-    // AC2 (UI-Seite): kein Bericht für offene Veranstaltungen anbieten.
     expect(screen.queryByRole("link", { name: /herunterladen/ })).not.toBeInTheDocument();
   });
+});
 
-  it("should_renderZeileRow_when_zeilenPresent", async () => {
-    const aZeile: VeranstaltungZeile = {
-      id: "z-1",
-      veranstaltungId: "v-1",
-      teilnehmerId: "t-1",
-      anzeigename: "Anna Beispiel",
-      erhaltenCents: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([aZeile]);
-    listActiveTeilnehmerMock.mockResolvedValue([]);
+describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
+  it("should_showCountHeadingWithDialogInSameRow_when_veranstaltungOffen", async () => {
+    // AK8: Überschrift und „+ Teilnehmer" in derselben Zeile; nur noch nicht erfasste aktive
+    // Stammteilnehmer stehen zur Wahl.
+    listZeilenMock.mockResolvedValue([zeile("z-1", "Anna")]);
+    listActiveTeilnehmerMock.mockResolvedValue([
+      teilnehmer("t-z-1", "Anna"),
+      teilnehmer("t-9", "Bernd"),
+    ]);
 
-    render(await VeranstaltungDetailPage({ params: params("v-1") }));
+    await renderSeite();
 
-    expect(screen.getByText("Anna Beispiel")).toBeInTheDocument();
+    const ueberschrift = screen.getByRole("heading", { name: "Teilnehmer (1)" });
+    const knopf = screen.getByTestId("teilnehmer-dialog");
+    expect(ueberschrift.parentElement).toBe(knopf.parentElement);
+    expect(knopf).toHaveTextContent("+ Teilnehmer (t-9)");
+  });
+
+  it("should_renderRowsEditable_when_veranstaltungOffen", async () => {
+    listZeilenMock.mockResolvedValue([zeile("z-1", "Anna Beispiel")]);
+
+    await renderSeite();
+
+    expect(screen.getByText("Anna Beispiel")).toHaveAttribute("data-editable", "true");
+  });
+
+  it("should_renderRowsReadOnlyWithoutDialog_when_veranstaltungAbgeschlossen", async () => {
+    // AK9 / AK6: Liste schreibgeschützt sichtbar, kein „+ Teilnehmer", kein Zeilenmenü.
+    listZeilenMock.mockResolvedValue([zeile("z-1", "Anna Beispiel")]);
+
+    await renderSeite(abgeschlossen);
+
+    expect(screen.getByText("Anna Beispiel")).toHaveAttribute("data-editable", "false");
+    expect(screen.queryByTestId("teilnehmer-dialog")).not.toBeInTheDocument();
+  });
+
+  it("should_showEmptyState_when_noZeilen", async () => {
+    await renderSeite();
+
+    expect(screen.getByText("Noch keine Teilnehmer erfasst.")).toBeInTheDocument();
+  });
+});
+
+describe("VeranstaltungDetailPage – Einstellungen (AK21–AK23, FS5)", () => {
+  it("should_beCollapsedByDefault_when_rendered", async () => {
+    // AK21
+    await renderSeite();
+
+    expect(einstellungen()).not.toHaveAttribute("open");
+  });
+
+  it("should_containAllEntries_when_datedVeranstaltungOffen", async () => {
+    await renderSeite();
+
+    const bereich = within(einstellungen());
+    expect(bereich.getByTestId("katalog-wechsel")).toHaveAttribute("data-catalog-id", "kat-b");
+    const meta = bereich.getByTestId("meta-form");
+    expect(meta).toHaveAttribute("data-bezeichnung", "Montagsrunde Juli");
+    expect(meta).toHaveAttribute("data-kasse", "montagsrunde");
+    expect(meta).toHaveAttribute("data-datum", "2026-07-14");
+    expect(bereich.getByTestId("veranstaltung-loeschen")).toHaveTextContent("Montagsrunde Juli");
+  });
+
+  it("should_passOnlyActiveKatalogeToKatalogWechsel_when_veranstaltungOffen", async () => {
+    // #346 AK6: ein deaktivierter Katalog ist kein Wechselziel.
+    listCatalogsMock.mockResolvedValue([
+      katalog("kat-b", "Dorfmeisterschaften"),
+      katalog("kat-alt", "Sommerfest 2024", false),
+    ]);
+
+    await renderSeite();
+
+    expect(screen.getByTestId("katalog-wechsel")).toHaveTextContent("kat-b");
+    expect(screen.getByTestId("katalog-wechsel")).not.toHaveTextContent("kat-alt");
+  });
+
+  it("should_putServerRenderedZugangInsideDialog_when_veranstaltungOffen", async () => {
+    // AK22: Link und QR nur im Dialog, gespeist mit dem Veranstaltungs-Token.
+    await renderSeite();
+
+    const dialog = within(einstellungen()).getByTestId("zugang-dialog");
+    expect(within(dialog).getByTestId("zugang-teilen")).toHaveTextContent("abc123");
+  });
+
+  it("should_offerOnlyKatalogAndZugang_when_typTheke", async () => {
+    // FS5: stehende Theke – weder Bearbeiten noch Löschen (#352 AK10); die übrigen Einträge und
+    // die Kacheln bleiben.
+    await renderSeite(theke);
+
+    const bereich = within(einstellungen());
+    expect(bereich.queryByTestId("meta-form")).not.toBeInTheDocument();
+    expect(bereich.queryByTestId("veranstaltung-loeschen")).not.toBeInTheDocument();
+    expect(bereich.getByTestId("katalog-wechsel")).toBeInTheDocument();
+    expect(bereich.getByTestId("zugang-dialog")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Arbeitsschritte" })).toBeInTheDocument();
+  });
+
+  it("should_loadNoKataloge_when_abgeschlossen", async () => {
+    await renderSeite(abgeschlossen);
+
+    expect(listCatalogsMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("zugang-teilen")).not.toBeInTheDocument();
   });
 });

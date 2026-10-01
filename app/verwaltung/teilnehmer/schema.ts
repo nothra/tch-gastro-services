@@ -5,12 +5,15 @@ import { teilnehmerTyp } from "@/db/schema";
 // `name` wird getrimmt und darf nicht leer sein (spec-50, AK4). `mitglied` kommt aus einer
 // Checkbox: gesetzt → "on", nicht gesetzt → Feld fehlt (undefined) → false. Alle Meldungen
 // sind für Konsumenten, nicht für Entwickler.
+// Exportiert, damit Eingabefelder ihr `maxLength` aus derselben Grenze beziehen (#369 „Neuer Gast").
+export const TEILNEHMER_NAME_MAX = 200;
+
 export const teilnehmerSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "Anzeigename ist erforderlich.")
-    .max(200, "Anzeigename ist zu lang."),
+    .max(TEILNEHMER_NAME_MAX, "Anzeigename ist zu lang."),
   typ: z.enum(teilnehmerTyp.enumValues, {
     error: "Typ muss Person oder Familie sein.",
   }),

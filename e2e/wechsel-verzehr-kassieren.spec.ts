@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { gastHinzufuegen } from "./helpers/detailseite";
 
 // Oberflächen-Nachweis für den personenbezogenen Wechsel zwischen Verzehrerfassung und Kassieren
 // (#308, spec-308). Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass der
@@ -53,15 +54,6 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
-async function walkIn(page: Page, name: string) {
-  const form = page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Anlegen & erfassen" }) });
-  await form.getByLabel("Anzeigename").fill(name);
-  await form.getByRole("button", { name: "Anlegen & erfassen" }).click();
-  await expect(page.getByText("Teilnehmer angelegt und erfasst.")).toBeVisible();
-}
-
 // Karte eines Teilnehmers über die sticky Chip-Leiste öffnen (= Fokus wählen).
 async function oeffneKarte(page: Page, name: string) {
   await page
@@ -87,8 +79,8 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     const detailPfad = await createVeranstaltung(page, `Wechsel-Hin-Rueck ${LAUF}`);
     await page.goto(detailPfad);
-    await walkIn(page, ZIEL);
-    await walkIn(page, ANDERE);
+    await gastHinzufuegen(page, ZIEL);
+    await gastHinzufuegen(page, ANDERE);
 
     // ── AK7: ohne geöffnete Karte gibt es keine Wechsel-Aktion ──────────────────────────────
     await page.goto(`${detailPfad}/verzehr`);
@@ -165,7 +157,7 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     const detailPfad = await createVeranstaltung(page, `Wechsel-Fremdbezug ${LAUF}`);
     await page.goto(detailPfad);
-    await walkIn(page, ZIEL);
+    await gastHinzufuegen(page, ZIEL);
 
     // Zufallswert, der in dieser Veranstaltung keine Zeile ist – fail-soft, kein 404, keine Meldung.
     const fremd = "00000000-0000-4000-8000-000000000000";

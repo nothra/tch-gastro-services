@@ -1,9 +1,11 @@
+import Link from "next/link";
 import type { VeranstaltungZeile } from "@/db/schema";
-import { removeZeileAction } from "./actions";
+import { verzehrHref } from "./personenbezug";
+import { ZeilenMenue } from "./ZeilenMenue";
 
-// Eine Teilnehmerzeile: zeigt den Namens-Snapshot. Solange die Veranstaltung offen ist
-// (`editable`), kann der Veranstalter die Zeile entfernen. In #51 gibt es noch keine erfassten
-// Positionen (F5) – daher kein Bestätigungs-Dialog (spec-51, ADR-023 D7).
+// Eine Teilnehmerzeile der Detailseite (spec-369 AK17/AK18): der Name ist das Tipp-Ziel und führt
+// in die Verzehr-Erfassung dieser Person (#308). Solange die Veranstaltung offen ist
+// (`editable`), bietet das Zeilenmenü „Entfernen" mit Bestätigung an.
 export function ZeileRow({
   zeile,
   veranstaltungId,
@@ -14,19 +16,21 @@ export function ZeileRow({
   editable: boolean;
 }) {
   return (
-    <li className="flex items-center justify-between gap-3 rounded border border-zinc-200 p-3 dark:border-zinc-800">
-      <span className="font-medium">{zeile.anzeigename}</span>
+    <li className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface pr-1 pl-3">
+      {/* `min-w-0` + `break-words`: ein sehr langer Name bricht um, statt das Menü aus dem Bild
+          zu schieben (FS6). */}
+      <Link
+        href={verzehrHref(veranstaltungId, zeile.id)}
+        className="min-h-11 min-w-0 flex-1 py-3 font-medium break-words text-foreground hover:text-accent focus-visible:outline-2 focus-visible:outline-accent"
+      >
+        {zeile.anzeigename}
+      </Link>
       {editable && (
-        <form action={removeZeileAction}>
-          <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
-          <input type="hidden" name="zeileId" value={zeile.id} />
-          <button
-            type="submit"
-            className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-          >
-            Entfernen
-          </button>
-        </form>
+        <ZeilenMenue
+          veranstaltungId={veranstaltungId}
+          zeileId={zeile.id}
+          name={zeile.anzeigename}
+        />
       )}
     </li>
   );

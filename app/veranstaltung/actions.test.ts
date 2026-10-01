@@ -16,6 +16,7 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/veranstaltung", () => ({
   createVeranstaltung: vi.fn(),
   addZeile: vi.fn(),
+  addZeilen: vi.fn(),
   removeZeile: vi.fn(),
   setErhalten: vi.fn(),
   abschliessenVeranstaltung: vi.fn(),
@@ -30,7 +31,11 @@ vi.mock("@/db/veranstaltung", () => ({
   updateVeranstaltungMeta: vi.fn(),
   deleteVeranstaltung: vi.fn(),
 }));
-vi.mock("@/db/teilnehmer", () => ({ getTeilnehmer: vi.fn(), createTeilnehmer: vi.fn() }));
+vi.mock("@/db/teilnehmer", () => ({
+  getTeilnehmer: vi.fn(),
+  getTeilnehmerByIds: vi.fn(),
+  createTeilnehmer: vi.fn(),
+}));
 // Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
 // Action `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
 vi.mock("@/db/catalog", () => ({
@@ -66,12 +71,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { auth } from "@/auth";
-import { createTeilnehmer, getTeilnehmer } from "@/db/teilnehmer";
+import { createTeilnehmer, getTeilnehmer, getTeilnehmerByIds } from "@/db/teilnehmer";
 import { getCatalogById, getCatalogItem } from "@/db/catalog";
 import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
 import {
   abschliessenVeranstaltung,
   addZeile,
+  addZeilen,
   createVeranstaltung,
   deleteVeranstaltung,
   ensureThekeForKasse,
@@ -94,7 +100,7 @@ import {
   updateAuslage,
 } from "@/db/auslage";
 import {
-  addZeileAction,
+  addZeilenAction,
   adjustVerzehrAction,
   adjustVerzehrByTokenAction,
   createAuslageAction,
@@ -115,6 +121,8 @@ import {
 const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
 const createMock = vi.mocked(createVeranstaltung);
 const addZeileMock = vi.mocked(addZeile);
+const addZeilenMock = vi.mocked(addZeilen);
+const getTeilnehmerByIdsMock = vi.mocked(getTeilnehmerByIds);
 const removeZeileMock = vi.mocked(removeZeile);
 const setErhaltenMock = vi.mocked(setErhalten);
 const revalidatePathMock = vi.mocked(revalidatePath);
@@ -261,6 +269,9 @@ beforeEach(() => {
   abschliessenMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
   wiedereroeffnenMock.mockResolvedValue(offeneVeranstaltung);
   getTeilnehmerMock.mockResolvedValue(person);
+  getTeilnehmerByIdsMock.mockResolvedValue([person]);
+  addZeilenMock.mockResolvedValue([zeile]);
+  removeZeileMock.mockResolvedValue(zeile);
   createTeilnehmerMock.mockResolvedValue(person);
   getCatalogItemMock.mockResolvedValue(cola);
   getCatalogByIdMock.mockResolvedValue(katalogB);
@@ -842,93 +853,144 @@ describe("deleteVeranstaltungAction", () => {
   });
 });
 
-describe("addZeileAction", () => {
-  it("should_addZeileWithSnapshotName_when_inputValid", async () => {
-    const result = await addZeileAction(
-      undefined,
-      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
-    );
+// Wie Drizzle ≥ 0.44 einen Treiberfehler umhüllt: SQLSTATE auf `cause`, nicht am Fehler selbst
+// (belegt im DB-Integrationstest von `addZeilen`).
+function umhuellterDbFehler(code: string) {
+  return Object.assign(new Error("Failed query"), { cause: { code } });
+}
+
+describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
+  const berta: Teilnehmer = { ...person, id: "t2", name: "Berta Beispiel" };
+
+  // Mehrfachauswahl: jede angehakte Checkbox sendet ein eigenes `teilnehmerId`-Feld.
+  function auswahl(veranstaltungId: string | null, teilnehmerIds: string[]): FormData {
+    const data = new FormData();
+    if (veranstaltungId !== null) data.append("veranstaltungId", veranstaltungId);
+    for (const id of teilnehmerIds) data.append("teilnehmerId", id);
+    return data;
+  }
+
+  it("should_addAllSelectedWithServerSideSnapshotNames_when_inputValid", async () => {
+    getTeilnehmerByIdsMock.mockResolvedValue([person, berta]);
+
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1", "t2"]));
 
     expect(result).toEqual({ ok: true });
-    expect(addZeileMock).toHaveBeenCalledWith("v1", person);
+    expect(getTeilnehmerByIdsMock).toHaveBeenCalledWith(["t1", "t2"]);
+    expect(addZeilenMock).toHaveBeenCalledWith("v1", [person, berta]);
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
+  });
+
+  it("should_addOnce_when_sameTeilnehmerSubmittedTwice", async () => {
+    await addZeilenAction(undefined, auswahl("v1", ["t1", "t1"]));
+
+    expect(getTeilnehmerByIdsMock).toHaveBeenCalledWith(["t1"]);
+  });
+
+  it("should_rejectWithHintAndNotPersist_when_nothingSelected", async () => {
+    // AK14: Hinzufügen ohne Auswahl nennt den Grund und legt nichts an.
+    const result = await addZeilenAction(undefined, auswahl("v1", []));
+
+    expect(result.error).toBe("Bitte mindestens einen Teilnehmer wählen.");
+    expect(addZeilenMock).not.toHaveBeenCalled();
   });
 
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
+    // FS4: die Action prüft die Rolle serverseitig, unabhängig von der Oberfläche.
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
 
-    await expect(
-      addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" })),
-    ).rejects.toThrow(ForbiddenError);
-    expect(addZeileMock).not.toHaveBeenCalled();
+    await expect(addZeilenAction(undefined, auswahl("v1", ["t1"]))).rejects.toThrow(ForbiddenError);
+    expect(addZeilenMock).not.toHaveBeenCalled();
   });
 
-  it("should_returnError_when_veranstaltungClosed", async () => {
-    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+  it("should_returnError_when_veranstaltungIdMissing", async () => {
+    const result = await addZeilenAction(undefined, auswahl(null, ["t1"]));
 
-    const result = await addZeileAction(
-      undefined,
-      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
-    );
-
-    expect(result.error).toBeDefined();
-    expect(addZeileMock).not.toHaveBeenCalled();
+    expect(result.error).toBe("Keine Veranstaltung angegeben.");
+    expect(getVeranstaltungMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_veranstaltungNotFound", async () => {
     getVeranstaltungMock.mockResolvedValue(undefined);
 
-    const result = await addZeileAction(
-      undefined,
-      form({ veranstaltungId: "x", teilnehmerId: "t1" }),
-    );
+    const result = await addZeilenAction(undefined, auswahl("x", ["t1"]));
 
-    expect(result.error).toBeDefined();
-    expect(addZeileMock).not.toHaveBeenCalled();
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
+    expect(addZeilenMock).not.toHaveBeenCalled();
   });
 
-  it("should_returnFriendlyError_when_teilnehmerAlreadyAdded", async () => {
-    addZeileMock.mockRejectedValue({ code: "23505" });
+  it("should_returnErrorAndNotPersist_when_veranstaltungClosedMeanwhile", async () => {
+    // FS1: auf dem zweiten Gerät abgeschlossen, während der Dialog offen war.
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
 
-    const result = await addZeileAction(
-      undefined,
-      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
-    );
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1"]));
 
-    expect(result.error).toMatch(/bereits erfasst/);
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
+    expect(addZeilenMock).not.toHaveBeenCalled();
   });
 
-  it("should_returnErrorAndNotPersist_when_teilnehmerInactive", async () => {
-    getTeilnehmerMock.mockResolvedValue({ ...person, active: false });
+  it("should_nameInactiveTeilnehmerAndPersistNothing_when_oneDeactivatedMeanwhile", async () => {
+    // FS2: Soft-Delete-Prüfung nach dem Laden (ADR-022) – kein Teilerfolg für die gültige Auswahl.
+    getTeilnehmerByIdsMock.mockResolvedValue([person, { ...berta, active: false }]);
 
-    const result = await addZeileAction(
-      undefined,
-      form({ veranstaltungId: "v1", teilnehmerId: "t1" }),
-    );
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1", "t2"]));
 
-    expect(result.error).toBeDefined();
-    expect(addZeileMock).not.toHaveBeenCalled();
+    expect(result.error).toBe("Nicht mehr wählbar: Berta Beispiel. Es wurde niemand hinzugefügt.");
+    expect(addZeilenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
-  it("should_returnError_when_veranstaltungIdMissing", async () => {
-    const result = await addZeileAction(undefined, form({ teilnehmerId: "t1" }));
+  it("should_rejectAndPersistNothing_when_teilnehmerIdUnknown", async () => {
+    // Eine unbekannte Id (manipulierter Request) hat keinen Namen, den die Meldung nennen könnte.
+    getTeilnehmerByIdsMock.mockResolvedValue([person]);
 
-    expect(result.error).toBeDefined();
-    expect(addZeileMock).not.toHaveBeenCalled();
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1", "gibt-es-nicht"]));
+
+    expect(result.error).toBe("Teilnehmer nicht gefunden. Es wurde niemand hinzugefügt.");
+    expect(addZeilenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
-  it("should_returnError_when_teilnehmerIdMissing", async () => {
-    const result = await addZeileAction(undefined, form({ veranstaltungId: "v1" }));
+  it("should_nameAlreadyErfasstTeilnehmerAndPersistNothing_when_oneAddedMeanwhile", async () => {
+    // FS2: auf einem anderen Gerät inzwischen erfasst – Meldung nennt den Namen, keine Dublette.
+    getTeilnehmerByIdsMock.mockResolvedValue([person, berta]);
+    listZeilenMock.mockResolvedValue([{ ...zeile, teilnehmerId: "t2", anzeigename: "Berta B." }]);
 
-    expect(result.error).toBeDefined();
-    expect(addZeileMock).not.toHaveBeenCalled();
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1", "t2"]));
+
+    expect(result.error).toBe("Bereits erfasst: Berta Beispiel. Es wurde niemand hinzugefügt.");
+    expect(addZeilenMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
-  it("should_rethrow_when_addZeileThrowsNon23505Error", async () => {
-    addZeileMock.mockRejectedValue(new Error("DB connection lost"));
+  // Im Rennen kennt die Action die Betroffenen nicht mehr; sie sagt aber wie die Vor-Checks, dass
+  // niemand angelegt wurde (FS2).
+  const RENNEN_MELDUNG =
+    "Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt.";
 
-    await expect(
-      addZeileAction(undefined, form({ veranstaltungId: "v1", teilnehmerId: "t1" })),
-    ).rejects.toThrow("DB connection lost");
+  it("should_returnDuplicateMessage_when_insertHitsUniqueViolationInRace", async () => {
+    // Das Rennen NACH dem Vor-Check: der Unique-Index ist die verbindliche Grenze. Der Fehler
+    // kommt so an, wie Drizzle ihn tatsächlich wirft.
+    addZeilenMock.mockRejectedValue(umhuellterDbFehler("23505"));
+
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1"]));
+
+    expect(result.error).toBe(RENNEN_MELDUNG);
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
+  });
+
+  it("should_returnDuplicateMessage_when_driverReportsSqlStateDirectly", async () => {
+    addZeilenMock.mockRejectedValue({ code: "23505" });
+
+    const result = await addZeilenAction(undefined, auswahl("v1", ["t1"]));
+
+    expect(result.error).toBe(RENNEN_MELDUNG);
+  });
+
+  it("should_rethrow_when_insertFailsWithOtherDbError", async () => {
+    addZeilenMock.mockRejectedValue(umhuellterDbFehler("23503"));
+
+    await expect(addZeilenAction(undefined, auswahl("v1", ["t1"]))).rejects.toThrow("Failed query");
   });
 });
 
@@ -948,7 +1010,14 @@ describe("createWalkInAction", () => {
   it("should_returnError_when_nameEmpty", async () => {
     const result = await createWalkInAction(undefined, form({ ...walkIn, name: "   " }));
 
-    expect(result.error).toBeDefined();
+    expect(result.error).toBe("Anzeigename ist erforderlich.");
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_nameTooLong", async () => {
+    const result = await createWalkInAction(undefined, form({ ...walkIn, name: "x".repeat(201) }));
+
+    expect(result.error).toBe("Anzeigename ist zu lang.");
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
   });
 
@@ -958,6 +1027,17 @@ describe("createWalkInAction", () => {
     const result = await createWalkInAction(undefined, form(walkIn));
 
     expect(result.error).toBeDefined();
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnNotFound_when_veranstaltungUnknown", async () => {
+    // Guard-Branch (Codify #51): ohne diesen Test bliebe das Anlegen für eine gelöschte
+    // Veranstaltung ungeprüft – der Gast dürfte dann nicht entstehen.
+    getVeranstaltungMock.mockResolvedValue(undefined);
+
+    const result = await createWalkInAction(undefined, form(walkIn));
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
   });
 
@@ -978,34 +1058,60 @@ describe("createWalkInAction", () => {
   });
 });
 
+// Seit #369 mit Rückgabe-State: die Bestätigung zeigt eine Ablehnung im Dialog an (AK20).
 describe("removeZeileAction", () => {
+  const entfernen = form({ veranstaltungId: "v1", zeileId: "z1" });
+
   it("should_removeZeileBoundToVeranstaltung_when_veranstaltungOpen", async () => {
-    await removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }));
+    const result = await removeZeileAction(undefined, entfernen);
+
+    expect(result).toEqual({ ok: true });
     expect(removeZeileMock).toHaveBeenCalledWith("z1", "v1");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
-  it("should_notRemove_when_veranstaltungClosed", async () => {
+  it("should_returnErrorAndNotRemove_when_veranstaltungClosed", async () => {
+    // AK20: z. B. auf einem anderen Gerät abgeschlossen – die Meldung erreicht den Dialog.
     getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
-    await removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }));
+
+    const result = await removeZeileAction(undefined, entfernen);
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
     expect(removeZeileMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+  it("should_returnError_when_veranstaltungNotFound", async () => {
     getVeranstaltungMock.mockResolvedValue(undefined);
-    await removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }));
+
+    const result = await removeZeileAction(undefined, entfernen);
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(removeZeileMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnError_when_zeileNotInVeranstaltung", async () => {
+    // Der an die veranstaltungId gebundene DELETE trifft nichts (fremde oder schon entfernte
+    // Zeile) – ein Fehler, kein stiller Erfolg (Kern-Kurzregel „guarded UPDATE/DELETE").
+    removeZeileMock.mockResolvedValue(undefined);
+
+    const result = await removeZeileAction(undefined, entfernen);
+
+    expect(result.error).toBe("Teilnehmerzeile nicht gefunden.");
+    // Neu rendern, damit eine auf einem anderen Gerät schon entfernte Zeile aus der Liste fällt.
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1");
   });
 
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
-    await expect(removeZeileAction(form({ veranstaltungId: "v1", zeileId: "z1" }))).rejects.toThrow(
-      ForbiddenError,
-    );
+
+    await expect(removeZeileAction(undefined, entfernen)).rejects.toThrow(ForbiddenError);
     expect(removeZeileMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_idsMissing", async () => {
-    await removeZeileAction(form({}));
+  it("should_returnError_when_idsMissing", async () => {
+    const result = await removeZeileAction(undefined, form({}));
+
+    expect(result.error).toBe("Teilnehmerzeile nicht gefunden.");
     expect(removeZeileMock).not.toHaveBeenCalled();
   });
 });
@@ -1246,6 +1352,14 @@ describe("ensureThekeAction", () => {
 
   it("should_reportOk_when_thekeAlreadyExistsRace", async () => {
     ensureThekeMock.mockRejectedValue({ code: "23505" });
+    const result = await ensureThekeAction(undefined, form({ kasse: "montagsrunde" }));
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("should_reportOk_when_thekeAlreadyExistsRaceWithWrappedDbError", async () => {
+    // Seit #369 prüft `isUniqueViolation` auch `cause` – die Form, in der Drizzle den Fehler
+    // tatsächlich wirft. Vorher lief dieser Fall still in einen Fehler statt in `ok`.
+    ensureThekeMock.mockRejectedValue(umhuellterDbFehler("23505"));
     const result = await ensureThekeAction(undefined, form({ kasse: "montagsrunde" }));
     expect(result).toEqual({ ok: true });
   });

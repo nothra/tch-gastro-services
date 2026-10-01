@@ -134,3 +134,27 @@ export const kassiereSchema = z.object({
 });
 
 export type KassiereInput = z.infer<typeof kassiereSchema>;
+
+const ZEILEN_ANLAGE_MAX = 200;
+const TEILNEHMER_ID_MAX_LENGTH = 100;
+const KEINE_AUSWAHL = "Bitte mindestens einen Teilnehmer wählen.";
+
+// Zod-Grenze für die Mehrfach-Anlage von Teilnehmerzeilen (#369 AK12/AK14, ADR-053 D3). Leere
+// Werte fallen vor der Prüfung heraus (sie sind keine Auswahl), Dubletten ebenso – beide Grenzen
+// (`min(1)`, `max(200)`) gelten damit für die tatsächlich verschiedenen Teilnehmer. Die
+// Obergrenze ist die Zod-Obergrenze aus der Kern-Kurzregel: ohne sie wäre ein riesiger
+// Multi-Row-INSERT die einzige Fehlergrenze. Die veranstaltungId ist KEIN Feld hier – sie wird wie
+// bei `createWalkInAction` direkt aus FormData gelesen.
+export const zeilenAnlageSchema = z.object({
+  teilnehmerIds: z
+    .array(z.string().trim().max(TEILNEHMER_ID_MAX_LENGTH, "Ungültige Teilnehmer-Auswahl."))
+    .transform((ids) => [...new Set(ids.filter((id) => id.length > 0))])
+    .pipe(
+      z
+        .array(z.string())
+        .min(1, KEINE_AUSWAHL)
+        .max(ZEILEN_ANLAGE_MAX, "Zu viele Teilnehmer auf einmal."),
+    ),
+});
+
+export type ZeilenAnlageInput = z.infer<typeof zeilenAnlageSchema>;
