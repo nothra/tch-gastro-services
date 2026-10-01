@@ -81,7 +81,7 @@ async function artikelAnzahl(page: Page): Promise<number> {
 async function createKatalogArtikel(page: Page) {
   await page.goto("/verwaltung/katalog");
   await expect(page.getByRole("heading", { name: "Katalog" })).toBeVisible();
-  // Die frisch migrierte DB bringt schon die Preisliste des Standardkatalogs mit (#59); gezählt
+  // Die frisch migrierte DB bringt schon die Preisliste des Standardkatalogs mit (Migration 0004); gezählt
   // wird deshalb relativ zum Startwert, nicht ab 1.
   const startAnzahl = await artikelAnzahl(page);
   for (let i = 0; i < KATALOG.length; i++) {

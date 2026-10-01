@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Die Anleitungs-Bilder `05`–`07` (und bei Abweichung `10`–`12`) zeigen noch das Layout vor #369. Mit der Capture-Spec
@@ -16,16 +16,16 @@ Herkunft: `docs/factory/kleinfunde.md` („Anleitungs-Screenshots `05`–`07`").
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] Siehe `docs/specs/spec-388-anleitungs-screenshots-05-07-neu-erzeugen.md` (AK1–AK9, FS1–FS4); kurz:
-- [ ] AK1: frisch geseedete DB → Capture-Spec läuft durch, zwölf Bilder geschrieben
+- [x] Siehe `docs/specs/spec-388-anleitungs-screenshots-05-07-neu-erzeugen.md` (AK1–AK9, FS1–FS4); kurz:
+- [x] AK1 (zurückgestellt, Q3 → Kleinfund „Capture-Spec läuft nicht bis zum Ende durch"): Capture-Spec läuft bis `07` durch, schreibt `05`–`07`; Verzehr-/Kassieren-Schritt bleibt rot
 - [x] AK2: `05` zeigt Kacheln und Teilnehmerliste
 - [x] AK3: `06` zeigt den Dialog „Teilnehmer hinzufügen"
 - [x] AK4: `07` zeigt den Dialog „Link & QR teilen"
-- [ ] AK5: `10`–`12` nur bei sichtbarer Abweichung ersetzt, Entscheidung je Bild notiert
+- [x] AK5 (zurückgestellt, Q3 → Kleinfund): `10`–`12` nicht geprüft und nicht ersetzt, Entscheidung je Bild: „bleibt auf `main`"
 - [x] AK6: `01`–`04`, `08`, `09` unverändert (byte-identisch zu `main`)
 - [x] AK7: Alt-/Umgebungstext nur angeglichen, wenn er nicht mehr passt
 - [x] AK8: Bilder zeigen nur Demo-Daten, keine Zugangsdaten/Klarnamen
-- [ ] AK9: Kleinfund-Eintrag entfernt, Gates grün
+- [x] AK9 (angepasst, Q3): Kleinfund-Eintrag durch einen engeren ersetzt (plus neuer PDF-Eintrag), Gates grün
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -43,8 +43,8 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
   Capture-Spec setzt Fokus und Scroll vor dem Bild zurück (sonst nur „…ffb7cff344" sichtbar, mit Fokusring).
   Der Link zeigt `localhost:3388` (Port des Wegwerf-Servers; Port 3000 war durch eine fremde Dev-Instanz belegt, die ich
   nicht angefasst habe) – die alten Bilder zeigten `:3000`.
-- **Capture-Spec repariert (FS1):** Katalog-Zähler relativ zum Startwert (die frische DB bringt 16 Standard-Artikel mit,
-  #59) und der `07`-Schritt. Weiter ist **nicht** repariert: der Verzehr-/Kassieren-Schritt (`hasText: "Bier"` trifft
+- **Capture-Spec repariert (FS1):** Katalog-Zähler relativ zum Startwert (die frische DB bringt 16 Standard-Artikel mit –
+  Migration `0004_seed_catalog_reference`, aus #49) und der `07`-Schritt. Weiter ist **nicht** repariert: der Verzehr-/Kassieren-Schritt (`hasText: "Bier"` trifft
   per Teilstring auch das Seed-„Weizenbier 0,5 l" und `.last()` wählt es – gemessen an der DB des Laufs); der Lauf endet dort mit rotem Test, `08`–`12` sind deshalb **nicht** neu und bleiben
   auf `main` (AK1/AK5 nicht erfüllt, bewusst – Entscheidung Ralf: „nur 05–07 liefern"). Kanonisch festgehalten in
   `docs/factory/kleinfunde.md` („Capture-Spec der Anleitung läuft nicht bis zum Ende durch").
@@ -85,6 +85,15 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
   `admin@tch.example`. Hinweise: QR-Code in `07` kodiert einen lokalen Wegwerf-Token; mehrfacher lokaler DB-Reset war
   bestätigt. Keine Out-of-Scope-Funde, kein Issue.
 - Aufruf kam wieder mit `369`; gemeint war #388.
+
+### /codify (2026-10-01)
+- Drei Learnings in `docs/factory/lessons/` + Index (siehe `tasks/codify-388.md`); keine Änderung an `CLAUDE.md`/Guidelines.
+  Aufruf kam wieder mit `369`; gemeint war #388.
+- Beim Schreiben der Lessons fiel eine eigene unbelegte Zuschreibung auf („Default-Artikel seit #59"): die Seed-Migration
+  `0004_seed_catalog_reference` stammt aus #49 (vor #221). Im Code-Kommentar der Capture-Spec, in den Task-Notizen und in der
+  Lesson auf die verifizierte Migration umgestellt; wie die Spec bei #221 mit `Artikel (1)` durchkam, bleibt ungeklärt.
+- AK-Wortlaut der Task-Datei an Q3 angeglichen (Review-Nitpick Iteration 2) und abgehakt; alle Checkboxen stehen vor dem
+  Merge auf dem Branch.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
