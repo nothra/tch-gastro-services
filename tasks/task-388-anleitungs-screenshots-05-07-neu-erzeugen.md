@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -69,6 +69,15 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
 - Keine neuen Tests: Der Task ändert keinen Produktionscode (drei Bilder, Doku, Capture-Spec, die ohne `CAPTURE_ANLEITUNG=1`
   übersprungen wird). Die Akzeptanzkriterien sind Bild-/Diff-Prüfungen und stehen belegt in den Implementierungs-Notizen
   und in `tasks/review-388.md`; die Capture-Spec ist selbst die Prüfung der Bilder (Lauf bis zum bekannten Abbruch im Kassieren-Schritt).
+
+### /refactor (2026-10-01)
+- Aufruf kam mit `369`; gemeint war #388 (#369 ist gemerged, ihr Worktree entfernt).
+- Diff gegen `main` durchgegangen (nur `e2e/anleitung-veranstalter.spec.ts` ist Code): `artikelAnzahl` (4 Zeilen, ein Zweck,
+  WHY-Kommentar), der relative Zähler in `createKatalogArtikel` und der `07`-Block in `shotZugang` (WHY-Kommentar, 14 Zeilen)
+  erfüllen die Checkliste – keine Duplikation, keine Magic Numbers, keine Flag-Parameter. Keine Codeänderung nötig.
+- Beobachtung (Doku, kein Verhalten): `anleitung.md:236` nennt das Leeren der DEV-Daten „optional", die Capture-Spec
+  braucht aber eine frische DB (FS2). Im bestehenden Kleinfund-Eintrag zur Capture-Spec ergänzt, nicht in diesem PR geändert
+  (AK7: `anleitung.md` bleibt unverändert, wenn Alt-/Umgebungstext zu den Bildern passt).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

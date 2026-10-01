@@ -467,6 +467,9 @@
   `12`, `10`–`12` sichten und bei sichtbarer Abweichung ersetzen. Etwa zehn Zeilen plus ein bis zwei Läufe
   (DB-Reset je Lauf: `docker exec tch-gastro-db psql … DROP/CREATE DATABASE tch_dev`, dann `db:migrate`
   und `db:seed`).
+  Dabei die Zeile „(optional, für ganz saubere Bilder: DEV-Daten leeren, dann neu seeden)" in
+  `anleitung.md:236` auf „Pflicht" ändern: auf einer nicht frischen DB bricht die Spec ab (Demo-Daten
+  kollidieren, #388).
 - **Herkunft:** `/implement` zu #388 (Spec-FS1: kein Umbau der Spec im selben PR); davor
   `/review` zu #369.
 
