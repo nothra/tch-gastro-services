@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -129,6 +129,10 @@ ADR: [ADR-053](../docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennz
 - Ergebnis PASSED (`tasks/security-369.md`): keine kritischen/wichtigen Findings, keine neuen Abhängigkeiten,
   Rollen-Check in allen drei Actions fail-closed, IDOR-Grenze beim Entfernen, Namens-Snapshot serverseitig.
 - Out-of-Scope: Status-Prüfung und Schreibzugriff sind nicht atomar (vorbestehend) → Issue #387.
+
+### /codify (2026-10-01)
+- Sechs Learnings in `docs/factory/lessons/` + Index (siehe `tasks/codify-369.md`); keine Änderung an
+  `CLAUDE.md`/Guidelines. Folge-Issues: #385, #386, #387.
 
 ## Offene Fragen
 Q1–Q5 siehe Spec (Dialog-Baustein/Zeilenmenü, atomare Mehrfach-Anlage, Kennzahl „x von n bezahlt", Abgrenzung #307, Nachschlage-Ansicht bei abgeschlossenen Veranstaltungen). Hinweis: Branch liegt vor dem Merge von #368 – vor /implement auf origin/main bringen (`gh pr update-branch`/pr-shepherd).

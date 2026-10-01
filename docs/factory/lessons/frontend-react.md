@@ -272,3 +272,40 @@ Empirisch mit einer Browser-Probe verifizieren, nicht annehmen: bei leerem Pflic
 eigener Assertion – gültige UND ungültige Pflichtfelder (Rezidiv der Symmetrie-Lesson unten in
 `lessons/testing.md`, hier erstmals in einem Bugfix statt einem Spec-AK-Paar).
 
+### `setState` am Anfang einer Form-Action wird erst mit ihrem Ende sichtbar – „läuft gerade" aus `onSubmit` melden (aus #369, /implement-Selbstfund)
+
+Ein Dialog sollte Escape sperren, solange eine Server Action eines Kindformulars läuft. Der Lauf
+wurde zuerst **am Anfang der Action** an den Eltern-Dialog gemeldet (`onLaeuftChange(true)` vor dem
+`await` in der `useActionState`-Funktion). Die Tests mit nie auflösendem Promise blieben rot: der
+Dialog schloss sich trotzdem. Grund: Alles, was innerhalb einer Form-Action `setState` aufruft,
+gehört zur Transition der Action und wird erst committet, wenn sie endet – ausgerechnet der
+Zeitraum, den die Sperre abdecken soll. `pending` aus `useActionState` selbst ist dringlich, sieht
+aber nur die Komponente, die den Hook ruft.
+
+**Smell:** „Ich reiche den Lauf-Zustand einer Action per Callback nach oben, und der Callback wird
+aus der Action selbst gerufen."
+
+**Regel:** Den **Start** aus dem `onSubmit` des `<form>` melden (dringliches Ereignis vor der
+Action, feuert nur bei gültigem Formular), das **Ende** im `finally` der Action (dort ist die
+spätere Sichtbarkeit richtig und der Zähler bleibt auch bei einer werfenden Action konsistent).
+Beide Hälften in einem Hook bündeln (`useSchliessendeAction` liefert `meldeStart` mit) und bei
+gleichzeitig möglichen Läufen einen Zähler statt eines Booleans führen. Der Test braucht ein nie
+auflösendes Promise (`new Promise<never>(() => {})`) und prüft Escape, gesperrte Schaltflächen und
+die Pending-Beschriftung – ein sofort aufgelöster Mock beweist nichts.
+
+### Verhaltensvertrag eines geteilten Bausteins in den Baustein legen, nicht in einen Konsumenten (aus #369, Review-Iteration 1/2)
+
+Die Escape-Sperre während `pending` fiel in Iteration 1 am `ConfirmDialog` auf und wurde dort
+behoben – mit einer privaten No-op-`onClose`-Attrappe. Der zweite Konsument derselben
+`Dialog`-Grundlage (`TeilnehmerHinzufuegenDialog`) hatte denselben Defekt, und er war schwerer
+(der Zustand liegt in den Kindern, die beim Schließen ausgehängt werden: Ablehnung geht verloren,
+Doppelanlage möglich). Erst Iteration 2 fand ihn; die eigentliche Lösung war ein Prop im Baustein
+(`schliessbar`).
+
+**Smell:** „Ich behebe einen Review-Fund, der ein Verhalten des **geteilten** Bausteins betrifft, in
+dem Konsumenten, in dem er auftrat."
+
+**Regel:** Betrifft ein Fund den Verhaltensvertrag eines geteilten Bausteins (Schließen, Fokus,
+Sperren), vor dem Fix alle Konsumenten auflisten (`grep` auf den Baustein-Namen) und die Regel **im
+Baustein** verankern; jeder Konsument zieht dann nur den Zustand nach. Ein Fix in einem Konsumenten
+ist nur richtig, wenn der Baustein bewusst keinen Vertrag dafür hat – dann gehört das in die ADR.
