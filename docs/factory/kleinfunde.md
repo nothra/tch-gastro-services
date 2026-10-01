@@ -452,19 +452,21 @@
   Sortiment aus [`db/migrations/0004_seed_catalog_reference.sql:20-21`](../../db/migrations/0004_seed_catalog_reference.sql)
   (verifiziert am 2026-10-01).
 - **Was:** Die Bilder `05`–`07` sind seit #388 neu (Detailseite, „+ Teilnehmer"-Dialog, „Link & QR
-  teilen"). Der Lauf scheitert danach im Schritt Kassieren: Die frisch migrierte DB bringt schon
-  das Standard-Sortiment mit (u. a. „Bier 0,33 l" und „Bier 0,5 l"), die Spec legt zusätzlich ein
-  eigenes „Bier" an und wählt über `hasText: "Bier"` + `.last()` eine andere Variante als gedacht –
-  Anna Becker steht bei 7,50 € Verzehr statt 7,00 €, das Badge „bezahlt" erscheint nie. Der
-  Katalog-Zähler ist in #388 schon auf einen relativen Startwert umgestellt. Dadurch sind `08`–`12`
-  nicht aus einem sauberen Lauf und bleiben auf dem Stand vor #369; **`12` (Bericht jetzt über den
-  Kacheln) und `11`/`10` (Abschließen am Ende von Kassieren) sind vermutlich veraltet**, das ist
-  nicht geprüft.
-- **Fix:** Verzehr-Schritt so ändern, dass er genau die Demo-Artikel trifft (z. B. Demo-Namen, die
-  nicht Teilstring des Seed-Sortiments sind, oder Auswahl über die Variante „ohne Größe"); danach
-  Lauf auf frischer DB bis `12`, `10`–`12` sichten und bei sichtbarer Abweichung ersetzen. Etwa
-  zehn bis zwanzig Zeilen plus ein bis zwei Läufe (DB-Reset je Lauf: `docker exec tch-gastro-db
-  psql … DROP/CREATE DATABASE tch_dev`, dann `db:migrate` und `db:seed`).
+  teilen"). Der Lauf scheitert danach im Schritt Kassieren. Ursache (gemessen an der DB des Laufs):
+  `verzehrPlus` wählt den Artikel über `hasText: "Bier"` + `.last()`, und `hasText` ist ein
+  Teilstring-Treffer – er trifft auch **„Weizenbier 0,5 l"** (3,00 €, Seed-Sortiment). Anna Becker hat
+  deshalb 2 × Weizenbier statt 2 × Demo-„Bier" (2,50 €), ihr Verzehr beträgt 7,50 € statt 7,00 €, und das
+  Badge „bezahlt" erscheint nach dem Kassieren von 7,00 € nie; bei Familie Klein trifft der Aufruf ebenfalls
+  Weizenbier, ihre Summe stimmt zufällig (3,00 + 9,00 = 12,00 €). Die übrigen Artikel (Alkoholfreies,
+  Filterkaffee, Schnitzel mit Pommes) sind eindeutig. Der Katalog-Zähler ist in #388 schon auf einen
+  relativen Startwert umgestellt. Dadurch sind `08`–`12` nicht aus einem sauberen Lauf und bleiben auf dem
+  Stand vor #369; **`12` (Bericht jetzt über den Kacheln) und `11`/`10` (Abschließen am Ende von
+  Kassieren) sind vermutlich veraltet**, das ist nicht geprüft.
+- **Fix:** `verzehrPlus` auf einen exakten Treffer des Artikelnamens umstellen (z. B. Regex mit Wortanfang
+  und -ende gegen das Label ohne Größen-Suffix statt Teilstring-`hasText`); danach Lauf auf frischer DB bis
+  `12`, `10`–`12` sichten und bei sichtbarer Abweichung ersetzen. Etwa zehn Zeilen plus ein bis zwei Läufe
+  (DB-Reset je Lauf: `docker exec tch-gastro-db psql … DROP/CREATE DATABASE tch_dev`, dann `db:migrate`
+  und `db:seed`).
 - **Herkunft:** `/implement` zu #388 (Spec-FS1: kein Umbau der Spec im selben PR); davor
   `/review` zu #369.
 
@@ -489,8 +491,9 @@
 - **Wo:** [`docs/anleitung/veranstalter/anleitung.pdf`](../anleitung/veranstalter/anleitung.pdf) (letzter Commit
   `9e21cde`, #221), Erzeugungsanleitung in [`anleitung.md`](../anleitung/veranstalter/anleitung.md) → „PDF erzeugen"
   (verifiziert am 2026-10-01 per `git log -- docs/anleitung/veranstalter/anleitung.pdf`).
-- **Was:** Die druckbare Fassung entsteht von Hand per Browser-Druck aus der Markdown-Vorschau. Seit #221 haben #369 und
-  #388 Text bzw. Bilder von `anleitung.md` geändert, das PDF nicht. Es zeigt damit noch die alte Detailseite.
+- **Was:** Die druckbare Fassung entsteht von Hand per Browser-Druck aus der Markdown-Vorschau. Seit #221 haben #324 und
+  #369 den Text von `anleitung.md` und #388 drei Bilder geändert (`git log -- docs/anleitung/veranstalter/anleitung.md`),
+  das PDF nicht. Es zeigt damit noch die alte Detailseite.
 - **Fix:** Nach dem Neuerzeugen der Bilder (`10`–`12`, siehe Eintrag oben) das PDF in einem Zug neu drucken
   (Schritte in `anleitung.md`, A4, Hochformat, Hintergrundgrafiken an) und committen. Manuell, etwa zehn Minuten.
 - **Herkunft:** `/implement` zu #388.

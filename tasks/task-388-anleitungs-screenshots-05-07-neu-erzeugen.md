@@ -44,14 +44,23 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
   Der Link zeigt `localhost:3388` (Port des Wegwerf-Servers; Port 3000 war durch eine fremde Dev-Instanz belegt, die ich
   nicht angefasst habe) – die alten Bilder zeigten `:3000`.
 - **Capture-Spec repariert (FS1):** Katalog-Zähler relativ zum Startwert (die frische DB bringt 16 Standard-Artikel mit,
-  #59) und der `07`-Schritt. Weiter ist **nicht** repariert: der Verzehr-/Kassieren-Schritt (Seed-„Bier"-Varianten
-  kollidieren mit dem Demo-„Bier"); der Lauf endet dort mit rotem Test, `08`–`12` sind deshalb **nicht** neu und bleiben
+  #59) und der `07`-Schritt. Weiter ist **nicht** repariert: der Verzehr-/Kassieren-Schritt (`hasText: "Bier"` trifft
+  per Teilstring auch das Seed-„Weizenbier 0,5 l" und `.last()` wählt es – gemessen an der DB des Laufs); der Lauf endet dort mit rotem Test, `08`–`12` sind deshalb **nicht** neu und bleiben
   auf `main` (AK1/AK5 nicht erfüllt, bewusst – Entscheidung Ralf: „nur 05–07 liefern"). Kanonisch festgehalten in
   `docs/factory/kleinfunde.md` („Capture-Spec der Anleitung läuft nicht bis zum Ende durch").
 - AK9 entsprechend: Der alte Kleinfund-Eintrag ist durch einen engeren ersetzt (nur noch Capture-Spec + `10`–`12`).
 - Nicht geprüft: Ob `10`–`12` tatsächlich veraltet sind.
 - `docs/anleitung/veranstalter/anleitung.pdf` (manueller Browser-Druck) ist seit #221 nicht neu erzeugt und zeigt noch die
   alte Detailseite; als eigener Kleinfund festgehalten, nicht Teil dieses PRs.
+
+### Review-Rework Iteration 1 (/implement, 2026-10-01)
+- Wichtig 1 behoben: Ursache im Kleinfund und in diesen Notizen korrigiert – Teilstring-Treffer von `hasText: "Bier"` auf
+  „Weizenbier 0,5 l" (nicht die Seed-Biere), gemessen an der DB des Laufs (Anna 2 × Weizenbier, Familie Klein 1 ×).
+- Wichtig 2 behoben: Spec um Q3 (Scope-Entscheidung) ergänzt, AK2–AK4 und AK6–AK8 abgehakt, AK1/AK5 als zurückgestellt und
+  AK9 als angepasst gekennzeichnet.
+- Nitpick behoben: PDF-Eintrag nennt jetzt #324 und #369 für den Text und #388 für die Bilder. Port `3388` in `07` und „4 von 4
+  bezahlt" in `05` bleiben bewusst (dokumentiert, kein Handlungsbedarf).
+- Bilder und Capture-Spec unverändert.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

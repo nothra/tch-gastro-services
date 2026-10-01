@@ -21,15 +21,15 @@ Issue #388 · Herkunft: `docs/factory/kleinfunde.md` → „Anleitungs-Screensho
 
 ## Akzeptanzkriterien
 
-- [ ] AK1: GIVEN eine frisch aufgesetzte und geseedete lokale DB WHEN die Capture-Spec mit `CAPTURE_ANLEITUNG=1` läuft THEN läuft sie ohne Fehler durch und schreibt alle zwölf Bilder nach `docs/anleitung/veranstalter/bilder/`.
-- [ ] AK2: GIVEN `05-veranstaltung-fuehren.png` WHEN es angesehen wird THEN zeigt es die neue Detailseite mit den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste – passend zum Alt-Text in `anleitung.md`.
-- [ ] AK3: GIVEN `06-teilnehmer-hinzufuegen.png` WHEN es angesehen wird THEN zeigt es den Dialog „Teilnehmer hinzufügen" mit Suche, Auswahl der bekannten Personen und dem Bereich „Neuer Gast".
-- [ ] AK4: GIVEN `07-zugang-teilen.png` WHEN es angesehen wird THEN zeigt es den Dialog „Link & QR teilen" mit Selbstbedienungs-Link, „Link kopieren" und QR-Code.
-- [ ] AK5: GIVEN die Bilder `10`, `11` und `12` WHEN sie mit dem neuen Layout verglichen werden THEN sind sie nur dann ersetzt, wenn sie sichtbar vom aktuellen Stand abweichen (z. B. Abschließen am Ende von Kassieren); die Entscheidung je Bild steht in der Task-Datei.
-- [ ] AK6: GIVEN die Bilder `01`–`04`, `08`, `09` WHEN der Diff gegen `main` angesehen wird THEN sind sie unverändert (byte-identisch zu `main`).
-- [ ] AK7: GIVEN ein ersetztes Bild WHEN Alt-Text oder umgebender Text nicht mehr zum Bild passt THEN ist er im selben PR angeglichen; sonst bleibt `anleitung.md` unverändert.
-- [ ] AK8: GIVEN der Diff WHEN er geprüft wird THEN enthält er weder Zugangsdaten noch Klarnamen: die Bilder zeigen nur die deterministischen Demo-Daten der Capture-Spec und keine Produktionsdaten (Banner „DEV · Lokale Entwicklung" ist nur ein Hinweis, kein Beleg – Inhalte werden vor dem Commit gesichtet).
-- [ ] AK9: GIVEN der PR WHEN er gemerged wird THEN ist der Kleinfund-Eintrag zu den Anleitungs-Screenshots aus `docs/factory/kleinfunde.md` entfernt, und die Gates (Lint, Format, Tests, Routen-Doku) sind grün.
+- [ ] AK1 (zurückgestellt, Q3): GIVEN eine frisch aufgesetzte und geseedete lokale DB WHEN die Capture-Spec mit `CAPTURE_ANLEITUNG=1` läuft THEN läuft sie ohne Fehler durch und schreibt alle zwölf Bilder nach `docs/anleitung/veranstalter/bilder/`.
+- [x] AK2: GIVEN `05-veranstaltung-fuehren.png` WHEN es angesehen wird THEN zeigt es die neue Detailseite mit den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste – passend zum Alt-Text in `anleitung.md`.
+- [x] AK3: GIVEN `06-teilnehmer-hinzufuegen.png` WHEN es angesehen wird THEN zeigt es den Dialog „Teilnehmer hinzufügen" mit Suche, Auswahl der bekannten Personen und dem Bereich „Neuer Gast".
+- [x] AK4: GIVEN `07-zugang-teilen.png` WHEN es angesehen wird THEN zeigt es den Dialog „Link & QR teilen" mit Selbstbedienungs-Link, „Link kopieren" und QR-Code.
+- [ ] AK5 (zurückgestellt, Q3): GIVEN die Bilder `10`, `11` und `12` WHEN sie mit dem neuen Layout verglichen werden THEN sind sie nur dann ersetzt, wenn sie sichtbar vom aktuellen Stand abweichen (z. B. Abschließen am Ende von Kassieren); die Entscheidung je Bild steht in der Task-Datei.
+- [x] AK6: GIVEN die Bilder `01`–`04`, `08`, `09` WHEN der Diff gegen `main` angesehen wird THEN sind sie unverändert (byte-identisch zu `main`).
+- [x] AK7: GIVEN ein ersetztes Bild WHEN Alt-Text oder umgebender Text nicht mehr zum Bild passt THEN ist er im selben PR angeglichen; sonst bleibt `anleitung.md` unverändert.
+- [x] AK8: GIVEN der Diff WHEN er geprüft wird THEN enthält er weder Zugangsdaten noch Klarnamen: die Bilder zeigen nur die deterministischen Demo-Daten der Capture-Spec und keine Produktionsdaten (Banner „DEV · Lokale Entwicklung" ist nur ein Hinweis, kein Beleg – Inhalte werden vor dem Commit gesichtet).
+- [ ] AK9 (angepasst, Q3: der Kleinfund wird nicht entfernt, sondern durch einen engeren ersetzt): GIVEN der PR WHEN er gemerged wird THEN ist der Kleinfund-Eintrag zu den Anleitungs-Screenshots aus `docs/factory/kleinfunde.md` entfernt, und die Gates (Lint, Format, Tests, Routen-Doku) sind grün.
 
 ## Fehlerszenarien
 
@@ -42,3 +42,4 @@ Issue #388 · Herkunft: `docs/factory/kleinfunde.md` → „Anleitungs-Screensho
 
 - [x] Q1: Auf welcher DB laufen? **Entschieden (Ralf, 2026-10-01): die lokale Dev-DB wird zurückgesetzt und neu geseedet.** Das zerstört ihren aktuellen Bestand, auch für die parallele Session #370; die Entscheidung wurde in Kenntnis dieser Folge getroffen.
 - [x] Q2: Alle zwölf Bilder neu schreiben und die unveränderten verwerfen? **Ja** – die Spec schreibt immer alle zwölf; AK6 stellt sicher, dass nur die gewollten im Diff landen (`git checkout -- <bild>` für den Rest).
+- [x] Q3: Wie weiter, nachdem FS1 mehr als eine kleine Reparatur verlangt? **Entschieden (Ralf, 2026-10-01): nur `05`–`07` liefern.** Der Verzehr-/Kassieren-Schritt der Capture-Spec scheitert an einer zweiten veralteten Annahme (Teilstring-Treffer auf „Weizenbier"); `08`–`12` bleiben auf dem Stand von `main`. AK1 und AK5 sind zurückgestellt, AK9 ist angepasst: `docs/factory/kleinfunde.md` trägt jetzt einen engeren Eintrag „Capture-Spec der Anleitung läuft nicht bis zum Ende durch" (und einen zum veralteten `anleitung.pdf`).
