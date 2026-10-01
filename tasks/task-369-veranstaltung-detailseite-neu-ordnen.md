@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Detailseite `/veranstaltung/[id]` neu ordnen: Kopf → drei Arbeitsschritt-Kacheln → Teilnehmerliste → eingeklappte Einstellungen; ein gemeinsamer „+ Teilnehmer"-Dialog; Zeilenmenü mit bestätigtem Entfernen; Abschließen wandert minimal ans Ende von Kassieren. Spec: `docs/specs/spec-369-veranstaltung-detailseite-neu-ordnen.md`.
