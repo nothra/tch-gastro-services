@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -78,6 +78,13 @@ Q1 entschieden (Ralf, 2026-10-01): lokale Dev-DB wird zurückgesetzt und neu ges
 - Beobachtung (Doku, kein Verhalten): `anleitung.md:236` nennt das Leeren der DEV-Daten „optional", die Capture-Spec
   braucht aber eine frische DB (FS2). Im bestehenden Kleinfund-Eintrag zur Capture-Spec ergänzt, nicht in diesem PR geändert
   (AK7: `anleitung.md` bleibt unverändert, wenn Alt-/Umgebungstext zu den Bildern passt).
+
+### /security-review (2026-10-01)
+- Ergebnis PASSED (`tasks/security-388.md`): kein Produktions-/App-Code im Diff, keine neuen Abhängigkeiten, keine Secrets
+  oder Hex-Token im Text-Diff, PNGs ohne Metadaten (`strings`/`file`), Bilder nur mit fiktiven Demo-Daten und
+  `admin@tch.example`. Hinweise: QR-Code in `07` kodiert einen lokalen Wegwerf-Token; mehrfacher lokaler DB-Reset war
+  bestätigt. Keine Out-of-Scope-Funde, kein Issue.
+- Aufruf kam wieder mit `369`; gemeint war #388.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
