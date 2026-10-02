@@ -152,6 +152,12 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - Gates: Lint, `tsc --noEmit`, Prettier, Vitest für `app/_verzehr`, `app/theke`,
   `app/veranstaltung/[id]/verzehr` grün (186 Tests). E2E-Nachtest weiterhin offen (s. o.).
 
+## Test-Notizen (/test)
+- Vitest mit Coverage über `app/_verzehr`, `app/theke`, `app/veranstaltung`: 104 Dateien / 1316 Tests grün, Gesamt 99,74 % Stmts / 99,48 % Branch (Schwelle 80 %). Alle in #370 geänderten/neuen Dateien in `app/_verzehr` bei 100 %.
+- Einzige Lücken: `IdentityGate.tsx` Z. 53/58 (`() => null` als Server-Snapshot von `useSyncExternalStore`) – vorbestehend, in `main` unverändert, nicht Teil dieses PR.
+- Kein Produktionscode und keine Tests geändert; keine Lücke gegenüber den AK gefunden.
+- **E2E-Nachtest weiterhin offen** (kein `.env.local`-Zugriff, keine Wegwerf-DB): vor dem Merge `E2E_VERZEHR_370=1` gegen Wegwerf-DB/eigenen Server wiederholen.
+
 ## Offene Fragen
 Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen").
 
