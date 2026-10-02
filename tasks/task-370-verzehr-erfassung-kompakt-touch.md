@@ -179,3 +179,5 @@ Vier Learnings (React-19-Action-Scope in Tests, Doku-Grep bei Modul-Löschung + 
 ---
 Branch: `feature/370-verzehr-erfassung-kompakt-touch`
 Erstellt: 2026-10-01 00:02
+
+PR-Shepherd 2026-10-02: Merge freigegeben – Branch aktuell auf main, keine Review-Kommentare, lokale Gates und E2E grün; CI-Checks laufen, Auto-Merge wartet server-seitig. Offen (menschlich, AK7.2): Screenshot-Anhang hell/dunkel am PR #384 – `gh` lädt keine Bilder hoch.
