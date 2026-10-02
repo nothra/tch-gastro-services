@@ -87,7 +87,8 @@ async function kassiere(page: Page, detailPfad: string, name: string, betrag: st
   const zeile = kassierZeile(page, name);
   await zeile.getByLabel("Erhalten (EUR)").fill(betrag);
   await zeile.getByRole("button", { name: "Kassieren" }).click();
-  await expect(zeile.getByText("Gespeichert.")).toBeVisible();
+  // Rückmeldung mit Betrag (#371): „… erhalten" bzw. „Betrag entfernt" beim Zurücknehmen.
+  await expect(zeile.getByText(betrag === "" ? "Betrag entfernt" : /€ erhalten/)).toBeVisible();
 }
 
 test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {

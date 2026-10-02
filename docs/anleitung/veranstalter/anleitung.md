@@ -169,26 +169,31 @@ verringert die Kassenveränderung.
 
 ## Schritt 6 – Kassieren & Abschluss
 
-**Was tue ich?** Tippen Sie auf die Kachel **„Kassieren"**. Jede Teilnehmer-Karte zeigt den
-**Verzehr-Gesamt**. Tragen Sie im Feld **„Erhalten (EUR)"** ein, wie viel der Teilnehmer **bar
-bezahlt** hat, und tippen Sie auf **„Kassieren"**.
+**Was tue ich?** Tippen Sie auf die Kachel **„Kassieren"**. Ganz oben steht die Summenkarte mit dem
+**offenen Betrag**, dem bisher **Erhaltenen**, den **Spenden** und wie viele Teilnehmer schon
+bezahlt haben. Jede Teilnehmer-Karte darunter zeigt den **Verzehr-Gesamt**. Tragen Sie im Feld
+**„Erhalten (EUR)"** ein, wie viel der Teilnehmer **bar bezahlt** hat – die **Spende** erscheint
+schon beim Tippen –, und tippen Sie auf **„Kassieren"**.
 
-**Was passiert?** Der Status springt von **„offen"** (gelb) auf **„bezahlt"** (grün). Zahlt jemand
+**Was passiert?** Die App meldet den gespeicherten Betrag (z. B. „12,00 € erhalten, davon 2,00 €
+Spende"), und der Status springt von **„offen"** (gelb) auf **„bezahlt"** (grün). Zahlt jemand
 mehr als seinen Verzehr, wird der Rest automatisch als **Spende** ausgewiesen.
 
-![Kassieren-Seite: je Teilnehmer der Verzehr-Gesamt, das Feld „Erhalten" und die Schaltfläche „Kassieren".](bilder/10-kassieren.png)
+![Kassieren-Seite: Summenkarte oben, je Teilnehmer der Verzehr-Gesamt, das Feld „Erhalten" und die Schaltfläche „Kassieren".](bilder/10-kassieren.png)
 
-Weiter unten sehen Sie die **Tagessummen** und die **Gesamtabrechnung** der Kasse – inklusive
-Einnahmen, erstatteter Auslagen und der **Kassenveränderung**.
+Ganz unten klappen Sie **„Abrechnung im Detail"** auf: Dort stehen die **Tagessummen**, die
+**Gesamtabrechnung** der Kasse – inklusive Einnahmen, erstatteter Auslagen und der
+**Kassenveränderung** – und das Protokoll.
 
 ![Tagessummen und Gesamtabrechnung mit Einnahmen, Auslagenerstattungen und Kassenveränderung.](bilder/11-abrechnung.png)
 
-**Abschließen:** Sind **alle** Teilnehmer „bezahlt" (Anzeige **„Offene Zeilen: 0"**), tippen Sie
-ganz unten auf der Kassieren-Seite auf **„Abschließen"**. Ist noch eine Zeile offen, weist die App
-Sie darauf hin und schließt nicht ab.
+**Abschließen:** Sind **alle** Teilnehmer „bezahlt" (Summenkarte: **„Alles bezahlt"**), gehen Sie
+zurück auf die Veranstaltungs-Seite und tippen oben neben dem Status auf **„Veranstaltung
+abschließen"**. Die App fragt nach; erst **„Abschließen"** im Dialog schließt ab. Ist noch eine
+Zeile offen, nennt der Dialog Anzahl und Betrag, und die App schließt nicht ab.
 
-> Versehentlich abgeschlossen? Über **„Wieder öffnen"** – ebenfalls ganz unten auf der
-> Kassieren-Seite – lässt sich die Veranstaltung erneut bearbeiten.
+> Versehentlich abgeschlossen? Über **„Wieder öffnen"** – an derselben Stelle oben auf der
+> Veranstaltungs-Seite, ebenfalls mit Rückfrage – lässt sich die Veranstaltung erneut bearbeiten.
 
 ---
 
@@ -223,9 +228,10 @@ und `getraenke` im Dateinamen, damit Sie die beiden Fassungen nicht verwechseln.
   ändern: Verzehr über „+"/„−", Auslagen über **„Bearbeiten"**, Erhaltenes durch erneutes
   Kassieren. Notfalls die abgeschlossene Veranstaltung **„Wieder öffnen"**.
 - **Der Abschluss funktioniert nicht.** Es ist noch mindestens eine Teilnehmer-Zeile **offen**.
-  Prüfen Sie unter „Kassieren" die Anzeige **„Offene Zeilen"** und kassieren Sie die restlichen.
-- **Ich finde „Abschließen" nicht mehr auf der Veranstaltungs-Seite.** Es steht seit der neuen
-  Seitenordnung ganz unten auf der Seite **„Kassieren"**.
+  Prüfen Sie unter „Kassieren" die Summenkarte (**„Noch n offen"**) und kassieren Sie die
+  restlichen.
+- **Ich finde „Abschließen" nicht auf der Seite „Kassieren".** Es steht oben auf der
+  **Veranstaltungs-Seite** neben dem Status – die Summenkarte verlinkt dorthin.
 
 ---
 

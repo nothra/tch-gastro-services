@@ -309,13 +309,18 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     await kassiere(page, "Anna Becker", "7,00");
     await kassiere(page, "Bernd Wagner", "11,00");
     await kassiere(page, "Familie Klein", "12,00");
-    await expect(page.getByText("Offene Zeilen: 0")).toBeVisible();
+    await expect(page.getByText("Alles bezahlt", { exact: true })).toBeVisible();
+    // Tagessummen und Gesamtabrechnung liegen eingeklappt unter „Abrechnung im Detail" (#371).
+    await page.getByText("Abrechnung im Detail", { exact: true }).click();
     await shot(page, "11-abrechnung.png", page.getByRole("heading", { name: "Tagessummen" }));
-    await page.getByRole("button", { name: "Abschließen" }).click();
+    // Abschließen sitzt im Kopf der Detailseite und wirkt erst nach der Bestätigung (#371).
+    await page.goto(detailPfad);
+    await page.getByRole("button", { name: "Veranstaltung abschließen" }).click();
+    const bestaetigung = page.getByRole("dialog", { name: "Veranstaltung abschließen?" });
+    await bestaetigung.getByRole("button", { name: "Abschließen" }).click();
     await expect(page.getByRole("button", { name: "Wieder öffnen" })).toBeVisible();
 
     // Schritt 7 – Abschlussbericht
-    await page.goto(detailPfad);
     await expect(page.getByRole("heading", { name: "Abschlussbericht" })).toBeVisible();
     await shot(
       page,
