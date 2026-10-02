@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Kassieren-Seite aufräumen (Spec: `docs/specs/spec-371-kassieren-summe-abschluss.md`): Summenkarte oben
@@ -112,7 +112,11 @@ Abschließen/Wieder öffnen nur noch im Kopf der Detailseite, mit Bestätigung.
   Abschluss-Link in der Summenkarte auch bei abgeschlossener Veranstaltung.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- 2 Lessons ergänzt (Fokus-Rückgabe bei Zweigwechsel → `frontend-react.md`; Negativ-Fixture vs. Gate-Liste →
+  `testing.md`), Details: [`codify-371.md`](codify-371.md).
+
+## PR-Shepherd
+PR-Shepherd 2026-10-03: Merge freigegeben – alle Gates grün (CI grün, keine offenen Review-Kommentare, kein Approval verlangt).
 
 ---
 Branch: `feature/371-kassieren-summe-schnellbetraege-abschluss`
