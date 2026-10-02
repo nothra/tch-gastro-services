@@ -1,8 +1,8 @@
 # Spec: Veranstaltungs-Detailseite neu ordnen (#369)
 
 > **Teilweise ersetzt durch [spec-391](spec-391-veranstaltung-einstellungen-zahnrad-oben.md) (#391):**
-> AK1, AK21 und AK22 – Einstellungen per Zahnrad-Dialog im Seitenkopf, „Link & QR teilen" als
-> eigene Schaltfläche im Seitenkopf.
+> AK1, AK21, AK22 und AK23 (Ort) – Einstellungen per Zahnrad-Dialog im Seitenkopf,
+> „Link & QR teilen" und „Veranstaltung löschen" als eigene Schaltflächen im Seitenkopf.
 
 > Teil der UX-Überarbeitung (UX-2), Übersicht in `docs/ux/ux-issue-entwuerfe.md`.
 > Baut auf den UI-Bausteinen aus #368 auf (`app/components/ui/`: `Button`, `Field`, `Card`,
