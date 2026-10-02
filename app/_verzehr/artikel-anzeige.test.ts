@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  groessenSuffix,
-  groessenLabel,
-  gruppiereArtikel,
-  type VerzehrArtikel,
-} from "./artikel-anzeige";
+import { groessenLabel, gruppiereArtikel, type VerzehrArtikel } from "./artikel-anzeige";
 
 function artikel(overrides: Partial<VerzehrArtikel> = {}): VerzehrArtikel {
   return {
@@ -16,24 +11,6 @@ function artikel(overrides: Partial<VerzehrArtikel> = {}): VerzehrArtikel {
     ...overrides,
   };
 }
-
-describe("groessenSuffix", () => {
-  it("should_returnSuffixWithSize_when_sizeIsSet", () => {
-    expect(groessenSuffix("0,5 l")).toBe(" · 0,5 l");
-  });
-
-  it("should_returnEmpty_when_sizeIsEmpty", () => {
-    expect(groessenSuffix("")).toBe("");
-  });
-
-  it("should_returnEmpty_when_sizeIsOnlyWhitespace", () => {
-    expect(groessenSuffix("   ")).toBe("");
-  });
-
-  it("should_trimSize_when_sizeHasSurroundingWhitespace", () => {
-    expect(groessenSuffix("  0,3 l  ")).toBe(" · 0,3 l");
-  });
-});
 
 describe("groessenLabel", () => {
   it("should_returnTrimmedSize_when_sizeIsSet", () => {

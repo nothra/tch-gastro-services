@@ -170,28 +170,56 @@ async function shotZugang(page: Page) {
   await schliesseEinstellungen(page);
 }
 
-async function verzehrPlus(page: Page, artikel: string, anzahl: number) {
-  // Zeile des Artikels: das innerste Listenelement, das den Artikelnamen UND die Mengensteuerung
-  // enthält. Die aufgeklappte Karte matcht ebenfalls → `.last()` liefert die (tiefer liegende)
-  // Positionszeile. Bewusst ohne Layout-Klassen-Selektor, damit ein UI-Umbau den Test nicht ohne
-  // Verhaltensänderung bricht.
-  const row = page
-    .locator("li", { hasText: artikel })
-    .filter({ has: page.getByRole("button", { name: "Menge erhöhen" }) })
-    .last();
+// Zeile eines Demo-Artikels in der Einzelansicht (#370): die Gruppe mit EXAKT diesem Namen als
+// Überschrift (Teilstring-Treffer wie „Bier" in „Weizenbier" ausgeschlossen, Lesson #388), darin
+// die Zeile „ohne Größe" – der Standardkatalog (Migration 0004) bringt „Bier" schon in zwei Größen
+// mit, die Demo-Artikel haben keine Größe.
+function demoArtikelZeile(page: Page, artikel: string) {
+  return page
+    .getByRole("heading", { level: 3, name: artikel, exact: true })
+    .locator("xpath=..")
+    .getByRole("listitem")
+    .filter({ hasText: "ohne Größe" });
+}
+
+async function verzehrPlus(page: Page, kategorie: string, artikel: string, anzahl: number) {
+  await page
+    .getByRole("group", { name: "Kategorie wählen" })
+    .getByRole("button", { name: kategorie })
+    .click();
+  const row = demoArtikelZeile(page, artikel);
   for (let i = 1; i <= anzahl; i++) {
     await row.getByRole("button", { name: "Menge erhöhen" }).click();
-    // Der Mengen-Span steht im DOM vor dem (nur im Fehlerfall gerenderten) Fehler-Span → `.first()`.
-    await expect(row.locator("form > span").first()).toHaveText(String(i));
+    // Der Mengen-Span ist das einzige `span`-Kind des Stepper-Formulars (der Fehler steht daneben).
+    await expect(row.locator("form > span")).toHaveText(String(i));
   }
 }
 
-async function oeffneKarte(page: Page, name: string) {
+async function waehlePerson(page: Page, name: string) {
   await page
     .getByRole("group", { name: "Teilnehmer auswählen" })
     .getByRole("button", { name })
     .click();
-  await expect(page.getByRole("heading", { name: "Getränk" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveText(name);
+}
+
+// Bild 08 (#370): Einzelansicht mit erfasstem Bier, in der schmalen Handy-Breite der Spec
+// (spec-370 AK7.5: 375 px) statt der Capture-Breite. Ab dem Zurück-Link, damit sticky Block und
+// Bier-Gruppe ganz im Bild stehen. Das Dev-Overlay von Next.js („N" unten links) wird
+// ausgeblendet: es läge sonst über „Kassieren →" in der Fußleiste.
+async function shotVerzehr(page: Page) {
+  const captureViewport = page.viewportSize();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page
+    .getByRole("link", { name: "← Zur Veranstaltung" })
+    .evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await page.evaluate(() => window.scrollBy(0, -12));
+  await page.screenshot({
+    path: path.join(BILDER_DIR, "08-verzehr.png"),
+    animations: "disabled",
+    style: "nextjs-portal { display: none !important; }",
+  });
+  if (captureViewport) await page.setViewportSize(captureViewport);
 }
 
 async function kassiere(page: Page, name: string, erhalten: string) {
@@ -248,16 +276,16 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     // Schritt 4 – Verzehr erfassen
     await page.goto(`${detailPfad}/verzehr`);
     await expect(page.getByRole("heading", { name: /^Verzehr · / })).toBeVisible();
-    await oeffneKarte(page, "Anna Becker");
-    await verzehrPlus(page, "Bier", 2);
-    await verzehrPlus(page, "Filterkaffee", 1);
-    await shot(page, "08-verzehr.png", page.getByRole("group", { name: "Teilnehmer auswählen" }));
-    await oeffneKarte(page, "Bernd Wagner");
-    await verzehrPlus(page, "Alkoholfreies", 1);
-    await verzehrPlus(page, "Schnitzel mit Pommes", 1);
-    await oeffneKarte(page, "Familie Klein");
-    await verzehrPlus(page, "Bier", 1);
-    await verzehrPlus(page, "Schnitzel mit Pommes", 1);
+    await waehlePerson(page, "Anna Becker");
+    await verzehrPlus(page, "Kaffee", "Filterkaffee", 1);
+    await verzehrPlus(page, "Getränke", "Bier", 2);
+    await shotVerzehr(page);
+    await waehlePerson(page, "Bernd Wagner");
+    await verzehrPlus(page, "Getränke", "Alkoholfreies", 1);
+    await verzehrPlus(page, "Essen", "Schnitzel mit Pommes", 1);
+    await waehlePerson(page, "Familie Klein");
+    await verzehrPlus(page, "Getränke", "Bier", 1);
+    await verzehrPlus(page, "Essen", "Schnitzel mit Pommes", 1);
 
     // Schritt 5 – Auslagen erstatten
     await page.goto(`${detailPfad}/auslagen`);

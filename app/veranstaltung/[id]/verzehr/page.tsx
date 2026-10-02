@@ -6,13 +6,13 @@ import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
-import { FokusListe } from "@/app/_verzehr/FokusListe";
-import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrErfassung";
+import { VerzehrEinzelansicht } from "@/app/_verzehr/VerzehrEinzelansicht";
+import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrUebersicht";
 import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
+import { ButtonLink } from "@/app/components/ui/Button";
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 import {
-  WECHSEL_LINK_CLASS,
   kassierenHref,
   personenbezogeneZeileId,
   type SeitenSuchparameter,
@@ -22,8 +22,8 @@ import {
 // reicht die an diese Veranstaltung gebundene Veranstalter-Action in die route-neutrale UI
 // (app/_verzehr). Nur Veranstalter (serverseitig auch in der Action durchgesetzt). Solange die
 // Veranstaltung offen ist, ist die Erfassung editierbar; abgeschlossen → nur Lesesicht.
-// Der Aufruf kann einen Personenbezug tragen (#308): dann ist die Karte dieser Person initial
-// geöffnet, und sie bietet den Weiterweg ins Kassieren derselben Person an.
+// Der Aufruf kann einen Personenbezug tragen (#308): dann ist diese Person initial aktiv, und die
+// Fußleiste bietet den Weiterweg ins Kassieren derselben Person an.
 export default async function VerzehrPage({
   params,
   searchParams,
@@ -60,21 +60,22 @@ export default async function VerzehrPage({
   const verzehrZeilen = toVerzehrZeilen(zeilen);
 
   // Personenbezug des Aufrufs (#308 AK6/AK11), aufgelöst gegen die Zeilen DIESER Veranstaltung –
-  // ein unbekannter Wert ergibt `null` und damit den Standardzustand (F1).
+  // ein unbekannter Wert ergibt `null` und damit die erste Person (F1, spec-370 AK1a.5).
   const fokusZeileId = personenbezogeneZeileId(
     await searchParams,
     zeilen.map((zeile) => zeile.id),
   );
 
-  // Weiterweg ins Kassieren je Zeile (#308 AK1/AK8). Die route-neutrale Karte bekommt den fertigen
-  // Baustein und kennt die Route nicht (ADR-039 D1); sie zeigt ihn nur in der geöffneten Karte
-  // (AK7). Der Link ist reine Navigation und bleibt daher auch in der Lesesicht (AK10).
+  // Weiterweg ins Kassieren je Zeile (#308 AK1/AK8). Die route-neutrale Einzelansicht bekommt den
+  // fertigen Baustein und kennt die Route nicht (ADR-039 D1); sie zeigt den der aktiven Person in
+  // ihrer Fußleiste (spec-370 AK5.5). Der Link ist reine Navigation und bleibt daher auch in der
+  // Lesesicht (#308 AK10). Button-Optik statt Textlink: in der Fußleiste ist er ein Touch-Ziel.
   const kassierenAktionJeZeile = Object.fromEntries(
     verzehrZeilen.map((zeile) => [
       zeile.id,
-      <Link key={zeile.id} href={kassierenHref(id, zeile.id)} className={WECHSEL_LINK_CLASS}>
+      <ButtonLink key={zeile.id} href={kassierenHref(id, zeile.id)} variant="secondary">
         Kassieren →
-      </Link>,
+      </ButtonLink>,
     ]),
   );
 
@@ -101,21 +102,24 @@ export default async function VerzehrPage({
       </div>
 
       {verzehrZeilen.length === 0 ? (
-        // FokusListe setzt ≥1 Zeile voraus (ADR-039 D4); der leere Fall bleibt hier beim
+        // Die Einzelansicht setzt ≥1 Zeile voraus (ADR-054 D2); der leere Fall bleibt hier beim
         // Konsumenten, weil die Meldung wegabhängig ist (F5 verweist auf das Anlegen von Teilnehmern).
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{KEIN_TEILNEHMER_HINWEIS}</p>
+        <p className="text-sm text-muted">{KEIN_TEILNEHMER_HINWEIS}</p>
       ) : (
-        // Fokus-Akkordeon wie im Link-Weg (ADR-039 D3): initial offen ist nur die Karte des
-        // Personenbezugs (ohne ihn keine), kein onFokusWechsel (F5 merkt sich kein Ziel
-        // geräte-lokal). editable an den Status gebunden.
-        <FokusListe
+        // Einzelansicht wie im Link-Weg (ADR-054): aktiv ist die Person des Personenbezugs (ohne
+        // ihn die erste), kein onFokusWechsel (F5 merkt sich kein Ziel geräte-lokal). editable an
+        // den Status gebunden. Bleed `-mx-6 px-6` und Fußleisten-`px-6` passen zum `p-6` dieses
+        // `<main>` (#205, Lesson #188).
+        <VerzehrEinzelansicht
           zeilen={verzehrZeilen}
           artikel={toVerzehrArtikelListe(artikel)}
           positionen={positionen}
           action={action}
           editable={offen}
-          initialOpenId={fokusZeileId}
+          initialeZeileId={fokusZeileId}
           aktionJeZeile={kassierenAktionJeZeile}
+          kopfClassName="-mx-6 px-6"
+          fussleisteClassName="px-6"
         />
       )}
     </main>

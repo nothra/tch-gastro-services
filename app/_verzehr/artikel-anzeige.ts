@@ -16,14 +16,9 @@ export type VerzehrArtikelGruppe = {
   varianten: readonly VerzehrArtikel[];
 };
 
-export function groessenSuffix(size: string): string {
-  const trimmed = size.trim();
-  return trimmed === "" ? "" : ` · ${trimmed}`;
-}
-
-// Für Varianten-Zeilen innerhalb einer Namensgruppe (ArtikelGruppe): der Name steht bereits
-// als Gruppenüberschrift, die Zeile selbst braucht daher immer ein Label – nie ein leeres
-// Suffix ohne Kontext wie bei groessenSuffix.
+// Für die Zeilen einer Namensgruppe (`PositionZeile` in `ArtikelListe`): der Name steht bereits
+// als Gruppenüberschrift, die Zeile selbst braucht daher immer ein Label – auch ohne Größe
+// (spec-370 AK3.3).
 export function groessenLabel(size: string): string {
   const trimmed = size.trim();
   return trimmed === "" ? "ohne Größe" : trimmed;

@@ -129,14 +129,18 @@ außerdem den Katalogwechsel sowie – bei datierten Veranstaltungen – Bearbei
 
 ## Schritt 4 – Verzehr erfassen
 
-**Was tue ich?** Tippen Sie auf die Kachel **„Verzehr"**. Oben wählen Sie über die Namensleiste
-einen **Teilnehmer** aus; seine Karte klappt auf. Erhöhen oder verringern Sie je Artikel die Menge
-mit den Schaltflächen **„+"** und **„−"** (Getränke, Essen, Kaffee).
+**Was tue ich?** Tippen Sie auf die Kachel **„Verzehr"**. Die Erfassung zeigt immer **einen**
+Teilnehmer: Oben wählen Sie ihn über die Namensleiste aus, darunter wählen Sie die Kategorie
+(**Getränke**, **Kaffee**, **Essen**). Erhöhen oder verringern Sie je Artikel die Menge mit den
+Schaltflächen **„+"** und **„−"**. Mit **„Nächste Person →"** am unteren Rand geht es zum nächsten
+Teilnehmer – die gewählte Kategorie bleibt dabei stehen. Ein Punkt am Namen zeigt, wer schon etwas
+erfasst hat.
 
-**Was passiert?** Die Mengen und die Summen (Getränke / Essen / Kaffee / **Gesamt**) werden sofort
-gespeichert und oben in der Karte angezeigt.
+**Was passiert?** Die Mengen werden sofort gespeichert; oben neben dem Namen stehen der
+**Gesamtbetrag** und darunter die Summen für Getränke, Kaffee und Essen. Über **„Kassieren →"**
+unten gelangen Sie direkt zum Kassieren dieses Teilnehmers.
 
-![Verzehr-Erfassung: Namensleiste oben, aufgeklappte Teilnehmer-Karte mit Plus/Minus je Artikel.](bilder/08-verzehr.png)
+![Verzehr-Erfassung: Namensleiste oben, darunter Name und Gesamtbetrag, Kategorie-Umschalter, Artikel mit Plus/Minus und unten „Kassieren →" und „Nächste Person →".](bilder/08-verzehr.png)
 
 > **Selbstbedienung:** Statt alles selbst einzutippen, können die Teilnehmer ihren Verzehr über den
 > **Link/QR-Code** aus [„Zugang teilen"](#zugang-teilen-selbstbedienung) selbst erfassen – ohne
