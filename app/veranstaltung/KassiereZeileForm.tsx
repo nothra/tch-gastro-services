@@ -1,17 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Button } from "@/app/components/ui/Button";
+import { Field } from "@/app/components/ui/Field";
+import { Notice } from "@/app/components/ui/Notice";
+import { EURO_INPUT_RE, formatCents, parseEuroToCents } from "@/lib/money";
 import type { VeranstaltungFormState } from "./actions";
+import { spendeCents } from "./kassierSummen";
 
 // Erfassungs-Formular des bar kassierten Betrags (`Erhalten`) einer Teilnehmerzeile (F8, #55,
 // ADR-033 D6). Client-Komponente, damit Fehler/Pending über useActionState sichtbar werden
 // (Codify #49 – kein useEffect). `action` ist die bereits scope-gebundene Server-Action
 // (`kassiereZeileAction.bind(null, veranstaltungId)`); der Client liefert die veranstaltungId nie
 // im Formular (IDOR-Schutz sitzt serverseitig). Kein Feld-Reset: `Erhalten` ist ein persistenter
-// Zeilenwert (Korrektur in-place); Spende/Status werden serverseitig neu gerendert (revalidate).
-
-const inputClass =
-  "w-28 rounded border border-zinc-300 px-3 py-2 text-right tabular-nums dark:border-zinc-700 dark:bg-zinc-900";
+// Zeilenwert (Korrektur in-place).
+//
+// Die Spende erscheint schon beim Tippen (spec-371 AK8) – aus derselben Formel wie serverseitig
+// (`spendeCents`, ADR-055 D1). Sie ist nur Vorschau: gespeichert wird `Erhalten`, abgelehnt wird
+// eine unlesbare Eingabe allein vom Server (FS3).
 
 type BoundKassiereAction = (
   prevState: VeranstaltungFormState | undefined,
@@ -22,39 +28,65 @@ export function KassiereZeileForm({
   action,
   zeileId,
   initialErhalten,
+  verzehrGesamtCents,
   autoFocusErhalten = false,
 }: {
   action: BoundKassiereAction;
   zeileId: string;
   initialErhalten: string;
+  verzehrGesamtCents: number;
   autoFocusErhalten?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [eingabe, setEingabe] = useState(initialErhalten);
+  const spendeVorschau = spendeCents(verzehrGesamtCents, lesbarerBetragCents(eingabe));
+
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2">
+    <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="zeileId" value={zeileId} />
-      <input
-        name="erhalten"
-        type="text"
-        inputMode="decimal"
-        aria-label="Erhalten (EUR)"
-        defaultValue={initialErhalten}
-        // Tastaturfokus nur, wenn die Seite personenbezogen auf GENAU diese Zeile aufgerufen wurde
-        // (#308 AK3): der Betrag ist ohne weiteren Tap eingebbar. Ohne Personenbezug bleibt der
-        // Fokus, wo er ist – sonst zöge ihn jede der vielen Zeilen an sich.
-        autoFocus={autoFocusErhalten}
-        placeholder="0,00"
-        className={inputClass}
-      />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-      >
-        {pending ? "Speichern …" : "Kassieren"}
-      </button>
-      {state?.error && <p className="w-full text-sm text-red-600">{state.error}</p>}
-      {state?.ok && <p className="w-full text-sm text-green-700">Gespeichert.</p>}
+      <div className="flex flex-wrap items-end gap-2">
+        <Field
+          label="Erhalten (EUR)"
+          name="erhalten"
+          type="text"
+          inputMode="decimal"
+          value={eingabe}
+          onChange={(event) => setEingabe(event.target.value)}
+          // Tastaturfokus nur, wenn die Seite personenbezogen auf GENAU diese Zeile aufgerufen
+          // wurde (#308 AK3): der Betrag ist ohne weiteren Tap eingebbar. Ohne Personenbezug bleibt
+          // der Fokus, wo er ist – sonst zöge ihn jede der vielen Zeilen an sich.
+          autoFocus={autoFocusErhalten}
+          placeholder="0,00"
+          className="w-32"
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Speichern …" : "Kassieren"}
+        </Button>
+      </div>
+      <p className="text-sm text-muted">
+        Spende:{" "}
+        <span data-testid="spende-live" className="tabular-nums">
+          {formatCents(spendeVorschau)}
+        </span>
+      </p>
+      <Notice kind="fehler">{state?.error}</Notice>
+      <Notice kind="erfolg">{state?.ok && erfolgsMeldung(state, verzehrGesamtCents)}</Notice>
     </form>
   );
+}
+
+// Derselbe Parser wie an der Zod-Grenze (`lib/money`); was er nicht liest, zählt als 0 Spende
+// (spec-371 AK9) – ohne Fehler, die Ablehnung bleibt Sache des Servers.
+function lesbarerBetragCents(eingabe: string): number | null {
+  const betrag = eingabe.trim();
+  return EURO_INPUT_RE.test(betrag) ? parseEuroToCents(betrag) : null;
+}
+
+// Die Spende der Meldung rechnet der Client aus dem gespeicherten Betrag der Action und dem
+// bekannten Verzehr-Gesamt – keine Zusatzabfrage in der Action (ADR-055 D2).
+function erfolgsMeldung(state: VeranstaltungFormState, verzehrGesamtCents: number): string {
+  if (state.erhaltenCents == null) return "Betrag entfernt";
+  const erhalten = `${formatCents(state.erhaltenCents)} erhalten`;
+  const spende = spendeCents(verzehrGesamtCents, state.erhaltenCents);
+  return spende > 0 ? `${erhalten}, davon ${formatCents(spende)} Spende` : erhalten;
 }

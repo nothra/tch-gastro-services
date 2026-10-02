@@ -13,7 +13,9 @@ import { ZeileRow } from "../ZeileRow";
 import { KatalogWechsel } from "../KatalogWechsel";
 import { TeilnehmerHinzufuegenDialog } from "../TeilnehmerHinzufuegenDialog";
 import { kachelKennzahlen } from "../kachelKennzahlen";
+import { kassierTagessummen, kassierZeilen } from "../kassierSummen";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
+import { AbschlussAktion } from "./AbschlussAktion";
 import { Abschlussbericht } from "./Abschlussbericht";
 import { ArbeitsschrittKacheln } from "./ArbeitsschrittKacheln";
 import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
@@ -25,7 +27,7 @@ import { ZugangTeilen } from "./ZugangTeilen";
 // Arbeitsschritt-Kacheln → Teilnehmerliste → eingeklappten Einstellungen. Nur Veranstalter; alle
 // Schreibwege prüfen Rolle und Status zusätzlich serverseitig in den Actions. Abgeschlossene
 // Veranstaltungen sind schreibgeschützt: Bericht statt Kennzahlen, keine Einstellungen.
-// Abschließen/Wieder öffnen liegt auf der Kassieren-Seite (AK24–AK26).
+// Abschließen/Wieder öffnen sitzt im Seitenkopf neben dem Status-Badge (spec-371, ADR-055 D3).
 export default async function VeranstaltungDetailPage({
   params,
 }: {
@@ -66,8 +68,14 @@ async function ladeOffeneDaten(id: string) {
     listCatalogs(),
   ]);
   const bereitsErfasst = new Set(zeilen.map((zeile) => zeile.teilnehmerId));
+  // Hinweis im Abschluss-Dialog aus derselben Quelle wie das Gate (ADR-033 D5, ADR-055 D3).
+  const { offeneZeilen, offenerBetragCents } = kassierTagessummen(
+    kassierZeilen(zeilen, positionen),
+  );
   return {
     zeilen,
+    offeneZeilen,
+    offenerBetragCents,
     kennzahlen: kachelKennzahlen({ zeilen, positionen, auslagen }),
     verfuegbar: aktiveTeilnehmer.filter((teilnehmer) => !bereitsErfasst.has(teilnehmer.id)),
     // Wechselziele sind nur aktive Kataloge (#346 AK6) – dieselbe Filterung wie bei der Anlage.
@@ -82,14 +90,29 @@ function OffeneVeranstaltung({
   kennzahlen,
   verfuegbar,
   aktiveKataloge,
+  offeneZeilen,
+  offenerBetragCents,
 }: { veranstaltung: Veranstaltung } & Awaited<ReturnType<typeof ladeOffeneDaten>>) {
   const { id } = veranstaltung;
-  // Bearbeiten und Löschen gelten nur für datierte Veranstaltungen (#352 AK3/AK10). Die stehende
-  // Theke ist ebenfalls `offen`, aber ein dauerhafter Sondervorgang ohne Datum (spec-51, FS5).
+  // Bearbeiten, Löschen und Abschließen gelten nur für datierte Veranstaltungen (#352 AK3/AK10,
+  // spec-371 AK23). Die stehende Theke ist ebenfalls `offen`, aber ein dauerhafter Sondervorgang
+  // ohne Datum (spec-51, FS5).
   const bearbeitbar = veranstaltung.typ === "veranstaltung";
 
   return (
-    <DetailRahmen veranstaltung={veranstaltung}>
+    <DetailRahmen
+      veranstaltung={veranstaltung}
+      aktion={
+        bearbeitbar && (
+          <AbschlussAktion
+            id={id}
+            status={veranstaltung.status}
+            offeneZeilen={offeneZeilen}
+            offenerBetragCents={offenerBetragCents}
+          />
+        )
+      }
+    >
       <ArbeitsschrittKacheln veranstaltungId={id} kennzahlen={kennzahlen} />
       <Teilnehmerliste
         veranstaltungId={id}
@@ -132,7 +155,10 @@ function AbgeschlosseneVeranstaltung({
   zeilen: Zeilen;
 }) {
   return (
-    <DetailRahmen veranstaltung={veranstaltung}>
+    <DetailRahmen
+      veranstaltung={veranstaltung}
+      aktion={<AbschlussAktion id={veranstaltung.id} status={veranstaltung.status} />}
+    >
       <Abschlussbericht veranstaltungId={veranstaltung.id} />
       <ArbeitsschrittKacheln veranstaltungId={veranstaltung.id} />
       <Teilnehmerliste veranstaltungId={veranstaltung.id} zeilen={zeilen} editable={false} />
@@ -142,9 +168,11 @@ function AbgeschlosseneVeranstaltung({
 
 function DetailRahmen({
   veranstaltung,
+  aktion,
   children,
 }: {
   veranstaltung: Veranstaltung;
+  aktion: React.ReactNode;
   children: React.ReactNode;
 }) {
   const offen = veranstaltung.status === "offen";
@@ -155,7 +183,11 @@ function DetailRahmen({
         back={{ href: "/veranstaltung", label: "Alle Veranstaltungen" }}
         meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]}`}
         action={
-          <Badge tone={offen ? "akzent" : "neutral"}>{STATUS_LABEL[veranstaltung.status]}</Badge>
+          // Badge und Aktion brechen gemeinsam um (spec-371 AK24) – ohne Änderung am PageHeader.
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={offen ? "akzent" : "neutral"}>{STATUS_LABEL[veranstaltung.status]}</Badge>
+            {aktion}
+          </div>
         }
       />
       {children}
