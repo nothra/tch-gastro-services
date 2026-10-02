@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -76,6 +76,17 @@ Abschließen/Wieder öffnen nur noch im Kopf der Detailseite, mit Bestätigung.
   `11-abrechnung.png` zeigen noch die alte Kassieren-Seite. Die Capture-Spec braucht eine frisch
   geseedete DB (`pnpm db:seed` setzt die geteilte Dev-DB zurück) und wurde deshalb nicht
   gefahren: `CAPTURE_ANLEITUNG=1 pnpm exec dotenv -e .env.local -- playwright test e2e/anleitung-veranstalter.spec.ts`.
+
+### Test-Notizen (/test, 2026-10-03)
+- Gesamtsuite ohne `.env.local`: 108 Dateien / 1475 Tests grün (DB-Integrationstests dabei übersprungen).
+  Teilmenge `app/veranstaltung`: 711 Tests grün.
+- Coverage der von #371 berührten Dateien (`kassierSummen.ts`, `KassiereZeileForm.tsx`,
+  `AbschlussAktion.tsx`, `KassierSummenKarte.tsx`, `kassieren/page.tsx`, `[id]/page.tsx`): je 100 %.
+  Einziger Rest im Verzeichnis: `actions.ts:643` (`?? ""` in `ensureThekeAction`, nicht Teil von #371).
+- AK1–AK24 und FS1–FS4 sind jeweils in mindestens einem Unit- oder E2E-Test referenziert; keine
+  neuen Tests nötig, kein Produktionscode geändert.
+- Hinweis: Ein erster Lauf nutzte `dotenv -e .env.local` und löste den dmTECH-Guardrail
+  (`cmd.secretfile.read`) aus. Es wurden keine Werte gelesen; weitere Läufe erfolgten ohne die Datei.
 
 ## Offene Fragen
 - [ ] Protokoll langfristig auf die Detailseite? (Hier: bleibt in „Abrechnung im Detail"; ggf. eigenes Issue)
