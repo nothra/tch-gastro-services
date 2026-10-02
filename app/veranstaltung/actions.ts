@@ -85,7 +85,13 @@ const LOESCHEN_AUSLAGE_ERFASST =
 const LOESCHEN_KASSIERT_ERFASST =
   "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.";
 
-export type VeranstaltungFormState = { ok?: boolean; error?: string };
+export type VeranstaltungFormState = {
+  ok?: boolean;
+  error?: string;
+  // Nur `kassiereZeileAction`: der soeben gespeicherte Betrag für die Rückmeldung (ADR-055 D2);
+  // `null` heißt „Kassieren zurückgenommen".
+  erhaltenCents?: number | null;
+};
 
 // Jede Ablehnung der Mehrfach-Anlage stellt klar, dass kein Teilerfolg entstanden ist (#369 FS2).
 const NIEMAND_ANGELEGT = "Es wurde niemand hinzugefügt.";
@@ -537,7 +543,8 @@ export async function kassiereZeileAction(
 
   await setErhalten(zeileId, veranstaltungId, parsed.data.erhalten);
   revalidatePath(kassierenPath(veranstaltungId));
-  return { ok: true };
+  // Der normalisierte, tatsächlich gespeicherte Wert – nicht die Roheingabe (ADR-055 D2).
+  return { ok: true, erhaltenCents: parsed.data.erhalten };
 }
 
 // Gemeinsamer Kern der Verzehr-Erfassung (ADR-034 D3), von beiden Actions genutzt (DRY):

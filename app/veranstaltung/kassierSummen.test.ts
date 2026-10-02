@@ -4,6 +4,7 @@ import {
   kassierTagessummen,
   kassierZeile,
   kassierZeilen,
+  spendeCents,
   type KassierZeile,
 } from "./kassierSummen";
 
@@ -149,6 +150,63 @@ describe("kassierTagessummen", () => {
     const summen = kassierTagessummen([paid, zeroPaid]);
 
     expect(summen.offeneZeilen).toBe(0);
+  });
+
+  // Offener Betrag (spec-371 AK2/AK4, ADR-055 D1): Σ `verzehrGesamt − (erhalten ?? 0)` über die
+  // offenen Zeilen. Löst #305 ab.
+  it("should_reportZeroOffenerBetrag_when_noZeilen", () => {
+    expect(kassierTagessummen([]).offenerBetragCents).toBe(0);
+  });
+
+  it("should_reportZeroOffenerBetrag_when_onlyPaidZeilen", () => {
+    // Die Überzahlung von `paid` (200 Spende) darf keinen negativen Beitrag liefern.
+    expect(kassierTagessummen([paid, zeroPaid]).offenerBetragCents).toBe(0);
+  });
+
+  it("should_sumFullVerzehr_when_zeileUnpaidWithoutErhalten", () => {
+    const unbezahlt = kassierZeile({
+      getraenkeCents: 250,
+      essenCents: 0,
+      kaffeeCents: 0,
+      erhaltenCents: null,
+    });
+
+    expect(kassierTagessummen([unbezahlt]).offenerBetragCents).toBe(250);
+  });
+
+  it("should_sumOnlyRemainder_when_mixedPartialOverpaidAndUnpaid", () => {
+    const unbezahlt = kassierZeile({
+      getraenkeCents: 250,
+      essenCents: 0,
+      kaffeeCents: 0,
+      erhaltenCents: null,
+    });
+
+    // `open`: 1000 − 400 = 600 Rest; `unbezahlt`: 250; `paid` (Überzahlung) und `zeroPaid`: 0.
+    expect(kassierTagessummen([paid, open, unbezahlt, zeroPaid]).offenerBetragCents).toBe(850);
+  });
+});
+
+describe("spendeCents", () => {
+  // Geteilte Spenden-Formel für Server-Anzeige und Live-Vorschau im Client (ADR-055 D1).
+  it("should_returnOverpayment_when_erhaltenExceedsVerzehr", () => {
+    expect(spendeCents(550, 700)).toBe(150);
+  });
+
+  it("should_returnZero_when_erhaltenEqualsVerzehr", () => {
+    expect(spendeCents(550, 550)).toBe(0);
+  });
+
+  it("should_returnZero_when_erhaltenBelowVerzehr", () => {
+    expect(spendeCents(550, 100)).toBe(0);
+  });
+
+  it("should_returnZero_when_erhaltenNull", () => {
+    expect(spendeCents(550, null)).toBe(0);
+  });
+
+  it("should_returnFullAmount_when_zeroVerzehr", () => {
+    expect(spendeCents(0, 500)).toBe(500);
   });
 });
 

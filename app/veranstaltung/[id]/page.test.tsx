@@ -78,6 +78,27 @@ vi.mock("../TeilnehmerHinzufuegenDialog", () => ({
     </button>
   ),
 }));
+vi.mock("./AbschlussAktion", () => ({
+  AbschlussAktion: ({
+    status,
+    offeneZeilen,
+    offenerBetragCents,
+  }: {
+    status: string;
+    offeneZeilen?: number;
+    offenerBetragCents?: number;
+  }) => (
+    <button
+      type="button"
+      data-testid="abschluss-aktion"
+      data-status={status}
+      data-offene-zeilen={offeneZeilen}
+      data-offener-betrag={offenerBetragCents}
+    >
+      Abschluss-Aktion
+    </button>
+  ),
+}));
 vi.mock("../ZeileRow", () => ({
   ZeileRow: ({ zeile, editable }: { zeile: { anzeigename: string }; editable: boolean }) => (
     <li data-editable={String(editable)}>{zeile.anzeigename}</li>
@@ -246,16 +267,61 @@ describe("VeranstaltungDetailPage – Aufbau und Kopf (AK1, AK2)", () => {
       "rounded-full",
     );
   });
+});
 
-  it("should_notOfferAbschliessenOrWiederOeffnen_when_rendered", async () => {
-    // AK24: der Status-Umschalter ist auf die Kassieren-Seite umgezogen – in beiden Zuständen.
+// spec-371 AK18/AK22–AK24, ADR-055 D3: Abschließen/Wieder öffnen sitzt im Kopf neben dem Badge.
+describe("VeranstaltungDetailPage – Abschluss im Kopf (spec-371)", () => {
+  function abschlussAktion() {
+    return within(screen.getByRole("banner")).getByTestId("abschluss-aktion");
+  }
+
+  it("should_offerAbschliessenNextToBadge_when_veranstaltungOffen", async () => {
     await renderSeite();
-    expect(screen.queryByRole("button", { name: /Abschließen|Wieder öffnen/ })).toBeNull();
+
+    expect(abschlussAktion()).toHaveAttribute("data-status", "offen");
+    // AK24: Badge und Aktion bilden eine umbrechende Gruppe – bei 375 px weicht die Aktion in
+    // die nächste Zeile aus, statt Titel oder Badge zu überlappen.
+    const gruppe = abschlussAktion().parentElement!;
+    expect(gruppe).toContainElement(within(screen.getByRole("banner")).getByText("offen"));
+    expect(gruppe).toHaveClass("flex", "flex-wrap");
   });
 
-  it("should_notOfferWiederOeffnen_when_veranstaltungAbgeschlossen", async () => {
+  it("should_passOffeneZeilenAndBetragFromKassierSummen_when_veranstaltungOffen", async () => {
+    // AK20/ADR-055 D3: Anna 2 × 2,50 € mit 3,00 € angezahlt (Rest 2,00 €), Bernd 1 × 4,00 € ohne
+    // Zahlung (Rest 4,00 €), Carla 1 × 2,50 € mit 5,00 € überzahlt (bezahlt, trägt 0 bei).
+    listZeilenMock.mockResolvedValue([
+      zeile("z-1", "Anna", 300),
+      zeile("z-2", "Bernd"),
+      zeile("z-3", "Carla", 500),
+    ]);
+    listPositionenMock.mockResolvedValue([
+      { zeileId: "z-1", menge: 2, priceCents: 250, category: "getraenk" },
+      { zeileId: "z-2", menge: 1, priceCents: 400, category: "essen" },
+      { zeileId: "z-3", menge: 1, priceCents: 250, category: "getraenk" },
+    ] as never);
+
+    await renderSeite();
+
+    expect(abschlussAktion()).toHaveAttribute("data-offene-zeilen", "2");
+    expect(abschlussAktion()).toHaveAttribute("data-offener-betrag", "600");
+  });
+
+  it("should_offerWiederOeffnenWithoutLoadingPositionen_when_veranstaltungAbgeschlossen", async () => {
+    // AK22: Wieder öffnen braucht keinen Offen-Hinweis – die abgeschlossene Variante lädt weiterhin
+    // keine Positionen (ADR-053 D4).
     await renderSeite(abgeschlossen);
-    expect(screen.queryByRole("button", { name: /Abschließen|Wieder öffnen/ })).toBeNull();
+
+    expect(abschlussAktion()).toHaveAttribute("data-status", "abgeschlossen");
+    expect(abschlussAktion()).not.toHaveAttribute("data-offene-zeilen");
+    expect(listPositionenMock).not.toHaveBeenCalled();
+  });
+
+  it("should_offerNoAbschluss_when_typTheke", async () => {
+    // AK23: die stehende Theke ist nicht abschließbar (spec-51); das Badge bleibt.
+    await renderSeite(theke);
+
+    expect(within(screen.getByRole("banner")).queryByTestId("abschluss-aktion")).toBeNull();
+    expect(within(screen.getByRole("banner")).getByText("offen")).toBeInTheDocument();
   });
 });
 

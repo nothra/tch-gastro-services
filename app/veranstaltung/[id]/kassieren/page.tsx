@@ -2,17 +2,29 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
-import type { Kasse } from "@/db/schema";
+import type { Kasse, VeranstaltungEreignis, VeranstaltungZeile } from "@/db/schema";
 import { centsToEuroInput, formatCents } from "@/lib/money";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listPositionen } from "@/db/verzehr";
 import { listAuslagen } from "@/db/auslage";
 import { listEreignisse } from "@/db/veranstaltung-ereignis";
-import { gruppierePositionenNachZeile, verzehrPositionen } from "@/app/_verzehr/positionen";
+import {
+  gruppierePositionenNachZeile,
+  verzehrPositionen,
+  type VerzehrPositionDetail,
+} from "@/app/_verzehr/positionen";
+import { Badge } from "@/app/components/ui/Badge";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import { kassiereZeileAction } from "../../actions";
-import { gesamtabrechnung, kassierTagessummen, kassierZeilen } from "../../kassierSummen";
-import { auslagenSummen } from "../../auslagenSummen";
-import { StatusToggle } from "../../StatusToggle";
+import {
+  gesamtabrechnung,
+  kassierTagessummen,
+  kassierZeilen,
+  type Gesamtabrechnung,
+  type KassierTagessummen,
+  type KassierZeile,
+} from "../../kassierSummen";
+import { auslagenSummen, type AuslagenSummen } from "../../auslagenSummen";
 import { KassiereZeileForm } from "../../KassiereZeileForm";
 import { KassierZeilenListe } from "../../KassierZeilenListe";
 import { VerzehrAufschluesselung } from "../../VerzehrAufschluesselung";
@@ -31,13 +43,14 @@ import {
   verzehrHref,
   type SeitenSuchparameter,
 } from "../../personenbezug";
+import { KassierSummenKarte } from "./KassierSummenKarte";
 
-// Authentifizierte Kassier-Seite (F8, #55, ADR-033 D6): kassiert je Teilnehmerzeile den vollen
-// Verzehr-Gesamt bar (`Erhalten`), zeigt die abgeleitete Spende + den Zeilenstatus (bezahlt/offen),
-// die Tagessummen und die Veranstaltungs-Gesamtabrechnung je zugeordneter Kasse. Abschluss/
-// Wiederöffnen (mit fail-closed Ablehnung bei offener Zeile) über den StatusToggle am Seitenende. Nur
-// Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter dem bereits von
-// `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
+// Authentifizierte Kassier-Seite (F8, #55, ADR-033 D6; Aufbau spec-371): Summenkarte oben, darunter
+// je Teilnehmerzeile das Kassieren des vollen Verzehr-Gesamt bar (`Erhalten`) mit Live-Spende und
+// Zeilenstatus, zuletzt eingeklappt Tagessummen, Gesamtabrechnung je Kasse und Protokoll.
+// Abschließen/Wieder öffnen gibt es hier nicht mehr – das sitzt im Kopf der Detailseite (ADR-055
+// D3). Nur Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter dem bereits
+// von `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
 // Der Aufruf kann einen Personenbezug tragen (#308): dann wird die Zeile dieser Person hervorgehoben,
 // angescrollt und ihr `Erhalten`-Feld fokussiert; jede Zeile bietet den Rückweg in die Erfassung an.
 export default async function KassierenPage({
@@ -52,9 +65,7 @@ export default async function KassierenPage({
   if (!hasRole(session?.user?.roles, "veranstalter")) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Kein Zugriff – nur Veranstalter dürfen kassieren.
-        </p>
+        <p className="text-muted">Kein Zugriff – nur Veranstalter dürfen kassieren.</p>
       </main>
     );
   }
@@ -69,9 +80,11 @@ export default async function KassierenPage({
     listEreignisse(id),
   ]);
   const offen = veranstaltung.status === "offen";
+  const kasseLabel = KASSE_LABEL[veranstaltung.kasse as Kasse];
 
-  // SINGLE SOURCE (ADR-033 D5): dieselbe Berechnung speist Zeilenanzeige, Tagessummen und (in der
-  // Action) das Abschluss-Gate. Die Reihenfolge entspricht `zeilen` (map-stabil) → per Index zippen.
+  // SINGLE SOURCE (ADR-033 D5): dieselbe Berechnung speist Summenkarte, Zeilenanzeige, Tagessummen
+  // und (in der Action) das Abschluss-Gate. Die Reihenfolge entspricht `zeilen` (map-stabil) → per
+  // Index zippen.
   const kassierRows = kassierZeilen(zeilen, positionen);
   // Dieselben Positionen speisen die Zeilensummen (`kassierZeilen`) und die Aufschlüsselung
   // (`verzehrPositionen`) – so ist die Summe der Positionsbeträge per Konstruktion das
@@ -109,177 +122,216 @@ export default async function KassierenPage({
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/veranstaltung/${id}`}
-          className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
-        >
-          ← Zur Veranstaltung
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Kassieren · {veranstaltung.bezeichnung}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
-          {STATUS_LABEL[veranstaltung.status]}
-        </p>
-      </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 p-4 sm:p-6">
+      <PageHeader
+        title={`Kassieren · ${veranstaltung.bezeichnung}`}
+        back={{ href: `/veranstaltung/${id}`, label: "Zur Veranstaltung" }}
+        meta={`${formatDatum(veranstaltung.datum)} · ${kasseLabel} · ${STATUS_LABEL[veranstaltung.status]}`}
+      />
+
+      <KassierSummenKarte
+        veranstaltungId={id}
+        tagessummen={tagessummen}
+        anzahlZeilen={zeilen.length}
+        abschliessbar={veranstaltung.typ === "veranstaltung"}
+      />
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">Teilnehmer ({zeilen.length})</h2>
+        <h2>Teilnehmer ({zeilen.length})</h2>
         {zeilen.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Teilnehmer erfasst.</p>
+          <p className="text-sm text-muted">Noch keine Teilnehmer erfasst.</p>
         ) : (
           <KassierZeilenListe
             hervorgehobeneZeileId={zielZeileId}
             zeilen={zeilenMitKassier.map(({ zeile, kassier, positionen: zeilenPositionen }) => ({
               id: zeile.id,
               inhalt: (
-                <>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{zeile.anzeigename}</span>
-                    <span
-                      className={
-                        kassier.bezahlt
-                          ? "rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-950 dark:text-green-300"
-                          : "rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                      }
-                    >
-                      {kassier.bezahlt ? "bezahlt" : "offen"}
-                    </span>
-                  </div>
-                  <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    <div className="flex gap-2">
-                      <dt>Getränke</dt>
-                      <dd className="tabular-nums">{formatCents(kassier.getraenkeCents)}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt>Essen</dt>
-                      <dd className="tabular-nums">{formatCents(kassier.essenCents)}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt>Kaffee</dt>
-                      <dd className="tabular-nums">{formatCents(kassier.kaffeeCents)}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="font-semibold text-zinc-900 dark:text-zinc-100">
-                        Verzehr-Gesamt
-                      </dt>
-                      <dd className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                        {formatCents(kassier.verzehrGesamtCents)}
-                      </dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt>Spende</dt>
-                      <dd className="tabular-nums">{formatCents(kassier.spendeCents)}</dd>
-                    </div>
-                  </dl>
-                  <VerzehrAufschluesselung positionen={zeilenPositionen} />
-                  {offen ? (
-                    <KassiereZeileForm
-                      action={kassiereAction}
-                      zeileId={zeile.id}
-                      initialErhalten={
-                        kassier.erhaltenCents === null
-                          ? ""
-                          : centsToEuroInput(kassier.erhaltenCents)
-                      }
-                      // Nur die Zeile des Personenbezugs fordert den Fokus an (#308 AK3) – sonst
-                      // zöge ihn bei vielen Teilnehmern die letzte gerenderte Zeile an sich.
-                      autoFocusErhalten={zeile.id === zielZeileId}
-                    />
-                  ) : (
-                    <p className="text-sm">
-                      Erhalten:{" "}
-                      <span className="tabular-nums">
-                        {kassier.erhaltenCents === null ? "—" : formatCents(kassier.erhaltenCents)}
-                      </span>
-                    </p>
-                  )}
-
-                  {/* Rückweg in die Erfassung DIESER Person (#308 AK5) – reine Navigation, deshalb
-                      auch in der Lesesicht der abgeschlossenen Veranstaltung (AK10). */}
-                  <Link href={verzehrHref(id, zeile.id)} className={WECHSEL_LINK_CLASS}>
-                    ← Verzehr erfassen
-                  </Link>
-                </>
+                <ZeilenInhalt
+                  veranstaltungId={id}
+                  zeile={zeile}
+                  kassier={kassier}
+                  positionen={zeilenPositionen}
+                  kassieren={
+                    offen && (
+                      <KassiereZeileForm
+                        action={kassiereAction}
+                        zeileId={zeile.id}
+                        initialErhalten={
+                          kassier.erhaltenCents === null
+                            ? ""
+                            : centsToEuroInput(kassier.erhaltenCents)
+                        }
+                        verzehrGesamtCents={kassier.verzehrGesamtCents}
+                        // Nur die Zeile des Personenbezugs fordert den Fokus an (#308 AK3) – sonst
+                        // zöge ihn bei vielen Teilnehmern die letzte gerenderte Zeile an sich.
+                        autoFocusErhalten={zeile.id === zielZeileId}
+                      />
+                    )
+                  }
+                />
               ),
             }))}
           />
         )}
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Tagessummen</h2>
-        <table className="w-full text-sm">
-          <tbody>
-            <SummenZeile label="Getränke" cents={tagessummen.getraenkeCents} />
-            <SummenZeile label="Essen" cents={tagessummen.essenCents} />
-            <SummenZeile label="Kaffee" cents={tagessummen.kaffeeCents} />
-            <SummenZeile label="Verzehr-Gesamt" cents={tagessummen.verzehrGesamtCents} bold />
-            <SummenZeile label="Erhalten" cents={tagessummen.erhaltenCents} />
-            <SummenZeile label="Spende" cents={tagessummen.spendeCents} bold />
-          </tbody>
-        </table>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Offene Zeilen: <span className="tabular-nums">{tagessummen.offeneZeilen}</span>
-        </p>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">
-          Gesamtabrechnung (Kasse: {KASSE_LABEL[veranstaltung.kasse as Kasse]})
-        </h2>
-        <table className="w-full text-sm">
-          <tbody>
-            <SummenZeile label="Einnahmen (Σ Erhalten)" cents={abrechnung.einnahmenCents} />
-            {AUSLAGE_KATEGORIE_ORDER.map((kategorie) => (
-              <SummenZeile
-                key={kategorie}
-                label={`Ausgaben – ${AUSLAGE_KATEGORIE_LABEL[kategorie]}`}
-                cents={ausgaben[kategorie].erstattetCents}
-              />
-            ))}
-            <SummenZeile
-              label="Ausgaben – Auslagenerstattungen gesamt"
-              cents={abrechnung.ausgabenErstattetCents}
-            />
-            <SummenZeile
-              label="Kassenveränderung"
-              cents={abrechnung.kassenveraenderungCents}
-              bold
-            />
-          </tbody>
-        </table>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Protokoll</h2>
-        {ereignisse.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Noch kein Abschluss oder Wiederöffnen protokolliert.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1 text-sm">
-            {ereignisse.map((ereignis) => (
-              <li
-                key={ereignis.id}
-                className="flex flex-wrap gap-x-2 text-zinc-700 dark:text-zinc-300"
-              >
-                <span className="font-medium">{EREIGNIS_ART_LABEL[ereignis.art]}</span>
-                <span>· {ereignis.akteurName ?? "—"}</span>
-                <span className="tabular-nums">· {formatZeitpunkt(ereignis.createdAt)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Abschließen/Wieder öffnen am Seitenende (spec-369 AK25/AK26, ADR-053 D6): der letzte
-          Schritt nach dem Kassieren, Verhalten unverändert. Bestätigung folgt in #371. */}
-      <StatusToggle id={veranstaltung.id} status={veranstaltung.status} />
+      <AbrechnungImDetail
+        kasseLabel={kasseLabel}
+        tagessummen={tagessummen}
+        ausgaben={ausgaben}
+        abrechnung={abrechnung}
+        ereignisse={ereignisse}
+      />
     </main>
+  );
+}
+
+// Inhalt einer Teilnehmerzeile (spec-371 AK7): Name + Status-Badge, Verzehr je Kategorie und
+// Verzehr-Gesamt, die Aufschlüsselung, dann Kassieren (offen) bzw. die Lesesicht (abgeschlossen).
+function ZeilenInhalt({
+  veranstaltungId,
+  zeile,
+  kassier,
+  positionen,
+  kassieren,
+}: {
+  veranstaltungId: string;
+  zeile: VeranstaltungZeile;
+  kassier: KassierZeile;
+  positionen: VerzehrPositionDetail[];
+  kassieren: React.ReactNode;
+}) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium">{zeile.anzeigename}</span>
+        <Badge tone={kassier.bezahlt ? "erfolg" : "warnung"}>
+          {kassier.bezahlt ? "bezahlt" : "offen"}
+        </Badge>
+      </div>
+      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
+        <BetragEintrag label="Getränke" cents={kassier.getraenkeCents} />
+        <BetragEintrag label="Essen" cents={kassier.essenCents} />
+        <BetragEintrag label="Kaffee" cents={kassier.kaffeeCents} />
+        <div className="flex gap-2">
+          <dt className="font-semibold text-foreground">Verzehr-Gesamt</dt>
+          <dd className="font-semibold tabular-nums text-foreground">
+            {formatCents(kassier.verzehrGesamtCents)}
+          </dd>
+        </div>
+      </dl>
+      <VerzehrAufschluesselung positionen={positionen} />
+      {kassieren || (
+        // Lesesicht der abgeschlossenen Veranstaltung (spec-371 AK10): kein Eingabefeld, die
+        // abgeleitete Spende steht deshalb hier statt in der Live-Vorschau des Formulars.
+        <p className="text-sm tabular-nums">
+          Erhalten: {kassier.erhaltenCents === null ? "—" : formatCents(kassier.erhaltenCents)} ·
+          Spende: {formatCents(kassier.spendeCents)}
+        </p>
+      )}
+
+      {/* Rückweg in die Erfassung DIESER Person (#308 AK5) – reine Navigation, deshalb
+          auch in der Lesesicht der abgeschlossenen Veranstaltung (AK10). */}
+      <Link href={verzehrHref(veranstaltungId, zeile.id)} className={WECHSEL_LINK_CLASS}>
+        ← Verzehr erfassen
+      </Link>
+    </>
+  );
+}
+
+function BetragEintrag({ label, cents }: { label: string; cents: number }) {
+  return (
+    <div className="flex gap-2">
+      <dt>{label}</dt>
+      <dd className="tabular-nums">{formatCents(cents)}</dd>
+    </div>
+  );
+}
+
+// Tagessummen, Gesamtabrechnung und Protokoll standardmäßig eingeklappt (spec-371 AK14/AK15,
+// ADR-055 D4): natives `<details>` wie „Einstellungen" auf der Detailseite – aufgeklappt dieselben
+// Zeilen und Werte wie bisher.
+function AbrechnungImDetail({
+  kasseLabel,
+  tagessummen,
+  ausgaben,
+  abrechnung,
+  ereignisse,
+}: {
+  kasseLabel: string;
+  tagessummen: KassierTagessummen;
+  ausgaben: AuslagenSummen;
+  abrechnung: Gesamtabrechnung;
+  ereignisse: VeranstaltungEreignis[];
+}) {
+  return (
+    <details className="rounded-lg border border-line-subtle bg-surface">
+      <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-accent">
+        Abrechnung im Detail
+      </summary>
+      <div className="flex flex-col gap-6 border-t border-line-subtle p-4">
+        <section className="flex flex-col gap-2">
+          <h2>Tagessummen</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <SummenZeile label="Getränke" cents={tagessummen.getraenkeCents} />
+              <SummenZeile label="Essen" cents={tagessummen.essenCents} />
+              <SummenZeile label="Kaffee" cents={tagessummen.kaffeeCents} />
+              <SummenZeile label="Verzehr-Gesamt" cents={tagessummen.verzehrGesamtCents} bold />
+              <SummenZeile label="Erhalten" cents={tagessummen.erhaltenCents} />
+              <SummenZeile label="Spende" cents={tagessummen.spendeCents} bold />
+            </tbody>
+          </table>
+          <p className="text-sm text-muted">
+            Offene Zeilen: <span className="tabular-nums">{tagessummen.offeneZeilen}</span>
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2>Gesamtabrechnung (Kasse: {kasseLabel})</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <SummenZeile label="Einnahmen (Σ Erhalten)" cents={abrechnung.einnahmenCents} />
+              {AUSLAGE_KATEGORIE_ORDER.map((kategorie) => (
+                <SummenZeile
+                  key={kategorie}
+                  label={`Ausgaben – ${AUSLAGE_KATEGORIE_LABEL[kategorie]}`}
+                  cents={ausgaben[kategorie].erstattetCents}
+                />
+              ))}
+              <SummenZeile
+                label="Ausgaben – Auslagenerstattungen gesamt"
+                cents={abrechnung.ausgabenErstattetCents}
+              />
+              <SummenZeile
+                label="Kassenveränderung"
+                cents={abrechnung.kassenveraenderungCents}
+                bold
+              />
+            </tbody>
+          </table>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2>Protokoll</h2>
+          {ereignisse.length === 0 ? (
+            <p className="text-sm text-muted">
+              Noch kein Abschluss oder Wiederöffnen protokolliert.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1 text-sm">
+              {ereignisse.map((ereignis) => (
+                <li key={ereignis.id} className="flex flex-wrap gap-x-2 text-foreground">
+                  <span className="font-medium">{EREIGNIS_ART_LABEL[ereignis.art]}</span>
+                  <span>· {ereignis.akteurName ?? "—"}</span>
+                  <span className="tabular-nums">· {formatZeitpunkt(ereignis.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </details>
   );
 }
 
@@ -287,7 +339,7 @@ export default async function KassierenPage({
 function SummenZeile({ label, cents, bold }: { label: string; cents: number; bold?: boolean }) {
   const cellClass = bold ? "font-semibold" : "";
   return (
-    <tr className="border-t border-zinc-200 dark:border-zinc-800">
+    <tr className="border-t border-line-subtle">
       <td className={`py-1 pr-4 ${cellClass}`}>{label}</td>
       <td className={`py-1 text-right tabular-nums ${cellClass}`}>{formatCents(cents)}</td>
     </tr>

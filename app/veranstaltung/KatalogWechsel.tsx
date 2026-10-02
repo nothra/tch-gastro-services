@@ -12,11 +12,10 @@ const inputClass = "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-70
 // bewusste Auswahl löste einen ungewollten Wechsel aus.
 const NICHT_MEHR_WAEHLBAR = "Aktuell zugeordnet (nicht mehr wählbar)";
 
-// Wechsel der Preisliste einer noch offenen Veranstaltung (F4, #346 AK3). Client-Komponente nach
-// dem Muster von StatusToggle: die serverseitige Ablehnung – abgeschlossene Veranstaltung (AK5),
-// deaktivierter Zielkatalog (AK6) oder bereits erfasster Verzehr (AK4) – wird über useActionState
-// sichtbar (Codify #49, kein useEffect). Die Veranstaltungs-Id reist als verstecktes Feld, wie
-// beim Status-Umschalter.
+// Wechsel der Preisliste einer noch offenen Veranstaltung (F4, #346 AK3). Client-Komponente: die
+// serverseitige Ablehnung – abgeschlossene Veranstaltung (AK5), deaktivierter Zielkatalog (AK6)
+// oder bereits erfasster Verzehr (AK4) – wird über useActionState sichtbar (Codify #49, kein
+// useEffect). Die Veranstaltungs-Id reist als verstecktes Feld.
 export function KatalogWechsel({
   id,
   catalogId,

@@ -10,7 +10,8 @@ import {
 // Oberflächen-Nachweis für die neu geordnete Detailseite (#369, spec-369). Prüft gegen einen
 // echten Server, was jsdom nicht belegen kann: das native modale `<dialog>` (Escape, Fokus-
 // Rücksprung), die echte Mehrfach-Anlage über den Server-Action-Roundtrip, das bestätigte
-// Entfernen, den Umzug von Abschließen/Wieder öffnen und das Layout bei 375 px (AK27/AK28).
+// Entfernen und das Layout bei 375 px (AK27/AK28). Abschließen/Wieder öffnen prüft seit #371
+// kassieren-summe-abschluss.spec.ts.
 //
 // Bewusst NICHT Teil des Standard-`pnpm test:e2e`-Laufs: die Spec legt Daten an, der Standardlauf
 // fährt in CI gegen die persistente INT-Umgebung und ist dort rein lesend – dieselbe Begründung wie
@@ -88,6 +89,14 @@ async function loescheVeranstaltung(page: Page, detailPfad: string) {
   await page.getByRole("button", { name: "Veranstaltung löschen", exact: true }).click();
   await page.getByRole("button", { name: "Endgültig löschen" }).click();
   await expect(page).toHaveURL(/\/veranstaltung$/);
+}
+
+// Statuswechsel im Kopf der Detailseite – wirkt erst nach der Bestätigung (spec-371, ADR-055 D3).
+async function bestaetigeStatuswechsel(page: Page, ausloeser: string, bestaetigen: string) {
+  await page.getByRole("button", { name: ausloeser, exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: bestaetigen, exact: true }).click();
+  await expect(dialog).toBeHidden();
 }
 
 async function groesse(locator: Locator): Promise<{ width: number; height: number }> {
@@ -255,7 +264,10 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await loescheVeranstaltung(page, detailPfad);
   });
 
-  test("AK21/AK22/AK24–AK26: Einstellungen eingeklappt, Link & QR im Dialog, Abschließen bei Kassieren", async ({
+  // AK24–AK26 (Abschließen am Ende der Kassieren-Seite) sind durch spec-371 überholt: der
+  // Statuswechsel sitzt jetzt im Kopf der Detailseite (ADR-055 D3) – Nachweis in
+  // kassieren-summe-abschluss.spec.ts. Hier bleibt der Weg zum Bericht nach dem Abschluss.
+  test("AK21/AK22/AK6/AK7: Einstellungen eingeklappt, Link & QR im Dialog, Bericht nach Abschluss", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -263,9 +275,6 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
 
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Einstellungen ${LAUF}`);
     await page.goto(detailPfad);
-
-    // ── AK24: weder Abschließen noch Wieder öffnen auf der Detailseite ─────────────────────
-    await expect(page.getByRole("button", { name: /Abschließen|Wieder öffnen/ })).toHaveCount(0);
 
     // ── AK21/AK22: eingeklappt; Link & QR erst im Dialog sichtbar ──────────────────────────
     const link = page.getByRole("textbox", { name: "Selbstbedienungs-Link" });
@@ -281,30 +290,15 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await zugang.getByRole("button", { name: "Schließen" }).click();
     await expect(zugang).toBeHidden();
 
-    // ── AK25: Abschließen steht am Ende der Kassieren-Seite ────────────────────────────────
-    await page.goto(`${detailPfad}/kassieren`);
-    const abschliessen = page.getByRole("button", { name: "Abschließen" });
-    await expect(abschliessen).toBeVisible();
-    const istLetzterBlock = await abschliessen.evaluate(
-      (knopf) => document.querySelector("main")?.lastElementChild?.contains(knopf) ?? false,
-    );
-    expect(istLetzterBlock).toBe(true);
-    await abschliessen.click();
-
-    // ── AK26: Wieder öffnen am selben Platz ────────────────────────────────────────────────
-    const wiederOeffnen = page.getByRole("button", { name: "Wieder öffnen" });
-    await expect(wiederOeffnen).toBeVisible();
-
-    // ── AK6/AK7: Detailseite zeigt den Bericht, keine Einstellungen ────────────────────────
-    await page.goto(detailPfad);
+    // ── AK6/AK7: nach dem Abschluss zeigt die Detailseite den Bericht, keine Einstellungen ──
+    await bestaetigeStatuswechsel(page, "Veranstaltung abschließen", "Abschließen");
     await expect(page.getByRole("heading", { name: "Abschlussbericht" })).toBeVisible();
     await expect(page.getByText("Einstellungen", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "+ Teilnehmer" })).toHaveCount(0);
 
     // Aufräumen: wieder öffnen, dann löschen.
-    await page.goto(`${detailPfad}/kassieren`);
-    await wiederOeffnen.click();
-    await expect(abschliessen).toBeVisible();
+    await bestaetigeStatuswechsel(page, "Wieder öffnen", "Wieder öffnen");
+    await expect(page.getByRole("button", { name: "Veranstaltung abschließen" })).toBeVisible();
     await loescheVeranstaltung(page, detailPfad);
   });
 });

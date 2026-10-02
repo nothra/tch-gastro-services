@@ -309,3 +309,16 @@ dem Konsumenten, in dem er auftrat."
 Sperren), vor dem Fix alle Konsumenten auflisten (`grep` auf den Baustein-Namen) und die Regel **im
 Baustein** verankern; jeder Konsument zieht dann nur den Zustand nach. Ein Fix in einem Konsumenten
 ist nur richtig, wenn der Baustein bewusst keinen Vertrag dafür hat – dann gehört das in die ADR.
+
+### Statuswechsel, der den Seitenzweig tauscht, remountet den Auslöser – Fokus-Rückgabe ins Leere (aus #371, Review-Nitpick)
+
+`AbschlussAktion` (Abschließen/Wieder öffnen im Kopf) sitzt in zwei verschiedenen Zweigen der
+Detailseite (`OffeneVeranstaltung` ↔ `AbgeschlosseneVeranstaltung`). Nach erfolgreichem Statuswechsel
+wird der Auslöser neu gemountet; `returnFocusRef` zeigt auf einen entfernten Knoten, der Fokus landet
+vermutlich auf `<body>`. Die E2E prüfte den Fokus nur nach „Abbrechen", nicht nach Erfolg.
+
+**Smell:** Ein Dialog-Auslöser steht in einem Teilbaum, den genau die bestätigte Aktion austauscht.
+
+**Regel:** Löst die bestätigte Aktion einen Zweigwechsel aus, der den Auslöser unmountet, Fokus-Rückgabe
+für den **Erfolgsfall** gesondert festlegen (z. B. Fokus auf die Rückmeldung/Überschrift) und testen –
+„Fokus zurück an den Auslöser" gilt nur für Abbrechen. Offen, gebündelt in #372.
