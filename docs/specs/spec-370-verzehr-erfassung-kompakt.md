@@ -38,6 +38,7 @@ spec-54 AC B sind anzupassen (`/architecture`).
   44-px-Bedienelemente, „Nächste Person".
 - Beide Einstiege (F5 Veranstalter, F7 Theke inkl. Identitäts-Gate und Lese-Ansicht).
 - Umstellung der berührten Dateien auf Bausteine/Tokens aus #368 (ADR-052).
+- Neu erzeugte Anleitungs-Screenshot `docs/anleitung/veranstalter/bilder/08-verzehr.png` (AK7.5).
 
 **Nicht inbegriffen:**
 - Seitenköpfe/Zurück-Navigation der beiden Seiten (#369, #374), Kassieren (#371),
@@ -45,7 +46,6 @@ spec-54 AC B sind anzupassen (`/architecture`).
 - Fachlogik: Summenformeln, Server-Actions, Delta-Protokoll (±1), Katalogbindung,
   Rate-Limit-Verhalten bleiben unverändert.
 - Neuer Identitäts-Flow der Theke (Erfasser/Ziel, ADR-035 D1) – nur die Darstellung ändert sich.
-- Aktualisierung der Screenshots unter `docs/anleitung/` (siehe Offene Fragen).
 
 ## Akzeptanzkriterien
 
@@ -74,7 +74,7 @@ spec-54 AC B sind anzupassen (`/architecture`).
   erzeugt keinen horizontalen Seiten-Scroll.
 - [ ] **AK1a.4** GIVEN eine Person mit erfasstem Verzehr (Summe > 0) WHEN die Chips angezeigt
   werden THEN ist sie am Chip erkennbar (Punkt/Marke mit Textalternative, nicht nur Farbe).
-  *(Aus dem Mockup übernommen – in Offene Fragen bestätigen.)*
+  *(Aus dem Mockup übernommen, bestätigt 2026-10-02.)*
 - [ ] **AK1a.5** GIVEN der Aufruf der Veranstalter-Seite trägt einen gültigen Personenbezug
   (`?zeile=`, #308) WHEN die Seite lädt THEN ist genau diese Person aktiv und im Sichtbereich;
   GIVEN ein Aufruf ohne oder mit ungültigem Bezug THEN ist die erste Person der Liste aktiv
@@ -95,12 +95,11 @@ spec-54 AC B sind anzupassen (`/architecture`).
 - [ ] **AK2.4** GIVEN die Erfassung wird geöffnet THEN ist die erste vorhandene Kategorie in der
   Reihenfolge Getränke, Kaffee, Essen vorgewählt; GIVEN der Nutzer wechselt die Person THEN
   bleibt die gewählte Kategorie erhalten (Zügig-Erfassen derselben Kategorie für mehrere
-  Personen). *(Annahme – in Offene Fragen bestätigen.)*
+  Personen). *(Bestätigt 2026-10-02.)*
 - [ ] **AK2.5** GIVEN eine Person hat eine Position auf einem inzwischen deaktivierten Artikel
   (Menge > 0, ADR-026 D3) WHEN ihre Ansicht angezeigt wird THEN bleibt diese Position sichtbar und
   korrigierbar, und zwar als zusätzlicher Umschalter-Eintrag „Nicht mehr im Katalog", der **nur**
-  erscheint, wenn die aktive Person solche Positionen hat. *(Platzierung: Annahme – in Offene
-  Fragen bestätigen.)* GIVEN keine solchen Positionen THEN erscheint der Eintrag nicht.
+  erscheint, wenn die aktive Person solche Positionen hat. *(Platzierung bestätigt 2026-10-02.)* GIVEN keine solchen Positionen THEN erscheint der Eintrag nicht.
 
 ### Zeilenmuster (AK3)
 - [ ] **AK3.1** GIVEN die sichtbare Kategorie WHEN Artikel gerendert werden THEN bilden
@@ -132,18 +131,19 @@ spec-54 AC B sind anzupassen (`/architecture`).
   (Button o. ä.) bzw. nutzen deren Touch-Mindesthöhe; keine neue Kopie eines Klassenstrings.
 
 ### Nächste Person (AK5)
-- [ ] **AK5.1** GIVEN die aktive Person ist nicht die letzte der Liste WHEN die Erfassung angezeigt
-  wird THEN steht in einer fixierten Fußleiste am unteren Rand (beim Scrollen sichtbar, andere
+- [ ] **AK5.1** GIVEN mindestens zwei Teilnehmer WHEN die Erfassung angezeigt wird THEN steht in einer fixierten Fußleiste am unteren Rand (beim Scrollen sichtbar, andere
   Inhalte nicht überdeckend) eine Schaltfläche „Nächste Person →", die auf die in der Liste
   folgende Person wechselt (Wirkung wie ein Chip-Tipp, AK1a.2).
-- [ ] **AK5.2** GIVEN die aktive Person ist die letzte der Liste WHEN die Fußleiste angezeigt wird
-  THEN bietet sie keine „Nächste Person" an (kein Umlauf zur ersten, keine tote Schaltfläche).
-  *(Annahme – in Offene Fragen bestätigen.)*
+- [ ] **AK5.2** GIVEN die aktive Person ist die letzte der Liste WHEN „Nächste Person →" getippt
+  wird THEN wechselt die Ansicht auf die **erste** Person (Umlauf); die Schaltfläche ist bei
+  jeder Person vorhanden, sofern es mindestens zwei Teilnehmer gibt. *(Entschieden 2026-10-02;
+  das Mockup zeigte stattdessen „Alle erfasst · Kassieren" auf der Veranstalter-Seite.)*
 - [ ] **AK5.3** GIVEN der Wechsel zur nächsten Person WHEN er ausgeführt wird THEN beginnt die
   Ansicht der neuen Person am Anfang (Kopf sichtbar, Liste oben) – keine übernommene
   Scroll-Position der vorigen Person.
 - [ ] **AK5.4** GIVEN nur ein Teilnehmer WHEN die Erfassung angezeigt wird THEN erscheinen keine
-  „Nächste Person"-Schaltfläche (ein einzelner Chip ist zulässig).
+  „Nächste Person"-Schaltfläche (ein einzelner Chip ist zulässig; ein Umlauf auf sich selbst
+  entfiele ohnehin).
 - [ ] **AK5.5** GIVEN die Veranstalter-Seite WHEN die Fußleiste angezeigt wird THEN bleibt der
   personenbezogene Weg „Kassieren →" (#308) erreichbar, und zwar **in der Fußleiste** neben
   „Nächste Person"; er ist auch in der Lese-Ansicht (abgeschlossen) vorhanden, reine Navigation
@@ -158,8 +158,9 @@ spec-54 AC B sind anzupassen (`/architecture`).
   lesend dargestellt (kein Stepper, keine Schreib-Aktion) – Lese-Sicht bleibt vollständig
   einsehbar, nicht versteckt (Codify #54).
 - [ ] **AK6.3** GIVEN die Theke vor der Namenswahl (Identitäts-Gate, Schritt 1/2) WHEN die Seite
-  lädt THEN bleibt die Wahl-Frage wie heute führend; was unter ihr als nicht editierbare
-  Personenübersicht erscheint, ist in `/requirements`-Rückfrage zu klären (Offene Fragen).
+  lädt THEN bleibt die Wahl-Frage wie heute führend, und darunter steht eine **Nur-Lese-Liste mit
+  Name und Gesamtbetrag** je Teilnehmer (keine Aufschlüsselung, keine Artikel, nicht
+  bearbeitbar). *(Entschieden 2026-10-02.)*
 - [ ] **AK6.4** GIVEN eine Veranstaltung ohne Teilnehmer WHEN die Erfassung geöffnet wird THEN
   erscheint unverändert der bestehende Hinweis (Veranstalter: `KEIN_TEILNEHMER_HINWEIS`; Theke:
   „bitte an den Veranstalter wenden"), keine leere Einzelansicht.
@@ -183,6 +184,9 @@ spec-54 AC B sind anzupassen (`/architecture`).
   Komponente; ein Layout-Offset kommt, wo nötig, vom Konsumenten per `className`. Das Issue
   #205 ist damit erledigt und wird im PR mit `Closes #205` geschlossen, sofern der Befund
   wegfällt.
+- [ ] **AK7.5** GIVEN die Anleitung für Veranstalter WHEN der Umbau fertig ist THEN zeigt
+  `docs/anleitung/veranstalter/bilder/08-verzehr.png` die neue Einzelansicht (neu erzeugt wie
+  bei #388 für 05/07, 375 px) und etwaiger erklärender Text neben dem Bild passt dazu.
 
 ## Fehlerszenarien
 - [ ] **FS1** GIVEN eine Action antwortet mit regulärem Fehlerzustand (z. B. Drossel, ADR-044) WHEN
@@ -201,25 +205,7 @@ spec-54 AC B sind anzupassen (`/architecture`).
 
 ## Offene Fragen
 
-Mit *Annahme* markierte Punkte sind als Vorschlag in die AK eingearbeitet und brauchen nur ein
-Ja/Nein; der Rest ist offen.
-
-- [ ] **Theke vor der Namenswahl (AK6.3):** Bisher sieht ein Gast vor der Wahl die ganze Liste mit
-  Summen (spec-54 AC B). In der Einzelansicht gibt es keine Kartenköpfe mehr. Vorschlag: vor der
-  Wahl nur die Fragen („Wer bist du?"/„Für wen?"), danach die Einzelansicht; die Summen aller
-  bleiben über Chips nicht sichtbar. Oder bleibt dort eine kompakte Namen+Summen-Liste als
-  Nur-Lese-Block stehen?
-- [ ] **Kategorie bleibt beim Personenwechsel (AK2.4)** – *Annahme Ja*.
-- [ ] **„Nicht mehr im Katalog" als eigener Umschalter-Eintrag (AK2.5)** – *Annahme*; Alternative:
-  Abschnitt unter der sichtbaren Kategorie.
-- [ ] **Letzte Person: keine „Nächste Person" (AK5.2)** – *Annahme*; Mockup zeigt auf der
-  Veranstalter-Seite stattdessen „Alle erfasst · Kassieren" – als Sonderfall der Fußleiste
-  zulässig, wenn gewünscht.
-- [ ] **Punkt „hat Verzehr" am Chip (AK1a.4)** – aus dem Mockup, nicht im Issue-AK; behalten oder
-  streichen? (Für den Gast als Orientierung „wer ist schon erfasst" sinnvoll; ohne Summen
-  bleibt die Transparenz dennoch eingeschränkt, siehe Entscheidung oben.)
-- [ ] **Screenshots der Anleitung** unter `docs/anleitung/veranstalter/bilder/08-verzehr.png`
-  zeigen den Alt-Zustand. Mitziehen in diesem PR oder als eigenes Issue/`kleinfunde.md`
-  (Schwelle nach ADR-043)?
-- [ ] **ADR:** Einzelansicht ersetzt ADR-039 D3 (Akkordeon). Als Ergänzung/Ablösung von ADR-039
-  mit Bezug zu ADR-035 D2 → `/architecture` (Trigger ist gegeben).
+Keine. Entschieden am 2026-10-02: Nur-Lese-Liste (Name + Gesamt) vor der Namenswahl, Kategorie
+bleibt beim Personenwechsel, „Nicht mehr im Katalog" als Umschalter-Eintrag, Punkt „hat Verzehr"
+am Chip, „Nächste Person" läuft von der letzten zur ersten Person, Anleitungs-Screenshot 08 wird
+in diesem PR neu erzeugt.

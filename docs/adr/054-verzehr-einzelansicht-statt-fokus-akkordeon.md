@@ -71,6 +71,7 @@ unverändert. Neu: optionale `kopfClassName` (D3).
   auf die erste vorhandene zurück – ebenfalls beim Rendern abgeleitet.
 - **Kein URL-/Storage-Zustand** für die Kategorie (YAGNI). Der Personenbezug bleibt wie bisher
   `?zeile=` (F5) bzw. die geräte-lokale Ziel-Merkung (F7, über `onFokusWechsel`).
+- „Nächste Person →" läuft **zyklisch** (letzte → erste, spec AK5.2) und ist nur bei ≥ 2 Teilnehmern sichtbar.
 - `onFokusWechsel` feuert beim Wechsel **per Chip oder „Nächste Person"** – nicht mehr beim
   Auf-/Zuklappen (gibt es nicht mehr). Semantik für F7 bleibt: „gewählte Person = Ziel".
 
@@ -98,8 +99,8 @@ Namenswahl der Theke (Identity-Gate Schritt 1/2, spec-54 AC B) und wird zu einer
 Nur-Lese-Liste **Name + Gesamtbetrag** je Teilnehmer (Name `VerzehrUebersicht`; `KEIN_TEILNEHMER_HINWEIS`
 wandert mit). Begründung: Der Auftraggeber hat die Einzelansicht für die *Erfassung* entschieden,
 nicht das Entfernen der Übersicht vor der Namenswahl – das wäre eine eigene Produktentscheidung
-(spec-370 Offene Frage 1). Fällt sie dort anders aus, wird `VerzehrUebersicht` einfach entfernt;
-die Entscheidung ist billig umkehrbar. Positionen auf deaktivierten Artikeln (ADR-026 D3) erscheinen
+(spec-370, 2026-10-02 bestätigt: Nur-Lese-Liste Name + Gesamt bleibt). `VerzehrUebersicht` ist billig
+entfernbar, falls sich das ändert. Positionen auf deaktivierten Artikeln (ADR-026 D3) erscheinen
 in der Einzelansicht als zusätzlicher Umschalter-Eintrag „Nicht mehr im Katalog", **nur** wenn die
 aktive Person solche Positionen hat (`kategorien.ts`).
 
@@ -153,8 +154,7 @@ wird per `scrollIntoView?.({ inline: "center", block: "nearest" })` in der Leist
 - **D1 (gewählt): Nur-Lese-Liste Name + Gesamt bleibt.** Pro: kein Informationsverlust ohne
   Entscheidung; klein; billig entfernbar. Con: ein weiterer Baustein.
 - **D2: Übersicht streichen, vor der Wahl nur die Fragen.** Pro: weniger Code. Con: nimmt dem Gast
-  die Sicht auf die Gesamtliste, ohne dass das entschieden wäre. → bis zur Antwort auf die offene
-  Frage nicht umgesetzt.
+  die Sicht auf die Gesamtliste. → vom Auftraggeber abgelehnt (2026-10-02).
 
 ## Begründung
 
