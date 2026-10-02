@@ -174,7 +174,7 @@ Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen
 <!-- Wird durch /review befüllt -->
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Vier Learnings (React-19-Action-Scope in Tests, Doku-Grep bei Modul-Löschung + `*.tmp.*`-Sonden, E2E-Seed/Guardrail, `next dev`-Rezidiv) – siehe `tasks/codify-370.md`.
 
 ---
 Branch: `feature/370-verzehr-erfassung-kompakt-touch`
