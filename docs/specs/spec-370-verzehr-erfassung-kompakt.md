@@ -124,7 +124,8 @@ spec-54 AC B sind anzupassen (`/architecture`).
 - [ ] **AK4.3** GIVEN die Menge einer Position ist 0 WHEN der Stepper gerendert wird THEN ist „−"
   deaktiviert (`disabled`, nicht auslösbar, erkennbar); ab Menge 1 ist es aktiv.
 - [ ] **AK4.4** GIVEN eine laufende Aktion (pending) WHEN sie noch nicht bestätigt ist THEN sind die
-  Knöpfe der betroffenen Position deaktiviert (Verhalten wie heute, kein Doppelklick-Verlust).
+  Knöpfe der betroffenen Position deaktiviert (Verhalten wie heute, kein Doppelklick-Verlust);
+  das gilt, solange die Person angezeigt wird (ADR-054 D2).
 - [ ] **AK4.5** GIVEN die Menge WHEN sie angezeigt wird THEN ist sie groß genug lesbar und in
   Ziffern gleicher Breite; Menge 0 ist zurückgenommen dargestellt (erkennbar „leer").
 - [ ] **AK4.6** GIVEN Knöpfe und Bedienelemente THEN sind sie Bausteine aus `app/components/ui/`
@@ -191,7 +192,8 @@ spec-54 AC B sind anzupassen (`/architecture`).
 ## Fehlerszenarien
 - [ ] **FS1** GIVEN eine Action antwortet mit regulärem Fehlerzustand (z. B. Drossel, ADR-044) WHEN
   der Nutzer „+" oder „−" tippt THEN bleibt die alte Menge stehen und der Fehler erscheint inline
-  an der betroffenen Zeile (ohne Layout-Sprung der Fußleiste); Nachricht nicht nur farblich.
+  an der betroffenen Zeile (ohne Layout-Sprung der Fußleiste); Nachricht nicht nur farblich. Das gilt,
+  solange die Person angezeigt wird (ADR-054 D2).
 - [ ] **FS2** GIVEN eine Antwort außerhalb des Server-Action-Protokolls (429-Klartext, Offline)
   WHEN sie eintrifft THEN greift unverändert die bestehende Fehlergrenze der Theke (#331);
   die Einzelansicht führt dafür keinen eigenen Fangweg ein.

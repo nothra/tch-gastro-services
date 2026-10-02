@@ -158,6 +158,12 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - Kein Produktionscode und keine Tests geändert; keine Lücke gegenüber den AK gefunden.
 - **E2E-Nachtest nachgeholt** (mit der `.env.local` des Worktrees, nach `db:migrate` + `db:seed`; Daten mit `__test__`-Präfix): `e2e/verzehr-einzelansicht.spec.ts` (`E2E_VERZEHR_370=1`) 3/3 und `e2e/wechsel-verzehr-kassieren.spec.ts` (`E2E_WECHSEL_308=1`) 2/2 grün. Erster Lauf scheiterte nur an `CredentialsSignin` (DB noch nicht geseedet, Umgebungsproblem). Nicht gelaufen: `e2e/anleitung-veranstalter.spec.ts` (`CAPTURE_ANLEITUNG`, überschreibt Doku-Bilder).
 
+## Refactor-Notizen (/refactor)
+- Kein neues Verhalten; betroffene Vitest-Läufe (`app/_verzehr`, `app/theke`, `app/veranstaltung/[id]/verzehr`) vor und nach dem Pass identisch grün (186 Tests).
+- Produktionscode war bereits schlank (Komponente 175 Zeilen, Funktionen < 20 Zeilen, keine Duplikation zwischen `summen.ts`/`positionen.ts`/`kategorien.ts` gefunden); einziger Eingriff: Key-Kommentar in `VerzehrEinzelansicht.tsx` („Der Zustand gilt …" statt mehrdeutigem „Er").
+- Test: doppelte Auflöse-Zeile in `VerzehrEinzelansicht.positionszustand.test.tsx` zu `loeseOffeneAktionen(zustand)` zusammengezogen (Parameter-Verschattung entfällt); `should_dropError_when_itArrivesAfterSwitchingAway` belegt jetzt per `toBeDisabled()`, dass die Aktion vor dem Wechsel läuft.
+- Review-Nitpicks Doku erledigt: ADR-039-/ADR-054-Statuszeile gleichlautend (D2/D3 abgelöst, D4 teilweise), ADR-034 Status-Hinweis auf entfallenes `VerzehrErfassung`, ADR-035 Satz „bleibt gültig (überholt)" aufgelöst, spec-370 AK4.4/FS1 um „gilt, solange die Person angezeigt wird (ADR-054 D2)" ergänzt.
+
 ## Offene Fragen
 Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen").
 

@@ -1,7 +1,7 @@
 # ADR 034: Selbstbedienung – öffentliche Token-Route, capability-basierte Verzehr-Action, QR-Erzeugung
 
 ## Status
-Accepted
+Accepted – **D1/D4 nennen `VerzehrErfassung`, die es nicht mehr gibt** (gelöscht in #187/#370; Nachfolger `VerzehrEinzelansicht`, [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)). Das Muster „Client-Wrapper mit Server-Children" und die Token-Route gelten fort.
 
 ## Date
 2026-07-20

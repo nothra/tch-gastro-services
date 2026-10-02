@@ -201,7 +201,7 @@ der Konsumenten-Seiten bleiben Sache von #369/#374.
 - Kategorie-Wahl geht beim Neuladen verloren.
 
 **Drift-Hinweise (im selben PR nachzuziehen):**
-- [ADR-039](039-verzehrerfassung-fokusliste-route-neutral.md): D2/D3/D4 **abgelöst** (Akkordeon,
+- [ADR-039](039-verzehrerfassung-fokusliste-route-neutral.md): D2/D3 **abgelöst**, D4 **teilweise** (Akkordeon,
   Startzustand „keine offen", Read-only „alle eingeklappt", Name `FokusListe`); D1 (Callback) gilt
   weiter. Banner an den betroffenen Stellen.
 - [ADR-035](035-selbstbedienung-erfasser-ziel-fokus.md): D2 (Karte als Akkordeon) und D3 (Chip-

@@ -1,7 +1,7 @@
 # ADR 039: Verzehrerfassung – FokusListe route-neutral, F5 übernimmt das Fokus-Akkordeon
 
 ## Status
-Accepted – **D2, D3 und D4 teilweise abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)** (#370): die Darstellung ist keine Akkordeon-Liste mehr, sondern eine Einzelansicht je Person (`VerzehrEinzelansicht` ersetzt `FokusListe`, Startzustand: erste Person aktiv). D1 (Persistenz als injizierter Callback `onFokusWechsel`, route-neutral) gilt unverändert fort.
+Accepted – **D2/D3 abgelöst, D4 teilweise durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)** (#370): die Darstellung ist keine Akkordeon-Liste mehr, sondern eine Einzelansicht je Person (`VerzehrEinzelansicht` ersetzt `FokusListe`, Startzustand: erste Person aktiv). D1 (Persistenz als injizierter Callback `onFokusWechsel`, route-neutral) gilt fort (Namen geändert).
 
 ## Date
 2026-07-23

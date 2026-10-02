@@ -34,8 +34,12 @@ beforeEach(() => {
 // Darum löst jeder Test seine offenen Aktionen am Ende auf.
 const offeneAntworten: Array<(zustand: VerzehrActionState) => void> = [];
 
+function loeseOffeneAktionen(zustand: VerzehrActionState) {
+  return act(async () => offeneAntworten.splice(0).forEach((loese) => loese(zustand)));
+}
+
 afterEach(async () => {
-  await act(async () => offeneAntworten.splice(0).forEach((antworte) => antworte({})));
+  await loeseOffeneAktionen({});
 });
 
 function offeneAktion() {
@@ -44,8 +48,7 @@ function offeneAktion() {
   );
   return {
     action,
-    antworte: (zustand: VerzehrActionState) =>
-      act(async () => offeneAntworten.splice(0).forEach((antworte) => antworte(zustand))),
+    antworte: loeseOffeneAktionen,
   };
 }
 
@@ -129,6 +132,7 @@ describe("VerzehrEinzelansicht – Positionszustand je Person (spec-370 FS1/AK4.
     const { action, antworte } = offeneAktion();
     renderAnsicht(action);
     await tippePlus();
+    expect(screen.getByRole("button", { name: "Menge erhöhen" })).toBeDisabled();
     fireEvent.click(chip("Bernd"));
 
     await antworte({ error: "Zu viele Eingaben." });

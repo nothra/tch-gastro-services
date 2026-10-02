@@ -56,8 +56,8 @@ aus `zeilen` aufgelöst. Schlüssel: `tch:sb:erfasser:<token>` und `tch:sb:ziel:
 > **Teilweise geändert durch [ADR-039](039-verzehrerfassung-fokusliste-route-neutral.md) (#187):**
 > „F5 bleibt unberührt" gilt nicht mehr – F5 übernimmt dieselbe Fokusliste. `FokusListe` wandert
 > nach `app/_verzehr/` und wird token-/persistenzfrei (Ziel-Merkung via injiziertem Callback).
-> Der Rest von D2 (exportierte `ZeileKarte`, optionale Akkordeon-Props) bleibt gültig
-> (überholt durch ADR-054).
+> Der Rest von D2 (exportierte `ZeileKarte`, optionale Akkordeon-Props) blieb gültig;
+> inzwischen ebenfalls abgelöst durch ADR-054.
 
 Die per-Teilnehmer-Karte (heute die interne `ZeileKarte` in `VerzehrErfassung.tsx`) wird
 **exportiert** und erhält **optionale** Akkordeon-Props (`collapsible?`, `open?`, `onToggle?`).
