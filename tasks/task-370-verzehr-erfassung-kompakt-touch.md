@@ -59,7 +59,27 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - [ ] **FS5** GIVEN gemerktes Ziel/Erfasser der Theke ist nicht mehr in der Liste (stale) WHEN die Seite lädt THEN greift unverändert die bestehende Stale-Behand…
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+**ADR:** [ADR-054](../docs/adr/054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (Proposed → beim Implementieren auf Accepted flippen). Reine Client-/Präsentationsschicht: keine Migration, keine Dependency, keine neue Route, Actions/Summen/Delta-Protokoll unverändert.
+
+**Betroffene Dateien (`app/_verzehr/` + 2 Konsumenten):**
+- NEU `VerzehrEinzelansicht.tsx` (Client; aktive Person + Kategorie, Wechsel, Scroll), `PersonenChips.tsx`, `PersonenKopf.tsx`, `KategorieUmschalter.tsx`, `ArtikelListe.tsx` (inkl. `PositionZeile`), `kategorien.ts` (reine Funktion: sichtbare Kategorien inkl. „Nicht mehr im Katalog").
+- ÄNDERN `MengeControl.tsx` (44 px via Button-Baustein, `−` bei 0 disabled, Tokens), `VerzehrErfassung.tsx` → schlanke Nur-Lese-Übersicht `VerzehrUebersicht` (Name + Gesamt; nur Theke vor der Namenswahl), `verzehr-props.ts` (falls nötig).
+- ENTFERNEN `FokusListe.tsx`(+Test), `ZeileKarte` (samt Collapse-Props). Tests dazu **ersetzen**, nicht ersatzlos löschen (spec AK7.3).
+- Konsumenten: `app/veranstaltung/[id]/verzehr/page.tsx` (rendert `VerzehrEinzelansicht`, `initialeZeileId = Personenbezug`, `kopfClassName`, `aktionJeZeile` bleibt), `app/theke/[token]/IdentityGate.tsx` (+Read-only-Zweig; `initialeZeileId = zielId`, `onFokusWechsel` bleibt).
+- `eslint/ui-token-files.mjs`: `app/_verzehr/` ergänzen; danach `pnpm lint` – keine rohen Farbklassen, kein `dark:`.
+
+**Entscheidungen (Kurzfassung ADR-054):**
+- Aktive Person: `useState`, initial `initialeZeileId` (gültig) sonst erste Zeile; kein „keine aktiv". Stale/entfernte Zeile → beim Rendern auf erste ableiten (kein Effekt, Lesson `set-state-in-effect`).
+- Kategorie: lokaler State, bleibt beim Personenwechsel; fehlt sie für die neue Person → erste vorhandene (beim Rendern ableiten).
+- Sticky: Chips + Kopf + Umschalter als EIN Block; seitlicher Bleed über `kopfClassName` des Konsumenten (löst #205: kein hartes `-mx-6/px-6` in der route-neutralen Komponente; `scroll-mt-16` entfällt).
+- Fußleiste `fixed inset-x-0 bottom-0`, innen `mx-auto max-w-3xl`, Safe-Area-Padding, Platzhalter gleicher Höhe am Inhaltsende. Enthält „Nächste Person →" (nicht bei letzter Person/einer Person) + `aktionJeZeile`-Baustein (Kassieren, #308).
+- Personenwechsel: `requestAnimationFrame` → `window.scrollTo?.({ top: 0 })` (guarded); aktiver Chip per `scrollIntoView?.({ inline: "center", block: "nearest" })`. rAF-Timing mit `raf-stub.ts` testen.
+
+**TDD-Reihenfolge:** (1) `kategorien.ts` (reine Tests: Reihenfolge, fehlende Kategorie, inaktive Positionen) → (2) `MengeControl` 44 px/disabled → (3) `PersonenKopf`, `KategorieUmschalter`, `ArtikelListe` (Gruppen- und Einzelartikel gleiches Muster, leere Größe einheitlich) → (4) `PersonenChips` (aria-pressed, Marke mit Textalternative) → (5) `VerzehrEinzelansicht` (Start-Person, Fallbacks, Kategorie bleibt, `onFokusWechsel`, Nächste Person, read-only, Fehler inline) → (6) Konsumenten + `IdentityGate`-Tests anpassen → (7) Lint-Liste erweitern → (8) E2E.
+
+**Testgrenzen:** jsdom hat kein Layout → 44-px (spec AK4.1/4.2) und 375-px-Overflow (AK7.2) im Playwright-Test per `boundingBox()`/`scrollWidth` prüfen; Unit-Tests prüfen die Klassen/den Baustein. Vor dem ersten `pnpm test:e2e`: `pnpm db:seed`; eigener Dev-Server auf freiem Port + `PLAYWRIGHT_BASE_URL` (Lesson #368), Wegwerf-Daten mit `__test__`-Präfix.
+
+**Drift im selben PR:** ADR-039/-035 (Status-Banner bereits gesetzt, beim Implementieren gegenlesen), spec-54 AC B (Hinweis gesetzt), `docs/routes.md` Funktionsbeschreibung F5 prüfen; Issue #205 mit `Closes #205` im PR-Body, sofern der Befund wegfällt.
 
 ## Offene Fragen
 - [ ] Theke vor der Namenswahl: Summen-Liste als Nur-Lese-Block oder nur die Fragen (AK6.3)

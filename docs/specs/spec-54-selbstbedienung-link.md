@@ -80,6 +80,9 @@ ab („stehende Theke nur Getränke + Kaffee"). → spec-51 ist entsprechend anz
 - [ ] GIVEN der geöffnete Link WHEN der Teilnehmer seinen Namen aus der Liste wählt THEN kann er
       Positionen für **die ganze** Liste erfassen (volle Transparenz) und die Summen aktualisieren
       sich sofort (F5-Mechanik).
+      > **Geändert durch #370 ([spec-370](spec-370-verzehr-erfassung-kompakt.md), ADR-054):** In der
+      > Erfassung steht nur noch **eine** Person auf einmal im Bild; die Summen der anderen stehen
+      > dort nicht mehr untereinander. Die Gesamtsichten liegen in Detailseite und Kassieren.
 - [ ] GIVEN ein Nutzer hat auf diesem Gerät einen Namen gewählt WHEN er den Link erneut öffnet THEN
       ist der Name **gemerkt** (Gerät), und über **„Person wechseln"** kann er jederzeit einen
       anderen Namen wählen.

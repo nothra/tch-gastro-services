@@ -1,7 +1,7 @@
 # ADR 035: Selbstbedienung – Erfasser/Ziel-Trennung, Fokus-Akkordeon, geräte-lokale Persistenz
 
 ## Status
-Accepted
+Accepted – **D2 und D3 abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)** (#370): Akkordeon und Chip-Leiste als Akkordeon-Kopf weichen einer Einzelansicht je Person. D1, D4, D5 (Read-only ohne Gate) und D6 gelten fort.
 
 ## Date
 2026-07-20
