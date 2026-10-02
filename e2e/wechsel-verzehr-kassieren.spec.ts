@@ -54,12 +54,18 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
   return neu as string;
 }
 
-// Karte eines Teilnehmers über die sticky Chip-Leiste öffnen (= Fokus wählen).
-async function oeffneKarte(page: Page, name: string) {
+// Person über die sticky Chip-Leiste der Einzelansicht wählen (#370, ADR-054).
+async function waehlePerson(page: Page, name: string) {
   await page
     .getByRole("group", { name: "Teilnehmer auswählen" })
     .getByRole("button", { name })
     .click();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveText(name);
+}
+
+// Kassieren-Weg der aktiven Person – seit #370 in der Fußleiste der Einzelansicht (spec-370 AK5.5).
+function kassierenInFussleiste(page: Page) {
+  return page.getByRole("navigation", { name: "Weiter" }).getByRole("link", { name: /Kassieren/ });
 }
 
 // Die Kassierzeile eines Teilnehmers: das Listenelement, das seinen Namen trägt.
@@ -82,15 +88,14 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
     await gastHinzufuegen(page, ZIEL);
     await gastHinzufuegen(page, ANDERE);
 
-    // ── AK7: ohne geöffnete Karte gibt es keine Wechsel-Aktion ──────────────────────────────
+    // ── AK7 (seit #370): genau eine Wechsel-Aktion – die der aktiven Person ─────────────────
     await page.goto(`${detailPfad}/verzehr`);
     await expect(page.getByRole("heading", { name: /^Verzehr · / })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Kassieren/ })).toHaveCount(0);
-
-    // ── AK1/AK7: die Aktion erscheint genau in der geöffneten Karte ─────────────────────────
-    await oeffneKarte(page, ZIEL);
+    await waehlePerson(page, ANDERE);
+    await waehlePerson(page, ZIEL);
     const kassierenLink = page.getByRole("link", { name: /Kassieren/ });
     await expect(kassierenLink).toHaveCount(1);
+    await expect(kassierenInFussleiste(page)).toBeVisible();
 
     // ── AK1: der Klick führt personenbezogen in die Kassieransicht ──────────────────────────
     await kassierenLink.click();
@@ -119,22 +124,25 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
     // ── AK5: jede Kassierzeile bietet den Rückweg an ────────────────────────────────────────
     await expect(page.getByRole("link", { name: /Verzehr erfassen/ })).toHaveCount(2);
 
-    // ── AK5/AK6: der Rückweg der Zielzeile öffnet deren Karte ───────────────────────────────
+    // ── AK5/AK6: der Rückweg der Zielzeile macht genau diese Person aktiv ───────────────────
+    // Gegenprobe zuerst: ANDERE steht in der Verzehr-Liste hinter ZIEL, ist also nicht die
+    // Rückfall-Person ohne Personenbezug – erst der Bezug auf ANDERE belegt, dass er wirkt. Vor der
+    // Überschrift auf die Verzehr-URL warten: die Kassier-Seite trägt selbst mehrere `h2`, und eine
+    // Strict-Mode-Verletzung bricht sofort ab, statt auf die Navigation zu warten.
+    await kassierZeile(page, ANDERE)
+      .getByRole("link", { name: /Verzehr erfassen/ })
+      .click();
+    await expect(page).toHaveURL(/\/verzehr\?zeile=/);
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(ANDERE);
+    await page.goBack();
     await kassierZeile(page, ZIEL)
       .getByRole("link", { name: /Verzehr erfassen/ })
       .click();
     await expect(page).toHaveURL(new RegExp(`/verzehr\\?zeile=${zeileId}`));
-    // Genau eine Karte offen – und die Wechsel-Aktion sitzt darin (AK6/AK7).
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(ZIEL);
+    // Genau eine Wechsel-Aktion – die der aktiven Person, in der Fußleiste (AK6/AK7).
     await expect(page.getByRole("link", { name: /Kassieren/ })).toHaveCount(1);
-    await expect(
-      page
-        .getByRole("listitem")
-        .filter({ hasText: ZIEL })
-        .first()
-        .getByRole("link", {
-          name: /Kassieren/,
-        }),
-    ).toBeVisible();
+    await expect(kassierenInFussleiste(page)).toBeVisible();
 
     // ── AK8: der Wechsel gelingt beliebig oft in beide Richtungen ───────────────────────────
     for (let runde = 0; runde < 2; runde++) {
@@ -169,7 +177,10 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     await page.goto(`${detailPfad}/verzehr?zeile=${fremd}`);
     await expect(page.getByRole("heading", { name: /^Verzehr · / })).toBeVisible();
-    // Keine Karte offen ⇒ keine Wechsel-Aktion sichtbar (AK7 im Standardzustand).
-    await expect(page.getByRole("link", { name: /Kassieren/ })).toHaveCount(0);
+    // Standardzustand seit #370 (spec-370 AK1a.5): die erste Person ist aktiv, ihr Kassieren-Weg
+    // steht in der Fußleiste – keine Fehlermeldung, kein Bezug auf den fremden Wert.
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(ZIEL);
+    await expect(page.getByRole("link", { name: /Kassieren/ })).toHaveCount(1);
+    await expect(page.getByText(fremd)).toHaveCount(0);
   });
 });

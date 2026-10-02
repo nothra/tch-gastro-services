@@ -36,6 +36,7 @@ export function PersonenChips({
     <div role="group" aria-label="Teilnehmer auswählen" className="flex gap-2 overflow-x-auto">
       {zeilen.map((zeile) => {
         const istAktiv = zeile.id === aktiveZeileId;
+        const hatVerzehr = zeilenMitVerzehr.has(zeile.id);
         return (
           <Button
             key={zeile.id}
@@ -46,11 +47,12 @@ export function PersonenChips({
             size="sm"
             variant={istAktiv ? "primary" : "secondary"}
             aria-pressed={istAktiv}
+            aria-label={hatVerzehr ? `${zeile.anzeigename}, Verzehr erfasst` : undefined}
             onClick={() => onWaehle(zeile.id)}
             className="min-w-11 shrink-0 whitespace-nowrap"
           >
             {zeile.anzeigename}
-            {zeilenMitVerzehr.has(zeile.id) && <VerzehrMarke />}
+            {hatVerzehr && <VerzehrMarke />}
           </Button>
         );
       })}
@@ -59,12 +61,9 @@ export function PersonenChips({
 }
 
 // Punkt in der Textfarbe des Chips (`bg-current`) – kontrastiert damit auf aktivem wie inaktivem
-// Chip, ohne eine eigene Farbe einzuführen.
+// Chip, ohne eine eigene Farbe einzuführen. Die Textalternative trägt der `aria-label` des Chips:
+// ein `sr-only`-Span als eigenes Flex-Kind bekäme im Browser ein Leerzeichen vor das Komma
+// („Anna , Verzehr erfasst") – jsdom zeigt das nicht, belegt ist es im E2E (#370).
 function VerzehrMarke() {
-  return (
-    <>
-      <span aria-hidden="true" className="size-2 rounded-full bg-current" />
-      <span className="sr-only">, Verzehr erfasst</span>
-    </>
-  );
+  return <span aria-hidden="true" className="size-2 rounded-full bg-current" />;
 }
