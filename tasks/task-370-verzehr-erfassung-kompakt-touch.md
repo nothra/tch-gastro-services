@@ -164,6 +164,9 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - Test: doppelte Auflöse-Zeile in `VerzehrEinzelansicht.positionszustand.test.tsx` zu `loeseOffeneAktionen(zustand)` zusammengezogen (Parameter-Verschattung entfällt); `should_dropError_when_itArrivesAfterSwitchingAway` belegt jetzt per `toBeDisabled()`, dass die Aktion vor dem Wechsel läuft.
 - Review-Nitpicks Doku erledigt: ADR-039-/ADR-054-Statuszeile gleichlautend (D2/D3 abgelöst, D4 teilweise), ADR-034 Status-Hinweis auf entfallenes `VerzehrErfassung`, ADR-035 Satz „bleibt gültig (überholt)" aufgelöst, spec-370 AK4.4/FS1 um „gilt, solange die Person angezeigt wird (ADR-054 D2)" ergänzt.
 
+## Security-Notizen (/security-review)
+- PASSED, keine Findings; Bericht in `tasks/security-370.md`. Reine UI-Umstellung ohne Änderung an Actions, Data-Layer, Auth oder Dependencies; Vertrauensgrenze unverändert serverseitig.
+
 ## Offene Fragen
 Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen").
 
