@@ -107,6 +107,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   window.localStorage.clear();
   Element.prototype.scrollIntoView = vi.fn();
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   listZeilenMock.mockResolvedValue([aZeile]);
   listActiveCatalogMock.mockResolvedValue([cola]);
   listPositionenMock.mockResolvedValue([]);
@@ -133,17 +134,20 @@ describe("ThekePage", () => {
     // die Umstellung auf veranstaltung.catalogId (#365) zeigt sich erst mit einer abweichenden
     // Katalog-Id, siehe should_loadCatalogFromVeranstaltung_when_catalogWasSwitchedAwayFromStandard.
     expect(listActiveCatalogMock).toHaveBeenCalledWith(STANDARD_CATALOG_ID);
-    // Kein gemerkter Name → Namens-Picker UND bereits Liste + Summen sichtbar (spec-54 AC B1),
-    // aber die Erfassungs-Controls bleiben read-only, bis ein Name gewählt wurde.
+    // Kein gemerkter Name → Namens-Picker UND darunter die Nur-Lese-Liste Name + Gesamt
+    // (spec-370 AK6.3) – ohne Artikel und ohne Erfassungs-Controls, bis ein Name gewählt wurde.
     expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Wer bist du?" })).toBeInTheDocument();
-    expect(screen.getByText(/Cola/)).toBeInTheDocument();
-    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+    expect(screen.getByRole("list", { name: "Bisher erfasst" })).toHaveTextContent(
+      "AnnaGesamt 0,00 €",
+    );
+    expect(screen.queryByText(/Cola/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
   });
 
   it("should_showEditableFocus_when_openAndErfasserAndZielStored", async () => {
     // Zweischritt übersprungen (Wiederkehr, #183): Erfasser + Ziel als Zeilen-IDs gemerkt →
-    // Fokus-Ansicht mit offener, bearbeitbarer Ziel-Karte.
+    // Einzelansicht des Ziels, bearbeitbar.
     window.localStorage.setItem("tch:sb:erfasser:tok-1", "z-1");
     window.localStorage.setItem("tch:sb:ziel:tok-1", "z-1");
     getByTokenMock.mockResolvedValue(aVeranstaltung);
@@ -154,29 +158,30 @@ describe("ThekePage", () => {
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "true");
   });
 
-  it("should_renderReadOnlyAccordionWithoutGate_when_abgeschlossen", async () => {
+  it("should_renderReadOnlyEinzelansichtWithoutGate_when_abgeschlossen", async () => {
     getByTokenMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
 
     render(await ThekePage({ params: params("tok-1") }));
 
-    // Read-only (#183/ADR-035 D5): kein Namens-Gate, Akkordeon mit allen Karten zu.
+    // Read-only (#183/ADR-035 D5): kein Namens-Gate; die Einzelansicht der ersten Person ist
+    // vollständig einsehbar, aber nicht bearbeitbar (spec-370 AK6.2).
     expect(screen.queryByText("Wer bist du?")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
-    // Chip zum Aufklappen → read-only-Erfassung wird sichtbar, aber nicht bearbeitbar.
-    fireEvent.click(screen.getByRole("button", { name: "Anna" }));
+    expect(screen.getByRole("button", { name: "Anna" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
   });
 
   it("should_workSameWayIncludingEssen_when_veranstaltungTypIsTheke", async () => {
     // AC E1 (spec-54): dieselbe Route bedient die stehende Theke identisch wie eine datierte
-    // Veranstaltung – die Seite verzweigt nirgends auf `typ`, Essen bleibt eingeblendet.
+    // Veranstaltung – die Seite verzweigt nirgends auf `typ`, Essen bleibt erreichbar.
+    window.localStorage.setItem("tch:sb:erfasser:tok-1", "z-1");
+    window.localStorage.setItem("tch:sb:ziel:tok-1", "z-1");
     getByTokenMock.mockResolvedValue({ ...aVeranstaltung, typ: "theke", datum: null });
     listActiveCatalogMock.mockResolvedValue([cola, kuchen]);
 
     render(await ThekePage({ params: params("tok-1") }));
 
-    expect(screen.getByText("Wer bist du?")).toBeInTheDocument();
     expect(screen.getByText(/Cola/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Essen" }));
     expect(screen.getByText(/Kuchen/)).toBeInTheDocument();
   });
 

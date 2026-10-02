@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useId, useRef, useSyncExternalStore } from "react";
 import type { VerzehrPositionRow } from "@/db/verzehr";
-import {
-  VerzehrErfassung,
-  type VerzehrArtikel,
-  type VerzehrZeile,
-} from "@/app/_verzehr/VerzehrErfassung";
+import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/verzehr-props";
 import type { VerzehrFormAction } from "@/app/_verzehr/types";
-import { FokusListe } from "@/app/_verzehr/FokusListe";
+import { VerzehrEinzelansicht } from "@/app/_verzehr/VerzehrEinzelansicht";
+import { VerzehrUebersicht } from "@/app/_verzehr/VerzehrUebersicht";
 import {
   IDENTITAET_CHANGED_EVENT,
   adoptLegacyErfasser,
@@ -24,13 +21,17 @@ import {
 // Teilnehmer (für wen gebucht wird). Geführter Zweischritt beim erstmaligen Öffnen:
 //   1. „Wer bist du?"  → Erfasser wählen (gemerkt).
 //   2. „Für wen …?"    → Ziel wählen; erste Option „Für mich" übernimmt den Erfasser (gemerkt).
-// Sind beide gesetzt (auch bei Wiederkehr), erscheint die Fokus-Ansicht (FokusListe) mit der Ziel-
-// Karte offen; „Erfasser wechseln" ist unauffällig erreichbar. Alles REIN clientseitig – nichts
-// wird server-seitig gespeichert, die Erfassung bleibt anonym (spec-52). Read-only (abgeschlossen)
-// überspringt den Flow: dieselbe FokusListe, nicht bearbeitbar, kein Gate (D5).
+// Sind beide gesetzt (auch bei Wiederkehr), erscheint die Einzelansicht (VerzehrEinzelansicht,
+// ADR-054) mit dem Ziel als aktiver Person; „Erfasser wechseln" ist unauffällig erreichbar. Alles
+// REIN clientseitig – nichts wird server-seitig gespeichert, die Erfassung bleibt anonym (spec-52).
+// Read-only (abgeschlossen) überspringt den Flow: dieselbe Einzelansicht, nicht bearbeitbar, kein
+// Gate (D5).
 //
-// Vor der Namenswahl bleiben Teilnehmerliste + laufende Summen sichtbar (spec-54 AC B, Codify #54):
-// die Erfassung darunter ist nur nicht bearbeitbar, nicht verborgen.
+// Vor der Namenswahl bleibt unter den Fragen eine Nur-Lese-Liste Name + Gesamt sichtbar
+// (spec-370 AK6.3, ADR-054 D4; vormals die volle Erfassung, spec-54 AC B).
+
+// Seitlicher Bleed des sticky Blocks, passend zum `p-6` der Theken-Seite (ADR-054 D3, #205).
+const KOPF_BLEED = "-mx-6 px-6";
 
 // Liest Erfasser + Ziel geräte-lokal über useSyncExternalStore (kein set-state-in-effect, Codify
 // #49): Server-Snapshot ist `null`, der Client-Snapshot der localStorage-Wert. Nach jedem Schreiben
@@ -88,31 +89,24 @@ export function IdentityGate({
     );
   }
 
-  // Read-only (abgeschlossen): kein Gate, kein Flow – Akkordeon nicht bearbeitbar, alle Karten zu.
+  // Read-only (abgeschlossen): kein Gate, kein Flow – Einzelansicht ab der ersten Person, nicht
+  // bearbeitbar, keine Ziel-Merkung (es wird nichts erfasst).
   if (!editable) {
     return (
-      <FokusListe
+      <VerzehrEinzelansicht
         zeilen={zeilen}
         artikel={artikel}
         positionen={positionen}
         action={action}
         editable={false}
-        initialOpenId={null}
+        initialeZeileId={null}
+        kopfClassName={KOPF_BLEED}
       />
     );
   }
 
-  // Read-only-Liste, die während der Fragen sichtbar bleibt (spec-54 AC B): Namen + Summen sichtbar,
-  // Erfassung nicht bearbeitbar.
-  const readOnlyListe = (
-    <VerzehrErfassung
-      zeilen={zeilen}
-      artikel={artikel}
-      positionen={positionen}
-      action={action}
-      editable={false}
-    />
-  );
+  // Nur-Lese-Liste, die während der Fragen sichtbar bleibt (spec-370 AK6.3).
+  const readOnlyListe = <VerzehrUebersicht zeilen={zeilen} positionen={positionen} />;
 
   // Schritt 1 – Erfasser fehlt (oder gemerkte ID stale): „Wer bist du?".
   if (erfasserId === null) {
@@ -142,7 +136,7 @@ export function IdentityGate({
     );
   }
 
-  // Beide gesetzt: Fokus-Ansicht. „Erfasser wechseln" verwirft beide Werte → Zweischritt erneut.
+  // Beide gesetzt: Einzelansicht. „Erfasser wechseln" verwirft beide Werte → Zweischritt erneut.
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3 rounded border border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
@@ -157,16 +151,17 @@ export function IdentityGate({
           Erfasser wechseln
         </button>
       </div>
-      <FokusListe
+      <VerzehrEinzelansicht
         zeilen={zeilen}
         artikel={artikel}
         positionen={positionen}
         action={action}
         editable
-        initialOpenId={zielId}
-        // Geräte-lokale Ziel-Merkung (ADR-035 D1) lebt jetzt im route-gebundenen Konsumenten
-        // (ADR-039 D1): FokusListe kennt weder Token noch Storage-Schema.
+        initialeZeileId={zielId}
+        // Geräte-lokale Ziel-Merkung (ADR-035 D1) lebt im route-gebundenen Konsumenten
+        // (ADR-039 D1): die Einzelansicht kennt weder Token noch Storage-Schema.
         onFokusWechsel={(id) => writeZielId(token, id)}
+        kopfClassName={KOPF_BLEED}
       />
     </div>
   );

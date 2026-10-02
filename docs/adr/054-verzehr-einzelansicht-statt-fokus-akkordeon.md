@@ -1,7 +1,7 @@
 # ADR 054: Verzehr-Erfassung als Einzelansicht je Person statt Fokus-Akkordeon
 
 ## Status
-Proposed – wird beim Implementieren auf **Accepted** geflippt (Lesson „ADR-Status beim Implementieren").
+Accepted (umgesetzt mit #370)
 
 ## Date
 2026-10-02
@@ -51,7 +51,11 @@ Zuschnitt (SRP, jeweils ≲ 20 Zeilen pro Funktion):
 | `KategorieUmschalter` | Segment-Umschalter (nur vorhandene Kategorien) | nein |
 | `ArtikelListe` | Gruppen (`gruppiereArtikel`) → je Größe eine `PositionZeile` | nein |
 | `MengeControl` | Stepper (44 px), Server-Action-Aufruf | `useActionState` (wie heute) |
-| `kategorien.ts` | reine Funktion: sichtbare Kategorien einer Person (aus Katalog + inaktiven Positionen) | – |
+| `kategorien.ts` | reine Funktionen: sichtbare Kategorien einer Person (aus Katalog + inaktiven Positionen), Kategorie-Fallback, Artikel der Kategorie | – |
+| `VerzehrUebersicht` | Nur-Lese-Liste Name + Gesamt (Theke vor der Namenswahl, D4) | nein |
+
+Der Typ `VerzehrZeile` zieht nach `verzehr-props.ts` (zum Adapter, der ihn erzeugt), weil
+`VerzehrErfassung.tsx` entfällt.
 
 Die route-neutrale Prop-Schnittstelle bleibt die aus ADR-039 D1/#308 (`zeilen`, `artikel`,
 `positionen`, `action`, `editable`, `initialOpenId` → umbenannt **`initialeZeileId`**,
@@ -115,12 +119,13 @@ Klassenstrings (spec AK4.6).
 
 ### D6 · Personenwechsel scrollt nach oben, Guard bleibt
 
-Beim Wechsel (Chip oder „Nächste Person") und beim Mounten mit gesetzter Start-Person wird, wie in
-ADR-039/#188, **im nächsten Frame** (`requestAnimationFrame`, `raf-stub` für Tests) nach oben
-gescrollt – `window.scrollTo?.({ top: 0 })`, guarded (jsdom: „not implemented"). Weil Kopf und
-Chips sticky sind, genügt „oben"; ein Ziel-Element mit `scroll-margin` entfällt. Der aktive Chip
-wird per `scrollIntoView?.({ inline: "center", block: "nearest" })` in der Leiste sichtbar gehalten
-(spec AK1a.3), ebenfalls guarded.
+Beim Wechsel (Chip oder „Nächste Person") wird, wie in ADR-039/#188, **im nächsten Frame**
+(`requestAnimationFrame`, `raf-stub` für Tests) nach oben gescrollt – `window.scrollTo?.({ top: 0 })`,
+guarded (jsdom: „not implemented"). Weil Kopf und Chips sticky sind, genügt „oben"; ein
+Ziel-Element mit `scroll-margin` entfällt. Beim Mounten scrollt die Seite **nicht**: sie lädt ohnehin
+oben, und die Start-Person ist die einzige angezeigte. Der aktive Chip wird – beim Mounten und bei
+jedem Wechsel – von `PersonenChips` per `scrollIntoView?.({ inline: "center", block: "nearest" })`
+in der Leiste sichtbar gehalten (spec AK1a.3/AK1a.5), ebenfalls guarded und im nächsten Frame.
 
 ## Alternativen
 

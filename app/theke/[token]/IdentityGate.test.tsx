@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import { IdentityGate } from "./IdentityGate";
 import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
-import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/VerzehrErfassung";
+import type { VerzehrArtikel, VerzehrZeile } from "@/app/_verzehr/verzehr-props";
 
 // MengeControl (Client, useActionState) durch ein Stub ersetzt, das die editable-Prop spiegelt –
 // so ist prüfbar, ob die Erfassung hinter dem Zweischritt read-only ist oder freigeschaltet.
@@ -41,15 +41,17 @@ function renderGate(overrides: Partial<Parameters<typeof IdentityGate>[0]> = {})
   );
 }
 
-// Das <li> der Teilnehmer-Karte. Der Karten-Kopf ist der Button mit aria-expanded (der gleichnamige
-// Chip trägt aria-current, kein aria-expanded) – dieselbe Unterscheidung wie in FokusListe.test.tsx.
-function karteVon(name: string): HTMLElement {
-  const kopf = screen
-    .getAllByRole("button", { name: new RegExp(name) })
-    .find((button) => button.hasAttribute("aria-expanded"));
-  const karte = kopf?.closest("li");
-  if (!karte) throw new Error(`Keine Karte für ${name}`);
-  return karte;
+// Chip der Einzelansicht (spec-370 AK1a) – über die Chip-Leiste, damit ein gleichnamiges Element
+// anderswo (Kopf-Überschrift) nicht mitzählt.
+function chip(name: string): HTMLElement {
+  return within(screen.getByRole("group", { name: "Teilnehmer auswählen" })).getByRole("button", {
+    name,
+  });
+}
+
+// Name der aktiven Person im Kopf der Einzelansicht.
+function aktivePerson() {
+  return screen.getByRole("heading", { level: 2 }).textContent;
 }
 
 let raf: ReturnType<typeof stubRequestAnimationFrame>;
@@ -57,6 +59,7 @@ let raf: ReturnType<typeof stubRequestAnimationFrame>;
 beforeEach(() => {
   window.localStorage.clear();
   Element.prototype.scrollIntoView = vi.fn();
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   raf = stubRequestAnimationFrame();
 });
 
@@ -75,10 +78,24 @@ describe("IdentityGate – Schritt 1: Erfasser", () => {
     expect(screen.queryByRole("button", { name: "Anna" })).not.toBeInTheDocument();
     // Platzhalter ist vorausgewählt.
     expect(select).toHaveValue("");
-    // Erfassbereiche sichtbar, aber nicht bearbeitbar (spec-54 AC B, Codify #54).
-    const menge = screen.getAllByTestId("menge");
-    expect(menge.length).toBeGreaterThan(0);
-    menge.forEach((control) => expect(control).toHaveAttribute("data-editable", "false"));
+    // Darunter die Nur-Lese-Liste Name + Gesamt (spec-370 AK6.3): alle Teilnehmer, keine
+    // Erfassungs-Controls, keine Artikel.
+    const liste = screen.getByRole("list", { name: "Bisher erfasst" });
+    expect(
+      within(liste)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["AnnaGesamt 0,00 €", "BerndGesamt 0,00 €"]);
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cola")).not.toBeInTheDocument();
+  });
+
+  it("should_keepReadOnlyListBelowQuestion_when_zielQuestionShown", () => {
+    // spec-370 AK6.3 gilt für beide Schritte des Gates.
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+    renderGate();
+    expect(screen.getByRole("list", { name: "Bisher erfasst" })).toBeInTheDocument();
+    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
   });
 
   it("should_storeErfasserAndAskZiel_when_erfasserSelected", () => {
@@ -143,7 +160,8 @@ describe("IdentityGate – Schritt 2: Ziel-Teilnehmer", () => {
     expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
     expect(screen.getByText(/Erfassung durch/)).toBeInTheDocument();
     expect(screen.queryByText(/Für wen/)).not.toBeInTheDocument();
-    // Ziel-Karte (Anna) offen und bearbeitbar.
+    // Ziel (Anna) ist die aktive Person, ihre Erfassung bearbeitbar.
+    expect(aktivePerson()).toBe("Anna");
     const menge = screen.getAllByTestId("menge");
     expect(menge).toHaveLength(1);
     expect(menge[0]).toHaveAttribute("data-editable", "true");
@@ -160,6 +178,7 @@ describe("IdentityGate – Schritt 2: Ziel-Teilnehmer", () => {
 
     expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z2");
     expect(screen.getByText(/Erfassung durch/)).toBeInTheDocument();
+    expect(aktivePerson()).toBe("Bernd");
   });
 
   it("should_doNothing_when_zielPlaceholderSelected", () => {
@@ -246,17 +265,17 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
 
     expect(screen.queryByText("Wer bist du?")).not.toBeInTheDocument();
     expect(screen.queryByText(/Für wen/)).not.toBeInTheDocument();
-    // Zuletzt gewähltes Ziel (Bernd) direkt offen + bearbeitbar.
+    // Zuletzt gewähltes Ziel (Bernd) direkt aktiv + bearbeitbar (spec-370 AK1a.6).
+    expect(aktivePerson()).toBe("Bernd");
+    expect(chip("Bernd")).toHaveAttribute("aria-pressed", "true");
     const menge = screen.getAllByTestId("menge");
     expect(menge).toHaveLength(1);
     expect(menge[0]).toHaveAttribute("data-editable", "true");
   });
 
-  it("should_scrollRememberedZielCardIntoViewAfterLayout_when_bothStored", () => {
-    // Seit #308 scrollt `FokusListe` auch die INITIAL offene Karte in den Sichtbereich. Auf dem
-    // öffentlichen Weg ist das die aus der geräte-lokalen Ziel-Merkung vorgewählte Karte (ADR-035
-    // D1) – eine bewusst mitgenommene Verhaltensänderung (ADR-039 § Konsequenzen), die hier gegen
-    // Regression gesichert wird statt nur im Code begründet zu stehen.
+  it("should_scrollRememberedZielChipIntoViewAfterLayout_when_bothStored", () => {
+    // Das gemerkte Ziel (ADR-035 D1) ist beim Mounten aktiv; sein Chip kommt in der Leiste in den
+    // Sichtbereich (spec-370 AK1a.3) – gegen Regression am echten Konsumenten gesichert.
     window.localStorage.setItem(ERFASSER_KEY, "z1");
     window.localStorage.setItem(ZIEL_KEY, "z2");
 
@@ -271,9 +290,9 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
 
     raf.flush();
 
-    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
-    // Diskriminierend: es springt die GEMERKTE Karte in den Sichtbereich, nicht irgendeine.
-    expect(scrollSpy.mock.contexts).toEqual([karteVon("Bernd")]);
+    expect(scrollSpy).toHaveBeenCalledWith({ inline: "center", block: "nearest" });
+    // Diskriminierend: es springt der Chip des GEMERKTEN Ziels in den Sichtbereich.
+    expect(scrollSpy.mock.contexts).toEqual([chip("Bernd")]);
   });
 
   it("should_clearBothAndReAskErfasser_when_erfasserWechseln", () => {
@@ -293,13 +312,23 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
     window.localStorage.setItem(ZIEL_KEY, "z2");
 
     renderGate();
-    // Chip trägt exakt den Anzeigenamen als Namen, der Karten-Kopf zusätzlich die Summen-Zeile
-    // (siehe cardHead-Unterscheidung in FokusListe.test.tsx) – exaktes "Anna" trifft nur den Chip.
-    fireEvent.click(screen.getByRole("button", { name: "Anna" }));
+    fireEvent.click(chip("Anna"));
 
-    // ADR-039 D1: FokusListe kennt kein Storage, IdentityGate hängt die Ziel-Merkung über
-    // onFokusWechsel an (IdentityGate.tsx:169) – dieser Test belegt die Verdrahtung durch Aufruf,
-    // nicht nur durch Codelesen.
+    // ADR-039 D1: die Einzelansicht kennt kein Storage, IdentityGate hängt die Ziel-Merkung über
+    // onFokusWechsel an – dieser Test belegt die Verdrahtung durch Aufruf, nicht nur durch
+    // Codelesen (spec-370 AK1a.2).
+    expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
+  });
+
+  it("should_persistNewZiel_when_naechstePersonTapped", () => {
+    // spec-370 AK5.1: „Nächste Person" wirkt wie ein Chip-Tipp – inklusive Ziel-Merkung.
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+    window.localStorage.setItem(ZIEL_KEY, "z2");
+
+    renderGate();
+    fireEvent.click(screen.getByRole("button", { name: "Nächste Person →" }));
+
+    expect(aktivePerson()).toBe("Anna");
     expect(window.localStorage.getItem(ZIEL_KEY)).toBe("z1");
   });
 
@@ -312,7 +341,7 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
 
     renderGate();
 
-    // Vorbedingung: die Fokus-Ansicht ist da und eine Karte ist offen – sonst wäre die
+    // Vorbedingung: die Einzelansicht ist da (Erfassung sichtbar) – sonst wäre die
     // Abwesenheits-Assertion trivial erfüllt.
     expect(screen.getAllByTestId("menge")).toHaveLength(1);
     expect(screen.queryByRole("link", { name: /Kassieren/ })).not.toBeInTheDocument();
@@ -333,16 +362,23 @@ describe("IdentityGate – Legacy-Adoption (#54, D6)", () => {
 });
 
 describe("IdentityGate – Read-only & Leerfälle", () => {
-  it("should_renderReadOnlyAccordionWithoutGate_when_notEditable", () => {
+  it("should_renderReadOnlyEinzelansichtWithoutGate_when_notEditable", () => {
     renderGate({ editable: false });
 
     expect(screen.queryByText("Wer bist du?")).not.toBeInTheDocument();
     expect(screen.queryByText(/Für wen/)).not.toBeInTheDocument();
     expect(screen.queryByText("Erfasser wechseln")).not.toBeInTheDocument();
-    // Read-only-Akkordeon: alle Karten zu → keine MengeControl, bis aufgeklappt wird.
-    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
-    // Teilnehmer bleiben sichtbar (Chip + Karten-Kopf tragen den Namen).
-    expect(screen.getAllByRole("button", { name: /Anna/ }).length).toBeGreaterThan(0);
+    // Lese-Ansicht (spec-370 AK6.2): erste Person aktiv, Erfassung sichtbar, nicht bearbeitbar.
+    expect(aktivePerson()).toBe("Anna");
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+  });
+
+  it("should_notPersistZiel_when_chipTappedInReadOnly", () => {
+    // Read-only merkt sich nichts (ADR-035 D5) – auch nicht beim Personenwechsel.
+    renderGate({ editable: false });
+    fireEvent.click(chip("Bernd"));
+    expect(aktivePerson()).toBe("Bernd");
+    expect(window.localStorage.getItem(ZIEL_KEY)).toBeNull();
   });
 
   it("should_showHint_when_noZeilen", () => {

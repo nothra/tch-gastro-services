@@ -10,7 +10,7 @@ import { IdentityGate } from "./IdentityGate";
 
 // Öffentliche, login-freie Selbstbedienungs-Route (F7, #54, ADR-034 D1): lädt die Veranstaltung
 // ausschließlich über den Token (getVeranstaltungByToken), antwortet bei Miss neutral mit
-// notFound() (kein Leak) und rendert dieselbe route-neutrale VerzehrErfassung wie die
+// notFound() (kein Leak) und rendert dieselbe route-neutrale VerzehrEinzelansicht wie die
 // authentifizierte F5-Seite – inkl. Essen. Die Autorisierung liegt allein am Token: die
 // token-scoped Action self-scoped auf diese Veranstaltung (kein requireRole, kein IDOR).
 // Solange offen → editierbar hinter dem Namens-Gate; abgeschlossen → Read-only ohne Gate.

@@ -2,14 +2,13 @@
 // EIN Suchparameter je Zielseite, der die gemeinte Teilnehmerzeile benennt. Als Query-Parameter
 // ist der Personenbezug Teil des Aufrufs und übersteht damit ein Neuladen (spec-308 AK11) – anders
 // als flüchtiger Komponentenzustand. Beide Href-Bauer und der Leser hängen an derselben Konstante,
-// damit Hin- und Rückweg nicht auseinanderdriften. Aus demselben Grund liegt hier auch das
-// Erscheinungsbild der beiden Wechsel-Links: Hin- und Rückweg sollen als EIN Bedienmuster
-// auftreten, eine zweite Copy-Paste-Klassenkette würde genau daran vorbeidriften.
+// damit Hin- und Rückweg nicht auseinanderdriften.
 
 export const PERSONENBEZUG_PARAM = "zeile";
 
-// Gemeinsames Erscheinungsbild der Wechsel-Links auf beiden Seiten (Hinweg „Kassieren →" in der
-// Verzehrkarte, Rückweg „← Verzehr erfassen" in der Kassierzeile).
+// Erscheinungsbild des Rückweg-Links „← Verzehr erfassen" in der Kassierzeile. Der Hinweg
+// „Kassieren →" steht seit #370 als Button-Link in der Fußleiste der Verzehr-Einzelansicht
+// (Touch-Ziel, ADR-054 D3).
 export const WECHSEL_LINK_CLASS =
   "self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400";
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { stubRequestAnimationFrame } from "@/app/_verzehr/raf-stub";
 import type { CatalogItem, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 import type { VerzehrPositionRow } from "@/db/verzehr";
@@ -120,29 +120,23 @@ function seite(id: string, zeile?: string) {
   };
 }
 
-// Chip der sticky Auswahl-Leiste (kein aria-expanded; der Karten-Kopf trägt aria-expanded).
+// Chip der sticky Auswahl-Leiste der Einzelansicht.
 function chip(name: string) {
-  const button = screen
-    .getAllByRole("button", { name: new RegExp(name) })
-    .find((candidate) => !candidate.hasAttribute("aria-expanded"));
-  if (!button) throw new Error(`Kein Chip für ${name}`);
-  return button;
+  return within(screen.getByRole("group", { name: "Teilnehmer auswählen" })).getByRole("button", {
+    name,
+  });
 }
 
-// Karten-Kopf (trägt aria-expanded) – zeigt, welche Teilnehmer-Karte geöffnet ist.
-function karte(name: string) {
-  const head = screen
-    .getAllByRole("button", { name: new RegExp(name) })
-    .find((candidate) => candidate.hasAttribute("aria-expanded"));
-  if (!head) throw new Error(`Kein Karten-Kopf für ${name}`);
-  return head;
+// Name der aktiven Person im Kopf der Einzelansicht (spec-370 AK1.1).
+function aktivePerson() {
+  return screen.getByRole("heading", { level: 2 }).textContent;
 }
 
 function kassierenLinks() {
   return screen.queryAllByRole("link", { name: /Kassieren/ });
 }
 
-// Zwei Teilnehmer (Anna z-1, Bernd z-2) – nötig, um „genau die gemeinte Karte" von „irgendeine"
+// Zwei Teilnehmer (Anna z-1, Bernd z-2) – nötig, um „genau die gemeinte Person" von „irgendeine"
 // zu unterscheiden.
 function arrangeZweiZeilen() {
   authMock.mockResolvedValue(session(["veranstalter"]));
@@ -154,8 +148,10 @@ function arrangeZweiZeilen() {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  // jsdom implementiert scrollIntoView nicht; FokusListe ruft es guarded im rAF-Callback auf.
+  // jsdom implementiert weder scrollIntoView noch scrollTo; die Einzelansicht ruft beide guarded im
+  // rAF-Callback auf.
   Element.prototype.scrollIntoView = vi.fn();
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   stubRequestAnimationFrame();
 });
 
@@ -189,7 +185,7 @@ describe("VerzehrPage", () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it("should_renderCollapsedAccordionWithChipBar_when_veranstalterAndOpen", async () => {
+  it("should_renderEinzelansichtOfFirstPerson_when_veranstalterAndOpen", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -198,11 +194,12 @@ describe("VerzehrPage", () => {
 
     render(await VerzehrPage(seite("v-1")));
 
-    // Sticky Chip-Leiste wie im Link-Weg, Teilnehmer als Chip sichtbar …
-    expect(screen.getByRole("group", { name: "Teilnehmer auswählen" })).toBeInTheDocument();
-    expect(chip("Anna")).toBeInTheDocument();
-    // … aber initial keine Karte offen → keine MengeControl gerendert.
-    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
+    // Einzelansicht wie im Link-Weg (spec-370 AK6.1): ohne Personenbezug ist die erste Person
+    // aktiv und ihre Erfassung bearbeitbar sichtbar.
+    expect(chip("Anna")).toHaveAttribute("aria-pressed", "true");
+    expect(aktivePerson()).toBe("Anna");
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "true");
+    expect(screen.getByRole("heading", { level: 3, name: "Cola" })).toBeInTheDocument();
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
     // #346 AK2/AK3: die Erfassung lädt die Auswahl aus dem Katalog DIESER Veranstaltung
     // (ADR-050-Nachtrag zu D3), nicht mehr über die Konstante. Der Fixture-Katalog ist bewusst
@@ -211,19 +208,17 @@ describe("VerzehrPage", () => {
     expect(listActiveCatalogMock).not.toHaveBeenCalledWith(STANDARD_CATALOG_ID);
   });
 
-  it("should_openCardEditable_when_chipTappedOnOpenVeranstaltung", async () => {
-    authMock.mockResolvedValue(session(["veranstalter"]));
-    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
-    listZeilenMock.mockResolvedValue([aZeile]);
-    listActiveCatalogMock.mockResolvedValue([cola]);
-    listPositionenMock.mockResolvedValue([]);
+  it("should_switchPersonEditable_when_chipTappedOnOpenVeranstaltung", async () => {
+    arrangeZweiZeilen();
 
     render(await VerzehrPage(seite("v-1")));
-    fireEvent.click(chip("Anna"));
+    fireEvent.click(chip("Bernd"));
 
     // Offen → editierbar: das Stub spiegelt die editable-Prop wider.
+    expect(aktivePerson()).toBe("Bernd");
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "true");
-    expect(screen.getByText("Cola · 0,5l · 2,50 €")).toBeInTheDocument();
+    expect(screen.getByText("0,5l")).toBeInTheDocument();
+    expect(screen.getByText("2,50 €")).toBeInTheDocument();
   });
 
   it("should_renderReadOnly_when_veranstaltungAbgeschlossen", async () => {
@@ -234,11 +229,20 @@ describe("VerzehrPage", () => {
     listPositionenMock.mockResolvedValue([]);
 
     render(await VerzehrPage(seite("v-1")));
-    // Read-only: ebenfalls Akkordeon, initial eingeklappt.
-    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
-    fireEvent.click(chip("Anna"));
 
+    // Lese-Ansicht (spec-370 AK6.2): sichtbar, nicht bearbeitbar.
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+  });
+
+  it("should_passConsumerBleedToStickyBlock_when_rendered", async () => {
+    // spec-370 AK7.4/#205: der Bleed passt zum `p-6` dieses <main> und kommt vom Konsumenten.
+    arrangeZweiZeilen();
+
+    render(await VerzehrPage(seite("v-1")));
+
+    const block = screen.getByRole("group", { name: "Teilnehmer auswählen" }).parentElement;
+    expect(block).toHaveClass("sticky", "-mx-6", "px-6");
+    expect(screen.getByRole("main")).toHaveClass("p-6");
   });
 
   it("should_showPositionMenge_when_positionExists", async () => {
@@ -259,26 +263,25 @@ describe("VerzehrPage", () => {
     listPositionenMock.mockResolvedValue([position]);
 
     render(await VerzehrPage(seite("v-1")));
-    fireEvent.click(chip("Anna"));
 
     expect(screen.getByTestId("menge")).toHaveTextContent("3");
   });
 
-  it("should_openReferencedCard_when_personenbezugGiven", async () => {
-    // #308 AK1/AK6: der Aufruf trägt den Personenbezug → genau die Karte dieser Person ist offen,
-    // ohne Chip-Tipp und ohne Umweg über die Detailseite.
+  it("should_activateReferencedPerson_when_personenbezugGiven", async () => {
+    // #308 AK1/AK6, spec-370 AK1a.5: der Aufruf trägt den Personenbezug → genau diese Person ist
+    // aktiv, ohne Chip-Tipp und ohne Umweg über die Detailseite.
     arrangeZweiZeilen();
 
     render(await VerzehrPage(seite("v-1", "z-2")));
 
-    expect(karte("Bernd")).toHaveAttribute("aria-expanded", "true");
-    expect(karte("Anna")).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getAllByTestId("menge")).toHaveLength(1);
+    expect(aktivePerson()).toBe("Bernd");
+    expect(chip("Bernd")).toHaveAttribute("aria-pressed", "true");
+    expect(chip("Anna")).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("should_offerKassierenLinkForOpenPerson_when_personenbezugGiven", async () => {
-    // #308 AK1/AK8: die geöffnete Karte führt personenbezogen weiter ins Kassieren – auch dann,
-    // wenn diese Seite selbst schon personenbezogen aufgerufen wurde (Wechsel beliebig oft).
+  it("should_offerKassierenLinkForActivePersonInFooter_when_personenbezugGiven", async () => {
+    // #308 AK1/AK8, spec-370 AK5.5: die Fußleiste führt personenbezogen weiter ins Kassieren –
+    // auch dann, wenn diese Seite selbst schon personenbezogen aufgerufen wurde.
     arrangeZweiZeilen();
 
     render(await VerzehrPage(seite("v-1", "z-2")));
@@ -286,11 +289,13 @@ describe("VerzehrPage", () => {
     const links = kassierenLinks();
     expect(links).toHaveLength(1);
     expect(links[0]).toHaveAttribute("href", "/veranstaltung/v-1/kassieren?zeile=z-2");
-    expect(karte("Bernd").closest("li")).toContainElement(links[0]);
+    const fussleiste = screen.getByRole("navigation", { name: "Weiter" });
+    expect(fussleiste).toContainElement(links[0]);
+    expect(fussleiste).toContainElement(screen.getByRole("button", { name: "Nächste Person →" }));
   });
 
   it("should_moveKassierenLinkToTappedPerson_when_otherChipTapped", async () => {
-    // #308 AK7: Die Aktion sitzt immer in der geöffneten Karte – nie in einer eingeklappten.
+    // #308 AK7: Die Aktion gehört immer zur aktiven Person.
     arrangeZweiZeilen();
 
     render(await VerzehrPage(seite("v-1", "z-2")));
@@ -301,26 +306,27 @@ describe("VerzehrPage", () => {
     expect(links[0]).toHaveAttribute("href", "/veranstaltung/v-1/kassieren?zeile=z-1");
   });
 
-  it("should_showNoKassierenLink_when_noCardIsOpen", async () => {
-    // #308 AK7: ohne geöffnete Karte (Aufruf ohne Personenbezug) ist keine Aktion sichtbar.
+  it("should_offerKassierenLinkForFirstPerson_when_noPersonenbezug", async () => {
+    // spec-370 AK1a.5/AK5.5: es gibt keinen Zustand „keine Person aktiv" mehr (ADR-054 D2) – ohne
+    // Personenbezug ist die erste Person aktiv und bietet ihren Kassieren-Weg an.
     arrangeZweiZeilen();
 
     render(await VerzehrPage(seite("v-1")));
 
-    expect(kassierenLinks()).toHaveLength(0);
+    const links = kassierenLinks();
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/veranstaltung/v-1/kassieren?zeile=z-1");
   });
 
-  it("should_openNoCard_when_personenbezugIsUnknown", async () => {
-    // F1: Zufallswert / getilgte Zeile / Zeile einer anderen Veranstaltung → Standardzustand,
-    // keine Fehlermeldung, kein notFound, keine Aussage über den unbekannten Wert.
+  it("should_activateFirstPerson_when_personenbezugIsUnknown", async () => {
+    // F1, spec-370 AK1a.5: Zufallswert / getilgte Zeile / Zeile einer anderen Veranstaltung →
+    // erste Person, keine Fehlermeldung, kein notFound, keine Aussage über den unbekannten Wert.
     arrangeZweiZeilen();
 
     render(await VerzehrPage(seite("v-1", "z-fremd")));
 
-    expect(karte("Anna")).toHaveAttribute("aria-expanded", "false");
-    expect(karte("Bernd")).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
-    expect(kassierenLinks()).toHaveLength(0);
+    expect(aktivePerson()).toBe("Anna");
+    expect(kassierenLinks()[0]).toHaveAttribute("href", "/veranstaltung/v-1/kassieren?zeile=z-1");
     expect(notFoundMock).not.toHaveBeenCalled();
     expect(screen.queryByText(/z-fremd/)).not.toBeInTheDocument();
   });
@@ -334,7 +340,7 @@ describe("VerzehrPage", () => {
     arrangeZweiZeilen();
     render(await VerzehrPage(seite("v-1", "z-2")));
 
-    expect(karte("Bernd")).toHaveAttribute("aria-expanded", "true");
+    expect(aktivePerson()).toBe("Bernd");
   });
 
   it("should_keepReadOnlyButOfferWechsel_when_abgeschlossenWithPersonenbezug", async () => {

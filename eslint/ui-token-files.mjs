@@ -27,6 +27,8 @@ export const UI_TOKEN_FILES = [
   "app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx",
   "app/veranstaltung/ZeileRow.tsx",
   "app/veranstaltung/ZeilenMenue.tsx",
+  // #370: die route-neutrale Verzehr-Erfassung (Einzelansicht, beide Zugangswege).
+  "app/_verzehr/",
 ];
 
 /**
