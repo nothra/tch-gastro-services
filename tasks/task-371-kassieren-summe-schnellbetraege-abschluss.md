@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -95,6 +95,11 @@ Abschließen/Wieder öffnen nur noch im Kopf der Detailseite, mit Bestätigung.
   (Spenden-Formel ist bereits als `spendeCents` extrahiert; kein Link-Klassen-Duplikat im Projekt).
   Kein Code geändert. `app/veranstaltung` + `eslint`: 711 Tests grün, `pnpm lint` und
   `tsc --noEmit` sauber.
+
+### Security-Notizen (/security-review, 2026-10-03)
+- **PASSED**, 0 kritisch / 0 wichtig (Details: [`security-371.md`](security-371.md)). Die
+  serverseitigen Gates in `setStatusAction`/`kassiereZeileAction` sind unverändert; neu sind nur
+  UI-Hinweise (Live-Spende, Offen-Hinweis im Dialog) und der Rückgabewert `erhaltenCents`.
 
 ## Offene Fragen
 - [ ] Protokoll langfristig auf die Detailseite? (Hier: bleibt in „Abrechnung im Detail"; ggf. eigenes Issue)
