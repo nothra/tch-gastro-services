@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -87,6 +87,14 @@ Abschließen/Wieder öffnen nur noch im Kopf der Detailseite, mit Bestätigung.
   neuen Tests nötig, kein Produktionscode geändert.
 - Hinweis: Ein erster Lauf nutzte `dotenv -e .env.local` und löste den dmTECH-Guardrail
   (`cmd.secretfile.read`) aus. Es wurden keine Werte gelesen; weitere Läufe erfolgten ohne die Datei.
+
+### Refactoring-Notizen (/refactor, 2026-10-03)
+- Clean-Code-Pass über den Diff (`kassierSummen.ts`, `KassiereZeileForm.tsx`, `AbschlussAktion.tsx`,
+  `KassierSummenKarte.tsx`, `kassieren/page.tsx`, `[id]/page.tsx`): Naming, Funktionslänge,
+  Duplikation, Magic Strings, Kommentare (WHY) geprüft – kein Befund, der eine Änderung rechtfertigt
+  (Spenden-Formel ist bereits als `spendeCents` extrahiert; kein Link-Klassen-Duplikat im Projekt).
+  Kein Code geändert. `app/veranstaltung` + `eslint`: 711 Tests grün, `pnpm lint` und
+  `tsc --noEmit` sauber.
 
 ## Offene Fragen
 - [ ] Protokoll langfristig auf die Detailseite? (Hier: bleibt in „Abrechnung im Detail"; ggf. eigenes Issue)
