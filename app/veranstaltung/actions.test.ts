@@ -1255,13 +1255,15 @@ describe("kassiereZeileAction", () => {
 
   it("should_persistErhalten_when_validAmount", async () => {
     const result = await bound({ zeileId: "z1", erhalten: "12,50" });
-    expect(result).toEqual({ ok: true });
+    // spec-371 AK12, ADR-055 D2: die Antwort trägt den gespeicherten Betrag für die Rückmeldung.
+    expect(result).toEqual({ ok: true, erhaltenCents: 1250 });
     expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", 1250);
   });
 
   it("should_resetErhaltenToNull_when_amountEmpty", async () => {
     const result = await bound({ zeileId: "z1", erhalten: "" });
-    expect(result).toEqual({ ok: true });
+    // Geleert = Kassieren zurückgenommen → `null` meldet „Betrag entfernt" (spec-371 AK12).
+    expect(result).toEqual({ ok: true, erhaltenCents: null });
     expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", null);
   });
 
@@ -1269,7 +1271,7 @@ describe("kassiereZeileAction", () => {
     // formData.get("erhalten") liefert null, wenn das Feld komplett fehlt (nicht nur leer) –
     // eigener Branch (`?? ""`-Fallback) neben dem Leerstring-Fall oben.
     const result = await bound({ zeileId: "z1" });
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, erhaltenCents: null });
     expect(setErhaltenMock).toHaveBeenCalledWith("z1", "v1", null);
   });
 

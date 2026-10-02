@@ -27,14 +27,19 @@ export type KassierZeile = {
   spendeCents: number;
 };
 
+// Die Spenden-Formel `max(0, (erhalten ?? 0) − verzehrGesamt)` als eigene Funktion, damit die
+// Live-Vorschau im Kassier-Formular (Client) dieselbe Regel nutzt wie Anzeige und Bericht – eine
+// nachgebaute Client-Formel könnte lautlos divergieren (ADR-055 D1).
+export function spendeCents(verzehrGesamtCents: number, erhaltenCents: number | null): number {
+  return Math.max(0, (erhaltenCents ?? 0) - verzehrGesamtCents);
+}
+
 // Zeilen-Status und Spende sind vollständig abgeleitet (ADR-033 D1), nicht gespeichert:
-// `bezahlt ⇔ (erhalten ?? 0) ≥ verzehrGesamt` (Null-Verzehr ⇒ 0 ≥ 0 ⇒ bezahlt auch ohne Erhalten),
-// `spende = max(0, (erhalten ?? 0) − verzehrGesamt)`. Verzehr-Gesamt ist brutto – Auslagen mindern
-// ihn NICHT (eigener Vorgang, F6).
+// `bezahlt ⇔ (erhalten ?? 0) ≥ verzehrGesamt` (Null-Verzehr ⇒ 0 ≥ 0 ⇒ bezahlt auch ohne Erhalten).
+// Verzehr-Gesamt ist brutto – Auslagen mindern ihn NICHT (eigener Vorgang, F6).
 export function kassierZeile(input: KassierZeileInput): KassierZeile {
   const sonstigeCents = input.essenCents + input.kaffeeCents;
   const verzehrGesamtCents = input.getraenkeCents + sonstigeCents;
-  const erhalten = input.erhaltenCents ?? 0;
   return {
     getraenkeCents: input.getraenkeCents,
     essenCents: input.essenCents,
@@ -42,8 +47,8 @@ export function kassierZeile(input: KassierZeileInput): KassierZeile {
     sonstigeCents,
     verzehrGesamtCents,
     erhaltenCents: input.erhaltenCents,
-    bezahlt: erhalten >= verzehrGesamtCents,
-    spendeCents: Math.max(0, erhalten - verzehrGesamtCents),
+    bezahlt: (input.erhaltenCents ?? 0) >= verzehrGesamtCents,
+    spendeCents: spendeCents(verzehrGesamtCents, input.erhaltenCents),
   };
 }
 
@@ -87,10 +92,13 @@ export type KassierTagessummen = {
   erhaltenCents: number;
   spendeCents: number;
   offeneZeilen: number;
+  offenerBetragCents: number;
 };
 
 // Tagessummen über alle Zeilen (Spec-AC „Tagessummen") plus die Anzahl offener Zeilen, die das
-// Abschluss-Gate (ADR-033 D3) nutzt: `offeneZeilen === 0` ⇔ abschließbar.
+// Abschluss-Gate (ADR-033 D3) nutzt: `offeneZeilen === 0` ⇔ abschließbar. Der offene Betrag
+// (spec-371 AK2) zählt nur den Rest der offenen Zeilen – bezahlte Zeilen tragen 0 bei, eine
+// Überzahlung (Spende) mindert ihn also nicht.
 export function kassierTagessummen(zeilen: readonly KassierZeile[]): KassierTagessummen {
   const summen: KassierTagessummen = {
     getraenkeCents: 0,
@@ -101,6 +109,7 @@ export function kassierTagessummen(zeilen: readonly KassierZeile[]): KassierTage
     erhaltenCents: 0,
     spendeCents: 0,
     offeneZeilen: 0,
+    offenerBetragCents: 0,
   };
   for (const zeile of zeilen) {
     summen.getraenkeCents += zeile.getraenkeCents;
@@ -110,7 +119,10 @@ export function kassierTagessummen(zeilen: readonly KassierZeile[]): KassierTage
     summen.verzehrGesamtCents += zeile.verzehrGesamtCents;
     summen.erhaltenCents += zeile.erhaltenCents ?? 0;
     summen.spendeCents += zeile.spendeCents;
-    if (!zeile.bezahlt) summen.offeneZeilen += 1;
+    if (!zeile.bezahlt) {
+      summen.offeneZeilen += 1;
+      summen.offenerBetragCents += zeile.verzehrGesamtCents - (zeile.erhaltenCents ?? 0);
+    }
   }
   return summen;
 }
