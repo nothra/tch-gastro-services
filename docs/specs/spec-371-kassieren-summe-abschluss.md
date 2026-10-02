@@ -92,7 +92,8 @@ nicht mehr auffindbar.
 
 - [ ] **AK12** GIVEN ein erfolgreiches Kassieren WHEN die Action antwortet THEN erscheint an der
   Zeile ein `Notice` (statt „Gespeichert.") mit Betrag und Spende, z. B. „7,00 € erhalten,
-  davon 1,50 € Spende"; ohne Spende nur der Betrag.
+  davon 1,50 € Spende"; ohne Spende nur der Betrag. Wurde das Feld geleert (Kassieren
+  zurückgenommen), lautet die Meldung „Betrag entfernt".
 - [ ] **AK13** GIVEN eine Ablehnung durch den Server WHEN die Action antwortet THEN erscheint die
   Fehlermeldung unverändert als `Notice` (Fehler-Ton) an der Zeile.
 

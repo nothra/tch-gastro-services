@@ -45,7 +45,13 @@ Abschließen/Wieder öffnen nur noch im Kopf der Detailseite, mit Bestätigung.
 - [ ] FS1–FS4 Fehlerszenarien laut Spec
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+[ADR-055](../docs/adr/055-kassieren-spende-live-abschluss-im-kopf.md) (Proposed → beim Implementieren auf Accepted):
+- D1: `spendeCents()` + `offenerBetragCents` in `kassierSummen.ts` (Single Source, auch für Client)
+- D2: `kassiereZeileAction` liefert `erhaltenCents` zurück; Spende rechnet der Client; Notice statt „Gespeichert."
+- D3: `AbschlussAktion` (Client, `ConfirmDialog`) im `PageHeader`-Slot der Detailseite; `StatusToggle` + Test löschen
+- D4: „Abrechnung im Detail" als natives `<details>`
+- ADR-053 D6 trägt einen Überholt-Hinweis; nach dem Löschen von `StatusToggle` Doku-Treffer per Grep prüfen
+- Reihenfolge: reine Summen → Action → Formular → `AbschlussAktion` → Seiten; `eslint/ui-token-files.mjs` pflegen
 
 ## Offene Fragen
 - [ ] Protokoll langfristig auf die Detailseite? (Hier: bleibt in „Abrechnung im Detail"; ggf. eigenes Issue)

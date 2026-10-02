@@ -144,6 +144,9 @@ Dialog-Grundlage):
 - `StatusToggle` wird unverändert an das **Ende der Kassieren-Seite** verschoben und dort
   entfernt aus dem Seitenkopf (heute steht er auch dort oben). Bestätigung und Offen-Hinweis
   sind #371.
+  > **Überholt durch [ADR-055](055-kassieren-spende-live-abschluss-im-kopf.md) D3 (#371):**
+  > Abschließen/Wieder öffnen sitzt jetzt im Seitenkopf der Detailseite, mit Bestätigung; der
+  > `StatusToggle` entfällt.
 - Der Abschlussbericht (`BerichtGruppe`) zieht aus `page.tsx` in eine eigene Datei, weil die
   Seite sonst die Komposition verlässt.
 
