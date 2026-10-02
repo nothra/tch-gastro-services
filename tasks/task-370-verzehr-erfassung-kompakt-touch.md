@@ -156,7 +156,7 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - Vitest mit Coverage über `app/_verzehr`, `app/theke`, `app/veranstaltung`: 104 Dateien / 1316 Tests grün, Gesamt 99,74 % Stmts / 99,48 % Branch (Schwelle 80 %). Alle in #370 geänderten/neuen Dateien in `app/_verzehr` bei 100 %.
 - Einzige Lücken: `IdentityGate.tsx` Z. 53/58 (`() => null` als Server-Snapshot von `useSyncExternalStore`) – vorbestehend, in `main` unverändert, nicht Teil dieses PR.
 - Kein Produktionscode und keine Tests geändert; keine Lücke gegenüber den AK gefunden.
-- **E2E-Nachtest weiterhin offen** (kein `.env.local`-Zugriff, keine Wegwerf-DB): vor dem Merge `E2E_VERZEHR_370=1` gegen Wegwerf-DB/eigenen Server wiederholen.
+- **E2E-Nachtest nachgeholt** (mit der `.env.local` des Worktrees, nach `db:migrate` + `db:seed`; Daten mit `__test__`-Präfix): `e2e/verzehr-einzelansicht.spec.ts` (`E2E_VERZEHR_370=1`) 3/3 und `e2e/wechsel-verzehr-kassieren.spec.ts` (`E2E_WECHSEL_308=1`) 2/2 grün. Erster Lauf scheiterte nur an `CredentialsSignin` (DB noch nicht geseedet, Umgebungsproblem). Nicht gelaufen: `e2e/anleitung-veranstalter.spec.ts` (`CAPTURE_ANLEITUNG`, überschreibt Doku-Bilder).
 
 ## Offene Fragen
 Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen").
