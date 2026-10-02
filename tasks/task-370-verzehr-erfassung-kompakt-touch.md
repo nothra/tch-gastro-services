@@ -101,6 +101,29 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - Bild 08: Dev-Overlay von Next.js per Screenshot-`style` ausgeblendet (lag über „Kassieren →");
   Text neben dem Bild gegengelesen, passt.
 
+**Rework nach Review-Runde 1 (/implement, 2026-10-02):**
+- K1 behoben: `ArtikelListe` ist je Person gekeyt (`key={aktiveZeile.id}`), damit Fehler- und
+  Pending-Zustand der `MengeControl`s (useActionState) nicht beim Personenwechsel mitwandern
+  (FS1/AK4.4). Belegt durch `VerzehrEinzelansicht.positionszustand.test.tsx` mit echtem
+  `MengeControl` – beide Richtungen + Pending (nie auflösendes Promise); vor dem Fix rot (3/3).
+- W1: E2E liest die aktive Person per auto-wiederholender Assertion (`expectAktivePerson`), Gesamt
+  auf den Kopf begrenzt, `selectOption` per Label statt Index.
+- W2: toter `groessenSuffix` samt Tests entfernt. W3: erledigter `kleinfunde.md`-Eintrag
+  (ADR-035 D2) gelöscht. W4: PR-Body trägt `Closes #205`.
+- Nitpicks mitgenommen: Fußleisten-Padding kommt per `fussleisteClassName` vom Konsumenten (beide
+  `px-6`, ADR-054 D3 nachgezogen); toter Leer-Zweig in `ArtikelListe` entfernt; ADR-039 D2–D4 und
+  ADR-035 D2/D3 tragen Ablöse-Banner; Kommentare (`kategorien.ts`, `VerzehrUebersicht.tsx`)
+  präzisiert, `KATEGORIE_REIHENFOLGE` dateiintern; Konfigurations-Test `KATEGORIE_LABEL` entfernt;
+  Lese-Ansicht-Test klickt eine andere Kategorie; Import-Pfad `VerzehrArtikel` intern einheitlich;
+  rohe Farbe am Leer-Hinweis von F5 → `text-muted`. Bewusst offen gelassen: rAF-Abbruch in
+  `wechsleZu` (harmlos) und doppelte Summen-/Gruppier-Logik (→ `/refactor`), `?zeile=` nach F5.
+- Gates: Lint, `tsc --noEmit`, Prettier, volle Vitest-Suite grün (1314 Tests, DB-Tests ohne dotenv
+  übersprungen – Rework berührt keine Data-Layer).
+- **Nachtest offen:** `e2e/verzehr-einzelansicht.spec.ts` nach dem Rework **nicht** erneut
+  gelaufen (in dieser Session kein Zugriff auf `.env.local`, keine Wegwerf-DB; geteilte Dev-DB
+  bewusst nicht beschrieben, Lesson #346). Geändert sind dort nur Assertions/Locators; vor dem
+  Merge mit `E2E_VERZEHR_370=1` gegen eine Wegwerf-DB wiederholen.
+
 ## Offene Fragen
 Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen").
 

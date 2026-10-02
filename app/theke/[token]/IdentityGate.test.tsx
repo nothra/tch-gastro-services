@@ -347,6 +347,22 @@ describe("IdentityGate – Wiederkehr & Erfasser-Wechsel", () => {
     expect(screen.queryByRole("link", { name: /Kassieren/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
+
+  it("should_alignStickyBlockAndFooterWithPagePadding_when_focusViewShown", () => {
+    // ADR-054 D3/#205, Lesson #188: Bleed und Fußleisten-Innenabstand passen zum `p-6` der Seite.
+    window.localStorage.setItem(ERFASSER_KEY, "z1");
+    window.localStorage.setItem(ZIEL_KEY, "z2");
+
+    renderGate();
+
+    expect(screen.getByRole("group", { name: "Teilnehmer auswählen" }).parentElement).toHaveClass(
+      "-mx-6",
+      "px-6",
+    );
+    expect(screen.getByRole("button", { name: "Nächste Person →" }).parentElement).toHaveClass(
+      "px-6",
+    );
+  });
 });
 
 describe("IdentityGate – Legacy-Adoption (#54, D6)", () => {
@@ -371,6 +387,18 @@ describe("IdentityGate – Read-only & Leerfälle", () => {
     // Lese-Ansicht (spec-370 AK6.2): erste Person aktiv, Erfassung sichtbar, nicht bearbeitbar.
     expect(aktivePerson()).toBe("Anna");
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+  });
+
+  it("should_alignStickyBlockAndFooterWithPagePadding_when_readOnly", () => {
+    renderGate({ editable: false });
+
+    expect(screen.getByRole("group", { name: "Teilnehmer auswählen" }).parentElement).toHaveClass(
+      "-mx-6",
+      "px-6",
+    );
+    expect(screen.getByRole("button", { name: "Nächste Person →" }).parentElement).toHaveClass(
+      "px-6",
+    );
   });
 
   it("should_notPersistZiel_when_chipTappedInReadOnly", () => {

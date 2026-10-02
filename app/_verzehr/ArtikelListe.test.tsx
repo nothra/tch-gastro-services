@@ -123,10 +123,4 @@ describe("ArtikelListe (spec-370 AK3)", () => {
       .getAllByTestId("menge")
       .forEach((m) => expect(m).toHaveAttribute("data-editable", "false"));
   });
-
-  it("should_showHint_when_noArtikel", () => {
-    renderListe({ artikel: [] });
-    expect(screen.getByText("Keine Artikel im Katalog.")).toBeInTheDocument();
-    expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
-  });
 });

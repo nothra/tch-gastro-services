@@ -50,6 +50,9 @@ aus `zeilen` aufgelöst. Schlüssel: `tch:sb:erfasser:<token>` und `tch:sb:ziel:
 
 ### D2 · Fokus-Akkordeon durch Wiederverwendung der präsentationalen Karte – F5 bleibt unberührt
 
+> **Abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (#370):** Kein
+> Akkordeon mehr – die Theke zeigt nach der Namenswahl die Einzelansicht des Ziels.
+
 > **Teilweise geändert durch [ADR-039](039-verzehrerfassung-fokusliste-route-neutral.md) (#187):**
 > „F5 bleibt unberührt" gilt nicht mehr – F5 übernimmt dieselbe Fokusliste. `FokusListe` wandert
 > nach `app/_verzehr/` und wird token-/persistenzfrei (Ziel-Merkung via injiziertem Callback).
@@ -72,6 +75,10 @@ bleibt regelkonform (Feature `app/theke` → route-neutrales `app/_verzehr`, Cod
 umgekehrt.
 
 ### D3 · Sticky-Auswahl als horizontal scrollbare Chip-Leiste
+
+> **Abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) D3 (#370):** Die
+> Chip-Leiste bleibt, ist aber Teil eines sticky Blocks mit Kopf und Kategorie-Umschalter; aktiver
+> Chip per `aria-pressed`, ein Tipp wechselt die Einzelansicht statt eine Karte aufzuklappen.
 Oben in `FokusListe` eine **sticky**, horizontal scrollbare **Chip-Leiste**: je Teilnehmer ein
 Button, der aktive (= Ziel) mit `aria-current`. Tippen setzt den Ziel-Teilnehmer, öffnet dessen
 Karte (andere zu), merkt die Wahl (D1) und bringt die Karte per `scrollIntoView` in den

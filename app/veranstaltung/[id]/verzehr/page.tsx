@@ -104,11 +104,12 @@ export default async function VerzehrPage({
       {verzehrZeilen.length === 0 ? (
         // Die Einzelansicht setzt ≥1 Zeile voraus (ADR-054 D2); der leere Fall bleibt hier beim
         // Konsumenten, weil die Meldung wegabhängig ist (F5 verweist auf das Anlegen von Teilnehmern).
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{KEIN_TEILNEHMER_HINWEIS}</p>
+        <p className="text-sm text-muted">{KEIN_TEILNEHMER_HINWEIS}</p>
       ) : (
         // Einzelansicht wie im Link-Weg (ADR-054): aktiv ist die Person des Personenbezugs (ohne
         // ihn die erste), kein onFokusWechsel (F5 merkt sich kein Ziel geräte-lokal). editable an
-        // den Status gebunden. Der Bleed `-mx-6 px-6` passt zum `p-6` dieses `<main>` (#205).
+        // den Status gebunden. Bleed `-mx-6 px-6` und Fußleisten-`px-6` passen zum `p-6` dieses
+        // `<main>` (#205, Lesson #188).
         <VerzehrEinzelansicht
           zeilen={verzehrZeilen}
           artikel={toVerzehrArtikelListe(artikel)}
@@ -118,6 +119,7 @@ export default async function VerzehrPage({
           initialeZeileId={fokusZeileId}
           aktionJeZeile={kassierenAktionJeZeile}
           kopfClassName="-mx-6 px-6"
+          fussleisteClassName="px-6"
         />
       )}
     </main>

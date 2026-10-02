@@ -66,6 +66,9 @@ Wiederverwendungslinie aus **ADR-035 D2** (eine Quelle für Kopf/Summen/Erfassun
 F7-Identitäts-spezifisch und route-gebunden.
 
 ### D2 · `FokusListe` wandert nach `app/_verzehr/` – Name bleibt
+
+> **Abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (#370):**
+> `FokusListe` existiert nicht mehr; an ihre Stelle tritt `app/_verzehr/VerzehrEinzelansicht.tsx`.
 Die Datei zieht von `app/theke/[token]/FokusListe.tsx` nach `app/_verzehr/FokusListe.tsx` (samt
 Test `FokusListe.test.tsx`). Der Name **`FokusListe`** bleibt – er ist in Specs/ADR-035/Kommentaren
 etabliert und im Ordner `_verzehr/` unmissverständlich; ein Rename brächte nur Churn ohne
@@ -77,6 +80,10 @@ die rAF-Logik dort ihren Ursprung hat; `IdentityGate.test.tsx` (bleibt in `theke
 dann aus `@/app/_verzehr/raf-stub` (kein Duplikat, Codify #194).
 
 ### D3 · F5-Seite rendert `FokusListe` direkt (Startzustand: keine Karte offen)
+
+> **Abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) D2 (#370):** F5
+> rendert die Einzelansicht; ohne gültigen Personenbezug ist die **erste** Person aktiv – einen
+> Zustand „keine offen" gibt es nicht mehr.
 
 > **Geändert durch #308:** F5 rendert nicht mehr fest `initialOpenId={null}`, sondern
 > `initialOpenId = Personenbezug ?? null`. Trägt der Aufruf den Suchparameter `?zeile=<zeileId>`
@@ -92,6 +99,10 @@ Link und RBAC-Guard bleiben unverändert. Damit erscheint F5 mit sticky Chip-Lei
 eingeklappt – identisch zur F7-Fokusliste.
 
 ### D4 · Read-only konsistent + Empty-State beim Konsumenten
+
+> **Teilweise abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (#370):**
+> Read-only heißt nicht mehr „alle eingeklappt", sondern Einzelansicht mit nutzbarer Personen- und
+> Kategorie-Wahl, Mengen nur lesend (spec-370 AK6.2). Der Empty-State beim Konsumenten gilt fort.
 
 > **Geändert durch #308:** Der Personenbezug aus D3 gilt auch für die **abgeschlossene**
 > Veranstaltung – der Wechsel ist reine Navigation und hängt nicht am `editable`-Flag

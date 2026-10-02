@@ -17,7 +17,8 @@ import {
 import { gruppierePositionenNachZeile } from "./positionen";
 import { zeileSummen } from "./summen";
 import type { VerzehrFormAction } from "./types";
-import type { VerzehrArtikel, VerzehrZeile } from "./verzehr-props";
+import type { VerzehrArtikel } from "./artikel-anzeige";
+import type { VerzehrZeile } from "./verzehr-props";
 
 // Route-neutrale Verzehr-Erfassung als Einzelansicht je Person (spec-370, ADR-054): oben ein
 // sticky Block aus Personen-Chips, Kopf und Kategorie-Umschalter, darunter nur die Artikel der
@@ -25,8 +26,9 @@ import type { VerzehrArtikel, VerzehrZeile } from "./verzehr-props";
 // und der optionalen Aktion des Konsumenten (Kassieren, #308). Beide Zugangswege nutzen sie – F5
 // (Veranstalter) und F7 (Theke). Sie kennt weder Route noch Token noch Storage (ADR-025 D5,
 // ADR-039 D1): ein Personenwechsel meldet sich über `onFokusWechsel`, F7 hängt daran seine
-// geräte-lokale Ziel-Merkung, F5 lässt ihn weg. Den seitlichen Bleed des sticky Blocks gibt der
-// Konsument per `kopfClassName` vor, passend zu seinem eigenen Seiten-Padding (#205).
+// geräte-lokale Ziel-Merkung, F5 lässt ihn weg. Den seitlichen Bleed des sticky Blocks
+// (`kopfClassName`) und den Innenabstand der Fußleiste (`fussleisteClassName`) gibt der Konsument
+// vor, passend zu seinem eigenen Seiten-Padding (#205, Lesson #188).
 export function VerzehrEinzelansicht({
   zeilen,
   artikel,
@@ -37,6 +39,7 @@ export function VerzehrEinzelansicht({
   onFokusWechsel,
   aktionJeZeile,
   kopfClassName,
+  fussleisteClassName,
 }: {
   zeilen: readonly VerzehrZeile[];
   artikel: readonly VerzehrArtikel[];
@@ -47,6 +50,7 @@ export function VerzehrEinzelansicht({
   onFokusWechsel?: (zeileId: string) => void;
   aktionJeZeile?: Readonly<Record<string, ReactNode>>;
   kopfClassName?: string;
+  fussleisteClassName?: string;
 }) {
   const [gewaehlteZeileId, setGewaehlteZeileId] = useState(initialeZeileId);
   const [gewaehlteKategorie, setGewaehlteKategorie] = useState<VerzehrKategorie | null>(null);
@@ -94,8 +98,11 @@ export function VerzehrEinzelansicht({
         />
       </div>
 
+      {/* Key je Person: Fehler- und Pending-Zustand der MengeControls (useActionState) gehören der
+          Person, bei der getippt wurde, und dürfen beim Wechsel nicht mitwandern (spec FS1/AK4.4). */}
       {kategorie !== null && (
         <ArtikelListe
+          key={aktiveZeile.id}
           artikel={artikelDerKategorie(kategorie, artikel, eigenePositionen)}
           mengeJeArtikel={mengeJeArtikel(eigenePositionen)}
           zeileId={aktiveZeile.id}
@@ -107,6 +114,7 @@ export function VerzehrEinzelansicht({
       <Fussleiste
         aktion={aktionJeZeile?.[aktiveZeile.id]}
         onNaechstePerson={zeilen.length >= 2 ? () => wechsleZu(naechsteZeile.id) : undefined}
+        className={fussleisteClassName}
       />
     </div>
   );
@@ -114,13 +122,17 @@ export function VerzehrEinzelansicht({
 
 // Fixiert am Viewport-Rand statt `sticky bottom-0`, damit sie auch bei kurzem Inhalt unten steht
 // (ADR-054 D3). Der Platzhalter gleicher Höhe hält das Inhaltsende frei, damit die Leiste keine
-// Zeile verdeckt; der Safe-Area-Abstand hält sie über der Home-Leiste mobiler Geräte.
+// Zeile verdeckt; der Safe-Area-Abstand hält sie über der Home-Leiste mobiler Geräte. Die innere
+// Breite spiegelt die `max-w-3xl` beider Konsumenten, deren seitliches Padding kommt per
+// `className` herein.
 function Fussleiste({
   aktion,
   onNaechstePerson,
+  className,
 }: {
   aktion: ReactNode;
   onNaechstePerson: (() => void) | undefined;
+  className: string | undefined;
 }) {
   if (!aktion && !onNaechstePerson) return null;
 
@@ -135,7 +147,7 @@ function Fussleiste({
         aria-label="Weiter"
         className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+        <div className={joinClasses("mx-auto flex max-w-3xl items-center gap-3 py-3", className)}>
           {aktion}
           {onNaechstePerson && (
             <Button onClick={onNaechstePerson} className="ml-auto">

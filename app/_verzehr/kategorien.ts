@@ -9,8 +9,8 @@ import type { VerzehrArtikel } from "./artikel-anzeige";
 // deaktivierten Artikeln (ADR-026 D3) – er erscheint nur bei Personen, die solche Positionen haben.
 export type VerzehrKategorie = CatalogCategory | "inaktiv";
 
-// Getränke, Kaffee, Essen – Reihenfolge des Umschalters und der Kopf-Aufschlüsselung (spec AK2.4).
-export const KATEGORIE_REIHENFOLGE: readonly CatalogCategory[] = ["getraenk", "kaffee", "essen"];
+// Getränke, Kaffee, Essen – Reihenfolge des Umschalters und seiner Vorwahl (spec AK2.4).
+const KATEGORIE_REIHENFOLGE: readonly CatalogCategory[] = ["getraenk", "kaffee", "essen"];
 
 // Eigene Labels statt `CATEGORY_LABEL`: der Umschalter benennt die Gruppe („Getränke"), die
 // Verwaltung den einzelnen Artikel („Getränk").

@@ -21,10 +21,6 @@ export function ArtikelListe({
   action: VerzehrFormAction;
   editable: boolean;
 }) {
-  if (artikel.length === 0) {
-    return <p className="text-sm text-muted">Keine Artikel im Katalog.</p>;
-  }
-
   return (
     <ul className="flex flex-col gap-4">
       {gruppiereArtikel(artikel).map((gruppe) => (

@@ -390,10 +390,14 @@ describe("VerzehrEinzelansicht – Lese-Ansicht und Layout (spec-370 AK6.2/AK1.3
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
 
     fireEvent.click(chip("Bernd"));
-    fireEvent.click(kategorie("Getränke"));
-
     expect(aktivePerson()).toBe("Bernd");
     expect(screen.getByTestId("menge")).toHaveTextContent("3");
+    expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
+
+    // Umschalter bleibt bedienbar: Wechsel auf eine andere als die vorgewählte Kategorie.
+    fireEvent.click(kategorie("Essen"));
+    expect(kategorie("Essen")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { level: 3, name: "Schnitzel" })).toBeInTheDocument();
     expect(screen.getByTestId("menge")).toHaveAttribute("data-editable", "false");
     expect(naechstePerson()).toBeEnabled();
   });
@@ -418,5 +422,16 @@ describe("VerzehrEinzelansicht – Lese-Ansicht und Layout (spec-370 AK6.2/AK1.3
     renderAnsicht({ kopfClassName: "-mx-6 px-6" });
     const mit = screen.getByRole("group", { name: "Teilnehmer auswählen" }).parentElement!;
     expect(mit).toHaveClass("-mx-6", "px-6");
+  });
+
+  it("should_takeFooterPaddingFromConsumer_when_fussleisteClassNameGiven", () => {
+    // Lesson #188: der Innenabstand der Fußleiste folgt dem Seiten-Padding des Konsumenten.
+    const { unmount } = renderAnsicht();
+    const ohne = naechstePerson().parentElement!;
+    expect(ohne.className).not.toMatch(/\bpx-\d/);
+    unmount();
+
+    renderAnsicht({ fussleisteClassName: "px-6" });
+    expect(naechstePerson().parentElement).toHaveClass("mx-auto", "max-w-3xl", "px-6");
   });
 });

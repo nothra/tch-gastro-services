@@ -30,8 +30,10 @@ import {
 // Vor der Namenswahl bleibt unter den Fragen eine Nur-Lese-Liste Name + Gesamt sichtbar
 // (spec-370 AK6.3, ADR-054 D4; vormals die volle Erfassung, spec-54 AC B).
 
-// Seitlicher Bleed des sticky Blocks, passend zum `p-6` der Theken-Seite (ADR-054 D3, #205).
+// Seitlicher Bleed des sticky Blocks und Innenabstand der Fußleiste, passend zum `p-6` der
+// Theken-Seite (ADR-054 D3, #205).
 const KOPF_BLEED = "-mx-6 px-6";
+const FUSSLEISTE_PADDING = "px-6";
 
 // Liest Erfasser + Ziel geräte-lokal über useSyncExternalStore (kein set-state-in-effect, Codify
 // #49): Server-Snapshot ist `null`, der Client-Snapshot der localStorage-Wert. Nach jedem Schreiben
@@ -101,6 +103,7 @@ export function IdentityGate({
         editable={false}
         initialeZeileId={null}
         kopfClassName={KOPF_BLEED}
+        fussleisteClassName={FUSSLEISTE_PADDING}
       />
     );
   }
@@ -162,6 +165,7 @@ export function IdentityGate({
         // (ADR-039 D1): die Einzelansicht kennt weder Token noch Storage-Schema.
         onFokusWechsel={(id) => writeZielId(token, id)}
         kopfClassName={KOPF_BLEED}
+        fussleisteClassName={FUSSLEISTE_PADDING}
       />
     </div>
   );

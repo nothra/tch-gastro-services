@@ -245,6 +245,16 @@ describe("VerzehrPage", () => {
     expect(screen.getByRole("main")).toHaveClass("p-6");
   });
 
+  it("should_passConsumerPaddingToFooter_when_rendered", async () => {
+    // Lesson #188: Fußleisten-Inhalt fluchtet mit dem `p-6` dieses <main>.
+    arrangeZweiZeilen();
+
+    render(await VerzehrPage(seite("v-1")));
+
+    const naechste = screen.getByRole("button", { name: "Nächste Person →" });
+    expect(naechste.parentElement).toHaveClass("px-6");
+  });
+
   it("should_showPositionMenge_when_positionExists", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);

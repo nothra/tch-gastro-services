@@ -67,8 +67,12 @@ function naechstePerson(page: Page) {
   return page.getByRole("button", { name: "Nächste Person →" });
 }
 
-async function aktivePerson(page: Page) {
-  return page.getByRole("heading", { level: 2 }).innerText();
+// Auto-wiederholende Assertion statt einmaligem `innerText()`: direkt nach Laden/Neuladen rendert
+// die Theke serverseitig Schritt 1 des Gates mit zwei h2 („Wer bist du?" + „Bisher erfasst"), erst
+// nach der Hydrierung steht der Kopf der Einzelansicht allein da.
+async function expectAktivePerson(page: Page, name: string) {
+  await expect(page.getByRole("heading", { level: 2, name, exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
 }
 
 async function box(locator: Locator) {
@@ -134,7 +138,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     await expect(page.getByRole("heading", { name: /^Verzehr · / })).toBeVisible();
 
     // ── AK1a.1/AK1a.5: ohne Personenbezug ist die erste Person aktiv ───────────────────────
-    expect(await aktivePerson(page)).toBe(LANGER_NAME);
+    await expectAktivePerson(page, LANGER_NAME);
     await expect(chips(page).getByRole("button", { pressed: true })).toHaveCount(1);
 
     // ── AK4.1/AK4.2: gemessene Touch-Ziele ─────────────────────────────────────────────────
@@ -152,7 +156,8 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     // ── AK1.2: langer Name höchstens zweizeilig, Gesamt einzeilig ──────────────────────────
     const name = page.getByRole("heading", { level: 2 });
     expect(await zeilenzahl(name)).toBeLessThanOrEqual(2);
-    const gesamt = page.getByText(/^\d+,\d{2} €$/).first();
+    // Auf den Kopf begrenzt (Elternblock der Namens-Überschrift), nicht auf die Artikelpreise.
+    const gesamt = name.locator("..").getByText(/^\d+,\d{2} €$/);
     expect(await zeilenzahl(gesamt)).toBe(1);
 
     // ── AK1.4: Kopf zeigt nach Server-Bestätigung den neuen Wert; „−" wird aktiv ───────────
@@ -195,7 +200,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     await umschalter(page).getByRole("button", { name: "Kaffee" }).click();
     await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight }));
     await naechstePerson(page).click();
-    expect(await aktivePerson(page)).toBe(ZWEITE);
+    await expectAktivePerson(page, ZWEITE);
     await expect(umschalter(page).getByRole("button", { name: "Kaffee" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -204,7 +209,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
 
     // ── AK5.2: Umlauf von der letzten zur ersten Person ────────────────────────────────────
     await naechstePerson(page).click();
-    expect(await aktivePerson(page)).toBe(LANGER_NAME);
+    await expectAktivePerson(page, LANGER_NAME);
 
     // ── AK7.2: dunkel ebenfalls ohne Seiten-Scroll ─────────────────────────────────────────
     await page.emulateMedia({ colorScheme: "dark" });
@@ -217,7 +222,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
   }) => {
     await login(page);
     await page.goto(`${detailPfad}/verzehr?zeile=00000000-0000-4000-8000-000000000000`);
-    expect(await aktivePerson(page)).toBe(LANGER_NAME);
+    await expectAktivePerson(page, LANGER_NAME);
   });
 
   test("Theke: Nur-Lese-Liste vor der Namenswahl, danach Einzelansicht ohne Kassieren", async ({
@@ -250,8 +255,8 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     await theke.getByRole("combobox", { name: "Wer bist du?" }).selectOption({ label: ZWEITE });
     await theke
       .getByRole("combobox", { name: "Für wen möchtest du einen Verzehr erfassen?" })
-      .selectOption({ index: 1 });
-    expect(await aktivePerson(theke)).toBe(ZWEITE);
+      .selectOption({ label: `Für mich (${ZWEITE})` });
+    await expectAktivePerson(theke, ZWEITE);
 
     // ── AK5.5/AK6.1: dieselbe Einzelansicht, aber ohne Kassieren-Weg ───────────────────────
     await expect(naechstePerson(theke)).toBeVisible();
@@ -264,9 +269,9 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
 
     // ── AK1a.2: Wechsel merkt das Ziel geräte-lokal (übersteht Neuladen) ───────────────────
     await naechstePerson(theke).click();
-    expect(await aktivePerson(theke)).toBe(LANGER_NAME);
+    await expectAktivePerson(theke, LANGER_NAME);
     await theke.reload();
-    expect(await aktivePerson(theke)).toBe(LANGER_NAME);
+    await expectAktivePerson(theke, LANGER_NAME);
 
     await theke.emulateMedia({ colorScheme: "dark" });
     await expectKeinHorizontalerSeitenScroll(theke);

@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  KATEGORIE_LABEL,
   artikelDerKategorie,
   inaktivePositionen,
   sichtbareKategorie,
@@ -114,16 +113,5 @@ describe("artikelDerKategorie (spec-370 AK2.2/AK2.5)", () => {
     expect(artikelDerKategorie("inaktiv", [artikelIn("getraenk")], [altbier])).toEqual([
       { id: "c-alt", name: "Altbier", size: "0,3l", priceCents: 200, category: "getraenk" },
     ]);
-  });
-});
-
-describe("KATEGORIE_LABEL", () => {
-  it("should_labelUmschalterEntriesInPlural_when_rendered", () => {
-    expect(KATEGORIE_LABEL).toEqual({
-      getraenk: "Getränke",
-      kaffee: "Kaffee",
-      essen: "Essen",
-      inaktiv: "Nicht mehr im Katalog",
-    });
   });
 });

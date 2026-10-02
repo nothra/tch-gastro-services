@@ -10,8 +10,8 @@ import type { VerzehrZeile } from "./verzehr-props";
 // (spec-54 AC B); die Erfassung selbst ist die Einzelansicht. Bewusst ohne Aufschlüsselung,
 // Artikel und Bedienelemente – und billig entfernbar, falls die Produktentscheidung kippt.
 
-// Geteilt mit app/veranstaltung/[id]/verzehr/page.tsx (#187): Veranstalter ohne Teilnehmer. Liegt
-// in diesem Server-tauglichen Modul statt in der Client-Einzelansicht, weil ein Server Component
+// Leer-Hinweis der Veranstalter-Seite app/veranstaltung/[id]/verzehr/page.tsx (#187; die Theke hat
+// einen eigenen Text). Liegt in diesem Server-tauglichen Modul statt in der Client-Einzelansicht, weil ein Server Component
 // aus einem "use client"-Modul nur Client-Referenzen statt Werte importiert.
 export const KEIN_TEILNEHMER_HINWEIS =
   "Noch keine Teilnehmer erfasst – zuerst Teilnehmer hinzufügen.";

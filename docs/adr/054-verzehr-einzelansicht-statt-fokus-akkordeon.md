@@ -90,7 +90,8 @@ unverändert. Neu: optionale `kopfClassName` (D3).
   `p-6`). Die Komponente kodiert **kein** Eltern-Padding mehr – das ist der Kern von #205 und
   folgt der Lesson „Fremd-Layout-Offset vom Konsumenten via `className`" (#188).
 - Fußleiste („Nächste Person →" + optional `aktionJeZeile`-Baustein) ist `fixed inset-x-0
-  bottom-0` mit innerem `mx-auto max-w-3xl`, Safe-Area-Innenabstand
+  bottom-0` mit innerem `mx-auto max-w-3xl` (seitliches Padding per `fussleisteClassName` vom
+  Konsumenten, derzeit `px-6` passend zu `p-6` – gleiche Regel wie beim Bleed), Safe-Area-Innenabstand
   (`env(safe-area-inset-bottom)`) und einem Platzhalter gleicher Höhe am Ende des Inhalts, damit
   nichts verdeckt wird. `sticky bottom-0` genügt nicht: bei kurzem Inhalt stünde die Leiste
   mitten auf der Seite statt am Bildschirmrand.
