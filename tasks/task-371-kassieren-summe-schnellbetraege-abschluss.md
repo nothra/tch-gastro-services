@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -82,6 +82,10 @@ Abschließen/Wieder öffnen nur noch im Kopf der Detailseite, mit Bestätigung.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Runde 1 (2026-10-03): **APPROVED**, 0 kritisch / 0 wichtig / 3 Nitpicks
+  (Details: [`review-371.md`](review-371.md)). Nitpicks: Fokus nach erfolgreichem
+  Statuswechsel (Kandidat für #372), stehende Erfolgs-Notice nach erneutem Tippen,
+  Abschluss-Link in der Summenkarte auch bei abgeschlossener Veranstaltung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
