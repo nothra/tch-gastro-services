@@ -39,7 +39,25 @@ werden eigene Symbol-Schaltflächen im Seitenkopf (Teilen bzw. Papierkorb). Spec
 - [ ] FS3 Fehler beim Speichern → Dialog bleibt offen, Werte bleiben
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+ADR: `docs/adr/055-detailseite-kopfaktionen-symbol-schaltflaechen.md` (Proposed → beim
+Implementieren Accepted setzen).
+
+- Symbole als eigene Inline-SVGs `app/components/ui/icons.tsx` (`currentColor`, `aria-hidden`),
+  ggf. Lucide-Pfade mit ISC-Hinweis – keine neue Abhängigkeit (D1).
+- Neuer Baustein `app/components/ui/IconButton.tsx`: Pflicht-`label` → `aria-label`/`title`,
+  44 × 44 px, `tone` neutral/danger; Basisklassen aus `Button.tsx` exportieren (D2).
+- `ZugangDialog` → verallgemeinerter `KopfDialog` (label/icon/title/children), alte Datei + Test
+  löschen; zweimal genutzt: Teilen (mit `ZugangTeilen` als Server-children) und Einstellungen
+  (`KatalogWechsel` + bei datierter Veranstaltung `VeranstaltungMetaForm`). Dialog bleibt nach
+  Speichern offen (D3).
+- `VeranstaltungLoeschen` auf `ConfirmDialog` + `IconButton tone="danger"`; Ablehnung im
+  Bestätigungsdialog, Action-Zustand je Öffnen erneuern (D4).
+- Aktionszone: Badge · Teilen · Einstellungen · Papierkorb; Theke ohne Papierkorb,
+  abgeschlossen nur Badge; `PageHeader` unverändert (D5).
+- `KatalogWechsel`/`VeranstaltungMetaForm` auf Field/Button/Notice + Tokens; Dateien in
+  `eslint/ui-token-files.mjs`, `ZugangDialog.tsx`-Eintrag raus (D6).
+- E2E-Helfer `oeffneEinstellungen`/`schliesseEinstellungen`, betroffene Specs, Capture-Spec,
+  Screenshots und Anleitung nachziehen; ADR-053 D6 hat bereits den Ablöse-Hinweis.
 
 ## Offene Fragen
 Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/architecture` (Icon-Quelle, Schließen nach Speichern) + Ort der Lösch-Ablehnungsmeldung.

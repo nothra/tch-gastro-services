@@ -132,10 +132,10 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
 
 - [x] **Q1 (entschieden durch den Nutzer, 2026-10-02):** Löschen liegt nicht im Dialog
   „Einstellungen", sondern als Papierkorb-Symbol im Seitenkopf (AK11–AK13) – damit entfällt die
-  Frage nach verschachtelten Dialogen. Offen für /architecture bleibt nur, wo die
-  Ablehnungsmeldung (AK12) ohne umgebenden Einstellungsbereich angezeigt wird.
-- [ ] **Q2 (für /architecture):** Woher kommen die Symbole (Teilen, Zahnrad, Papierkorb)? Im Projekt gibt es
+  Frage nach verschachtelten Dialogen. Die Ablehnungsmeldung (AK12) steht im
+  Bestätigungsdialog (ADR-055 D4).
+- [x] **Q2 (entschieden in ADR-055 D1/D2):** Woher kommen die Symbole (Teilen, Zahnrad, Papierkorb)? Im Projekt gibt es
   bislang keine Icon-Bibliothek – eigene Inline-SVGs oder neue Abhängigkeit.
-- [ ] **Q3 (für /architecture):** Schließt der Dialog „Einstellungen" nach erfolgreichem
+- [x] **Q3 (entschieden in ADR-055 D3 – bleibt offen):** Schließt der Dialog „Einstellungen" nach erfolgreichem
   Speichern von Stammdaten bzw. Katalogwechsel automatisch, oder bleibt er offen? (Nutzersicht
   ist durch AK7/FS3 festgelegt; die Wahl beeinflusst nur den Ablauf.)

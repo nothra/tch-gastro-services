@@ -138,6 +138,10 @@ Dialog-Grundlage):
 
 ### D6 · Seitenstruktur und Abschließen
 
+> **Teilweise abgelöst durch [ADR-055](055-detailseite-kopfaktionen-symbol-schaltflaechen.md)
+> (#391):** Einstellungen sind kein `<details>` am Seitenende mehr, sondern ein Dialog hinter
+> einem Zahnrad im Seitenkopf; Teilen und Löschen sind eigene Symbol-Schaltflächen dort.
+
 - Die Seite bleibt eine Server Component und besteht nur noch aus Komposition: `PageHeader`
   (mit `Badge` für den Status), Kachel-Reihe, Teilnehmerliste mit `+ Teilnehmer`-Dialog,
   Einstellungen als natives `<details>` (kein JS, Standard geschlossen).
