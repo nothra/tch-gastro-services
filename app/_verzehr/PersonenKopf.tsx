@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/money";
+import { KATEGORIE_LABEL } from "./kategorien";
 import type { ZeileSummen } from "./summen";
 
 // Kopf der aktiven Person in der Einzelansicht (spec-370 AK1, ADR-054 D1): Name groß links,
@@ -16,8 +17,8 @@ export function PersonenKopf({ name, summen }: { name: string; summen: ZeileSumm
         </p>
       </div>
       <p className="text-sm text-muted tabular-nums">
-        Getränke {formatCents(summen.getraenkeCents)} · Kaffee {formatCents(summen.kaffeeCents)} ·
-        Essen {formatCents(summen.essenCents)}
+        {KATEGORIE_LABEL.getraenk} {formatCents(summen.getraenkeCents)} · {KATEGORIE_LABEL.kaffee}{" "}
+        {formatCents(summen.kaffeeCents)} · {KATEGORIE_LABEL.essen} {formatCents(summen.essenCents)}
       </p>
     </div>
   );

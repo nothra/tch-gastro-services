@@ -98,8 +98,10 @@ export function VerzehrEinzelansicht({
         />
       </div>
 
-      {/* Key je Person: Fehler- und Pending-Zustand der MengeControls (useActionState) gehören der
-          Person, bei der getippt wurde, und dürfen beim Wechsel nicht mitwandern (spec FS1/AK4.4). */}
+      {/* Key je Person: Fehler- und Pending-Zustand der MengeControls (useActionState) gehören
+          der Person, bei der getippt wurde, und dürfen beim Wechsel nicht mitwandern (spec
+          FS1/AK4.4). Er gilt, solange die Person angezeigt wird – ein später eintreffender Fehler
+          und ein noch laufendes Pending gehen beim Wegwechseln verloren (ADR-054 D2). */}
       {kategorie !== null && (
         <ArtikelListe
           key={aktiveZeile.id}

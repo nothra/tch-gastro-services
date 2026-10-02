@@ -60,7 +60,7 @@ Der Typ `VerzehrZeile` zieht nach `verzehr-props.ts` (zum Adapter, der ihn erzeu
 Die route-neutrale Prop-Schnittstelle bleibt die aus ADR-039 D1/#308 (`zeilen`, `artikel`,
 `positionen`, `action`, `editable`, `initialOpenId` → umbenannt **`initialeZeileId`**,
 `onFokusWechsel`, `aktionJeZeile`) – damit bleiben beide Konsumenten bis auf Namen/Import
-unverändert. Neu: optionale `kopfClassName` (D3).
+unverändert. Neu: optionale `kopfClassName` und `fussleisteClassName` (D3).
 
 ### D2 · Zustand: aktive Person + Kategorie als lokaler Client-State der Einzelansicht
 
@@ -73,6 +73,15 @@ unverändert. Neu: optionale `kopfClassName` (D3).
   Essen; sie **bleibt beim Personenwechsel erhalten** (spec AK2.4). Ist die gemerkte Kategorie für
   die neue Person nicht vorhanden (nur möglich beim Eintrag „Nicht mehr im Katalog", D4), fällt sie
   auf die erste vorhandene zurück – ebenfalls beim Rendern abgeleitet.
+- **Positionszustand gehört der angezeigten Person:** Die Artikelliste ist je Person gekeyt, damit
+  Fehler- und Pending-Zustand der `MengeControl`s (`useActionState`) beim Wechsel nicht auf die
+  nächste Person wandern (spec FS1/AK4.4). Die Grenze ist bewusst: der Zustand gilt, **solange die
+  Person angezeigt wird**. Trifft ein Fehler erst nach dem Wegwechseln ein, wird er nicht mehr
+  angezeigt; nach dem Rückweg sind ihre Knöpfe trotz noch laufender Aktion wieder aktiv. Kein
+  Datenverlust – das ±1-Delta-Protokoll bleibt, und die Menge kommt nach der Bestätigung vom
+  Server. Keine Regression: das Einklappen im Akkordeon (ADR-039) hängte den Kartenkörper samt
+  `MengeControl` ebenso aus. Zustand je Person über den Wechsel hinweg zu halten, wäre mehr
+  Komplexität ohne belegten Bedarf (YAGNI).
 - **Kein URL-/Storage-Zustand** für die Kategorie (YAGNI). Der Personenbezug bleibt wie bisher
   `?zeile=` (F5) bzw. die geräte-lokale Ziel-Merkung (F7, über `onFokusWechsel`).
 - „Nächste Person →" läuft **zyklisch** (letzte → erste, spec AK5.2) und ist nur bei ≥ 2 Teilnehmern sichtbar.
@@ -96,13 +105,13 @@ unverändert. Neu: optionale `kopfClassName` (D3).
   nichts verdeckt wird. `sticky bottom-0` genügt nicht: bei kurzem Inhalt stünde die Leiste
   mitten auf der Seite statt am Bildschirmrand.
 
-### D4 · `ZeileKarte` entfällt; `VerzehrErfassung` schrumpft zur Nur-Lese-Übersicht
+### D4 · `ZeileKarte` und `VerzehrErfassung` entfallen; neu `VerzehrUebersicht` als Nur-Lese-Liste
 
 `ZeileKarte` (inkl. `collapsible`/`open`/`onToggle`) hat nach dem Umbau keinen Konsumenten außer
-`VerzehrErfassung` und wird entfernt. `VerzehrErfassung` bleibt **nur** für den Zustand vor der
-Namenswahl der Theke (Identity-Gate Schritt 1/2, spec-54 AC B) und wird zu einer schlanken
-Nur-Lese-Liste **Name + Gesamtbetrag** je Teilnehmer (Name `VerzehrUebersicht`; `KEIN_TEILNEHMER_HINWEIS`
-wandert mit). Begründung: Der Auftraggeber hat die Einzelansicht für die *Erfassung* entschieden,
+`VerzehrErfassung` und wird entfernt. `VerzehrErfassung.tsx` wird gelöscht; für den Zustand vor der
+Namenswahl der Theke (Identity-Gate Schritt 1/2, spec-54 AC B) tritt an seine Stelle die neue,
+schlanke Nur-Lese-Liste **Name + Gesamtbetrag** je Teilnehmer `VerzehrUebersicht.tsx`
+(`KEIN_TEILNEHMER_HINWEIS` wandert mit). Begründung: Der Auftraggeber hat die Einzelansicht für die *Erfassung* entschieden,
 nicht das Entfernen der Übersicht vor der Namenswahl – das wäre eine eigene Produktentscheidung
 (spec-370, 2026-10-02 bestätigt: Nur-Lese-Liste Name + Gesamt bleibt). `VerzehrUebersicht` ist billig
 entfernbar, falls sich das ändert. Positionen auf deaktivierten Artikeln (ADR-026 D3) erscheinen
@@ -170,8 +179,9 @@ Auftraggeber geändert haben will: die Darstellung. Sie ist vollständig reversi
 Client-Komponente, Schnittstelle zu den Konsumenten praktisch gleich). Kleine Bausteine mit
 reinen Hilfsfunktionen (`kategorien.ts`, `gruppiereArtikel`) halten die Testbarkeit hoch; der
 einzige browserabhängige Teil (Maße) ist bewusst in den E2E-Test verlegt statt in unzuverlässige
-jsdom-Assertions. Die in ADR-052 festgelegten Bausteine und das Farb-Gate gelten für die
-berührten Dateien ab sofort (`app/_verzehr/` kommt in `eslint/ui-token-files.mjs`).
+jsdom-Assertions. Die in ADR-052 festgelegten Bausteine und das Farb-Gate gelten ab sofort
+für `app/_verzehr/` (kommt in `eslint/ui-token-files.mjs`, spec AK7.1); vorbestehende rohe Farben
+der Konsumenten-Seiten bleiben Sache von #369/#374.
 
 ## Konsequenzen
 
@@ -195,7 +205,9 @@ berührten Dateien ab sofort (`app/_verzehr/` kommt in `eslint/ui-token-files.mj
   Startzustand „keine offen", Read-only „alle eingeklappt", Name `FokusListe`); D1 (Callback) gilt
   weiter. Banner an den betroffenen Stellen.
 - [ADR-035](035-selbstbedienung-erfasser-ziel-fokus.md): D2 (Karte als Akkordeon) und D3 (Chip-
-  Leiste als Akkordeon-Kopf) **abgelöst**; D1, D4, D5 (Read-only ohne Gate), D6 gelten fort.
+  Leiste als Akkordeon-Kopf) **abgelöst**; D5 **teilweise** (fort gilt: Read-only ohne Gate,
+  kein Schreibzugriff; das Akkordeon-Layout „alle eingeklappt" ist abgelöst); D1, D4, D6 gelten fort.
+- [ADR-026](026-verzehr-soft-geloeschter-artikel.md): D3 nennt `VerzehrErfassung` (gelöscht); Banner im Status, Verhalten gilt fort.
 - [spec-54](../specs/spec-54-selbstbedienung-link.md) AC B (Liste mit laufenden Summen) – Verweis
   auf diese ADR und spec-370.
 - `docs/routes.md`: keine Routen-/Zugriffsänderung; Funktionsbeschreibung der F5-Route ggf. präzisieren.

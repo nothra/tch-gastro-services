@@ -1,7 +1,7 @@
 # ADR 026: Verzehr auf soft-gelöschtem Katalogartikel – sichtbar und korrigierbar
 
 ## Status
-Accepted
+Accepted – **D3 (UI-Ort) teilweise überholt durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)** (#370): `VerzehrErfassung` existiert nicht mehr, der Abschnitt „Nicht mehr im Katalog" lebt in `VerzehrEinzelansicht`; das fachliche Verhalten (sichtbar + korrigierbar) gilt unverändert.
 
 ## Date
 2026-07-17

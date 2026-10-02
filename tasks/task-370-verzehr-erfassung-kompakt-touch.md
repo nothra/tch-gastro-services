@@ -60,20 +60,20 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
 - [x] **FS5** GIVEN gemerktes Ziel/Erfasser der Theke ist nicht mehr in der Liste (stale) WHEN die Seite lädt THEN greift unverändert die bestehende Stale-Behand…
 
 ## Technische Notizen
-**ADR:** [ADR-054](../docs/adr/054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (Proposed → beim Implementieren auf Accepted flippen). Reine Client-/Präsentationsschicht: keine Migration, keine Dependency, keine neue Route, Actions/Summen/Delta-Protokoll unverändert.
+**ADR:** [ADR-054](../docs/adr/054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (Accepted). Reine Client-/Präsentationsschicht: keine Migration, keine Dependency, keine neue Route, Actions/Summen/Delta-Protokoll unverändert.
 
 **Betroffene Dateien (`app/_verzehr/` + 2 Konsumenten):**
-- NEU `VerzehrEinzelansicht.tsx` (Client; aktive Person + Kategorie, Wechsel, Scroll), `PersonenChips.tsx`, `PersonenKopf.tsx`, `KategorieUmschalter.tsx`, `ArtikelListe.tsx` (inkl. `PositionZeile`), `kategorien.ts` (reine Funktion: sichtbare Kategorien inkl. „Nicht mehr im Katalog").
-- ÄNDERN `MengeControl.tsx` (44 px via Button-Baustein, `−` bei 0 disabled, Tokens), `VerzehrErfassung.tsx` → schlanke Nur-Lese-Übersicht `VerzehrUebersicht` (Name + Gesamt; nur Theke vor der Namenswahl), `verzehr-props.ts` (falls nötig).
-- ENTFERNEN `FokusListe.tsx`(+Test), `ZeileKarte` (samt Collapse-Props). Tests dazu **ersetzen**, nicht ersatzlos löschen (spec AK7.3).
-- Konsumenten: `app/veranstaltung/[id]/verzehr/page.tsx` (rendert `VerzehrEinzelansicht`, `initialeZeileId = Personenbezug`, `kopfClassName`, `aktionJeZeile` bleibt), `app/theke/[token]/IdentityGate.tsx` (+Read-only-Zweig; `initialeZeileId = zielId`, `onFokusWechsel` bleibt).
+- NEU `VerzehrEinzelansicht.tsx` (Client; aktive Person + Kategorie, Wechsel, Scroll), `PersonenChips.tsx`, `PersonenKopf.tsx`, `KategorieUmschalter.tsx`, `ArtikelListe.tsx` (inkl. `PositionZeile`), `kategorien.ts` (reine Funktion: sichtbare Kategorien inkl. „Nicht mehr im Katalog"), `VerzehrUebersicht.tsx` (schlanke Nur-Lese-Übersicht Name + Gesamt; nur Theke vor der Namenswahl).
+- ÄNDERN `MengeControl.tsx` (44 px via Button-Baustein, `−` bei 0 disabled, Tokens), `verzehr-props.ts` (Typ `VerzehrZeile`).
+- ENTFERNEN `FokusListe.tsx`(+Test), `VerzehrErfassung.tsx` samt `ZeileKarte` (und Collapse-Props). Tests dazu **ersetzen**, nicht ersatzlos löschen (spec AK7.3).
+- Konsumenten: `app/veranstaltung/[id]/verzehr/page.tsx` (rendert `VerzehrEinzelansicht`, `initialeZeileId = Personenbezug`, `kopfClassName`, `fussleisteClassName`, `aktionJeZeile` bleibt), `app/theke/[token]/IdentityGate.tsx` (+Read-only-Zweig; `initialeZeileId = zielId`, `kopfClassName`, `fussleisteClassName`, `onFokusWechsel` bleibt).
 - `eslint/ui-token-files.mjs`: `app/_verzehr/` ergänzen; danach `pnpm lint` – keine rohen Farbklassen, kein `dark:`.
 
 **Entscheidungen (Kurzfassung ADR-054):**
 - Aktive Person: `useState`, initial `initialeZeileId` (gültig) sonst erste Zeile; kein „keine aktiv". Stale/entfernte Zeile → beim Rendern auf erste ableiten (kein Effekt, Lesson `set-state-in-effect`).
 - Kategorie: lokaler State, bleibt beim Personenwechsel; fehlt sie für die neue Person → erste vorhandene (beim Rendern ableiten).
 - Sticky: Chips + Kopf + Umschalter als EIN Block; seitlicher Bleed über `kopfClassName` des Konsumenten (löst #205: kein hartes `-mx-6/px-6` in der route-neutralen Komponente; `scroll-mt-16` entfällt).
-- Fußleiste `fixed inset-x-0 bottom-0`, innen `mx-auto max-w-3xl`, Safe-Area-Padding, Platzhalter gleicher Höhe am Inhaltsende. Enthält „Nächste Person →" (zyklisch: letzte → erste; nur bei ≥ 2 Teilnehmern) + `aktionJeZeile`-Baustein (Kassieren, #308).
+- Fußleiste `fixed inset-x-0 bottom-0`, innen `mx-auto max-w-3xl` + seitliches Padding per `fussleisteClassName` des Konsumenten, Safe-Area-Padding, Platzhalter gleicher Höhe am Inhaltsende. Enthält „Nächste Person →" (zyklisch: letzte → erste; nur bei ≥ 2 Teilnehmern) + `aktionJeZeile`-Baustein (Kassieren, #308).
 - Personenwechsel: `requestAnimationFrame` → `window.scrollTo?.({ top: 0 })` (guarded); aktiver Chip per `scrollIntoView?.({ inline: "center", block: "nearest" })`. rAF-Timing mit `raf-stub.ts` testen.
 
 **TDD-Reihenfolge:** (1) `kategorien.ts` (reine Tests: Reihenfolge, fehlende Kategorie, inaktive Positionen) → (2) `MengeControl` 44 px/disabled → (3) `PersonenKopf`, `KategorieUmschalter`, `ArtikelListe` (Gruppen- und Einzelartikel gleiches Muster, leere Größe einheitlich) → (4) `PersonenChips` (aria-pressed, Marke mit Textalternative) → (5) `VerzehrEinzelansicht` (Start-Person, Fallbacks, Kategorie bleibt, `onFokusWechsel`, Nächste Person, read-only, Fehler inline) → (6) Konsumenten + `IdentityGate`-Tests anpassen → (7) Lint-Liste erweitern → (8) E2E.
@@ -123,6 +123,34 @@ Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Ka
   gelaufen (in dieser Session kein Zugriff auf `.env.local`, keine Wegwerf-DB; geteilte Dev-DB
   bewusst nicht beschrieben, Lesson #346). Geändert sind dort nur Assertions/Locators; vor dem
   Merge mit `E2E_VERZEHR_370=1` gegen eine Wegwerf-DB wiederholen.
+
+**Rework nach Review-Runde 2 (/implement, 2026-10-02):**
+- Wichtig 1–3 (ADR-Drift): ADR-054 D1 nennt `fussleisteClassName`; ADR-035 D5 trägt ein
+  Teil-Banner (Read-only ohne Gate gilt fort, Layout abgelöst), Statuszeile von ADR-035 und der
+  Drift-Absatz in ADR-054 angeglichen; ADR-039 D4-Banner: `VerzehrErfassung` entfällt,
+  `VerzehrUebersicht` vor der Namenswahl.
+- Wichtig 4: Grenze des Positionszustands als bewusste Entscheidung in ADR-054 D2 und im
+  Key-Kommentar („gilt, solange die Person angezeigt wird"). Rückweg-Tests A → B → A ergänzt
+  (Pending: Knöpfe wieder aktiv; später eintreffender Fehler verworfen). Kommentar
+  „Spiegel-Richtung" korrigiert (Test heißt jetzt „Gegenrichtung"). Mutationsbeleg in dieser
+  Session: `key` entfernt → alle 5 Tests der Datei rot (auch mit `--sequence.shuffle`), `key`
+  zurück → grün.
+- Selbstfund beim Mutationsbeleg: der Test „später eintreffender Fehler" war ohne `key` zunächst
+  **grün aus dem falschen Grund**. Die nie auflösenden Promises der Pending-Tests derselben Datei
+  hielten React 19s modulweiten Async-Action-Scope offen, sodass spätere Action-Ergebnisse nie
+  committet wurden (isoliert per Sonde belegt: ohne die Vortests zeigte die Ansicht den Fehler bei
+  Bernd). Fix: offene Aktionen werden über `offeneAktion()` registriert und im `afterEach`
+  aufgelöst. Kandidat für `/codify` (Ergänzung zur #369-Lesson „nie auflösendes Promise").
+- Nitpicks: Leerzeilen nach Bannern (ADR-035 D3, ADR-039 D2), #187-Banner „(überholt durch
+  ADR-054)", ADR-039 D1-Hinweis auf `initialeZeileId`, ADR-054 D4-Überschrift/Text und
+  ADR-052-Satz auf `app/_verzehr/` eingegrenzt, Technische Notizen aktualisiert, Kommentarlängen,
+  Fußleisten-Test nur noch `px-6`, Testimporte `VerzehrArtikel` aus `./artikel-anzeige`,
+  `PersonenKopf` nutzt `KATEGORIE_LABEL`, E2E `erstesMinus` + einmal gemessener Stepper.
+- Bewusst offen: Konstanten (F7) vs. Literale (F5) für Bleed/Padding – F7 nutzt die Werte in zwei
+  Zweigen, F5 einmal; `gewaehlteKategorie` nach Rückfall auf „inaktiv" und `wechsleZu` auf den
+  aktiven Chip (vom Review als harmlos eingestuft, spec-konform).
+- Gates: Lint, `tsc --noEmit`, Prettier, Vitest für `app/_verzehr`, `app/theke`,
+  `app/veranstaltung/[id]/verzehr` grün (186 Tests). E2E-Nachtest weiterhin offen (s. o.).
 
 ## Offene Fragen
 Keine – alle am 2026-10-02 entschieden (siehe Spec, Abschnitt „Offene Fragen").

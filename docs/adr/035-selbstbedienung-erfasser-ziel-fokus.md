@@ -1,7 +1,7 @@
 # ADR 035: Selbstbedienung – Erfasser/Ziel-Trennung, Fokus-Akkordeon, geräte-lokale Persistenz
 
 ## Status
-Accepted – **D2 und D3 abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)** (#370): Akkordeon und Chip-Leiste als Akkordeon-Kopf weichen einer Einzelansicht je Person. D1, D4, D5 (Read-only ohne Gate) und D6 gelten fort.
+Accepted – **D2 und D3 abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md)** (#370): Akkordeon und Chip-Leiste als Akkordeon-Kopf weichen einer Einzelansicht je Person. D5 teilweise: Read-only ohne Gate und ohne Schreibzugriff gilt fort, das Akkordeon-Layout ist abgelöst. D1, D4 und D6 gelten fort.
 
 ## Date
 2026-07-20
@@ -56,7 +56,8 @@ aus `zeilen` aufgelöst. Schlüssel: `tch:sb:erfasser:<token>` und `tch:sb:ziel:
 > **Teilweise geändert durch [ADR-039](039-verzehrerfassung-fokusliste-route-neutral.md) (#187):**
 > „F5 bleibt unberührt" gilt nicht mehr – F5 übernimmt dieselbe Fokusliste. `FokusListe` wandert
 > nach `app/_verzehr/` und wird token-/persistenzfrei (Ziel-Merkung via injiziertem Callback).
-> Der Rest von D2 (exportierte `ZeileKarte`, optionale Akkordeon-Props) bleibt gültig.
+> Der Rest von D2 (exportierte `ZeileKarte`, optionale Akkordeon-Props) bleibt gültig
+> (überholt durch ADR-054).
 
 Die per-Teilnehmer-Karte (heute die interne `ZeileKarte` in `VerzehrErfassung.tsx`) wird
 **exportiert** und erhält **optionale** Akkordeon-Props (`collapsible?`, `open?`, `onToggle?`).
@@ -79,6 +80,7 @@ umgekehrt.
 > **Abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) D3 (#370):** Die
 > Chip-Leiste bleibt, ist aber Teil eines sticky Blocks mit Kopf und Kategorie-Umschalter; aktiver
 > Chip per `aria-pressed`, ein Tipp wechselt die Einzelansicht statt eine Karte aufzuklappen.
+
 Oben in `FokusListe` eine **sticky**, horizontal scrollbare **Chip-Leiste**: je Teilnehmer ein
 Button, der aktive (= Ziel) mit `aria-current`. Tippen setzt den Ziel-Teilnehmer, öffnet dessen
 Karte (andere zu), merkt die Wahl (D1) und bringt die Karte per `scrollIntoView` in den
@@ -95,6 +97,12 @@ aktuelle Zeile (Stale-Fallback), wird genau der betroffene Schritt erneut gefrag
 Erfasser → „Wer bist du?"; unbekanntes Ziel (Erfasser bekannt) → direkt „Für wen?".
 
 ### D5 · Read-only im selben Akkordeon-Layout, ohne Gate
+
+> **Teilweise abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (#370):**
+> Fort gilt: Read-only ohne Erfasser-/Ziel-Gate, kein Schreibzugriff, kein Sonderpfad. Das Layout
+> ist abgelöst – die Lesesicht ist die Einzelansicht ab der ersten Person mit nutzbarer Personen-
+> und Kategorie-Wahl, Mengen nur lesend (spec-370 AK6.2), nicht mehr „alle Karten eingeklappt".
+
 Eine **abgeschlossene** Veranstaltung nutzt dieselbe `FokusListe` mit `editable={false}` und
 **ohne** Erfasser-/Ziel-Flow. Standardzustand: **alle Karten eingeklappt** (kein impliziter Fokus);
 die Sticky-Auswahl bleibt zum Aufklappen/Ansehen nutzbar. Kein Sonderpfad, kein Schreibzugriff.

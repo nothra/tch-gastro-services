@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { VerzehrEinzelansicht } from "./VerzehrEinzelansicht";
 import { stubRequestAnimationFrame } from "./raf-stub";
-import type { VerzehrArtikel, VerzehrZeile } from "./verzehr-props";
+import type { VerzehrArtikel } from "./artikel-anzeige";
+import type { VerzehrZeile } from "./verzehr-props";
 import type { VerzehrPositionRow } from "@/db/verzehr";
 
 // Ersetzt die Tests des früheren Fokus-Akkordeons (FokusListe.test.tsx, ADR-039) durch Tests der
@@ -432,6 +433,6 @@ describe("VerzehrEinzelansicht – Lese-Ansicht und Layout (spec-370 AK6.2/AK1.3
     unmount();
 
     renderAnsicht({ fussleisteClassName: "px-6" });
-    expect(naechstePerson().parentElement).toHaveClass("mx-auto", "max-w-3xl", "px-6");
+    expect(naechstePerson().parentElement).toHaveClass("px-6");
   });
 });

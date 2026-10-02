@@ -150,8 +150,8 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     await expectMindestmass(umschalter(page).getByRole("button"), { breite: false });
 
     // ── AK4.3: „−" bei Menge 0 deaktiviert ─────────────────────────────────────────────────
-    const ersteZeile = page.getByRole("button", { name: "Menge verringern" }).first();
-    await expect(ersteZeile).toBeDisabled();
+    const erstesMinus = page.getByRole("button", { name: "Menge verringern" }).first();
+    await expect(erstesMinus).toBeDisabled();
 
     // ── AK1.2: langer Name höchstens zweizeilig, Gesamt einzeilig ──────────────────────────
     const name = page.getByRole("heading", { level: 2 });
@@ -164,7 +164,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     const gesamtVorher = await gesamt.innerText();
     await page.getByRole("button", { name: "Menge erhöhen" }).first().click();
     await expect(gesamt).not.toHaveText(gesamtVorher);
-    await expect(ersteZeile).toBeEnabled();
+    await expect(erstesMinus).toBeEnabled();
     // AK1a.4: Marke „hat Verzehr" am Chip, mit Textalternative.
     await expect(
       chips(page).getByRole("button", { name: `${LANGER_NAME}, Verzehr erfasst` }),
@@ -186,10 +186,8 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     // ── AK5.1/AK7.2: Fußleiste fixiert, verdeckt am Seitenende keine Zeile ──────────────────
     const fussleiste = page.getByRole("navigation", { name: "Weiter" });
     await expect(naechstePerson(page)).toBeInViewport();
-    const letzterStepper = page.getByRole("button", { name: "Menge erhöhen" }).last();
-    expect((await box(letzterStepper)).y + (await box(letzterStepper)).height).toBeLessThanOrEqual(
-      (await box(fussleiste)).y,
-    );
+    const letzterStepper = await box(page.getByRole("button", { name: "Menge erhöhen" }).last());
+    expect(letzterStepper.y + letzterStepper.height).toBeLessThanOrEqual((await box(fussleiste)).y);
     // AK5.5: Kassieren-Weg in der Fußleiste, als Touch-Ziel.
     await expectMindestmass(fussleiste.getByRole("link", { name: "Kassieren →" }), {
       breite: false,

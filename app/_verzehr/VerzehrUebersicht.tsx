@@ -11,8 +11,9 @@ import type { VerzehrZeile } from "./verzehr-props";
 // Artikel und Bedienelemente – und billig entfernbar, falls die Produktentscheidung kippt.
 
 // Leer-Hinweis der Veranstalter-Seite app/veranstaltung/[id]/verzehr/page.tsx (#187; die Theke hat
-// einen eigenen Text). Liegt in diesem Server-tauglichen Modul statt in der Client-Einzelansicht, weil ein Server Component
-// aus einem "use client"-Modul nur Client-Referenzen statt Werte importiert.
+// einen eigenen Text). Liegt in diesem Server-tauglichen Modul statt in der Client-Einzelansicht,
+// weil ein Server Component aus einem "use client"-Modul nur Client-Referenzen statt Werte
+// importiert.
 export const KEIN_TEILNEHMER_HINWEIS =
   "Noch keine Teilnehmer erfasst – zuerst Teilnehmer hinzufügen.";
 

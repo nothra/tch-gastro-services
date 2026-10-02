@@ -39,6 +39,10 @@ Zu klären: (D1) wie `FokusListe` token-/persistenzfrei und route-neutral wird, 
 
 ### D1 · `FokusListe` wird route-neutral und persistenzfrei; Persistenz wird injiziert
 
+> **Namen geändert durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) D1 (#370):**
+> Die Grenze gilt fort, getragen von `VerzehrEinzelansicht` statt `FokusListe`; `initialOpenId`
+> heißt jetzt `initialeZeileId`, und „offene Karte" liest sich als „aktive Person".
+
 > **Ergänzt durch #308:** Die Prop-Aufzählung ist nicht mehr vollständig – `FokusListe` trägt
 > zusätzlich `aktionJeZeile?: Readonly<Record<string, ReactNode>>`: je Zeile ein **fertiger**
 > Baustein des Konsumenten, den die Karte ausschließlich rendert, wenn ihr Körper sichtbar ist
@@ -69,6 +73,7 @@ F7-Identitäts-spezifisch und route-gebunden.
 
 > **Abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (#370):**
 > `FokusListe` existiert nicht mehr; an ihre Stelle tritt `app/_verzehr/VerzehrEinzelansicht.tsx`.
+
 Die Datei zieht von `app/theke/[token]/FokusListe.tsx` nach `app/_verzehr/FokusListe.tsx` (samt
 Test `FokusListe.test.tsx`). Der Name **`FokusListe`** bleibt – er ist in Specs/ADR-035/Kommentaren
 etabliert und im Ordner `_verzehr/` unmissverständlich; ein Rename brächte nur Churn ohne
@@ -103,6 +108,8 @@ eingeklappt – identisch zur F7-Fokusliste.
 > **Teilweise abgelöst durch [ADR-054](054-verzehr-einzelansicht-statt-fokus-akkordeon.md) (#370):**
 > Read-only heißt nicht mehr „alle eingeklappt", sondern Einzelansicht mit nutzbarer Personen- und
 > Kategorie-Wahl, Mengen nur lesend (spec-370 AK6.2). Der Empty-State beim Konsumenten gilt fort.
+> `VerzehrErfassung` entfällt (Schlussabsatz überholt); vor der Namenswahl steht
+> `VerzehrUebersicht` (ADR-054 D4).
 
 > **Geändert durch #308:** Der Personenbezug aus D3 gilt auch für die **abgeschlossene**
 > Veranstaltung – der Wechsel ist reine Navigation und hängt nicht am `editable`-Flag
