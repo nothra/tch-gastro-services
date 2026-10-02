@@ -1,49 +1,47 @@
 # Review: Task 370
 
-> Review-Runde 2 (3 Personas: Logik, Code-Qualität, Architektur), 2026-10-02. Diff-Basis
-> `origin/main...HEAD`, Rework-Commit `768337b`. Alle Findings vom Orchestrator gegen den Code
-> nachverifiziert. Runde 1 (1 kritisch, 4 wichtig, 12 Nitpicks) ist vollständig abgearbeitet bzw.
-> bewusst offen gelassen (rAF-Abbruch, doppelte Summen-/Gruppierlogik → `/refactor`, `?zeile=` nach
-> F5) – siehe Git-Historie dieser Datei. Gates im Orchestrator: `pre-commit.sh` (Lint) grün,
-> Prettier grün, Vitest für `app/_verzehr`, `app/theke`, `app/veranstaltung/[id]/verzehr` grün
-> (184 Tests). Der Mutationsbeleg „K1-Test ohne `key` rot" ist nicht neu gelaufen (keine
-> Freigabe für das Mutationsskript in dieser Session); gestützt auf die Task-Notiz (3/3 rot) und das
-> Codelesen der Code-Qualitäts-Persona.
+> Review-Runde 3 (3 Personas: Logik, Code-Qualität, Architektur), 2026-10-02. Diff-Basis
+> `origin/main` **inklusive Working Tree** – der Rework nach Runde 2 ist noch **nicht committet**
+> (`git status`: 10 geänderte Dateien). Alle Findings vom Orchestrator gegen den Code
+> nachverifiziert. Runde 2 (4 wichtig, 12 Nitpicks) ist vollständig abgearbeitet bzw. bewusst
+> offen gelassen (Konstanten vs. Literale F5/F7, `gewaehlteKategorie` nach „inaktiv", `wechsleZu`
+> auf aktiven Chip) – siehe Git-Historie dieser Datei. Gates im Orchestrator (Working Tree):
+> `pnpm lint` grün, `prettier --check .` grün, `tsc --noEmit` grün, Vitest für `app/_verzehr`,
+> `app/theke`, `app/veranstaltung/[id]/verzehr` grün (186 Tests, 1 skipped = Wegwerf-Sonde).
+> Mutationsbeleg „ohne `key` alle 5 Positionszustand-Tests rot" nicht neu gelaufen; gestützt auf
+> die Task-Notiz und das Codelesen zweier Personas (React-19-Quelltext zum Async-Action-Scope
+> gegengelesen).
 
 ## Kritische Findings (müssen behoben werden)
 
 _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] [docs/adr/054-verzehr-einzelansicht-statt-fokus-akkordeon.md:60-63] D1 zählt die Prop-Schnittstelle auf und endet mit „Neu: optionale `kopfClassName` (D3)" – die im Rework eingeführte `fussleisteClassName` (`app/_verzehr/VerzehrEinzelansicht.tsx:42/53`, gesetzt von beiden Konsumenten) fehlt; nur D3 (`:93`) nennt sie. ADR-Drift nach Rework (Lesson #55/#211). Fix: „Neu: optionale `kopfClassName` und `fussleisteClassName` (D3)."
-- [ ] [docs/adr/035-selbstbedienung-erfasser-ziel-fokus.md:96-99] D5 („Read-only im selben Akkordeon-Layout … dieselbe `FokusListe` … alle Karten eingeklappt … zum Aufklappen") hat kein Banner, obwohl genau das durch ADR-054 abgelöst ist (Lese-Ansicht = Einzelansicht ab der ersten Person, `app/theke/[token]/IdentityGate.tsx:96-108`; ADR-039 D4 sagt das im eigenen Banner bereits). Statuszeile von ADR-035 und der Drift-Absatz in ADR-054 (`:197-198`) behaupten zugleich „D5 gilt fort". Fix: Teil-Banner an D5 („fort gilt: Read-only ohne Gate, kein Schreibzugriff; Layout abgelöst durch ADR-054") und beide Statusformulierungen angleichen.
-- [ ] [docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md:122-124] D4-Schlussabsatz „`VerzehrErfassung` **bleibt bestehen**: der `IdentityGate` nutzt es weiterhin …" ist falsch – die Datei ist gelöscht, an ihre Stelle tritt `VerzehrUebersicht` (`IdentityGate.tsx:112`). Das D4-Banner (`:103-105`) deckt nur Read-only und Empty-State ab. Fix: Banner um „`VerzehrErfassung` entfällt; vor der Namenswahl steht `VerzehrUebersicht` (ADR-054 D4)" ergänzen.
-- [ ] [app/_verzehr/VerzehrEinzelansicht.tsx:101-102, app/_verzehr/VerzehrEinzelansicht.positionszustand.test.tsx:67-90] Folge des K1-Fixes, nicht dokumentiert und nur halb getestet: Durch den Remount je Person geht (a) ein Fehler, der **nach** dem Wegwechseln eintrifft (Anna „+", sofort „Nächste Person", Drossel-Ablehnung), still verloren, und (b) beim Rückweg A → B → A sind As Knöpfe trotz laufender Aktion wieder aktiv (`pending=false` der neuen Instanz). Kein Datenverlust (Delta-Protokoll, Menge vom Server) und **keine Regression** – auf `origin/main` hängte das Einklappen den Kartenkörper samt `MengeControl` ebenso aus (`VerzehrErfassung.tsx`, `koerperSichtbar`). Aber FS1/AK4.4 sprechen von der „betroffenen" Position ohne Einschränkung. Zudem ist der Test `:67-78` keine echte Spiegel-Richtung (er wiederholt Test 1 mit vertauschten Personen; der in Runde 1 geforderte Rückweg fehlt). Fix: Grenze als bewusste Entscheidung in ADR-054 (D2 oder Konsequenzen) + Satz im Key-Kommentar festhalten („gilt, solange die Person angezeigt wird"); Rückweg-Test ergänzen, der das gewollte Verhalten belegt, und den Kommentar „Spiegel-Richtung" an `:68` korrigieren.
+- [ ] [docs/adr/026-verzehr-soft-geloeschter-artikel.md:70-76] D3 beschreibt im Präsens „`VerzehrErfassung` rendert je Zeile zusätzlich die Positionen mit `active === false` … in einem eigenen, sichtbar abgesetzten Abschnitt"; Status `:4` ist „Accepted" ohne Banner. Auf `origin/main` stimmte das noch – erst dieser PR löscht `VerzehrErfassung.tsx` und ersetzt den Abschnitt durch den Umschalter-Eintrag „Nicht mehr im Katalog" (`app/_verzehr/kategorien.ts`, ADR-054 D4 `:117-119`). ADR-054 verweist nur einseitig auf ADR-026 D3, die Drift-Liste (`:203-212`) nennt ADR-026 nicht. Gleiche Fund-Klasse wie Runde 2 W1–W3 (Lesson #211). Fix: Banner an ADR-026 D3 („Darstellung geändert durch ADR-054 D4 (#370): Umschalter-Eintrag ‚Nicht mehr im Katalog' statt eigenem Abschnitt; Regeln – nur `menge > 0`, ±1, `editable` – gelten fort"), Statuszeile ergänzen, ADR-026 in die Drift-Hinweise von ADR-054 aufnehmen.
+- [ ] [app/_verzehr/tmp-debug.test.tsx] Untracked Wegwerf-Sonde aus `/implement` (`it.skip("tmp")`, Kommentar „bitte löschen"). Nicht von `.gitignore` gedeckt (`*.tmp.*` passt nicht), wird von Vitest eingesammelt und landet bei `git add app/_verzehr/` bzw. `-A` im Rework-Commit. Fix: `rm -f app/_verzehr/tmp-debug.test.tsx` vor dem Commit, danach `git status` prüfen.
 
 ## Nitpicks (optional)
-- [ ] [docs/adr/035-selbstbedienung-erfasser-ziel-fokus.md:81-82, docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md:71-72] Nach dem neuen Banner fehlt die Leerzeile – per CommonMark-Lazy-Continuation gehört der abgelöste Originalabsatz dadurch mit zum Banner-Zitat. Leerzeile einfügen (wie bei ADR-035 D2, ADR-039 D3/D4).
-- [ ] [docs/adr/035-selbstbedienung-erfasser-ziel-fokus.md:56-59] Älteres #187-Banner sagt weiter „Der Rest von D2 (exportierte `ZeileKarte`, optionale Akkordeon-Props) bleibt gültig" – widerspricht dem neuen ADR-054-Banner direkt darüber. Halbsatz „(überholt durch ADR-054)".
-- [ ] [docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md:44-53] D1 gilt laut Status fort, nennt aber `initialOpenId` und „nur in der geöffneten Karte" – Hinweis auf die Umbenennung `initialeZeileId` (ADR-054 D1) fehlt.
-- [ ] [docs/adr/054-verzehr-einzelansicht-statt-fokus-akkordeon.md:99, :173-174] D4-Überschrift „`VerzehrErfassung` schrumpft zur Nur-Lese-Übersicht" – tatsächlich gelöscht + neu `VerzehrUebersicht.tsx`. Und „ADR-052-Regeln gelten für die berührten Dateien ab sofort" stimmt für die Konsumenten nicht (rohe Farben/`dark:` in `IdentityGate.tsx:88/145/152/175`, `verzehr/page.tsx:39/91/95/98`, vorbestehend, laut spec-370 Sache von #369/#374) – auf `app/_verzehr/` eingrenzen (wie AK7.1).
-- [ ] [tasks/task-370-verzehr-erfassung-kompakt-touch.md:63, :67, :69, :75-76] Technische Notizen veraltet: „Proposed → … flippen" (ADR ist Accepted), „ÄNDERN `VerzehrErfassung.tsx`", `fussleisteClassName` fehlt in den Konsumenten-Zeilen.
-- [ ] [app/_verzehr/VerzehrUebersicht.tsx:14, app/_verzehr/VerzehrEinzelansicht.tsx:102] Im Rework neu geschriebene Kommentarzeilen über `printWidth` 100 (~124 bzw. ~103 Zeichen; Prettier bricht Kommentare nicht um) – an den Rest der Datei angleichen.
-- [ ] [app/_verzehr/VerzehrEinzelansicht.test.tsx:435] Test „takeFooterPaddingFromConsumer" prüft zusätzlich `mx-auto`/`max-w-3xl` (Layout der Komponente, nicht das Konsumenten-Padding) – auf `px-6` beschränken.
-- [ ] [app/_verzehr/VerzehrEinzelansicht.positionszustand.test.tsx:6, VerzehrEinzelansicht.test.tsx:5] Runde-1-Nitpick „ein Importpfad für `VerzehrArtikel`" nur im Produktionscode umgesetzt; die beiden internen Tests importieren weiter über den Re-Export `./verzehr-props` (wie `IdentityGate.tsx:5` von außen – dort korrekt).
-- [ ] [app/_verzehr/PersonenKopf.tsx:19-20] „Getränke/Kaffee/Essen" als Literale, obwohl `KATEGORIE_LABEL` (`kategorien.ts:17-22`) dieselben Texte führt.
-- [ ] [app/_verzehr/VerzehrEinzelansicht.tsx:66, :71-75] `gewaehlteKategorie` bleibt nach Rückfall auf `"inaktiv"` stehen (spec-konform, AK2.4, aber überraschend beim nächsten Personenwechsel); `wechsleZu` reagiert auch auf den bereits aktiven Chip (schreibt Ziel erneut, scrollt nach oben) – harmlos.
-- [ ] [e2e/verzehr-einzelansicht.spec.ts:153, :190] `ersteZeile` ist ein „Menge verringern"-Knopf (Name); `box(letzterStepper)` doppelt gemessen.
-- [ ] [app/veranstaltung/[id]/verzehr/page.tsx:113-122 vs. app/theke/[token]/IdentityGate.tsx:35-36] Bleed/Padding auf F7 als benannte Konstanten, auf F5 als Literale – zwei Stile für dieselbe Sache.
+- [ ] [docs/adr/039-verzehrerfassung-fokusliste-route-neutral.md:4] Statuszeile „D2, D3 und D4 **teilweise** abgelöst … D1 gilt **unverändert** fort" passt nicht zu den eigenen Bannern (D2 `:74` und D3 `:89` „Abgelöst", nur D4 `:108` „Teilweise"; D1-Banner `:42-44` „Namen geändert") und nicht zu ADR-054 `:204` („D2/D3/D4 abgelöst"). Fix: „D2/D3 abgelöst, D4 teilweise; D1 gilt fort (Namen geändert)" – gleichlautend in ADR-039 und ADR-054.
+- [ ] [docs/adr/034-selbstbedienung-token-zugang.md:42, :61-64] ADR-034 D1/D4 nennen `VerzehrErfassung` (mit `editable={false}`, als Server-Children des `IdentityGate`) im Präsens. Ältere Drift (seit #183/#187), durch die Löschung in diesem PR aber endgültig gegenstandslos – im selben Banner-Zug mitnehmen.
+- [ ] [docs/specs/spec-370-verzehr-erfassung-kompakt.md:126-127, :192-194] AK4.4 und FS1 sprechen ohne Einschränkung von der „betroffenen Position/Zeile"; die Grenze „gilt, solange die Person angezeigt wird" steht nur in ADR-054 D2 und im Key-Kommentar, die Rückweg-Tests erzwingen sie aber. Spec im selben PR entstanden (Lesson #253). Fix: an AK4.4/FS1 je „gilt, solange die Person angezeigt wird (ADR-054 D2)".
+- [ ] [app/_verzehr/VerzehrEinzelansicht.positionszustand.test.tsx:128-139] `should_dropError_when_itArrivesAfterSwitchingAway` weist nicht nach, dass die Aktion vor dem Wechsel läuft (Geschwistertests prüfen `toBeDisabled()`). Löste der Klick keine Aktion aus, leerte `antworte` ein leeres Array und beide Abwesenheits-Assertions wären trivial grün. Fix: `expect(… "Menge erhöhen").toBeDisabled()` nach `tippePlus()`.
+- [ ] [app/_verzehr/VerzehrEinzelansicht.positionszustand.test.tsx:38, :48] Auflöse-Zeile `act(async () => offeneAntworten.splice(0).forEach(...))` zweimal fast identisch; der `forEach`-Parameter `antworte` verschattet den gleichnamigen Rückgabe-Helfer, und `antworte` löst **alle** offenen Aktionen der Datei auf, nicht nur die eigene (heute korrekt, am Namen nicht erkennbar). Fix: ein Helfer `loeseOffeneAktionen(zustand)`.
+- [ ] [app/_verzehr/VerzehrEinzelansicht.tsx:101-104] „Er gilt, solange die Person angezeigt wird" – „Er" bezieht sich grammatisch auf „Key", gemeint ist der Zustand. Fix: „Der Zustand gilt, solange …".
+- [ ] [docs/adr/035-selbstbedienung-erfasser-ziel-fokus.md:59-60] „Der Rest von D2 … bleibt gültig (überholt durch ADR-054)" widerspricht sich im selben Satz. Fix: „… blieb gültig; inzwischen ebenfalls abgelöst durch ADR-054."
 
 ## Positives
-- K1 sauber behoben: `key={aktiveZeile.id}` an der richtigen Stelle, WHY-Kommentar, Tests mit echtem `MengeControl`/`useActionState`, die Fehler bzw. Pending zuerst positiv nachweisen; nie auflösendes Promise nach Lesson #369.
-- Kein weiterer Client-Zustand wandert falsch mit: `PersonenChips`-Refs nach `zeile.id` geschlüsselt, Kategorie bewusst über dem Key (AK2.4), Fußleisten-Aktion je Person abgeleitet.
-- Stale-/Fallback-Logik (FS3, FS5, AK1a.5/1a.6), inaktive Positionen (AK2.5, passend zur Serverregel `actions.ts:578-581`), „Nächste Person" zyklisch ab 2, `onFokusWechsel` nur auf der Theke im Schreibmodus – alles verifiziert.
-- Route-Neutralität und Server/Client-Grenze eingehalten (`VerzehrUebersicht` ohne `"use client"`, `KEIN_TEILNEHMER_HINWEIS` server-tauglich); `app/_verzehr/` frei von rohen Farben/`dark:`, in `eslint/ui-token-files.mjs`.
-- Runde-1-Rework vollständig: `groessenSuffix` entfernt, kleinfunde-Eintrag gelöscht (keine verwaisten `_verzehr`-Anker mehr), `Closes #205`, Fußleisten-Padding vom Konsumenten (Lesson #188), ADR-039 D2–D4 mit Bannern, E2E mit auto-wiederholenden Assertions.
+- Alle vier Wichtig-Findings aus Runde 2 behoben: ADR-054 D1 nennt `fussleisteClassName` (`:63`), ADR-035 D5 trägt ein Teil-Banner mit gleichlautender Statuszeile und ADR-054-Drift-Absatz, ADR-039 D4 sagt „`VerzehrErfassung` entfällt", die Grenze des Positionszustands steht als bewusste Entscheidung (kein Datenverlust, keine Regression, YAGNI) in ADR-054 D2 und im Key-Kommentar.
+- Rückweg-Tests A → B → A legen die Grenze fest statt sie nur zu beschreiben; „Spiegel-Richtung" korrekt zu „Gegenrichtung" umbenannt.
+- Starker Selbstfund: der Test „später eintreffender Fehler" war zunächst grün aus dem falschen Grund (offener React-19-Async-Action-Scope durch nie auflösende Promises der Vortests). An der Ursache behoben (`offeneAktion()` + Auflösen im `afterEach`, vor `cleanup()`), WHY-Kommentar zutreffend, als `/codify`-Kandidat notiert.
+- Alle Runde-2-Nitpicks umgesetzt (Leerzeilen nach Bannern, `initialeZeileId`-Hinweis, D4-Überschrift, ADR-052-Satz eingegrenzt, Kommentarbreiten, Fußleisten-Test nur `px-6`, Testimporte, `KATEGORIE_LABEL` im Kopf, E2E-Namen/Einmalmessung).
+- Code hält ADR-054 ein: `app/_verzehr/` route-neutral, keine Feature-Imports, keine rohen Farben/`dark:`, in `eslint/ui-token-files.mjs`; `docs/routes.md` stimmt (keine Routenänderung).
 
 ## Empfehlung
 NEEDS_REWORK
 
-> Begründung: keine Code-Defekte, aber drei ADR-Drifts und eine undokumentierte Verhaltensgrenze
-> (Wichtig 4) – alles Doku plus ein Test, also ein kleiner Rework. Circuit Breaker: Das ist Runde 2.
-> Eine dritte Runde auf denselben Code ist die letzte vor der Eskalation an den Menschen.
+> **Circuit Breaker erreicht – Eskalation an den Menschen.** Das ist die dritte Review-Runde auf
+> denselben Code; laut `CLAUDE.md` wird nicht weiter automatisch iteriert. Es gibt **keinen
+> Code-Defekt** und keinen ungelösten Konflikt zwischen Review und Implementierung – offen sind
+> nur Doku (ADR-026-Banner + Drift-Eintrag in ADR-054) und Commit-Hygiene (Sonde löschen, Rework
+> committen). Vorschlag an den Menschen: diese beiden Wichtig-Punkte (plus nach Wahl die Nitpicks)
+> als letzten Rework ohne weitere volle Review-Runde übernehmen und dann mit `/test` weitermachen.
