@@ -28,7 +28,7 @@
 | UX-1 | #368 | Gemeinsame UI-Grundlage: Tokens, Bausteine, Schrift | `enhancement` | M | #306 |
 | UX-2 | #369 | Veranstaltungs-Detailseite neu ordnen | `enhancement` | M | #307, #181 |
 | UX-3 | #370 | Verzehr-Erfassung kompakt und touch-tauglich | `enhancement` | M | #205 |
-| UX-4 | #371 | Kassieren: Summe oben, Schnellbeträge, Abschluss am Ende | `enhancement` | M | #305, #272 |
+| UX-4 | #371 | Kassieren: Summe oben, Spende live, Abschluss auf der Detailseite | `enhancement` | M | #305, #272 |
 | UX-5 | #372 | Einheitliches Bestätigen und Rückmelden | `enhancement` | S–M | #306 |
 | UX-6 | #373 | Listenseiten: Liste zuerst, Anlegen per Button | `enhancement` | M | – |
 | UX-7 | #374 | Header, Startseite und Zurück-Navigation | `enhancement` | S | – |
@@ -145,28 +145,26 @@ Teilnehmerliste ganz unten. „Abschließen" steht oben und wirkt ohne Rückfrag
 
 ---
 
-## UX-4 · #371 · feat: Kassieren – Summe oben, Schnellbeträge, Abschluss am Ende
+## UX-4 · #371 · feat: Kassieren – Summe oben, Spende live, Abschluss auf der Detailseite
 
-**Labels:** `enhancement` · **Abhängig von:** UX-1 · **Überschneidung:** #305 (offener Betrag),
-#272 (Listen-Refactor)
+**Labels:** `enhancement` · **Abhängig von:** UX-1 · **Überschneidung:** #305 (offener Betrag,
+wird abgelöst), #272 (Listen-Refactor)
 
 ### Problem
-„Abschließen" steht oben vor dem Kassieren (und doppelt auf der Detailseite). Tagessummen,
-Gesamtabrechnung und Protokoll sind drei lange Tabellen hintereinander. Der offene Betrag fehlt
-(#305).
+„Abschließen" steht auf der Kassieren-Seite und ist auf der Detailseite nicht mehr auffindbar
+(Wieder öffnen). Tagessummen, Gesamtabrechnung und Protokoll sind drei lange Tabellen
+hintereinander. Der offene Betrag fehlt (#305).
 
 ### Akzeptanzkriterien
-- **AK1** – Summenkarte oben: offener Betrag, Erhalten, Spenden, Fortschritt „x von n bezahlt"
-  (deckt #305 ab oder löst es ab – in `/requirements` klären).
-- **AK2** – Je Teilnehmerzeile: Verzehr-Gesamt, Status-Badge; beim Kassieren Schnellbeträge
-  „Passend", „Auf 5 € aufrunden", „Auf 10 €" plus freies Feld; die Spende wird vor dem
-  Absenden live angezeigt.
-- **AK3** – Nach dem Kassieren eine Bestätigung mit Betrag und Spende (Notice, UX-5).
-- **AK4** – Tagessummen und Kassen-Gesamtabrechnung liegen in einem eingeklappten Bereich
-  „Abrechnung im Detail".
-- **AK5** – „Veranstaltung abschließen" steht **am Seitenende** und verlangt Bestätigung; sind
-  noch Zeilen offen, nennt der Dialog Anzahl und Betrag.
-- **AK6** – Die eingefrorene Reihenfolge (#253) bleibt erhalten.
+Die verbindlichen AK stehen in `docs/specs/spec-371-kassieren-summe-abschluss.md`. Kurzfassung:
+- Summenkarte oben: offener Betrag, Erhalten, Spenden, „x von n bezahlt" (löst #305 ab).
+- Je Zeile Verzehr-Gesamt, Status-Badge, Spende live vor dem Absenden; **keine Schnellbeträge**
+  (in `/requirements` verworfen).
+- Rückmeldung nach dem Kassieren mit Betrag und Spende (Notice).
+- Tagessummen, Gesamtabrechnung und Protokoll eingeklappt unter „Abrechnung im Detail".
+- Kassieren-Seite ohne Statuswechsel; „Veranstaltung abschließen"/„Wieder öffnen" **nur im Kopf
+  der Detailseite**, mit Bestätigung (bei offenen Zeilen mit Anzahl und Betrag).
+- Eingefrorene Reihenfolge (#253) bleibt erhalten.
 
 ---
 
