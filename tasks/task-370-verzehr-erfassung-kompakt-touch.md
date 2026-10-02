@@ -2,12 +2,12 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Review bestanden (Runde 3 NEEDS_REWORK → Rework ohne weitere Voll-Review, vom Menschen freigegeben)
+- [x] Tests vollständig
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Verzehr-Erfassung (`app/_verzehr/`) als Einzelansicht je Person: sticky Kopf, Kategorie-Umschalter, einheitliches Zeilenmuster, 44-px-Touch-Ziele, „Nächste Person" in Fußleiste; für Veranstalter-Seite und Theke. Spec: `docs/specs/spec-370-verzehr-erfassung-kompakt.md` (Volltext der AK dort). Entscheidung 2026-10-01: Einzelansicht statt Akkordeon (ADR-039 wird ergänzt/abgelöst → `/architecture`).
