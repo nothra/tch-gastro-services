@@ -267,7 +267,6 @@ describe("VeranstaltungDetailPage – Aufbau und Kopf (AK1, AK2)", () => {
       "rounded-full",
     );
   });
-
 });
 
 // spec-371 AK18/AK22–AK24, ADR-055 D3: Abschließen/Wieder öffnen sitzt im Kopf neben dem Badge.

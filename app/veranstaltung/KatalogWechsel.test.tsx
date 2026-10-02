@@ -6,7 +6,7 @@ import type { VeranstaltungFormState } from "./actions";
 // Externe Grenze: Server Action aus derselben Feature-Schicht.
 vi.mock("./actions", () => ({ setVeranstaltungCatalogAction: vi.fn() }));
 
-// useActionState steuert Fehler/Pending direkt (Codify #49, analog StatusToggle) – so ist die
+// useActionState steuert Fehler/Pending direkt (Codify #49) – so ist die
 // serverseitige Ablehnung ("bereits Verzehr erfasst") ohne echten Submit prüfbar.
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");

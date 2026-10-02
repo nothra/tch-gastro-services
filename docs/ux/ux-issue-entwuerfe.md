@@ -174,7 +174,8 @@ Die verbindlichen AK stehen in `docs/specs/spec-371-kassieren-summe-abschluss.md
 
 ### Problem
 - Ohne Rückfrage wirken: Teilnehmer entfernen (`ZeileRow`), Auslage löschen (`AuslageRow:98`),
-  Katalog deaktivieren (`CatalogControls:92`), Veranstaltung abschließen (`StatusToggle`).
+  Katalog deaktivieren (`CatalogControls:92`). (Veranstaltung abschließen fragt seit #371 über
+  `AbschlussAktion` nach.)
   Die Lösch-Buttons sind grau statt als Gefahr gestylt.
 - Die vier vorhandenen Dialoge (`VeranstaltungLoeschen`, 3× `CatalogControls`) sind kopierter
   Code ohne Escape, ohne Fokusführung, mit unverknüpften Labels.

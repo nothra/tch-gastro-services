@@ -105,9 +105,7 @@ describe("AbschlussAktion – Abschließen (spec-371 AK18–AK21, ADR-055 D3)", 
 
   it("should_nameCountAndAmount_when_zeilenStillOffen", () => {
     // AK20: Anzahl und offener Betrag als Hinweis – entscheiden wird der Server (FS1).
-    render(
-      <AbschlussAktion id="v-1" status="offen" offeneZeilen={2} offenerBetragCents={1250} />,
-    );
+    render(<AbschlussAktion id="v-1" status="offen" offeneZeilen={2} offenerBetragCents={1250} />);
 
     fireEvent.click(abschliessenAusloeser());
 

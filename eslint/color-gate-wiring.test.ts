@@ -64,12 +64,22 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
     expect(messages.length).toBeGreaterThan(0);
   });
 
-  // Gegenrichtung mit ähnlichem Nachbarpfad: die Unterseiten der Detailseite stellen erst
-  // #370/#371 um und bleiben bis dahin außerhalb des Gates.
-  it("should_notReport_when_fileIsSiblingSubpageOfListedDynamicSegmentFile", async () => {
+  // Verzeichnis-Eintrag in einem dynamischen Segment (#371): die Kassieren-Seite samt Summenkarte.
+  it("should_reportRawColorClass_when_fileIsInListedDirectoryBelowDynamicSegment", async () => {
     const messages = await rawColorMessages(
       CODE_WITH_RAW_COLOR,
       "app/veranstaltung/[id]/kassieren/page.tsx",
+    );
+
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
+  // Gegenrichtung mit ähnlichem Nachbarpfad: die Auslagen-Unterseite ist noch nicht umgestellt
+  // und bleibt bis dahin außerhalb des Gates.
+  it("should_notReport_when_fileIsSiblingSubpageOfListedDynamicSegmentFile", async () => {
+    const messages = await rawColorMessages(
+      CODE_WITH_RAW_COLOR,
+      "app/veranstaltung/[id]/auslagen/page.tsx",
     );
 
     expect(messages).toEqual([]);

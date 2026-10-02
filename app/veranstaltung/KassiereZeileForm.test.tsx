@@ -196,7 +196,9 @@ describe("KassiereZeileForm", () => {
     });
 
     it("should_showServerErrorAsAlert_when_rejected", () => {
-      withState({ error: "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben." });
+      withState({
+        error: "Bitte einen gültigen Betrag mit höchstens 2 Nachkommastellen eingeben.",
+      });
       renderForm();
 
       expect(screen.getByRole("alert")).toHaveTextContent(

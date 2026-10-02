@@ -42,27 +42,24 @@ vi.mock("next/link", () => ({
 // Position stehende Zeile den **aktuellen** Erhalten-Betrag ins Formular bekommt (#253, AC5).
 // `autoFocusErhalten` liegt aus demselben Grund als Attribut vor: dass GENAU die Zeile des
 // Personenbezugs den Eingabefokus anfordert, ist eine Entscheidung dieser Seite (#308 AK3) – den
-// Fokus selbst setzt und testet die Formular-Komponente.
-// Der StatusToggle-Stub macht nur Position und Status sichtbar – wo er steht, entscheidet diese
-// Seite (spec-369 AK25/AK26), sein Verhalten testet `StatusToggle.test.tsx`.
-vi.mock("../../StatusToggle", () => ({
-  StatusToggle: ({ status }: { status: string }) => (
-    <div data-testid="status-toggle" data-status={status} />
-  ),
-}));
+// Fokus selbst setzt und testet die Formular-Komponente. `verzehrGesamtCents` speist die
+// Live-Spende (spec-371 AK8); welche Zahl ankommt, entscheidet diese Seite.
 vi.mock("../../KassiereZeileForm", () => ({
   KassiereZeileForm: ({
     zeileId,
     initialErhalten,
+    verzehrGesamtCents,
     autoFocusErhalten,
   }: {
     zeileId: string;
     initialErhalten: string;
+    verzehrGesamtCents: number;
     autoFocusErhalten?: boolean;
   }) => (
     <div
       data-testid="kassiere-form"
       data-initial-erhalten={initialErhalten}
+      data-verzehr-gesamt={verzehrGesamtCents}
       data-autofocus-erhalten={String(autoFocusErhalten ?? false)}
     >
       {zeileId}
@@ -208,8 +205,23 @@ function teilnehmerEintrag(name: string): HTMLElement {
   return screen.getByText(name).closest("li")!;
 }
 
-// Alle zahlen- und statusführenden Texte der Seite: je Teilnehmerzeile (Beträge, Badge, Erhalten)
-// plus Tagessummen und Gesamtabrechnung. Grundlage des AK12-Vergleichs „Navigation ändert nichts".
+// Die Summenkarte über der Teilnehmerliste (spec-371 AK1).
+function summenkarte(): HTMLElement {
+  return screen.getByRole("region", { name: "Kassenstand" });
+}
+
+// Betrag einer Kennzahl der Summenkarte („Offener Betrag", „Erhalten", „Spenden").
+function kennzahl(label: string): HTMLElement {
+  return within(summenkarte()).getByText(label).closest("div")!.querySelector("dd")!;
+}
+
+function abrechnungImDetail(): HTMLDetailsElement {
+  return screen.getByText("Abrechnung im Detail", { selector: "summary" }).closest("details")!;
+}
+
+// Alle zahlen- und statusführenden Texte der Seite: Summenkarte, je Teilnehmerzeile (Beträge,
+// Badge, Erhalten) plus Tagessummen und Gesamtabrechnung. Grundlage des AK12-Vergleichs
+// „Navigation ändert nichts".
 function betragsrelevanteTexte(): string[] {
   const teilnehmer = screen.getByRole("heading", { name: /^Teilnehmer/ }).closest("section")!;
   const zeilenTexte = within(teilnehmer)
@@ -223,7 +235,7 @@ function betragsrelevanteTexte(): string[] {
   const badges = within(teilnehmer)
     .getAllByRole("listitem")
     .map((li) => (li.textContent?.includes("bezahlt") ? "bezahlt" : "offen"));
-  return [...zeilenTexte, ...badges, ...summenTexte];
+  return [summenkarte().textContent ?? "", ...zeilenTexte, ...badges, ...summenTexte];
 }
 
 // Reihenfolge der Teilnehmer-Anzeigenamen in der Kassier-Liste (erster Span je <li> = Anzeigename).
@@ -357,9 +369,10 @@ describe("KassierenPage", () => {
   it("should_renderCollapsedVerzehrBreakdownPerZeile_when_rendered", async () => {
     arrangeHappyPath();
 
-    const { container } = render(await KassierenPage(seite("v-1")));
+    render(await KassierenPage(seite("v-1")));
 
-    const disclosures = container.querySelectorAll("details");
+    const teilnehmer = screen.getByRole("heading", { name: /^Teilnehmer/ }).closest("section")!;
+    const disclosures = teilnehmer.querySelectorAll("details");
     expect(disclosures.length).toBe(2);
     disclosures.forEach((details) => expect(details).not.toHaveAttribute("open"));
     expect(screen.getAllByText("Verzehr anzeigen").length).toBe(2);
@@ -654,7 +667,7 @@ describe("KassierenPage", () => {
     );
   });
 
-  it("should_hideKassiereFormsAndLeaveOrderUntouched_when_veranstaltungIsAbgeschlossenViaStatusToggle", async () => {
+  it("should_hideKassiereFormsAndLeaveOrderUntouched_when_veranstaltungIsAbgeschlossenMeanwhile", async () => {
     arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
     const { rerender } = render(await KassierenPage(seite("v-1")));
 
@@ -663,8 +676,8 @@ describe("KassierenPage", () => {
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
     rerender(await KassierenPage(seite("v-1")));
 
-    // Abschluss über den StatusToggle lädt die Seite neu, ändert aber keinen Bezahlt-Status →
-    // unverändertes Sortierverhalten dieser Aktion (nicht Teil von #253); Formulare entfallen.
+    // Ein Abschluss (seit #371 auf der Detailseite) rendert die Seite neu, ändert aber keinen
+    // Bezahlt-Status → unverändertes Sortierverhalten (nicht Teil von #253); Formulare entfallen.
     arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
     rerender(await KassierenPage(seite("v-1")));
@@ -714,9 +727,9 @@ describe("KassierenPage", () => {
     const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
     const dt = within(annaLi).getByText("Verzehr-Gesamt");
     const dd = dt.closest("div")!.querySelector("dd")!;
-    // Wie „Gesamt" auf der Verzehr-erfassen-Seite: font-semibold + volle Textfarbe (Light+Dark).
-    expect(dt).toHaveClass("font-semibold", "text-zinc-900", "dark:text-zinc-100");
-    expect(dd).toHaveClass("font-semibold", "tabular-nums", "text-zinc-900", "dark:text-zinc-100");
+    // Wie „Gesamt" auf der Verzehr-erfassen-Seite: font-semibold + volle Textfarbe (Token, ADR-052).
+    expect(dt).toHaveClass("font-semibold", "text-foreground");
+    expect(dd).toHaveClass("font-semibold", "tabular-nums", "text-foreground");
     expect(dt).not.toHaveClass("font-medium");
     expect(dd).not.toHaveClass("font-medium");
   });
@@ -727,12 +740,9 @@ describe("KassierenPage", () => {
     render(await KassierenPage(seite("v-1")));
 
     const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
-    // Gedämpfte Sekundärfarbe auf dem umschließenden dl, in Light und Dark.
-    expect(within(annaLi).getByText("Getränke").closest("dl")!).toHaveClass(
-      "text-zinc-600",
-      "dark:text-zinc-400",
-    );
-    for (const label of ["Getränke", "Essen", "Kaffee", "Spende"]) {
+    // Gedämpfte Sekundärfarbe auf dem umschließenden dl (Token, ADR-052).
+    expect(within(annaLi).getByText("Getränke").closest("dl")!).toHaveClass("text-muted");
+    for (const label of ["Getränke", "Essen", "Kaffee"]) {
       const dt = within(annaLi).getByText(label);
       expect(dt).not.toHaveClass("font-semibold");
       expect(dt).not.toHaveClass("font-medium");
@@ -854,35 +864,227 @@ describe("KassierenPage", () => {
     expect(screen.getByText("Noch keine Teilnehmer erfasst.")).toBeInTheDocument();
   });
 
-  // spec-369 AK25/AK26: Abschließen/Wieder öffnen steht am Seitenende – als letzter Block von
-  // <main>, unverändert mit dem aktuellen Status gespeist.
-  it("should_placeStatusToggleAtPageEnd_when_veranstaltungOffen", async () => {
+  it("should_passVerzehrGesamtToKassiereForm_when_offen", async () => {
+    // spec-371 AK8: die Live-Spende rechnet gegen das Verzehr-Gesamt DIESER Zeile.
     arrangeHappyPath();
 
     render(await KassierenPage(seite("v-1")));
 
-    const toggle = screen.getByTestId("status-toggle");
-    expect(screen.getByRole("main").lastElementChild).toBe(toggle);
-    expect(toggle).toHaveAttribute("data-status", "offen");
+    const verzehrJeZeile = screen
+      .getAllByTestId("kassiere-form")
+      .map((form) => [form.textContent, form.getAttribute("data-verzehr-gesamt")]);
+    expect(verzehrJeZeile).toEqual([
+      ["z-2", "250"],
+      ["z-1", "800"],
+    ]);
   });
 
-  it("should_placeStatusToggleAtPageEnd_when_veranstaltungAbgeschlossen", async () => {
+  it("should_showStatusBadgePerZeile_when_rendered", async () => {
+    // spec-371 AK7: Status als `Badge`-Baustein, Ton passend zum Status.
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(within(teilnehmerEintrag("Anna Beispiel")).getByText("bezahlt")).toHaveClass(
+      "rounded-full",
+      "text-success",
+    );
+    expect(within(teilnehmerEintrag("Bernd Beispiel")).getByText("offen")).toHaveClass(
+      "rounded-full",
+      "text-warning",
+    );
+  });
+
+  it("should_showErhaltenAndSpendeReadOnly_when_abgeschlossen", async () => {
+    // AK10: die Lesesicht nennt Erhalten und die abgeleitete Spende (Anna: 10,00 € − 8,00 €).
     arrangeHappyPath();
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
 
     render(await KassierenPage(seite("v-1")));
 
-    const toggle = screen.getByTestId("status-toggle");
-    expect(screen.getByRole("main").lastElementChild).toBe(toggle);
-    expect(toggle).toHaveAttribute("data-status", "abgeschlossen");
+    const anna = within(teilnehmerEintrag("Anna Beispiel"));
+    expect(anna.getByText("Erhalten: 10,00 € · Spende: 2,00 €")).toBeInTheDocument();
+    const bernd = within(teilnehmerEintrag("Bernd Beispiel"));
+    expect(bernd.getByText("Erhalten: — · Spende: 0,00 €")).toBeInTheDocument();
   });
+});
 
-  it("should_renderStatusToggleOnlyOnce_when_rendered", async () => {
-    // Umzug, keine Kopie: der frühere Platz im Seitenkopf ist leer.
+describe("KassierenPage – Summenkarte (spec-371 AK1–AK6, AK16)", () => {
+  it("should_placeSummenkarteAboveTeilnehmerliste_when_rendered", async () => {
+    // AK1
     arrangeHappyPath();
 
     render(await KassierenPage(seite("v-1")));
 
-    expect(screen.getAllByTestId("status-toggle")).toHaveLength(1);
+    const bloecke = Array.from(screen.getByRole("main").children);
+    const teilnehmer = screen.getByRole("heading", { name: /^Teilnehmer/ }).closest("section")!;
+    expect(bloecke.indexOf(summenkarte()) + 1).toBe(bloecke.indexOf(teilnehmer));
+  });
+
+  it("should_showOffenerBetragErhaltenSpendenAndProgress_when_rendered", async () => {
+    // AK1/AK2: Anna 8,00 € Verzehr, 10,00 € erhalten (bezahlt, 2,00 € Spende – mindert den
+    // offenen Betrag nicht); Bernd 2,50 € Verzehr, nichts erhalten (offen).
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(kennzahl("Offener Betrag")).toHaveTextContent("2,50 €");
+    expect(kennzahl("Erhalten")).toHaveTextContent("10,00 €");
+    expect(kennzahl("Spenden")).toHaveTextContent("2,00 €");
+    expect(within(summenkarte()).getByText("1 von 2 bezahlt")).toBeInTheDocument();
+  });
+
+  it("should_countOnlyRemainder_when_zeilePartiallyPaid", async () => {
+    // AK2: Teilzahlung – Bernd zahlt 1,00 € von 2,50 € → offen bleibt nur der Rest von 1,50 €.
+    arrangeHappyPath();
+    listZeilenMock.mockResolvedValue([zeilen[0], { ...zeilen[1], erhaltenCents: 100 }]);
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(kennzahl("Offener Betrag")).toHaveTextContent("1,50 €");
+    expect(kennzahl("Erhalten")).toHaveTextContent("11,00 €");
+  });
+
+  it("should_showZeroValues_when_noZeilen", async () => {
+    // AK3: keine leeren Werte, sondern „0,00 €" bzw. „0 von 0 bezahlt".
+    arrangeHappyPath();
+    listZeilenMock.mockResolvedValue([]);
+    listPositionenMock.mockResolvedValue([]);
+
+    render(await KassierenPage(seite("v-1")));
+
+    for (const label of ["Offener Betrag", "Erhalten", "Spenden"]) {
+      expect(kennzahl(label)).toHaveTextContent("0,00 €");
+    }
+    expect(within(summenkarte()).getByText("0 von 0 bezahlt")).toBeInTheDocument();
+  });
+
+  it("should_formatAmountsWithTabularNums_when_rendered", async () => {
+    // AK5
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    for (const label of ["Offener Betrag", "Erhalten", "Spenden"]) {
+      expect(kennzahl(label)).toHaveClass("tabular-nums");
+    }
+  });
+
+  it("should_hintOffeneZeilenWithLinkToDetail_when_zeilenOffen", async () => {
+    // AK6: Hinweis „Noch n offen" plus Weg zur Detailseite, wo abgeschlossen wird.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(within(summenkarte()).getByText("Noch 2 offen")).toBeInTheDocument();
+    expect(within(summenkarte()).queryByText("Alles bezahlt")).not.toBeInTheDocument();
+    expect(
+      within(summenkarte()).getByRole("link", { name: "Abschluss auf der Veranstaltungsseite" }),
+    ).toHaveAttribute("href", "/veranstaltung/v-1");
+  });
+
+  it("should_hintAllesBezahltWithSameLink_when_noZeileOffen", async () => {
+    // AK6, Gegenrichtung.
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: 250 });
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(within(summenkarte()).getByText("Alles bezahlt")).toBeInTheDocument();
+    expect(within(summenkarte()).queryByText(/^Noch \d+ offen$/)).not.toBeInTheDocument();
+    expect(
+      within(summenkarte()).getByRole("link", { name: "Abschluss auf der Veranstaltungsseite" }),
+    ).toHaveAttribute("href", "/veranstaltung/v-1");
+  });
+
+  it("should_omitAbschlussLink_when_typTheke", async () => {
+    // Die stehende Theke ist nicht abschließbar (spec-371 AK23) – ein Link zum Abschluss liefe ins
+    // Leere; der Offen-Hinweis bleibt.
+    arrangeHappyPath();
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, typ: "theke", datum: null });
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(within(summenkarte()).getByText("Noch 1 offen")).toBeInTheDocument();
+    expect(within(summenkarte()).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("should_keepSummenkarteVisible_when_abgeschlossen", async () => {
+    // AK10: schreibgeschützt, aber Karte und Zeilen bleiben sichtbar.
+    arrangeHappyPath();
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(kennzahl("Erhalten")).toHaveTextContent("10,00 €");
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd Beispiel", "Anna Beispiel"]);
+  });
+
+  it("should_updateSummenkarteButKeepFrozenOrder_when_zeileKassiert", async () => {
+    // AK16: die Reihenfolge bleibt eingefroren (#253), die Karte folgt dem Server-Stand.
+    arrangeVierZeilen({ anna: 250, bernd: null, carla: 250, dora: null });
+    const { rerender } = render(await KassierenPage(seite("v-1")));
+    expect(within(summenkarte()).getByText("Noch 2 offen")).toBeInTheDocument();
+
+    arrangeVierZeilen({ anna: 250, bernd: 250, carla: 250, dora: null });
+    rerender(await KassierenPage(seite("v-1")));
+
+    expect(teilnehmerNamesInOrder()).toEqual(["Bernd", "Dora", "Anna", "Carla"]);
+    expect(within(summenkarte()).getByText("Noch 1 offen")).toBeInTheDocument();
+    expect(kennzahl("Offener Betrag")).toHaveTextContent("2,50 €");
+    expect(within(summenkarte()).getByText("3 von 4 bezahlt")).toBeInTheDocument();
+  });
+});
+
+describe("KassierenPage – Abrechnung im Detail (spec-371 AK14/AK15)", () => {
+  it("should_collapseTagessummenGesamtabrechnungAndProtokollByDefault_when_rendered", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    const details = abrechnungImDetail();
+    expect(details).not.toHaveAttribute("open");
+    for (const ueberschrift of [
+      "Tagessummen",
+      "Gesamtabrechnung (Kasse: Montagsrunde)",
+      "Protokoll",
+    ]) {
+      expect(within(details).getByRole("heading", { name: ueberschrift })).toBeInTheDocument();
+    }
+  });
+
+  it("should_useNativeSummaryAsToggle_when_rendered", async () => {
+    // AK15: natives <details>/<summary> – tastaturbedienbar, Zustand für Screenreader erkennbar.
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(abrechnungImDetail().firstElementChild?.tagName).toBe("SUMMARY");
+  });
+
+  it("should_placeAbrechnungImDetailAfterTeilnehmerliste_when_rendered", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(screen.getByRole("main").lastElementChild).toBe(abrechnungImDetail());
+  });
+});
+
+describe("KassierenPage – kein Statuswechsel (spec-371 AK17)", () => {
+  it("should_offerNeitherAbschliessenNorWiederOeffnen_when_veranstaltungOffen", async () => {
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(screen.queryByRole("button", { name: /abschließen|Wieder öffnen/i })).toBeNull();
+  });
+
+  it("should_offerNeitherAbschliessenNorWiederOeffnen_when_veranstaltungAbgeschlossen", async () => {
+    arrangeHappyPath();
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+
+    render(await KassierenPage(seite("v-1")));
+
+    expect(screen.queryByRole("button", { name: /abschließen|Wieder öffnen/i })).toBeNull();
   });
 });

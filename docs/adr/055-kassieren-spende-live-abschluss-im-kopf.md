@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Ersetzt ADR-053 D6 teilweise:** Der Abschnitt „`StatusToggle` … an das Ende der
 > Kassieren-Seite" gilt nicht mehr – Abschließen/Wieder öffnen wandert in den Seitenkopf der
