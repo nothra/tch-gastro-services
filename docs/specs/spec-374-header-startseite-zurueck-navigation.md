@@ -112,8 +112,10 @@ Arbeitsschritt-Kacheln „Verzehr" und „Auslagen" sind Nomen neben dem Verb �
   längeren Titel um, ohne Überlauf; Kennzahlen bleiben lesbar.
 - [ ] **AK5.3** GIVEN eine abgeschlossene Veranstaltung WHEN die Kacheln erscheinen THEN tragen sie
   dieselben Titel, aber keine Kennzahl (unverändert, spec-369 AK6).
-- [ ] **AK5.4** GIVEN die Anleitung des Veranstalters (`docs/anleitung/veranstalter/`) WHEN sie die
-  Kacheln benennt THEN stehen dort die neuen Namen, und die Screenshots zeigen sie.
+- [ ] **AK5.4** GIVEN die Implementierung und das Review sind erfolgreich abgeschlossen WHEN die
+  Anleitung des Veranstalters (`docs/anleitung/veranstalter/`) aktualisiert wird THEN stehen dort die
+  neuen Namen (Kacheln, Header, Konto-Menü, Startseite), und die Screenshots sind neu erzeugt
+  (analog #388). Das geschieht als letzter Schritt im selben PR, **nach** `/review`.
 
 ### Querschnitt
 
@@ -133,7 +135,6 @@ Arbeitsschritt-Kacheln „Verzehr" und „Auslagen" sind Nomen neben dem Verb �
 
 ## Offene Fragen
 
-- [ ] Anleitungs-Screenshots (`docs/anleitung/veranstalter/bilder/`): Neuerzeugung nach dem Umbau
-  analog #388 – im selben PR oder Folge-Issue? (Zusätzlich im Arbeitsverzeichnis des Haupt-Repos
-  liegen bereits ungestagte Änderungen an diesen Bildern vor.)
-- [ ] Reihenfolge der Veranstaltungen auf der Startseite bei gleichem Datum: Anlage-Zeit bestätigt?
+_Keine._ Geklärt: Anleitungs-Screenshots und -Texte werden im selben PR nach erfolgreicher
+Implementierung und Review aktualisiert (AK5.4); Sortierung der Startseiten-Liste bei gleichem Datum
+nach Anlage-Zeit (AK2.2, neueste zuerst).

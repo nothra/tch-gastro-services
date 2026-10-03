@@ -18,7 +18,8 @@ Header mit Wortmarke und Konto-Menü, Startseite mit offenen Veranstaltungen, `P
 - [ ] AK2.1–2.6 Startseite: Liste offener Veranstaltungen (nur `veranstalter`), Leer-Hinweis, Kacheln darunter
 - [ ] AK3.1–3.4 `PublicHeader` auf `/theke/[token]` (nicht bei ungültigem Token, nicht auf `/login`)
 - [ ] AK4.1–4.7 `PageHeader` + Zurück-Link auf Verzehr/Auslagen; Titel-Header auf Liste/Teilnehmer/Katalog-Index; „Kassieren" ohne Pfeil
-- [ ] AK5.1–5.4 Kacheln „Verzehr erfassen"/„Auslagen erfassen"; Anleitung/Screenshots
+- [ ] AK5.1–5.3 Kacheln „Verzehr erfassen"/„Auslagen erfassen"
+- [ ] AK5.4 Anleitung + Screenshots aktualisiert – erst nach erfolgreichem `/implement` und `/review`
 - [ ] AK6 Lint, Tests, `routes-doc-check` grün; `docs/routes.md` aktuell
 - [ ] AK7 `docs/ux/ux-issue-entwuerfe.md` UX-7 angeglichen (in `/requirements` erledigt)
 
@@ -26,8 +27,7 @@ Header mit Wortmarke und Konto-Menü, Startseite mit offenen Veranstaltungen, `P
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
 ## Offene Fragen
-- Anleitungs-Screenshots im selben PR neu erzeugen oder Folge-Issue? (ungestagte Bildänderungen im Haupt-Repo beachten)
-- Sortierung bei gleichem Datum: Anlage-Zeit?
+_Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Implementierung + Review (AK5.4); Sortierung bei gleichem Datum nach Anlage-Zeit.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
