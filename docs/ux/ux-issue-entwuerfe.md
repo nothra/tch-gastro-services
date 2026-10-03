@@ -226,7 +226,7 @@ Die verbindlichen AK stehen in `docs/specs/spec-371-kassieren-summe-abschluss.md
 
 ## UX-7 · #374 · feat: Header, Startseite und Zurück-Navigation
 
-**Labels:** `enhancement` · **Abhängig von:** UX-1
+**Labels:** `enhancement` · **Abhängig von:** UX-1 (erfüllt)
 
 ### Problem
 - Der Header zeigt die E-Mail-Adresse, aber keinen App-Namen und keinen Weg zur Startseite.
@@ -234,7 +234,9 @@ Die verbindlichen AK stehen in `docs/specs/spec-371-kassieren-summe-abschluss.md
 - `PublicHeader` existiert, wird aber nirgends eingebunden; Gäste auf `/theke/[token]` sehen
   keinen Header.
 - Zurück-Links nur auf Veranstaltungs-Unterseiten; Pfeilrichtung uneinheitlich
-  („← Verzehr erfassen" vs. „Verzehr erfassen →").
+  (u. a. „← Zur Veranstaltung" als Handlink auf Verzehr/Auslagen, „Kassieren →" als Pfeil-Link).
+- Die Arbeitsschritt-Kacheln der Veranstaltungs-Detailseite heißen „Verzehr" und „Auslagen" –
+  das sind Nomen, keine Aktionen; „Kassieren" daneben ist ein Verb (uneinheitlich).
 
 ### Akzeptanzkriterien
 - **AK1** – Header: App-Name/Wortmarke links (Link zur Startseite), Navigation, Konto-Menü
@@ -244,6 +246,20 @@ Die verbindlichen AK stehen in `docs/specs/spec-371-kassieren-summe-abschluss.md
 - **AK3** – `/theke/[token]` bindet `PublicHeader` ein (oder die Komponente wird entfernt).
 - **AK4** – Jede Unterseite nutzt `PageHeader` mit Zurück-Link; Vorwärts-Aktionen als Button,
   nicht als Pfeil-Link.
+- **AK5** – Die Arbeitsschritt-Kacheln auf `/veranstaltung/[id]` heißen „Verzehr erfassen" und
+  „Auslagen erfassen" (statt „Verzehr" / „Auslagen"); „Kassieren" bleibt.
+
+### Stand-Abgleich (03.10.2026)
+Seit #369/#370/#371 teilweise überholt, Kern unverändert offen:
+- **Erledigt/überholt:** `PageHeader` samt Zurück-Link ist auf `/veranstaltung/[id]` (#369),
+  `/kassieren` (#371) und `/verwaltung/katalog/[id]` eingebunden; „← Verzehr erfassen" existiert
+  nur noch als personenbezogener Wechsel in der Kassierzeile (#308).
+- **Offen:** AK1 (Wortmarke/Konto-Menü), AK2 (Startseite), AK3 (`PublicHeader` nirgends eingebunden),
+  AK4 (Verzehr, Auslagen, Veranstaltungsliste, Teilnehmer noch ohne `PageHeader`), AK5.
+
+### Entscheidungen aus `/requirements` (spec-374)
+Konto-Menü als Aufklapp-Menü; „Offene Veranstaltungen" als Liste; `PublicHeader` wird eingebunden;
+AK4 umfasst Verzehr, Auslagen, Veranstaltungsliste und Teilnehmer (nur Kopf/Zurück-Link, Layout #373).
 
 ---
 
