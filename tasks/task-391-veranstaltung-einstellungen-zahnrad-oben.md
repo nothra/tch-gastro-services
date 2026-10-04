@@ -1,7 +1,7 @@
 # Task 391: veranstaltung-einstellungen-zahnrad-oben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -17,26 +17,27 @@ werden eigene Symbol-Schaltflächen im Seitenkopf (Teilen bzw. Papierkorb). Spec
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 Kein Einstellungen-Bereich mehr am Seitenende
-- [ ] AK2 Seitenkopf-Aktionszone: Badge, Teilen, Zahnrad, Papierkorb
-- [ ] AK3 Symbol-Schaltflächen mit zugänglichem Namen, ≥ 44 px, Papierkorb als Gefahr abgesetzt
-- [ ] AK4 Zahnrad öffnet Dialog „Einstellungen"
-- [ ] AK5 Datierte Veranstaltung: Katalog, Bearbeiten (ohne Teilen, ohne Löschen)
-- [ ] AK6 Stehende Theke: nur Katalog wechseln
-- [ ] AK7 Funktionen im Dialog verhalten sich unverändert
-- [ ] AK8 Schließen/Escape + Fokusrückgabe aufs Zahnrad
-- [ ] AK9 Teilen-Schaltfläche öffnet „Link & QR teilen", QR serverseitig
-- [ ] AK10 Link & QR mit einem Tap erreichbar
-- [ ] AK11 Papierkorb öffnet Bestätigungsdialog, Fokusrückgabe
-- [ ] AK12 Abgelehnte Löschung: Meldung sichtbar, Veranstaltung bleibt
-- [ ] AK13 Stehende Theke: kein Papierkorb
-- [ ] AK14 Abgeschlossen: weder Teilen, Zahnrad noch Papierkorb
-- [ ] AK15 Nur Tokens/Bausteine (ADR-052), Symbole hell/dunkel erkennbar
-- [ ] AK16 375 px + langer Titel: Kopf-Aktionen bleiben sichtbar
-- [ ] AK17 Anleitung + Screenshots nachgezogen
-- [ ] FS1 Kein Zugriff unverändert
-- [ ] FS2 Parallel abgeschlossen → Schreibaktion abgelehnt mit Meldung
-- [ ] FS3 Fehler beim Speichern → Dialog bleibt offen, Werte bleiben
+- [x] AK1 Kein Einstellungen-Bereich mehr am Seitenende
+- [x] AK2 Seitenkopf-Aktionszone: Badge, Teilen, Zahnrad, Papierkorb
+- [x] AK3 Symbol-Schaltflächen mit zugänglichem Namen, ≥ 44 px, Papierkorb als Gefahr abgesetzt
+- [x] AK4 Zahnrad öffnet Dialog „Einstellungen"
+- [x] AK5 Datierte Veranstaltung: Katalog, Bearbeiten (ohne Teilen, ohne Löschen)
+- [x] AK6 Stehende Theke: nur Katalog wechseln
+- [x] AK7 Funktionen im Dialog verhalten sich unverändert
+- [x] AK8 „Schließen"/Escape + Fokusrückgabe aufs Zahnrad (angepasst: Tippen außerhalb entfällt,
+  spec-391 Q4)
+- [x] AK9 Teilen-Schaltfläche öffnet „Link & QR teilen", QR serverseitig
+- [x] AK10 Link & QR mit einem Tap erreichbar
+- [x] AK11 Papierkorb öffnet Bestätigungsdialog, Fokusrückgabe
+- [x] AK12 Abgelehnte Löschung: Meldung sichtbar, Veranstaltung bleibt
+- [x] AK13 Stehende Theke: kein Papierkorb
+- [x] AK14 Abgeschlossen: weder Teilen, Zahnrad noch Papierkorb
+- [x] AK15 Nur Tokens/Bausteine (ADR-052), Symbole hell/dunkel erkennbar
+- [x] AK16 375 px + langer Titel: Kopf-Aktionen bleiben sichtbar
+- [x] AK17 Anleitung + Screenshots nachgezogen
+- [x] FS1 Kein Zugriff unverändert
+- [x] FS2 Parallel abgeschlossen → Schreibaktion abgelehnt mit Meldung
+- [x] FS3 Fehler beim Speichern → Dialog bleibt offen, Werte bleiben
 
 ## Technische Notizen
 ADR: `docs/adr/055-detailseite-kopfaktionen-symbol-schaltflaechen.md` (Proposed → beim
@@ -64,6 +65,23 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (NEEDS_REWORK): Screenshots 05/07, AK8-Wortlaut (→ Q4), Hover-Fläche `neutral`,
+  Herleitungs-Kommentar `kopfAktionen()`, ADR-053-Verweis, E2E-Helfer + Tests AK16/FS2,
+  Anleitung – nachgearbeitet.
+- Iteration 2 (NEEDS_REWORK): Nacharbeit nicht committet (K), Task-Datei ohne Häkchen (W),
+  Nitpicks Kommentar-Umbruch `ZugangTeilen.tsx` und Dev-Symbol in `shot()` – alle im
+  Rework-Commit nach Iteration 2 erledigt.
+
+## Nachweise (Rework nach Iteration 2, 2026-10-04)
+- E2E gegen einen Dev-Server aus diesem Worktree (:3000 vorher als frei geprüft, Lesson testing
+  #368; die Kopfaktions-Tests gibt es nur auf diesem Branch): `veranstaltung-detailseite`,
+  `veranstaltung-bearbeiten-loeschen`, `verzehr-einzelansicht` mit `E2E_DETAILSEITE_369=1`,
+  `E2E_VERANSTALTUNG_352=1`, `E2E_VERZEHR_370=1` → **12/12 grün** (inkl. spec-391 AK16, FS2,
+  AK1–AK10/AK14).
+- Capture-Spec (`CAPTURE_ANLEITUNG=1`) gegen eine **eigene Wegwerf-DB** im Dev-Container (die
+  geteilte `tch_dev` nicht zurückgesetzt, Wegwerf-DB danach gelöscht) → grün. Übernommen nur
+  Bild 05 (jetzt ohne Next.js-Dev-Symbol) und 07; die nebenbei neu erzeugten Bilder 01–04/08–12
+  sind nicht Gegenstand dieser Task und bleiben auf dem `main`-Stand.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

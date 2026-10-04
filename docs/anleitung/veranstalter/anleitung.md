@@ -93,9 +93,21 @@ Tippen Sie in der Liste auf den Namen der Veranstaltung, um sie zu **öffnen**.
 Auf der Veranstaltungs-Seite steuern Sie alles Weitere. Unter dem Titel stehen drei **Kacheln**
 – **„Verzehr"**, **„Auslagen"** und **„Kassieren"** – mit je einer Kurzkennzahl (Verzehr-Summe,
 Auslagen-Summe, „x von n bezahlt"). Ein Tipp auf eine Kachel führt zum jeweiligen Schritt. Darunter
-folgt die Liste der **Teilnehmer**, ganz unten der eingeklappte Bereich **„Einstellungen"**.
+folgt die Liste der **Teilnehmer**.
 
-![Übersicht der Veranstaltung mit den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
+Oben rechts im Seitenkopf, neben dem Status „offen", stehen drei **Symbole**:
+
+- **Teilen** (drei verbundene Punkte) – öffnet **„Link & QR teilen"** (siehe unten).
+- **Zahnrad** – öffnet die **„Einstellungen"**: Katalog wechseln und – bei datierten
+  Veranstaltungen – Bezeichnung, Datum und Kasse bearbeiten. Nach dem Speichern bleibt das Fenster
+  offen und bestätigt die Änderung; schließen Sie es mit **„Schließen"**.
+- **Papierkorb** (rot) – **löscht** die Veranstaltung. Die App fragt vorher nach; ist schon
+  Verzehr erfasst, Geld kassiert oder eine Auslage eingetragen, lehnt sie das Löschen mit einer
+  Meldung ab. Die stehende Theke hat keinen Papierkorb.
+
+Bei einer abgeschlossenen Veranstaltung fehlen die drei Symbole.
+
+![Übersicht der Veranstaltung mit den Symbolen Teilen, Zahnrad und Papierkorb im Kopf, den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
 
 **Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„+ Teilnehmer"**. Es öffnet
 sich ein Fenster mit zwei Bereichen:
@@ -114,9 +126,8 @@ können Sie eine Person wieder **entfernen** – die App fragt vorher nach.
 
 ### Zugang teilen (Selbstbedienung)
 
-Klappen Sie **„Einstellungen"** auf und tippen Sie auf **„Link & QR teilen"**. Das Fenster zeigt
-einen **Link** (mit **„Link kopieren"**) und einen **QR-Code**. Unter „Einstellungen" finden Sie
-außerdem den Katalogwechsel sowie – bei datierten Veranstaltungen – Bearbeiten und Löschen.
+Tippen Sie oben im Seitenkopf auf das **Teilen-Symbol** („Link & QR teilen"). Das Fenster zeigt
+einen **Link** (mit **„Link kopieren"**) und einen **QR-Code**.
 
 ![Fenster „Link & QR teilen" mit Selbstbedienungs-Link und QR-Code.](bilder/07-zugang-teilen.png)
 

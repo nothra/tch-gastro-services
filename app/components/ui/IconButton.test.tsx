@@ -47,6 +47,16 @@ describe("IconButton (ADR-055 D2, spec-391 AK3)", () => {
     expect(button).not.toHaveClass("text-danger");
   });
 
+  it("should_highlightOnHoverAgainstPageBackground_when_toneNeutral", () => {
+    render(<IconButton label="Einstellungen" icon={<Symbol />} />);
+
+    // Der Seitenkopf steht selbst auf `background` – eine Hover-Fläche in derselben Farbe wäre
+    // unsichtbar, deshalb die abgesetzte `line-subtle`-Fläche.
+    const button = screen.getByRole("button");
+    expect(button).toHaveClass("not-disabled:hover:bg-line-subtle");
+    expect(button).not.toHaveClass("not-disabled:hover:bg-background");
+  });
+
   it("should_useDangerToken_when_toneDanger", () => {
     // AK3: der Papierkorb ist als zerstörerische Aktion abgesetzt – Gefahr-Token als Symbolfarbe,
     // bewusst keine gefüllte Fläche (ADR-055 D2).

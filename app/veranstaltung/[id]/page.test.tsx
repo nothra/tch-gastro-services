@@ -204,7 +204,9 @@ function einstellungen() {
   return within(screen.getByTestId("inhalt Einstellungen"));
 }
 
-// Die Kopfaktionen in DOM-Reihenfolge: Badge-Text bzw. zugänglicher Name der Schaltfläche.
+// Die Kopfaktionen in DOM-Reihenfolge: Badge-Text bzw. zugänglicher Name der Schaltfläche. Zwei
+// Stub-Formen: der `KopfDialog`-Stub ist ein Wrapper um seinen Auslöser-Button (daher
+// `querySelector`), der `VeranstaltungLoeschen`-Stub ist selbst der Button (daher `?? element`).
 function kopfAktionen() {
   const badge = within(screen.getByRole("banner")).getByText(/^(offen|abgeschlossen)$/);
   return Array.from(badge.parentElement!.children).map((element) =>

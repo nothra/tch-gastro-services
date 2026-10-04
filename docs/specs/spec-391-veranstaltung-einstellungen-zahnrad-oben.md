@@ -72,9 +72,10 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
   gespeichert werden THEN verhalten sich diese Funktionen wie bisher (Validierung,
   Fehlermeldungen aus spec-346/spec-352); nach erfolgreichem Speichern zeigt die Seite die
   geänderten Werte (z. B. neue Bezeichnung im Seitenkopf).
-- [ ] **AK8** GIVEN der Dialog „Einstellungen" ist offen WHEN „Schließen" getippt, Escape
-  gedrückt oder außerhalb geschlossen wird THEN schließt der Dialog und der Fokus kehrt auf die
-  Zahnrad-Schaltfläche zurück (gleiche Dialog-Grundlage wie „+ Teilnehmer", spec-369 AK30).
+- [ ] **AK8** GIVEN der Dialog „Einstellungen" ist offen WHEN „Schließen" getippt oder Escape
+  gedrückt wird THEN schließt der Dialog und der Fokus kehrt auf die Zahnrad-Schaltfläche zurück
+  (gleiche Dialog-Grundlage wie „+ Teilnehmer", spec-369 AK30; Schließen per Tipp außerhalb
+  bewusst nicht Teil dieser Spec, siehe Q4).
 
 ### „Link & QR teilen"
 
@@ -139,3 +140,8 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
 - [x] **Q3 (entschieden in ADR-055 D3 – bleibt offen):** Schließt der Dialog „Einstellungen" nach erfolgreichem
   Speichern von Stammdaten bzw. Katalogwechsel automatisch, oder bleibt er offen? (Nutzersicht
   ist durch AK7/FS3 festgelegt; die Wahl beeinflusst nur den Ablauf.)
+- [x] **Q4 (angepasst in /review-Iteration 1, 2026-10-04):** AK8 nannte ursprünglich auch
+  „außerhalb schließen". Der gemeinsame `Dialog`-Baustein schließt per Tipp auf den Hintergrund
+  nicht – für keinen Konsumenten (auch spec-369 AK30 kennt den Weg nicht). AK8 ist deshalb auf
+  „Schließen" + Escape zurückgeführt; Hintergrund-Schließen wäre ein eigenes Thema für den
+  Baustein inkl. `ConfirmDialog`-Sperre während laufender Löschung.

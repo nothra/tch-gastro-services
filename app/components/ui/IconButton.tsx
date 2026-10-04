@@ -9,9 +9,10 @@ import { joinClasses } from "./joinClasses";
 export type IconButtonTone = "neutral" | "danger";
 
 // Bewusst keine gefüllte Gefahr-Fläche: im Seitenkopf stünde sonst ein roter Block neben dem
-// Status, lauter als die eigentliche Arbeit (ADR-055 D2). Der Ton färbt nur das Symbol.
+// Status, lauter als die eigentliche Arbeit (ADR-055 D2). Der Ton färbt nur das Symbol. Neutral
+// hebt beim Hover auf `line-subtle` ab, weil der Seitenkopf selbst auf `background` steht.
 const TONE_CLASSES: Record<IconButtonTone, string> = {
-  neutral: "text-foreground not-disabled:hover:bg-background",
+  neutral: "text-foreground not-disabled:hover:bg-line-subtle",
   danger: "text-danger not-disabled:hover:bg-danger-subtle",
 };
 

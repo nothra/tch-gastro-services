@@ -229,7 +229,7 @@ Action) und macht jede Stelle für sich testbar.
 - Reihenfolge (jeweils Red → Green): `Dialog` → `ConfirmDialog` → `kachelKennzahlen` →
   `addZeilen`/`getTeilnehmerByIds` (DB-Integrationstest, ohne `__test__`-Kollision mit anderen
   Dateien) → `addZeilenAction` → `ZeilenMenue` → `TeilnehmerHinzufuegenDialog` → `ZugangDialog`
-  → Seitenkomposition → `StatusToggle`-Umzug → E2E mit 375-px-Screenshot (AK27).
+  (seit #391 `KopfDialog`) → Seitenkomposition → `StatusToggle`-Umzug → E2E mit 375-px-Screenshot (AK27).
 - Formular im Dialog: Erfolg schließt den Dialog, indem die Client-Hülle die Action umschließt
   und bei `ok` `setOpen(false)` ruft – kein `useEffect` (Lesson `react-hooks/set-state-in-effect`).
   Reset-Handler an `onSubmit`, nicht `onClick` (Lesson #352).
