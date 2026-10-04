@@ -91,18 +91,35 @@ describe("KatalogWechsel", () => {
     });
     render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
 
-    expect(
-      screen.getByText(
-        "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
-      ),
-    ).toBeInTheDocument();
+    // Im Dialog „Einstellungen" (spec-391, ADR-055 D6) als Fehler-`Notice` angesagt.
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("should_showSuccessMessage_when_stateOk", () => {
     withState({ ok: true });
     render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
 
-    expect(screen.getByText("Katalog gewechselt.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Katalog gewechselt.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("should_showNoMessage_when_nothingSubmittedYet", () => {
+    render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("should_offerSubmitButtonInSecondaryStyle_when_rendered", () => {
+    // ADR-055 D6: Baustein `Button` statt Rohklassen – Absenden explizit `type="submit"`.
+    render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
+
+    const button = screen.getByRole("button", { name: "Katalog wechseln" });
+    expect(button).toHaveAttribute("type", "submit");
+    expect(button).toHaveClass("border-line", "bg-surface");
   });
 
   it("should_disableButtonWithPendingText_when_pending", () => {

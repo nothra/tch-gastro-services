@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > Löst **ADR-053 D6** im Punkt „Einstellungen als natives `<details>`" ab. ADR-053 D1
 > (`Dialog`/`ConfirmDialog`) und D5 („Link & QR": Server rendert, Client öffnet) gelten

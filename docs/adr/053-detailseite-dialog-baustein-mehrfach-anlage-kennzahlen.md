@@ -132,6 +132,8 @@ Dialog-Grundlage):
   Damit bleibt `qrcode` aus dem Client-Bundle (ADR-034 D5/D6, #307). Der QR wird bei jedem
   Seitenaufruf mit erzeugt, auch bei geschlossenem Dialog – Millisekunden und wenige KB
   RSC-Nutzlast, bewusst in Kauf genommen gegenüber einer Extra-Route.
+  > **Nachtrag (#391, ADR-055 D3):** `ZugangDialog` ist zu `KopfDialog` verallgemeinert (Symbol-
+  > Schaltfläche im Seitenkopf); das Prinzip „Server rendert, Client öffnet" gilt unverändert.
 - Die Kopieren-Schaltfläche nutzt die Clipboard-API mit `try/catch`; bei Ablehnung bleibt das
   markierte Nur-Lese-Feld als Rückfall.
 - Druckbarkeit (#307 Teil 2, #181) ist **nicht** Teil dieser Entscheidung.

@@ -2,8 +2,8 @@ import QRCode from "qrcode";
 import { absoluteUrl } from "@/lib/base-url";
 import { LinkKopieren } from "./LinkKopieren";
 
-// Inhalt von „Link & QR teilen" (F7, #54, ADR-034 D5/D6; seit #369 im Dialog `ZugangDialog`,
-// ADR-053 D5): der login-freie Selbstbedienungs-Link zu `theke/[token]` als kopierbarer Text und
+// Inhalt von „Link & QR teilen" (F7, #54, ADR-034 D5/D6; seit #369 in einem Dialog, ADR-053 D5,
+// seit #391 hinter dem Teilen-Symbol im Seitenkopf über `KopfDialog`, ADR-055 D3): der login-freie Selbstbedienungs-Link zu `theke/[token]` als kopierbarer Text und
 // als QR-Code. Der QR wird server-seitig als SVG-String erzeugt (`qrcode`) und inline gerendert –
 // null Client-Bundle. `qrcode` wird bewusst nur hier (server-seitig) importiert, nie im Client.
 // Wird nur für offene Veranstaltungen eingebunden (Aufrufstelle).

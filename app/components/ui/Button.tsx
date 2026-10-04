@@ -27,7 +27,8 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: "min-h-11 px-3 text-sm",
 };
 
-const BASE_CLASSES = [
+/** Form, Fokus und Disabled-Optik – geteilt mit `IconButton` statt kopiert (ADR-055 D2). */
+export const BUTTON_BASE_CLASSES = [
   "inline-flex items-center justify-center gap-2 rounded-md font-medium",
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
   "disabled:cursor-not-allowed disabled:opacity-60",
@@ -50,7 +51,7 @@ export function buttonClasses({
   size = "md",
   className,
 }: ButtonStyleProps = {}): string {
-  return joinClasses(BASE_CLASSES, VARIANT_CLASSES[variant], SIZE_CLASSES[size], className);
+  return joinClasses(BUTTON_BASE_CLASSES, VARIANT_CLASSES[variant], SIZE_CLASSES[size], className);
 }
 
 type ButtonProps = ComponentProps<"button"> & ButtonStyleProps;

@@ -22,8 +22,12 @@ export const UI_TOKEN_FILES = [
   "app/veranstaltung/[id]/Abschlussbericht.tsx",
   "app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx",
   "app/veranstaltung/[id]/LinkKopieren.tsx",
-  "app/veranstaltung/[id]/ZugangDialog.tsx",
   "app/veranstaltung/[id]/ZugangTeilen.tsx",
+  // #391: Kopfaktionen (Teilen, Einstellungen, Löschen) samt der Formulare im Dialog (ADR-055 D6).
+  "app/veranstaltung/[id]/KopfDialog.tsx",
+  "app/veranstaltung/[id]/VeranstaltungLoeschen.tsx",
+  "app/veranstaltung/[id]/VeranstaltungMetaForm.tsx",
+  "app/veranstaltung/KatalogWechsel.tsx",
   "app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx",
   "app/veranstaltung/ZeileRow.tsx",
   "app/veranstaltung/ZeilenMenue.tsx",
