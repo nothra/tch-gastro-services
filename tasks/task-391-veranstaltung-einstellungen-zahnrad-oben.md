@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Einstellungen der Veranstaltung vom Seitenende in den Seitenkopf holen: Zahnrad-Symbol öffnet
@@ -102,7 +102,8 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
 - Kein Code geändert, daher keine neuen Testläufe nötig; der Stand der /test-Notizen gilt weiter.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- Zwei Lessons in `factory-workflow.md` (+ Index): Rezidiv „Rework nicht committet" (#251) und
+  „UI-Einstieg verschoben → E2E/Capture/Screenshots/Anleitung mitziehen". Details: `tasks/codify-391.md`.
 
 ---
 Branch: `feature/391-veranstaltung-einstellungen-zahnrad-oben`
