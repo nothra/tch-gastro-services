@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -55,6 +55,11 @@ ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
   ist nur der Zurück-Link-Locator angepasst: der Pfeil ist `aria-hidden`, der zugängliche Name heißt
   „Zur Veranstaltung". Den Rest der Anleitung macht AK5.4 nach `/review`.
 - **DB-Integrationstests** (`listOffeneVeranstaltungen` u. a.) mit `.env.local` ausgeführt: 118/118 grün.
+
+### Notizen aus `/test` (2026-10-04)
+- Volle Suite inkl. DB-Integrationstests (`dotenv -e .env.local`): 110 Dateien / 1510 Tests grün; Gesamt-Coverage 98,3 % Stmts / 98,3 % Branch.
+- Alle in #374 geänderten Dateien (`AppNav`, `KontoMenue`, `PublicHeader`, `app/page.tsx`, `OffeneVeranstaltungen`, Seitenköpfe) stehen bei 100 % (der Report listet nur Dateien unter 100 %, keine davon ist betroffen); die Restlücke in `db/veranstaltung.ts` 239–249 (`getZeile`) ist vorbestehend.
+- AK-Abgleich ohne Lücke: je AK1–AK5 (außer AK5.4 = Doku) Happy Path + Fehlerfall vorhanden (u. a. AK2.4 „keine Ladung ohne `veranstalter`", DB-Fehler-Hinweis, „Angemeldet"-Fallback, Pfeil ohne Text-`→`). Keine neuen Tests nötig.
 
 ## Offene Fragen
 _Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Implementierung + Review (AK5.4); Sortierung bei gleichem Datum nach Anlage-Zeit.
