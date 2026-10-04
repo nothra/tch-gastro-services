@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
 import { listTeilnehmer } from "@/db/teilnehmer";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import { TeilnehmerForm } from "./TeilnehmerForm";
 import { TeilnehmerRow } from "./TeilnehmerRow";
 
@@ -23,9 +24,7 @@ export default async function TeilnehmerPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Teilnehmer
-      </h1>
+      <PageHeader title="Teilnehmer" />
       <TeilnehmerForm />
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">Teilnehmer ({teilnehmer.length})</h2>

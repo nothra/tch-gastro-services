@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Teilnehmer } from "@/db/schema";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
@@ -55,6 +55,18 @@ describe("TeilnehmerPage", () => {
     expect(screen.getByRole("heading", { name: "Teilnehmer", level: 1 })).toBeInTheDocument();
     expect(screen.getByText("Familie Müller")).toBeInTheDocument();
     expect(screen.getByText(/Familie · Mitglied/)).toBeInTheDocument();
+  });
+
+  it("should_showTitleInPageHeaderWithoutBackLink_when_verwalter", async () => {
+    // spec-374 AK4.2: Top-Level-Bereich – Seitenkopf ohne Zurück-Link (Navigation reicht).
+    authMock.mockResolvedValue(session(["verwalter"]));
+    listTeilnehmerMock.mockResolvedValue([]);
+
+    render(await TeilnehmerPage());
+
+    const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+    expect(kopf).not.toBeNull();
+    expect(within(kopf).queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("should_showEmptyMessage_when_noTeilnehmer", async () => {

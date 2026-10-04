@@ -3,14 +3,22 @@ import { render, screen } from "@testing-library/react";
 import { PublicHeader } from "./PublicHeader";
 
 describe("PublicHeader", () => {
-  it("should_showContextLabel_when_provided", () => {
+  it("should_showWortmarkeAndContextLabel_when_contextProvided", () => {
+    // spec-374 AK3.1: Wortmarke plus Veranstaltungs-/Thekenname als Kontext.
     render(<PublicHeader contextLabel="Montagsrunde" />);
+    expect(screen.getByText("TCH Gastro Services")).toBeInTheDocument();
     expect(screen.getByText("Montagsrunde")).toBeInTheDocument();
   });
 
-  it("should_showFallbackLabel_when_noContextGiven", () => {
+  it("should_showOnlyWortmarke_when_noContextGiven", () => {
     render(<PublicHeader />);
-    expect(screen.getByText(/TCH Gastro Services/i)).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toHaveTextContent(/^TCH Gastro ServicesAnmelden$/);
+  });
+
+  it("should_notLinkWortmarke_when_rendered", () => {
+    // AK3.2: die Wortmarke führt Gäste nicht auf die (geschützte) Startseite.
+    render(<PublicHeader contextLabel="Theke" />);
+    expect(screen.getByText("TCH Gastro Services").closest("a")).toBeNull();
   });
 
   it("should_offerOnlyAnmeldenLink_when_rendered", () => {
@@ -28,5 +36,6 @@ describe("PublicHeader", () => {
     expect(screen.queryByRole("link", { name: "Katalog" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Teilnehmer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Abmelden/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Konto" })).not.toBeInTheDocument();
   });
 });

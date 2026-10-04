@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltungByToken, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
@@ -6,6 +7,7 @@ import { listPositionen } from "@/db/verzehr";
 import { adjustVerzehrByTokenAction } from "@/app/veranstaltung/actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "@/app/veranstaltung/labels";
 import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
+import { PublicHeader } from "@/app/components/PublicHeader";
 import { IdentityGate } from "./IdentityGate";
 
 // Öffentliche, login-freie Selbstbedienungs-Route (F7, #54, ADR-034 D1): lädt die Veranstaltung
@@ -19,7 +21,8 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
   const veranstaltung = await getVeranstaltungByToken(token);
   if (!veranstaltung) notFound();
 
-  const [zeilen, artikel, positionen] = await Promise.all([
+  const [session, zeilen, artikel, positionen] = await Promise.all([
+    auth(),
     listZeilen(veranstaltung.id),
     // Wie die authentifizierte F5-Seite (#346, ADR-050-Nachtrag zu D3): Preisquelle ist der
     // Katalog DIESER Veranstaltung, ein Katalogwechsel schlägt also auch hier durch. Für die
@@ -37,7 +40,12 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
   const action = adjustVerzehrByTokenAction.bind(null, token);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
+    <>
+      {/* Erst nach dem Token-Check (ADR-056 D4): ein ungültiger Token endet oben in notFound(),
+          bevor ein Name erscheinen kann (AK3.3). Mit Session zeigt das Layout schon den
+          AppHeader – dann kein zweiter Kopf. */}
+      {!session?.user && <PublicHeader contextLabel={veranstaltung.bezeichnung} />}
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
           {veranstaltung.bezeichnung}
@@ -57,5 +65,6 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
         editable={editable}
       />
     </main>
+    </>
   );
 }

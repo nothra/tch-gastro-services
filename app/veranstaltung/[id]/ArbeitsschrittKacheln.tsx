@@ -9,8 +9,8 @@ import type { KachelKennzahlen } from "../kachelKennzahlen";
 
 // `schritt` ist zugleich Routen-Segment der Unterseite und Schlüssel der Kennzahl.
 const SCHRITTE = [
-  { schritt: "verzehr", titel: "Verzehr" },
-  { schritt: "auslagen", titel: "Auslagen" },
+  { schritt: "verzehr", titel: "Verzehr erfassen" },
+  { schritt: "auslagen", titel: "Auslagen erfassen" },
   { schritt: "kassieren", titel: "Kassieren" },
 ] as const satisfies readonly { schritt: keyof KachelKennzahlen; titel: string }[];
 

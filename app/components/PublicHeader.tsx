@@ -5,19 +5,21 @@ type PublicHeaderProps = {
   contextLabel?: string;
 };
 
-// Schlanke Orientierungsleiste für den login-freien Kontext (ADR-031): kein Personal-Menü,
-// kein Link auf geschützte Bereiche, keine /login-Umleitung – nur ein dezenter
-// "Anmelden"-Einstieg. Opt-in eingebunden (nicht global gemountet, sonst erschiene sie auf
-// /login); #54 hängt sie auf theke/[token] ein.
+// Schlanke Orientierungsleiste für den login-freien Kontext (ADR-031, ADR-056 D4): Wortmarke als
+// Text (kein Link – die Startseite ist geschützt), kein Personal-Menü, keine /login-Umleitung – nur
+// ein dezenter "Anmelden"-Einstieg. Opt-in eingebunden (nicht global gemountet, sonst erschiene
+// sie auf /login); die Thekenseite hängt sie erst nach dem Token-Check ein.
 export function PublicHeader({ contextLabel }: PublicHeaderProps) {
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-zinc-200 px-[max(1rem,env(safe-area-inset-left))] py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm dark:border-zinc-800">
-      <span className="truncate font-medium text-zinc-700 dark:text-zinc-200">
-        {contextLabel ?? "TCH Gastro Services"}
-      </span>
+    <header className="flex items-center gap-3 border-b border-line-subtle bg-surface px-[max(1rem,env(safe-area-inset-left))] py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm text-foreground">
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-base font-semibold">TCH Gastro Services</span>
+        {contextLabel && <span className="truncate text-muted">{contextLabel}</span>}
+      </div>
       <Link
         href="/login"
-        className="inline-flex min-h-[44px] items-center text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+        prefetch={false}
+        className="ml-auto inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         Anmelden
       </Link>

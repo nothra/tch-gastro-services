@@ -340,6 +340,16 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
     ]);
   });
 
+  it("should_nameKachelnWithVerbs_when_rendered", async () => {
+    // spec-374 AK5.1: „Verzehr erfassen", „Auslagen erfassen", „Kassieren" – in dieser Reihenfolge.
+    await renderSeite();
+
+    const titel = within(screen.getByRole("navigation", { name: "Arbeitsschritte" }))
+      .getAllByRole("link")
+      .map((link) => link.querySelector("span")?.textContent);
+    expect(titel).toEqual(["Verzehr erfassen", "Auslagen erfassen", "Kassieren"]);
+  });
+
   it("should_showKennzahlenFromSummen_when_verzehrAndAuslagenErfasst", async () => {
     // AK4: Anna hat 2 × 2,50 € und hat bezahlt, Bernd 1 × 4,00 € offen; eine Auslage von 12,50 €
     // (offen) plus 3,00 € (erstattet). Soll-Werte von Hand gerechnet.
@@ -382,7 +392,9 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
     expect(bloecke[1]).toContainElement(bericht);
     expect(bloecke[2]).toBe(screen.getByRole("navigation", { name: "Arbeitsschritte" }));
     expect(kachel(/Kassieren/)).toHaveTextContent(/^Kassieren$/);
-    expect(kachel(/Verzehr/)).toHaveTextContent(/^Verzehr$/);
+    // spec-374 AK5.3: dieselben Titel, aber keine Kennzahl.
+    expect(kachel(/Verzehr/)).toHaveTextContent(/^Verzehr erfassen$/);
+    expect(kachel(/Auslagen/)).toHaveTextContent(/^Auslagen erfassen$/);
     expect(listPositionenMock).not.toHaveBeenCalled();
     expect(listAuslagenMock).not.toHaveBeenCalled();
   });

@@ -403,3 +403,42 @@ describe("VerzehrPage", () => {
     expect(screen.queryByTestId("menge")).not.toBeInTheDocument();
   });
 });
+
+// Seitenkopf (spec-374 AK4): `PageHeader` mit Zurück-Link, Titel und Meta.
+function seitenkopf() {
+  return screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+}
+
+describe("VerzehrPage – Seitenkopf (spec-374 AK4)", () => {
+  it("should_showBackLinkToVeranstaltungInPageHeader_when_rendered", async () => {
+    // AK4.1: Zurück-Link „Zur Veranstaltung" im Seitenkopf, Pfeil nur als Dekoration (AK4.4).
+    arrangeZweiZeilen();
+
+    render(await VerzehrPage(seite("v-1")));
+
+    const zurueck = within(seitenkopf()).getByRole("link", { name: "Zur Veranstaltung" });
+    expect(zurueck).toHaveAttribute("href", "/veranstaltung/v-1");
+    expect(zurueck).toHaveTextContent(/^←Zur Veranstaltung$/);
+  });
+
+  it("should_keepTitleAndMeta_when_rendered", async () => {
+    // AK4.1: Titel und Meta (Datum · Kasse · Status) bleiben inhaltlich erhalten.
+    arrangeZweiZeilen();
+
+    render(await VerzehrPage(seite("v-1")));
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Verzehr · Montagsrunde Juli",
+    );
+    expect(seitenkopf()).toHaveTextContent("14.07.2026 · Montagsrunde · offen");
+  });
+
+  it("should_labelKassierenWithoutArrow_when_rendered", async () => {
+    // AK4.5: Vorwärts-Aktion als Button-Link mit Label „Kassieren", ohne Pfeil.
+    arrangeZweiZeilen();
+
+    render(await VerzehrPage(seite("v-1")));
+
+    expect(screen.getByRole("link", { name: "Kassieren" })).toHaveTextContent(/^Kassieren$/);
+  });
+});
