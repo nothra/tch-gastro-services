@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem } from "@/lib/navigation";
 import { KontoMenue } from "./KontoMenue";
+import { focusClass, headerClass, iconButtonClass } from "./headerStyles";
 import { useNavDrawerFocus } from "./useNavDrawerFocus";
 
 type AppNavProps = {
@@ -14,12 +15,7 @@ type AppNavProps = {
   signOutAction: () => Promise<void>;
 };
 
-const focusClass =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
 const linkClass = `flex min-h-11 items-center rounded-md px-3 py-2 font-medium text-foreground hover:bg-background aria-[current=page]:bg-accent-subtle aria-[current=page]:text-accent ${focusClass}`;
-
-const iconButtonClass = `inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-foreground hover:bg-background ${focusClass}`;
 
 // Rollenbewusste Kopfzeile (ADR-031, ADR-056 D2) in einer Zeile: Hamburger (nur schmal) ·
 // Wortmarke als Startlink · Desktop-Inline-Links (ohne JS nutzbar, da serverseitig gerendert) ·
@@ -49,7 +45,7 @@ export function AppNav({ items, label, signOutAction }: AppNavProps) {
   );
 
   return (
-    <header className="flex items-center gap-3 border-b border-line-subtle bg-surface px-[max(1rem,env(safe-area-inset-left))] py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm text-foreground">
+    <header className={headerClass}>
       <button
         ref={toggleRef}
         type="button"

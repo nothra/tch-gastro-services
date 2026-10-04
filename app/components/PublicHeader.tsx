@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headerClass } from "./headerStyles";
 
 type PublicHeaderProps = {
   // Kontextname für den login-freien Bereich (z. B. Veranstaltungs-/Thekenname).
@@ -11,7 +12,7 @@ type PublicHeaderProps = {
 // sie auf /login); die Thekenseite hängt sie erst nach dem Token-Check ein.
 export function PublicHeader({ contextLabel }: PublicHeaderProps) {
   return (
-    <header className="flex items-center gap-3 border-b border-line-subtle bg-surface px-[max(1rem,env(safe-area-inset-left))] py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm text-foreground">
+    <header className={headerClass}>
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-base font-semibold">TCH Gastro Services</span>
         {contextLabel && <span className="truncate text-muted">{contextLabel}</span>}

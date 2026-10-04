@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -60,6 +60,17 @@ ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
 - Volle Suite inkl. DB-Integrationstests (`dotenv -e .env.local`): 110 Dateien / 1510 Tests grün; Gesamt-Coverage 98,3 % Stmts / 98,3 % Branch.
 - Alle in #374 geänderten Dateien (`AppNav`, `KontoMenue`, `PublicHeader`, `app/page.tsx`, `OffeneVeranstaltungen`, Seitenköpfe) stehen bei 100 % (der Report listet nur Dateien unter 100 %, keine davon ist betroffen); die Restlücke in `db/veranstaltung.ts` 239–249 (`getZeile`) ist vorbestehend.
 - AK-Abgleich ohne Lücke: je AK1–AK5 (außer AK5.4 = Doku) Happy Path + Fehlerfall vorhanden (u. a. AK2.4 „keine Ladung ohne `veranstalter`", DB-Fehler-Hinweis, „Angemeldet"-Fallback, Pfeil ohne Text-`→`). Keine neuen Tests nötig.
+
+### Notizen aus `/refactor` (2026-10-04)
+- Die dreifach kopierten Header-Klassen (`focusClass`, `headerClass`, `iconButtonClass`) liegen jetzt
+  in `app/components/headerStyles.ts`; `AppNav`, `KontoMenue` und `PublicHeader` importieren sie.
+  Das Abmelden-Button-Styling in `KontoMenue` heißt `abmeldenButtonClass`. Das Verhalten bleibt
+  gleich, 1398 Tests grün wie vorher.
+- Drei Kommentar-Nitpicks aus dem Review sind erledigt: E2E-Verweis in `KontoMenue.test.tsx`,
+  „Abmelden" → „Konto-Knopf" in `AppNav.test.tsx`, Satzbau in `personenbezug.ts`.
+- Bewusst offen (nicht Refactoring, gehört zu AK5.4/Doku): ADR-056 D4 um die `auth()`-/Session-
+  Bedingung ergänzen; die übrigen Nitpicks (Popover-Abstand zum `StageBanner`, Light-Dismiss-Fokus
+  im E2E, `Kassieren →`-Fixtures in `VerzehrEinzelansicht.test.tsx`).
 
 ## Offene Fragen
 _Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Implementierung + Review (AK5.4); Sortierung bei gleichem Datum nach Anlage-Zeit.

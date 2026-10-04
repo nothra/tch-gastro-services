@@ -164,7 +164,7 @@ describe("AppNav", () => {
 
   // Fokus-Trap: aria-modal="true" sagt der assistiven Technik zu, dass Fokus den Dialog
   // nicht verlässt – also muss Tab am Rand im Drawer umlaufen, nicht auf verdeckte
-  // Header-Bedienelemente (Hamburger, Abmelden) hinter dem Overlay springen.
+  // Header-Bedienelemente (Hamburger, Konto-Knopf) hinter dem Overlay springen.
   it("should_wrapFocusToCloseButton_when_tabAtLastDrawerLink", async () => {
     const user = userEvent.setup();
     renderNav();

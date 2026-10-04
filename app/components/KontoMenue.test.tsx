@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { KontoMenue } from "./KontoMenue";
 
 // jsdom kennt die Popover-API nicht (ADR-056 D1): hier wird nur die deklarative Verdrahtung
-// geprüft. Öffnen, Escape, Klick außerhalb und Fokus-Rücksprung belegt e2e/navigation.spec.ts.
+// geprüft. Öffnen, Escape, Klick außerhalb und Fokus-Rücksprung belegt e2e/header-startseite.spec.ts.
 
 const signOutAction = vi.fn(async () => {});
 

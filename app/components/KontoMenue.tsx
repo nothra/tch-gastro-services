@@ -2,7 +2,11 @@
 // außerhalb, `aria-expanded` und der Fokus-Rücksprung kommen von der Plattform – deshalb weder
 // eigener Zustand noch Fokus-Trap. Deklarativ verdrahtet, also auch ohne JavaScript bedienbar.
 
+import { focusClass, iconButtonClass } from "./headerStyles";
+
 const MENUE_ID = "konto-menue";
+
+const abmeldenButtonClass = `inline-flex min-h-11 w-full items-center justify-center rounded-md border border-line bg-surface px-3 font-medium text-foreground hover:bg-background ${focusClass}`;
 
 interface KontoMenueProps {
   /** E-Mail des Nutzers bzw. „Angemeldet" – erscheint nur im Menü, nie im Knopf (AK1.2). */
@@ -13,12 +17,7 @@ interface KontoMenueProps {
 export function KontoMenue({ label, signOutAction }: KontoMenueProps) {
   return (
     <>
-      <button
-        type="button"
-        popoverTarget={MENUE_ID}
-        aria-label="Konto"
-        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-foreground hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
+      <button type="button" popoverTarget={MENUE_ID} aria-label="Konto" className={iconButtonClass}>
         <KontoSymbol />
       </button>
       {/* `inset-auto m-0` hebt die UA-Zentrierung des Popovers auf; die Position ist fest oben
@@ -30,10 +29,7 @@ export function KontoMenue({ label, signOutAction }: KontoMenueProps) {
       >
         <p className="break-all text-muted">{label}</p>
         <form action={signOutAction}>
-          <button
-            type="submit"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-line bg-surface px-3 font-medium text-foreground hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
+          <button type="submit" className={abmeldenButtonClass}>
             Abmelden
           </button>
         </form>
