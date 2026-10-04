@@ -128,6 +128,10 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
 - Zwei Lessons in `factory-workflow.md` (+ Index): Rezidiv „Rework nicht committet" (#251) und
   „UI-Einstieg verschoben → E2E/Capture/Screenshots/Anleitung mitziehen". Details: `tasks/codify-391.md`.
 
+## PR-Shepherd-Notizen
+PR-Shepherd 2026-10-04: Merge freigegeben – alle Gates grün (keine offenen Kommentare, Branch
+auf aktuellem `main`, CI grün, kein Approval gefordert, PR aus Draft geholt).
+
 ---
 Branch: `feature/391-veranstaltung-einstellungen-zahnrad-oben`
 Erstellt: 2026-10-02 23:07
