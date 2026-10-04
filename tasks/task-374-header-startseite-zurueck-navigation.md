@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -61,6 +61,10 @@ _Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Impleme
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Runde 1 (2026-10-04): **APPROVED**, Bericht in `tasks/review-374.md`. 0 kritische, 2 wichtige
+(ADR-056 D4 um Session-Bedingung/`auth()` ergänzen; E2E-Verweis in `KontoMenue.test.tsx:6` auf
+`e2e/header-startseite.spec.ts` korrigieren), 6 Nitpicks. Die wichtigen Findings werden vor dem
+Merge zusammen mit AK5.4 erledigt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
