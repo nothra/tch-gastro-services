@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -92,6 +92,14 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
 - Alle neuen/geänderten Dateien (IconButton, icons, KopfDialog, VeranstaltungLoeschen,
   VeranstaltungMetaForm, KatalogWechsel, page.tsx) ohne Lücke; AK1–AK16 und FS1–FS3 sind durch
   Unit- oder E2E-Test belegt. Keine neuen Tests nötig, kein Produktionscode geändert.
+
+## Refactoring-Notizen (/refactor, 2026-10-04)
+- Geprüft: `IconButton`, `icons`, `KopfDialog`, `VeranstaltungLoeschen`, `VeranstaltungMetaForm`,
+  `KatalogWechsel`, `page.tsx` gegen die Clean-Code-Checkliste (Naming, Funktionslänge, Duplikate,
+  Magic Strings, Early Returns, WHY-Kommentare). Kein Befund, der eine Änderung rechtfertigt:
+  Basisklassen sind über `BUTTON_BASE_CLASSES` geteilt, `LoeschBestaetigung` ist bereits von der
+  Auslöser-Hülle getrennt, keine Funktion mit mehr als 3 Parametern ohne Objekt-Prop.
+- Kein Code geändert, daher keine neuen Testläufe nötig; der Stand der /test-Notizen gilt weiter.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
