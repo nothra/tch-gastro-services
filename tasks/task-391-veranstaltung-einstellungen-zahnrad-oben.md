@@ -83,6 +83,8 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
   `PageHeader` ließ die `flex-wrap`-Gruppe nie umbrechen. Fix: `max-w-full` am Aktionsbereich
   (TDD: `PageHeader.test.tsx` rot → grün), ADR-056 D5 + Nachtrag in ADR-055 D3. Bild 05 und
   Anleitungstext auf den zusammengeführten Kopf nachgezogen.
+- Iteration 5 (APPROVED): alle Funde aus Iteration 4 erledigt, keine neuen Findings; Gates
+  (Lint, 799 Unit-Tests, tsc, Prettier, Routen-Doku) grün.
 
 ## Nachweise (Rework nach Iteration 2, 2026-10-04)
 - E2E gegen einen Dev-Server aus diesem Worktree (:3000 vorher als frei geprüft, Lesson testing
