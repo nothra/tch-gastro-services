@@ -165,7 +165,9 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
   it("should_listOnlyOffeneDatierte_when_listingOffene", async () => {
     // spec-374 AK2.1/ADR-056 D3: Filter in der DB – abgeschlossene Veranstaltungen und die
     // stehende Theke (auch offen) gehören nicht auf die Startseite.
-    const offen = await trackVeranstaltung(datierte({ bezeichnung: `${TEST_PREFIX}Startseite-offen` }));
+    const offen = await trackVeranstaltung(
+      datierte({ bezeichnung: `${TEST_PREFIX}Startseite-offen` }),
+    );
     const abgeschlossen = await trackVeranstaltung(
       datierte({ bezeichnung: `${TEST_PREFIX}Startseite-abgeschlossen` }),
     );
@@ -184,8 +186,12 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     // spec-374 AK2.2: Datum absteigend, bei gleichem Datum die zuletzt angelegte zuerst. Parallel
     // laufende Testdateien legen eigene Zeilen an – deshalb nur die Reihenfolge der eigenen prüfen.
     const aelter = await trackVeranstaltung(datierte({ datum: new Date("2026-07-06") }));
-    const gleichesDatumZuerst = await trackVeranstaltung(datierte({ datum: new Date("2026-07-13") }));
-    const gleichesDatumDanach = await trackVeranstaltung(datierte({ datum: new Date("2026-07-13") }));
+    const gleichesDatumZuerst = await trackVeranstaltung(
+      datierte({ datum: new Date("2026-07-13") }),
+    );
+    const gleichesDatumDanach = await trackVeranstaltung(
+      datierte({ datum: new Date("2026-07-13") }),
+    );
     const eigene = new Set([aelter.id, gleichesDatumZuerst.id, gleichesDatumDanach.id]);
 
     const reihenfolge = (await listOffeneVeranstaltungen())

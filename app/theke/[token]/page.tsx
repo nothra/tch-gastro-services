@@ -46,25 +46,25 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
           AppHeader – dann kein zweiter Kopf. */}
       {!session?.user && <PublicHeader contextLabel={veranstaltung.bezeichnung} />}
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {veranstaltung.bezeichnung}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
-          {STATUS_LABEL[veranstaltung.status]}
-        </p>
-      </div>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            {veranstaltung.bezeichnung}
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
+            {STATUS_LABEL[veranstaltung.status]}
+          </p>
+        </div>
 
-      <IdentityGate
-        token={token}
-        zeilen={toVerzehrZeilen(zeilen)}
-        artikel={toVerzehrArtikelListe(artikel)}
-        positionen={positionen}
-        action={action}
-        editable={editable}
-      />
-    </main>
+        <IdentityGate
+          token={token}
+          zeilen={toVerzehrZeilen(zeilen)}
+          artikel={toVerzehrArtikelListe(artikel)}
+          positionen={positionen}
+          action={action}
+          editable={editable}
+        />
+      </main>
     </>
   );
 }

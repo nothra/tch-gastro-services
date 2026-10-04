@@ -37,7 +37,11 @@ describe("KontoMenue", () => {
   it("should_keepTouchTargetOf44px_when_rendered", () => {
     renderMenue();
 
-    expect(screen.getByRole("button", { name: "Konto" })).toHaveClass("min-h-11", "min-w-11", "shrink-0");
+    expect(screen.getByRole("button", { name: "Konto" })).toHaveClass(
+      "min-h-11",
+      "min-w-11",
+      "shrink-0",
+    );
   });
 
   it("should_wireTriggerToPopover_when_rendered", () => {

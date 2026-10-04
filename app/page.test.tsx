@@ -95,9 +95,7 @@ describe("Home – offene Veranstaltungen (spec-374 AK2)", () => {
       "href",
       "/veranstaltung/v-1",
     );
-    expect(abschnitt!.compareDocumentPosition(bereiche())).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+    expect(abschnitt!.compareDocumentPosition(bereiche())).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("should_showEmptyHintAboveTiles_when_veranstalterWithoutOffene", async () => {
