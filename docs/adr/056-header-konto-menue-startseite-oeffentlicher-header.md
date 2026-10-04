@@ -57,8 +57,8 @@ unter `md` im Header; sie darf auf schmalen Viewports kürzen (`truncate`, `min-
 Hamburger und der Konto-Knopf nie (`shrink-0`, je ≥ 44 px). Der Drawer (`useNavDrawerFocus`) und
 die kanonische `lib/navigation.ts` bleiben unverändert.
 
-`AppNav` verliert die Props `label` zugunsten einer Konto-Beschriftung für das Menü, behält aber
-die Schnittstelle (`items`, `signOutAction`); `AppHeader` bleibt die Server Component, die `auth()`
+`AppNav` behält seine Props (`items`, `label`, `signOutAction`); `label` (E-Mail bzw. „Angemeldet")
+erscheint nur noch im Konto-Menü statt im Header. `AppHeader` bleibt die Server Component, die `auth()`
 liest und für Besucher ohne Session `null` liefert.
 
 ### D3 · Startseite: eigene Abfrage, Rollen-Gate vor dem Laden, Fehler abfangen
