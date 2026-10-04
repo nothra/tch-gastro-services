@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -71,6 +71,8 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
 - Iteration 2 (NEEDS_REWORK): Nacharbeit nicht committet (K), Task-Datei ohne Häkchen (W),
   Nitpicks Kommentar-Umbruch `ZugangTeilen.tsx` und Dev-Symbol in `shot()` – alle im
   Rework-Commit nach Iteration 2 erledigt.
+- Iteration 3 (APPROVED): keine Findings; Gates (Lint, 750 Unit-Tests, tsc, Prettier,
+  Routen-Doku) grün.
 
 ## Nachweise (Rework nach Iteration 2, 2026-10-04)
 - E2E gegen einen Dev-Server aus diesem Worktree (:3000 vorher als frei geprüft, Lesson testing
