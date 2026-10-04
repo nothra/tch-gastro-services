@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -84,6 +84,14 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
   geteilte `tch_dev` nicht zurückgesetzt, Wegwerf-DB danach gelöscht) → grün. Übernommen nur
   Bild 05 (jetzt ohne Next.js-Dev-Symbol) und 07; die nebenbei neu erzeugten Bilder 01–04/08–12
   sind nicht Gegenstand dieser Task und bleiben auf dem `main`-Stand.
+
+## Test-Notizen (/test, 2026-10-04)
+- Unit-Lauf mit Coverage (`app/components/ui`, `app/veranstaltung`): 1342 Tests grün, Zeilen
+  100 %, Branches 99,62 %. Die zwei offenen Branches (`Dialog.tsx:59`, `actions.ts:636`) liegen
+  in Dateien, die dieser PR nicht ändert.
+- Alle neuen/geänderten Dateien (IconButton, icons, KopfDialog, VeranstaltungLoeschen,
+  VeranstaltungMetaForm, KatalogWechsel, page.tsx) ohne Lücke; AK1–AK16 und FS1–FS3 sind durch
+  Unit- oder E2E-Test belegt. Keine neuen Tests nötig, kein Produktionscode geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
