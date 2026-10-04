@@ -132,11 +132,17 @@ Dialog-Grundlage):
   Damit bleibt `qrcode` aus dem Client-Bundle (ADR-034 D5/D6, #307). Der QR wird bei jedem
   Seitenaufruf mit erzeugt, auch bei geschlossenem Dialog – Millisekunden und wenige KB
   RSC-Nutzlast, bewusst in Kauf genommen gegenüber einer Extra-Route.
+  > **Nachtrag (#391, ADR-056 D3):** `ZugangDialog` ist zu `KopfDialog` verallgemeinert (Symbol-
+  > Schaltfläche im Seitenkopf); das Prinzip „Server rendert, Client öffnet" gilt unverändert.
 - Die Kopieren-Schaltfläche nutzt die Clipboard-API mit `try/catch`; bei Ablehnung bleibt das
   markierte Nur-Lese-Feld als Rückfall.
 - Druckbarkeit (#307 Teil 2, #181) ist **nicht** Teil dieser Entscheidung.
 
 ### D6 · Seitenstruktur und Abschließen
+
+> **Teilweise abgelöst durch [ADR-056](056-detailseite-kopfaktionen-symbol-schaltflaechen.md)
+> (#391):** Einstellungen sind kein `<details>` am Seitenende mehr, sondern ein Dialog hinter
+> einem Zahnrad im Seitenkopf; Teilen und Löschen sind eigene Symbol-Schaltflächen dort.
 
 - Die Seite bleibt eine Server Component und besteht nur noch aus Komposition: `PageHeader`
   (mit `Badge` für den Status), Kachel-Reihe, Teilnehmerliste mit `+ Teilnehmer`-Dialog,
@@ -223,7 +229,7 @@ Action) und macht jede Stelle für sich testbar.
 - Reihenfolge (jeweils Red → Green): `Dialog` → `ConfirmDialog` → `kachelKennzahlen` →
   `addZeilen`/`getTeilnehmerByIds` (DB-Integrationstest, ohne `__test__`-Kollision mit anderen
   Dateien) → `addZeilenAction` → `ZeilenMenue` → `TeilnehmerHinzufuegenDialog` → `ZugangDialog`
-  → Seitenkomposition → `StatusToggle`-Umzug → E2E mit 375-px-Screenshot (AK27).
+  (seit #391 `KopfDialog`) → Seitenkomposition → `StatusToggle`-Umzug → E2E mit 375-px-Screenshot (AK27).
 - Formular im Dialog: Erfolg schließt den Dialog, indem die Client-Hülle die Action umschließt
   und bei `ok` `setOpen(false)` ruft – kein `useEffect` (Lesson `react-hooks/set-state-in-effect`).
   Reset-Handler an `onSubmit`, nicht `onClick` (Lesson #352).

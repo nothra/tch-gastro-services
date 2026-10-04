@@ -8,6 +8,7 @@ import { listCatalogs } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { listAuslagen } from "@/db/auslage";
 import { Badge } from "@/app/components/ui/Badge";
+import { TeilenIcon, ZahnradIcon } from "@/app/components/ui/icons";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { ZeileRow } from "../ZeileRow";
 import { KatalogWechsel } from "../KatalogWechsel";
@@ -18,16 +19,17 @@ import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../labels";
 import { AbschlussAktion } from "./AbschlussAktion";
 import { Abschlussbericht } from "./Abschlussbericht";
 import { ArbeitsschrittKacheln } from "./ArbeitsschrittKacheln";
+import { KopfDialog } from "./KopfDialog";
 import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
 import { VeranstaltungLoeschen } from "./VeranstaltungLoeschen";
-import { ZugangDialog } from "./ZugangDialog";
 import { ZugangTeilen } from "./ZugangTeilen";
 
-// Detailansicht einer Veranstaltung (spec-369, ADR-053 D6): reine Komposition aus Kopf →
-// Arbeitsschritt-Kacheln → Teilnehmerliste → eingeklappten Einstellungen. Nur Veranstalter; alle
-// Schreibwege prüfen Rolle und Status zusätzlich serverseitig in den Actions. Abgeschlossene
-// Veranstaltungen sind schreibgeschützt: Bericht statt Kennzahlen, keine Einstellungen.
-// Abschließen/Wieder öffnen sitzt im Seitenkopf neben dem Status-Badge (spec-371, ADR-055 D3).
+// Detailansicht einer Veranstaltung (spec-369, spec-391, ADR-053 D6, ADR-056): reine Komposition
+// aus Kopf → Arbeitsschritt-Kacheln → Teilnehmerliste. Teilen, Einstellungen und Löschen sind
+// Symbol-Schaltflächen im Seitenkopf, Abschließen/Wieder öffnen steht daneben (spec-371). Nur
+// Veranstalter; alle Schreibwege prüfen Rolle und Status zusätzlich serverseitig in den Actions.
+// Abgeschlossene Veranstaltungen sind schreibgeschützt: Bericht statt Kennzahlen, keine
+// Kopfaktionen außer „Wieder öffnen" (spec-371).
 export default async function VeranstaltungDetailPage({
   params,
 }: {
@@ -99,9 +101,31 @@ function OffeneVeranstaltung({
   // ohne Datum (spec-51, FS5).
   const bearbeitbar = veranstaltung.typ === "veranstaltung";
 
+  const kopfAktionen = (
+    <>
+      <KopfDialog label="Link & QR teilen" icon={<TeilenIcon />}>
+        <ZugangTeilen token={veranstaltung.token} />
+      </KopfDialog>
+      <KopfDialog label="Einstellungen" icon={<ZahnradIcon />}>
+        <KatalogWechsel id={id} catalogId={veranstaltung.catalogId} kataloge={aktiveKataloge} />
+        {bearbeitbar && (
+          <VeranstaltungMetaForm
+            id={id}
+            bezeichnung={veranstaltung.bezeichnung}
+            datum={veranstaltung.datum}
+            kasse={veranstaltung.kasse as Kasse}
+          />
+        )}
+      </KopfDialog>
+      {/* Zerstörerische Aktion bewusst zuletzt (#352 AK4/AK8, spec-391 AK2). */}
+      {bearbeitbar && <VeranstaltungLoeschen id={id} bezeichnung={veranstaltung.bezeichnung} />}
+    </>
+  );
+
   return (
     <DetailRahmen
       veranstaltung={veranstaltung}
+      kopfAktionen={kopfAktionen}
       aktion={
         bearbeitbar && (
           <AbschlussAktion
@@ -120,33 +144,13 @@ function OffeneVeranstaltung({
         editable
         aktion={<TeilnehmerHinzufuegenDialog veranstaltungId={id} verfuegbar={verfuegbar} />}
       />
-      <details className="rounded-lg border border-line-subtle bg-surface">
-        <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-accent">
-          Einstellungen
-        </summary>
-        <div className="flex flex-col gap-6 border-t border-line-subtle p-4">
-          <KatalogWechsel id={id} catalogId={veranstaltung.catalogId} kataloge={aktiveKataloge} />
-          {bearbeitbar && (
-            <VeranstaltungMetaForm
-              id={id}
-              bezeichnung={veranstaltung.bezeichnung}
-              datum={veranstaltung.datum}
-              kasse={veranstaltung.kasse as Kasse}
-            />
-          )}
-          <ZugangDialog>
-            <ZugangTeilen token={veranstaltung.token} />
-          </ZugangDialog>
-          {/* Zerstörerische Aktion bewusst zuletzt (#352 AK4/AK8). */}
-          {bearbeitbar && <VeranstaltungLoeschen id={id} bezeichnung={veranstaltung.bezeichnung} />}
-        </div>
-      </details>
     </DetailRahmen>
   );
 }
 
 // Schreibgeschützt (AK6/AK7): Bericht über den Kacheln, Kacheln ohne Kennzahl – deren Daten
-// werden gar nicht erst geladen (ADR-053 D4) –, keine Einstellungen.
+// werden gar nicht erst geladen (ADR-053 D4) –, keine Kopfaktionen außer „Wieder öffnen"
+// (spec-391 AK14, spec-371).
 function AbgeschlosseneVeranstaltung({
   veranstaltung,
   zeilen,
@@ -166,13 +170,17 @@ function AbgeschlosseneVeranstaltung({
   );
 }
 
+// Welche Kopfaktionen erscheinen, entscheidet der Aufrufer je Zustand (ADR-056 D5); der Rahmen
+// stellt sie nur hinter das Status-Badge.
 function DetailRahmen({
   veranstaltung,
   aktion,
+  kopfAktionen,
   children,
 }: {
   veranstaltung: Veranstaltung;
-  aktion: React.ReactNode;
+  aktion?: React.ReactNode;
+  kopfAktionen?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const offen = veranstaltung.status === "offen";
@@ -183,10 +191,12 @@ function DetailRahmen({
         back={{ href: "/veranstaltung", label: "Alle Veranstaltungen" }}
         meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]}`}
         action={
-          // Badge und Aktion brechen gemeinsam um (spec-371 AK24) – ohne Änderung am PageHeader.
-          <div className="flex flex-wrap items-center gap-2">
+          // Badge und Aktionen brechen gemeinsam um (spec-371 AK24, spec-391 AK16); das setzt den
+          // auf die Zeilenbreite begrenzten Aktionsbereich im PageHeader voraus (ADR-056 D5).
+          <div className="flex flex-wrap items-center gap-1">
             <Badge tone={offen ? "akzent" : "neutral"}>{STATUS_LABEL[veranstaltung.status]}</Badge>
             {aktion}
+            {kopfAktionen}
           </div>
         }
       />

@@ -1,5 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
-import { gastHinzufuegen, oeffneEinstellungen } from "./helpers/detailseite";
+import {
+  gastHinzufuegen,
+  oeffneEinstellungen,
+  oeffneLoeschDialog,
+  schliesseEinstellungen,
+} from "./helpers/detailseite";
 
 // Oberflächen-Nachweis für das Bearbeiten und Löschen einer Veranstaltung (#352, spec-352).
 // Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass die geänderten Metadaten
@@ -61,18 +66,11 @@ async function createVeranstaltung(page: Page, bezeichnung: string): Promise<str
 }
 
 // Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil der
-// Bereich „Einstellungen" (#369) mehrere Formulare trägt (Katalogwechsel, Bearbeiten, Löschen).
+// Dialog „Einstellungen" (#391) zwei Formulare trägt (Katalogwechsel, Bearbeiten).
 function metaForm(page: Page) {
   return page
     .locator("form")
     .filter({ has: page.getByRole("button", { name: "Änderungen speichern" }) });
-}
-
-// Löschen bis zum offenen Bestätigungsdialog – der erste Klick darf noch nichts entfernen (AK8).
-async function oeffneLoeschDialog(page: Page) {
-  await oeffneEinstellungen(page);
-  await page.getByRole("button", { name: "Veranstaltung löschen", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Veranstaltung löschen?" })).toBeVisible();
 }
 
 // Die Kassierzeile eines Teilnehmers (Muster aus wechsel-verzehr-kassieren.spec.ts).
@@ -119,9 +117,12 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await metaForm(page).getByRole("button", { name: "Änderungen speichern" }).click();
     await expect(page.getByText("Änderungen gespeichert.")).toBeVisible();
 
-    // Die Seite selbst zeigt den neuen Stand – nicht nur das Formular (revalidatePath wirkt).
+    // Die Seite selbst zeigt den neuen Stand – nicht nur das Formular (revalidatePath wirkt). Der
+    // Dialog bleibt dabei offen (ADR-056 D3, spec-391 AK7); der Kopf dahinter ist aktualisiert.
+    await expect(metaForm(page)).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: neu })).toBeVisible();
     await expect(page.getByText("21.09.2026 · Vereinskasse", { exact: true })).toBeVisible();
+    await schliesseEinstellungen(page);
 
     // ── AK1: und der Stand ist wirklich persistiert, nicht nur im Client-State ──────────────
     await page.reload();
@@ -130,6 +131,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await expect(metaForm(page).getByLabel("Bezeichnung")).toHaveValue(neu);
     await expect(metaForm(page).getByLabel("Datum")).toHaveValue("2026-09-21");
     await expect(metaForm(page).getByLabel("Kasse")).toHaveValue("vereinskasse");
+    await schliesseEinstellungen(page);
 
     // Aufräumen: die Veranstaltung hat keinen Verzehr, der Lösch-Weg ist also offen.
     await oeffneLoeschDialog(page);
@@ -154,10 +156,13 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await oeffneLoeschDialog(page);
     await expect(page.getByText(`„${bezeichnung}“`)).toBeVisible();
 
-    // ── AK8: Abbrechen schließt den Dialog und löscht nichts ────────────────────────────────
+    // ── AK8: Abbrechen schließt den Dialog und löscht nichts; Fokus zurück (spec-391 AK11) ──
     await page.getByRole("button", { name: "Abbrechen" }).click();
     await expect(page.getByRole("heading", { name: "Veranstaltung löschen?" })).toHaveCount(0);
     await expect(page).toHaveURL(new RegExp(`${detailPfad}$`));
+    await expect(
+      page.getByRole("button", { name: "Veranstaltung löschen", exact: true }),
+    ).toBeFocused();
 
     // Serverseitiger Gegenbeweis: nach einem echten Neuladen ist die Veranstaltung noch da –
     // „Abbrechen" hat also nicht bloß den Dialog versteckt, sondern nie eine Action ausgelöst.
@@ -201,8 +206,11 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await page.goto(detailPfad);
     await oeffneLoeschDialog(page);
     await page.getByRole("button", { name: "Endgültig löschen" }).click();
+    // spec-391 AK12: die Ablehnung steht im Bestätigungsdialog (ADR-056 D4).
     await expect(
-      page.getByText("Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert."),
+      page
+        .getByRole("dialog", { name: "Veranstaltung löschen?" })
+        .getByText("Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert."),
     ).toBeVisible();
 
     // Gegenbeweis nach echtem Neuladen: die Veranstaltung existiert noch (keine 404-Route).

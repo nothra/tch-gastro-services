@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
-// Gemeinsame Bedienschritte der Detailseite `/veranstaltung/[id]` (#369) für alle E2E-Specs, die
-// sie brauchen – vorher lagen sie viermal (Gast) bzw. zweimal in unterschiedlicher Form
+// Gemeinsame Bedienschritte der Detailseite `/veranstaltung/[id]` (#369, #391) für alle E2E-Specs,
+// die sie brauchen – vorher lagen sie viermal (Gast) bzw. zweimal in unterschiedlicher Form
 // (Einstellungen) kopiert in den Specs. Keine `*.spec.ts`-Datei: Playwright sammelt sie nicht als
 // Test ein.
 
@@ -25,27 +25,38 @@ export async function gastHinzufuegen(page: Page, name: string) {
   await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
 }
 
-function einstellungen(page: Page) {
-  return page.locator("details").filter({ hasText: "Einstellungen" });
+// Der Seitenkopf (`PageHeader`) der Detailseite. Über die Struktur statt `getByRole("banner")`:
+// ein `<header>` innerhalb von `<main>` ist für Browser keine Banner-Landmarke.
+export function seitenkopf(page: Page) {
+  return page.locator("main > header");
 }
 
-async function istEingeklappt(page: Page): Promise<boolean> {
-  // Ein offenes `<details>` trägt `open=""` – geprüft wird die Anwesenheit, nicht der Wert.
-  return (await einstellungen(page).getAttribute("open")) === null;
+// Die Symbol-Schaltflächen im Seitenkopf (spec-391 AK2/AK3) – über ihren zugänglichen Namen.
+// `exact`, weil „Einstellungen" sonst auch andere Beschriftungen mit diesem Wortteil träfe.
+export function kopfAktion(page: Page, name: string) {
+  return seitenkopf(page).getByRole("button", { name, exact: true });
 }
 
-// Klappt „Einstellungen" (spec-369 AK21) auf oder zu. Ein Klick auf die Zusammenfassung schaltet
-// nur um – ohne Prüfung des Ist-Zustands kehrte er einen bereits passenden Zustand um.
-async function setzeEinstellungen(page: Page, offen: boolean) {
-  if ((await istEingeklappt(page)) === offen) {
-    await einstellungen(page).getByText("Einstellungen", { exact: true }).click();
-  }
+export function einstellungenDialog(page: Page) {
+  return page.getByRole("dialog", { name: "Einstellungen" });
 }
 
-export function oeffneEinstellungen(page: Page) {
-  return setzeEinstellungen(page, true);
+// Öffnet den Dialog „Einstellungen" über das Zahnrad im Seitenkopf (spec-391 AK4).
+export async function oeffneEinstellungen(page: Page) {
+  await kopfAktion(page, "Einstellungen").click();
+  await expect(einstellungenDialog(page)).toBeVisible();
 }
 
-export function schliesseEinstellungen(page: Page) {
-  return setzeEinstellungen(page, false);
+// Schließt ihn über „Schließen" – nötig, bevor eine andere Kopfaktion getippt wird: der modale
+// Dialog macht die Seite dahinter inert.
+export async function schliesseEinstellungen(page: Page) {
+  await einstellungenDialog(page).getByRole("button", { name: "Schließen" }).click();
+  await expect(einstellungenDialog(page)).toBeHidden();
+}
+
+// Löschen bis zum offenen Bestätigungsdialog über den Papierkorb im Kopf (spec-391 AK11) – der
+// erste Tipp darf noch nichts entfernen (#352 AK8).
+export async function oeffneLoeschDialog(page: Page) {
+  await kopfAktion(page, "Veranstaltung löschen").click();
+  await expect(page.getByRole("dialog", { name: "Veranstaltung löschen?" })).toBeVisible();
 }

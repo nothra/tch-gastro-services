@@ -81,21 +81,41 @@ describe("VeranstaltungMetaForm", () => {
     expect(container.querySelector("[name='catalogId']")).toBeNull();
   });
 
+  it("should_showSubheadingBelowDialogTitle_when_rendered", () => {
+    // ADR-056 D6: im Dialog „Einstellungen" ist dessen Titel die `h2` – das Formular trägt
+    // eine Zwischenüberschrift eine Ebene tiefer.
+    render(<VeranstaltungMetaForm {...props} />);
+
+    expect(screen.getByRole("heading", { name: "Veranstaltung bearbeiten" }).tagName).toBe("H3");
+  });
+
   it("should_showRejectionError_when_stateHasError", () => {
-    // #352 AK2/AK3: die serverseitige Ablehnung wird im Formular sichtbar, nicht verschluckt.
+    // #352 AK2/AK3 + spec-391 FS2/FS3: die serverseitige Ablehnung wird im Formular sichtbar,
+    // nicht verschluckt – als Fehler-`Notice` angesagt.
     withState({ error: "Die Veranstaltung ist abgeschlossen und schreibgeschützt." });
     render(<VeranstaltungMetaForm {...props} />);
 
-    expect(
-      screen.getByText("Die Veranstaltung ist abgeschlossen und schreibgeschützt."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Die Veranstaltung ist abgeschlossen und schreibgeschützt.",
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("should_showSuccessMessage_when_stateOk", () => {
     withState({ ok: true });
     render(<VeranstaltungMetaForm {...props} />);
 
-    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Änderungen gespeichert.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("should_offerSubmitButtonInSecondaryStyle_when_rendered", () => {
+    // ADR-056 D6: Baustein `Button` statt Rohklassen – Absenden explizit `type="submit"`.
+    render(<VeranstaltungMetaForm {...props} />);
+
+    const button = screen.getByRole("button", { name: "Änderungen speichern" });
+    expect(button).toHaveAttribute("type", "submit");
+    expect(button).toHaveClass("border-line", "bg-surface");
   });
 
   it("should_hideSuccessMessage_when_fieldEditedAfterSaving", async () => {

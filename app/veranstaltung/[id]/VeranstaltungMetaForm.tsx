@@ -2,13 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { KASSEN, type Kasse } from "@/db/schema";
+import { Button } from "@/app/components/ui/Button";
+import { Field, SelectField } from "@/app/components/ui/Field";
+import { Notice } from "@/app/components/ui/Notice";
 import { updateVeranstaltungMetaAction } from "../actions";
 import { KASSE_LABEL, formatDatumInput } from "../labels";
 
-const inputClass = "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
-
-// Bearbeiten der Metadaten einer noch offenen, datierten Veranstaltung (#352 AK1). Client-
-// Komponente nach dem Muster von KatalogWechsel: die serverseitige Ablehnung – Pflichtfeld
+// Bearbeiten der Metadaten einer noch offenen, datierten Veranstaltung (#352 AK1) – seit #391 im
+// Dialog „Einstellungen" des Seitenkopfs, dessen Titel die `h2` ist; daher hier eine `h3`.
+// Client-Komponente nach dem Muster von KatalogWechsel: die serverseitige Ablehnung – Pflichtfeld
 // verletzt (AK2), Veranstaltung abgeschlossen (AK3) oder Theke (AK10) – wird über useActionState
 // sichtbar (Codify #49, kein useEffect). Die Veranstaltungs-Id reist als verstecktes Feld.
 //
@@ -38,49 +40,32 @@ export function VeranstaltungMetaForm({
       action={formAction}
       onChange={() => setGeaendertSeitSpeichern(true)}
       onSubmit={() => setGeaendertSeitSpeichern(false)}
-      className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
+      className="flex flex-col gap-3"
     >
-      <h2 className="font-semibold">Veranstaltung bearbeiten</h2>
+      <h3 className="font-semibold text-foreground">Veranstaltung bearbeiten</h3>
       <input type="hidden" name="id" value={id} />
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Bezeichnung
-          <input name="bezeichnung" defaultValue={bezeichnung} required className={inputClass} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Datum
-          <input
-            type="date"
-            name="datum"
-            defaultValue={formatDatumInput(datum)}
-            required
-            className={inputClass}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Kasse
-          <select name="kasse" defaultValue={kasse} className={inputClass}>
-            {KASSEN.map((option) => (
-              <option key={option} value={option}>
-                {KASSE_LABEL[option]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-fit rounded border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
-        >
-          {pending ? "Speichern …" : "Änderungen speichern"}
-        </button>
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-        {state?.ok && !geaendertSeitSpeichern && (
-          <p className="text-sm text-green-700">Änderungen gespeichert.</p>
-        )}
-      </div>
+      <Field label="Bezeichnung" name="bezeichnung" defaultValue={bezeichnung} required />
+      <Field
+        label="Datum"
+        type="date"
+        name="datum"
+        defaultValue={formatDatumInput(datum)}
+        required
+      />
+      <SelectField label="Kasse" name="kasse" defaultValue={kasse}>
+        {KASSEN.map((option) => (
+          <option key={option} value={option}>
+            {KASSE_LABEL[option]}
+          </option>
+        ))}
+      </SelectField>
+      <Button type="submit" variant="secondary" disabled={pending} className="self-start">
+        {pending ? "Speichern …" : "Änderungen speichern"}
+      </Button>
+      <Notice kind="fehler">{state?.error}</Notice>
+      <Notice kind="erfolg">
+        {state?.ok && !geaendertSeitSpeichern && "Änderungen gespeichert."}
+      </Notice>
     </form>
   );
 }
