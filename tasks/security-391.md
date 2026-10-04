@@ -1,8 +1,15 @@
 # Security Review: Task 391
 
-Diff-Scope: `git diff origin/main...HEAD` (34 Dateien). Reine UI-Umordnung: Teilen, Einstellungen
-und Löschen wandern als Symbol-Schaltflächen in den Seitenkopf der Detailseite. Keine Änderung
-an Server Actions, Data-Layer, `proxy.ts`, Routen oder Abhängigkeiten.
+Diff-Scope: `git diff origin/main...HEAD` (42 Dateien, Stand nach Rebase auf #371). Reine
+UI-Umordnung: Teilen, Einstellungen und Löschen wandern als Symbol-Schaltflächen in den Seitenkopf
+der Detailseite. Keine Änderung an Server Actions, Data-Layer, `lib/`, `proxy.ts`, Routen oder
+Abhängigkeiten (`git diff --name-only` auf diese Pfade leer).
+
+**Erneuter Lauf (2026-10-04)** nach Review-Iteration 4/5: Seit dem ersten Security-Review
+(`fdb7035`) kamen nur hinzu – Zusammenführung der Kopfaktionen mit der `AbschlussAktion` aus #371
+(deren Code und Action stammen aus `main`, hier nur neu angeordnet), `max-w-full` am
+Aktionsbereich des `PageHeader` (reines Layout), ADR-055 → ADR-056, Doku, Lessons, Bild 05. Keine
+neue Angriffsfläche.
 
 ## Kritische Findings (Blocker)
 _Keine._
@@ -31,7 +38,12 @@ _Keine offenen._ Geprüft und unauffällig:
   Lucide-Pfade sind kopiert und tragen den ISC-Lizenzhinweis.
 - [x] **Secrets/Artefakte:** keine Credentials im Diff; E2E-Passwörter sind unveränderte
   Kontextzeilen. Screenshot `07-zugang-teilen.png` zeigt einen `localhost`-Link/QR aus einer
-  danach gelöschten Wegwerf-DB, also keinen gültigen Produktions-Token.
+  danach gelöschten Wegwerf-DB, also keinen gültigen Produktions-Token; das neu erzeugte Bild 05
+  stammt ebenfalls aus einer gelöschten Wegwerf-DB (`tch_capture391`).
+- [x] **Abgeschlossene Veranstaltung:** Kopf zeigt nur Badge + „Wieder öffnen" (#371); Teilen,
+  Einstellungen und Papierkorb werden gar nicht gerendert, der Token landet also nicht im
+  RSC-Payload. Die Schreib-Actions lehnen abgeschlossene Veranstaltungen weiter serverseitig ab
+  (FS2, E2E-belegt).
 - [x] **Fehlermeldungen:** Es werden unverändert nur die fachlichen `state.error`-Texte der Actions
   angezeigt, keine Stack Traces.
 
