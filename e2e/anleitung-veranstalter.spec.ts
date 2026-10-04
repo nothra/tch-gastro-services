@@ -206,12 +206,12 @@ async function waehlePerson(page: Page, name: string) {
 // Bild 08 (#370): Einzelansicht mit erfasstem Bier, in der schmalen Handy-Breite der Spec
 // (spec-370 AK7.5: 375 px) statt der Capture-Breite. Ab dem Zurück-Link, damit sticky Block und
 // Bier-Gruppe ganz im Bild stehen. Das Dev-Overlay von Next.js („N" unten links) wird
-// ausgeblendet: es läge sonst über „Kassieren →" in der Fußleiste.
+// ausgeblendet: es läge sonst über „Kassieren" in der Fußleiste.
 async function shotVerzehr(page: Page) {
   const captureViewport = page.viewportSize();
   await page.setViewportSize({ width: 375, height: 812 });
   await page
-    .getByRole("link", { name: "← Zur Veranstaltung" })
+    .getByRole("link", { name: "Zur Veranstaltung" })
     .evaluate((node) => node.scrollIntoView({ block: "start" }));
   await page.evaluate(() => window.scrollBy(0, -12));
   await page.screenshot({

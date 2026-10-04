@@ -22,7 +22,7 @@
 
 | Pfad | Typ | Funktion | Zugriff |
 |------|-----|----------|---------|
-| `/` | Seite | Startseite / Landing | angemeldet |
+| `/` | Seite | Startseite: rollengefilterte Bereichs-Kacheln; für `veranstalter` darüber die offenen Veranstaltungen als Schnellzugriff (#374, ADR-056 D3) | angemeldet (Veranstaltungsliste nur mit `veranstalter`) |
 | `/login` | Seite | Anmeldung (Credentials) | öffentlich |
 | `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (kein Auth-Gate, Token; Rate-Limit im Proxy, ADR-048) |
 | `/veranstaltung` | Seite | Veranstaltungs-Liste | `veranstalter` |

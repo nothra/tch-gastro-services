@@ -7,7 +7,7 @@
 export const PERSONENBEZUG_PARAM = "zeile";
 
 // Erscheinungsbild des Rückweg-Links „← Verzehr erfassen" in der Kassierzeile. Der Hinweg
-// „Kassieren →" steht seit #370 als Button-Link in der Fußleiste der Verzehr-Einzelansicht
+// „Kassieren" (seit #374 ohne Pfeil) steht seit #370 als Button-Link in der Fußleiste der Verzehr-Einzelansicht
 // (Touch-Ziel, ADR-054 D3).
 export const WECHSEL_LINK_CLASS =
   "self-start text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400";

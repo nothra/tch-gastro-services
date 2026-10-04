@@ -189,7 +189,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     const letzterStepper = await box(page.getByRole("button", { name: "Menge erhöhen" }).last());
     expect(letzterStepper.y + letzterStepper.height).toBeLessThanOrEqual((await box(fussleiste)).y);
     // AK5.5: Kassieren-Weg in der Fußleiste, als Touch-Ziel.
-    await expectMindestmass(fussleiste.getByRole("link", { name: "Kassieren →" }), {
+    await expectMindestmass(fussleiste.getByRole("link", { name: "Kassieren" }), {
       breite: false,
     });
 

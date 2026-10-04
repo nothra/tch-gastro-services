@@ -1,7 +1,7 @@
 # Task 374: header-startseite-zurueck-navigation
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -14,14 +14,14 @@ Header mit Wortmarke und Konto-Menü, Startseite mit offenen Veranstaltungen, `P
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1.1–1.6 Header: Wortmarke, Navigation, Konto-Menü (Aufklapp), 375-px-tauglich
-- [ ] AK2.1–2.6 Startseite: Liste offener Veranstaltungen (nur `veranstalter`), Leer-Hinweis, Kacheln darunter
-- [ ] AK3.1–3.4 `PublicHeader` auf `/theke/[token]` (nicht bei ungültigem Token, nicht auf `/login`)
-- [ ] AK4.1–4.7 `PageHeader` + Zurück-Link auf Verzehr/Auslagen; Titel-Header auf Liste/Teilnehmer/Katalog-Index; „Kassieren" ohne Pfeil
-- [ ] AK5.1–5.3 Kacheln „Verzehr erfassen"/„Auslagen erfassen"
+- [x] AK1.1–1.6 Header: Wortmarke, Navigation, Konto-Menü (Aufklapp), 375-px-tauglich
+- [x] AK2.1–2.6 Startseite: Liste offener Veranstaltungen (nur `veranstalter`), Leer-Hinweis, Kacheln darunter
+- [x] AK3.1–3.4 `PublicHeader` auf `/theke/[token]` (nicht bei ungültigem Token, nicht auf `/login`)
+- [x] AK4.1–4.7 `PageHeader` + Zurück-Link auf Verzehr/Auslagen; Titel-Header auf Liste/Teilnehmer/Katalog-Index; „Kassieren" ohne Pfeil
+- [x] AK5.1–5.3 Kacheln „Verzehr erfassen"/„Auslagen erfassen"
 - [ ] AK5.4 Anleitung + Screenshots aktualisiert – erst nach erfolgreichem `/implement` und `/review`
-- [ ] AK6 Lint, Tests, `routes-doc-check` grün; `docs/routes.md` aktuell
-- [ ] AK7 `docs/ux/ux-issue-entwuerfe.md` UX-7 angeglichen (in `/requirements` erledigt)
+- [x] AK6 Lint, Tests, `routes-doc-check` grün; `docs/routes.md` aktuell
+- [x] AK7 `docs/ux/ux-issue-entwuerfe.md` UX-7 angeglichen (in `/requirements` erledigt)
 
 ## Technische Notizen
 ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergänzt ADR-031).
@@ -32,6 +32,29 @@ ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
 - **AK4:** `PageHeader` auf Verzehr/Auslagen (back = „Zur Veranstaltung“), Liste, Teilnehmer; „Kassieren“ ohne Pfeil. Farb-Gate (`eslint/ui-token-files.mjs`) nur um vollständig umgestellte Dateien erweitern (`AppNav`, `KontoMenue`, `PublicHeader`, `app/page.tsx`, `OffeneVeranstaltungen`); die vier Seiten folgen mit #373.
 - **Tests:** jsdom kennt die Popover-API nicht, deshalb prüfen Unit-Tests Attribute und Verdrahtung, Öffnen/Escape/Fokus prüft Playwright. DB-Integrationstest für `listOffeneVeranstaltungen` mit `__test__`-Präfix (eigenes Namensfenster). Nach `next dev`: `git checkout -- CLAUDE.md`.
 - **Reihenfolge:** Implementierung, dann `/review`, erst danach Anleitung und Screenshots (AK5.4).
+
+### Notizen aus `/implement` (2026-10-04)
+- **Zwei Sessions:** Code + Unit-Tests kamen aus einer ersten Session (`ae5ddc1`, `dc154ea`); die
+  zweite hat `docs/routes.md` (Zeile `/`), das Farb-Gate (die fünf Dateien aus ADR-056 D5), die
+  E2E-Specs und diese Task-Datei nachgezogen.
+- **AK4.3 Katalog-Index:** `/verwaltung/katalog` ist eine reine Umleitung auf
+  `/verwaltung/katalog/[id]`, und die Zielseite trägt bereits einen `PageHeader` – „soweit sie es nicht
+  schon tut" ist damit erfüllt, keine Änderung.
+- **`aria-expanded` am Konto-Knopf ist kein DOM-Attribut:** Chromium leitet den Zustand aus
+  `popovertarget` nur in den Accessibility-Baum ab. Playwrights eigene ARIA-Berechnung
+  (`getByRole({ expanded })`) kennt das nicht. `e2e/header-startseite.spec.ts` liest deshalb den
+  echten AX-Baum über CDP, und zwar in beiden Richtungen (offen = `true`, nach Escape = `false`).
+- **E2E-Nachweis:** Gelaufen gegen einen eigenen `next dev` dieses Worktrees auf `localhost:3000`
+  (Port vorher frei geprüft, Lesson #368). `127.0.0.1` scheidet aus, weil Next dev dort die
+  HMR-Ressourcen blockt (`allowedDevOrigins`): ohne Hydration bleibt der Drawer zu, und das sieht
+  wie eine Regression aus. Standardlauf: 14/14 grün, 15 opt-in-Tests übersprungen. Die opt-in-Specs
+  mit Datenanlage (`E2E_DETAILSEITE_369`, `_KASSIEREN_371`, `_VERANSTALTUNG_352`, `_VERZEHR_370`,
+  `_WECHSEL_308`) liefen seriell ebenfalls grün, 14/14.
+- **Nachgezogene Alt-Specs:** `auth.spec.ts` meldet sich jetzt über das Konto-Menü ab.
+  `verzehr-einzelansicht.spec.ts` sucht „Kassieren" ohne Pfeil. In `anleitung-veranstalter.spec.ts`
+  ist nur der Zurück-Link-Locator angepasst: der Pfeil ist `aria-hidden`, der zugängliche Name heißt
+  „Zur Veranstaltung". Den Rest der Anleitung macht AK5.4 nach `/review`.
+- **DB-Integrationstests** (`listOffeneVeranstaltungen` u. a.) mit `.env.local` ausgeführt: 118/118 grün.
 
 ## Offene Fragen
 _Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Implementierung + Review (AK5.4); Sortierung bei gleichem Datum nach Anlage-Zeit.
