@@ -40,7 +40,7 @@ werden eigene Symbol-Schaltflächen im Seitenkopf (Teilen bzw. Papierkorb). Spec
 - [x] FS3 Fehler beim Speichern → Dialog bleibt offen, Werte bleiben
 
 ## Technische Notizen
-ADR: `docs/adr/055-detailseite-kopfaktionen-symbol-schaltflaechen.md` (Proposed → beim
+ADR: `docs/adr/056-detailseite-kopfaktionen-symbol-schaltflaechen.md` (Proposed → beim
 Implementieren Accepted setzen).
 
 - Symbole als eigene Inline-SVGs `app/components/ui/icons.tsx` (`currentColor`, `aria-hidden`),
@@ -53,8 +53,9 @@ Implementieren Accepted setzen).
   Speichern offen (D3).
 - `VeranstaltungLoeschen` auf `ConfirmDialog` + `IconButton tone="danger"`; Ablehnung im
   Bestätigungsdialog, Action-Zustand je Öffnen erneuern (D4).
-- Aktionszone: Badge · Teilen · Einstellungen · Papierkorb; Theke ohne Papierkorb,
-  abgeschlossen nur Badge; `PageHeader` unverändert (D5).
+- Aktionszone: Badge · Abschluss-Aktion (#371) · Teilen · Einstellungen · Papierkorb; Theke
+  ohne Papierkorb und Abschließen, abgeschlossen Badge + „Wieder öffnen"; `PageHeader` nur mit
+  `max-w-full` am Aktionsbereich, damit die Gruppe bei 375 px umbricht (D5, spec-391 Q5).
 - `KatalogWechsel`/`VeranstaltungMetaForm` auf Field/Button/Notice + Tokens; Dateien in
   `eslint/ui-token-files.mjs`, `ZugangDialog.tsx`-Eintrag raus (D6).
 - E2E-Helfer `oeffneEinstellungen`/`schliesseEinstellungen`, betroffene Specs, Capture-Spec,
@@ -73,6 +74,15 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
   Rework-Commit nach Iteration 2 erledigt.
 - Iteration 3 (APPROVED): keine Findings; Gates (Lint, 750 Unit-Tests, tsc, Prettier,
   Routen-Doku) grün.
+- Iteration 4 (NEEDS_REWORK, nach Rebase auf #371): doppelte ADR-055 → ADR dieses PRs ist jetzt
+  **ADR-056** (Datei + alle #391-Verweise; #371-Verweise unverändert); ADR D5 + spec-391
+  AK2/AK14/AK16 + Q5 auf den Kopf mit Abschluss-Aktion gebracht; `kassieren/page.tsx`-Kommentar
+  ohne „wie Einstellungen"; Nitpick „außer Wieder öffnen" in `page.tsx`; AK16-E2E prüft
+  „Veranstaltung abschließen" mit. **Dabei echter Fehler gefunden:** bei 375 px ragte der
+  Papierkorb 37 px über den Rand (auch #369 AK27 rot) – der `shrink-0`-Aktionsbereich des
+  `PageHeader` ließ die `flex-wrap`-Gruppe nie umbrechen. Fix: `max-w-full` am Aktionsbereich
+  (TDD: `PageHeader.test.tsx` rot → grün), ADR-056 D5 + Nachtrag in ADR-055 D3. Bild 05 und
+  Anleitungstext auf den zusammengeführten Kopf nachgezogen.
 
 ## Nachweise (Rework nach Iteration 2, 2026-10-04)
 - E2E gegen einen Dev-Server aus diesem Worktree (:3000 vorher als frei geprüft, Lesson testing
@@ -84,6 +94,17 @@ Q1 vom Nutzer entschieden (Löschen als Papierkorb im Kopf); Q2/Q3 für `/archit
   geteilte `tch_dev` nicht zurückgesetzt, Wegwerf-DB danach gelöscht) → grün. Übernommen nur
   Bild 05 (jetzt ohne Next.js-Dev-Symbol) und 07; die nebenbei neu erzeugten Bilder 01–04/08–12
   sind nicht Gegenstand dieser Task und bleiben auf dem `main`-Stand.
+
+## Nachweise (Rework nach Iteration 4, 2026-10-04, nach Rebase auf #371)
+- E2E gegen einen Dev-Server aus diesem Worktree (:3000 vorher als frei geprüft):
+  `veranstaltung-detailseite`, `veranstaltung-bearbeiten-loeschen`, `verzehr-einzelansicht`
+  (`E2E_DETAILSEITE_369=1`, `E2E_VERANSTALTUNG_352=1`, `E2E_VERZEHR_370=1`). Erster Lauf
+  **10/12** – AK16 (spec-391) und AK27 (#369) mit 37 px horizontalem Überstand; nach dem
+  `PageHeader`-Fix **12/12 grün**. Zusätzlich `kassieren-summe-abschluss` (`E2E_KASSIEREN_371=1`,
+  spec-371 AK24) **2/2 grün**.
+- Capture-Spec erneut gegen eine eigene Wegwerf-DB (`tch_capture391`, danach gelöscht) → grün;
+  übernommen nur Bild 05 (Kopf mit „Veranstaltung abschließen", Papierkorb in zweiter Zeile),
+  alle übrigen Bilder auf dem bisherigen Stand belassen.
 
 ## Test-Notizen (/test, 2026-10-04)
 - Unit-Lauf mit Coverage (`app/components/ui`, `app/veranstaltung`): 1342 Tests grün, Zeilen

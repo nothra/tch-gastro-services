@@ -287,8 +287,12 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     );
     expect(ueberstand).toBe(0);
 
-    // AK2/AK3/AK16: Badge + drei Symbol-Schaltflächen vollständig sichtbar, je ≥ 44 × 44 px.
+    // AK2/AK3/AK16: Badge, Abschluss-Aktion und drei Symbol-Schaltflächen vollständig sichtbar,
+    // die Symbole je ≥ 44 × 44 px.
     await expect(seitenkopf(page).getByText("offen", { exact: true })).toBeInViewport({ ratio: 1 });
+    // Die Abschluss-Aktion aus #371 steht mit im Kopf (spec-391 Q5, spec-371 AK24) – eine
+    // Text-Schaltfläche, daher nur Sichtbarkeit, keine 44-px-Breitenprüfung.
+    await expect(kopfAktion(page, "Veranstaltung abschließen")).toBeInViewport({ ratio: 1 });
     for (const name of ["Link & QR teilen", "Einstellungen", "Veranstaltung löschen"]) {
       const knopf = kopfAktion(page, name);
       await expect(knopf).toBeInViewport({ ratio: 1 });

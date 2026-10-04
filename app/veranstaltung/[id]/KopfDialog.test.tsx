@@ -22,7 +22,7 @@ function ausloeser() {
   return screen.getByRole("button", { name: "Einstellungen" });
 }
 
-describe("KopfDialog (spec-391 AK3/AK4/AK8/AK9, ADR-055 D3)", () => {
+describe("KopfDialog (spec-391 AK3/AK4/AK8/AK9, ADR-056 D3)", () => {
   it("should_notShowContent_when_dialogClosed", () => {
     // AK4: vorher ist keiner der Inhalte auf der Seite sichtbar.
     renderDialog();

@@ -249,8 +249,7 @@ function BetragEintrag({ label, cents }: { label: string; cents: number }) {
 }
 
 // Tagessummen, Gesamtabrechnung und Protokoll standardmäßig eingeklappt (spec-371 AK14/AK15,
-// ADR-055 D4): natives `<details>` wie „Einstellungen" auf der Detailseite – aufgeklappt dieselben
-// Zeilen und Werte wie bisher.
+// ADR-055 D4): natives `<details>` – aufgeklappt dieselben Zeilen und Werte wie bisher.
 function AbrechnungImDetail({
   kasseLabel,
   tagessummen,

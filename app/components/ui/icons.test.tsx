@@ -13,7 +13,7 @@ function renderSvg(Icon: (typeof ICONS)[number][1]) {
   return container.querySelector("svg")!;
 }
 
-describe("Symbole (ADR-055 D1, spec-391 AK3/AK15)", () => {
+describe("Symbole (ADR-056 D1, spec-391 AK3/AK15)", () => {
   it.each(ICONS)("should_beHiddenFromAssistiveTech_when_%sRendered", (_name, Icon) => {
     // Der zugängliche Name kommt von der Schaltfläche (`IconButton.label`) – das Symbol selbst
     // darf nicht zusätzlich vorgelesen oder per Tab angesteuert werden.

@@ -118,7 +118,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await expect(page.getByText("Änderungen gespeichert.")).toBeVisible();
 
     // Die Seite selbst zeigt den neuen Stand – nicht nur das Formular (revalidatePath wirkt). Der
-    // Dialog bleibt dabei offen (ADR-055 D3, spec-391 AK7); der Kopf dahinter ist aktualisiert.
+    // Dialog bleibt dabei offen (ADR-056 D3, spec-391 AK7); der Kopf dahinter ist aktualisiert.
     await expect(metaForm(page)).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: neu })).toBeVisible();
     await expect(page.getByText("21.09.2026 · Vereinskasse", { exact: true })).toBeVisible();
@@ -206,7 +206,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await page.goto(detailPfad);
     await oeffneLoeschDialog(page);
     await page.getByRole("button", { name: "Endgültig löschen" }).click();
-    // spec-391 AK12: die Ablehnung steht im Bestätigungsdialog (ADR-055 D4).
+    // spec-391 AK12: die Ablehnung steht im Bestätigungsdialog (ADR-056 D4).
     await expect(
       page
         .getByRole("dialog", { name: "Veranstaltung löschen?" })

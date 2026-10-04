@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-// Route-neutraler Baustein (ADR-055 D1): Symbole als Inline-SVG statt Icon-Bibliothek. Die Farbe
+// Route-neutraler Baustein (ADR-056 D1): Symbole als Inline-SVG statt Icon-Bibliothek. Die Farbe
 // kommt allein über `currentColor` aus der Token-Klasse des Elternelements (ADR-052) – dadurch im
 // hellen wie im dunklen Farbschema richtig. Den zugänglichen Namen trägt die Schaltfläche
 // (`IconButton.label`), deshalb ist das Symbol selbst für Hilfstechnik ausgeblendet.

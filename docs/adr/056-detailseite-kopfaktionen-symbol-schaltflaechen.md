@@ -1,4 +1,4 @@
-# ADR 055: Detailseite – Kopfaktionen als Symbol-Schaltflächen (Teilen, Einstellungen, Löschen)
+# ADR 056: Detailseite – Kopfaktionen als Symbol-Schaltflächen (Teilen, Einstellungen, Löschen)
 
 ## Status
 
@@ -94,14 +94,26 @@ Dafür sind vier Fragen zu entscheiden (spec-391 Q2/Q3 und die Rest-Frage aus Q1
 
 ### D5 · Aktionszone im `PageHeader`
 
-- `PageHeader` bleibt unverändert; `page.tsx` übergibt als `action` eine Gruppe
-  `flex items-center gap-1`: `Badge` · Teilen · Einstellungen · Papierkorb.
-- Zustandsregeln liegen in `page.tsx` (`DetailRahmen` bekommt die Kopfaktionen als Prop):
-  offen + datiert → alle drei; offen + Theke → Teilen + Einstellungen; abgeschlossen → nur
-  Badge (spec-391 AK2, AK13, AK14).
-- `PageHeader` hält Titel und Aktion schon heute in einer `flex-wrap`-Zeile mit `min-w-0` +
-  `break-words` am Titel; Badge + 3 × 44 px passen auch bei 375 px, notfalls bricht die
-  Aktionsgruppe unter den Titel (spec-391 AK16).
+- `page.tsx` übergibt dem `PageHeader` als `action` eine Gruppe
+  `flex flex-wrap items-center gap-1`: `Badge` · Abschluss-Aktion · Teilen · Einstellungen ·
+  Papierkorb.
+  Die Abschluss-Aktion („Veranstaltung abschließen"/„Wieder öffnen") kommt aus #371
+  ([ADR-055](055-kassieren-spende-live-abschluss-im-kopf.md) D3, spec-371 AK18/AK22–AK24) und
+  steht als Statuswechsel direkt am Badge, vor den Symbolen (spec-391 Q5).
+- Zustandsregeln liegen in `page.tsx` (`DetailRahmen` bekommt Abschluss-Aktion und
+  Kopfaktionen als zwei getrennte Props `aktion`/`kopfAktionen`): offen + datiert →
+  Abschließen + alle drei Symbole; offen + Theke → Teilen + Einstellungen (kein Abschließen,
+  spec-371 AK23); abgeschlossen → Badge + „Wieder öffnen", keine Symbole (spec-391 AK2, AK13,
+  AK14).
+- `PageHeader` hält Titel und Aktion in einer `flex-wrap`-Zeile mit `min-w-0` + `break-words`
+  am Titel; die Aktionsgruppe bricht bei 375 px unter den Titel und dort in sich um, sodass
+  Badge, Abschluss-Schaltfläche und 3 × 44 px ohne horizontales Scrollen sichtbar bleiben
+  (spec-391 AK16, spec-371 AK24).
+- **Einzige Änderung am `PageHeader`:** sein Aktionsbereich (`shrink-0`) bekommt `max-w-full`.
+  Ohne Grenze wird er so breit wie sein Inhalt, und die `flex-wrap`-Gruppe bricht nie um –
+  Badge + 3 Symbole passten noch, mit der Abschluss-Schaltfläche aus #371 ragte der Papierkorb
+  37 px über den Rand (E2E, Review-Iteration 4). Die Grenze greift nur, wo die Aktion sonst
+  überliefe; für die übrigen Konsumenten ändert sich nichts.
 
 ### D6 · Formulare im Dialog auf Bausteine/Tokens
 
@@ -177,7 +189,8 @@ Speichern offen bleibt, hält die Formulare unverändert und die Erfolgsmeldung 
 - Gelöscht: `app/veranstaltung/[id]/ZugangDialog.tsx` und `ZugangDialog.test.tsx`.
 - Geändert: `page.tsx` (Kopfaktionen, kein `<details>`), `VeranstaltungLoeschen.tsx`
   (ConfirmDialog + IconButton), `VeranstaltungMetaForm.tsx` und `KatalogWechsel.tsx` (Tokens),
-  `Button.tsx` (Basisklassen exportiert), `eslint/ui-token-files.mjs`.
+  `Button.tsx` (Basisklassen exportiert), `PageHeader.tsx` (`max-w-full` am Aktionsbereich, D5),
+  `eslint/ui-token-files.mjs`.
 - E2E: `e2e/helpers/detailseite.ts` (`oeffneEinstellungen`/`schliesseEinstellungen` öffnen und
   schließen jetzt den Dialog), `veranstaltung-detailseite.spec.ts`,
   `veranstaltung-bearbeiten-loeschen.spec.ts`, `verzehr-einzelansicht.spec.ts`,

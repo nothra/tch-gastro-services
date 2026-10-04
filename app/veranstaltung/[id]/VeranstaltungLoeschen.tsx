@@ -7,7 +7,7 @@ import { PapierkorbIcon } from "@/app/components/ui/icons";
 import { deleteVeranstaltungAction } from "../actions";
 
 // Endgültiges Löschen einer noch offenen, datierten Veranstaltung (#352 AK4/AK8) – ausgelöst über
-// den Papierkorb im Seitenkopf (spec-391 AK11, ADR-055 D4). Der Bestätigungsdialog ist Pflicht
+// den Papierkorb im Seitenkopf (spec-391 AK11, ADR-056 D4). Der Bestätigungsdialog ist Pflicht
 // (spec-352, „Gesetzte Entscheidungen"). Die serverseitige Ablehnung (Verzehr/Kassiert/Auslage
 // erfasst) erscheint IM Dialog, weil der Nutzer nach dem Absenden dort steht. Bei Erfolg leitet die
 // Action selbst zur Übersicht (AK9), dieser Zustand wird hier also nie gerendert.

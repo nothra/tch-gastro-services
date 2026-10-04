@@ -82,7 +82,7 @@ describe("VeranstaltungMetaForm", () => {
   });
 
   it("should_showSubheadingBelowDialogTitle_when_rendered", () => {
-    // ADR-055 D6: im Dialog „Einstellungen" ist dessen Titel die `h2` – das Formular trägt
+    // ADR-056 D6: im Dialog „Einstellungen" ist dessen Titel die `h2` – das Formular trägt
     // eine Zwischenüberschrift eine Ebene tiefer.
     render(<VeranstaltungMetaForm {...props} />);
 
@@ -110,7 +110,7 @@ describe("VeranstaltungMetaForm", () => {
   });
 
   it("should_offerSubmitButtonInSecondaryStyle_when_rendered", () => {
-    // ADR-055 D6: Baustein `Button` statt Rohklassen – Absenden explizit `type="submit"`.
+    // ADR-056 D6: Baustein `Button` statt Rohklassen – Absenden explizit `type="submit"`.
     render(<VeranstaltungMetaForm {...props} />);
 
     const button = screen.getByRole("button", { name: "Änderungen speichern" });

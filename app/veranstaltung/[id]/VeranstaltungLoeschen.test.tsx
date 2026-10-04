@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { VeranstaltungFormState } from "../actions";
 
 // Externe Grenze: Server Action aus derselben Feature-Schicht. `useActionState` bleibt echt –
-// der Zustand je Öffnungs-Zyklus (`key`) ist genau das zu prüfende Verhalten (ADR-055 D4).
+// der Zustand je Öffnungs-Zyklus (`key`) ist genau das zu prüfende Verhalten (ADR-056 D4).
 vi.mock("../actions", () => ({ deleteVeranstaltungAction: vi.fn() }));
 
 import { deleteVeranstaltungAction } from "../actions";
@@ -125,7 +125,7 @@ describe("VeranstaltungLoeschen – Bestätigen (spec-391 AK12)", () => {
 
   it("should_keepDialogOpenShowingRejection_when_serverRejects", async () => {
     // AK12 / #352 AK5/AK6/AK12: die Ablehnung steht dort, wo der Nutzer gerade steht – im
-    // offenen Bestätigungsdialog (ADR-055 D4).
+    // offenen Bestätigungsdialog (ADR-056 D4).
     const fehler = "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
     deleteMock.mockResolvedValue({ error: fehler });
     render(<VeranstaltungLoeschen {...props} />);

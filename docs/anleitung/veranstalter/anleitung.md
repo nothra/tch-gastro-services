@@ -95,7 +95,9 @@ Auf der Veranstaltungs-Seite steuern Sie alles Weitere. Unter dem Titel stehen d
 Auslagen-Summe, „x von n bezahlt"). Ein Tipp auf eine Kachel führt zum jeweiligen Schritt. Darunter
 folgt die Liste der **Teilnehmer**.
 
-Oben rechts im Seitenkopf, neben dem Status „offen", stehen drei **Symbole**:
+Im Seitenkopf stehen neben dem Status „offen" die Schaltfläche **„Veranstaltung abschließen"**
+(siehe unten) und drei **Symbole**. Auf schmalen Bildschirmen rutschen sie unter den Titel und
+bei Bedarf in eine zweite Zeile:
 
 - **Teilen** (drei verbundene Punkte) – öffnet **„Link & QR teilen"** (siehe unten).
 - **Zahnrad** – öffnet die **„Einstellungen"**: Katalog wechseln und – bei datierten
@@ -105,9 +107,9 @@ Oben rechts im Seitenkopf, neben dem Status „offen", stehen drei **Symbole**:
   Verzehr erfasst, Geld kassiert oder eine Auslage eingetragen, lehnt sie das Löschen mit einer
   Meldung ab. Die stehende Theke hat keinen Papierkorb.
 
-Bei einer abgeschlossenen Veranstaltung fehlen die drei Symbole.
+Bei einer abgeschlossenen Veranstaltung fehlen die drei Symbole; dort steht nur **„Wieder öffnen"**.
 
-![Übersicht der Veranstaltung mit den Symbolen Teilen, Zahnrad und Papierkorb im Kopf, den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
+![Übersicht der Veranstaltung mit „Veranstaltung abschließen" und den Symbolen Teilen, Zahnrad und Papierkorb im Kopf, den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
 
 **Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„+ Teilnehmer"**. Es öffnet
 sich ein Fenster mit zwei Bereichen:

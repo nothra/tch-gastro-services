@@ -27,7 +27,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: "min-h-11 px-3 text-sm",
 };
 
-/** Form, Fokus und Disabled-Optik – geteilt mit `IconButton` statt kopiert (ADR-055 D2). */
+/** Form, Fokus und Disabled-Optik – geteilt mit `IconButton` statt kopiert (ADR-056 D2). */
 export const BUTTON_BASE_CLASSES = [
   "inline-flex items-center justify-center gap-2 rounded-md font-medium",
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",

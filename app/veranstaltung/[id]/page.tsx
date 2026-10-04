@@ -24,12 +24,12 @@ import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
 import { VeranstaltungLoeschen } from "./VeranstaltungLoeschen";
 import { ZugangTeilen } from "./ZugangTeilen";
 
-// Detailansicht einer Veranstaltung (spec-369, spec-391, ADR-053 D6, ADR-055): reine Komposition
+// Detailansicht einer Veranstaltung (spec-369, spec-391, ADR-053 D6, ADR-056): reine Komposition
 // aus Kopf → Arbeitsschritt-Kacheln → Teilnehmerliste. Teilen, Einstellungen und Löschen sind
 // Symbol-Schaltflächen im Seitenkopf, Abschließen/Wieder öffnen steht daneben (spec-371). Nur
 // Veranstalter; alle Schreibwege prüfen Rolle und Status zusätzlich serverseitig in den Actions.
 // Abgeschlossene Veranstaltungen sind schreibgeschützt: Bericht statt Kennzahlen, keine
-// Kopfaktionen.
+// Kopfaktionen außer „Wieder öffnen" (spec-371).
 export default async function VeranstaltungDetailPage({
   params,
 }: {
@@ -149,7 +149,8 @@ function OffeneVeranstaltung({
 }
 
 // Schreibgeschützt (AK6/AK7): Bericht über den Kacheln, Kacheln ohne Kennzahl – deren Daten
-// werden gar nicht erst geladen (ADR-053 D4) –, keine Kopfaktionen (spec-391 AK14).
+// werden gar nicht erst geladen (ADR-053 D4) –, keine Kopfaktionen außer „Wieder öffnen"
+// (spec-391 AK14, spec-371).
 function AbgeschlosseneVeranstaltung({
   veranstaltung,
   zeilen,
@@ -169,7 +170,7 @@ function AbgeschlosseneVeranstaltung({
   );
 }
 
-// Welche Kopfaktionen erscheinen, entscheidet der Aufrufer je Zustand (ADR-055 D5); der Rahmen
+// Welche Kopfaktionen erscheinen, entscheidet der Aufrufer je Zustand (ADR-056 D5); der Rahmen
 // stellt sie nur hinter das Status-Badge.
 function DetailRahmen({
   veranstaltung,
@@ -190,7 +191,8 @@ function DetailRahmen({
         back={{ href: "/veranstaltung", label: "Alle Veranstaltungen" }}
         meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]}`}
         action={
-          // Badge und Aktionen brechen gemeinsam um (spec-371 AK24) – ohne Änderung am PageHeader.
+          // Badge und Aktionen brechen gemeinsam um (spec-371 AK24, spec-391 AK16); das setzt den
+          // auf die Zeilenbreite begrenzten Aktionsbereich im PageHeader voraus (ADR-056 D5).
           <div className="flex flex-wrap items-center gap-1">
             <Badge tone={offen ? "akzent" : "neutral"}>{STATUS_LABEL[veranstaltung.status]}</Badge>
             {aktion}

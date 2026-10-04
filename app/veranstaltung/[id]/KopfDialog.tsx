@@ -5,13 +5,13 @@ import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
 import { IconButton } from "@/app/components/ui/IconButton";
 
-// Client-Hülle für die Dialoge im Seitenkopf der Detailseite (spec-391, ADR-055 D3): Symbol-
+// Client-Hülle für die Dialoge im Seitenkopf der Detailseite (spec-391, ADR-056 D3): Symbol-
 // Schaltfläche öffnet einen Dialog, dessen Titel ihr Name ist. Genutzt für „Link & QR teilen" und
 // „Einstellungen". Der Inhalt kommt als `children` – beim Teilen aus der Server Component
 // `ZugangTeilen`, damit `qrcode` aus dem Client-Bundle bleibt (ADR-053 D5, #307).
 //
 // Nach erfolgreichem Speichern bleibt der Dialog bewusst offen: die Formulare zeigen ihre
-// Erfolgsmeldung darin, `revalidatePath` aktualisiert die Seite dahinter (ADR-055 D3).
+// Erfolgsmeldung darin, `revalidatePath` aktualisiert die Seite dahinter (ADR-056 D3).
 export function KopfDialog({
   label,
   icon,

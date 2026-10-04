@@ -91,7 +91,7 @@ describe("KatalogWechsel", () => {
     });
     render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
 
-    // Im Dialog „Einstellungen" (spec-391, ADR-055 D6) als Fehler-`Notice` angesagt.
+    // Im Dialog „Einstellungen" (spec-391, ADR-056 D6) als Fehler-`Notice` angesagt.
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
     );
@@ -114,7 +114,7 @@ describe("KatalogWechsel", () => {
   });
 
   it("should_offerSubmitButtonInSecondaryStyle_when_rendered", () => {
-    // ADR-055 D6: Baustein `Button` statt Rohklassen – Absenden explizit `type="submit"`.
+    // ADR-056 D6: Baustein `Button` statt Rohklassen – Absenden explizit `type="submit"`.
     render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
 
     const button = screen.getByRole("button", { name: "Katalog wechseln" });

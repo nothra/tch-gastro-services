@@ -51,8 +51,9 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
   von oben nach unten: Seitenkopf, drei Arbeitsschritt-Kacheln, Teilnehmerliste – und darunter
   **kein** Bereich „Einstellungen" mehr (ersetzt spec-369 AK1).
 - [ ] **AK2** GIVEN eine datierte offene Veranstaltung WHEN der Seitenkopf gerendert wird THEN
-  stehen in seiner Aktionszone von links nach rechts: Status-Badge, Teilen-Schaltfläche,
-  Zahnrad-Schaltfläche, Papierkorb-Schaltfläche (zerstörerische Aktion zuletzt, #352 AK4/AK8).
+  stehen in seiner Aktionszone von links nach rechts: Status-Badge, „Veranstaltung abschließen"
+  (spec-371 AK18, siehe Q5), Teilen-Schaltfläche, Zahnrad-Schaltfläche, Papierkorb-Schaltfläche
+  (zerstörerische Aktion zuletzt, #352 AK4/AK8).
 - [ ] **AK3** GIVEN die Teilen-, Zahnrad- und Papierkorb-Schaltfläche WHEN sie dargestellt
   werden THEN zeigen sie je ein Symbol ohne sichtbaren Text, haben einen zugänglichen Namen
   („Link & QR teilen", „Einstellungen" bzw. „Veranstaltung löschen") und eine Tippfläche von
@@ -104,7 +105,7 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
 - [ ] **AK14** GIVEN eine abgeschlossene Veranstaltung WHEN die Detailseite geöffnet wird THEN
   zeigt der Seitenkopf weder Teilen, Zahnrad noch Papierkorb (unverändert: keine
   Einstellungen, kein Teilen, kein Löschen bei abgeschlossenen Veranstaltungen,
-  spec-369 AK7/AK21, spec-352).
+  spec-369 AK7/AK21, spec-352). „Wieder öffnen" neben dem Badge bleibt (spec-371 AK22).
 
 ### Darstellung und Doku
 
@@ -113,8 +114,9 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
   Tailwind-Farbklassen, kein `dark:`, ADR-052); die Symbole sind im hellen und dunklen
   Farbschema erkennbar.
 - [ ] **AK16** GIVEN ein schmaler Bildschirm (375 px) und eine lange Veranstaltungsbezeichnung
-  WHEN der Seitenkopf gerendert wird THEN bricht der Titel um, und Badge, Teilen-, Zahnrad- und
-  Papierkorb-Schaltfläche bleiben vollständig sichtbar und bedienbar (kein horizontales Scrollen).
+  WHEN der Seitenkopf gerendert wird THEN bricht der Titel um, und Badge, „Veranstaltung
+  abschließen", Teilen-, Zahnrad- und Papierkorb-Schaltfläche bleiben vollständig sichtbar und
+  bedienbar (kein horizontales Scrollen; zugleich spec-371 AK24).
 - [ ] **AK17** GIVEN die Veranstalter-Anleitung WHEN sie gelesen wird THEN beschreibt sie das
   Zahnrad im Seitenkopf als Ort der Einstellungen, das Teilen-Symbol als Weg zu
   „Link & QR teilen" und den Papierkorb als Weg zum Löschen; die betroffenen Screenshots zeigen den neuen Stand.
@@ -134,10 +136,10 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
 - [x] **Q1 (entschieden durch den Nutzer, 2026-10-02):** Löschen liegt nicht im Dialog
   „Einstellungen", sondern als Papierkorb-Symbol im Seitenkopf (AK11–AK13) – damit entfällt die
   Frage nach verschachtelten Dialogen. Die Ablehnungsmeldung (AK12) steht im
-  Bestätigungsdialog (ADR-055 D4).
-- [x] **Q2 (entschieden in ADR-055 D1/D2):** Woher kommen die Symbole (Teilen, Zahnrad, Papierkorb)? Im Projekt gibt es
+  Bestätigungsdialog (ADR-056 D4).
+- [x] **Q2 (entschieden in ADR-056 D1/D2):** Woher kommen die Symbole (Teilen, Zahnrad, Papierkorb)? Im Projekt gibt es
   bislang keine Icon-Bibliothek – eigene Inline-SVGs oder neue Abhängigkeit.
-- [x] **Q3 (entschieden in ADR-055 D3 – bleibt offen):** Schließt der Dialog „Einstellungen" nach erfolgreichem
+- [x] **Q3 (entschieden in ADR-056 D3 – bleibt offen):** Schließt der Dialog „Einstellungen" nach erfolgreichem
   Speichern von Stammdaten bzw. Katalogwechsel automatisch, oder bleibt er offen? (Nutzersicht
   ist durch AK7/FS3 festgelegt; die Wahl beeinflusst nur den Ablauf.)
 - [x] **Q4 (angepasst in /review-Iteration 1, 2026-10-04):** AK8 nannte ursprünglich auch
@@ -145,3 +147,8 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
   nicht – für keinen Konsumenten (auch spec-369 AK30 kennt den Weg nicht). AK8 ist deshalb auf
   „Schließen" + Escape zurückgeführt; Hintergrund-Schließen wäre ein eigenes Thema für den
   Baustein inkl. `ConfirmDialog`-Sperre während laufender Löschung.
+- [x] **Q5 (Zusammenführung mit #371, /review-Iteration 4, 2026-10-04):** #371 hat vor dieser
+  Spec „Veranstaltung abschließen" bzw. „Wieder öffnen" in den Seitenkopf gebracht (spec-371
+  AK18/AK22–AK24). Die Text-Schaltfläche steht direkt hinter dem Badge, vor den
+  Symbol-Schaltflächen dieser Spec – Statuswechsel gehört zum Status, die Symbole sind
+  Werkzeuge. AK2, AK14 und AK16 sind darauf angepasst; bei der Theke entfällt sie (spec-371 AK23).

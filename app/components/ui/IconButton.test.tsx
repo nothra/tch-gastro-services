@@ -7,7 +7,7 @@ function Symbol() {
   return <svg data-testid="symbol" aria-hidden="true" />;
 }
 
-describe("IconButton (ADR-055 D2, spec-391 AK3)", () => {
+describe("IconButton (ADR-056 D2, spec-391 AK3)", () => {
   it("should_exposeLabelAsAccessibleNameAndTooltip_when_rendered", () => {
     render(<IconButton label="Einstellungen" icon={<Symbol />} />);
 
@@ -59,7 +59,7 @@ describe("IconButton (ADR-055 D2, spec-391 AK3)", () => {
 
   it("should_useDangerToken_when_toneDanger", () => {
     // AK3: der Papierkorb ist als zerstörerische Aktion abgesetzt – Gefahr-Token als Symbolfarbe,
-    // bewusst keine gefüllte Fläche (ADR-055 D2).
+    // bewusst keine gefüllte Fläche (ADR-056 D2).
     render(<IconButton label="Veranstaltung löschen" tone="danger" icon={<Symbol />} />);
 
     const button = screen.getByRole("button");
