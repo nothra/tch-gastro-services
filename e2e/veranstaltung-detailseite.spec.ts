@@ -327,7 +327,9 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
 
     // Aufräumen: wieder öffnen, dann löschen.
     await bestaetigeStatuswechsel(zweiterTab, "Wieder öffnen", "Wieder öffnen");
-    await expect(zweiterTab.getByRole("button", { name: "Veranstaltung abschließen" })).toBeVisible();
+    await expect(
+      zweiterTab.getByRole("button", { name: "Veranstaltung abschließen" }),
+    ).toBeVisible();
     await zweiterTab.close();
     await loescheVeranstaltung(page, detailPfad);
   });

@@ -497,13 +497,14 @@ describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
 });
 
 describe("VeranstaltungDetailPage – Kopfaktionen (spec-391 AK2, AK10, AK13, AK14)", () => {
-  it("should_orderBadgeTeilenEinstellungenPapierkorb_when_datedVeranstaltungOffen", async () => {
+  it("should_orderBadgeAbschlussTeilenEinstellungenPapierkorb_when_datedVeranstaltungOffen", async () => {
     // AK2: von links nach rechts – die zerstörerische Aktion zuletzt (#352 AK4/AK8). AK10:
     // „Link & QR teilen" liegt direkt im Kopf, ohne vorher etwas anderes zu öffnen.
     await renderSeite();
 
     expect(kopfAktionen()).toEqual([
       "Badge",
+      "Abschluss-Aktion",
       "Link & QR teilen",
       "Einstellungen",
       "Veranstaltung löschen",
@@ -525,11 +526,11 @@ describe("VeranstaltungDetailPage – Kopfaktionen (spec-391 AK2, AK10, AK13, AK
     expect(kopfAktionen()).toEqual(["Badge", "Link & QR teilen", "Einstellungen"]);
   });
 
-  it("should_showOnlyBadge_when_veranstaltungAbgeschlossen", async () => {
-    // AK14: weder Teilen, Zahnrad noch Papierkorb.
+  it("should_showOnlyBadgeAndAbschlussAktion_when_veranstaltungAbgeschlossen", async () => {
+    // AK14: weder Teilen, Zahnrad noch Papierkorb; „Wieder öffnen" bleibt (spec-371).
     await renderSeite(abgeschlossen);
 
-    expect(kopfAktionen()).toEqual(["Badge"]);
+    expect(kopfAktionen()).toEqual(["Badge", "Abschluss-Aktion"]);
     expect(screen.queryByRole("button", { name: "Veranstaltung löschen" })).toBeNull();
   });
 });
