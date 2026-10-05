@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Header mit Wortmarke und Konto-Menü, Startseite mit offenen Veranstaltungen, `PublicHeader` auf `/theke/[token]`, einheitlicher `PageHeader` samt Zurück-Link auf Unterseiten, Kacheln „Verzehr erfassen"/„Auslagen erfassen". Spec: `docs/specs/spec-374-header-startseite-zurueck-navigation.md`.
@@ -19,7 +19,7 @@ Header mit Wortmarke und Konto-Menü, Startseite mit offenen Veranstaltungen, `P
 - [x] AK3.1–3.4 `PublicHeader` auf `/theke/[token]` (nicht bei ungültigem Token, nicht auf `/login`)
 - [x] AK4.1–4.7 `PageHeader` + Zurück-Link auf Verzehr/Auslagen; Titel-Header auf Liste/Teilnehmer/Katalog-Index; „Kassieren" ohne Pfeil
 - [x] AK5.1–5.3 Kacheln „Verzehr erfassen"/„Auslagen erfassen"
-- [ ] AK5.4 Anleitung + Screenshots aktualisiert – erst nach erfolgreichem `/implement` und `/review`
+- [x] AK5.4 Anleitung + Screenshots aktualisiert – erst nach erfolgreichem `/implement` und `/review`
 - [x] AK6 Lint, Tests, `routes-doc-check` grün; `docs/routes.md` aktuell
 - [x] AK7 `docs/ux/ux-issue-entwuerfe.md` UX-7 angeglichen (in `/requirements` erledigt)
 
@@ -73,6 +73,17 @@ ADR: `docs/adr/057-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
   Konsequenzen und D4 trägt die `auth()`-/Session-Bedingung.
 - Bewusst offen (nicht Refactoring, gehört zu AK5.4/Doku): die übrigen Nitpicks (Popover-Abstand zum `StageBanner`, Light-Dismiss-Fokus
   im E2E, `Kassieren →`-Fixtures in `VerzehrEinzelansicht.test.tsx`).
+
+### Notizen aus AK5.4 und Merge (2026-10-05)
+- `origin/main` (#392, ADR „Detailseite-Kopfaktionen") per Merge eingebracht; einziger Konflikt war
+  ein Kommentar in `e2e/anleitung-veranstalter.spec.ts`. Die Header-ADR dieser Task heißt jetzt
+  **ADR-057** (die `056` gehört #391); alle #374-Verweise sind nachgezogen, die #391-Verweise blieben.
+- Bilder per Capture-Spec gegen eine Wegwerf-DB neu erzeugt (`01`–`12` plus neu `02b-konto-menue`
+  und `04b-startseite-offene-veranstaltung`); eigener Dev-Server auf Port 3374, Wegwerf-DB danach
+  gelöscht, `tch_dev` unberührt. `anleitung.md` auf Kopfzeile, Konto-Menü/Abmelden, Startseite,
+  „Verzehr erfassen"/„Auslagen erfassen", Zurück-Links und „Kassieren" ohne Pfeil angepasst.
+- `anleitung.pdf` (manueller Browser-Druck, #221) ist wie schon bei #388 **nicht** neu erzeugt und
+  zeigt noch den alten Stand – bei Bedarf per VS-Code-Vorschau nachdrucken.
 
 ## Offene Fragen
 _Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Implementierung + Review (AK5.4); Sortierung bei gleichem Datum nach Anlage-Zeit.
