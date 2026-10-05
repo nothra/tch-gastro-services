@@ -56,6 +56,20 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- **Iteration 1** (`tasks/review-390.md`, NEEDS_REWORK, 1 wichtig + 4 Nitpicks), alle behoben:
+  - [x] W1: undici-6.x-Vorsorge-Fall `undici|6|6.28.1` in `floor_cases_291` plus Mutationsbeleg
+    (Fixture `undici@6.28.0` + Nachbarzeile `7.30.0`, meldet genau `6.28.0`, gegen Floor 6.28.0
+    sauber). Den Floor 6.28.1 habe ich über alle sechs undici-Advisories frisch gemessen
+    (`gh api advisories/<ghsa>`, Lesson #231). Nur GHSA-r53p-7pc4-xj5r betrifft 6.x (`< 6.28.1`),
+    die anderen fünf beginnen bei ≥ 7.0.0. Guard-Verweis in `pnpm-workspace.yaml` ergänzt.
+    Suite: 1568 grün / 0 rot.
+  - [x] Nitpicks: Caret-Ausnahme-Beispiel auf `<5.0.12 → ^5.0.12`, Selektor-Kommentar in
+    `run-tests.sh` nachgezogen, Zeilenumbruch, sharp-Nachmessung in #390 vermerkt.
+  - Kleinfunde: Den Eintrag „Override-Selektor ohne untere Schranke" habe ich gelöscht, weil
+    `>=7.0.0` ihn erledigt. Neu angelegt: „Floor-Guard hat keinen Vorsorge-Fall für die
+    undici-8.x-Linie". Alle sechs Advisories tragen eine 8.x-Linie (Floor 8.10.2), heute liegt
+    keine im Baum, und der alte Selektor hat sie auch nie gedeckt. Laut Schwelle (ADR-043) ist
+    das ein hypothetischer Zustand und gehört deshalb nicht in ein Issue.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

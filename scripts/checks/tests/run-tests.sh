@@ -5615,7 +5615,7 @@ versions_below_floor_291() {
 }
 
 # Format: "<paket>|<major>|<floor>|<herkunft im Baum>"
-# #339: die 4.x/5.x-Linie deckt EIN Override-Selektor (>=4.0.0 <5.0.9) ab, hier stehen aber
+# #339: die 4.x/5.x-Linie deckt EIN Override-Selektor (seit #390 >=4.0.0 <5.0.12) ab, hier stehen aber
 # DREI Fälle, weil lock_versions_291 je Major-Linie filtert (grep "^  <paket>@<major>\.") und
 # ein Fall damit nur seine eigene Linie sieht. Gemessen wird allein vom Major-5-Fall: er traf
 # im RED-Lauf die real aufgelöste 5.0.7, während der Major-4-Fall prompt grün war. Die Fälle
@@ -5623,6 +5623,9 @@ versions_below_floor_291() {
 # beiden Linien keine Kopie auf (minimatch@10 deklariert ^5.0.5 und kann selbst keine 4.x
 # ziehen). Für Major 3 ist dieser Fall die EINZIGE Deckung: die 3er-Linie hat bewusst keinen
 # Override-Selektor (Begründung in pnpm-workspace.yaml), eine 3.0.x zöge sonst still ein.
+# #390: dieselbe Lage für undici@6.x – der Selektor ist seit #390 auf >=7.0.0 begrenzt, der
+# Major-6-Fall ist damit die EINZIGE Deckung der 6er-Linie (eigener Fix 6.28.1, GHSA-r53p-7pc4-xj5r;
+# die übrigen fünf undici-Advisories aus #390 betreffen 6.x nicht).
 floor_cases_291=(
   "postcss|8|8.5.23|runtime, via next"
   "nanoid|3|3.3.17|runtime, via postcss"
@@ -5632,6 +5635,7 @@ floor_cases_291=(
   "brace-expansion|4|5.0.12|Vorsorge, heute keine 4.x-Kopie im Baum, Floor in der 5er-Linie (#339/#390)"
   "brace-expansion|5|5.0.12|development, via minimatch@10 (typescript-eslint), Floor aus #390"
   "sharp|0|0.35.4|runtime, via next (Bildoptimierung), Floor aus #337"
+  "undici|6|6.28.1|Vorsorge, heute keine 6.x-Kopie im Baum, kein Override-Selektor (#390)"
   "undici|7|7.29.1|development, via jsdom, Floor aus #390"
   "js-yaml|4|4.3.2|development, via eslint, Floor aus #337"
   "browserslist|4|4.28.7|runtime, via next, Floor aus #337/#329"
@@ -5684,6 +5688,19 @@ mut_vorsorge4_clean_339="$(versions_below_floor_291 brace-expansion 5 5.0.9 "$mu
 assert_true "$([ -z "$mut_vorsorge4_clean_339" ]; echo $?)" \
   "#339 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-5-Filter gegen Floor 5.0.9 sauber (5.0.12 liegt darüber) (ist: '${mut_vorsorge4_clean_339}')"
 rm -f "$mut_vorsorge4_339"
+
+# Mutationsbeleg für den #390-Vorsorge-Fall undici@6.x, nach dem Muster des Major-4-Falls: die
+# 7.30.0-Nachbarzeile belegt zusätzlich die Trennung der Major-Linien – sie darf beim Major-6-
+# Filter nicht mitzählen, sonst wäre der Ist-Lauf aus dem falschen Grund grün.
+mut_vorsorge6_390="$(mktemp)"
+printf '  undici@6.28.0:\n  undici@7.30.0:\n' > "$mut_vorsorge6_390"
+mut_vorsorge6_below_390="$(versions_below_floor_291 undici 6 6.28.1 "$mut_vorsorge6_390")"
+assert_true "$([ "$mut_vorsorge6_below_390" = " 6.28.0" ]; echo $?)" \
+  "#390 Mutationsbeleg: undici-Major-6-Vorsorge-Fall meldet auf einer Fixture mit undici@6.28.0 genau diese Version, nicht die 7.x-Nachbarzeile (ist: '${mut_vorsorge6_below_390}')"
+mut_vorsorge6_clean_390="$(versions_below_floor_291 undici 6 6.28.0 "$mut_vorsorge6_390")"
+assert_true "$([ -z "$mut_vorsorge6_clean_390" ]; echo $?)" \
+  "#390 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-6-Filter gegen Floor 6.28.0 sauber (ist: '${mut_vorsorge6_clean_390}')"
+rm -f "$mut_vorsorge6_390"
 
 # Mutationsbeleg für den QUOTIERTEN Scoped-Schlüssel (#337): @vitest/mocker steht im Lockfile
 # als '@vitest/mocker@4.1.11': – ohne die Quote-Entfernung in lock_versions_291 fände die Kette
