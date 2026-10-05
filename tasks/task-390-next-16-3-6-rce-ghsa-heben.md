@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -18,6 +18,8 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
 - [x] `brace-expansion` ≥ 1.1.21 bzw. ≥ 2.1.7 (Alerts #74–#79) – aufgelöst: 1.1.21 / 2.1.7 / 5.0.12
 - [x] `undici` ≥ 7.29.1 (Alerts #64, #67–#69, #72, #73) – aufgelöst: 7.30.0
 - [ ] Dependabot meldet keine offenen Alerts mehr (oder begründete Restausnahme) – **erst nach dem Merge prüfbar:** Dependabot wertet nur den Default-Branch aus, der Feature-Branch schließt keine Alerts. Nachweis über `gh api repos/nothra/tch-gastro-services/dependabot/alerts?state=open` nach dem Merge.
+  Erwartete Restausnahme laut `/security-review`: `braces@3.0.3` (GHSA-vfj7-8cjw-p6xm). Das Paket
+  ist dev-only, ein Fix existiert nicht, und es liegt schon auf `main`. Getrackt in #396.
 - [x] Build, Auth-E2E, `next/image`-Rauchtest, PWA-Build grün (PWA = Manifest, siehe Notizen)
 - [x] #169 (postcss-Override) neu bewertet – bleibt entfernt
 
