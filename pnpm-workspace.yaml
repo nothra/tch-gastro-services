@@ -54,7 +54,8 @@ allowBuilds:
 #            weiterhin exakt auf 8.5.23, aufgelöst 8.5.23 und 8.5.26 – der Eintrag bleibt entfernt.
 # - sharp    <0.35.0: GHSA-f88m-g3jw-g9cj (high), via next (Bildoptimierung, optionale Dep).
 #            next 16.3.5 deklariert sharp selbst als ^0.35.4; frisch gemessen ohne den Eintrag:
-#            0.35.4 (in #390 unter next 16.3.8 erneut gemessen: 0.35.4). Nebeneffekt: die in #291 bewusst hingenommene Range-Verletzung (Override
+#            0.35.4 (in #390 unter next 16.3.8 erneut gemessen: 0.35.4). Nebeneffekt: die in
+#            #291 bewusst hingenommene Range-Verletzung (Override
 #            außerhalb der von next deklarierten ^0.34.5) ist damit aufgelöst. sharp bleibt in
 #            allowBuilds – die optionale Dep liegt weiter im Baum und braucht ihren
 #            Post-Install-Build.
@@ -81,7 +82,8 @@ allowBuilds:
 #            auch ohne jeden Override 5.0.12 auf. Der Eintrag bleibt trotzdem nötig, und zwar
 #            anders als bei nanoid: dort erfüllt die deklarierte Untergrenze (^3.3.17) den Floor
 #            selbst, hier liegt die von minimatch@10 deklarierte Untergrenze ^5.0.5 UNTER dem
-#            Floor 5.0.9. Der Eintrag ist damit die einzige durable Zusicherung >= 5.0.9.
+#            Floor (damals 5.0.9, seit #390 5.0.12). Der Eintrag ist damit die einzige durable
+#            Zusicherung für den jeweils aktuellen Floor.
 #            Untere Schranke `>=4.0.0` statt `>=5.0.0`, weil die Advisories die 4er-Linie
 #            mit demselben Floor in der 5er-Linie patchen (4.x hat keinen eigenen Fix).
 #            KEIN 3.x-Selektor, obwohl die 3er-Linie parallel gepflegt wird (dist-tag 3.x =

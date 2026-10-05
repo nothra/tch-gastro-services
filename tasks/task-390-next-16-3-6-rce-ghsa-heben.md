@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -84,6 +84,13 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
 - Bash-Suite `run-tests.sh`: 1568 grün / 0 rot.
 - Nicht ausgeführt: DB-Integrationstests mit `dotenv` (Aufruf wurde nicht freigegeben). Der Diff
   ändert nur Manifest, Lockfile, Workspace-Overrides und Guard.
+
+## Refactoring-Notizen
+- `/refactor`: Der Diff enthält keinen Produktionscode, nur Manifest, Lockfile, Overrides und Guard.
+  Umgesetzt sind die zwei offenen Kommentar-Nitpicks aus Review-Iteration 2, beide in
+  `pnpm-workspace.yaml`: die überlange sharp-Zeile ist umbrochen, und die Präsens-Aussage
+  „>= 5.0.9" nennt jetzt „damals 5.0.9, seit #390 5.0.12". Kein Verhalten geändert.
+  Bash-Suite vor und nach dem Refactoring: 1568 grün / 0 rot.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
