@@ -106,6 +106,8 @@ Codify (2026-10-05), Bericht in `tasks/codify-374.md`: vier Lessons (Popover/AX-
 E2E `localhost` statt `127.0.0.1`, Wegwerf-`*.tmp.config.ts`). Offen: `*.tmp.config.ts` in `.gitignore` (Edit nicht
 freigegeben) und AK5.4 (Anleitung + Screenshots) – beides vor dem Merge.
 
+PR-Shepherd 2026-10-05: Merge freigegeben – alle Gates grün (keine Review-Kommentare, Branch enthält `origin/main`, CI läuft bzw. ist grün; Auto-Merge wartet server-seitig auf die required Checks).
+
 ---
 Branch: `feature/374-header-startseite-zurueck-navigation`
 Erstellt: 2026-10-03 20:21
