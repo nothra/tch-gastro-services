@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -70,6 +70,10 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
     undici-8.x-Linie". Alle sechs Advisories tragen eine 8.x-Linie (Floor 8.10.2), heute liegt
     keine im Baum, und der alte Selektor hat sie auch nie gedeckt. Laut Schwelle (ADR-043) ist
     das ein hypothetischer Zustand und gehört deshalb nicht in ein Issue.
+- **Iteration 2** (`tasks/review-390.md`, **APPROVED**, 0 kritisch / 0 wichtig / 2 Nitpicks):
+  W1 und die vier Nitpicks aus Iteration 1 sind als behoben bestätigt. Die Suite ist frisch
+  gelaufen: 1568 grün / 0 rot. Offen und optional: zwei Kommentar-Nitpicks in
+  `pnpm-workspace.yaml` (überlange Zeile 57, Präsens-Aussage „>= 5.0.9" in Zeile 84).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
