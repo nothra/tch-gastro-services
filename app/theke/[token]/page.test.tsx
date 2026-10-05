@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import type { CatalogItem, Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 
 vi.mock("@/db/veranstaltung", () => ({
@@ -8,6 +8,7 @@ vi.mock("@/db/veranstaltung", () => ({
 }));
 vi.mock("@/db/catalog", () => ({ listActiveCatalog: vi.fn() }));
 vi.mock("@/db/verzehr", () => ({ listPositionen: vi.fn() }));
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/app/veranstaltung/actions", () => ({ adjustVerzehrByTokenAction: vi.fn() }));
 
 const notFoundMock = vi.fn(() => {
@@ -29,7 +30,11 @@ vi.mock("@/app/_verzehr/MengeControl", () => ({
 import { getVeranstaltungByToken, listZeilen } from "@/db/veranstaltung";
 import { listActiveCatalog } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
+import { auth } from "@/auth";
+import type { Session } from "next-auth";
 import ThekePage from "./page";
+
+const authMock = vi.mocked(auth as unknown as () => Promise<Session | null>);
 
 const getByTokenMock = vi.mocked(getVeranstaltungByToken);
 const listZeilenMock = vi.mocked(listZeilen);
@@ -111,6 +116,46 @@ beforeEach(() => {
   listZeilenMock.mockResolvedValue([aZeile]);
   listActiveCatalogMock.mockResolvedValue([cola]);
   listPositionenMock.mockResolvedValue([]);
+  authMock.mockResolvedValue(null);
+});
+
+describe("ThekePage – PublicHeader (spec-374 AK3)", () => {
+  it("should_showPublicHeaderWithBezeichnungAndAnmelden_when_guestWithValidToken", async () => {
+    // AK3.1: Gast ohne Session sieht oben die Orientierungsleiste mit dem Veranstaltungsnamen.
+    getByTokenMock.mockResolvedValue(aVeranstaltung);
+
+    render(await ThekePage({ params: params("tok-1") }));
+
+    const header = screen.getByRole("banner");
+    expect(header).toHaveTextContent("Montagsrunde Juli");
+    expect(within(header).getByRole("link", { name: "Anmelden" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+  });
+
+  it("should_renderNothing_when_tokenInvalid", async () => {
+    // AK3.3: bei ungültigem Token bricht die Seite per notFound() vor jedem Rendern ab – es gibt
+    // keinen Header, der einen Veranstaltungsnamen preisgeben könnte.
+    getByTokenMock.mockResolvedValue(undefined);
+
+    await expect(ThekePage({ params: params("nope") })).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(authMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notAddSecondHeader_when_userHasSession", async () => {
+    // Mit Session rendert das Layout bereits den AppHeader – ein zweiter Kopf entfiele sonst nicht.
+    authMock.mockResolvedValue({
+      user: { email: "vera@tch.de", roles: ["veranstalter"] },
+      expires: "2099-01-01T00:00:00.000Z",
+    } as Session);
+    getByTokenMock.mockResolvedValue(aVeranstaltung);
+
+    render(await ThekePage({ params: params("tok-1") }));
+
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Anmelden" })).not.toBeInTheDocument();
+  });
 });
 
 describe("ThekePage", () => {

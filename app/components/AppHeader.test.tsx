@@ -25,13 +25,27 @@ describe("AppHeader", () => {
   // (mockResolvedValue) – die muss zwischen Tests zurückgesetzt werden, sonst leakt sie (#51).
   beforeEach(() => vi.resetAllMocks());
 
-  it("should_showSignOutButton_when_userLoggedIn", async () => {
+  // „Abmelden" steht seit spec-374 im (geschlossenen) Konto-Menü – für die Rollen-Abfrage verborgen.
+  it("should_offerSignOutInKontoMenu_when_userLoggedIn", async () => {
     loginWithRoles(["verwalter"]);
 
     render(await AppHeader());
 
-    expect(screen.getByRole("button", { name: /Abmelden/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Konto" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abmelden", hidden: true })).toBeInTheDocument();
     expect(screen.getByText(/person@tch\.de/)).toBeInTheDocument();
+  });
+
+  it("should_showAngemeldetInKontoMenu_when_emailMissing", async () => {
+    // Fehlerszenario „leere E-Mail": bestehender Fallback.
+    authMock.mockResolvedValue({
+      user: { roles: ["verwalter"] },
+      expires: "2099-01-01T00:00:00.000Z",
+    } as unknown as Session);
+
+    render(await AppHeader());
+
+    expect(document.getElementById("konto-menue")).toHaveTextContent("Angemeldet");
   });
 
   it("should_renderNothing_when_visitorNotLoggedIn", async () => {
@@ -81,6 +95,6 @@ describe("AppHeader", () => {
 
     expect(screen.queryByRole("link", { name: "Veranstaltungen" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Katalog" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Abmelden/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abmelden", hidden: true })).toBeInTheDocument();
   });
 });

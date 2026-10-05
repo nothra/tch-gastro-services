@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listAuslagen } from "@/db/auslage";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import { createAuslageAction } from "../../actions";
 import { auslagenSummen } from "../../auslagenSummen";
 import { AuslagenSummary } from "../../AuslagenSummary";
@@ -46,21 +46,11 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/veranstaltung/${id}`}
-          className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
-        >
-          ← Zur Veranstaltung
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Auslagen · {veranstaltung.bezeichnung}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
-          {STATUS_LABEL[veranstaltung.status]}
-        </p>
-      </div>
+      <PageHeader
+        title={`Auslagen · ${veranstaltung.bezeichnung}`}
+        back={{ href: `/veranstaltung/${id}`, label: "Zur Veranstaltung" }}
+        meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]} · ${STATUS_LABEL[veranstaltung.status]}`}
+      />
 
       <AuslagenSummary summen={summen} />
 

@@ -38,6 +38,14 @@ export const UI_TOKEN_FILES = [
   "app/veranstaltung/[id]/kassieren/",
   "app/veranstaltung/[id]/AbschlussAktion.tsx",
   "app/veranstaltung/KassiereZeileForm.tsx",
+  // #374: Kopfzeile, Konto-Menü, Gäste-Kopf und Startseite (ADR-057 D5). Verzehr, Auslagen,
+  // Veranstaltungsliste und Teilnehmer folgen mit #373 – ihre Dateien tragen noch rohe Farben.
+  "app/components/headerStyles.ts",
+  "app/components/AppNav.tsx",
+  "app/components/KontoMenue.tsx",
+  "app/components/PublicHeader.tsx",
+  "app/page.tsx",
+  "app/veranstaltung/OffeneVeranstaltungen.tsx",
 ];
 
 /**

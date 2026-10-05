@@ -6,7 +6,7 @@ Diese Anleitung führt Sie Schritt für Schritt durch eine komplette Veranstaltu
 bis zum Abschlussbericht. Sie ist für alle gedacht, die **wenig Erfahrung mit Apps** haben.
 Jeder Schritt erklärt kurz: **Was tue ich?** und **Was passiert dann?**
 
-> **Stand: 24. Juli 2026.** Die Bilder zeigen die App zu diesem Zeitpunkt. Wird die App später
+> **Stand: 5. Oktober 2026.** Die Bilder zeigen die App zu diesem Zeitpunkt. Wird die App später
 > geändert, können einzelne Bildschirme etwas anders aussehen – der Ablauf bleibt gleich. Wer die
 > App pflegt, findet am Ende unter **„Bilder aktualisieren"**, wie die Screenshots neu erzeugt
 > werden.
@@ -55,13 +55,27 @@ Jeder Schritt erklärt kurz: **Was tue ich?** und **Was passiert dann?**
 **Was tue ich?** Öffnen Sie die App. Geben Sie Ihre **E-Mail** und Ihr **Passwort** ein und tippen
 Sie auf **„Anmelden"**.
 
-**Was passiert?** Sie landen auf der Startseite mit den Bereichs-Kacheln.
+**Was passiert?** Sie landen auf der Startseite mit den offenen Veranstaltungen und den
+Bereichs-Kacheln.
 
 ![Anmeldebildschirm mit den Feldern E-Mail und Passwort und der Schaltfläche „Anmelden".](bilder/01-anmelden.png)
 
-Nach dem Anmelden sehen Sie die Startseite. Tippen Sie auf die Kachel **„Veranstaltungen"**.
+Nach dem Anmelden sehen Sie die Startseite. Oben steht die **Kopfzeile**: links das **Menü-Symbol**
+(drei Striche) und der Name **„TCH Gastro Services"**, rechts das **Konto-Symbol** (Person). Ein Tipp
+auf den Namen bringt Sie von jeder Seite **zurück zur Startseite**.
 
-![Startseite mit den Kacheln „Veranstaltungen", „Katalog" und „Teilnehmer".](bilder/02-startseite.png)
+Darunter zeigt der Bereich **„Offene Veranstaltungen"** alle Veranstaltungen, die noch laufen – mit
+einem Tipp öffnen Sie eine davon direkt. Gibt es keine, steht dort **„Keine offene Veranstaltung."**
+mit der Schaltfläche **„Veranstaltung anlegen"**. Darunter folgen die Kacheln. Tippen Sie auf die
+Kachel **„Veranstaltungen"**.
+
+![Startseite mit Kopfzeile, dem Hinweis „Keine offene Veranstaltung." und den Kacheln „Veranstaltungen", „Katalog" und „Teilnehmer".](bilder/02-startseite.png)
+
+**Abmelden:** Tippen Sie in der Kopfzeile auf das **Konto-Symbol**. Es öffnet sich ein kleines Menü
+mit Ihrer E-Mail-Adresse und der Schaltfläche **„Abmelden"**. Ein Tipp außerhalb des Menüs oder die
+Taste *Esc* schließt es wieder.
+
+![Geöffnetes Konto-Menü unter dem Konto-Symbol mit E-Mail-Adresse und der Schaltfläche „Abmelden".](bilder/02b-konto-menue.png)
 
 > Sehen Sie die Kachel **„Veranstaltungen"** nicht? Dann fehlt Ihrem Konto die Rolle
 > *Veranstalter* – wenden Sie sich an den Verwalter (siehe unten).
@@ -84,14 +98,19 @@ Status **„offen"**.
 > Die **„Stehende Theke"** darunter müssen Sie in der Regel **nicht** einrichten – sie ist für die
 > dauerhaft offene Theke gedacht und meist schon vorhanden.
 
-Tippen Sie in der Liste auf den Namen der Veranstaltung, um sie zu **öffnen**.
+Tippen Sie in der Liste auf den Namen der Veranstaltung, um sie zu **öffnen**. Auf der Startseite
+erscheint die neue Veranstaltung außerdem sofort unter **„Offene Veranstaltungen"** – das ist der
+kürzeste Weg zurück zu ihr.
+
+![Startseite mit der Veranstaltung „Montagsrunde" unter „Offene Veranstaltungen".](bilder/04b-startseite-offene-veranstaltung.png)
 
 ---
 
 ## Schritt 3 – Veranstaltung führen (Teilnehmer erfassen)
 
-Auf der Veranstaltungs-Seite steuern Sie alles Weitere. Unter dem Titel stehen drei **Kacheln**
-– **„Verzehr"**, **„Auslagen"** und **„Kassieren"** – mit je einer Kurzkennzahl (Verzehr-Summe,
+Auf der Veranstaltungs-Seite steuern Sie alles Weitere. Über dem Titel führt **„← Alle
+Veranstaltungen"** zurück zur Liste. Unter dem Titel stehen drei **Kacheln** – **„Verzehr
+erfassen"**, **„Auslagen erfassen"** und **„Kassieren"** – mit je einer Kurzkennzahl (Verzehr-Summe,
 Auslagen-Summe, „x von n bezahlt"). Ein Tipp auf eine Kachel führt zum jeweiligen Schritt. Darunter
 folgt die Liste der **Teilnehmer**.
 
@@ -109,7 +128,7 @@ bei Bedarf in eine zweite Zeile:
 
 Bei einer abgeschlossenen Veranstaltung fehlen die drei Symbole; dort steht nur **„Wieder öffnen"**.
 
-![Übersicht der Veranstaltung mit „Veranstaltung abschließen" und den Symbolen Teilen, Zahnrad und Papierkorb im Kopf, den Kacheln „Verzehr", „Auslagen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
+![Übersicht der Veranstaltung mit „Veranstaltung abschließen" und den Symbolen Teilen, Zahnrad und Papierkorb im Kopf, den Kacheln „Verzehr erfassen", „Auslagen erfassen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
 
 **Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„+ Teilnehmer"**. Es öffnet
 sich ein Fenster mit zwei Bereichen:
@@ -142,7 +161,8 @@ einen **Link** (mit **„Link kopieren"**) und einen **QR-Code**.
 
 ## Schritt 4 – Verzehr erfassen
 
-**Was tue ich?** Tippen Sie auf die Kachel **„Verzehr"**. Die Erfassung zeigt immer **einen**
+**Was tue ich?** Tippen Sie auf die Kachel **„Verzehr erfassen"**. Über dem Titel führt
+**„← Zur Veranstaltung"** zurück zur Übersicht. Die Erfassung zeigt immer **einen**
 Teilnehmer: Oben wählen Sie ihn über die Namensleiste aus, darunter wählen Sie die Kategorie
 (**Getränke**, **Kaffee**, **Essen**). Erhöhen oder verringern Sie je Artikel die Menge mit den
 Schaltflächen **„+"** und **„−"**. Mit **„Nächste Person →"** am unteren Rand geht es zum nächsten
@@ -150,10 +170,10 @@ Teilnehmer – die gewählte Kategorie bleibt dabei stehen. Ein Punkt am Namen z
 erfasst hat.
 
 **Was passiert?** Die Mengen werden sofort gespeichert; oben neben dem Namen stehen der
-**Gesamtbetrag** und darunter die Summen für Getränke, Kaffee und Essen. Über **„Kassieren →"**
+**Gesamtbetrag** und darunter die Summen für Getränke, Kaffee und Essen. Über **„Kassieren"**
 unten gelangen Sie direkt zum Kassieren dieses Teilnehmers.
 
-![Verzehr-Erfassung: Namensleiste oben, darunter Name und Gesamtbetrag, Kategorie-Umschalter, Artikel mit Plus/Minus und unten „Kassieren →" und „Nächste Person →".](bilder/08-verzehr.png)
+![Verzehr-Erfassung: Namensleiste oben, darunter Name und Gesamtbetrag, Kategorie-Umschalter, Artikel mit Plus/Minus und unten „Kassieren" und „Nächste Person →".](bilder/08-verzehr.png)
 
 > **Selbstbedienung:** Statt alles selbst einzutippen, können die Teilnehmer ihren Verzehr über den
 > **Link/QR-Code** aus [„Zugang teilen"](#zugang-teilen-selbstbedienung) selbst erfassen – ohne
@@ -166,7 +186,8 @@ unten gelangen Sie direkt zum Kassieren dieses Teilnehmers.
 Hat jemand etwas **vorgestreckt** (z. B. Getränke gekauft), erfassen Sie das hier. Auslagen sind
 ein **eigener Vorgang** und werden **nicht** mit dem Verzehr verrechnet.
 
-**Was tue ich?** Tippen Sie auf die Kachel **„Auslagen"**. Wählen Sie den **Teilnehmer** und die
+**Was tue ich?** Tippen Sie auf die Kachel **„Auslagen erfassen"**. Über dem Titel führt
+**„← Zur Veranstaltung"** zurück zur Übersicht. Wählen Sie den **Teilnehmer** und die
 **Kategorie** (Getränke, Essen oder Sonstiges), tragen Sie den **Betrag (EUR)** ein (z. B. „15,00"),
 optional eine **Notiz**, und tippen Sie auf **„Auslage erfassen"**.
 
@@ -259,7 +280,9 @@ pnpm db:up
 # (optional, für ganz saubere Bilder: DEV-Daten leeren, dann neu seeden)
 pnpm db:seed
 
-# 2. Screenshots erzeugen (fährt den kompletten Veranstalter-Workflow durch)
+# 2. Screenshots erzeugen (fährt den kompletten Veranstalter-Workflow durch). Die Spec erwartet
+#    eine Datenbank ohne offene Veranstaltung (Bild 02 zeigt „Keine offene Veranstaltung.") –
+#    am besten gegen eine eigene Wegwerf-DB laufen lassen.
 CAPTURE_ANLEITUNG=1 pnpm exec dotenv -e .env.local -- playwright test e2e/anleitung-veranstalter.spec.ts
 ```
 

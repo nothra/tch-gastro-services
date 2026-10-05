@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Veranstaltung, VeranstaltungZeile } from "@/db/schema";
 import type { AuslageRow as AuslageRowData } from "@/db/auslage";
 
@@ -160,5 +160,28 @@ describe("AuslagenPage", () => {
 
     expect(screen.getByText(/Noch keine Auslagen/i)).toBeInTheDocument();
     expect(screen.queryByTestId("auslage-row")).not.toBeInTheDocument();
+  });
+});
+
+describe("AuslagenPage – Seitenkopf (spec-374 AK4)", () => {
+  function seitenkopf() {
+    return screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+  }
+
+  it("should_showBackLinkTitleAndMetaInPageHeader_when_rendered", async () => {
+    // AK4.1: Zurück-Link „Zur Veranstaltung", Titel und Meta im `PageHeader`.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([aZeile]);
+    listAuslagenMock.mockResolvedValue([]);
+
+    render(await AuslagenPage({ params: params("v-1") }));
+
+    const zurueck = within(seitenkopf()).getByRole("link", { name: "Zur Veranstaltung" });
+    expect(zurueck).toHaveAttribute("href", "/veranstaltung/v-1");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Auslagen · Montagsrunde Juli",
+    );
+    expect(seitenkopf()).toHaveTextContent("14.07.2026 · Montagsrunde · offen");
   });
 });

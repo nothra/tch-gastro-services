@@ -217,6 +217,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - `setState` am Anfang einer Form-Action wird erst mit ihrem Ende sichtbar – „läuft gerade" aus `onSubmit` melden, Ende im `finally` der Action; Test mit nie auflösendem Promise (aus #369, /implement-Selbstfund)
 - Verhaltensvertrag eines geteilten Bausteins (Schließen/Sperren/Fokus) in den Baustein legen und alle Konsumenten prüfen – ein Fix im auffälligen Konsumenten ließ den schwereren Geschwister-Defekt eine Iteration länger stehen (aus #369, Review-Iteration 1/2)
 - Statuswechsel, der den Seitenzweig tauscht, remountet den Auslöser – Fokus-Rückgabe zeigt auf entfernten Knoten; Erfolgsfall gesondert festlegen und testen (aus #371, Review-Nitpick)
+- Nativer Popover: `aria-expanded` ist kein DOM-Attribut und jsdom kennt die API nicht – Unit-Test nur Verdrahtung, Öffnen/Escape/Expanded per Playwright über den AX-Baum (aus #374)
+- Refactor, der Klassen/Konstanten aus gegateten Dateien in eine neue Datei zieht: Zieldatei im selben Commit ins Farb-Gate (`eslint/ui-token-files.mjs`) und Handkopien greppen (aus #374, Review-Runde-2-Finding)
 
 **[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
 
@@ -288,6 +290,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Regex-/Listen-Gate über ein externes Namens-/Syntax-Universum (Tailwind-Paletten, Präfixformen): Enumeration per Drift-Test aus der Quelle ableiten, je Form ein `invalid`-Fall – handgezählte Listen fanden in zwei Review-Runden je neue Lücken (aus #368, Review-Runde-1/2-Findings) · **Laden bei:** `/implement`, `/test`, `/review` – bei neuem/erweitertem Regex-/Listen-Gate
 - Negativ-Fixture auf einem realen Pfad bricht, sobald dieser Pfad später in eine Gate-Liste kommt – vor dem Erweitern der Liste alle „nicht enthalten"-Tests greppen und auf ungelisteten Nachbarn umstellen (aus #371, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test` – bei Erweiterung von `eslint/ui-token-files.mjs` oder ähnlichen Pfad-Listen
 - Playwright `reuseExistingServer` kann gegen einen fremden Dev-Server (anderer Checkout) laufen – eigenen Server auf freiem Port + `PLAYWRIGHT_BASE_URL`, sonst ist „grün" kein Beleg (aus #368, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test` – bei E2E-/Screenshot-Nachweis im Worktree
+- E2E gegen den Dev-Server über `localhost`, nicht `127.0.0.1` – dort blockt Next dev die HMR-Ressourcen (`allowedDevOrigins`), ohne Hydration wirkt es wie eine Regression (aus #374, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test` – bei E2E-Nachweis gegen den lokalen Dev-Server
 - Ein Config-/Gate-Wert, der als „gültig" akzeptiert wird, ist damit noch nicht als „angewendet" belegt – Gate-Grenzfall-Tests (80 akzeptiert/81 abgelehnt) beweisen nur die Gate-Entscheidung, nicht dass der separate Konsument (`run-pipeline.sh`) den Wert auch tatsächlich nutzt; End-to-End-Assertion mit den realen Repo-Dateien gegen den realen Konsumenten ergänzen (aus #348, /test-Selbstfund)
 - Test-Double, das den geprüften Zweig nicht unterscheiden kann (jsdom-`SVGElement` hat ein wirkungsloses `focus()`), macht den Test zum Abdeckungs-Test – Spion-Double + Mutationsbeleg in drei Schritten (mutieren per `python3`, `git diff --stat` zeigt es, Test rot); BSD-`sed -i` ohne Suffix scheitert still und lässt einen grünen Lauf wie Beleg aussehen (aus #369, Review-Iteration 3 + /refactor-Selbstfund)
 - Playwright-`hasText` mit String ist ein Teilstring-Treffer (`Bier` trifft `Weizenbier`) – Namen exakt matchen; und eine Fehlerursache erst an den echten Daten messen, bevor sie in Kleinfund/Task-Notiz steht (aus #388, Review-Iteration 1)
@@ -296,7 +299,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
-- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67); wiederholt bei Wegwerf-E2E-Verifikation + unverifizierter „ist gitignoret"-Behauptung im Dateikommentar (aus #324)
+- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67); wiederholt bei Wegwerf-E2E-Verifikation + unverifizierter „ist gitignoret"-Behauptung im Dateikommentar (aus #324); drittes Vorkommnis als Wegwerf-`*.tmp.config.ts`, vom Muster nicht gedeckt (aus #374)
 - Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
 - pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
 - Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)

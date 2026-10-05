@@ -27,7 +27,7 @@ describe("AppNav", () => {
     pathnameMock.mockReturnValue("/");
   });
 
-  it("should_renderAreaLinksAndSignOut_when_itemsGiven", () => {
+  it("should_renderAreaLinks_when_itemsGiven", () => {
     renderNav();
     expect(screen.getByRole("link", { name: "Veranstaltungen" })).toHaveAttribute(
       "href",
@@ -37,14 +37,58 @@ describe("AppNav", () => {
       "href",
       "/verwaltung/katalog",
     );
-    expect(screen.getByRole("button", { name: /Abmelden/i })).toBeInTheDocument();
+  });
+
+  it("should_linkWortmarkeToStartseite_when_rendered", () => {
+    // spec-374 AK1.1: die Wortmarke ist der Weg zur Startseite.
+    renderNav();
+    expect(screen.getByRole("link", { name: "TCH Gastro Services" })).toHaveAttribute("href", "/");
+  });
+
+  it("should_placeWortmarkeBeforeNavigationAndKontoLast_when_rendered", () => {
+    // AK1.1/ADR-057 D2: Hamburger · Wortmarke · Navigation · Konto-Knopf, in einer Zeile.
+    renderNav();
+    const header = screen.getByRole("banner");
+    const reihenfolge = [
+      screen.getByRole("button", { name: "Navigation öffnen" }),
+      screen.getByRole("link", { name: "TCH Gastro Services" }),
+      screen.getByRole("navigation", { name: "Hauptnavigation" }),
+      screen.getByRole("button", { name: "Konto" }),
+    ].map((element) => Array.from(header.querySelectorAll("*")).indexOf(element));
+
+    expect(reihenfolge).not.toContain(-1);
+    expect(reihenfolge).toEqual([...reihenfolge].sort((a, b) => a - b));
+  });
+
+  it("should_letWortmarkeTruncateButNotTheButtons_when_viewportIsNarrow", () => {
+    // AK1.6: auf 375 px kürzt nur die Wortmarke; Hamburger und Konto-Knopf schrumpfen nie.
+    renderNav();
+    expect(screen.getByRole("link", { name: "TCH Gastro Services" })).toHaveClass(
+      "min-w-0",
+      "truncate",
+    );
+    expect(screen.getByRole("button", { name: "Navigation öffnen" })).toHaveClass("shrink-0");
+    expect(screen.getByRole("button", { name: "Konto" })).toHaveClass("shrink-0");
+  });
+
+  it("should_showEmailOnlyInKontoMenu_when_rendered", () => {
+    // AK1.2: die E-Mail steht nicht dauerhaft im Header, sondern im (geschlossenen) Konto-Menü.
+    renderNav();
+    const kontoMenue = document.getElementById("konto-menue") as HTMLElement;
+
     expect(screen.getByText("verwalter@tch.de")).toBeInTheDocument();
+    expect(kontoMenue).toContainElement(screen.getByText("verwalter@tch.de"));
+    expect(
+      within(kontoMenue).getByRole("button", { name: "Abmelden", hidden: true }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abmelden" })).not.toBeInTheDocument();
   });
 
   it("should_keepSignOut_when_noAreaItems", () => {
-    // fail-closed: keine Bereiche, aber Abmelden bleibt erreichbar.
+    // fail-closed: keine Bereiche, aber Abmelden bleibt im Konto-Menü erreichbar.
     renderNav({ items: [] });
-    expect(screen.getByRole("button", { name: /Abmelden/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Konto" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abmelden", hidden: true })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Veranstaltungen" })).not.toBeInTheDocument();
   });
 
@@ -120,7 +164,7 @@ describe("AppNav", () => {
 
   // Fokus-Trap: aria-modal="true" sagt der assistiven Technik zu, dass Fokus den Dialog
   // nicht verlässt – also muss Tab am Rand im Drawer umlaufen, nicht auf verdeckte
-  // Header-Bedienelemente (Hamburger, Abmelden) hinter dem Overlay springen.
+  // Header-Bedienelemente (Hamburger, Konto-Knopf) hinter dem Overlay springen.
   it("should_wrapFocusToCloseButton_when_tabAtLastDrawerLink", async () => {
     const user = userEvent.setup();
     renderNav();

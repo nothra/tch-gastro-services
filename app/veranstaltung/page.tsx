@@ -4,6 +4,7 @@ import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
 import { listVeranstaltungen } from "@/db/veranstaltung";
 import { listCatalogs } from "@/db/catalog";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import { VeranstaltungForm } from "./VeranstaltungForm";
 import { ThekeSetup } from "./ThekeSetup";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "./labels";
@@ -30,9 +31,7 @@ export default async function VeranstaltungenPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Veranstaltungen
-      </h1>
+      <PageHeader title="Veranstaltungen" />
       <VeranstaltungForm kataloge={aktiveKataloge} />
       <ThekeSetup />
       <section className="flex flex-col gap-3">

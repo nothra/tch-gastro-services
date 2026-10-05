@@ -4,6 +4,10 @@
 
 Accepted
 
+> **Teilweise ergänzt durch [ADR-057](057-header-konto-menue-startseite-oeffentlicher-header.md)** (#374):
+> Konto-Menü statt dauerhaft sichtbarem E-Mail-Text und „Abmelden“-Button, Wortmarke im Header,
+> Startseite mit offenen Veranstaltungen, `PublicHeader` auf `theke/[token]`. Der Rest dieser ADR gilt weiter.
+
 ## Kontext
 
 Issue #134 (spec-134) fordert ein rollenbewusstes, PWA-taugliches Navigationsmenü. Der

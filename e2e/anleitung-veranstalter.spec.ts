@@ -148,6 +148,30 @@ async function createVeranstaltung(page: Page): Promise<string> {
   return neu as string;
 }
 
+// Konto-Menü (#374): ein natives Popover in der Top-Layer, deshalb Viewport- statt Element-Bild,
+// beschnitten auf den Kopfbereich. Escape schließt es wieder, bevor der Ablauf weitergeht.
+async function shotKontoMenue(page: Page) {
+  await page.getByRole("button", { name: "Konto" }).click();
+  const abmelden = page.getByRole("button", { name: "Abmelden" });
+  await expect(abmelden).toBeVisible();
+  const viewport = page.viewportSize();
+  await page.screenshot({
+    path: path.join(BILDER_DIR, "02b-konto-menue.png"),
+    animations: "disabled",
+    clip: { x: 0, y: 0, width: viewport?.width ?? 414, height: 240 },
+  });
+  await page.keyboard.press("Escape");
+  await expect(abmelden).toBeHidden();
+}
+
+// Startseite nach dem Anlegen (#374): die neue Veranstaltung steht unter „Offene Veranstaltungen".
+async function shotStartseiteMitOffener(page: Page, detailPfad: string) {
+  await page.goto("/");
+  const offene = page.getByRole("region", { name: "Offene Veranstaltungen" });
+  await expect(offene.locator(`a[href="${detailPfad}"]`)).toBeVisible();
+  await shot(page, "04b-startseite-offene-veranstaltung.png");
+}
+
 // Alle Stammteilnehmer in einem Schwung anhaken; der Screenshot zeigt den Dialog mit der Auswahl.
 async function addStammTeilnehmer(page: Page, namen: readonly string[]) {
   await oeffneTeilnehmerDialog(page);
@@ -211,13 +235,13 @@ async function waehlePerson(page: Page, name: string) {
 
 // Bild 08 (#370): Einzelansicht mit erfasstem Bier, in der schmalen Handy-Breite der Spec
 // (spec-370 AK7.5: 375 px) statt der Capture-Breite. Ab dem Zurück-Link, damit sticky Block und
-// Bier-Gruppe ganz im Bild stehen. Ohne Dev-Symbol: es läge sonst über „Kassieren →" in der
+// Bier-Gruppe ganz im Bild stehen. Ohne Dev-Symbol: es läge sonst über „Kassieren" in der
 // Fußleiste.
 async function shotVerzehr(page: Page) {
   const captureViewport = page.viewportSize();
   await page.setViewportSize({ width: 375, height: 812 });
   await page
-    .getByRole("link", { name: "← Zur Veranstaltung" })
+    .getByRole("link", { name: "Zur Veranstaltung" })
     .evaluate((node) => node.scrollIntoView({ block: "start" }));
   await page.evaluate(() => window.scrollBy(0, -12));
   await page.screenshot({
@@ -258,7 +282,10 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     await fillLoginForm(page);
     await page.getByRole("button", { name: "Anmelden" }).click();
     await expect(page).not.toHaveURL(/\/login/);
+    // Frische DB: noch keine offene Veranstaltung → Leer-Hinweis mit „Veranstaltung anlegen" (#374).
+    await expect(page.getByText("Keine offene Veranstaltung.")).toBeVisible();
     await shot(page, "02-startseite.png");
+    await shotKontoMenue(page);
 
     // Stammdaten (Verwalter) für aussagekräftige Screenshots
     await createKatalogArtikel(page);
@@ -266,6 +293,7 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
 
     // Schritt 2 – Veranstaltung anlegen (Screenshots 03/04 in der Helper)
     const detailPfad = await createVeranstaltung(page);
+    await shotStartseiteMitOffener(page, detailPfad);
     await page.goto(detailPfad);
     await expect(page.getByRole("heading", { name: VERANSTALTUNG.bezeichnung })).toBeVisible();
 

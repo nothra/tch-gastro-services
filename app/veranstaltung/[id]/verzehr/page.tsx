@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
@@ -10,6 +9,7 @@ import { VerzehrEinzelansicht } from "@/app/_verzehr/VerzehrEinzelansicht";
 import { KEIN_TEILNEHMER_HINWEIS } from "@/app/_verzehr/VerzehrUebersicht";
 import { toVerzehrArtikelListe, toVerzehrZeilen } from "@/app/_verzehr/verzehr-props";
 import { ButtonLink } from "@/app/components/ui/Button";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import { adjustVerzehrAction } from "../../actions";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 import {
@@ -74,7 +74,7 @@ export default async function VerzehrPage({
     verzehrZeilen.map((zeile) => [
       zeile.id,
       <ButtonLink key={zeile.id} href={kassierenHref(id, zeile.id)} variant="secondary">
-        Kassieren →
+        Kassieren
       </ButtonLink>,
     ]),
   );
@@ -85,21 +85,11 @@ export default async function VerzehrPage({
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/veranstaltung/${id}`}
-          className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
-        >
-          ← Zur Veranstaltung
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Verzehr · {veranstaltung.bezeichnung}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {formatDatum(veranstaltung.datum)} · {KASSE_LABEL[veranstaltung.kasse as Kasse]} ·{" "}
-          {STATUS_LABEL[veranstaltung.status]}
-        </p>
-      </div>
+      <PageHeader
+        title={`Verzehr · ${veranstaltung.bezeichnung}`}
+        back={{ href: `/veranstaltung/${id}`, label: "Zur Veranstaltung" }}
+        meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]} · ${STATUS_LABEL[veranstaltung.status]}`}
+      />
 
       {verzehrZeilen.length === 0 ? (
         // Die Einzelansicht setzt ≥1 Zeile voraus (ADR-054 D2); der leere Fall bleibt hier beim

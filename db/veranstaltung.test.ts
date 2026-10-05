@@ -18,6 +18,7 @@ import {
   getVeranstaltung,
   getVeranstaltungByToken,
   getZeileByTeilnehmer,
+  listOffeneVeranstaltungen,
   listVeranstaltungen,
   listZeilen,
   removeZeile,
@@ -159,6 +160,45 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
     const list = await listVeranstaltungen();
     expect(list.some((row) => row.id === dated.id)).toBe(true);
     expect(list.some((row) => row.id === theke.id)).toBe(false);
+  });
+
+  it("should_listOnlyOffeneDatierte_when_listingOffene", async () => {
+    // spec-374 AK2.1/ADR-057 D3: Filter in der DB – abgeschlossene Veranstaltungen und die
+    // stehende Theke (auch offen) gehören nicht auf die Startseite.
+    const offen = await trackVeranstaltung(
+      datierte({ bezeichnung: `${TEST_PREFIX}Startseite-offen` }),
+    );
+    const abgeschlossen = await trackVeranstaltung(
+      datierte({ bezeichnung: `${TEST_PREFIX}Startseite-abgeschlossen` }),
+    );
+    await abschliessenVeranstaltung(abgeschlossen.id, AKTEUR);
+    const theke = await ensureThekeForKasse("vereinskasse");
+    createdVeranstaltungen.push(theke.id);
+
+    const ids = (await listOffeneVeranstaltungen()).map((row) => row.id);
+
+    expect(ids).toContain(offen.id);
+    expect(ids).not.toContain(abgeschlossen.id);
+    expect(ids).not.toContain(theke.id);
+  });
+
+  it("should_sortByDatumDescThenNewestFirst_when_listingOffene", async () => {
+    // spec-374 AK2.2: Datum absteigend, bei gleichem Datum die zuletzt angelegte zuerst. Parallel
+    // laufende Testdateien legen eigene Zeilen an – deshalb nur die Reihenfolge der eigenen prüfen.
+    const aelter = await trackVeranstaltung(datierte({ datum: new Date("2026-07-06") }));
+    const gleichesDatumZuerst = await trackVeranstaltung(
+      datierte({ datum: new Date("2026-07-13") }),
+    );
+    const gleichesDatumDanach = await trackVeranstaltung(
+      datierte({ datum: new Date("2026-07-13") }),
+    );
+    const eigene = new Set([aelter.id, gleichesDatumZuerst.id, gleichesDatumDanach.id]);
+
+    const reihenfolge = (await listOffeneVeranstaltungen())
+      .map((row) => row.id)
+      .filter((id) => eigene.has(id));
+
+    expect(reihenfolge).toEqual([gleichesDatumDanach.id, gleichesDatumZuerst.id, aelter.id]);
   });
 
   it("should_rejectMissingDatum_when_typVeranstaltung", async () => {

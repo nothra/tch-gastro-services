@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Catalog, Veranstaltung } from "@/db/schema";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
@@ -114,6 +114,18 @@ describe("VeranstaltungenPage", () => {
     expect(screen.getByRole("heading", { name: "Veranstaltungen", level: 1 })).toBeInTheDocument();
     expect(screen.getByText(/Noch keine Veranstaltung angelegt/)).toBeInTheDocument();
     expect(screen.getByText(/Veranstaltungen \(0\)/)).toBeInTheDocument();
+  });
+
+  it("should_showTitleInPageHeaderWithoutBackLink_when_veranstalter", async () => {
+    // spec-374 AK4.2: Top-Level-Bereich – Seitenkopf ohne Zurück-Link (Navigation reicht).
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    listVeranstaltungenMock.mockResolvedValue([]);
+
+    render(await VeranstaltungenPage());
+
+    const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+    expect(kopf).not.toBeNull();
+    expect(within(kopf).queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("should_showVeranstaltungLinkWithMeta_when_dataAvailable", async () => {

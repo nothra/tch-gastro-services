@@ -34,6 +34,10 @@ export async function createVeranstaltung(data: VeranstaltungData): Promise<Vera
   return created;
 }
 
+// Neueste zuerst, bei gleichem Datum die zuletzt angelegte – geteilt von beiden Listen, damit
+// Übersicht und Startseite dieselbe Reihenfolge zeigen (spec-374 AK2.2).
+const NEUESTE_ZUERST = [desc(veranstaltung.datum), desc(veranstaltung.createdAt)] as const;
+
 // Nur datierte Veranstaltungen, neueste zuerst – für die Veranstalter-Übersicht. Die stehende
 // Theke wird nicht mitgelistet (sie wird über getThekeForKasse/Token angesteuert).
 export function listVeranstaltungen(): Promise<Veranstaltung[]> {
@@ -41,7 +45,17 @@ export function listVeranstaltungen(): Promise<Veranstaltung[]> {
     .select()
     .from(veranstaltung)
     .where(eq(veranstaltung.typ, "veranstaltung"))
-    .orderBy(desc(veranstaltung.datum), desc(veranstaltung.createdAt));
+    .orderBy(...NEUESTE_ZUERST);
+}
+
+// Nur offene datierte Veranstaltungen – für den Schnellzugriff auf der Startseite (ADR-057 D3).
+// Gefiltert wird in der DB, nicht nach dem Laden aller Veranstaltungen.
+export function listOffeneVeranstaltungen(): Promise<Veranstaltung[]> {
+  return db
+    .select()
+    .from(veranstaltung)
+    .where(and(eq(veranstaltung.typ, "veranstaltung"), eq(veranstaltung.status, "offen")))
+    .orderBy(...NEUESTE_ZUERST);
 }
 
 export async function getVeranstaltung(id: string): Promise<Veranstaltung | undefined> {
