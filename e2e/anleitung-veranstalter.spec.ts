@@ -3,9 +3,8 @@ import { mkdirSync } from "node:fs";
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import {
   gastHinzufuegen,
-  oeffneEinstellungen,
+  kopfAktion,
   oeffneTeilnehmerDialog,
-  schliesseEinstellungen,
   teilnehmerDialog,
 } from "./helpers/detailseite";
 
@@ -49,6 +48,10 @@ async function fillLoginForm(page: Page) {
   await page.getByPlaceholder("Passwort").fill(password);
 }
 
+// Blendet das Dev-Symbol von Next.js („N" unten links) aus Viewport-Bildern aus – es gehört nicht
+// zur App und läge sonst über Inhalten am unteren Rand.
+const OHNE_DEV_SYMBOL = "nextjs-portal { display: none !important; }";
+
 // Viewport-Screenshot (wie ein echtes Handy-Bild): Ziel-Element an den oberen Rand scrollen, dann
 // den sichtbaren Ausschnitt aufnehmen. `top` weglassen = Seitenanfang.
 async function shot(page: Page, name: string, top?: Locator) {
@@ -60,7 +63,11 @@ async function shot(page: Page, name: string, top?: Locator) {
   } else {
     await page.evaluate(() => window.scrollTo(0, 0));
   }
-  await page.screenshot({ path: path.join(BILDER_DIR, name), animations: "disabled" });
+  await page.screenshot({
+    path: path.join(BILDER_DIR, name),
+    animations: "disabled",
+    style: OHNE_DEV_SYMBOL,
+  });
 }
 
 // Element-Screenshot: sauber zugeschnitten auf genau eine Sektion (kein Scroll-Rand-Problem).
@@ -175,10 +182,9 @@ async function addStammTeilnehmer(page: Page, namen: readonly string[]) {
   await expect(teilnehmerDialog(page)).toBeHidden();
 }
 
-// „Link & QR teilen" liegt im eingeklappten Bereich „Einstellungen" (#369 AK21/AK22).
+// „Link & QR teilen" ist das Teilen-Symbol im Seitenkopf (spec-391 AK9/AK10).
 async function shotZugang(page: Page) {
-  await oeffneEinstellungen(page);
-  await page.getByRole("button", { name: "Link & QR teilen" }).click();
+  await kopfAktion(page, "Link & QR teilen").click();
   const dialog = page.getByRole("dialog", { name: "Link & QR teilen" });
   // Das native `<dialog>` fokussiert beim Öffnen das erste Bedienelement – das Link-Feld. Es
   // scrollt dabei ans Ende der URL und trägt einen Fokusring; fürs Bild zeigt es den Anfang
@@ -191,7 +197,7 @@ async function shotZugang(page: Page) {
     });
   await shotEl(page, "07-zugang-teilen.png", dialog);
   await dialog.getByRole("button", { name: "Schließen" }).click();
-  await schliesseEinstellungen(page);
+  await expect(dialog).toBeHidden();
 }
 
 // Zeile eines Demo-Artikels in der Einzelansicht (#370): die Gruppe mit EXAKT diesem Namen als
@@ -229,8 +235,8 @@ async function waehlePerson(page: Page, name: string) {
 
 // Bild 08 (#370): Einzelansicht mit erfasstem Bier, in der schmalen Handy-Breite der Spec
 // (spec-370 AK7.5: 375 px) statt der Capture-Breite. Ab dem Zurück-Link, damit sticky Block und
-// Bier-Gruppe ganz im Bild stehen. Das Dev-Overlay von Next.js („N" unten links) wird
-// ausgeblendet: es läge sonst über „Kassieren" in der Fußleiste.
+// Bier-Gruppe ganz im Bild stehen. Ohne Dev-Symbol: es läge sonst über „Kassieren" in der
+// Fußleiste.
 async function shotVerzehr(page: Page) {
   const captureViewport = page.viewportSize();
   await page.setViewportSize({ width: 375, height: 812 });
@@ -241,7 +247,7 @@ async function shotVerzehr(page: Page) {
   await page.screenshot({
     path: path.join(BILDER_DIR, "08-verzehr.png"),
     animations: "disabled",
-    style: "nextjs-portal { display: none !important; }",
+    style: OHNE_DEV_SYMBOL,
   });
   if (captureViewport) await page.setViewportSize(captureViewport);
 }
@@ -291,7 +297,7 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     await page.goto(detailPfad);
     await expect(page.getByRole("heading", { name: VERANSTALTUNG.bezeichnung })).toBeVisible();
 
-    // Schritt 3 – führen: Zugang teilen (Dialog aus den Einstellungen), Teilnehmer über den
+    // Schritt 3 – führen: Zugang teilen (Teilen-Symbol im Seitenkopf), Teilnehmer über den
     // „+ Teilnehmer"-Dialog erfassen, dann die Übersicht oben aufnehmen.
     await shotZugang(page);
     await addStammTeilnehmer(

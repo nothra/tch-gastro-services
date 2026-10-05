@@ -45,6 +45,15 @@ describe("PageHeader (AK2.11)", () => {
     expect(heading).toHaveClass("min-w-0");
   });
 
+  // spec-391 AK16/spec-371 AK24: ohne Breitengrenze wird der Aktionsbereich so breit wie sein
+  // Inhalt, und eine umbrechende Aktionsgruppe ragt bei 375 px über den Rand, statt umzubrechen.
+  it("should_limitActionToRowWidth_when_actionGiven", () => {
+    render(<PageHeader title="Katalog" action={<button type="button">Anlegen</button>} />);
+
+    const aktionsBereich = screen.getByRole("button", { name: "Anlegen" }).parentElement;
+    expect(aktionsBereich).toHaveClass("max-w-full");
+  });
+
   it("should_appendLayoutClassName_when_classNameGiven", () => {
     const { container } = render(<PageHeader title="Katalog" className="mb-4" />);
 

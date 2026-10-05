@@ -24,7 +24,7 @@ Header mit Wortmarke und Konto-Menü, Startseite mit offenen Veranstaltungen, `P
 - [x] AK7 `docs/ux/ux-issue-entwuerfe.md` UX-7 angeglichen (in `/requirements` erledigt)
 
 ## Technische Notizen
-ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergänzt ADR-031).
+ADR: `docs/adr/057-header-konto-menue-startseite-oeffentlicher-header.md` (ergänzt ADR-031).
 - **Konto-Menü:** natives Popover (`popover` + `popovertarget`), keine eigene Fokus-Logik; Positionierung `fixed` oben rechts mit Safe-Area. Mindestbrowser Chrome 114 / Safari 17 / Firefox 125.
 - **Header:** Hamburger · Wortmarke (`Link` auf `/`) · Desktop-Nav · `ml-auto` · Konto-Knopf; Hamburger/Konto `shrink-0`, Wortmarke `truncate`. `AppNav`-Props bleiben (`label` nur noch im Menü).
 - **Startseite:** neue `listOffeneVeranstaltungen()` (DB-Filter `status='offen'`, `typ='veranstaltung'`, `datum DESC, created_at DESC`); nur aufrufen, wenn Rolle `veranstalter`; `try/catch` um genau diesen Aufruf, bei Fehler Hinweis + Kacheln. Liste als Komponente `app/veranstaltung/OffeneVeranstaltungen.tsx`. `docs/routes.md` Zeile `/` anpassen.
@@ -35,7 +35,7 @@ ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
 
 ### Notizen aus `/implement` (2026-10-04)
 - **Zwei Sessions:** Code + Unit-Tests kamen aus einer ersten Session (`ae5ddc1`, `dc154ea`); die
-  zweite hat `docs/routes.md` (Zeile `/`), das Farb-Gate (die fünf Dateien aus ADR-056 D5), die
+  zweite hat `docs/routes.md` (Zeile `/`), das Farb-Gate (die fünf Dateien aus ADR-057 D5), die
   E2E-Specs und diese Task-Datei nachgezogen.
 - **AK4.3 Katalog-Index:** `/verwaltung/katalog` ist eine reine Umleitung auf
   `/verwaltung/katalog/[id]`, und die Zielseite trägt bereits einen `PageHeader` – „soweit sie es nicht
@@ -69,7 +69,7 @@ ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
 - Drei Kommentar-Nitpicks aus dem Review sind erledigt: E2E-Verweis in `KontoMenue.test.tsx`,
   „Abmelden" → „Konto-Knopf" in `AppNav.test.tsx`, Satzbau in `personenbezug.ts`.
 - Nachtrag (Review Runde 2): `headerStyles.ts` steht jetzt im Farb-Gate (`eslint/ui-token-files.mjs`),
-  `PublicHeader` nutzt `focusClass` auch für den „Anmelden"-Link, ADR-056 nennt die Datei in den
+  `PublicHeader` nutzt `focusClass` auch für den „Anmelden"-Link, ADR-057 nennt die Datei in den
   Konsequenzen und D4 trägt die `auth()`-/Session-Bedingung.
 - Bewusst offen (nicht Refactoring, gehört zu AK5.4/Doku): die übrigen Nitpicks (Popover-Abstand zum `StageBanner`, Light-Dismiss-Fokus
   im E2E, `Kassieren →`-Fixtures in `VerzehrEinzelansicht.test.tsx`).
@@ -80,13 +80,13 @@ _Keine._ Geklärt: Anleitung/Screenshots im selben PR nach erfolgreicher Impleme
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
 Runde 1 (2026-10-04): **APPROVED**, Bericht in `tasks/review-374.md`. 0 kritische, 2 wichtige
-(ADR-056 D4 um Session-Bedingung/`auth()` ergänzen; E2E-Verweis in `KontoMenue.test.tsx:6` auf
+(ADR-057 D4 um Session-Bedingung/`auth()` ergänzen; E2E-Verweis in `KontoMenue.test.tsx:6` auf
 `e2e/header-startseite.spec.ts` korrigieren), 6 Nitpicks. Die wichtigen Findings werden vor dem
 Merge zusammen mit AK5.4 erledigt.
 
 Runde 2 (2026-10-05): **APPROVED**, Bericht in `tasks/review-374.md` (ersetzt Runde 1). 0 kritische,
 3 wichtige Findings: `app/components/headerStyles.ts` fehlt im Farb-Gate, `PublicHeader` nutzt
-`focusClass` noch nicht, die ADR-056-D4-Ergänzung ist noch nicht committet. Dazu 8 Nitpicks. Aus
+`focusClass` noch nicht, die ADR-057-D4-Ergänzung ist noch nicht committet. Dazu 8 Nitpicks. Aus
 Runde 1 ist W2 erledigt, W1 ist inhaltlich fertig, aber noch nicht committet.
 
 ## Codify-Notizen

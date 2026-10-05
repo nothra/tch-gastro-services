@@ -6,7 +6,7 @@ type PublicHeaderProps = {
   contextLabel?: string;
 };
 
-// Schlanke Orientierungsleiste für den login-freien Kontext (ADR-031, ADR-056 D4): Wortmarke als
+// Schlanke Orientierungsleiste für den login-freien Kontext (ADR-031, ADR-057 D4): Wortmarke als
 // Text (kein Link – die Startseite ist geschützt), kein Personal-Menü, keine /login-Umleitung – nur
 // ein dezenter "Anmelden"-Einstieg. Opt-in eingebunden (nicht global gemountet, sonst erschiene
 // sie auf /login); die Thekenseite hängt sie erst nach dem Token-Check ein.

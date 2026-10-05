@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { gastHinzufuegen, oeffneEinstellungen } from "./helpers/detailseite";
+import { gastHinzufuegen, kopfAktion } from "./helpers/detailseite";
 
 // Oberflächen-Nachweis der Verzehr-Einzelansicht (#370, spec-370, ADR-054). Prüft gegen einen
 // echten Server, was jsdom nicht kann (ADR-054 D5): gemessene Touch-Ziele (AK4.1/AK4.2), den
@@ -229,8 +229,7 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     test.setTimeout(120_000);
     await login(page);
     await page.goto(detailPfad);
-    await oeffneEinstellungen(page);
-    await page.getByRole("button", { name: "Link & QR teilen" }).click();
+    await kopfAktion(page, "Link & QR teilen").click();
     const link = await page
       .getByRole("dialog", { name: "Link & QR teilen" })
       .getByLabel("Selbstbedienungs-Link", { exact: true })

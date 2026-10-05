@@ -22,8 +22,12 @@ export const UI_TOKEN_FILES = [
   "app/veranstaltung/[id]/Abschlussbericht.tsx",
   "app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx",
   "app/veranstaltung/[id]/LinkKopieren.tsx",
-  "app/veranstaltung/[id]/ZugangDialog.tsx",
   "app/veranstaltung/[id]/ZugangTeilen.tsx",
+  // #391: Kopfaktionen (Teilen, Einstellungen, Löschen) samt der Formulare im Dialog (ADR-056 D6).
+  "app/veranstaltung/[id]/KopfDialog.tsx",
+  "app/veranstaltung/[id]/VeranstaltungLoeschen.tsx",
+  "app/veranstaltung/[id]/VeranstaltungMetaForm.tsx",
+  "app/veranstaltung/KatalogWechsel.tsx",
   "app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx",
   "app/veranstaltung/ZeileRow.tsx",
   "app/veranstaltung/ZeilenMenue.tsx",
@@ -34,7 +38,7 @@ export const UI_TOKEN_FILES = [
   "app/veranstaltung/[id]/kassieren/",
   "app/veranstaltung/[id]/AbschlussAktion.tsx",
   "app/veranstaltung/KassiereZeileForm.tsx",
-  // #374: Kopfzeile, Konto-Menü, Gäste-Kopf und Startseite (ADR-056 D5). Verzehr, Auslagen,
+  // #374: Kopfzeile, Konto-Menü, Gäste-Kopf und Startseite (ADR-057 D5). Verzehr, Auslagen,
   // Veranstaltungsliste und Teilnehmer folgen mit #373 – ihre Dateien tragen noch rohe Farben.
   "app/components/headerStyles.ts",
   "app/components/AppNav.tsx",

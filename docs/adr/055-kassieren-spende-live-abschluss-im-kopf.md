@@ -80,6 +80,10 @@ Protokoll.
   öffnen" braucht keinen Offen-Hinweis.
 - Der `PageHeader`-`action`-Slot trägt Badge **und** Auslöser in einer umbrechenden Gruppe (AK24).
   Keine Änderung am `PageHeader`-Baustein.
+  > **Nachtrag (#391, [ADR-056](056-detailseite-kopfaktionen-symbol-schaltflaechen.md) D5):**
+  > Mit den Symbol-Schaltflächen daneben reichte das nicht mehr – der Aktionsbereich des
+  > `PageHeader` ist seitdem auf die Zeilenbreite begrenzt (`max-w-full`), damit die Gruppe bei
+  > 375 px tatsächlich umbricht.
 
 ### D4 · „Abrechnung im Detail" ist ein natives `<details>`, kein neuer Baustein
 

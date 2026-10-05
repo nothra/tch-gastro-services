@@ -40,7 +40,9 @@ export function PageHeader({ title, back, meta, action, className }: PageHeaderP
           <h1 className="min-w-0 break-words">{title}</h1>
           {meta && <div className="text-sm text-muted">{meta}</div>}
         </div>
-        {action && <div className="shrink-0">{action}</div>}
+        {/* `max-w-full`: unter den Titel umgebrochen, darf die Aktion nicht breiter als die Zeile
+            werden – sonst kann eine `flex-wrap`-Aktionsgruppe nie umbrechen (spec-391 AK16). */}
+        {action && <div className="max-w-full shrink-0">{action}</div>}
       </div>
     </header>
   );

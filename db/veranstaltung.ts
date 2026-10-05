@@ -48,7 +48,7 @@ export function listVeranstaltungen(): Promise<Veranstaltung[]> {
     .orderBy(...NEUESTE_ZUERST);
 }
 
-// Nur offene datierte Veranstaltungen – für den Schnellzugriff auf der Startseite (ADR-056 D3).
+// Nur offene datierte Veranstaltungen – für den Schnellzugriff auf der Startseite (ADR-057 D3).
 // Gefiltert wird in der DB, nicht nach dem Laden aller Veranstaltungen.
 export function listOffeneVeranstaltungen(): Promise<Veranstaltung[]> {
   return db

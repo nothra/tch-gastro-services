@@ -11,7 +11,7 @@ import {
 
 // Startseite als rollengefilterter Dashboard-Hub (ADR-031): dieselbe kanonische
 // Menü-Definition wie die Kopfzeile (keine zweite RBAC-Quelle). Darüber für Veranstalter die
-// offenen Veranstaltungen als Schnellzugriff (ADR-056 D3). Die eigentliche Durchsetzung bleibt in
+// offenen Veranstaltungen als Schnellzugriff (ADR-057 D3). Die eigentliche Durchsetzung bleibt in
 // den verlinkten Routen (ADR-016).
 export default async function Home() {
   const session = await auth();

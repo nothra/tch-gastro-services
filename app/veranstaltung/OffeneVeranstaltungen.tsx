@@ -5,7 +5,7 @@ import { ButtonLink } from "@/app/components/ui/Button";
 import { Notice } from "@/app/components/ui/Notice";
 import { KASSE_LABEL, formatDatum } from "./labels";
 
-// Schnellzugriff „Was läuft gerade?" auf der Startseite (spec-374 AK2, ADR-056 D3). Bekommt die
+// Schnellzugriff „Was läuft gerade?" auf der Startseite (spec-374 AK2, ADR-057 D3). Bekommt die
 // Zeilen fertig sortiert aus der Data-Layer; Laden und Rollen-Gate liegen in `app/page.tsx`.
 
 const UEBERSCHRIFT_ID = "offene-veranstaltungen";

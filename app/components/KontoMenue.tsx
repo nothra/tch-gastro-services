@@ -1,4 +1,4 @@
-// Konto-Menü der Kopfzeile auf dem nativen Popover (ADR-056 D1): Escape, Schließen bei Klick
+// Konto-Menü der Kopfzeile auf dem nativen Popover (ADR-057 D1): Escape, Schließen bei Klick
 // außerhalb, `aria-expanded` und der Fokus-Rücksprung kommen von der Plattform – deshalb weder
 // eigener Zustand noch Fokus-Trap. Deklarativ verdrahtet, also auch ohne JavaScript bedienbar.
 

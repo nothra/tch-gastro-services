@@ -1,17 +1,20 @@
 import path from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import {
+  einstellungenDialog,
   gastHinzufuegen,
+  kopfAktion,
   oeffneEinstellungen,
+  oeffneLoeschDialog,
   oeffneTeilnehmerDialog,
+  seitenkopf,
   teilnehmerDialog,
 } from "./helpers/detailseite";
 
-// Oberflächen-Nachweis für die neu geordnete Detailseite (#369, spec-369). Prüft gegen einen
-// echten Server, was jsdom nicht belegen kann: das native modale `<dialog>` (Escape, Fokus-
-// Rücksprung), die echte Mehrfach-Anlage über den Server-Action-Roundtrip, das bestätigte
-// Entfernen und das Layout bei 375 px (AK27/AK28). Abschließen/Wieder öffnen prüft seit #371
-// kassieren-summe-abschluss.spec.ts.
+// Oberflächen-Nachweis für die neu geordnete Detailseite (#369, spec-369) und ihre Kopfaktionen
+// (#391, spec-391). Prüft gegen einen echten Server, was jsdom nicht belegen kann: das native
+// modale `<dialog>` (Escape, Fokus-Rücksprung), die echte Mehrfach-Anlage über den
+// Server-Action-Roundtrip, das bestätigte Entfernen, und das Layout bei 375 px (spec-369 AK27/AK28, spec-391 AK16).
 //
 // Bewusst NICHT Teil des Standard-`pnpm test:e2e`-Laufs: die Spec legt Daten an, der Standardlauf
 // fährt in CI gegen die persistente INT-Umgebung und ist dort rein lesend – dieselbe Begründung wie
@@ -35,6 +38,7 @@ const PREFIX = "__test__E2E369";
 // wird von Hand an den PR gehängt (Lesson #368), nicht committet. Playwright leert das Verzeichnis
 // zu Beginn jedes Laufs; den Nachweis also direkt nach einem Lauf dieser Spec abholen.
 const NACHWEIS = path.resolve(process.cwd(), "test-results/369-detailseite-375.png");
+const NACHWEIS_391 = path.resolve(process.cwd(), "test-results/391-kopfaktionen-375.png");
 
 const MIN_TIPP_HOEHE = 44;
 
@@ -82,11 +86,11 @@ function teilnehmerZeile(page: Page, name: string) {
   return teilnehmerListe(page).getByRole("listitem").filter({ hasText: name });
 }
 
-// Aufräumen über die bestehende Lösch-Funktion (AK23) – nur ohne Verzehr/Kassiertes möglich.
+// Aufräumen über die bestehende Lösch-Funktion (Papierkorb im Kopf, spec-391 AK11) – nur ohne
+// Verzehr/Kassiertes möglich.
 async function loescheVeranstaltung(page: Page, detailPfad: string) {
   await page.goto(detailPfad);
-  await oeffneEinstellungen(page);
-  await page.getByRole("button", { name: "Veranstaltung löschen", exact: true }).click();
+  await oeffneLoeschDialog(page);
   await page.getByRole("button", { name: "Endgültig löschen" }).click();
   await expect(page).toHaveURL(/\/veranstaltung$/);
 }
@@ -264,10 +268,77 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await loescheVeranstaltung(page, detailPfad);
   });
 
-  // AK24–AK26 (Abschließen am Ende der Kassieren-Seite) sind durch spec-371 überholt: der
-  // Statuswechsel sitzt jetzt im Kopf der Detailseite (ADR-055 D3) – Nachweis in
-  // kassieren-summe-abschluss.spec.ts. Hier bleibt der Weg zum Bericht nach dem Abschluss.
-  test("AK21/AK22/AK6/AK7: Einstellungen eingeklappt, Link & QR im Dialog, Bericht nach Abschluss", async ({
+  test("spec-391 AK16: bei 375 px und langem Titel bleiben alle Kopfaktionen sichtbar und tippbar", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await login(page);
+
+    const lang = `${PREFIX} Sehr lange Bezeichnung der Sommer-Dorfmeisterschaften mit Grillabend ${LAUF}`;
+    const detailPfad = await createVeranstaltung(page, lang);
+    await page.goto(detailPfad);
+    await page.screenshot({ path: NACHWEIS_391, animations: "disabled" });
+
+    // Titel bricht um, statt die Aktionen hinauszuschieben; kein horizontales Scrollen.
+    await expect(page.getByRole("heading", { level: 1, name: lang })).toBeInViewport({ ratio: 1 });
+    const ueberstand = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(ueberstand).toBe(0);
+
+    // AK2/AK3/AK16: Badge, Abschluss-Aktion und drei Symbol-Schaltflächen vollständig sichtbar,
+    // die Symbole je ≥ 44 × 44 px.
+    await expect(seitenkopf(page).getByText("offen", { exact: true })).toBeInViewport({ ratio: 1 });
+    // Die Abschluss-Aktion aus #371 steht mit im Kopf (spec-391 Q5, spec-371 AK24) – eine
+    // Text-Schaltfläche, daher nur Sichtbarkeit, keine 44-px-Breitenprüfung.
+    await expect(kopfAktion(page, "Veranstaltung abschließen")).toBeInViewport({ ratio: 1 });
+    for (const name of ["Link & QR teilen", "Einstellungen", "Veranstaltung löschen"]) {
+      const knopf = kopfAktion(page, name);
+      await expect(knopf).toBeInViewport({ ratio: 1 });
+      const box = await groesse(knopf);
+      expect(box.width, name).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
+      expect(box.height, name).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
+    }
+
+    await loescheVeranstaltung(page, detailPfad);
+  });
+
+  test("spec-391 FS2: in anderer Sitzung abgeschlossen → Schreibaktion im Dialog abgelehnt", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(120_000);
+    await login(page);
+
+    const detailPfad = await createVeranstaltung(page, `${PREFIX} Parallel ${LAUF}`);
+    await page.goto(detailPfad);
+    await oeffneEinstellungen(page);
+
+    // Zweiter Tab derselben Sitzung schließt die Veranstaltung ab, während der Dialog offen ist.
+    const zweiterTab = await context.newPage();
+    await zweiterTab.goto(detailPfad);
+    await bestaetigeStatuswechsel(zweiterTab, "Veranstaltung abschließen", "Abschließen");
+    const wiederOeffnen = zweiterTab.getByRole("button", { name: "Wieder öffnen" });
+    await expect(wiederOeffnen).toBeVisible();
+
+    // Kein stiller Erfolg: die bestehende Meldung der Action steht im noch offenen Dialog.
+    await einstellungenDialog(page).getByRole("button", { name: "Katalog wechseln" }).click();
+    await expect(einstellungenDialog(page).getByRole("alert")).toHaveText(
+      /Die Veranstaltung ist abgeschlossen und schreibgeschützt\./,
+    );
+    await expect(einstellungenDialog(page)).toBeVisible();
+
+    // Aufräumen: wieder öffnen, dann löschen.
+    await bestaetigeStatuswechsel(zweiterTab, "Wieder öffnen", "Wieder öffnen");
+    await expect(
+      zweiterTab.getByRole("button", { name: "Veranstaltung abschließen" }),
+    ).toBeVisible();
+    await zweiterTab.close();
+    await loescheVeranstaltung(page, detailPfad);
+  });
+
+  test("spec-391 AK1–AK10/AK14: Kopfaktionen, Dialoge, Bericht nach Abschluss", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -276,12 +347,13 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Einstellungen ${LAUF}`);
     await page.goto(detailPfad);
 
-    // ── AK21/AK22: eingeklappt; Link & QR erst im Dialog sichtbar ──────────────────────────
-    const link = page.getByRole("textbox", { name: "Selbstbedienungs-Link" });
-    await expect(page.getByRole("button", { name: "Link & QR teilen" })).toBeHidden();
-    await oeffneEinstellungen(page);
-    await expect(link).toHaveCount(0);
-    await page.getByRole("button", { name: "Link & QR teilen" }).click();
+    // ── AK1: kein eingeklappter Bereich „Einstellungen" mehr am Seitenende ─────────────────
+    await expect(page.locator("details")).toHaveCount(0);
+
+    // ── AK9/AK10: „Link & QR teilen" mit einem Tap aus dem Kopf; Fokus zurück ──────────────
+    const teilen = kopfAktion(page, "Link & QR teilen");
+    await expect(page.getByRole("textbox", { name: "Selbstbedienungs-Link" })).toHaveCount(0);
+    await teilen.click();
     const zugang = page.getByRole("dialog", { name: "Link & QR teilen" });
     await expect(zugang.getByRole("textbox", { name: "Selbstbedienungs-Link" })).toHaveValue(
       /\/theke\//,
@@ -289,11 +361,36 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await expect(zugang.getByRole("img", { name: /QR-Code/ })).toBeVisible();
     await zugang.getByRole("button", { name: "Schließen" }).click();
     await expect(zugang).toBeHidden();
+    await expect(teilen).toBeFocused();
 
-    // ── AK6/AK7: nach dem Abschluss zeigt die Detailseite den Bericht, keine Einstellungen ──
+    // ── AK4/AK5: Zahnrad öffnet „Einstellungen" – Katalog, Bearbeiten; kein Teilen/Löschen ──
+    const zahnrad = kopfAktion(page, "Einstellungen");
+    await expect(page.getByRole("button", { name: "Katalog wechseln" })).toHaveCount(0);
+    await oeffneEinstellungen(page);
+    const dialog = einstellungenDialog(page);
+    await expect(dialog.getByLabel("Katalog")).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Veranstaltung bearbeiten" })).toBeVisible();
+    await expect(dialog.getByText(/Link & QR teilen|Veranstaltung löschen/)).toHaveCount(0);
+
+    // ── FS3: Pflichtfeld leer → Dialog bleibt offen, Eingabe bleibt erhalten ───────────────
+    await dialog.getByLabel("Datum").fill("");
+    await dialog.getByRole("button", { name: "Änderungen speichern" }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Datum")).toHaveValue("");
+
+    // ── AK8: Escape schließt, Fokus zurück aufs Zahnrad ────────────────────────────────────
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(zahnrad).toBeFocused();
+
+    // ── Abschluss im Seitenkopf (spec-371) ─────────────────────────────────────────────────
     await bestaetigeStatuswechsel(page, "Veranstaltung abschließen", "Abschließen");
+
+    // ── spec-369 AK6/AK7 + spec-391 AK14: Bericht, keine Kopfaktionen ──────────────────────
     await expect(page.getByRole("heading", { name: "Abschlussbericht" })).toBeVisible();
-    await expect(page.getByText("Einstellungen", { exact: true })).toHaveCount(0);
+    for (const name of ["Link & QR teilen", "Einstellungen", "Veranstaltung löschen"]) {
+      await expect(kopfAktion(page, name), name).toHaveCount(0);
+    }
     await expect(page.getByRole("button", { name: "+ Teilnehmer" })).toHaveCount(0);
 
     // Aufräumen: wieder öffnen, dann löschen.

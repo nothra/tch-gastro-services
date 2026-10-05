@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Oberflächen-Nachweis für Kopfzeile und Startseite (#374, spec-374, ADR-056). Prüft im echten
+// Oberflächen-Nachweis für Kopfzeile und Startseite (#374, spec-374, ADR-057). Prüft im echten
 // Browser, was jsdom nicht kann: das native Popover des Konto-Menüs (Öffnen, Escape, Klick
-// außerhalb, Fokus-Rücksprung – ADR-056 D1) und das Layout bei 375 px (AK1.6). Rein lesend bis
+// außerhalb, Fokus-Rücksprung – ADR-057 D1) und das Layout bei 375 px (AK1.6). Rein lesend bis
 // auf das Abmelden, daher Teil des Standardlaufs (wie auth.spec.ts).
 
 const email = process.env.SEED_ADMIN_EMAIL ?? "";
@@ -21,7 +21,7 @@ function kontoKnopf(page: Page) {
 }
 
 // `aria-expanded` setzt der Browser nicht als DOM-Attribut, sondern leitet es aus `popovertarget`
-// ab (ADR-056 D1); Playwrights eigene ARIA-Berechnung kennt das nicht. Deshalb der echte
+// ab (ADR-057 D1); Playwrights eigene ARIA-Berechnung kennt das nicht. Deshalb der echte
 // Accessibility-Baum von Chromium über CDP.
 async function kontoKnopfExpanded(page: Page): Promise<boolean | undefined> {
   const cdp = await page.context().newCDPSession(page);

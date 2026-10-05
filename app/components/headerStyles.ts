@@ -1,5 +1,5 @@
 // Gemeinsame Token-Klassen der Kopfzeilen (AppNav, KontoMenue, PublicHeader): eine Quelle, damit
-// App- und öffentlicher Header optisch nicht auseinanderdriften (ADR-056).
+// App- und öffentlicher Header optisch nicht auseinanderdriften (ADR-057).
 
 export const focusClass =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";

@@ -45,7 +45,7 @@ test.describe("Auth & Stage-Oberfläche", () => {
     await page.getByRole("button", { name: /Anmelden/i }).click();
     await expect(page).not.toHaveURL(/\/login/);
 
-    // „Abmelden" liegt seit #374 im Konto-Menü (ADR-056 D1).
+    // „Abmelden" liegt seit #374 im Konto-Menü (ADR-057 D1).
     await page.getByRole("button", { name: "Konto" }).click();
     await page.getByRole("button", { name: /Abmelden/i }).click();
     await expect(page).toHaveURL(/\/login/);

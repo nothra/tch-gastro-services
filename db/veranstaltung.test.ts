@@ -163,7 +163,7 @@ describe.skipIf(!hasDb)("veranstaltung data-layer (integration)", () => {
   });
 
   it("should_listOnlyOffeneDatierte_when_listingOffene", async () => {
-    // spec-374 AK2.1/ADR-056 D3: Filter in der DB – abgeschlossene Veranstaltungen und die
+    // spec-374 AK2.1/ADR-057 D3: Filter in der DB – abgeschlossene Veranstaltungen und die
     // stehende Theke (auch offen) gehören nicht auf die Startseite.
     const offen = await trackVeranstaltung(
       datierte({ bezeichnung: `${TEST_PREFIX}Startseite-offen` }),

@@ -59,16 +59,23 @@ vi.mock("./VeranstaltungMetaForm", () => ({
   ),
 }));
 vi.mock("./VeranstaltungLoeschen", () => ({
-  VeranstaltungLoeschen: ({ bezeichnung }: { bezeichnung: string }) => (
-    <div data-testid="veranstaltung-loeschen">{bezeichnung}</div>
+  VeranstaltungLoeschen: ({ id, bezeichnung }: { id: string; bezeichnung: string }) => (
+    <button type="button" data-id={id} data-bezeichnung={bezeichnung}>
+      Veranstaltung löschen
+    </button>
   ),
 }));
 vi.mock("./ZugangTeilen", () => ({
   ZugangTeilen: ({ token }: { token: string }) => <div data-testid="zugang-teilen">{token}</div>,
 }));
-vi.mock("./ZugangDialog", () => ({
-  ZugangDialog: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="zugang-dialog">{children}</div>
+// Der Stub zeigt Auslöser UND Inhalt dauerhaft: geprüft wird hier, WELCHE Inhalte in welchem
+// Kopf-Dialog landen – das Öffnen/Schließen deckt `KopfDialog.test.tsx` ab.
+vi.mock("./KopfDialog", () => ({
+  KopfDialog: ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div data-kopf-dialog={label}>
+      <button type="button">{label}</button>
+      <div data-testid={`inhalt ${label}`}>{children}</div>
+    </div>
   ),
 }));
 vi.mock("../TeilnehmerHinzufuegenDialog", () => ({
@@ -194,7 +201,17 @@ async function renderSeite(veranstaltung: Veranstaltung = aVeranstaltung) {
 }
 
 function einstellungen() {
-  return screen.getByText("Einstellungen", { selector: "summary" }).closest("details")!;
+  return within(screen.getByTestId("inhalt Einstellungen"));
+}
+
+// Die Kopfaktionen in DOM-Reihenfolge: Badge-Text bzw. zugänglicher Name der Schaltfläche. Zwei
+// Stub-Formen: der `KopfDialog`-Stub ist ein Wrapper um seinen Auslöser-Button (daher
+// `querySelector`), der `VeranstaltungLoeschen`-Stub ist selbst der Button (daher `?? element`).
+function kopfAktionen() {
+  const badge = within(screen.getByRole("banner")).getByText(/^(offen|abgeschlossen)$/);
+  return Array.from(badge.parentElement!.children).map((element) =>
+    element === badge ? "Badge" : (element.querySelector("button") ?? element).textContent,
+  );
 }
 
 function kachel(name: RegExp) {
@@ -234,16 +251,17 @@ describe("VeranstaltungDetailPage – Zugriff", () => {
 });
 
 describe("VeranstaltungDetailPage – Aufbau und Kopf (AK1, AK2)", () => {
-  it("should_orderHeaderKachelnTeilnehmerEinstellungen_when_veranstaltungOffen", async () => {
-    // AK1: von oben nach unten Kopf, Kacheln, Teilnehmerliste, Einstellungen – sonst nichts.
+  it("should_orderHeaderKachelnTeilnehmer_when_veranstaltungOffen", async () => {
+    // spec-391 AK1: von oben nach unten Kopf, Kacheln, Teilnehmerliste – und darunter kein
+    // Bereich „Einstellungen" mehr (ersetzt spec-369 AK1).
     await renderSeite();
 
     const bloecke = Array.from(screen.getByRole("main").children);
-    expect(bloecke).toHaveLength(4);
+    expect(bloecke).toHaveLength(3);
     expect(bloecke[0].tagName).toBe("HEADER");
     expect(bloecke[1]).toBe(screen.getByRole("navigation", { name: "Arbeitsschritte" }));
     expect(bloecke[2]).toBe(screen.getByRole("region", { name: /Teilnehmer/ }));
-    expect(bloecke[3]).toBe(einstellungen());
+    expect(document.querySelector("details")).toBeNull();
   });
 
   it("should_showTitleMetaStatusBadgeAndBackLink_when_rendered", async () => {
@@ -405,6 +423,7 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
 
     expect(kachel(/Kassieren/)).toHaveAttribute("href", "/veranstaltung/v-1/kassieren");
     expect(screen.queryByText("Einstellungen")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("katalog-wechsel")).not.toBeInTheDocument();
   });
 
   it("should_showBerichtDownloads_when_veranstaltungAbgeschlossen", async () => {
@@ -489,24 +508,67 @@ describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
   });
 });
 
-describe("VeranstaltungDetailPage – Einstellungen (AK21–AK23, FS5)", () => {
-  it("should_beCollapsedByDefault_when_rendered", async () => {
-    // AK21
+describe("VeranstaltungDetailPage – Kopfaktionen (spec-391 AK2, AK10, AK13, AK14)", () => {
+  it("should_orderBadgeAbschlussTeilenEinstellungenPapierkorb_when_datedVeranstaltungOffen", async () => {
+    // AK2: von links nach rechts – die zerstörerische Aktion zuletzt (#352 AK4/AK8). AK10:
+    // „Link & QR teilen" liegt direkt im Kopf, ohne vorher etwas anderes zu öffnen.
     await renderSeite();
 
-    expect(einstellungen()).not.toHaveAttribute("open");
+    expect(kopfAktionen()).toEqual([
+      "Badge",
+      "Abschluss-Aktion",
+      "Link & QR teilen",
+      "Einstellungen",
+      "Veranstaltung löschen",
+    ]);
   });
 
-  it("should_containAllEntries_when_datedVeranstaltungOffen", async () => {
+  it("should_passIdAndBezeichnungToPapierkorb_when_datedVeranstaltungOffen", async () => {
     await renderSeite();
 
-    const bereich = within(einstellungen());
-    expect(bereich.getByTestId("katalog-wechsel")).toHaveAttribute("data-catalog-id", "kat-b");
-    const meta = bereich.getByTestId("meta-form");
+    const papierkorb = screen.getByRole("button", { name: "Veranstaltung löschen" });
+    expect(papierkorb).toHaveAttribute("data-id", "v-1");
+    expect(papierkorb).toHaveAttribute("data-bezeichnung", "Montagsrunde Juli");
+  });
+
+  it("should_offerTeilenAndEinstellungenWithoutPapierkorb_when_typTheke", async () => {
+    // AK13: stehende Theke – Löschen nur für datierte Veranstaltungen (#352).
+    await renderSeite(theke);
+
+    expect(kopfAktionen()).toEqual(["Badge", "Link & QR teilen", "Einstellungen"]);
+  });
+
+  it("should_showOnlyBadgeAndAbschlussAktion_when_veranstaltungAbgeschlossen", async () => {
+    // AK14: weder Teilen, Zahnrad noch Papierkorb; „Wieder öffnen" bleibt (spec-371).
+    await renderSeite(abgeschlossen);
+
+    expect(kopfAktionen()).toEqual(["Badge", "Abschluss-Aktion"]);
+    expect(screen.queryByRole("button", { name: "Veranstaltung löschen" })).toBeNull();
+  });
+});
+
+describe("VeranstaltungDetailPage – Dialog „Einstellungen“ (spec-391 AK5, AK6)", () => {
+  it("should_containKatalogThenBearbeiten_when_datedVeranstaltungOffen", async () => {
+    // AK5: in dieser Reihenfolge Katalog wechseln, Bezeichnung/Datum/Kasse bearbeiten.
+    await renderSeite();
+
+    const katalogWechsel = einstellungen().getByTestId("katalog-wechsel");
+    const meta = einstellungen().getByTestId("meta-form");
+    expect(katalogWechsel).toHaveAttribute("data-catalog-id", "kat-b");
     expect(meta).toHaveAttribute("data-bezeichnung", "Montagsrunde Juli");
     expect(meta).toHaveAttribute("data-kasse", "montagsrunde");
     expect(meta).toHaveAttribute("data-datum", "2026-07-14");
-    expect(bereich.getByTestId("veranstaltung-loeschen")).toHaveTextContent("Montagsrunde Juli");
+    const inhalt = Array.from(screen.getByTestId("inhalt Einstellungen").children);
+    expect(inhalt).toEqual([katalogWechsel, meta]);
+  });
+
+  it("should_notContainTeilenOrLoeschen_when_datedVeranstaltungOffen", async () => {
+    // AK5, zweite Hälfte: Teilen und Löschen sind eigene Kopfaktionen, nicht im Dialog.
+    await renderSeite();
+
+    expect(einstellungen().queryByTestId("zugang-teilen")).not.toBeInTheDocument();
+    expect(einstellungen().queryByText("Link & QR teilen")).not.toBeInTheDocument();
+    expect(einstellungen().queryByText("Veranstaltung löschen")).not.toBeInTheDocument();
   });
 
   it("should_passOnlyActiveKatalogeToKatalogWechsel_when_veranstaltungOffen", async () => {
@@ -522,25 +584,24 @@ describe("VeranstaltungDetailPage – Einstellungen (AK21–AK23, FS5)", () => {
     expect(screen.getByTestId("katalog-wechsel")).not.toHaveTextContent("kat-alt");
   });
 
-  it("should_putServerRenderedZugangInsideDialog_when_veranstaltungOffen", async () => {
-    // AK22: Link und QR nur im Dialog, gespeist mit dem Veranstaltungs-Token.
-    await renderSeite();
-
-    const dialog = within(einstellungen()).getByTestId("zugang-dialog");
-    expect(within(dialog).getByTestId("zugang-teilen")).toHaveTextContent("abc123");
-  });
-
-  it("should_offerOnlyKatalogAndZugang_when_typTheke", async () => {
-    // FS5: stehende Theke – weder Bearbeiten noch Löschen (#352 AK10); die übrigen Einträge und
-    // die Kacheln bleiben.
+  it("should_containOnlyKatalogWechsel_when_typTheke", async () => {
+    // AK6: stehende Theke – nur „Katalog wechseln", kein Bearbeiten (#352); die Kacheln bleiben.
     await renderSeite(theke);
 
-    const bereich = within(einstellungen());
-    expect(bereich.queryByTestId("meta-form")).not.toBeInTheDocument();
-    expect(bereich.queryByTestId("veranstaltung-loeschen")).not.toBeInTheDocument();
-    expect(bereich.getByTestId("katalog-wechsel")).toBeInTheDocument();
-    expect(bereich.getByTestId("zugang-dialog")).toBeInTheDocument();
+    const inhalt = Array.from(screen.getByTestId("inhalt Einstellungen").children);
+    expect(inhalt).toEqual([einstellungen().getByTestId("katalog-wechsel")]);
+    expect(screen.queryByTestId("meta-form")).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Arbeitsschritte" })).toBeInTheDocument();
+  });
+});
+
+describe("VeranstaltungDetailPage – Dialog „Link & QR teilen“ (spec-391 AK9)", () => {
+  it("should_putServerRenderedZugangIntoTeilenDialog_when_veranstaltungOffen", async () => {
+    // AK9: Link und QR nur im Dialog, serverseitig gerendert und mit dem Token gespeist.
+    await renderSeite();
+
+    const inhalt = within(screen.getByTestId("inhalt Link & QR teilen"));
+    expect(inhalt.getByTestId("zugang-teilen")).toHaveTextContent("abc123");
   });
 
   it("should_loadNoKataloge_when_abgeschlossen", async () => {

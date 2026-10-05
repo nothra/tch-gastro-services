@@ -46,7 +46,7 @@ describe("AppNav", () => {
   });
 
   it("should_placeWortmarkeBeforeNavigationAndKontoLast_when_rendered", () => {
-    // AK1.1/ADR-056 D2: Hamburger · Wortmarke · Navigation · Konto-Knopf, in einer Zeile.
+    // AK1.1/ADR-057 D2: Hamburger · Wortmarke · Navigation · Konto-Knopf, in einer Zeile.
     renderNav();
     const header = screen.getByRole("banner");
     const reihenfolge = [

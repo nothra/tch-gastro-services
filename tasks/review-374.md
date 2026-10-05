@@ -1,14 +1,14 @@
 # Review: Task 374
 
 > **Runde 2 (2026-10-05).** Diff-Basis: `git diff origin/main...HEAD` (39 Dateien, bis `5abaa76`)
-> plus der uncommittete Arbeitsstand (ADR-056 D4 ergänzt, `e2e/anleitung-veranstalter.spec.ts`
+> plus der uncommittete Arbeitsstand (ADR-057 D4 ergänzt, `e2e/anleitung-veranstalter.spec.ts`
 > um die AK5.4-Aufnahmen erweitert, Wegwerf-Datei `playwright.capture.tmp.config.ts`). Seit Runde 1
 > neu: Refactor `5abaa76` (`app/components/headerStyles.ts`) und der AK5.4-Anfang. Drei Perspektiven
 > (Logik, Code-Qualität, Architektur). Ihre Kritisch-/Wichtig-Behauptungen sind am Code
 > nachgeprüft. In dieser Runde liefen keine Gates.
 >
 > **Stand Runde 1:**
-> - W1 (ADR-056 D4 um `auth()`/Session-Bedingung ergänzen): inhaltlich erledigt, der Text passt zu
+> - W1 (ADR-057 D4 um `auth()`/Session-Bedingung ergänzen): inhaltlich erledigt, der Text passt zu
 >   `app/theke/[token]/page.tsx:21-47`. Er ist aber **noch nicht committet**.
 > - W2 (E2E-Verweis in `KontoMenue.test.tsx:6`): in `5abaa76` erledigt.
 > - Von den Nitpicks sind `AppNav.test.tsx:167` und `personenbezug.ts` erledigt. Offen sind:
@@ -23,7 +23,7 @@ _Keine._
 
 - [ ] [app/components/headerStyles.ts / eslint/ui-token-files.mjs:37-43] **Der Refactor hat die Header-Klassen aus dem Farb-Gate herausgezogen.** `focusClass`, `headerClass` und `iconButtonClass` standen vorher in den gegateten Dateien `AppNav.tsx`, `KontoMenue.tsx` und `PublicHeader.tsx`. Jetzt liegen sie in `app/components/headerStyles.ts`, und diese Datei fehlt in `UI_TOKEN_FILES`. Die Regel `tch/no-raw-color-classes` prüft jedes String-Literal und Template-Element (`eslint/no-raw-color-classes.mjs:106-111`). Sie würde also greifen, wird aber auf diese Datei nicht angewendet. Eine rohe Farbe in `headerStyles.ts` käme damit unbemerkt in alle drei gegateten Kopfzeilen. **Fix:** `"app/components/headerStyles.ts"` in den #374-Block der Liste aufnehmen. Vorher die „nicht enthalten"-Tests greppen (Lesson #371).
 - [ ] [app/components/PublicHeader.tsx:23] **Das Bündeln im Refactor ist unvollständig.** Der „Anmelden"-Link schreibt die Fokus-Klassen (`focus-visible:outline-2 … outline-accent`) weiter von Hand aus. `PublicHeader` importiert nur `headerClass`. Das widerspricht dem eigenen Modul-Kommentar von `headerStyles.ts` („eine Quelle, damit … nicht auseinanderdriften"). **Fix:** `${focusClass}` verwenden.
-- [ ] [docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md:91-94] **Die ADR-Ergänzung aus Runde 1 W1 liegt nur im Arbeitsbaum.** Committen, und mit ihr in `tasks/task-374-…md` die Notiz „bewusst offen: ADR-056 D4" sowie die Technische Notiz zu `PublicHeader` (Session-Bedingung) nachziehen.
+- [ ] [docs/adr/057-header-konto-menue-startseite-oeffentlicher-header.md:91-94] **Die ADR-Ergänzung aus Runde 1 W1 liegt nur im Arbeitsbaum.** Committen, und mit ihr in `tasks/task-374-…md` die Notiz „bewusst offen: ADR-057 D4" sowie die Technische Notiz zu `PublicHeader` (Session-Bedingung) nachziehen.
 
 ## Nitpicks (optional)
 
@@ -44,7 +44,7 @@ _Keine._
 - Aus Runde 1 bestätigt:
   - Rollen-Gate vor dem Laden, Catch-Scope nur um den einen DB-Aufruf.
   - Die Schichtung ist sauber: DB nur über `db/`, die route-neutralen Komponenten haben keine Feature-Imports.
-  - Das Farb-Gate deckt genau die fünf D5-Dateien ab, ADR-056 steht auf Accepted.
+  - Das Farb-Gate deckt genau die fünf D5-Dateien ab, ADR-057 steht auf Accepted.
   - AK4.6 ist unverändert erfüllt.
 
 ## Empfehlung

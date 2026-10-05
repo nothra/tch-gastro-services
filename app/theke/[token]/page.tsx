@@ -41,7 +41,7 @@ export default async function ThekePage({ params }: { params: Promise<{ token: s
 
   return (
     <>
-      {/* Erst nach dem Token-Check (ADR-056 D4): ein ungültiger Token endet oben in notFound(),
+      {/* Erst nach dem Token-Check (ADR-057 D4): ein ungültiger Token endet oben in notFound(),
           bevor ein Name erscheinen kann (AK3.3). Mit Session zeigt das Layout schon den
           AppHeader – dann kein zweiter Kopf. */}
       {!session?.user && <PublicHeader contextLabel={veranstaltung.bezeichnung} />}

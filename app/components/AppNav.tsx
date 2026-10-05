@@ -10,14 +10,14 @@ import { useNavDrawerFocus } from "./useNavDrawerFocus";
 type AppNavProps = {
   // Bereits serverseitig gefilterte Einträge (ADR-031): der Client entscheidet keine Rollen.
   items: NavItem[];
-  // E-Mail bzw. „Angemeldet" – seit ADR-056 D2 nur noch im Konto-Menü, nicht im Header.
+  // E-Mail bzw. „Angemeldet" – seit ADR-057 D2 nur noch im Konto-Menü, nicht im Header.
   label: string;
   signOutAction: () => Promise<void>;
 };
 
 const linkClass = `flex min-h-11 items-center rounded-md px-3 py-2 font-medium text-foreground hover:bg-background aria-[current=page]:bg-accent-subtle aria-[current=page]:text-accent ${focusClass}`;
 
-// Rollenbewusste Kopfzeile (ADR-031, ADR-056 D2) in einer Zeile: Hamburger (nur schmal) ·
+// Rollenbewusste Kopfzeile (ADR-031, ADR-057 D2) in einer Zeile: Hamburger (nur schmal) ·
 // Wortmarke als Startlink · Desktop-Inline-Links (ohne JS nutzbar, da serverseitig gerendert) ·
 // Konto-Menü rechts. Auf schmalen Viewports öffnet der Hamburger einen Off-Canvas-Drawer
 // (Toggle/Escape/Fokus nur clientseitig).
