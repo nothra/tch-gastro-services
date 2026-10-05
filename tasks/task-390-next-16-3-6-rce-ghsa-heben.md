@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch, GHSA-vcvr-r3jv-pc5j) und alle weiteren offenen Dependabot-Alerts (14 gesamt): `brace-expansion` (6, bis high), `undici` (6, bis high, nur dev). Spec: `docs/specs/spec-390-security-deps-durchgang.md`. Details und Verifikation siehe Issue #390.
@@ -95,7 +95,15 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
   Bash-Suite vor und nach dem Refactoring: 1568 grün / 0 rot.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- Neue Lesson in `lessons/build-tooling.md` (plus Index-Zeile): Der Dependabot-AK ist vor dem Merge nicht
+  prüfbar, Ersatznachweis über die npm-Bulk-Advisory-API mit Gegenprobe. Details in `tasks/codify-390.md`.
+- Nach dem Merge offen: `gh api repos/nothra/tch-gastro-services/dependabot/alerts?state=open`
+  ausführen. Erwartet ist nur `braces` (#396).
+
+## PR-Shepherd
+- PR-Shepherd 2026-10-05: Merge freigegeben – alle Gates grün (keine Review-Kommentare, CI grün,
+  `issue-sync` lief noch). Der Dependabot-AK bleibt bewusst offen (nur nach dem Merge prüfbar,
+  siehe Codify-Notizen).
 
 ---
 Branch: `chore/390-next-16-3-6-rce-ghsa-heben`
