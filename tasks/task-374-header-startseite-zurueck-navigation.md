@@ -82,6 +82,11 @@ Runde 1 (2026-10-04): **APPROVED**, Bericht in `tasks/review-374.md`. 0 kritisch
 `e2e/header-startseite.spec.ts` korrigieren), 6 Nitpicks. Die wichtigen Findings werden vor dem
 Merge zusammen mit AK5.4 erledigt.
 
+Runde 2 (2026-10-05): **APPROVED**, Bericht in `tasks/review-374.md` (ersetzt Runde 1). 0 kritische,
+3 wichtige Findings: `app/components/headerStyles.ts` fehlt im Farb-Gate, `PublicHeader` nutzt
+`focusClass` noch nicht, die ADR-056-D4-Ergänzung ist noch nicht committet. Dazu 8 Nitpicks. Aus
+Runde 1 ist W2 erledigt, W1 ist inhaltlich fertig, aber noch nicht committet.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
