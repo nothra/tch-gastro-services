@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -74,6 +74,16 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
   W1 und die vier Nitpicks aus Iteration 1 sind als behoben bestätigt. Die Suite ist frisch
   gelaufen: 1568 grün / 0 rot. Offen und optional: zwei Kommentar-Nitpicks in
   `pnpm-workspace.yaml` (überlange Zeile 57, Präsens-Aussage „>= 5.0.9" in Zeile 84).
+
+## Test-Notizen
+- `/test` (kein Produktionscode, keine neuen Tests nötig): Die Spec-AK 1–3 und 7 (Pin, Floors,
+  Overrides) sind durch den angehobenen Floor-Guard in `scripts/checks/tests/run-tests.sh` samt
+  Mutationsbelegen abgedeckt, AK 5/6 durch die Laufzeit-Verifikation aus `/implement`.
+- `pnpm test:coverage`: 1425 grün / 112 DB-Skips, Branch-Coverage 97,57 %. Die niedrige
+  Statement-Quote in `db/` ist die bekannte DB-Skip-Lücke, der Diff berührt keine App-Datei.
+- Bash-Suite `run-tests.sh`: 1568 grün / 0 rot.
+- Nicht ausgeführt: DB-Integrationstests mit `dotenv` (Aufruf wurde nicht freigegeben). Der Diff
+  ändert nur Manifest, Lockfile, Workspace-Overrides und Guard.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
