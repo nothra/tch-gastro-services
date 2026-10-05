@@ -1,7 +1,7 @@
 # Task 390: next-16-3-6-rce-ghsa-heben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -14,15 +14,42 @@ Sicherheits-Deps-Durchgang (Issue #390): `next` 16.3.5 → ≥ 16.3.6 (kritisch,
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] `next` ≥ 16.3.6 aufgelöst (Alerts #65, #80)
-- [ ] `brace-expansion` ≥ 1.1.21 bzw. ≥ 2.1.7 (Alerts #74–#79)
-- [ ] `undici` ≥ 7.29.1 (Alerts #64, #67–#69, #72, #73)
-- [ ] Dependabot meldet keine offenen Alerts mehr (oder begründete Restausnahme)
-- [ ] Build, Auth-E2E, `next/image`-Rauchtest, PWA-Build grün
-- [ ] #169 (postcss-Override) neu bewertet
+- [x] `next` ≥ 16.3.6 aufgelöst (Alerts #65, #80) – gepinnt und aufgelöst: 16.3.8
+- [x] `brace-expansion` ≥ 1.1.21 bzw. ≥ 2.1.7 (Alerts #74–#79) – aufgelöst: 1.1.21 / 2.1.7 / 5.0.12
+- [x] `undici` ≥ 7.29.1 (Alerts #64, #67–#69, #72, #73) – aufgelöst: 7.30.0
+- [ ] Dependabot meldet keine offenen Alerts mehr (oder begründete Restausnahme) – **erst nach dem Merge prüfbar:** Dependabot wertet nur den Default-Branch aus, der Feature-Branch schließt keine Alerts. Nachweis über `gh api repos/nothra/tch-gastro-services/dependabot/alerts?state=open` nach dem Merge.
+- [x] Build, Auth-E2E, `next/image`-Rauchtest, PWA-Build grün (PWA = Manifest, siehe Notizen)
+- [x] #169 (postcss-Override) neu bewertet – bleibt entfernt
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+- **ADR-Trigger-Check:** keine Kategorie (Patch-Bump innerhalb 16.3.x, Overrides auf neue Floors).
+- **Floors aus den Advisory-Volllisten** (`gh api advisories/<ghsa>`, alle Major-Linien, Lesson #231),
+  nicht nur aus der Dependabot-Alert-Range: GHSA-q2hr-2g5m-vwhr setzt brace-expansion 1.1.21 /
+  2.1.7 / 3.0.9 / 5.0.12. Die 4.x/5.x-Linie hat keinen eigenen Alert, weil der Baum schon 5.0.12
+  auflöst. Der Selektor wurde trotzdem auf `<5.0.12` gehoben, denn minimatch@10 deklariert nur
+  ^5.0.5. Der Override ist damit die einzige durable Zusicherung (Logik wie #339).
+- **undici-Selektor nach unten begrenzt** (`>=7.0.0 <7.29.1`): das alte `<7.29.0` hätte eine
+  6.x-Kopie über die Major-Grenze gehoben (die 6er-Linie hat einen eigenen Fix 6.28.1,
+  GHSA-r53p-7pc4-xj5r). Heute liegt keine 6.x im Baum.
+- **next 16.3.8 statt 16.3.6:** neuester 16.3.x-Patch (2026-09-30), Spec-Q2 erlaubt das.
+  postcss bleibt exakt 8.5.23 (#169 unverändert erledigt), sharp ^0.35.4 → 0.35.4.
+- **TDD:** bestehender Floor-Guard in `scripts/checks/tests/run-tests.sh` angehoben (kein zweiter
+  daneben): RED = 8 rote Fälle (Floors, next-Pin ≥ 16.3.6, Override-Zeilen), GREEN nach Bump +
+  `pnpm install`: 1565 grün / 0 rot.
+- **Gates:** `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test` (1425 grün,
+  112 DB-Skips wie üblich), `pnpm build` grün.
+- **Laufzeit-Verifikation gegen `next start` (16.3.8, Port 3390)**, nicht gegen `next dev`. Ein
+  fremder Dev-Server auf 3000 wird so nicht genutzt (Lesson #368), und es entsteht kein
+  `CLAUDE.md`-Block (Lesson #337):
+  - `/_next/image?url=/favicon.ico` (matcher-ausgenommen, temporäres PNG) → 200 `image/webp`,
+    32×32 VP8. Gegenprobe `icon-dev.svg` → erwartetes 400 („image type is not allowed").
+  - Auth-E2E 5/5 grün. Die ganze E2E-Suite: 14 grün, 0 rot, 17 Opt-in-Skips (datenanlegende
+    Specs, nicht im Scope).
+  - Prod-Modus braucht für Auth.js `AUTH_TRUST_HOST=true`, sonst `UntrustedHost`. Das betrifft
+    nur die Umgebung, es ist keine Regression: Vercel und `next dev` setzen das implizit.
+- **PWA-AK angepasst:** `@serwist/next` ist trotz ADR-014 nicht installiert, es gibt keinen Service
+  Worker. Geprüft wurde das Manifest (`○ /manifest.webmanifest` im Build). Spec-Q3 vermerkt.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

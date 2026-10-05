@@ -5571,6 +5571,10 @@ assert_true "$([[ "$adr043_status_line" = "Accepted" ]]; echo $?)" "#286: ADR-04
 # #339 nutzt denselben Guard ebenso weiter: drei brace-expansion-Fälle für die 3er- und die
 # 4.x/5.x-Linie. Die Floors kommen beide aus GHSA-rgw5-rvv9-x895 (5.0.9 bzw. 3.0.6);
 # GHSA-mh99-v99m-4gvg liegt mit 5.0.8 / 3.0.3 darunter und ist damit mitgedeckt.
+# #390 hebt die Floors erneut statt Fälle daneben zu stellen: brace-expansion auf
+# 1.1.21 / 2.1.7 / 3.0.9 / 5.0.12 (GHSA-q2hr-2g5m-vwhr; schließt GHSA-qhr7-859c-m2p7 und
+# GHSA-6j4f-fj2g-mc7p mit niedrigeren Floors ein), undici auf 7.29.1 (GHSA-w293-vg96-wgc3 u. a.)
+# und den next-Pin-Floor auf 16.3.6 (GHSA-vcvr-r3jv-pc5j, kritische RCE in next/og).
 echo "#291/#337 Dependency-Security-Floors (aufgelöste Lockfile-Versionen):"
 
 LOCKFILE_291="$FACTORY_ROOT/pnpm-lock.yaml"
@@ -5622,13 +5626,13 @@ versions_below_floor_291() {
 floor_cases_291=(
   "postcss|8|8.5.23|runtime, via next"
   "nanoid|3|3.3.17|runtime, via postcss"
-  "brace-expansion|1|1.1.18|runtime, via minimatch@3"
-  "brace-expansion|2|2.1.4|runtime, via minimatch@5"
-  "brace-expansion|3|3.0.6|Vorsorge, heute keine 3.x-Kopie im Baum, kein Override-Selektor (#339)"
-  "brace-expansion|4|5.0.9|Vorsorge, heute keine 4.x-Kopie im Baum, Floor in der 5er-Linie (#339)"
-  "brace-expansion|5|5.0.9|development, via minimatch@10 (typescript-eslint), Floor aus #339"
+  "brace-expansion|1|1.1.21|runtime, via minimatch@3, Floor aus #390"
+  "brace-expansion|2|2.1.7|runtime, via minimatch@5, Floor aus #390"
+  "brace-expansion|3|3.0.9|Vorsorge, heute keine 3.x-Kopie im Baum, kein Override-Selektor (#339/#390)"
+  "brace-expansion|4|5.0.12|Vorsorge, heute keine 4.x-Kopie im Baum, Floor in der 5er-Linie (#339/#390)"
+  "brace-expansion|5|5.0.12|development, via minimatch@10 (typescript-eslint), Floor aus #390"
   "sharp|0|0.35.4|runtime, via next (Bildoptimierung), Floor aus #337"
-  "undici|7|7.29.0|development, via jsdom"
+  "undici|7|7.29.1|development, via jsdom, Floor aus #390"
   "js-yaml|4|4.3.2|development, via eslint, Floor aus #337"
   "browserslist|4|4.28.7|runtime, via next, Floor aus #337/#329"
   "baseline-browser-mapping|2|2.11.0|runtime, via browserslist/caniuse, Floor aus #337"
@@ -5710,8 +5714,9 @@ assert_true "$(printf '%s' "$next_pin_291" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'
   "#291 AK1: package.json pinnt next exakt, ohne ^/~ (ist: '${next_pin_291}')"
 # Floor angehoben 16.2.12 → 16.3.3 (#337): unterhalb 16.3.3 stehen zwei kritische unauth.
 # RCE-Advisories offen (GHSA-2xp9-vwfh-vxw4 Image-Optimization/AVIF, GHSA-p293-qw3h-jr36).
-assert_true "$([ -n "$next_pin_291" ] && ! version_below_291 "$next_pin_291" "16.3.3"; echo $?)" \
-  "#291/#337 AK1: package.json pinnt next auf >= 16.3.3 (ist: '${next_pin_291}')"
+# Erneut angehoben 16.3.3 → 16.3.6 (#390): GHSA-vcvr-r3jv-pc5j (kritische RCE in next/og).
+assert_true "$([ -n "$next_pin_291" ] && ! version_below_291 "$next_pin_291" "16.3.6"; echo $?)" \
+  "#291/#337/#390 AK1: package.json pinnt next auf >= 16.3.6 (ist: '${next_pin_291}')"
 assert_true "$([ -n "$eslint_next_pin_291" ] && [ "$eslint_next_pin_291" = "$next_pin_291" ]; echo $?)" \
   "#291 AK2: eslint-config-next trägt dieselbe Version wie next (ist: '${eslint_next_pin_291}')"
 
@@ -5769,16 +5774,22 @@ rm -f "$mut_ws_291"
 # AK-5 zweite Hälfte: die Ziel-Range bleibt in derselben Major-Linie (Caret), sonst hebt pnpm
 # über die Major-Grenze – in #291 empirisch passiert, als ">=2.1.4" die von minimatch@3
 # erwartete brace-expansion@1.1.15 auf 2.x zog.
-assert_true "$(grep -qxF -- '  "brace-expansion@<1.1.18": "^1.1.18"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#291 AK5: brace-expansion@1.x-Override hebt innerhalb der 1er-Linie (^1.1.18)"
-assert_true "$(grep -qxF -- '  "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#291 AK5: brace-expansion@2.x-Override ist nach unten begrenzt (>=2.0.0) und greift nicht auf 1.x über"
+assert_true "$(grep -qxF -- '  "brace-expansion@<1.1.21": "^1.1.21"' "$WORKSPACE_YAML_291"; echo $?)" \
+  "#291/#390 AK5: brace-expansion@1.x-Override hebt innerhalb der 1er-Linie (^1.1.21)"
+assert_true "$(grep -qxF -- '  "brace-expansion@>=2.0.0 <2.1.7": "^2.1.7"' "$WORKSPACE_YAML_291"; echo $?)" \
+  "#291/#390 AK5: brace-expansion@2.x-Override ist nach unten begrenzt (>=2.0.0) und greift nicht auf 1.x über"
 # #339 AK1: dritter Selektor für die 4.x/5.x-Linie. Die untere Schranke prüft nur diese Zeile –
 # der projektweite Konditionalitäts-Guard oben sieht ausschließlich die OBERE Schranke, ein
 # versehentliches "brace-expansion@<5.0.9" (das auch 1.x/2.x über die Major-Grenze höbe)
 # käme dort also unauffällig durch.
-assert_true "$(grep -qxF -- '  "brace-expansion@>=4.0.0 <5.0.9": "^5.0.9"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#339 AK1: brace-expansion@4.x/5.x-Override ist nach unten begrenzt (>=4.0.0) und hebt in die Fix-Linie (5er, ^5.0.9) – 4.x hat keinen eigenen Fix"
+assert_true "$(grep -qxF -- '  "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12"' "$WORKSPACE_YAML_291"; echo $?)" \
+  "#339/#390 AK1: brace-expansion@4.x/5.x-Override ist nach unten begrenzt (>=4.0.0) und hebt in die Fix-Linie (5er, ^5.0.12) – 4.x hat keinen eigenen Fix"
+# #390: undici-Selektor nach unten auf die 7er-Linie begrenzt. Das bisherige "undici@<7.29.0"
+# griffe auch auf eine 6.x-Kopie und höbe sie über die Major-Grenze auf ^7 – dieselbe Klasse
+# wie der 2er-brace-expansion-Selektor (#291). Die 6er-Linie trägt einen eigenen Fix (6.28.1,
+# GHSA-r53p-7pc4-xj5r); heute löst der Baum keine 6.x-Kopie auf.
+assert_true "$(grep -qxF -- '  "undici@>=7.0.0 <7.29.1": "^7.29.1"' "$WORKSPACE_YAML_291"; echo $?)" \
+  "#390 AK3: undici-Override ist auf die 7er-Linie begrenzt (>=7.0.0) und hebt auf ^7.29.1"
 
 # Caret-Regel projektweit für ALLE neuen #291-Einträge, nicht nur brace-expansion – sharp/
 # undici/js-yaml tragen dieselbe Ziel-Range-Form und dürfen bei einem künftigen Umstellen auf
