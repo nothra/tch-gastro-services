@@ -322,3 +322,23 @@ vermutlich auf `<body>`. Die E2E prüfte den Fokus nur nach „Abbrechen", nicht
 **Regel:** Löst die bestätigte Aktion einen Zweigwechsel aus, der den Auslöser unmountet, Fokus-Rückgabe
 für den **Erfolgsfall** gesondert festlegen (z. B. Fokus auf die Rückmeldung/Überschrift) und testen –
 „Fokus zurück an den Auslöser" gilt nur für Abbrechen. Offen, gebündelt in #372.
+
+### Nativer Popover: `aria-expanded` ist kein DOM-Attribut, jsdom kennt die API nicht (aus #374)
+
+**Smell:** Ein Konto-Menü per `popover` + `popovertarget` hat keine eigene Fokus-/Öffnen-Logik. Chromium leitet
+`aria-expanded` des Auslösers nur in den Accessibility-Baum ab, nicht ins DOM. Playwrights `getByRole({ expanded })`
+kennt das nicht, jsdom kennt die Popover-API gar nicht.
+
+**Regel:** Unit-Tests prüfen nur Attribute und Verdrahtung (`popover`, `popovertarget`, `id`-Bezug). Öffnen, Escape
+und Expanded-Zustand gehören in Playwright und werden dort über den echten AX-Baum (CDP) gelesen, in beiden
+Richtungen (offen = `true`, nach Escape = `false`). Ein DOM-Attribut-Assert wäre grün aus dem falschen Grund.
+
+### Refactor: Klassen aus gegateten Dateien in eine neue Datei ziehen → neue Datei ins Farb-Gate (aus #374, Review-Runde-2-Finding)
+
+**Smell:** `focusClass`/`headerClass`/`iconButtonClass` wanderten aus drei Dateien in `UI_TOKEN_FILES` nach
+`headerStyles.ts` – die neue Datei stand nicht in der Liste, eine rohe Farbe dort wäre in alle drei Kopfzeilen
+durchgerutscht. Zusätzlich blieb eine handgeschriebene Kopie der Fokus-Klassen in `PublicHeader` stehen.
+
+**Regel:** Wer Konstanten/Klassen aus einer gegateten Datei extrahiert, trägt die Zieldatei im selben Commit in
+`eslint/ui-token-files.mjs` ein (vorher „nicht enthalten"-Tests greppen, Lesson #371) und greppt danach alle
+Konsumenten auf verbliebene Handkopien.

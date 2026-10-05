@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -91,7 +91,12 @@ Runde 1 ist W2 erledigt, W1 ist inhaltlich fertig, aber noch nicht committet.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Codify (2026-10-05), Bericht in `tasks/codify-374.md`: vier Lessons (Popover/AX-Baum, Farb-Gate bei Refactor-Extraktion,
+E2E `localhost` statt `127.0.0.1`, Wegwerf-`*.tmp.config.ts`). Offen: `*.tmp.config.ts` in `.gitignore` (Edit nicht
+freigegeben) und AK5.4 (Anleitung + Screenshots) – beides vor dem Merge.
 
 ---
 Branch: `feature/374-header-startseite-zurueck-navigation`
 Erstellt: 2026-10-03 20:21
+
+Blocker 2026-10-05: Pipeline pausiert – MERGE_CONFLICT: PR #394 steht auf CONFLICTING gegen origin/main (5461984, #392). Überlappung in app/veranstaltung/[id]/page.test.tsx, eslint/ui-token-files.mjs, docs/ux/ux-issue-entwuerfe.md, docs/factory/PROJECT-CONTEXT.md, e2e/anleitung-veranstalter.spec.ts, e2e/verzehr-einzelansicht.spec.ts und Task-Datei; zusätzlich ADR-Nummernkollision (zwei Dateien docs/adr/056-*). Außerdem offen: AK5.4 (Anleitung + Screenshots) und uncommittete /codify-Änderungen. Manuelles Eingreifen nötig. (/architecture ausführen, dann Pipeline neu starten)
