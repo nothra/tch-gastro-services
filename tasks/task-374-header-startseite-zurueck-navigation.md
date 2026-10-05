@@ -68,8 +68,10 @@ ADR: `docs/adr/056-header-konto-menue-startseite-oeffentlicher-header.md` (ergä
   gleich, 1398 Tests grün wie vorher.
 - Drei Kommentar-Nitpicks aus dem Review sind erledigt: E2E-Verweis in `KontoMenue.test.tsx`,
   „Abmelden" → „Konto-Knopf" in `AppNav.test.tsx`, Satzbau in `personenbezug.ts`.
-- Bewusst offen (nicht Refactoring, gehört zu AK5.4/Doku): ADR-056 D4 um die `auth()`-/Session-
-  Bedingung ergänzen; die übrigen Nitpicks (Popover-Abstand zum `StageBanner`, Light-Dismiss-Fokus
+- Nachtrag (Review Runde 2): `headerStyles.ts` steht jetzt im Farb-Gate (`eslint/ui-token-files.mjs`),
+  `PublicHeader` nutzt `focusClass` auch für den „Anmelden"-Link, ADR-056 nennt die Datei in den
+  Konsequenzen und D4 trägt die `auth()`-/Session-Bedingung.
+- Bewusst offen (nicht Refactoring, gehört zu AK5.4/Doku): die übrigen Nitpicks (Popover-Abstand zum `StageBanner`, Light-Dismiss-Fokus
   im E2E, `Kassieren →`-Fixtures in `VerzehrEinzelansicht.test.tsx`).
 
 ## Offene Fragen

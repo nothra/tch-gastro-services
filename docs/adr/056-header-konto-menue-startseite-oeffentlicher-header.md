@@ -88,6 +88,11 @@ ein Header mit Namen (AK3.3), und `/login` bleibt frei (kein Layout-Mount, wie i
 `PublicHeader` bleibt route-neutral (kein Feature-Import); er wird auf die Token-Klassen aus ADR-052
 umgestellt (bisher rohe Zinc-Klassen).
 
+Der Header erscheint nur für **Gäste**: Die Seite liest dafür zusätzlich `auth()` (parallel zu den
+Daten-Loads, erst nach dem Token-Check) und rendert `PublicHeader` nur bei `!session?.user`. Mit
+Session zeigt das Root-Layout bereits den `AppHeader` – sonst stünden zwei Köpfe übereinander. Die
+Session entscheidet hier allein über die Darstellung; die Autorisierung bleibt am Token (ADR-034).
+
 ### D5 · Zurück-Navigation: nur Verwendung des vorhandenen `PageHeader`
 
 Keine neue Architektur: Verzehr, Auslagen, Veranstaltungsliste und Teilnehmerverwaltung nutzen den
@@ -150,7 +155,8 @@ Drawer, Rollen-Durchsetzung und Server/Client-Schnitt aus ADR-031 bleiben unber�
 ## Konsequenzen
 
 - **Neu:** `app/components/KontoMenue.tsx`, `app/veranstaltung/OffeneVeranstaltungen.tsx`,
-  `listOffeneVeranstaltungen()` in `db/veranstaltung.ts`.
+  `listOffeneVeranstaltungen()` in `db/veranstaltung.ts`; `app/components/headerStyles.ts` als
+  gemeinsame Quelle der Header-Token-Klassen (liegt im Farb-Gate).
 - **Geändert:** `AppNav.tsx` (Wortmarke, Konto-Knopf, Tokens), `PublicHeader.tsx` (Tokens),
   `app/page.tsx`, `app/theke/[token]/page.tsx`, `ArbeitsschrittKacheln.tsx` (Titel, spec-374 AK5),
   die vier Seiten aus D5; ADR-031 bekommt einen Hinweis auf diese ADR; `docs/routes.md` (`/`).

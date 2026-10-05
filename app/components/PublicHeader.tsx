@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { headerClass } from "./headerStyles";
+import { focusClass, headerClass } from "./headerStyles";
 
 type PublicHeaderProps = {
   // Kontextname für den login-freien Bereich (z. B. Veranstaltungs-/Thekenname).
@@ -20,7 +20,7 @@ export function PublicHeader({ contextLabel }: PublicHeaderProps) {
       <Link
         href="/login"
         prefetch={false}
-        className="ml-auto inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className={`ml-auto inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-muted hover:text-foreground ${focusClass}`}
       >
         Anmelden
       </Link>
