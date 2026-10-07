@@ -94,3 +94,5 @@ Branch: `feature/373-listenseiten-liste-zuerst-anlegen-per-button`
 Erstellt: 2026-10-07 18:41
 
 Erledigt 2026-10-07: Anleitungs-Bilder (02, 03, 04, 04b, 07) und `anleitung.pdf` neu erzeugt (frische Wegwerf-DB, Capture-Spec; PDF per Chromium-Druck).
+
+PR-Shepherd 2026-10-07: Merge freigegeben – alle Gates grün.
