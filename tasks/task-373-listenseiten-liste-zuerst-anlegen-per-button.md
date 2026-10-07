@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Listenseiten zeigen die Liste zuerst; Anlegen läuft über „+ Neu" im Seitenkopf als Dialog.
@@ -27,7 +27,7 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
 - [x] **AK8** Teilnehmerliste zuerst, Anlegen per Dialog (AK8.1)
 - [x] Oberflächentest gegen lokalen Dev-Server: `e2e/listenseiten.spec.ts` (4/4 grün, 375 px) und
   `e2e/veranstaltung-detailseite.spec.ts` mit den umgebauten Anlege-Helfern (6/6 grün), 2026-10-07
-- [ ] **Mensch, vor dem Merge:** Anleitungs-Screenshots 02/03/04 und `anleitung.pdf` neu erzeugen.
+- [x] **Mensch, vor dem Merge:** Anleitungs-Screenshots 02/03/04 und `anleitung.pdf` neu erzeugen.
   Die Capture-Spec ist umgestellt, braucht aber eine frisch zurückgesetzte und geseedete DB
   (Kommando im Kopf von `e2e/anleitung-veranstalter.spec.ts`) – die geteilte Dev-DB wurde bewusst
   nicht zurückgesetzt. Bis dahin zeigen Bild 02 noch drei Kacheln (ohne „Theke") und die Bilder
@@ -92,3 +92,5 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
 ---
 Branch: `feature/373-listenseiten-liste-zuerst-anlegen-per-button`
 Erstellt: 2026-10-07 18:41
+
+Erledigt 2026-10-07: Anleitungs-Bilder (02, 03, 04, 04b, 07) und `anleitung.pdf` neu erzeugt (frische Wegwerf-DB, Capture-Spec; PDF per Chromium-Druck).
