@@ -65,15 +65,18 @@ describe("AppHeader", () => {
     expect(screen.getByRole("link", { name: "Veranstaltungen" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Katalog" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Teilnehmer" })).not.toBeInTheDocument();
+    // spec-373 AK3.4: ohne `verwalter` kein Theke-Eintrag.
+    expect(screen.queryByRole("link", { name: "Theke" })).not.toBeInTheDocument();
   });
 
-  it("should_showKatalogAndTeilnehmer_when_roleIsVerwalter", async () => {
+  it("should_showKatalogTeilnehmerAndTheke_when_roleIsVerwalter", async () => {
     loginWithRoles(["verwalter"]);
 
     render(await AppHeader());
 
     expect(screen.getByRole("link", { name: "Katalog" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Teilnehmer" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Theke" })).toHaveAttribute("href", "/verwaltung/theke");
     expect(screen.queryByRole("link", { name: "Veranstaltungen" })).not.toBeInTheDocument();
   });
 

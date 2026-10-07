@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { Teilnehmer } from "@/db/schema";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/teilnehmer", () => ({ listTeilnehmer: vi.fn() }));
+vi.mock("./actions", () => ({
+  createTeilnehmerAction: vi.fn(),
+  updateTeilnehmerAction: vi.fn(),
+  setTeilnehmerActiveAction: vi.fn(),
+}));
 
 import { auth } from "@/auth";
 import { listTeilnehmer } from "@/db/teilnehmer";
@@ -69,7 +74,29 @@ describe("TeilnehmerPage", () => {
     expect(within(kopf).queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("should_showEmptyMessage_when_noTeilnehmer", async () => {
+  it("should_showNeuButtonInHeaderAndNoFormOnLoad_when_verwalter", async () => {
+    // spec-373 AK1.1/AK8.1: Anlegen über „+ Neu", das Formular ist beim Laden nicht sichtbar.
+    authMock.mockResolvedValue(session(["verwalter"]));
+    listTeilnehmerMock.mockResolvedValue([familie]);
+
+    render(await TeilnehmerPage());
+
+    const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+    expect(within(kopf).getByRole("button", { name: "+ Neu" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Anzeigename")).not.toBeInTheDocument();
+  });
+
+  it("should_notShowNeuButton_when_userIsNotVerwalter", async () => {
+    // AK1.6
+    authMock.mockResolvedValue(session(["veranstalter"]));
+
+    render(await TeilnehmerPage());
+
+    expect(screen.queryByRole("button", { name: "+ Neu" })).not.toBeInTheDocument();
+  });
+
+  it("should_showEmptyMessageWithAnlegenButton_when_noTeilnehmer", async () => {
+    // AK6.1
     authMock.mockResolvedValue(session(["verwalter"]));
     listTeilnehmerMock.mockResolvedValue([]);
 
@@ -77,5 +104,7 @@ describe("TeilnehmerPage", () => {
 
     expect(screen.getByText(/Noch keine Teilnehmer erfasst/)).toBeInTheDocument();
     expect(screen.getByText(/Teilnehmer \(0\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Teilnehmer anlegen" }));
+    expect(screen.getByRole("dialog", { name: "Teilnehmer anlegen" })).toBeInTheDocument();
   });
 });

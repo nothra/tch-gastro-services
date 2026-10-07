@@ -25,14 +25,15 @@
 | `/` | Seite | Startseite: rollengefilterte Bereichs-Kacheln; für `veranstalter` darüber die offenen Veranstaltungen als Schnellzugriff (#374, ADR-057 D3) | angemeldet (Veranstaltungsliste nur mit `veranstalter`) |
 | `/login` | Seite | Anmeldung (Credentials) | öffentlich |
 | `/theke/[token]` | Seite | Selbstbedienung (Namenswahl + Verzehr erfassen) | öffentlich (kein Auth-Gate, Token; Rate-Limit im Proxy, ADR-048) |
-| `/veranstaltung` | Seite | Veranstaltungs-Liste | `veranstalter` |
+| `/veranstaltung` | Seite | Veranstaltungs-Liste (Gruppen „Offen"/„Abgeschlossen", Katalog + Kasse je Zeile); Anlegen per „+ Neu"-Dialog (#373) | `veranstalter` |
 | `/veranstaltung/[id]` | Seite | Veranstaltung führen (Detail); Metadaten bearbeiten + löschen für datierte, offene Veranstaltungen (#352) | `veranstalter` |
 | `/veranstaltung/[id]/verzehr` | Seite | Verzehr erfassen (Einzelansicht je Person: Chip-Leiste, Kategorie-Umschalter Getränke/Kaffee/Essen, „Nächste Person"); personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |
 | `/veranstaltung/[id]/auslagen` | Seite | Auslagenerstattung | `veranstalter` |
 | `/veranstaltung/[id]/kassieren` | Seite | Kassieren & Abschluss; personenbezogener Einstieg via `?zeile=<zeileId>` | `veranstalter` |
 | `/verwaltung/katalog` | Seite | Leitet auf `/verwaltung/katalog/[id]` mit dem Standard-Katalog um (#345) | `verwalter` |
-| `/verwaltung/katalog/[id]` | Seite | Katalog/Preise pflegen; `[id]` wählt den gerade gepflegten Katalog (Umschalter + Katalog-Management: anlegen/umbenennen/deaktivieren/duplizieren, #345) | `verwalter` |
-| `/verwaltung/teilnehmer` | Seite | Teilnehmer-Stammdaten pflegen | `verwalter` |
+| `/verwaltung/katalog/[id]` | Seite | Katalog/Preise pflegen; `[id]` wählt den gerade gepflegten Katalog (Auswahlliste + Katalog-Management: anlegen/umbenennen/deaktivieren/duplizieren, #345); Artikel nach Kategorie, Anlegen/Bearbeiten im Dialog (#373) | `verwalter` |
+| `/verwaltung/teilnehmer` | Seite | Teilnehmer-Stammdaten pflegen; Anlegen per „+ Neu"-Dialog (#373) | `verwalter` |
+| `/verwaltung/theke` | Seite | Stehende Theke je Kasse einrichten (idempotent; vorher Teil von `/veranstaltung`, #373) | `verwalter` |
 
 ## API-Route-Handler (`app/api/**/route.ts`)
 

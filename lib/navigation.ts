@@ -16,6 +16,8 @@ export const navItems: readonly NavItem[] = [
   { label: "Veranstaltungen", href: "/veranstaltung", requiredRole: "veranstalter" },
   { label: "Katalog", href: "/verwaltung/katalog", requiredRole: "verwalter" },
   { label: "Teilnehmer", href: "/verwaltung/teilnehmer", requiredRole: "verwalter" },
+  // Stehende Theke einrichten – seit #373 Verwaltungsseite statt Teil der Veranstaltungsliste.
+  { label: "Theke", href: "/verwaltung/theke", requiredRole: "verwalter" },
 ];
 
 // Reine Filterfunktion (mockfrei testbar): nur Einträge, deren Rolle die Session besitzt.
