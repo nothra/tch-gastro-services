@@ -48,6 +48,10 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-07): NEEDS_REWORK – 0 kritisch, 3 wichtig (W1 Fokusverlust nach Erfolg aus
+  Leerzustand, W2 `useDialogFormular` dupliziert `useSchliessendeAction` mit falscher Begründung,
+  W3 Anleitung: Bild 02/Unterschrift/Stand fehlen in der Vor-Merge-Checkbox), 14 Nitpicks.
+  Details: `tasks/review-373.md`. Out-of-Scope: Issue #398, ein `kleinfunde.md`-Eintrag.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
