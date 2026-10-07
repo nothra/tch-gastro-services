@@ -13,7 +13,10 @@ import { useActionState } from "react";
 // ebenfalls der Konsument (`<form action>` oder `startTransition` in `onSubmit`, siehe
 // `FormularDialog.tsx`).
 
-type FormAction<State> = (prevState: State | undefined, formData: FormData) => Promise<State>;
+export type FormAction<State> = (
+  prevState: State | undefined,
+  formData: FormData,
+) => Promise<State>;
 
 export function useSchliessendeAction<State extends { ok?: boolean }>(
   action: FormAction<State>,

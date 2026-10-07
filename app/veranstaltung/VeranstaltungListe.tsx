@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import type { Catalog, Kasse, Veranstaltung } from "@/db/schema";
+import { Leerzustand } from "@/app/components/ui/Leerzustand";
 import { VeranstaltungAnlegen } from "./VeranstaltungAnlegen";
 import { KASSE_LABEL, formatDatum } from "./labels";
 
@@ -74,15 +74,6 @@ export function VeranstaltungListe({
         </section>
       )}
     </>
-  );
-}
-
-function Leerzustand({ text, aktion }: { text: string; aktion: ReactNode }) {
-  return (
-    <div className="flex flex-col items-start gap-3">
-      <p className="text-sm text-muted">{text}</p>
-      {aktion}
-    </div>
   );
 }
 

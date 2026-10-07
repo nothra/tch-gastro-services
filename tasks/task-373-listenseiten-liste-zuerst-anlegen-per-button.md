@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -78,6 +78,12 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
   haben mindestens einen Test; keine neuen Tests nötig, kein Produktionscode geändert.
 - Bewusst ungetestet bleibt der Fokusfall beim Umsortieren innerhalb einer Gruppe (Review-Nitpick) und
   die werfende Action (siehe Rework 1).
+
+## Refactoring-Notizen
+- /refactor (2026-10-07): Dreifach kopierter Leerzustand (Text + Anlege-Aktion) als `ui/Leerzustand`
+  extrahiert (Veranstaltungen, Teilnehmer, Katalog); doppelter `FormAction`-Typ aus dem
+  Review-Nitpick jetzt aus `useSchliessendeAction` exportiert und in `FormularDialog` importiert.
+  Kein neues Verhalten; `app/`-Tests 1243/1243, tsc und eslint grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

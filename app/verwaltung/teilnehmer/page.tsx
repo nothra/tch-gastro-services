@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { hasRole } from "@/lib/authz";
 import { listTeilnehmer } from "@/db/teilnehmer";
+import { Leerzustand } from "@/app/components/ui/Leerzustand";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { TeilnehmerAnlegen } from "./TeilnehmerAnlegen";
 import { TeilnehmerRow } from "./TeilnehmerRow";
@@ -29,10 +30,10 @@ export default async function TeilnehmerPage() {
       <section className="flex flex-col gap-3">
         <h2>Teilnehmer ({teilnehmer.length})</h2>
         {teilnehmer.length === 0 ? (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-muted">Noch keine Teilnehmer erfasst.</p>
-            <TeilnehmerAnlegen ausloeser="Teilnehmer anlegen" imLeerzustand />
-          </div>
+          <Leerzustand
+            text="Noch keine Teilnehmer erfasst."
+            aktion={<TeilnehmerAnlegen ausloeser="Teilnehmer anlegen" imLeerzustand />}
+          />
         ) : (
           <ul className="flex flex-col gap-2">
             {teilnehmer.map((row) => (

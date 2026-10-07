@@ -4,7 +4,7 @@ import { startTransition, useEffect, useRef, useState, type FormEvent } from "re
 import type { ReactNode } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
-import { useSchliessendeAction } from "./useSchliessendeAction";
+import { useSchliessendeAction, type FormAction } from "./useSchliessendeAction";
 
 // Route-neutrale Hülle „Formular im Dialog" der Listenseiten (spec-373 AK1, AK4.3): Auslöser,
 // modaler Dialog, Schließen bei Erfolg, Escape-Sperre während der Action. Erfolgsregel und
@@ -13,8 +13,6 @@ import { useSchliessendeAction } from "./useSchliessendeAction";
 // Abgeschickt wird über `onSubmit` + `startTransition` statt über `<form action>`: React setzt ein
 // per `action` abgeschicktes Formular nach JEDER beendeten Action zurück – auch nach einer
 // Ablehnung, und dann wären die Eingaben weg (AK1.4).
-
-type FormAction<State> = (prevState: State | undefined, formData: FormData) => Promise<State>;
 
 /** Es gibt je Seite genau einen Anlege-Auslöser im Seitenkopf; er trägt diese Id. */
 const SEITENKOPF_AUSLOESER_ID = "anlegen-seitenkopf";

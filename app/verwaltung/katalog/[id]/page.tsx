@@ -7,6 +7,7 @@ import { ArtikelAnlegen } from "../ArtikelAnlegen";
 import { CatalogRow } from "../CatalogRow";
 import { CatalogSwitcher } from "./CatalogSwitcher";
 import { CatalogControls } from "./CatalogControls";
+import { Leerzustand } from "@/app/components/ui/Leerzustand";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 
 // Dynamische Katalog-Seite (#345). Der Parameter [id] gibt an, welcher Katalog
@@ -42,10 +43,12 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-muted">Noch keine Artikel in diesem Katalog.</p>
-          <ArtikelAnlegen catalogId={catalogId} ausloeser="Artikel anlegen" imLeerzustand />
-        </div>
+        <Leerzustand
+          text="Noch keine Artikel in diesem Katalog."
+          aktion={
+            <ArtikelAnlegen catalogId={catalogId} ausloeser="Artikel anlegen" imLeerzustand />
+          }
+        />
       ) : (
         <ArtikelGruppen items={items} catalogId={catalogId} />
       )}
