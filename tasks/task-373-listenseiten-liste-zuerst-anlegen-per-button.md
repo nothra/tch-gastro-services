@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -69,6 +69,15 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
 - Iteration 2 (2026-10-07): APPROVED – W1–W3 bestätigt behoben, 0 kritisch, 0 wichtig,
   3 Nitpicks (doppelter `FormAction`-Typ, nicht durchgesetzte Seitenkopf-Id, unverifizierter
   Fokusfall beim Umsortieren innerhalb einer Gruppe). Details: `tasks/review-373.md`.
+
+## Test-Notizen
+- /test (2026-10-07): volle Suite inkl. DB-Integrationstests (`dotenv -e .env.local`) grün – 114 Dateien,
+  1566 Tests; Coverage gesamt 98,38 % Stmts / 98,25 % Branches (Schwelle 80 %). Alle in dieser Task
+  geänderten/neuen Dateien bei 100 %; die unter 100 % liegenden Dateien (`TeilnehmerRow`, `Dialog`,
+  `IdentityGate` u. a.) sind in dieser Task unverändert. Jedes AK (AK1–AK8) und die Fehlerszenarien
+  haben mindestens einen Test; keine neuen Tests nötig, kein Produktionscode geändert.
+- Bewusst ungetestet bleibt der Fokusfall beim Umsortieren innerhalb einer Gruppe (Review-Nitpick) und
+  die werfende Action (siehe Rework 1).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
