@@ -1,6 +1,7 @@
 import path from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { gastHinzufuegen } from "./helpers/detailseite";
+import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für die aufgeräumte Kassieren-Seite und den Abschluss im Kopf der
 // Detailseite (#371, spec-371, ADR-055). Prüft gegen einen echten Server, was jsdom nicht belegen
@@ -43,22 +44,8 @@ async function login(page: Page) {
 
 // Legt eine frische Veranstaltung an und liefert ihren Detail-Pfad – Identifikation über den
 // Link-Zuwachs (Muster aus veranstaltung-detailseite.spec.ts).
-async function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
-  await page.goto("/veranstaltung");
-  const anlegen = page.locator("form").filter({ has: page.getByLabel("Bezeichnung") });
-  await anlegen.getByLabel("Bezeichnung").fill(bezeichnung);
-  await anlegen.getByLabel("Datum").fill("2026-10-05");
-  await anlegen.getByLabel("Kasse").selectOption({ label: "Montagsrunde" });
-
-  const links = page.getByRole("link", { name: bezeichnung });
-  const before = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  await anlegen.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Veranstaltung angelegt.")).toBeVisible();
-  await expect(links).toHaveCount(before.length + 1);
-  const after = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  const neu = after.find((href) => href && !before.includes(href));
-  expect(neu, "neue Veranstaltung im Listen-Link gefunden").toBeTruthy();
-  return neu as string;
+function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
+  return legeVeranstaltungAn(page, bezeichnung, "2026-10-05");
 }
 
 // Ein Getränk für die Person erfassen – irgendein Artikel des Standardkatalogs (Migration 0004);

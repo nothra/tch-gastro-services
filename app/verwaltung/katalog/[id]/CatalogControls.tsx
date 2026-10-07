@@ -93,7 +93,7 @@ function CatalogModal({
 }
 
 // Katalog-Management-Controls (#345): Buttons für Anlage, Umbenennen, Deaktivieren/Reaktivieren,
-// Duplizieren. Jede Action nutzt `useActionState` (wie `CatalogItemForm`/`CatalogRow`) statt
+// Duplizieren. Jede Action nutzt `useActionState` (wie `ArtikelAnlegen`/`CatalogRow`) statt
 // eines blinden `await` – Fehler werden sichtbar, und ein Modal schließt nur bei
 // `state.ok === true` (Review-Finding #345 Runde 1, Wichtig: das Modal schloss sich zuvor auch
 // bei einem Namenskonflikt kommentarlos).

@@ -147,17 +147,23 @@ export async function updateCatalogItemAction(
   return { ok: true };
 }
 
-// Deaktivieren/Reaktivieren als direkte Formular-Action (kein Formularzustand nötig).
-// `setItemActive` liefert ebenfalls `undefined`, wenn keine Zeile getroffen wurde – diese Action
-// hat aber keinen Meldungskanal (Rückgabetyp `void`, kein `useActionState`). Der Fall bleibt
-// daher bewusst stumm; einen sichtbaren Fehlerweg mit #345 folgt mit der Katalog-verwaltung.
-export async function setCatalogItemActiveAction(formData: FormData): Promise<void> {
+// Deaktivieren/Reaktivieren aus dem Bearbeiten-Dialog. Seit #373 mit Meldungskanal
+// (`useActionState`, spec-373 AK4.5): trifft das guarded UPDATE keine Zeile (z. B. in einem
+// zweiten Tab gelöscht), meldet die Action das, statt stumm Erfolg vorzutäuschen (Lesson #55).
+export async function setCatalogItemActiveAction(
+  _prevState: CatalogFormState | undefined,
+  formData: FormData,
+): Promise<CatalogFormState> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
   const catalogId = String(formData.get("catalogId") ?? "");
-  if (!id || !catalogId) return;
-  await setItemActive(id, catalogId, formData.get("active") === "true");
+  if (!id) return { error: "Kein Artikel angegeben." };
+  if (!catalogId) return { error: ITEM_CATALOG_REFERENCE_MISSING_MESSAGE };
+
+  const updated = await setItemActive(id, catalogId, formData.get("active") === "true");
+  if (!updated) return { error: ITEM_NOT_FOUND };
   revalidatePath(`/verwaltung/katalog/${catalogId}`);
+  return { ok: true };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

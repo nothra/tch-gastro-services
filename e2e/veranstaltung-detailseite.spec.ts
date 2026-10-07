@@ -10,6 +10,11 @@ import {
   seitenkopf,
   teilnehmerDialog,
 } from "./helpers/detailseite";
+import {
+  legeVeranstaltungAn,
+  oeffneTeilnehmerAnlegen,
+  schickeAnlegeDialogAb,
+} from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für die neu geordnete Detailseite (#369, spec-369) und ihre Kopfaktionen
 // (#391, spec-391). Prüft gegen einen echten Server, was jsdom nicht belegen kann: das native
@@ -52,29 +57,15 @@ async function login(page: Page) {
 
 // Legt eine frische Veranstaltung an und liefert ihren Detail-Pfad – Identifikation über den
 // Link-Zuwachs (Muster aus veranstaltung-bearbeiten-loeschen.spec.ts).
-async function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
-  await page.goto("/veranstaltung");
-  const anlegen = page.locator("form").filter({ has: page.getByLabel("Bezeichnung") });
-  await anlegen.getByLabel("Bezeichnung").fill(bezeichnung);
-  await anlegen.getByLabel("Datum").fill("2026-10-05");
-  await anlegen.getByLabel("Kasse").selectOption({ label: "Montagsrunde" });
-
-  const links = page.getByRole("link", { name: bezeichnung });
-  const before = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  await anlegen.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Veranstaltung angelegt.")).toBeVisible();
-  await expect(links).toHaveCount(before.length + 1);
-  const after = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  const neu = after.find((href) => href && !before.includes(href));
-  expect(neu, "neue Veranstaltung im Listen-Link gefunden").toBeTruthy();
-  return neu as string;
+function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
+  return legeVeranstaltungAn(page, bezeichnung, "2026-10-05");
 }
 
 async function createStammteilnehmer(page: Page, name: string) {
   await page.goto("/verwaltung/teilnehmer");
-  await expect(page.getByLabel("Anzeigename")).toHaveValue("");
-  await page.getByLabel("Anzeigename").fill(name);
-  await page.getByRole("button", { name: "Anlegen" }).click();
+  const dialog = await oeffneTeilnehmerAnlegen(page);
+  await dialog.getByLabel("Anzeigename").fill(name);
+  await schickeAnlegeDialogAb(dialog);
   await expect(page.getByText(name, { exact: true })).toBeVisible();
 }
 

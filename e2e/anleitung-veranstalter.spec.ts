@@ -7,6 +7,14 @@ import {
   oeffneTeilnehmerDialog,
   teilnehmerDialog,
 } from "./helpers/detailseite";
+import {
+  fuelleVeranstaltung,
+  neuerListenLink,
+  oeffneArtikelAnlegen,
+  oeffneTeilnehmerAnlegen,
+  oeffneVeranstaltungAnlegen,
+  schickeAnlegeDialogAb,
+} from "./helpers/listenseiten";
 
 // Capture-Spec für die Veranstalter-Bedienungsanleitung (#221). Fährt den kompletten
 // Veranstalter-Workflow gegen den lokalen Dev-Server durch, legt dabei die Demo-Daten live über
@@ -39,7 +47,8 @@ const STAMMTEILNEHMER = [
   { name: "Familie Klein", typ: "Familie", mitglied: true },
 ] as const;
 
-const VERANSTALTUNG = { bezeichnung: "Montagsrunde", datum: "2026-07-27", kasse: "Montagsrunde" };
+// Kasse: „Montagsrunde" (fest in `fuelleVeranstaltung`).
+const VERANSTALTUNG = { bezeichnung: "Montagsrunde", datum: "2026-07-27" };
 
 // Füllt nur die Zugangsdaten (kein Klick) – der „Anmelden"-Klick erfolgt bewusst erst nach dem
 // Screenshot des leeren Formulars.
@@ -76,10 +85,9 @@ async function shotEl(page: Page, name: string, locator: Locator) {
   await locator.screenshot({ path: path.join(BILDER_DIR, name), animations: "disabled" });
 }
 
-// Anzahl der Artikel im Katalog, aus der Überschrift „Artikel (n)" der Katalog-Seite.
-async function artikelAnzahl(page: Page): Promise<number> {
-  const text = await page.getByRole("heading", { name: /^Artikel \(\d+\)$/ }).innerText();
-  return Number(/\((\d+)\)/.exec(text)?.[1]);
+// Artikelzeilen der Katalog-Seite – über alle Kategorie-Gruppen (spec-373 AK4.1) hinweg.
+function artikelZeilen(page: Page): Locator {
+  return page.locator('main section[aria-labelledby^="kategorie-"] li');
 }
 
 // Setzt eine frisch geseedete DB voraus (siehe Header) und legt die Demo-Stammdaten deterministisch
@@ -90,21 +98,15 @@ async function createKatalogArtikel(page: Page) {
   await expect(page.getByRole("heading", { name: "Katalog" })).toBeVisible();
   // Die frisch migrierte DB bringt schon die Preisliste des Standardkatalogs mit (Migration 0004); gezählt
   // wird deshalb relativ zum Startwert, nicht ab 1.
-  const startAnzahl = await artikelAnzahl(page);
+  const startAnzahl = await artikelZeilen(page).count();
   for (let i = 0; i < KATALOG.length; i++) {
     const artikel = KATALOG[i];
-    // Erst wenn das Formular vom vorherigen Erfolg zurückgesetzt ist, befüllen – sonst leert der
-    // key-Remount die frische Eingabe (Race). Erfolg über die wachsende Listen-Zählung prüfen,
-    // nicht über die stehenbleibende Toast-Meldung.
-    await expect(page.getByLabel("Bezeichnung")).toHaveValue("");
-    await page.getByLabel("Bezeichnung").fill(artikel.name);
-    await page.getByLabel("Preis (EUR)").fill(artikel.preis);
-    await page.getByLabel("Kategorie").selectOption({ label: artikel.kategorie });
-    // exact: seit #345 steht daneben „+ Katalog anlegen".
-    await page.getByRole("button", { name: "Anlegen", exact: true }).click();
-    await expect(
-      page.getByRole("heading", { name: `Artikel (${startAnzahl + i + 1})` }),
-    ).toBeVisible();
+    const dialog = await oeffneArtikelAnlegen(page);
+    await dialog.getByLabel("Bezeichnung").fill(artikel.name);
+    await dialog.getByLabel("Preis (EUR)").fill(artikel.preis);
+    await dialog.getByLabel("Kategorie").selectOption({ label: artikel.kategorie });
+    await schickeAnlegeDialogAb(dialog);
+    await expect(artikelZeilen(page)).toHaveCount(startAnzahl + i + 1);
   }
 }
 
@@ -113,39 +115,30 @@ async function createStammTeilnehmer(page: Page) {
   await expect(page.getByRole("heading", { name: "Teilnehmer", exact: true })).toBeVisible();
   for (let i = 0; i < STAMMTEILNEHMER.length; i++) {
     const person = STAMMTEILNEHMER[i];
-    await expect(page.getByLabel("Anzeigename")).toHaveValue("");
-    await page.getByLabel("Anzeigename").fill(person.name);
-    await page.getByLabel("Typ").selectOption({ label: person.typ });
-    if (person.mitglied) await page.getByLabel("Mitglied").check();
-    await page.getByRole("button", { name: "Anlegen" }).click();
+    const dialog = await oeffneTeilnehmerAnlegen(page);
+    await dialog.getByLabel("Anzeigename").fill(person.name);
+    await dialog.getByLabel("Typ").selectOption({ label: person.typ });
+    if (person.mitglied) await dialog.getByLabel("Mitglied").check();
+    await schickeAnlegeDialogAb(dialog);
     await expect(page.getByRole("heading", { name: `Teilnehmer (${i + 1})` })).toBeVisible();
   }
 }
 
-// Neu angelegte Veranstaltung eindeutig identifizieren: Links vor/nach dem Anlegen vergleichen.
+// Bild 03 zeigt den ausgefüllten Anlege-Dialog, Bild 04 die Liste mit der neuen Veranstaltung.
 async function createVeranstaltung(page: Page): Promise<string> {
   await page.goto("/veranstaltung");
   await expect(page.getByRole("heading", { name: "Veranstaltungen", exact: true })).toBeVisible();
-  const anlegen = page.locator("form").filter({ has: page.getByLabel("Bezeichnung") });
-  await anlegen.getByLabel("Bezeichnung").fill(VERANSTALTUNG.bezeichnung);
-  await anlegen.getByLabel("Datum").fill(VERANSTALTUNG.datum);
-  await anlegen.getByLabel("Kasse").selectOption({ label: VERANSTALTUNG.kasse });
-  await shot(page, "03-veranstaltung-anlegen.png", anlegen);
+  const dialog = await oeffneVeranstaltungAnlegen(page);
+  await fuelleVeranstaltung(dialog, VERANSTALTUNG.bezeichnung, VERANSTALTUNG.datum);
+  // Das native `<dialog>` fokussiert beim Öffnen das erste Feld – fürs Bild ohne Fokusring.
+  await dialog.getByLabel("Bezeichnung").blur();
+  await shotEl(page, "03-veranstaltung-anlegen.png", dialog);
 
-  const links = page.getByRole("link", { name: VERANSTALTUNG.bezeichnung });
-  const before = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  await anlegen.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Veranstaltung angelegt.")).toBeVisible();
-  await expect(links).toHaveCount(before.length + 1);
-  const after = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  const neu = after.find((href) => href && !before.includes(href));
-  expect(neu, "neue Veranstaltung im Listen-Link gefunden").toBeTruthy();
-  await shot(
-    page,
-    "04-veranstaltung-liste.png",
-    page.getByRole("heading", { name: "Veranstaltungen" }),
+  const neu = await neuerListenLink(page, VERANSTALTUNG.bezeichnung, () =>
+    schickeAnlegeDialogAb(dialog),
   );
-  return neu as string;
+  await shot(page, "04-veranstaltung-liste.png");
+  return neu;
 }
 
 // Konto-Menü (#374): ein natives Popover in der Top-Layer, deshalb Viewport- statt Element-Bild,
