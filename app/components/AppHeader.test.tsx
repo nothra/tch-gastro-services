@@ -76,7 +76,10 @@ describe("AppHeader", () => {
 
     expect(screen.getByRole("link", { name: "Katalog" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Teilnehmer" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Theke" })).toHaveAttribute("href", "/verwaltung/theke");
+    expect(screen.getByRole("link", { name: "Theke" })).toHaveAttribute(
+      "href",
+      "/verwaltung/theke",
+    );
     expect(screen.queryByRole("link", { name: "Veranstaltungen" })).not.toBeInTheDocument();
   });
 

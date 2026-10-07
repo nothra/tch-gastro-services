@@ -65,7 +65,12 @@ function VeranstaltungFormular({
         ))}
       </SelectField>
       <Notice kind="fehler">{state?.error}</Notice>
-      <DialogAktionen steuerung={steuerung} pending={pending} label="Anlegen" laufLabel="Speichern …" />
+      <DialogAktionen
+        steuerung={steuerung}
+        pending={pending}
+        label="Anlegen"
+        laufLabel="Speichern …"
+      />
     </form>
   );
 }

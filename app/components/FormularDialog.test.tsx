@@ -20,7 +20,12 @@ function Formular({ steuerung }: { steuerung: DialogSteuerung }) {
         <input name="name" />
       </label>
       {state?.error && <p role="alert">{state.error}</p>}
-      <DialogAktionen steuerung={steuerung} pending={pending} label="Anlegen" laufLabel="Anlegen …" />
+      <DialogAktionen
+        steuerung={steuerung}
+        pending={pending}
+        label="Anlegen"
+        laufLabel="Anlegen …"
+      />
     </form>
   );
 }
