@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -86,7 +86,8 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
   Kein neues Verhalten; `app/`-Tests 1243/1243, tsc und eslint grün.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- /codify (2026-10-07): drei Learnings in `lessons/frontend-react.md` (`<form action>`-Reset, Rezidiv #371 Fokus-Ersatzziel
+  + Hook-Abgleich) und `lessons/factory-workflow.md` (Rezidiv #391 Vor-Merge-Checkbox). Details: `tasks/codify-373.md`.
 
 ---
 Branch: `feature/373-listenseiten-liste-zuerst-anlegen-per-button`
