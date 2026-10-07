@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -66,6 +66,9 @@ Wortlaut (GIVEN/WHEN/THEN) und Fehlerszenarien stehen in der Spec; hier die Kurz
   E2E-Prüfungen, Link-Teilstring im E2E-Helfer, AK7.2-Test, Test für werfende Action (eine
   werfende Action landet bei `useActionState` in der Error Boundary, der Zustand danach ist
   nicht sinnvoll prüfbar). E2E erneut grün: `listenseiten` 4/4, `veranstaltung-detailseite` 6/6.
+- Iteration 2 (2026-10-07): APPROVED – W1–W3 bestätigt behoben, 0 kritisch, 0 wichtig,
+  3 Nitpicks (doppelter `FormAction`-Typ, nicht durchgesetzte Seitenkopf-Id, unverifizierter
+  Fokusfall beim Umsortieren innerhalb einer Gruppe). Details: `tasks/review-373.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
