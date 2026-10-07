@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { useEffect, useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import {
   AnlegeDialog,
@@ -126,13 +127,15 @@ describe("AnlegeDialog + useDialogFormular (spec-373 AK1.1–AK1.5)", () => {
     expect(screen.getByRole("button", { name: "+ Neu" })).toHaveFocus();
   });
 
-  it("should_close_when_escapePressed", () => {
+  it("should_closeAndReturnFocus_when_escapePressed", () => {
+    // AK1.5 nennt Abbrechen UND Escape.
     renderDialog();
     oeffnen();
 
     fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
 
     expect(dialogElement()).not.toHaveAttribute("open");
+    expect(screen.getByRole("button", { name: "+ Neu" })).toHaveFocus();
   });
 
   it("should_startWithoutOldError_when_reopenedAfterRejection", async () => {
@@ -176,15 +179,66 @@ describe("AnlegeDialog + useDialogFormular (spec-373 AK1.1–AK1.5)", () => {
   });
 });
 
-describe("AnlegeDialog – Varianten", () => {
-  it("should_renderSecondaryTrigger_when_variantSecondary", () => {
-    // AK6.1: der Button im Leerzustand ist eine zweite, ruhigere Instanz desselben Dialogs.
-    render(
-      <AnlegeDialog ausloeser="Etwas anlegen" titel="Etwas anlegen" variant="secondary">
-        {() => null}
-      </AnlegeDialog>,
-    );
+describe("AnlegeDialog – Leerzustand", () => {
+  // Seite mit Kopf-Auslöser und Leerzustand: Ein erfolgreiches Anlegen füllt die Liste, der
+  // Leerzustand samt seinem Auslöser verschwindet (Zweigwechsel nach Revalidierung, Lesson #371).
+  const seite = { listeFuellen: () => {} };
 
-    expect(screen.getByRole("button", { name: "Etwas anlegen" })).toHaveClass("border-line");
+  function SeiteMitLeerzustand() {
+    const [leer, setLeer] = useState(true);
+    useEffect(() => {
+      seite.listeFuellen = () => setLeer(false);
+    });
+    const formular = (steuerung: DialogSteuerung) => <Formular steuerung={steuerung} />;
+    return (
+      <>
+        <AnlegeDialog ausloeser="+ Neu" titel="Etwas anlegen">
+          {formular}
+        </AnlegeDialog>
+        {leer ? (
+          <AnlegeDialog ausloeser="Erstes anlegen" titel="Etwas anlegen" imLeerzustand>
+            {formular}
+          </AnlegeDialog>
+        ) : (
+          <p>Liste</p>
+        )}
+      </>
+    );
+  }
+
+  function ausLeerzustandOeffnen() {
+    render(<SeiteMitLeerzustand />);
+    fireEvent.click(screen.getByRole("button", { name: "Erstes anlegen" }));
+  }
+
+  it("should_renderSecondaryTrigger_when_imLeerzustand", () => {
+    // AK6.1: der Button im Leerzustand ist eine zweite, ruhigere Instanz desselben Dialogs.
+    render(<SeiteMitLeerzustand />);
+
+    expect(screen.getByRole("button", { name: "Erstes anlegen" })).toHaveClass("border-line");
+    expect(screen.getByRole("button", { name: "+ Neu" })).toHaveClass("bg-accent");
+  });
+
+  it("should_focusHeaderTrigger_when_successRemovesEmptyState", async () => {
+    // W1/Lesson #371: der eigene Auslöser ist nach dem Erfolg ausgehängt – Fokusziel ist der
+    // Auslöser im Seitenkopf, nicht `<body>`.
+    action.mockImplementation(async () => {
+      seite.listeFuellen();
+      return { ok: true };
+    });
+    ausLeerzustandOeffnen();
+
+    await absenden();
+
+    expect(screen.getByText("Liste")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Neu" })).toHaveFocus();
+  });
+
+  it("should_returnFocusToEmptyStateTrigger_when_abbrechen", () => {
+    ausLeerzustandOeffnen();
+
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+
+    expect(screen.getByRole("button", { name: "Erstes anlegen" })).toHaveFocus();
   });
 });

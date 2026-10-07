@@ -6,7 +6,6 @@ import {
   useDialogFormular,
   type DialogSteuerung,
 } from "@/app/components/FormularDialog";
-import type { ButtonVariant } from "@/app/components/ui/Button";
 import { Notice } from "@/app/components/ui/Notice";
 import { createCatalogItemAction } from "./actions";
 import { CatalogFields } from "./CatalogFields";
@@ -15,13 +14,13 @@ interface ArtikelAnlegenProps {
   /** Der geöffnete Katalog – angelegt wird immer in ihm (#345, spec-373 AK6.2). */
   catalogId: string;
   ausloeser: string;
-  variant?: ButtonVariant;
+  imLeerzustand?: boolean;
 }
 
 // „+ Artikel" der Katalogseite (spec-373 AK1): das bisherige Anlege-Formular im Dialog.
-export function ArtikelAnlegen({ catalogId, ausloeser, variant }: ArtikelAnlegenProps) {
+export function ArtikelAnlegen({ catalogId, ausloeser, imLeerzustand }: ArtikelAnlegenProps) {
   return (
-    <AnlegeDialog ausloeser={ausloeser} titel="Artikel anlegen" variant={variant}>
+    <AnlegeDialog ausloeser={ausloeser} titel="Artikel anlegen" imLeerzustand={imLeerzustand}>
       {(steuerung) => <ArtikelFormular catalogId={catalogId} steuerung={steuerung} />}
     </AnlegeDialog>
   );

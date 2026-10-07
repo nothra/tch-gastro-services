@@ -44,7 +44,7 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
       {items.length === 0 ? (
         <div className="flex flex-col items-start gap-3">
           <p className="text-sm text-muted">Noch keine Artikel in diesem Katalog.</p>
-          <ArtikelAnlegen catalogId={catalogId} ausloeser="Artikel anlegen" variant="secondary" />
+          <ArtikelAnlegen catalogId={catalogId} ausloeser="Artikel anlegen" imLeerzustand />
         </div>
       ) : (
         <ArtikelGruppen items={items} catalogId={catalogId} />

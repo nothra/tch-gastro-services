@@ -6,7 +6,7 @@ Diese Anleitung führt Sie Schritt für Schritt durch eine komplette Veranstaltu
 bis zum Abschlussbericht. Sie ist für alle gedacht, die **wenig Erfahrung mit Apps** haben.
 Jeder Schritt erklärt kurz: **Was tue ich?** und **Was passiert dann?**
 
-> **Stand: 5. Oktober 2026.** Die Bilder zeigen die App zu diesem Zeitpunkt. Wird die App später
+> **Stand: 7. Oktober 2026.** Die Bilder zeigen die App zu diesem Zeitpunkt. Wird die App später
 > geändert, können einzelne Bildschirme etwas anders aussehen – der Ablauf bleibt gleich. Wer die
 > App pflegt, findet am Ende unter **„Bilder aktualisieren"**, wie die Screenshots neu erzeugt
 > werden.
@@ -69,7 +69,7 @@ einem Tipp öffnen Sie eine davon direkt. Gibt es keine, steht dort **„Keine o
 mit der Schaltfläche **„Veranstaltung anlegen"**. Darunter folgen die Kacheln. Tippen Sie auf die
 Kachel **„Veranstaltungen"**.
 
-![Startseite mit Kopfzeile, dem Hinweis „Keine offene Veranstaltung." und den Kacheln „Veranstaltungen", „Katalog" und „Teilnehmer".](bilder/02-startseite.png)
+![Startseite mit Kopfzeile, dem Hinweis „Keine offene Veranstaltung." und den Kacheln „Veranstaltungen", „Katalog", „Teilnehmer" und „Theke".](bilder/02-startseite.png)
 
 **Abmelden:** Tippen Sie in der Kopfzeile auf das **Konto-Symbol**. Es öffnet sich ein kleines Menü
 mit Ihrer E-Mail-Adresse und der Schaltfläche **„Abmelden"**. Ein Tipp außerhalb des Menüs oder die

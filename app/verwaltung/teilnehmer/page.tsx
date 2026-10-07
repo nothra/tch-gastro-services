@@ -31,7 +31,7 @@ export default async function TeilnehmerPage() {
         {teilnehmer.length === 0 ? (
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm text-muted">Noch keine Teilnehmer erfasst.</p>
-            <TeilnehmerAnlegen ausloeser="Teilnehmer anlegen" variant="secondary" />
+            <TeilnehmerAnlegen ausloeser="Teilnehmer anlegen" imLeerzustand />
           </div>
         ) : (
           <ul className="flex flex-col gap-2">

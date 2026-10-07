@@ -7,7 +7,6 @@ import {
   useDialogFormular,
   type DialogSteuerung,
 } from "@/app/components/FormularDialog";
-import type { ButtonVariant } from "@/app/components/ui/Button";
 import { Field, SelectField } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
 import { createVeranstaltungAction } from "./actions";
@@ -17,13 +16,17 @@ interface VeranstaltungAnlegenProps {
   /** Die bereits auf `active` gefilterten Preislisten (#346 AK1/AK6) – die Seite filtert. */
   kataloge: Catalog[];
   ausloeser: string;
-  variant?: ButtonVariant;
+  imLeerzustand?: boolean;
 }
 
 // „+ Neu" der Veranstaltungsliste (spec-373 AK1): öffnet das bisherige Anlege-Formular im Dialog.
-export function VeranstaltungAnlegen({ kataloge, ausloeser, variant }: VeranstaltungAnlegenProps) {
+export function VeranstaltungAnlegen({
+  kataloge,
+  ausloeser,
+  imLeerzustand,
+}: VeranstaltungAnlegenProps) {
   return (
-    <AnlegeDialog ausloeser={ausloeser} titel="Veranstaltung anlegen" variant={variant}>
+    <AnlegeDialog ausloeser={ausloeser} titel="Veranstaltung anlegen" imLeerzustand={imLeerzustand}>
       {(steuerung) => <VeranstaltungFormular kataloge={kataloge} steuerung={steuerung} />}
     </AnlegeDialog>
   );

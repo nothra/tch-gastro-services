@@ -152,8 +152,9 @@ Veranstaltung wählbar ist.
   Anlege-Action; kein Absturz der Seite (Verhalten wie bisher).
 - [ ] Doppeltes Absenden im Dialog (Doppeltipp) → die Anlege-Schaltfläche ist während der Action gesperrt,
   der Dialog nicht per Escape schließbar (`schliessbar={false}`), damit eine Ablehnung nicht verborgen bleibt.
-- [ ] Artikel wird in einem zweiten Tab bereits deaktiviert/gelöscht → Fehlermeldung der Action im
-  Bearbeiten-Dialog statt stillem Erfolg (bestehendes guarded-UPDATE-Verhalten bleibt).
+- [ ] Artikel wird in einem zweiten Tab bereits gelöscht (bzw. gehört nicht zum Katalog) → Fehlermeldung
+  der Action im Bearbeiten-Dialog statt stillem Erfolg (bestehendes guarded-UPDATE-Verhalten bleibt).
+  Ein erneutes Deaktivieren eines schon deaktivierten Artikels ist dagegen ein stiller Erfolg.
 - [ ] Sehr lange Bezeichnungen/Namen brechen bei 375 px um, ohne Buttons aus dem Bild zu schieben.
 - [ ] Ein Katalog mit sehr vielen Artikeln in einer Kategorie bleibt scrollbar; keine Paging-Logik nötig.
 

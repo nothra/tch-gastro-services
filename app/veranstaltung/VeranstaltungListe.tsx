@@ -26,7 +26,7 @@ export function VeranstaltungListe({
     <VeranstaltungAnlegen
       kataloge={anlegbareKataloge}
       ausloeser="Veranstaltung anlegen"
-      variant="secondary"
+      imLeerzustand
     />
   );
 

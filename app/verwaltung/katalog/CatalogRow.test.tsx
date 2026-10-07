@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { useEffect, useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { CatalogItem } from "@/db/schema";
 
@@ -214,5 +215,43 @@ describe("CatalogRow – Bearbeiten-Dialog (spec-373 AK4.3/AK4.5)", () => {
 
     await act(async () => antworten({ error: "Artikel nicht gefunden." }));
     expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
+  });
+});
+
+describe("CatalogRow – Fokus nach Kategoriewechsel (Review #373 W1)", () => {
+  // Die Seite gruppiert nach Kategorie: Nach „Speichern" mit neuer Kategorie wandert die Zeile
+  // in eine andere Liste und wird dort neu gemountet – ihr alter Auslöser ist weg.
+  const seite = { umsortieren: () => {} };
+
+  function GruppierteSeite() {
+    const [kategorie, setKategorie] = useState<CatalogItem["category"]>("getraenk");
+    useEffect(() => {
+      seite.umsortieren = () => setKategorie("essen");
+    });
+    const zeileIn = (gruppe: CatalogItem["category"]) =>
+      kategorie === gruppe && (
+        <CatalogRow item={{ ...activeItem, category: kategorie }} catalogId="cat-1" />
+      );
+    return (
+      <>
+        <ul aria-label="Getränke">{zeileIn("getraenk")}</ul>
+        <ul aria-label="Essen">{zeileIn("essen")}</ul>
+      </>
+    );
+  }
+
+  it("should_focusMovedRow_when_saveChangesCategory", async () => {
+    updateMock.mockImplementation(async () => {
+      seite.umsortieren();
+      return { ok: true };
+    });
+    render(<GruppierteSeite />);
+    oeffnen();
+
+    await klicke("Speichern");
+
+    const essen = screen.getByRole("list", { name: "Essen" });
+    expect(essen).toContainElement(zeile());
+    expect(zeile()).toHaveFocus();
   });
 });

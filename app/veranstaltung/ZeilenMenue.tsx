@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 import { removeZeileAction } from "./actions";
-import { useSchliessendeAction } from "./useSchliessendeAction";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 
 // Zeilenmenü einer Teilnehmerzeile (spec-369 AK18–AK20, ADR-053 D2). Bewusst feature-lokal und
 // nicht unter `ui/`: es hat genau einen Konsumenten, ein projektweites Menü-Muster ist noch nicht

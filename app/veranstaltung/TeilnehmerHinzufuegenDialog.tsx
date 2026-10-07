@@ -9,7 +9,7 @@ import { TEILNEHMER_NAME_MAX } from "@/app/verwaltung/teilnehmer/schema";
 import { TYP_LABEL } from "@/app/verwaltung/teilnehmer/TeilnehmerFields";
 import type { Teilnehmer } from "@/db/schema";
 import { addZeilenAction, createWalkInAction } from "./actions";
-import { useSchliessendeAction } from "./useSchliessendeAction";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 
 // Der eine „+ Teilnehmer"-Dialog der Detailseite (spec-369 AK10–AK16, ADR-053 D1/D3): oben die
 // Auswahl aus den noch nicht erfassten aktiven Stammteilnehmern, darunter „Neuer Gast". Er ersetzt

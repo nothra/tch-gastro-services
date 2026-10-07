@@ -128,7 +128,8 @@ test.describe("Listenseiten – Liste zuerst, Anlegen per Dialog (#373)", () => 
       type: "AK4.6",
       description: `${anzahl} Artikel belegen ${listenHoehe} px = ${(listenHoehe / HANDY.height).toFixed(2)} Bildschirmhöhen`,
     });
-    // Richtwert ≤ 2 Bildschirmhöhen für 24 Artikel – auf die tatsächliche Anzahl umgerechnet.
+    // Richtwert ≤ 2 Bildschirmhöhen für 24 Artikel. Bei mehr Artikeln wächst die Grenze anteilig
+    // mit, bei weniger bleibt sie bei 2 Höhen (lockerer, nie strenger als der Richtwert).
     expect(listenHoehe).toBeLessThanOrEqual((2 * HANDY.height * Math.max(anzahl, 24)) / 24);
 
     // AK4.3/AK1.5: Tippen öffnet den Bearbeiten-Dialog, Abbrechen gibt den Fokus zurück.

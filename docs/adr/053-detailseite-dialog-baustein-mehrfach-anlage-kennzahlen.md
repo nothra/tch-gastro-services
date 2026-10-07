@@ -57,10 +57,18 @@ Dialog-Grundlage):
   Bereiche dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`), weil ein `setState`
   am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
   angeschlossen werden können.
-- „Bei Erfolg schließen" liegt einmal im Hook `app/veranstaltung/useSchliessendeAction.ts`
-  (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`); beide
-  Konsumenten (`TeilnehmerHinzufuegenDialog`, `ZeilenMenue`) nutzen ihn. Er bleibt
-  feature-lokal, bis #372 einen zweiten Bereich mitbringt.
+- „Bei Erfolg schließen" liegt einmal im Hook `app/components/useSchliessendeAction.ts`
+  (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`). Seit #373 ist er
+  route-neutral: neben den Dialogen der Detailseite (`TeilnehmerHinzufuegenDialog`,
+  `ZeilenMenue`, `AbschlussAktion`) baut auch `useDialogFormular` in
+  `app/components/FormularDialog.tsx` (Listenseiten) auf ihm auf. Wie `formAction` ans Formular
+  kommt, entscheidet der Konsument: die Listenseiten schicken über `onSubmit` +
+  `startTransition` ab, damit eine Ablehnung die Eingaben nicht zurücksetzt (spec-373 AK1.4); die
+  Detailseiten-Dialoge nutzen noch `<form action>` (#398).
+- Verschwindet der Auslöser nach einem Erfolg, weil die Revalidierung den Seitenzweig tauscht
+  (Leerzustand → Liste, Katalogzeile wechselt die Kategorie), lenkt `useFormularDialog` den Fokus
+  auf ein Ersatzziel (`ersatzFokusId`: Seitenkopf-Auslöser bzw. die umgezogene Zeile) statt ihn
+  auf `<body>` fallen zu lassen (#373, Lesson #371).
 - Die vier bestehenden Dialoge werden in #369 **nicht** migriert (das ist #372 AK1). Sie dürfen
   aber nach dieser ADR nicht als Vorbild für neue Dialoge dienen.
 - Keine neue Abhängigkeit (ADR-052 D1). Ein Fokus-Trap ist beim nativen modalen `<dialog>`

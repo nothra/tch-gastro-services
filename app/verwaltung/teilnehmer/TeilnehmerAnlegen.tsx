@@ -6,7 +6,6 @@ import {
   useDialogFormular,
   type DialogSteuerung,
 } from "@/app/components/FormularDialog";
-import type { ButtonVariant } from "@/app/components/ui/Button";
 import { Notice } from "@/app/components/ui/Notice";
 import { createTeilnehmerAction } from "./actions";
 import { TeilnehmerFields } from "./TeilnehmerFields";
@@ -14,13 +13,13 @@ import { TeilnehmerFields } from "./TeilnehmerFields";
 // „+ Neu" der Teilnehmerliste (spec-373 AK8.1): das bisherige Anlege-Formular im Dialog.
 export function TeilnehmerAnlegen({
   ausloeser,
-  variant,
+  imLeerzustand,
 }: {
   ausloeser: string;
-  variant?: ButtonVariant;
+  imLeerzustand?: boolean;
 }) {
   return (
-    <AnlegeDialog ausloeser={ausloeser} titel="Teilnehmer anlegen" variant={variant}>
+    <AnlegeDialog ausloeser={ausloeser} titel="Teilnehmer anlegen" imLeerzustand={imLeerzustand}>
       {(steuerung) => <TeilnehmerFormular steuerung={steuerung} />}
     </AnlegeDialog>
   );

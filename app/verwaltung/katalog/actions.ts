@@ -20,6 +20,7 @@ import { catalogItemSchema, catalogNameSchema } from "./schema";
 const CATALOG_PATH = "/verwaltung/katalog";
 const DUPLICATE_MESSAGE = "Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.";
 const ITEM_NOT_FOUND = "Artikel nicht gefunden.";
+const ITEM_ID_MISSING_MESSAGE = "Kein Artikel angegeben.";
 const CATALOG_NOT_FOUND = "Katalog nicht gefunden.";
 // Artikel-Actions: der Katalogbezug (`catalogId`-FormData-Feld) fehlt. Eigene Konstante statt
 // Wiederverwendung von `CATALOG_ID_MISSING_MESSAGE` (unten) – beide teilen sich zufällig denselben
@@ -127,7 +128,7 @@ export async function updateCatalogItemAction(
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
   const catalogId = String(formData.get("catalogId") ?? "");
-  if (!id) return { error: "Kein Artikel angegeben." };
+  if (!id) return { error: ITEM_ID_MISSING_MESSAGE };
   if (!catalogId) return { error: ITEM_CATALOG_REFERENCE_MISSING_MESSAGE };
 
   // FormData-Einträge filtern
@@ -157,7 +158,7 @@ export async function setCatalogItemActiveAction(
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
   const catalogId = String(formData.get("catalogId") ?? "");
-  if (!id) return { error: "Kein Artikel angegeben." };
+  if (!id) return { error: ITEM_ID_MISSING_MESSAGE };
   if (!catalogId) return { error: ITEM_CATALOG_REFERENCE_MISSING_MESSAGE };
 
   const updated = await setItemActive(id, catalogId, formData.get("active") === "true");

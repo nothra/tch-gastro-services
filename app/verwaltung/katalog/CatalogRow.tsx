@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/app/components/ui/Badge";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
+import { joinClasses } from "@/app/components/ui/joinClasses";
 import { Notice } from "@/app/components/ui/Notice";
 import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
 import { CatalogFields } from "./CatalogFields";
@@ -24,17 +25,22 @@ interface CatalogRowProps {
 // Deaktivieren/Aktivieren liegen im Dialog statt als Buttons in jeder Zeile. Die catalogId wird
 // in versteckten Feldern mitgesendet (#345).
 export function CatalogRow({ item, catalogId }: CatalogRowProps) {
-  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog();
+  // Wechselt „Speichern" die Kategorie, wird die Zeile in ihrer neuen Gruppe neu gemountet; die
+  // Id ist dieselbe, der Fokus landet so auf der umgezogenen Zeile (Lesson #371).
+  const zeilenId = `artikel-${item.id}`;
+  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(zeilenId);
 
   return (
     <li>
       <button
         ref={ausloeserRef}
+        id={zeilenId}
         type="button"
         onClick={oeffnen}
-        className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-foreground hover:bg-accent-subtle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
-          item.active ? "" : "opacity-60"
-        }`}
+        className={joinClasses(
+          "flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-foreground hover:bg-accent-subtle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+          item.active ? undefined : "opacity-60",
+        )}
       >
         <span className="min-w-0 break-words">
           {item.name}
