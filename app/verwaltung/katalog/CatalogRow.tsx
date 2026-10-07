@@ -1,90 +1,106 @@
 "use client";
 
-import { useActionState, useCallback, useState } from "react";
 import { formatCents } from "@/lib/money";
 import type { CatalogItem } from "@/db/schema";
-import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
-import { CatalogFields, CATEGORY_LABEL } from "./CatalogFields";
+import {
+  DialogAktionen,
+  useDialogFormular,
+  useFormularDialog,
+  type DialogSteuerung,
+} from "@/app/components/FormularDialog";
 import { Badge } from "@/app/components/ui/Badge";
 import { Button } from "@/app/components/ui/Button";
+import { Dialog } from "@/app/components/ui/Dialog";
+import { joinClasses } from "@/app/components/ui/joinClasses";
 import { Notice } from "@/app/components/ui/Notice";
+import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
+import { CatalogFields } from "./CatalogFields";
 
 interface CatalogRowProps {
   item: CatalogItem;
   catalogId: string;
 }
 
-// Eine Katalog-Zeile: Anzeige, Inline-Bearbeitung und Deaktivieren/Reaktivieren.
-// Der catalogId-Parameter wird in versteckten Feldern mitgesendet (#345).
+// Eine Katalog-Zeile (spec-373 AK4.2–AK4.5): kompakt und als Ganzes antippbar; Bearbeiten und
+// Deaktivieren/Aktivieren liegen im Dialog statt als Buttons in jeder Zeile. Die catalogId wird
+// in versteckten Feldern mitgesendet (#345).
 export function CatalogRow({ item, catalogId }: CatalogRowProps) {
-  const [editing, setEditing] = useState(false);
-
-  // Schließt die Inline-Bearbeitung nach erfolgreichem Speichern. setState in der
-  // Action statt in einem useEffect (react-hooks/set-state-in-effect vermeiden).
-  const actionWithClose = useCallback(
-    async (prevState: Parameters<typeof updateCatalogItemAction>[0], formData: FormData) => {
-      const result = await updateCatalogItemAction(prevState, formData);
-      if (result.ok) setEditing(false);
-      return result;
-    },
-    [],
-  );
-
-  const [state, formAction, pending] = useActionState(actionWithClose, undefined);
+  // Wechselt „Speichern" die Kategorie, wird die Zeile in ihrer neuen Gruppe neu gemountet; die
+  // Id ist dieselbe, der Fokus landet so auf der umgezogenen Zeile (Lesson #371).
+  const zeilenId = `artikel-${item.id}`;
+  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(zeilenId);
 
   return (
-    <li
-      className={`flex flex-col gap-2 rounded-lg border border-line-subtle bg-surface p-3 ${
-        item.active ? "" : "opacity-60"
-      }`}
-    >
-      {editing ? (
-        <form action={formAction} className="flex flex-col gap-3">
-          <input type="hidden" name="id" value={item.id} />
-          <input type="hidden" name="catalogId" value={catalogId} />
-          <CatalogFields item={item} />
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button type="submit" size="sm" disabled={pending}>
-                Speichern
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>
-                Abbrechen
-              </Button>
-            </div>
-            <Notice kind="fehler">{state?.error}</Notice>
-          </div>
-        </form>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-col">
-            <span className="font-medium break-words">
-              {item.name}
-              {item.size ? ` · ${item.size}` : " · ohne Größe"}
-            </span>
-            <span className="text-sm text-muted">
-              {/* Beträge in Ziffern gleicher Breite, damit Preise untereinander bündig
-                  stehen (spec AK4.2). */}
-              <span className="tabular-nums">{formatCents(item.priceCents)}</span> ·{" "}
-              {CATEGORY_LABEL[item.category]}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!item.active && <Badge tone="neutral">deaktiviert</Badge>}
-            <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)}>
-              Bearbeiten
-            </Button>
-            <form action={setCatalogItemActiveAction}>
-              <input type="hidden" name="id" value={item.id} />
-              <input type="hidden" name="catalogId" value={catalogId} />
-              <input type="hidden" name="active" value={item.active ? "false" : "true"} />
-              <Button type="submit" variant="secondary" size="sm">
-                {item.active ? "Deaktivieren" : "Aktivieren"}
-              </Button>
-            </form>
-          </div>
-        </div>
-      )}
+    <li>
+      <button
+        ref={ausloeserRef}
+        id={zeilenId}
+        type="button"
+        onClick={oeffnen}
+        className={joinClasses(
+          "flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-foreground hover:bg-accent-subtle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+          item.active ? undefined : "opacity-60",
+        )}
+      >
+        <span className="min-w-0 break-words">
+          {item.name}
+          {item.size ? ` · ${item.size}` : " · ohne Größe"}
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {!item.active && <Badge tone="neutral">deaktiviert</Badge>}
+          {/* Ziffern gleicher Breite, damit Preise untereinander bündig stehen (AK4.2). */}
+          <span className="tabular-nums">{formatCents(item.priceCents)}</span>
+        </span>
+      </button>
+      <Dialog {...dialogProps} title="Artikel bearbeiten">
+        <ArtikelBearbeiten item={item} catalogId={catalogId} steuerung={steuerung} />
+        <ArtikelAktivUmschalten item={item} catalogId={catalogId} steuerung={steuerung} />
+      </Dialog>
     </li>
+  );
+}
+
+interface DialogBereichProps extends CatalogRowProps {
+  steuerung: DialogSteuerung;
+}
+
+function ArtikelBearbeiten({ item, catalogId, steuerung }: DialogBereichProps) {
+  const { state, pending, absenden } = useDialogFormular(updateCatalogItemAction, steuerung);
+  return (
+    <form onSubmit={absenden} className="flex flex-col gap-3">
+      <input type="hidden" name="id" value={item.id} />
+      <input type="hidden" name="catalogId" value={catalogId} />
+      <CatalogFields item={item} />
+      <Notice kind="fehler">{state?.error}</Notice>
+      <DialogAktionen
+        steuerung={steuerung}
+        pending={pending}
+        label="Speichern"
+        laufLabel="Speichern …"
+      />
+    </form>
+  );
+}
+
+// Eigenes Formular, damit „Deaktivieren" nicht die bearbeiteten Felder mitschickt. Schließt den
+// Dialog bei Erfolg wie „Speichern" (AK4.5).
+function ArtikelAktivUmschalten({ item, catalogId, steuerung }: DialogBereichProps) {
+  const { state, pending, absenden } = useDialogFormular(setCatalogItemActiveAction, steuerung);
+  const label = item.active ? "Deaktivieren" : "Aktivieren";
+  return (
+    <form onSubmit={absenden} className="flex flex-col gap-3 border-t border-line-subtle pt-4">
+      <input type="hidden" name="id" value={item.id} />
+      <input type="hidden" name="catalogId" value={catalogId} />
+      <input type="hidden" name="active" value={item.active ? "false" : "true"} />
+      <Notice kind="fehler">{state?.error}</Notice>
+      <Button
+        type="submit"
+        variant="secondary"
+        disabled={pending || steuerung.gesperrt}
+        className="self-start"
+      >
+        {pending ? `${label} …` : label}
+      </Button>
+    </form>
   );
 }

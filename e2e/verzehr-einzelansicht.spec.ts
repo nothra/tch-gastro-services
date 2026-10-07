@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { gastHinzufuegen, kopfAktion } from "./helpers/detailseite";
+import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis der Verzehr-Einzelansicht (#370, spec-370, ADR-054). Prüft gegen einen
 // echten Server, was jsdom nicht kann (ADR-054 D5): gemessene Touch-Ziele (AK4.1/AK4.2), den
@@ -37,22 +38,8 @@ async function login(page: Page) {
 
 // Legt eine Veranstaltung an und liefert den Detail-Pfad (Link-Zuwachs, wie in
 // wechsel-verzehr-kassieren.spec.ts – eindeutig auch bei gleichnamigem Altbestand).
-async function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
-  await page.goto("/veranstaltung");
-  const anlegen = page.locator("form").filter({ has: page.getByLabel("Bezeichnung") });
-  await anlegen.getByLabel("Bezeichnung").fill(bezeichnung);
-  await anlegen.getByLabel("Datum").fill("2026-10-02");
-  await anlegen.getByLabel("Kasse").selectOption({ label: "Montagsrunde" });
-
-  const links = page.getByRole("link", { name: bezeichnung });
-  const before = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  await anlegen.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Veranstaltung angelegt.")).toBeVisible();
-  await expect(links).toHaveCount(before.length + 1);
-  const after = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  const neu = after.find((href) => href && !before.includes(href));
-  expect(neu, "neue Veranstaltung im Listen-Link gefunden").toBeTruthy();
-  return neu as string;
+function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
+  return legeVeranstaltungAn(page, bezeichnung, "2026-10-02");
 }
 
 function chips(page: Page) {

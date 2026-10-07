@@ -13,14 +13,20 @@ describe("visibleNavItems", () => {
     expect(hrefs).toEqual(["/veranstaltung"]);
   });
 
-  it("should_showKatalogAndTeilnehmer_when_roleIsVerwalter", () => {
+  it("should_showKatalogTeilnehmerAndTheke_when_roleIsVerwalter", () => {
+    // spec-373 AK3.4: „Theke" nur für Verwalter.
     const hrefs = visibleNavItems(["verwalter"]).map((item) => item.href);
-    expect(hrefs).toEqual(["/verwaltung/katalog", "/verwaltung/teilnehmer"]);
+    expect(hrefs).toEqual(["/verwaltung/katalog", "/verwaltung/teilnehmer", "/verwaltung/theke"]);
   });
 
-  it("should_showAllThreeAreas_when_bothRoles", () => {
+  it("should_showAllAreas_when_bothRoles", () => {
     const hrefs = visibleNavItems(["verwalter", "veranstalter"]).map((item) => item.href);
-    expect(hrefs).toEqual(["/veranstaltung", "/verwaltung/katalog", "/verwaltung/teilnehmer"]);
+    expect(hrefs).toEqual([
+      "/veranstaltung",
+      "/verwaltung/katalog",
+      "/verwaltung/teilnehmer",
+      "/verwaltung/theke",
+    ]);
   });
 
   it("should_showNoAreas_when_rolesEmpty", () => {
@@ -45,6 +51,7 @@ describe("visibleNavItems", () => {
       { label: "Veranstaltungen", href: "/veranstaltung", requiredRole: "veranstalter" },
       { label: "Katalog", href: "/verwaltung/katalog", requiredRole: "verwalter" },
       { label: "Teilnehmer", href: "/verwaltung/teilnehmer", requiredRole: "verwalter" },
+      { label: "Theke", href: "/verwaltung/theke", requiredRole: "verwalter" },
     ]);
   });
 });

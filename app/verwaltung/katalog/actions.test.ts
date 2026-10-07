@@ -254,34 +254,71 @@ describe("updateCatalogItemAction", () => {
 });
 
 describe("setCatalogItemActiveAction", () => {
-  it("should_deactivate_when_activeFalse", async () => {
-    await setCatalogItemActiveAction(form({ id: "abc", catalogId: "standard", active: "false" }));
+  // Seit #373 mit Rückmeldekanal (`useActionState` im Bearbeiten-Dialog, spec-373 AK4.5): der
+  // No-Match des guarded UPDATE wird zur Fehlermeldung statt stumm zu bleiben (Lesson #55).
+  beforeEach(() => {
+    setItemActiveMock.mockResolvedValue({ ...persistedItem, active: false });
+  });
+
+  it("should_deactivateAndReportOk_when_activeFalse", async () => {
+    const result = await setCatalogItemActiveAction(
+      undefined,
+      form({ id: "abc", catalogId: "standard", active: "false" }),
+    );
+
+    expect(result).toEqual({ ok: true });
     expect(setItemActiveMock).toHaveBeenCalledWith("abc", STANDARD_CATALOG_ID, false);
+    expect(revalidatePathMock).toHaveBeenCalledWith("/verwaltung/katalog/standard");
   });
 
   it("should_reactivate_when_activeTrue", async () => {
-    await setCatalogItemActiveAction(form({ id: "abc", catalogId: "standard", active: "true" }));
+    await setCatalogItemActiveAction(
+      undefined,
+      form({ id: "abc", catalogId: "standard", active: "true" }),
+    );
+
     expect(setItemActiveMock).toHaveBeenCalledWith("abc", STANDARD_CATALOG_ID, true);
+  });
+
+  it("should_reportNotFoundWithoutRevalidate_when_noRowMatched", async () => {
+    // Fehlerszenario spec-373: Artikel in einem zweiten Tab gelöscht/verschoben.
+    setItemActiveMock.mockResolvedValue(undefined);
+
+    const result = await setCatalogItemActiveAction(
+      undefined,
+      form({ id: "abc", catalogId: "standard", active: "false" }),
+    );
+
+    expect(result).toEqual({ error: "Artikel nicht gefunden." });
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
-    await expect(setCatalogItemActiveAction(form({ id: "abc", active: "false" }))).rejects.toThrow(
-      ForbiddenError,
+    await expect(
+      setCatalogItemActiveAction(undefined, form({ id: "abc", active: "false" })),
+    ).rejects.toThrow(ForbiddenError);
+    expect(setItemActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_reportMissingArtikel_when_idMissing", async () => {
+    const result = await setCatalogItemActiveAction(
+      undefined,
+      form({ catalogId: "standard", active: "false" }),
     );
+
+    expect(result).toEqual({ error: "Kein Artikel angegeben." });
     expect(setItemActiveMock).not.toHaveBeenCalled();
   });
 
-  it("should_notPersist_when_idMissing", async () => {
-    await setCatalogItemActiveAction(form({ catalogId: "standard", active: "false" }));
+  it("should_reportMissingKatalog_when_catalogIdMissing", async () => {
+    const result = await setCatalogItemActiveAction(
+      undefined,
+      form({ id: "abc", active: "false" }),
+    );
 
-    expect(setItemActiveMock).not.toHaveBeenCalled();
-  });
-
-  it("should_notPersist_when_catalogIdMissing", async () => {
-    await setCatalogItemActiveAction(form({ id: "abc", active: "false" }));
-
+    expect(result).toEqual({ error: "Kein Katalog angegeben." });
     expect(setItemActiveMock).not.toHaveBeenCalled();
   });
 });

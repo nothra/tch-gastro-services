@@ -342,3 +342,22 @@ durchgerutscht. Zusätzlich blieb eine handgeschriebene Kopie der Fokus-Klassen 
 **Regel:** Wer Konstanten/Klassen aus einer gegateten Datei extrahiert, trägt die Zieldatei im selben Commit in
 `eslint/ui-token-files.mjs` ein (vorher „nicht enthalten"-Tests greppen, Lesson #371) und greppt danach alle
 Konsumenten auf verbliebene Handkopien.
+
+### `<form action>` setzt das Formular auch nach einer Ablehnung zurück – Dialog mit Fehler im Dialog braucht `onSubmit` + `startTransition` (aus #373, AK1.4)
+
+**Smell:** React 19 leert ein per `action` abgeschicktes Formular nach Ende der Action, auch wenn sie eine
+Fehlermeldung liefert. Der Nutzer verliert im Dialog seine Eingaben (Spec: „Fehler bleibt im Dialog, Eingaben bleiben").
+
+**Regel:** Formulare, deren Fehlerfall die Eingaben behalten muss, schicken per `onSubmit` + `startTransition` ab
+(`FormularDialog`); `<form action>` nur, wenn der Reset gewollt ist. Test mit abgelehnter Action und Wert-Assertion.
+
+### Schließen-Aktion eines Dialogs: Fokus-Ersatzziel von Anfang an (Rezidiv #371, aus #373, Review-Iteration 1 W1)
+
+**Smell:** „Anlegen" im Leerzustand lässt die Liste erscheinen; der Auslöser (Leerzustand-Button) verschwindet, der Fokus
+fällt auf `<body>`. Genau der in #371 beschriebene Fall – er wurde erst im Review gefunden, obwohl die Lesson existierte.
+
+**Regel:** Bei jedem Dialog, dessen Erfolg den Auslöser unmountet (Leerzustand → Liste, Kategorie-/Statuswechsel), beim
+Bauen `useFormularDialog(ersatzFokusId)` nutzen (nur nach Erfolg und nur bei Fokus auf `<body>`) und den Erfolgsfall
+mit Positions- und Fokus-Assertion testen. Ein Hook, der neben einem bestehenden ähnlichen entsteht (#373 W2:
+`useDialogFormular` kopierte `useSchliessendeAction` mit falscher Begründung), wird vorher gegen diesen abgeglichen und
+route-neutral in `app/components/` abgelegt, nicht im Feature-Ordner.

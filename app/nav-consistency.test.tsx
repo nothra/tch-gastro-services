@@ -19,7 +19,12 @@ function loginWithRoles(roles: UserRole[]) {
   } as Session);
 }
 
-const AREA_HREFS = ["/veranstaltung", "/verwaltung/katalog", "/verwaltung/teilnehmer"];
+const AREA_HREFS = [
+  "/veranstaltung",
+  "/verwaltung/katalog",
+  "/verwaltung/teilnehmer",
+  "/verwaltung/theke",
+];
 
 function areaHrefsWithin(container: HTMLElement): string[] {
   return within(container)

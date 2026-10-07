@@ -6,7 +6,7 @@ import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 import { formatCents } from "@/lib/money";
 import { setStatusAction } from "../actions";
-import { useSchliessendeAction } from "../useSchliessendeAction";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 
 // Abschließen bzw. protokolliertes Wiederöffnen im Seitenkopf der Detailseite (spec-371
 // AK18–AK22, ADR-055 D3). Beide Richtungen wirken erst nach der Bestätigung im `ConfirmDialog`.

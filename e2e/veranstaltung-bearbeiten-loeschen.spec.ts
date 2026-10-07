@@ -5,6 +5,7 @@ import {
   oeffneLoeschDialog,
   schliesseEinstellungen,
 } from "./helpers/detailseite";
+import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für das Bearbeiten und Löschen einer Veranstaltung (#352, spec-352).
 // Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass die geänderten Metadaten
@@ -47,22 +48,8 @@ async function login(page: Page) {
 // über den Link-Zuwachs identifiziert (wie in wechsel-verzehr-kassieren.spec.ts), nicht über den
 // Namen – so bleibt der Helper auch bei gleichnamigem Altbestand eindeutig. `bezeichnung` muss je
 // Test eindeutig sein, sonst stiege der Zuwachs um 2 statt um 1.
-async function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
-  await page.goto("/veranstaltung");
-  const anlegen = page.locator("form").filter({ has: page.getByLabel("Bezeichnung") });
-  await anlegen.getByLabel("Bezeichnung").fill(bezeichnung);
-  await anlegen.getByLabel("Datum").fill("2026-09-14");
-  await anlegen.getByLabel("Kasse").selectOption({ label: "Montagsrunde" });
-
-  const links = page.getByRole("link", { name: bezeichnung });
-  const before = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  await anlegen.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Veranstaltung angelegt.")).toBeVisible();
-  await expect(links).toHaveCount(before.length + 1);
-  const after = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  const neu = after.find((href) => href && !before.includes(href));
-  expect(neu, "neue Veranstaltung im Listen-Link gefunden").toBeTruthy();
-  return neu as string;
+function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
+  return legeVeranstaltungAn(page, bezeichnung, "2026-09-14");
 }
 
 // Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil der

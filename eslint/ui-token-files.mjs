@@ -38,14 +38,23 @@ export const UI_TOKEN_FILES = [
   "app/veranstaltung/[id]/kassieren/",
   "app/veranstaltung/[id]/AbschlussAktion.tsx",
   "app/veranstaltung/KassiereZeileForm.tsx",
-  // #374: Kopfzeile, Konto-Menü, Gäste-Kopf und Startseite (ADR-057 D5). Verzehr, Auslagen,
-  // Veranstaltungsliste und Teilnehmer folgen mit #373 – ihre Dateien tragen noch rohe Farben.
+  // #374: Kopfzeile, Konto-Menü, Gäste-Kopf und Startseite (ADR-057 D5).
   "app/components/headerStyles.ts",
   "app/components/AppNav.tsx",
   "app/components/KontoMenue.tsx",
   "app/components/PublicHeader.tsx",
   "app/page.tsx",
   "app/veranstaltung/OffeneVeranstaltungen.tsx",
+  // #373: Listenseiten mit Anlege-Dialog und die neue Theke-Verwaltung. `TeilnehmerRow` bleibt
+  // unverändert (spec-373 AK8.1) und trägt noch rohe Farben.
+  "app/components/FormularDialog.tsx",
+  "app/veranstaltung/page.tsx",
+  "app/veranstaltung/VeranstaltungAnlegen.tsx",
+  "app/veranstaltung/VeranstaltungListe.tsx",
+  "app/verwaltung/teilnehmer/page.tsx",
+  "app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx",
+  "app/verwaltung/teilnehmer/TeilnehmerFields.tsx",
+  "app/verwaltung/theke/",
 ];
 
 /**

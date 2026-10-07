@@ -86,12 +86,12 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
   });
 
   // Diskriminierungs-Kontrolle mit einem ÄHNLICHEN Nachbarpfad, nicht einem entfernten
-  // (Lesson aus #172/#297): `app/verwaltung/teilnehmer/` liegt direkt neben dem gelisteten
-  // `app/verwaltung/katalog/` und ist bis #369–#374 bewusst nicht umgestellt.
+  // (Lesson aus #172/#297): `TeilnehmerRow.tsx` liegt direkt neben den seit #373 gelisteten
+  // Dateien aus `app/verwaltung/teilnehmer/` und ist bewusst nicht umgestellt (spec-373 AK8.1).
   it("should_notReport_when_fileIsNotOnTheList", async () => {
     const messages = await rawColorMessages(
       CODE_WITH_RAW_COLOR,
-      "app/verwaltung/teilnehmer/page.tsx",
+      "app/verwaltung/teilnehmer/TeilnehmerRow.tsx",
     );
 
     expect(messages).toEqual([]);

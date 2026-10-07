@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gastHinzufuegen } from "./helpers/detailseite";
+import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für den personenbezogenen Wechsel zwischen Verzehrerfassung und Kassieren
 // (#308, spec-308). Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass der
@@ -36,22 +37,8 @@ async function login(page: Page) {
 // `bezeichnung` kommt vom Aufrufer und muss je Test eindeutig sein: die Tests laufen parallel, und
 // zwei gleichnamige Anlagen ließen den Link-Zuwachs um 2 statt um 1 steigen (beobachtet im
 // Erstlauf) – dann wäre der Fehlschlag ein Fixture-Artefakt und kein Produktbefund.
-async function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
-  await page.goto("/veranstaltung");
-  const anlegen = page.locator("form").filter({ has: page.getByLabel("Bezeichnung") });
-  await anlegen.getByLabel("Bezeichnung").fill(bezeichnung);
-  await anlegen.getByLabel("Datum").fill("2026-08-31");
-  await anlegen.getByLabel("Kasse").selectOption({ label: "Montagsrunde" });
-
-  const links = page.getByRole("link", { name: bezeichnung });
-  const before = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  await anlegen.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Veranstaltung angelegt.")).toBeVisible();
-  await expect(links).toHaveCount(before.length + 1);
-  const after = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  const neu = after.find((href) => href && !before.includes(href));
-  expect(neu, "neue Veranstaltung im Listen-Link gefunden").toBeTruthy();
-  return neu as string;
+function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
+  return legeVeranstaltungAn(page, bezeichnung, "2026-08-31");
 }
 
 // Person über die sticky Chip-Leiste der Einzelansicht wählen (#370, ADR-054).

@@ -36,7 +36,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const AREA_HREFS = ["/veranstaltung", "/verwaltung/katalog", "/verwaltung/teilnehmer"];
+const AREA_HREFS = [
+  "/veranstaltung",
+  "/verwaltung/katalog",
+  "/verwaltung/teilnehmer",
+  "/verwaltung/theke",
+];
 
 function loginWithRoles(roles: UserRole[]) {
   authMock.mockResolvedValue({

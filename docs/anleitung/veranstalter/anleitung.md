@@ -6,7 +6,7 @@ Diese Anleitung führt Sie Schritt für Schritt durch eine komplette Veranstaltu
 bis zum Abschlussbericht. Sie ist für alle gedacht, die **wenig Erfahrung mit Apps** haben.
 Jeder Schritt erklärt kurz: **Was tue ich?** und **Was passiert dann?**
 
-> **Stand: 5. Oktober 2026.** Die Bilder zeigen die App zu diesem Zeitpunkt. Wird die App später
+> **Stand: 7. Oktober 2026.** Die Bilder zeigen die App zu diesem Zeitpunkt. Wird die App später
 > geändert, können einzelne Bildschirme etwas anders aussehen – der Ablauf bleibt gleich. Wer die
 > App pflegt, findet am Ende unter **„Bilder aktualisieren"**, wie die Screenshots neu erzeugt
 > werden.
@@ -69,7 +69,7 @@ einem Tipp öffnen Sie eine davon direkt. Gibt es keine, steht dort **„Keine o
 mit der Schaltfläche **„Veranstaltung anlegen"**. Darunter folgen die Kacheln. Tippen Sie auf die
 Kachel **„Veranstaltungen"**.
 
-![Startseite mit Kopfzeile, dem Hinweis „Keine offene Veranstaltung." und den Kacheln „Veranstaltungen", „Katalog" und „Teilnehmer".](bilder/02-startseite.png)
+![Startseite mit Kopfzeile, dem Hinweis „Keine offene Veranstaltung." und den Kacheln „Veranstaltungen", „Katalog", „Teilnehmer" und „Theke".](bilder/02-startseite.png)
 
 **Abmelden:** Tippen Sie in der Kopfzeile auf das **Konto-Symbol**. Es öffnet sich ein kleines Menü
 mit Ihrer E-Mail-Adresse und der Schaltfläche **„Abmelden"**. Ein Tipp außerhalb des Menüs oder die
@@ -84,19 +84,22 @@ Taste *Esc* schließt es wieder.
 
 ## Schritt 2 – Veranstaltung anlegen
 
-**Was tue ich?** Geben Sie im Formular **„Veranstaltung anlegen"** eine **Bezeichnung** ein
-(z. B. „Montagsrunde"), wählen Sie das **Datum** und die passende **Kasse** und tippen Sie auf
-**„Anlegen"**.
+**Was tue ich?** Tippen Sie oben rechts auf **„+ Neu"**. Im Fenster **„Veranstaltung anlegen"**
+geben Sie eine **Bezeichnung** ein (z. B. „Montagsrunde"), wählen das **Datum**, die passende
+**Kasse** und den **Katalog** (vorgewählt ist der Standard-Katalog) und tippen auf **„Anlegen"**.
+Mit **„Abbrechen"** schließen Sie das Fenster, ohne etwas anzulegen.
 
-**Was passiert?** Die neue Veranstaltung erscheint darunter in der Liste – mit Datum, Kasse und dem
-Status **„offen"**.
+**Was passiert?** Das Fenster schließt sich, und die neue Veranstaltung steht in der Liste unter
+**„Offen"** – mit Datum, Katalog und Kasse. Fehlt eine Angabe, bleibt das Fenster offen und zeigt
+den Hinweis; Ihre Eingaben bleiben erhalten. Abgeschlossene Veranstaltungen stehen eingeklappt
+unter **„Abgeschlossen"** – ein Tipp auf die Überschrift klappt sie auf.
 
-![Formular „Veranstaltung anlegen" mit ausgefüllter Bezeichnung, Datum und Kasse.](bilder/03-veranstaltung-anlegen.png)
+![Fenster „Veranstaltung anlegen" mit ausgefüllter Bezeichnung, Datum, Kasse und Katalog.](bilder/03-veranstaltung-anlegen.png)
 
-![Die angelegte Veranstaltung „Montagsrunde" erscheint in der Liste mit Status „offen".](bilder/04-veranstaltung-liste.png)
+![Die angelegte Veranstaltung „Montagsrunde" erscheint in der Liste unter „Offen" mit Datum, Katalog und Kasse.](bilder/04-veranstaltung-liste.png)
 
-> Die **„Stehende Theke"** darunter müssen Sie in der Regel **nicht** einrichten – sie ist für die
-> dauerhaft offene Theke gedacht und meist schon vorhanden.
+> Die **„Stehende Theke"** richten Sie als Veranstalter nicht ein – sie ist für die dauerhaft
+> offene Theke gedacht, meist schon vorhanden und wird vom Verwalter unter **„Theke"** gepflegt.
 
 Tippen Sie in der Liste auf den Namen der Veranstaltung, um sie zu **öffnen**. Auf der Startseite
 erscheint die neue Veranstaltung außerdem sofort unter **„Offene Veranstaltungen"** – das ist der
