@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -79,6 +79,12 @@ Test-Ankern `actions.test.ts:961/:969`.
 Iteration 3 (2026-10-08): **APPROVED** – 0 kritisch, 0 wichtig, 2 Nitpicks (Soll-Text mit doppeltem
 „hinzugefügt" darf #401 glätten; Auffangzeile „Sonstiger Fehler" weiter optional). Anker `:101/:104/:353/:357`
 per Grep belegt, alle „nicht möglich"-Meldungen in `app/` gegen die Doppelpunkt-Regel geprüft.
+
+## Test-Notizen
+/test (2026-10-08): reine Doku, kein Produktionscode, keine neuen Tests nötig. Belegt:
+`import-context-limit-check.sh` grün (929/1100), `routes-doc-check.sh` grün, AK3.1 per
+`pnpm vitest run app/login/page.test.tsx` (6/6 grün), Verweise AK1.8/AK2.1 per Grep
+(`PROJECT-CONTEXT.md:167`, `ux-issue-entwuerfe.md:270/287`). Coverage unverändert (kein Code im Diff).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
