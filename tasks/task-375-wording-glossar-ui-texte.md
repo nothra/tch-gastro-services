@@ -65,6 +65,11 @@ die im Review genannten „Name fehlt"-Texte gibt es im Produktionscode nicht, a
 Abweichungszeilen. W2 – `LinkKopieren.tsx:45` → #372 ergänzt. Nitpick 1 – Kommentarzeile gestrichen,
 „Walk-in"-Kommentare unter „Ausnahmen" (UI-frei, per Grep belegt). Nitpick 2 – mit W1 erledigt.
 
+Iteration 2 (2026-10-08): **NEEDS_REWORK** – 0 kritisch, 1 wichtig, 1 Nitpick; alle Iteration-1-Findings
+erledigt. Wichtig: (W1) die neue Regel „Doppelpunkt nur bei ‚nicht möglich'" trifft
+`app/veranstaltung/actions.ts:101/:353/:357` („Bereits erfasst: …", „Nicht mehr wählbar: …"); `:101`/`:357`
+zusätzlich Verb „erfasst" statt „hinzugefügt" – fehlen in der Abweichungsliste. Details in `tasks/review-375.md`.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 

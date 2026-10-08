@@ -1,10 +1,17 @@
 # Review: Task 375
 
-Diff-Scope: `git diff origin/main...HEAD` (5 Dateien, reine Doku). Alle 35 `Datei:Zeile`-Anker des
-Glossars (Abweichungsliste, „Beim Umsetzen mitziehen", „Bereits konform") per Skript gegen den
-Worktree geprüft – jeder Anker zeigt auf den genannten Ist-Text. #372 und #401 existieren und sind
-offen; `import-context-limit-check.sh` → 929 von 1100 Zeilen (grün). Die in „Ausnahmen" zitierten
-Specs/ADRs (spec-194, spec-345, spec-369, spec-373, ADR-022) enthalten die genannten Alt-Texte.
+Iteration 2 (2026-10-08). Diff-Scope: `git diff origin/main...HEAD` (6 Dateien, reine Doku). Der
+Rework-Stand ist committet (`cfc11c0`, `git status` sauber). Geprüft wurden die Iteration-1-Findings
+und die neuen Regeln: `import-context-limit-check.sh` meldet 929 von 1100 Zeilen (grün). Alle
+Meldungstexte in `app/` (ohne Tests) wurden per Grep gegen die neue Meldungstabelle gehalten. Die
+Rework-Aussage „Feldmeldungen enden alle mit Punkt, ‚Name fehlt' gibt es im Produktionscode nicht"
+stimmt (`app/**/schema.ts`, `actions.ts`).
+
+**Iteration-1-Findings:** W1 erledigt (Tabelle unterscheidet abgelehnte Aktion, Feld-Validierung,
+„nicht gefunden", „Kein Zugriff"; der Infinitiv „Bitte … wählen." ist als Sachsatz geregelt). W2
+erledigt (`LinkKopieren.tsx:45` → #372, Anker belegt). Nitpick 1 erledigt (Kommentarzeile gestrichen,
+unter „Ausnahmen" festgehalten). Nitpick 2 erledigt (Regel „Doppelpunkt nur bei ‚nicht möglich'"
+mit Ausnahme für „Kein Zugriff – …").
 
 ## Kritische Findings (müssen behoben werden)
 
@@ -12,56 +19,52 @@ _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [docs/ux/glossar.md:45] **Fehler-Muster ohne Geltungsbereich – Feld-Validierungsmeldungen
-  ungeregelt.** Die Zeile „Fehler | „<Aktion> nicht möglich: <Grund>."" liest sich als Regel für
-  *jede* Fehlermeldung. Der Großteil der Fehlertexte in `app/` sind aber Feld-/Zod-Meldungen, die
-  diesem Muster nicht folgen und es auch nicht sollen: „Name fehlt." (`app/verwaltung/teilnehmer/schema.ts`)
-  neben „Name fehlt" / „Preis fehlt" / „Kategorie fehlt" (ohne Punkt), „Bitte einen Katalog wählen.",
-  „Katalog nicht gefunden.", „Abgelehnt.". Weder die Tabelle noch die Satzzeichen-Regel noch die
-  Abweichungsliste sagt, ob diese Texte konform sind. Folge: #372 (AK5 „Meldungstexte nach dem
-  Glossar") und #401 können sie entweder großflächig umschreiben oder übersehen – beides ohne
-  Grundlage, und `/review` kann neue Feldtexte nicht prüfen. Zusätzlich offen gegen den
-  Anrede-Abschnitt: Ist der Infinitiv „Bitte einen Katalog wählen." zulässig, oder soll es „Wähle
-  einen Katalog." heißen (Positivbeispiel Z. 62)? **Fix:** Fehler-Zeile auf *abgelehnte Aktionen*
-  eingrenzen und eine eigene Zeile „Feld-Validierung" ergänzen (z. B. „<Feld> fehlt." /
-  „<Objekt> nicht gefunden." mit Punkt), dazu ein Satz, ob der Infinitiv-Imperativ („Bitte …
-  wählen.") als Sachsatz gilt. Daraus folgende Abweichungen (fehlende Punkte) in die Liste → #401.
+- [ ] [docs/ux/glossar.md:54] **Die neue Doppelpunkt-Regel erzeugt Abweichungen, die nicht in der
+  Liste stehen.** Die Regel „Doppelpunkt nur bei ‚nicht möglich'" (aus dem W1-Rework) trifft
+  bestehende Meldungen der Mehrfach-Anlage im Teilnehmer-Dialog:
+  - `app/veranstaltung/actions.ts:357` → „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt."
+    (über `nichtsAngelegt`, `actions.ts:104–106`)
+  - `app/veranstaltung/actions.ts:101` → „Bereits erfasst: jemand aus der Auswahl wurde gerade auf
+    einem anderen Gerät erfasst. Es wurde niemand hinzugefügt."
+  - `app/veranstaltung/actions.ts:353` → „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt."
 
-- [ ] [docs/ux/glossar.md:120] **Abweichungsliste unvollständig: `app/veranstaltung/[id]/LinkKopieren.tsx:45`.**
-  „Kopieren nicht möglich – der Link ist markiert und kann manuell kopiert werden." folgt dem
-  Fehler-Muster mit Gedankenstrich statt Doppelpunkt. Die Liste beansprucht, die Ist-Texte zu
-  führen, „die vom Glossar abweichen" – diese Stelle fehlt (Grep `nicht möglich` über `app/` findet
-  sie; alle übrigen Treffer in `actions.ts` sind konform). **Fix:** Zeile ergänzen, Soll
-  „Kopieren nicht möglich: Der Link ist markiert und kann manuell kopiert werden.", Ziel #372
-  (Meldungstext) oder #401.
+  `:357` und `:101` verstoßen außerdem gegen die Verb-Regel: Es geht um das **Hinzufügen** eines
+  Teilnehmers zur Veranstaltung, die Meldung sagt aber „erfasst". Das ist dieselbe Abweichung wie
+  in der gelisteten Zeile `TeilnehmerHinzufuegenDialog.tsx:97` („… bereits erfasst" → „… bereits
+  hinzugefügt"). Die Task-Notiz nennt „bereits erfasst" sogar ausdrücklich als #401-Fall, die
+  Tabelle führt aber nur die Dialogzeile. Die Abweichungsliste erhebt den Anspruch, die
+  abweichenden Ist-Texte zu führen. Sonst findet #372/#401 diese Stellen nicht, oder ein späteres
+  `/review` meldet sie als neuen Verstoß. Die zugehörigen Tests hängen am Wortlaut
+  (`app/veranstaltung/actions.test.ts:961`, `:969`).
+
+  **Fix (eine der beiden Varianten):**
+  - (a) Drei Zeilen ergänzen, z. B. „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt." bzw.
+    „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar." → #372 (Meldungstexte) oder #401.
+  - (b) Die Regel so fassen, dass „<Grund>: <Namensliste>." als zulässiges Aufzählungsmuster gilt.
+    Dann bleibt nur die Verb-Abweichung „erfasst" → „hinzugefügt" für `:357`/`:101` als
+    Listenzeile übrig.
 
 ## Nitpicks (optional)
 
-- [ ] [docs/ux/glossar.md:136] Die Abweichungszeile für den **Kommentar** `TeilnehmerHinzufuegenDialog.tsx:185`
-  („Walk-in") widerspricht dem Kopf (Z. 7: „Nicht betroffen: … Code-Kommentare") und ist
-  selektiv – die gleichartigen Kommentare `TeilnehmerHinzufuegenDialog.tsx:16` und
-  `app/veranstaltung/actions.ts:403` fehlen. Entweder die Zeile streichen und in „Ausnahmen"
-  festhalten, dass „Walk-in" in der UI bereits nicht mehr vorkommt (AK1.7 ist damit belegt), oder
-  alle drei Kommentarstellen als „optional" listen.
-- [ ] [docs/ux/glossar.md:65] „Kein Zugriff – nur Veranstalter dürfen …" dient als Sachsatz-Beispiel
-  und nutzt einen Gedankenstrich, das Fehler-Muster einen Doppelpunkt. Ein Halbsatz, dass der
-  Zugriffs-Hinweis ein eigenes, zulässiges Muster ist, verhindert, dass jemand ihn bei #401
-  „angleicht". (Lässt sich mit dem ersten Wichtig-Finding zusammen erledigen.)
+- [ ] [docs/ux/glossar.md:41–49] Mehrere bestehende Fehlertexte passen in keine Tabellenzeile,
+  z. B. „Die Veranstaltung ist abgeschlossen und schreibgeschützt.", „Kein Katalog angegeben.",
+  „Ein Artikel mit dieser Bezeichnung und Größe existiert bereits.", „Zu viele Anfragen – bitte
+  kurz warten." (`app/veranstaltung/actions.ts:65`, `:71`; `app/verwaltung/katalog/actions.ts:21`,
+  `:23`). Sie erfüllen die Satzzeichen-Regel und sind damit wohl konform. Eine Auffangzeile
+  „Sonstiger Fehler: Sachsatz mit Punkt" würde das ausdrücklich machen. Ohne sie könnte #372 diese
+  Texte für Umschreib-Kandidaten halten.
 
 ## Positives
 
-- Anker-Disziplin vorbildlich: Stand-Commit (`31e5fbf`) genannt, jeder der 35 Anker trifft exakt
-  den zitierten Text; e2e-Helfer und Unit-Tests sind unter „Beim Umsetzen mitziehen" aufgeführt
-  (Lesson #391 vorweggenommen).
-- Alle AK1.1–AK1.8, AK2.1, AK2.2 und AK3.1 erfüllt; Fehlerszenario 1 sauber über den Abschnitt
-  „Ausnahmen" mit belegten Spec-/ADR-Verweisen gelöst.
-- Klare Abgrenzung anlegen ↔ hinzufügen am Gast-Fall und die Regel „Busy-Text folgt dem Button"
-  machen die Busy-Abweichungen eindeutig ableitbar.
-- Über den Spec-Wortlaut hinausgehende Festlegungen (Satzzeichen, Theke „anlegen") sind in der
-  Task-Datei transparent dokumentiert.
-- Out-of-Scope-Rest korrekt über den Issue-Seam als #401 angelegt statt im PR umgesetzt;
-  PROJECT-CONTEXT-Verweis ist genau eine Zeile, Kontextgrenze bleibt grün.
-- Keine Routen-, Code- oder ADR-Änderung → `docs/routes.md` nicht betroffen, kein ADR-Drift.
+- Der W1-Rework ist sauber: Die Meldungstabelle trennt die Fehlerarten mit belegten Beispielen. Die
+  Grep-Gegenprobe gegen `schema.ts`/`actions.ts` ist in der Task-Datei dokumentiert und stimmt.
+- Die Ausnahme „Kein Zugriff – …" beseitigt den Konflikt mit der Doppelpunkt-Regel ausdrücklich.
+- Die „Walk-in"-Kommentare stehen jetzt widerspruchsfrei unter „Ausnahmen", passend zum Kopf
+  („Nicht betroffen: Code-Kommentare").
+- Rework-Ende mit Commit und sauberem Working Tree (Lesson #391 eingehalten). Die Task-Datei
+  dokumentiert Iteration 1 und Rework 1 nachvollziehbar.
+- Weiterhin keine Routen-, Code- oder ADR-Änderung. Die PROJECT-CONTEXT-Zeile ist genau eine
+  Zeile, AK2.2 ist grün.
 
 ## Empfehlung
 
