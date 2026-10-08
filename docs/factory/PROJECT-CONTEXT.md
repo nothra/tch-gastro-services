@@ -164,6 +164,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - **Login/Credential-Prüfung in konstanter Zeit:** `bcrypt.compare` immer ausführen – bei unbekanntem Nutzer gegen einen konstanten Dummy-Hash (`lib/credentials.ts`), damit die Antwortzeit keine User-Enumeration erlaubt.
 - **Rollen als Enum-Array** (`roles user_role[]`, ADR-016); Prüfung über den Guard `lib/authz.ts` (`requireRole`/`requireAnyRole`, fail-closed), nie über clientseitig ausgeblendete UI.
 - **Neue UI nutzt die Bausteine aus `app/components/ui/` und Token-Klassen** (`bg-surface`, `text-muted` …), keine rohen Tailwind-Farben und kein `dark:` (ADR-052). Umgestellte Pfade in `eslint/ui-token-files.mjs` eintragen – ab da lehnt `pnpm lint` rohe Farbklassen dort ab.
+- **UI-Texte (Labels, Buttons, Meldungen, Platzhalter) folgen dem Wording-Glossar [`docs/ux/glossar.md`](../ux/glossar.md)** – Verb je Aktionstyp, Meldungsmuster, Anrede Du, „€", „…"; bei UI-Text-Arbeit in `/implement` und `/review` lesen.
 
 ---
 
@@ -388,6 +389,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Ein von einem Review-Report vorformulierter Fix-Text trägt die Deixis seiner eigenen Perspektive mit („diese Spec selbst" im Report meinte die besprochene Spec) – wörtlich in eine andere Zieldatei (Guideline) übernommen, verliert der Verweis sein Antezedens und geht ins Leere (aus #315, Review-Runde-5-Finding) → `/implement`, `/review` – beim wörtlichen Übernehmen eines Fix-Vorschlags aus einem Review-/Security-/Codify-Report in eine andere Zieldatei
 - Neues Gate verankern: prüfen, ob eine ADR den Ort für Gates dieser Klasse schon entschieden hat – ADR-047 wiederholte die von ADR-041 bereits verworfene „einzelne Testzeile als CI-Arm"-Konstruktion, ohne sie zu erwähnen (aus #319, Review-Runde-3-Finding) → `/architecture`, `/implement`, `/review` – bei neuem Check-Skript, Hook-Verdrahtung oder CI-Job
 - AK mit Binär-Artefakt am PR (Screenshots) ist nicht agentenerfüllbar (`gh` lädt keine Bilder hoch) – als menschlichen Schritt vor dem Merge markieren, PR-Body nicht in der Vergangenheitsform, solange der Anhang fehlt; blieb hier drei Review-Runden offen (aus #368, Review-Finding W2) → `/requirements`, `/implement`, `/pr-shepherd` – bei AK mit Screenshot-/Medien-Nachweis am PR
+- Normative Regel (Glossar/Guideline) mit Ist→Soll-Abweichungsliste: nach jeder Änderung am Regelwortlaut, auch im Rework, das Kernmuster per Grep über den ganzen Baum laufen lassen – Beispiele ersetzen den Grep nicht; Review-Fundstellen vor dem Eintragen belegen (aus #375, Review-Iteration 1/2) → `/implement`, `/review` – bei Doku mit Abweichungsliste gegen den Code
 - Als „separat geflaggt"/„Hinweis-Ebene" markierter Out-of-Scope-Fund bleibt Session-Notiz statt sofort kanonisch (Issue/`kleinfunde.md`) verankert zu werden – Klassifizierung und Anlage gehören in denselben Schritt, nicht als Orchestrator-Nacharbeit (aus #345, Orchestrator-Selbstfund) → `/review`, `/security-review`, `/test`, `/refactor`, `/codify` – sobald ein eigener Report das Wort „separat geflaggt"/„Hinweis-Ebene"/„außerhalb des Scopes" für einen Fund verwendet
 
 ---

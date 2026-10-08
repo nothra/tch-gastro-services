@@ -267,6 +267,9 @@ AK4 umfasst Verzehr, Auslagen, Veranstaltungsliste und Teilnehmer (nur Kopf/Zur�
 
 **Labels:** `documentation`
 
+**Ergebnis:** [`docs/ux/glossar.md`](glossar.md) – verbindliches Wording-Glossar samt
+Abweichungsliste; offene Angleichungen in #372 und #401.
+
 ### Problem
 Uneinheitliche Verben und Schreibweisen:
 - Anlegen / Hinzufügen / Erfassen / Einrichten
