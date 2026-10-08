@@ -145,6 +145,9 @@ Glossar"). Alles, was nicht dorthin gehört, sammelt **#401**.
 | `app/veranstaltung/KatalogWechsel.tsx:44` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:207` | Button „Gast hinzufügen" | „Neuen Gast anlegen" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:97` | „Alle aktiven Stammteilnehmer sind bereits erfasst." | „… sind bereits hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:357` (Text aus `nichtsAngelegt`, `:104–106`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:353` (Text aus `nichtsAngelegt`, `:104–106`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:101` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
 | `app/veranstaltung/VeranstaltungAnlegen.tsx:75` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:47` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/katalog/ArtikelAnlegen.tsx:46` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |

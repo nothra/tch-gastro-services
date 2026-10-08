@@ -70,6 +70,12 @@ erledigt. Wichtig: (W1) die neue Regel „Doppelpunkt nur bei ‚nicht möglich'
 `app/veranstaltung/actions.ts:101/:353/:357` („Bereits erfasst: …", „Nicht mehr wählbar: …"); `:101`/`:357`
 zusätzlich Verb „erfasst" statt „hinzugefügt" – fehlen in der Abweichungsliste. Details in `tasks/review-375.md`.
 
+Rework 2 (2026-10-08): Variante (a) – die Regel bleibt eng, drei Zeilen ergänzt (`actions.ts:357`, `:353`,
+`:101` → Soll „Hinzufügen nicht möglich: … hinzugefügt / nicht mehr wählbar."; Zusatz „Es wurde niemand
+hinzugefügt." bleibt, weil #369 FS2 ihn verlangt). Ziel #401 wie die Dialogzeile „bereits erfasst".
+Anker gegen den Baum gelesen. #401 hat einen Kommentar mit Nachtrag zum Umfang und den
+Test-Ankern `actions.test.ts:961/:969`.
+
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
