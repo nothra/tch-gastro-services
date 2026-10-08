@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -90,6 +90,10 @@ per Grep belegt, alle „nicht möglich"-Meldungen in `app/` gegen die Doppelpun
 /refactor (2026-10-08): reiner Doku-Diff (Glossar, Spec, zwei Verweiszeilen) – kein Code, keine
 Duplikate oder Magic Strings zu bereinigen; Glossar-Struktur und Anker gegen den Diff geprüft,
 keine Änderung nötig.
+
+## Security-Notizen
+/security-review (2026-10-08): **PASSED**, 0 kritische und 0 wichtige Findings. Der Diff enthält nur Doku,
+die Secret-Muster-Suche fand nichts. Details in `tasks/security-375.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
