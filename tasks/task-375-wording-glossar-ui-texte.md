@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Verbindliches Wording-Glossar `docs/ux/glossar.md` für alle UI-Texte (Verb je Aktionstyp,
@@ -99,6 +99,9 @@ die Secret-Muster-Suche fand nichts. Details in `tasks/security-375.md`.
 /codify (2026-10-08): eine neue Lesson (`lessons/factory-workflow.md` + Index-Zeile): Regelwortlaut einer
 normativen Regel mit Abweichungsliste nach jeder Änderung per Grep gegen den ganzen Baum prüfen. Sonst keine
 Änderung; Details in `tasks/codify-375.md`.
+
+## PR-Shepherd-Notizen
+PR-Shepherd 2026-10-08: Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `docs/375-wording-glossar-ui-texte`
