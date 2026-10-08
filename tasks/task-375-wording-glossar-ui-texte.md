@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -75,6 +75,10 @@ Rework 2 (2026-10-08): Variante (a) – die Regel bleibt eng, drei Zeilen ergän
 hinzugefügt." bleibt, weil #369 FS2 ihn verlangt). Ziel #401 wie die Dialogzeile „bereits erfasst".
 Anker gegen den Baum gelesen. #401 hat einen Kommentar mit Nachtrag zum Umfang und den
 Test-Ankern `actions.test.ts:961/:969`.
+
+Iteration 3 (2026-10-08): **APPROVED** – 0 kritisch, 0 wichtig, 2 Nitpicks (Soll-Text mit doppeltem
+„hinzugefügt" darf #401 glätten; Auffangzeile „Sonstiger Fehler" weiter optional). Anker `:101/:104/:353/:357`
+per Grep belegt, alle „nicht möglich"-Meldungen in `app/` gegen die Doppelpunkt-Regel geprüft.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
