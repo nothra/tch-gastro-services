@@ -52,6 +52,18 @@ Geklärt (2026-10-08): Anrede = überall Du; Ersatz für „Walk-in" = „Neuer 
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Iteration 1 (2026-10-08): **NEEDS_REWORK** – 0 kritisch, 2 wichtig, 2 Nitpicks; Details in
+`tasks/review-375.md`. Wichtig: (W1) Fehler-Muster ohne Geltungsbereich, Feld-Validierungsmeldungen
+(„Name fehlt.", „Bitte einen Katalog wählen.") ungeregelt; (W2) `LinkKopieren.tsx:45`
+(„Kopieren nicht möglich – …") fehlt in der Abweichungsliste. Alle 35 Anker gegen den Baum belegt.
+
+Rework 1 (2026-10-08): W1 – Meldungstabelle unterscheidet jetzt abgelehnte Aktion, Feld-Validierung,
+„nicht gefunden" und „Kein Zugriff" (alle mit Punkt; Doppelpunkt nur bei „nicht möglich"); der
+Infinitiv „Bitte … wählen." gilt als erlaubter Sachsatz. Gegen `app/**/schema.ts` + `actions.ts`
+gegrept: die Feldmeldungen enden alle bereits mit Punkt („… ist erforderlich.", „… nicht gefunden.") –
+die im Review genannten „Name fehlt"-Texte gibt es im Produktionscode nicht, also keine neuen
+Abweichungszeilen. W2 – `LinkKopieren.tsx:45` → #372 ergänzt. Nitpick 1 – Kommentarzeile gestrichen,
+„Walk-in"-Kommentare unter „Ausnahmen" (UI-frei, per Grep belegt). Nitpick 2 – mit W1 erledigt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

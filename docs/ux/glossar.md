@@ -42,11 +42,18 @@ Veranstaltung.
 |---|---|---|
 | Erfolg nach Änderung | **„Gespeichert"** | „Gespeichert" |
 | Erfolg nach anderer Aktion | **„<Objekt> <Partizip>"** | „Veranstaltung angelegt", „Teilnehmer entfernt", „Auslage gelöscht", „Katalog gewechselt" |
-| Fehler | **„<Aktion> nicht möglich: <Grund>."** | „Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert." (`app/veranstaltung/actions.ts`) |
+| Abgelehnte Aktion (fachliche Regel verhindert sie) | **„<Aktion> nicht möglich: <Grund>."** | „Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert." (`app/veranstaltung/actions.ts`) |
+| Feld-Validierung (Eingabe fehlt oder ist ungültig) | Sachsatz, Feld vorn: **„<Feld> ist erforderlich."**, **„<Feld> ist zu lang."**, **„<Feld> muss …"**; Auswahl: **„Bitte <Objekt> wählen."** | „Bezeichnung ist erforderlich.", „Betrag ist zu hoch.", „Bitte einen Katalog wählen." (`app/**/schema.ts`) |
+| Objekt existiert nicht (mehr) | **„<Objekt> nicht gefunden."** | „Veranstaltung nicht gefunden.", „Katalog nicht gefunden." |
+| Fehlende Rolle (Seiten-Hinweis) | **„Kein Zugriff – nur <Rolle> dürfen <Tätigkeit>."** | „Kein Zugriff – nur Veranstalter dürfen Verzehr erfassen." |
 | Busy (Button während der Aktion) | **„<Verb> …"** – Verb des Buttons, Leerzeichen vor „…" | „Anlegen …", „Löschen …", „Entfernen …", „Speichern …" |
 
-- **Satzzeichen:** Erfolgsmeldungen sind Kurzformen **ohne** Schlusspunkt. Fehlermeldungen nennen
-  einen Grund und sind ein Satz **mit** Schlusspunkt.
+- **Satzzeichen:** Erfolgsmeldungen sind Kurzformen **ohne** Schlusspunkt. Alle Fehler-Arten
+  (abgelehnte Aktion, Feld-Validierung, nicht gefunden, kein Zugriff) sind ein Satz **mit**
+  Schlusspunkt.
+- **Doppelpunkt nur bei „nicht möglich":** Das Muster „<Aktion> nicht möglich" trennt den Grund mit
+  Doppelpunkt, nie mit Gedankenstrich. Der Zugriffs-Hinweis „Kein Zugriff – …" ist ein eigenes
+  Muster und behält seinen Gedankenstrich.
 - **Busy-Text folgt dem Button:** Der Button „Anlegen" zeigt „Anlegen …", nicht „Speichern …";
   „Kassieren" zeigt „Kassieren …".
 - Erfolg erscheint über `role="status"`, Fehler über `role="alert"` (Mechanik: #372).
@@ -63,7 +70,9 @@ Veranstaltung.
 | ❌ Negativ | „Wer sind Sie?", „Bitte wählen Sie einen Teilnehmer.", „Ihre Änderungen wurden gespeichert." |
 
 **Sachsätze ohne Ansprache sind erlaubt** und oft kürzer: „Kein Zugriff – nur Veranstalter dürfen
-Verzehr erfassen.", „Noch keine Veranstaltung angelegt."
+Verzehr erfassen.", „Noch keine Veranstaltung angelegt." Dazu zählt auch die Bitte im Infinitiv
+ohne Pronomen („Bitte einen Katalog wählen.") – sie ist erlaubt und muss nicht zu „Wähle …"
+umgeschrieben werden. Neue Texte mit direkter Ansprache nutzen den Imperativ in Du-Form.
 
 ---
 
@@ -108,7 +117,9 @@ Verzehr erfassen.", „Noch keine Veranstaltung angelegt."
 ## Ausnahmen
 
 - **Code-Bezeichner** (`createWalkInAction`, `WalkInForm` u. ä.) dürfen „Walk-in" behalten – sie
-  sind kein UI-Text. Ein Umbenennen ist kein Teil dieses Glossars.
+  sind kein UI-Text. Ein Umbenennen ist kein Teil dieses Glossars. Dasselbe gilt für
+  Code-Kommentare, die „Walk-in" nennen – im sichtbaren UI-Text kommt „Walk-in" bereits nicht mehr
+  vor (Stand `31e5fbf`).
 - **Abgeschlossene Specs und ADRs** zitieren Texte im damaligen Wortlaut, z. B. „Bitte wählen…"
   (`spec-194`), „Walk-in" (`spec-369`, ADR-022), „Stehende Theke einrichten" (`spec-373`),
   „Deaktivieren/Reaktivieren" (`spec-345`, ADR-022). Sie sind Historie und werden nicht nachgezogen.
@@ -130,10 +141,10 @@ Glossar"). Alles, was nicht dorthin gehört, sammelt **#401**.
 | `app/veranstaltung/[id]/VeranstaltungMetaForm.tsx:67` | „Änderungen gespeichert." | „Gespeichert" | #372 |
 | `app/veranstaltung/KatalogWechsel.tsx:47` | „Katalog gewechselt." | „Katalog gewechselt" | #372 |
 | `app/verwaltung/katalog/[id]/CatalogControls.tsx:140` | „Reaktivieren" | „Aktivieren" | #372 |
+| `app/veranstaltung/[id]/LinkKopieren.tsx:45` | „Kopieren nicht möglich – der Link ist markiert und kann manuell kopiert werden." | „Kopieren nicht möglich: der Link ist markiert und kann manuell kopiert werden." | #372 |
 | `app/veranstaltung/KatalogWechsel.tsx:44` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:207` | Button „Gast hinzufügen" | „Neuen Gast anlegen" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:97` | „Alle aktiven Stammteilnehmer sind bereits erfasst." | „… sind bereits hinzugefügt." | #401 |
-| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:185` | Kommentar „Walk-in" | „Neuer Gast" (optional, kein UI-Text) | #401 |
 | `app/veranstaltung/VeranstaltungAnlegen.tsx:75` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:47` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/katalog/ArtikelAnlegen.tsx:46` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
