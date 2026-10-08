@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -96,7 +96,9 @@ keine Änderung nötig.
 die Secret-Muster-Suche fand nichts. Details in `tasks/security-375.md`.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+/codify (2026-10-08): eine neue Lesson (`lessons/factory-workflow.md` + Index-Zeile): Regelwortlaut einer
+normativen Regel mit Abweichungsliste nach jeder Änderung per Grep gegen den ganzen Baum prüfen. Sonst keine
+Änderung; Details in `tasks/codify-375.md`.
 
 ---
 Branch: `docs/375-wording-glossar-ui-texte`
