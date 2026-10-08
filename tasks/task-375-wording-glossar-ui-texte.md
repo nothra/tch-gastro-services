@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -85,6 +85,11 @@ per Grep belegt, alle „nicht möglich"-Meldungen in `app/` gegen die Doppelpun
 `import-context-limit-check.sh` grün (929/1100), `routes-doc-check.sh` grün, AK3.1 per
 `pnpm vitest run app/login/page.test.tsx` (6/6 grün), Verweise AK1.8/AK2.1 per Grep
 (`PROJECT-CONTEXT.md:167`, `ux-issue-entwuerfe.md:270/287`). Coverage unverändert (kein Code im Diff).
+
+## Refactor-Notizen
+/refactor (2026-10-08): reiner Doku-Diff (Glossar, Spec, zwei Verweiszeilen) – kein Code, keine
+Duplikate oder Magic Strings zu bereinigen; Glossar-Struktur und Anker gegen den Diff geprüft,
+keine Änderung nötig.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
