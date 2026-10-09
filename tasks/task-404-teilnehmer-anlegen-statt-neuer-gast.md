@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -102,6 +102,14 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
 - Iteration 3 (2026-10-09): **APPROVED** – 0 kritisch, 0 wichtig, 2 Nitpicks (Bild 06 als bekannter
   menschlicher Schritt; Code-Kommentar „Stammteilnehmer“ in `actions.ts:325`). Alle
   Iteration-2-Funde nachgeprüft und behoben; Unit-Tests der betroffenen Bereiche 1064/1064 grün.
+
+## Test-Notizen
+- `/test` (2026-10-09): Coverage-Lauf mit DB-Integrationstests (`dotenv -e .env.local`) – 121 Dateien,
+  1749 Tests grün; gesamt 98,64 % Statements / 98,78 % Branches. Alle in diesem PR geänderten
+  Dateien liegen bei 100 % (Dialog, `DuplikatWarnung`, `TeilnehmerFields`, `TeilnehmerAnlegen`,
+  `FormularDialog`, `createWalkInAction`). Einzige Lücke im Umfeld: `actions.ts:641`
+  (`ensureThekeAction`, nicht Teil dieses PR). Jedes AK (AK1–AK8) hat mindestens einen Test
+  (Unit und/oder E2E); keine Test-Ergänzung nötig, kein Produktionscode geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
