@@ -366,3 +366,24 @@ Bauen `useFormularDialog(ersatzFokusId)` nutzen (nur nach Erfolg und nur bei Fok
 mit Positions- und Fokus-Assertion testen. Ein Hook, der neben einem bestehenden ähnlichen entsteht (#373 W2:
 `useDialogFormular` kopierte `useSchliessendeAction` mit falscher Begründung), wird vorher gegen diesen abgeglichen und
 route-neutral in `app/components/` abgelegt, nicht im Feature-Ordner.
+
+### Overlay außerhalb eines modalen `<dialog>` ist verdeckt und inert – Portal in den offenen Dialog (aus #372, /implement-Selbstfund)
+
+**Smell:** Der Toast „Einstellungen gespeichert" lag im `<body>`, der Dialog „Einstellungen" bleibt nach dem Speichern
+offen (ADR-056 D3). Ein modaler `<dialog>` liegt im Top-Layer und macht den Rest der Seite inert: der Toast war verdeckt,
+„×" nicht anklickbar. `toBeVisible()` meldete trotzdem grün (die Box hat Größe, Playwright prüft keine Überdeckung).
+
+**Regel:** Jedes seitenweite Overlay (Toast, Snackbar) muss auch bei offenem modalem Dialog bedienbar sein – hier rendert
+`Toaster` per Portal in den zuletzt geöffneten `dialog[open]`. Nachweis nur über einen **Klick** auf ein Bedienelement des
+Overlays plus Screenshot, nie über `toBeVisible()` allein; Mutationsbeleg: Portal abschalten → E2E rot („intercepts
+pointer events").
+
+### Erfolgs-Fokus-Vertrag in zwei Hooks kopiert (Rezidiv #373, aus #372, Review-Iteration 1/2)
+
+**Smell:** `useBestaetigung` und `useFormularDialog` trugen wortgleich „Erfolgsmarke zurücksetzen/setzen + schließen";
+nur das Aushängen-Ende war geteilt. Gefunden erst im Review (Iteration 2 Nitpick), obwohl Lesson #373 das Abgleichen
+verlangt; Auflösung in `/refactor` (`useErsatzFokus.ts`).
+
+**Regel:** Entsteht ein zweiter Hook mit derselben Zustandsmaschine, den **ganzen** Vertrag (nicht nur das letzte Stück)
+in einen gemeinsamen Helfer ziehen, bevor der zweite Hook fertig ist – und den Helfer nie aus einer Komponenten-Datei
+exportieren, sondern als eigenes Modul in `app/components/` ablegen.

@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Bestätigung für Auslage löschen und Katalog deaktivieren, die drei Katalog-Modals auf die
@@ -109,7 +109,13 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
   `playwright-372.tmp.config.ts`.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- Drei Lessons (Toast verdeckt unter modalem Dialog, Rezidiv Erfolgs-Fokus-Vertrag, `getByRole`-Teilstring) + ein Rezidiv-Nachtrag
+  zu Wegwerf-Artefakten → `tasks/codify-372.md`, Index in `PROJECT-CONTEXT.md`.
+- Vor dem Merge manuell löschen: `playwright-372.tmp.config.ts`, `scripts/advisory372.tmp.sh`.
+
+PR-Shepherd 2026-10-09: Merge freigegeben – alle Gates grün (CI 11/11). Gitignorete Wegwerf-Dateien
+`playwright-372.tmp.config.ts`, `scripts/advisory372.tmp.sh` lagen noch lokal (`rm` nicht freigegeben) –
+nicht im PR, mit dem Worktree nach dem Merge entfernen.
 
 ---
 Branch: `feature/372-einheitliches-bestaetigen-rueckmelden`
