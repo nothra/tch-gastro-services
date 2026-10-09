@@ -132,7 +132,9 @@ test.describe("Bausteine ListenZeile und Aufklapper (#403)", () => {
     // ── AK3.2 + AK1.2/AK1.3: Offen auf (Pfeil gedreht, „Ausblenden"), Abgeschlossen zu ───────
     await erwarteZustand(offen, true);
     await erwarteZustand(abgeschlossen, false);
-    await expect(offen.getByRole("link", { name: new RegExp(`^${offeneBezeichnung}`) })).toBeVisible();
+    await expect(
+      offen.getByRole("link", { name: new RegExp(`^${offeneBezeichnung}`) }),
+    ).toBeVisible();
 
     // ── AK1.5: per Tastatur öffnen, Fokusring sichtbar ───────────────────────────────────
     const summary = zusammenfassung(abgeschlossen);
