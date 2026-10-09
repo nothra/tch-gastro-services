@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -98,6 +98,15 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
   `pnpm typecheck` war in dieser Session nicht freigegeben – läuft im pre-push.
 - Die gitignorete Wegwerf-Datei `playwright-372.tmp.config.ts` konnte nicht gelöscht werden
   (Freigabe fehlte) – vor dem Merge manuell entfernen.
+
+## Security-Notizen (/security-review, 2026-10-09)
+- **PASSED** – 0 kritisch, 0 wichtig, 2 Hinweise → `tasks/security-372.md`. Rollen-Guard, Zod, IDOR
+  und serverseitige Lösch-Sperre am Code belegt.
+- `react-hot-toast@2.6.1` (+ `goober@2.1.19`): keine Advisories laut npm-Bulk-Advisory-API (Gegenprobe
+  `lodash@4.17.15` liefert Treffer); exakter Pin, keine Install-Hooks.
+- Keine Out-of-Scope-Funde, keine Issues/Kleinfunde angelegt.
+- Gitignorete Wegwerf-Dateien vor dem Merge entfernen: `scripts/advisory372.tmp.sh`,
+  `playwright-372.tmp.config.ts`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
