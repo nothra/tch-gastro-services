@@ -28,8 +28,7 @@ type TeilnehmerAuswahl = Pick<Teilnehmer, "id" | "name">;
 // setzt den Fokus deshalb selbst – Anlegen aufs Namensfeld, die Rückkehr auf den Absprung. Beim
 // Öffnen bestimmt dagegen der Dialog das Fokusziel.
 type Schritt =
-  | { art: "auswahl"; zurueckVomAnlegen: boolean }
-  | { art: "anlegen"; namensVorschlag: string };
+  { art: "auswahl"; zurueckVomAnlegen: boolean } | { art: "anlegen"; namensVorschlag: string };
 
 const AUSWAHL_BEIM_OEFFNEN: Schritt = { art: "auswahl", zurueckVomAnlegen: false };
 

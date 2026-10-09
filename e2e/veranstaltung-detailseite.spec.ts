@@ -118,7 +118,8 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
 
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Mobil ${LAUF}`);
     await page.goto(detailPfad);
-    for (const nummer of [1, 2, 3]) await teilnehmerAnlegenUndHinzufuegen(page, `${PREFIX} Gast${nummer} ${LAUF}`);
+    for (const nummer of [1, 2, 3])
+      await teilnehmerAnlegenUndHinzufuegen(page, `${PREFIX} Gast${nummer} ${LAUF}`);
 
     await page.reload();
     await page.evaluate(() => window.scrollTo(0, 0));

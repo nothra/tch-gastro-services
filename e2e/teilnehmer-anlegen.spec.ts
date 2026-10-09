@@ -137,7 +137,9 @@ test.describe("Teilnehmer anlegen aus der Veranstaltung (#404)", () => {
     ).toBeVisible();
     await expect(anlegeSchritt(page).getByLabel("Name", { exact: true })).toHaveValue(vorhanden);
     await expect(page.getByRole("link", { name: vorhanden, exact: true })).toHaveCount(0);
-    await anlegeSchritt(page).getByRole("button", { name: "Trotzdem anlegen", exact: true }).click();
+    await anlegeSchritt(page)
+      .getByRole("button", { name: "Trotzdem anlegen", exact: true })
+      .click();
     await expect(anlegeSchritt(page)).toBeHidden();
     await expect(page.getByRole("link", { name: vorhanden, exact: true })).toBeVisible();
 

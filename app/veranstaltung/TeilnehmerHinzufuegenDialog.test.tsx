@@ -332,7 +332,9 @@ describe("TeilnehmerHinzufuegenDialog – Schritt „Teilnehmer anlegen“ (spec
 
     oeffnen();
 
-    expect(im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" })).not.toHaveFocus();
+    expect(
+      im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" }),
+    ).not.toHaveFocus();
   });
 
   it("should_keepSelectionAndSearch_when_zurueckTapped", async () => {
