@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -119,7 +119,11 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
   (Review-Nitpick Iteration 3). Kein Verhalten geändert; Lint und Pre-Commit grün.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- `/codify` (2026-10-09), Details in `tasks/codify-404.md`: zwei neue Lessons – Fokus beim
+  Schrittwechsel im selben Dialog (`frontend-react.md`) und Rezidiv #375/#345 Anker-/Fix-Empfehlungs-
+  Drift nach Rework (`factory-workflow.md`); Index-Zeilen in `PROJECT-CONTEXT.md`. Keine neuen
+  Issues/Kleinfunde. Offen bleibt der menschliche Schritt: Bild `06-teilnehmer-hinzufuegen.png`
+  neu erzeugen – danach „Fertig / PR erstellt" abhaken.
 
 ---
 Branch: `feature/404-teilnehmer-anlegen-statt-neuer-gast`
