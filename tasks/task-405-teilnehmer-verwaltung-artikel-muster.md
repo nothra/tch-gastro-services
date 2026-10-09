@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Teilnehmer-Verwaltung (`/verwaltung/teilnehmer`) im Muster von Artikel/Veranstaltung: weiße
@@ -97,3 +97,5 @@ Erstellt: 2026-10-09 18:07
   Nutzer steht woanders. Mutationsbeleg: ohne `kopf ??` bzw. ohne `marke.current` je Test rot.
 - Suite mit DB-Tests (`dotenv … vitest run --coverage`): 123 Dateien / 1790 Tests grün, Coverage 98,65 %.
 - Kein Produktionscode geändert – der Security-Bericht bleibt gültig.
+
+PR-Shepherd 2026-10-09: Merge freigegeben – alle Gates grün.
