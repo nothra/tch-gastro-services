@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
 import type { Catalog } from "@/db/schema";
 import { Button } from "@/app/components/ui/Button";
 import { SelectField } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { setVeranstaltungCatalogAction } from "./actions";
 
 // Beschriftung der Platzhalter-Option für eine bestehende Zuordnung auf einen inzwischen
@@ -17,7 +17,8 @@ const NICHT_MEHR_WAEHLBAR = "Aktuell zugeordnet (nicht mehr wählbar)";
 // „Einstellungen" des Seitenkopfs. Client-Komponente nach dem Muster von StatusToggle: die
 // serverseitige Ablehnung – abgeschlossene Veranstaltung (AK5), deaktivierter Zielkatalog (AK6)
 // oder bereits erfasster Verzehr (AK4) – wird über useActionState sichtbar (Codify #49, kein
-// useEffect). Die Veranstaltungs-Id reist als verstecktes Feld, wie beim Status-Umschalter.
+// useEffect). Die Veranstaltungs-Id reist als verstecktes Feld, wie beim Status-Umschalter. Den
+// Erfolg meldet ein Toast (spec-372 AK12/AK17).
 export function KatalogWechsel({
   id,
   catalogId,
@@ -27,7 +28,9 @@ export function KatalogWechsel({
   catalogId: string;
   kataloge: Catalog[];
 }) {
-  const [state, formAction, pending] = useActionState(setVeranstaltungCatalogAction, undefined);
+  const [state, formAction, pending] = useSchliessendeAction(setVeranstaltungCatalogAction, {
+    erfolgsMeldung: "Katalog gewechselt",
+  });
   const zugeordneterKatalogWaehlbar = kataloge.some((katalog) => katalog.id === catalogId);
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -44,7 +47,6 @@ export function KatalogWechsel({
         {pending ? "Speichern …" : "Katalog wechseln"}
       </Button>
       <Notice kind="fehler">{state?.error}</Notice>
-      <Notice kind="erfolg">{state?.ok && "Katalog gewechselt."}</Notice>
     </form>
   );
 }

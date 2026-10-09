@@ -96,7 +96,7 @@ export function Dialog({
               {title}
             </h2>
             {description && (
-              <p id={descriptionId} className="text-sm text-muted">
+              <p id={descriptionId} className="break-words text-sm text-muted">
                 {description}
               </p>
             )}

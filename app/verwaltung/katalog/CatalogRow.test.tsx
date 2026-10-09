@@ -8,12 +8,15 @@ vi.mock("./actions", () => ({
   updateCatalogItemAction: vi.fn(),
   setCatalogItemActiveAction: vi.fn(),
 }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
 import { CatalogRow } from "./CatalogRow";
 
 const updateMock = vi.mocked(updateCatalogItemAction);
 const setActiveMock = vi.mocked(setCatalogItemActiveAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 const activeItem: CatalogItem = {
   id: "item-1",
@@ -168,6 +171,34 @@ describe("CatalogRow – Bearbeiten-Dialog (spec-373 AK4.3/AK4.5)", () => {
     await klicke("Aktivieren");
 
     expect(setActiveMock.mock.calls[0][1].get("active")).toBe("true");
+  });
+
+  it("should_reportGespeichert_when_saveSucceeds", async () => {
+    // spec-372 AK12, Glossar: Erfolg nach Änderung = „Gespeichert".
+    renderRow();
+    oeffnen();
+
+    await klicke("Speichern");
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
+  });
+
+  it("should_reportDeaktiviert_when_deaktivierenSucceeds", async () => {
+    renderRow();
+    oeffnen();
+
+    await klicke("Deaktivieren");
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Artikel deaktiviert");
+  });
+
+  it("should_reportAktiviert_when_aktivierenSucceeds", async () => {
+    renderRow({ ...activeItem, active: false });
+    oeffnen();
+
+    await klicke("Aktivieren");
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Artikel aktiviert");
   });
 
   it("should_keepDialogWithError_when_toggleRejected", async () => {

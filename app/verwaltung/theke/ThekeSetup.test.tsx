@@ -11,10 +11,24 @@ vi.mock("react", async () => {
   return { ...actual, useActionState: vi.fn() };
 });
 
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
 import { useActionState } from "react";
+import { meldeErfolg } from "@/app/components/ui/meldung";
+import { ensureThekeAction } from "@/app/veranstaltung/actions";
 import { ThekeSetup } from "./ThekeSetup";
 
 const useActionStateMock = vi.mocked(useActionState);
+const ensureMock = vi.mocked(ensureThekeAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
+
+// Der an useActionState übergebene Wrapper (Codify #49) – hier direkt ausgeführt.
+function wrappedAction() {
+  return useActionStateMock.mock.calls[0][0] as (
+    prev: VeranstaltungFormState | undefined,
+    fd: FormData,
+  ) => Promise<VeranstaltungFormState>;
+}
 const noopDispatch = vi.fn();
 
 function withState(state: VeranstaltungFormState | undefined, isPending = false) {
@@ -54,11 +68,31 @@ describe("ThekeSetup (spec-373 AK3.2)", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Bitte eine gültige Kasse wählen.");
   });
 
-  it("should_showSuccessMessage_when_stateOk", () => {
+  it("should_notShowInlineSuccessMessage_when_stateOk", () => {
+    // spec-372 AK17: die Rückmeldung ist der Toast, keine zweite Meldung am Formular.
     withState({ ok: true });
     render(<ThekeSetup />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Theke eingerichtet.");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("should_reportThekeAngelegt_when_actionSucceeds", async () => {
+    // spec-372 AK12 + Glossar (neues Objekt = anlegen; Button-Text folgt mit #401).
+    ensureMock.mockResolvedValue({ ok: true });
+    render(<ThekeSetup />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Theke angelegt");
+  });
+
+  it("should_notReport_when_actionRejects", async () => {
+    ensureMock.mockResolvedValue({ error: "Bitte eine gültige Kasse wählen." });
+    render(<ThekeSetup />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
   it("should_showDisabledButtonWithEinrichtenPendingText_when_pending", () => {

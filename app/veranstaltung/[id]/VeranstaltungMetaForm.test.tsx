@@ -13,10 +13,24 @@ vi.mock("react", async () => {
   return { ...actual, useActionState: vi.fn() };
 });
 
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
 import { useActionState } from "react";
+import { meldeErfolg } from "@/app/components/ui/meldung";
+import { updateVeranstaltungMetaAction } from "../actions";
 import { VeranstaltungMetaForm } from "./VeranstaltungMetaForm";
 
 const useActionStateMock = vi.mocked(useActionState);
+const updateMock = vi.mocked(updateVeranstaltungMetaAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
+
+// Der an useActionState übergebene Wrapper (Codify #49) – hier direkt ausgeführt.
+function wrappedAction() {
+  return useActionStateMock.mock.calls[0][0] as (
+    prev: VeranstaltungFormState | undefined,
+    fd: FormData,
+  ) => Promise<VeranstaltungFormState>;
+}
 const noopDispatch = vi.fn();
 
 function withState(state: VeranstaltungFormState | undefined, isPending = false) {
@@ -101,12 +115,32 @@ describe("VeranstaltungMetaForm", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("should_showSuccessMessage_when_stateOk", () => {
+  it("should_notShowInlineSuccessMessage_when_stateOk", () => {
+    // spec-372 AK17: die Rückmeldung ist der Toast, keine zweite Meldung am Formular.
     withState({ ok: true });
     render(<VeranstaltungMetaForm {...props} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Änderungen gespeichert.");
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByText(/gespeichert/i)).not.toBeInTheDocument();
+  });
+
+  it("should_reportGespeichert_when_actionSucceeds", async () => {
+    // spec-372 AK12, Glossar: Erfolg nach Änderung = „Gespeichert".
+    updateMock.mockResolvedValue({ ok: true });
+    render(<VeranstaltungMetaForm {...props} />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
+  });
+
+  it("should_notReport_when_actionRejects", async () => {
+    updateMock.mockResolvedValue({ error: "Bezeichnung ist erforderlich." });
+    render(<VeranstaltungMetaForm {...props} />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
   it("should_offerSubmitButtonInSecondaryStyle_when_rendered", () => {
@@ -118,22 +152,9 @@ describe("VeranstaltungMetaForm", () => {
     expect(button).toHaveClass("border-line", "bg-surface");
   });
 
-  it("should_hideSuccessMessage_when_fieldEditedAfterSaving", async () => {
-    // „Änderungen gespeichert." behauptet einen Speicherstand. Bleibt sie stehen, während der
-    // Nutzer weitertippt, bestätigt sie einen Formularinhalt, der so nie gespeichert wurde.
-    const user = userEvent.setup();
-    withState({ ok: true });
-    render(<VeranstaltungMetaForm {...props} />);
-    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText("Bezeichnung"), " – verschoben");
-
-    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
-  });
-
   it("should_keepRejectionErrorVisible_when_fieldEditedAfterRejection", async () => {
-    // Gegenrichtung zum Test darüber: die Fehlermeldung ist kein Zustandsbericht, sondern die
-    // Aufforderung zur Korrektur – sie darf beim Tippen NICHT verschwinden.
+    // Die Fehlermeldung ist kein Zustandsbericht, sondern die Aufforderung zur Korrektur – sie
+    // darf beim Tippen NICHT verschwinden.
     const user = userEvent.setup();
     withState({ error: "Bezeichnung ist erforderlich." });
     render(<VeranstaltungMetaForm {...props} />);
@@ -148,43 +169,5 @@ describe("VeranstaltungMetaForm", () => {
     render(<VeranstaltungMetaForm {...props} />);
 
     expect(screen.getByRole("button", { name: /Speichern …/ })).toBeDisabled();
-  });
-
-  it("should_keepSuccessMessageHidden_when_submitClickedWhileRequiredFieldInvalid", async () => {
-    // Review-Runde 3, Wichtig-Finding 1: der Reset saß am `onClick` des Buttons und feuerte
-    // auch dann, wenn die HTML-Constraint-Validierung die Absendung abbricht – eine alte
-    // „Änderungen gespeichert."-Meldung erschien so fälschlich wieder über einem leeren
-    // Pflichtfeld. Der Reset sitzt jetzt am `onSubmit` des Formulars, das jsdom bei einem
-    // ungültigen Pflichtfeld gar nicht erst auslöst.
-    const user = userEvent.setup();
-    withState({ ok: true });
-    render(<VeranstaltungMetaForm {...props} />);
-    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
-
-    await user.clear(screen.getByLabelText("Bezeichnung"));
-    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
-
-    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
-  });
-
-  it("should_resetChangedFlag_when_submitClickedWhileAllRequiredFieldsValid", async () => {
-    // Gegenrichtung zum Test darüber: bleiben alle Pflichtfelder gültig, feuert `onSubmit`
-    // tatsächlich und setzt `geaendertSeitSpeichern` zurück auf `false` – erkennbar daran, dass
-    // die (im Mock unveränderte) alte Erfolgsmeldung nach dem Klick wieder erscheint, obwohl das
-    // Formular zuvor bearbeitet wurde. Ohne diesen Test bliebe die `onSubmit`-Rückmeldung selbst
-    // ungetestet (Coverage-Lücke: Runde 4 deckte nur den blockierten Fall ab).
-    const user = userEvent.setup();
-    withState({ ok: true });
-    render(<VeranstaltungMetaForm {...props} />);
-    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText("Bezeichnung"), " – korrigiert");
-    expect(screen.queryByText("Änderungen gespeichert.")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
-
-    expect(screen.getByText("Änderungen gespeichert.")).toBeInTheDocument();
   });
 });

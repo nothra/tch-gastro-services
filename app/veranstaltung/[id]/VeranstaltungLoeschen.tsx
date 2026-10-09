@@ -1,26 +1,43 @@
 "use client";
 
-import { useActionState, useRef, useState, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
+import { Dialog } from "@/app/components/ui/Dialog";
 import { IconButton } from "@/app/components/ui/IconButton";
 import { PapierkorbIcon } from "@/app/components/ui/icons";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
+import { loeschSperrenBeschreibung, type LoeschSperre } from "@/lib/veranstaltung-loesch-sperren";
 import { deleteVeranstaltungAction } from "../actions";
 
 // Endgültiges Löschen einer noch offenen, datierten Veranstaltung (#352 AK4/AK8) – ausgelöst über
 // den Papierkorb im Seitenkopf (spec-391 AK11, ADR-056 D4). Der Bestätigungsdialog ist Pflicht
-// (spec-352, „Gesetzte Entscheidungen"). Die serverseitige Ablehnung (Verzehr/Kassiert/Auslage
-// erfasst) erscheint IM Dialog, weil der Nutzer nach dem Absenden dort steht. Bei Erfolg leitet die
-// Action selbst zur Übersicht (AK9), dieser Zustand wird hier also nie gerendert.
+// (spec-352, „Gesetzte Entscheidungen"). Sperrt schon beim Laden der Seite etwas das Löschen,
+// nennt der Dialog den Grund sofort und bietet keine Bestätigung an (spec-372 AK9, ADR-058 D3).
+// Die Entscheidung bleibt beim Server: seine Ablehnung (die Lage hat sich seit dem Laden
+// geändert, AK11) erscheint IM Dialog, weil der Nutzer nach dem Absenden dort steht.
 //
 // `ConfirmDialog` sperrt während der laufenden Action beide Schaltflächen und Escape: der Vorgang
 // ist ein unumkehrbarer Hard-Delete – ein Abbrechen im Pending-Fenster schlösse nur den Dialog,
 // während die Action serverseitig zu Ende löscht.
-export function VeranstaltungLoeschen({ id, bezeichnung }: { id: string; bezeichnung: string }) {
+
+const LIST_PATH = "/veranstaltung";
+
+interface VeranstaltungLoeschenProps {
+  id: string;
+  bezeichnung: string;
+  /** Sperren beim Laden der Seite (`loeschSperren`) – nur Hinweis, entscheiden tut die Action. */
+  sperren: readonly LoeschSperre[];
+}
+
+export function VeranstaltungLoeschen({ id, bezeichnung, sperren }: VeranstaltungLoeschenProps) {
   const [offen, setOffen] = useState(false);
   // Jedes Öffnen ist ein neuer Versuch: der wechselnde `key` erneuert den Action-Zustand, damit
   // keine Ablehnung aus einem früheren Durchlauf stehen bleibt (ConfirmDialog-JSDoc, ADR-053 D1).
   const [durchlauf, setDurchlauf] = useState(0);
   const papierkorbRef = useRef<HTMLButtonElement>(null);
+  const schliessen = () => setOffen(false);
 
   function oeffnen() {
     setDurchlauf((bisher) => bisher + 1);
@@ -36,14 +53,30 @@ export function VeranstaltungLoeschen({ id, bezeichnung }: { id: string; bezeich
         icon={<PapierkorbIcon />}
         onClick={oeffnen}
       />
-      <LoeschBestaetigung
-        key={durchlauf}
-        open={offen}
-        onClose={() => setOffen(false)}
-        id={id}
-        bezeichnung={bezeichnung}
-        returnFocusRef={papierkorbRef}
-      />
+      {sperren.length > 0 ? (
+        <Dialog
+          open={offen}
+          onClose={schliessen}
+          title="Löschen nicht möglich"
+          description={loeschSperrenBeschreibung(bezeichnung, sperren)}
+          returnFocusRef={papierkorbRef}
+        >
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={schliessen}>
+              Schließen
+            </Button>
+          </div>
+        </Dialog>
+      ) : (
+        <LoeschBestaetigung
+          key={durchlauf}
+          open={offen}
+          onClose={schliessen}
+          id={id}
+          bezeichnung={bezeichnung}
+          returnFocusRef={papierkorbRef}
+        />
+      )}
     </>
   );
 }
@@ -63,7 +96,13 @@ function LoeschBestaetigung({
   bezeichnung,
   returnFocusRef,
 }: LoeschBestaetigungProps) {
-  const [state, formAction, pending] = useActionState(deleteVeranstaltungAction, undefined);
+  const router = useRouter();
+  // Die Detailseite existiert nach dem Löschen nicht mehr: der Client navigiert zur Übersicht,
+  // der Toast aus dem Root-Layout überlebt den Seitenwechsel (spec-372 AK13, Q7).
+  const [state, formAction, pending] = useSchliessendeAction(deleteVeranstaltungAction, {
+    onErfolg: () => router.replace(LIST_PATH),
+    erfolgsMeldung: "Veranstaltung gelöscht",
+  });
 
   return (
     <ConfirmDialog

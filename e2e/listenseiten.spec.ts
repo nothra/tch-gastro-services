@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { oeffneLoeschDialog } from "./helpers/detailseite";
+import { toast } from "./helpers/toast";
 import {
   legeVeranstaltungAn,
   oeffneArtikelAnlegen,
@@ -190,6 +191,6 @@ test.describe("Listenseiten – Liste zuerst, Anlegen per Dialog (#373)", () => 
     // AK3.2: bisheriges Formular, idempotentes Einrichten mit Erfolgsmeldung.
     await expect(page.getByLabel("Kasse")).toBeVisible();
     await page.getByRole("button", { name: "Einrichten" }).click();
-    await expect(page.getByText("Theke eingerichtet.")).toBeVisible();
+    await expect(toast(page, "Theke angelegt")).toBeVisible();
   });
 });

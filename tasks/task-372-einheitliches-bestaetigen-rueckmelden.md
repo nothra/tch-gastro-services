@@ -1,7 +1,7 @@
 # Task 372: einheitliches-bestaetigen-rueckmelden
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -17,16 +17,16 @@ Teilnehmer entfernen, Veranstaltung löschen und Abschließen nutzen den `Confir
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1/AK2 Auslage löschen mit Bestätigung (danger, Abbrechen/Escape, Fokus-Rückgabe)
-- [ ] AK3/AK4 Katalog deaktivieren mit Bestätigung, Reaktivieren ohne
-- [ ] AK5 Katalog anlegen/umbenennen/duplizieren auf der gemeinsamen Dialog-Grundlage
-- [ ] AK6 Dialoge sperren Schließen während laufender Action; Ablehnung im Dialog
-- [ ] AK7 Gefahr-Variante bei allen Lösch-/Entfernen-Bestätigungen und beim Auslöser
-- [ ] AK8 `AuslageRow` nur Bausteine/Token-Klassen, im Farb-Gate
-- [ ] AK9–AK11 „Veranstaltung löschen": Sperrgrund beim Öffnen, keine Bestätigung; Server prüft weiter
-- [ ] AK12–AK17 Toast `role="status"` je erfolgreicher Schreibaktion, Fehler `role="alert"` am Ort
-- [ ] AK18 Texte nach `docs/ux/glossar.md` (#375)
-- [ ] FS1–FS7 Fehlerszenarien der Spec
+- [x] AK1/AK2 Auslage löschen mit Bestätigung (danger, Abbrechen/Escape, Fokus-Rückgabe)
+- [x] AK3/AK4 Katalog deaktivieren mit Bestätigung, Reaktivieren ohne
+- [x] AK5 Katalog anlegen/umbenennen/duplizieren auf der gemeinsamen Dialog-Grundlage
+- [x] AK6 Dialoge sperren Schließen während laufender Action; Ablehnung im Dialog
+- [x] AK7 Gefahr-Variante bei allen Lösch-/Entfernen-Bestätigungen und beim Auslöser
+- [x] AK8 `AuslageRow` nur Bausteine/Token-Klassen, im Farb-Gate
+- [x] AK9–AK11 „Veranstaltung löschen": Sperrgrund beim Öffnen, keine Bestätigung; Server prüft weiter
+- [x] AK12–AK17 Toast `role="status"` je erfolgreicher Schreibaktion, Fehler `role="alert"` am Ort
+- [x] AK18 Texte nach `docs/ux/glossar.md` (#375)
+- [x] FS1–FS7 Fehlerszenarien der Spec
 
 ## Technische Notizen
 ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md) (Accepted).
@@ -37,6 +37,26 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
 - Neue Abhängigkeit: `pnpm add react-hot-toast` – im `/security-review` prüfen.
 - Glossar-Abweichungen mit Ziel #372 (`docs/ux/glossar.md`) im selben PR streichen.
 - Reihenfolge und Risiken: ADR-058 → Implementierungs-Hinweise.
+
+### Implementierungs-Notizen (/implement, 2026-10-09)
+- **FS6-Fund im Browser:** „Einstellungen" bleibt nach dem Speichern offen (ADR-056 D3). Der Toast
+  im `<body>` lag dann unter dem modalen Dialog – verdeckt, „×" nicht anklickbar, inert.
+  `toBeVisible()` meldete trotzdem grün; erst ein Klick und ein Screenshot zeigten es. Lösung:
+  `Toaster` rendert per Portal in den zuletzt geöffneten `dialog[open]` (`useSyncExternalStore` +
+  `MutationObserver`). Nachgetragen in ADR-058 D1/Konsequenzen. Das Dialogverhalten bleibt gleich.
+- Mutationsbeleg: Portal abgeschaltet → E2E FS6 rot („dialog … intercepts pointer events"),
+  wiederhergestellt → grün.
+- Folge des Portals: im offenen Dialog trifft `getByRole("button", { name: "Schließen" })`
+  auch „Meldung schließen" (Teilstring). E2E-Locatoren auf `exact: true` umgestellt
+  (`helpers/detailseite.ts`, drei Specs).
+- FS5: Die Dialog-Beschreibung (`Dialog.tsx`) bricht jetzt um wie der Titel (`break-words`). Darin stehen
+  Namen aus Auslage, Katalog und Löschsperre.
+- **Oberflächentests:** neue Spec `e2e/bestaetigen-rueckmelden.spec.ts` (AK1–AK5, AK7, FS6;
+  Schalter `E2E_372=1`). Gesamtlauf aller E2E-Specs mit allen Daten-Schaltern gegen einen eigenen
+  Dev-Server (Port 3172): 38 bestanden, 1 übersprungen (Anleitungs-Screenshots, eigener Schalter).
+  Unit/Integration inkl. DB (`dotenv -e .env.local`): 1648/1648 grün.
+- Testdaten: die Katalog-E2E hinterlässt je Lauf einen deaktivierten Katalog
+  `__test__E2E372Katalog<Zeitstempel>` (Löschen gibt es nicht).
 
 ## Offene Fragen
 - **Abhängigkeit:** #375 (Glossar) zuerst umsetzen; `/implement` erst danach starten.

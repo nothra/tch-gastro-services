@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
 import { KASSEN, type Kasse } from "@/db/schema";
 import { Button } from "@/app/components/ui/Button";
 import { Field, SelectField } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { updateVeranstaltungMetaAction } from "../actions";
 import { KASSE_LABEL, formatDatumInput } from "../labels";
 
@@ -18,10 +18,8 @@ import { KASSE_LABEL, formatDatumInput } from "../labels";
 // nur eines ändert, darf die anderen nicht versehentlich überschreiben. Ein Katalog-Feld gibt es
 // bewusst NICHT – der Wechsel bleibt der eigene Weg aus #346 mit eigener Verzehr-Sperre.
 //
-// „Änderungen gespeichert." behauptet einen Speicherstand und verschwindet deshalb, sobald der
-// Nutzer weitertippt – sonst stünde die Bestätigung über einem Formularinhalt, der so nie
-// gespeichert wurde. Die Fehlermeldung bleibt bewusst stehen: sie ist kein Zustandsbericht,
-// sondern die Aufforderung, die gerade laufende Korrektur zu Ende zu bringen.
+// Den Erfolg meldet ein Toast (spec-372 AK12/AK17), der von selbst verschwindet – eine Meldung am
+// Formular, die beim Weitertippen einen nie gespeicherten Inhalt bestätigte, gibt es nicht mehr.
 export function VeranstaltungMetaForm({
   id,
   bezeichnung,
@@ -33,15 +31,11 @@ export function VeranstaltungMetaForm({
   datum: Date | null;
   kasse: Kasse;
 }) {
-  const [state, formAction, pending] = useActionState(updateVeranstaltungMetaAction, undefined);
-  const [geaendertSeitSpeichern, setGeaendertSeitSpeichern] = useState(false);
+  const [state, formAction, pending] = useSchliessendeAction(updateVeranstaltungMetaAction, {
+    erfolgsMeldung: "Gespeichert",
+  });
   return (
-    <form
-      action={formAction}
-      onChange={() => setGeaendertSeitSpeichern(true)}
-      onSubmit={() => setGeaendertSeitSpeichern(false)}
-      className="flex flex-col gap-3"
-    >
+    <form action={formAction} className="flex flex-col gap-3">
       <h3 className="font-semibold text-foreground">Veranstaltung bearbeiten</h3>
       <input type="hidden" name="id" value={id} />
       <Field label="Bezeichnung" name="bezeichnung" defaultValue={bezeichnung} required />
@@ -63,9 +57,6 @@ export function VeranstaltungMetaForm({
         {pending ? "Speichern …" : "Änderungen speichern"}
       </Button>
       <Notice kind="fehler">{state?.error}</Notice>
-      <Notice kind="erfolg">
-        {state?.ok && !geaendertSeitSpeichern && "Änderungen gespeichert."}
-      </Notice>
     </form>
   );
 }

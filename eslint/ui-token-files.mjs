@@ -55,6 +55,8 @@ export const UI_TOKEN_FILES = [
   "app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx",
   "app/verwaltung/teilnehmer/TeilnehmerFields.tsx",
   "app/verwaltung/theke/",
+  // #372: Auslagen-Zeile mit Lösch-Bestätigung (spec-372 AK8).
+  "app/veranstaltung/AuslageRow.tsx",
 ];
 
 /**

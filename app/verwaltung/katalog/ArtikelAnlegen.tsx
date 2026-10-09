@@ -33,7 +33,11 @@ function ArtikelFormular({
   catalogId: string;
   steuerung: DialogSteuerung;
 }) {
-  const { state, pending, absenden } = useDialogFormular(createCatalogItemAction, steuerung);
+  const { state, pending, absenden } = useDialogFormular(
+    createCatalogItemAction,
+    steuerung,
+    "Artikel angelegt",
+  );
   return (
     <form onSubmit={absenden} className="flex flex-col gap-3">
       <input type="hidden" name="catalogId" value={catalogId} />

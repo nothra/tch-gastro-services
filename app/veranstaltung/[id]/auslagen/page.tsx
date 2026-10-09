@@ -10,6 +10,7 @@ import { auslagenSummen } from "../../auslagenSummen";
 import { AuslagenSummary } from "../../AuslagenSummary";
 import { AuslageForm } from "../../AuslageForm";
 import { AuslageRow } from "../../AuslageRow";
+import { AUSLAGEN_LISTE_ID } from "../../auslagenListe";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 
 // Authentifizierte Auslagen-Seite (F6, #53, ADR-028 D4): lädt Auslagen + Teilnehmerzeilen, zeigt
@@ -66,7 +67,10 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">Auslagen ({auslagen.length})</h2>
+        {/* Fokusziel, wenn eine gelöschte Auslage samt Auslöser verschwindet (spec-372 AK1). */}
+        <h2 id={AUSLAGEN_LISTE_ID} tabIndex={-1} className="font-semibold">
+          Auslagen ({auslagen.length})
+        </h2>
         {auslagen.length === 0 ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Auslagen erfasst.</p>
         ) : (

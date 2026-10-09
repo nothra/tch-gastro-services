@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { KASSEN } from "@/db/schema";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { ensureThekeAction } from "@/app/veranstaltung/actions";
 import { KASSE_LABEL } from "@/app/veranstaltung/labels";
 import { Button } from "@/app/components/ui/Button";
@@ -11,9 +11,12 @@ import { Notice } from "@/app/components/ui/Notice";
 
 // Richtet die stehende Theken-Selbstbedienung je Kasse ein (ADR-023 D3). Idempotent: ein
 // erneutes Einrichten derselben Kasse legt nicht doppelt an, sondern meldet Erfolg. Seit #373 auf
-// `/verwaltung/theke`; die Action bleibt in der Veranstaltungs-Schicht unverändert.
+// `/verwaltung/theke`; die Action bleibt in der Veranstaltungs-Schicht unverändert. Den Erfolg
+// meldet ein Toast (spec-372 AK12/AK17).
 export function ThekeSetup() {
-  const [state, formAction, pending] = useActionState(ensureThekeAction, undefined);
+  const [state, formAction, pending] = useSchliessendeAction(ensureThekeAction, {
+    erfolgsMeldung: "Theke angelegt",
+  });
   return (
     <Card>
       <form action={formAction} className="flex flex-col gap-3">
@@ -32,7 +35,6 @@ export function ThekeSetup() {
           {pending ? "Einrichten …" : "Einrichten"}
         </Button>
         <Notice kind="fehler">{state?.error}</Notice>
-        {state?.ok && <Notice kind="erfolg">Theke eingerichtet.</Notice>}
       </form>
     </Card>
   );

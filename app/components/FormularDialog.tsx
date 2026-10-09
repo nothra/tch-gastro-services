@@ -4,7 +4,11 @@ import { startTransition, useEffect, useRef, useState, type FormEvent } from "re
 import type { ReactNode } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
-import { useSchliessendeAction, type FormAction } from "./useSchliessendeAction";
+import {
+  useSchliessendeAction,
+  type AktionsOptionen,
+  type FormAction,
+} from "./useSchliessendeAction";
 
 // Route-neutrale Hülle „Formular im Dialog" der Listenseiten (spec-373 AK1, AK4.3): Auslöser,
 // modaler Dialog, Schließen bei Erfolg, Escape-Sperre während der Action. Erfolgsregel und
@@ -79,18 +83,20 @@ function useErsatzFokusBeimAushaengen(ersatzFokusId: string | undefined) {
 }
 
 /**
- * Verbindet eine Server Action mit dem Dialog: Erfolg schließt ihn, eine Ablehnung bleibt im
- * Zustand stehen. `absenden` gehört als `onSubmit` ans Formular.
+ * Verbindet eine Server Action mit dem Dialog: Erfolg schließt ihn und meldet `erfolgsMeldung`
+ * als Toast, eine Ablehnung bleibt im Zustand stehen. `absenden` gehört als `onSubmit` ans
+ * Formular.
  */
 export function useDialogFormular<State extends { ok?: boolean }>(
   action: FormAction<State>,
   steuerung: DialogSteuerung,
+  erfolgsMeldung: AktionsOptionen<State>["erfolgsMeldung"],
 ) {
-  const [state, formAction, pending, meldeStart] = useSchliessendeAction(
-    action,
-    steuerung.schliessenNachErfolg,
-    steuerung.meldeLauf,
-  );
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(action, {
+    onErfolg: steuerung.schliessenNachErfolg,
+    onLaeuftChange: steuerung.meldeLauf,
+    erfolgsMeldung,
+  });
 
   function absenden(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

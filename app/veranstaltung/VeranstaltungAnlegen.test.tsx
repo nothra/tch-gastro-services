@@ -4,11 +4,14 @@ import type { Catalog } from "@/db/schema";
 
 // Externe Grenze: Server Action aus derselben Feature-Schicht.
 vi.mock("./actions", () => ({ createVeranstaltungAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { createVeranstaltungAction } from "./actions";
 import { VeranstaltungAnlegen } from "./VeranstaltungAnlegen";
 
 const createMock = vi.mocked(createVeranstaltungAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 // Soll-Wert als Literal, nicht aus der Produktions-Konstante gelesen (Testing-Standards);
 // der Drift-Guard in db/catalog.test.ts hält Konstante und Migrations-Literal gegeneinander.
@@ -106,6 +109,16 @@ describe("VeranstaltungAnlegen (spec-373 AK1)", () => {
     expect(formData.get("bezeichnung")).toBe("Sommerfest");
     expect(formData.get("catalogId")).toBe(STANDARD_CATALOG_ID);
     expect(document.querySelector("dialog")).not.toHaveAttribute("open");
+  });
+
+  it("should_reportAngelegt_when_anlegenSucceeds", async () => {
+    // spec-372 AK12, Glossar „<Objekt> <Partizip>".
+    renderUndOeffnen();
+    fireEvent.change(screen.getByLabelText("Bezeichnung"), { target: { value: "Sommerfest" } });
+
+    await anlegen();
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Veranstaltung angelegt");
   });
 
   it("should_keepDialogWithError_when_actionRejects", async () => {

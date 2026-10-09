@@ -13,11 +13,25 @@ vi.mock("react", async () => {
   return { ...actual, useActionState: vi.fn() };
 });
 
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
 import { useActionState } from "react";
+import { meldeErfolg } from "@/app/components/ui/meldung";
+import { setVeranstaltungCatalogAction } from "./actions";
 import { KatalogWechsel } from "./KatalogWechsel";
 
 const useActionStateMock = vi.mocked(useActionState);
+const setCatalogMock = vi.mocked(setVeranstaltungCatalogAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 const noopDispatch = vi.fn();
+
+// Der an useActionState übergebene Wrapper (Codify #49) – hier direkt ausgeführt.
+function wrappedAction() {
+  return useActionStateMock.mock.calls[0][0] as (
+    prev: VeranstaltungFormState | undefined,
+    fd: FormData,
+  ) => Promise<VeranstaltungFormState>;
+}
 
 function withState(state: VeranstaltungFormState | undefined, isPending = false) {
   useActionStateMock.mockReturnValue([state, noopDispatch, isPending] as never);
@@ -98,12 +112,32 @@ describe("KatalogWechsel", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("should_showSuccessMessage_when_stateOk", () => {
+  it("should_notShowInlineSuccessMessage_when_stateOk", () => {
+    // spec-372 AK17: die Rückmeldung ist der Toast, keine zweite Meldung am Formular.
     withState({ ok: true });
     render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Katalog gewechselt.");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("should_reportKatalogGewechselt_when_actionSucceeds", async () => {
+    // spec-372 AK12, Glossar: Erfolgsmeldung ohne Schlusspunkt.
+    setCatalogMock.mockResolvedValue({ ok: true });
+    render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog gewechselt");
+  });
+
+  it("should_notReport_when_actionRejects", async () => {
+    setCatalogMock.mockResolvedValue({ error: "Katalog nicht gefunden." });
+    render(<KatalogWechsel id="v-1" catalogId="kat-a" kataloge={kataloge} />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
   it("should_showNoMessage_when_nothingSubmittedYet", () => {

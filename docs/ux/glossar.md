@@ -133,15 +133,12 @@ umgeschrieben werden. Neue Texte mit direkter Ansprache nutzen den Imperativ in 
 Ist-Texte in `app/`, die vom Glossar abweichen, mit Ziel-Issue. Arbeitsvorlage – eine Zeile wird
 beim Umsetzen gestrichen. Zeilenangaben gegen `main` @ `31e5fbf` geprüft.
 
-Von #369–#374 ist nur noch **#372** offen (Bestätigen und Rückmelden, AK5 „Meldungstexte nach dem
-Glossar"). Alles, was nicht dorthin gehört, sammelt **#401**.
+Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
+Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
+Alles Übrige sammelt **#401**.
 
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|
-| `app/veranstaltung/[id]/VeranstaltungMetaForm.tsx:67` | „Änderungen gespeichert." | „Gespeichert" | #372 |
-| `app/veranstaltung/KatalogWechsel.tsx:47` | „Katalog gewechselt." | „Katalog gewechselt" | #372 |
-| `app/verwaltung/katalog/[id]/CatalogControls.tsx:140` | „Reaktivieren" | „Aktivieren" | #372 |
-| `app/veranstaltung/[id]/LinkKopieren.tsx:45` | „Kopieren nicht möglich – der Link ist markiert und kann manuell kopiert werden." | „Kopieren nicht möglich: der Link ist markiert und kann manuell kopiert werden." | #372 |
 | `app/veranstaltung/KatalogWechsel.tsx:44` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:207` | Button „Gast hinzufügen" | „Neuen Gast anlegen" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:97` | „Alle aktiven Stammteilnehmer sind bereits erfasst." | „… sind bereits hinzugefügt." | #401 |
@@ -151,7 +148,6 @@ Glossar"). Alles, was nicht dorthin gehört, sammelt **#401**.
 | `app/veranstaltung/VeranstaltungAnlegen.tsx:75` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:47` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/katalog/ArtikelAnlegen.tsx:46` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
-| `app/verwaltung/katalog/[id]/CatalogControls.tsx:86` | Busy „Speichern …" für „Anlegen"/„Umbenennen"/„Duplizieren" | „Anlegen …" / „Umbenennen …" / „Duplizieren …" | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:63` | Busy „Speichern …" (Button „Kassieren") | „Kassieren …" | #401 |
 | `app/veranstaltung/AuslageForm.tsx:146` | Busy „Speichern …" (Button „Auslage erfassen") | „Erfassen …" (beim Bearbeiten bleibt „Speichern …") | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:49` | „Erhalten (EUR)" | „Erhalten (€)" | #401 |
@@ -160,7 +156,6 @@ Glossar"). Alles, was nicht dorthin gehört, sammelt **#401**.
 | `app/theke/[token]/IdentityGate.tsx:177` | „Bitte wählen…" | „Bitte wählen …" | #401 |
 | `app/verwaltung/theke/ThekeSetup.tsx:21` | „… ein erneutes Einrichten legt nicht doppelt an." | „… ein erneutes Anlegen legt nicht doppelt an." | #401 |
 | `app/verwaltung/theke/ThekeSetup.tsx:32` | Button „Einrichten" / Busy „Einrichten …" | „Anlegen" / „Anlegen …" | #401 |
-| `app/verwaltung/theke/ThekeSetup.tsx:35` | „Theke eingerichtet." | „Theke angelegt" | #401 |
 | `app/verwaltung/theke/page.tsx:14` | „… nur Verwalter dürfen die Theke einrichten." | „… die Theke anlegen." | #401 |
 
 **Beim Umsetzen mitziehen** (kein UI-Text, aber an den Wortlaut gebunden): `e2e/helpers/detailseite.ts:23`

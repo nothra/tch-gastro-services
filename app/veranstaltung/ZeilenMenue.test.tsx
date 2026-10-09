@@ -2,11 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("./actions", () => ({ removeZeileAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { removeZeileAction } from "./actions";
 import { ZeilenMenue } from "./ZeilenMenue";
 
 const removeZeileActionMock = vi.mocked(removeZeileAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function renderMenue() {
   render(
@@ -147,6 +150,8 @@ describe("ZeilenMenue (spec-369 AK18/AK19/AK20, ADR-053 D2)", () => {
     expect(formData.get("veranstaltungId")).toBe("v-1");
     expect(formData.get("zeileId")).toBe("z-1");
     expect(dialog()).not.toHaveAttribute("open");
+    // spec-372 AK12: Dialog und Zeile verschwinden – die Rückmeldung kommt als Toast.
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer entfernt");
   });
 
   it("should_keepDialogOpenAndShowError_when_serverRejects", async () => {

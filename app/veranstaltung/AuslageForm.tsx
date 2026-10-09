@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState, useCallback, useRef } from "react";
+import { useRef } from "react";
 import type { AuslageKategorie } from "@/db/schema";
+import { Notice } from "@/app/components/ui/Notice";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { AUSLAGE_KATEGORIE_LABEL, AUSLAGE_KATEGORIE_ORDER } from "./labels";
 import type { AuslageFormState } from "./actions";
 
@@ -43,22 +45,16 @@ export function AuslageForm({
   const isEditing = initial !== undefined;
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Erfolg schließt (Korrektur) bzw. leert die Felder (Neuerfassung) – via useCallback-Wrapper,
-  // nicht useEffect (Codify #49); die Referenz bleibt stabil. form.reset() leert bei JEDER
-  // erfolgreichen Erfassung (nicht nur der ersten wie ein key-basierter Remount) und lässt die
-  // Erfolgsmeldung stehen, weil der useActionState-Zustand nicht verworfen wird.
-  const actionWithCallback = useCallback<BoundAuslageAction>(
-    async (prev, formData) => {
-      const result = await action(prev, formData);
-      if (result.ok) {
-        onSuccess?.();
-        if (!isEditing) formRef.current?.reset();
-      }
-      return result;
+  // Erfolg schließt (Korrektur) bzw. leert die Felder (Neuerfassung) und meldet per Toast
+  // (spec-372 AK12) – im Action-Wrapper, nicht per useEffect (Codify #49). form.reset() leert bei
+  // JEDER erfolgreichen Erfassung, nicht nur der ersten wie ein key-basierter Remount.
+  const [state, formAction, pending] = useSchliessendeAction<AuslageFormState>(action, {
+    onErfolg: () => {
+      onSuccess?.();
+      if (!isEditing) formRef.current?.reset();
     },
-    [action, onSuccess, isEditing],
-  );
-  const [state, formAction, pending] = useActionState(actionWithCallback, undefined);
+    erfolgsMeldung: isEditing ? "Gespeichert" : "Auslage erfasst",
+  });
 
   if (teilnehmer.length === 0) {
     return (
@@ -145,9 +141,8 @@ export function AuslageForm({
         >
           {pending ? "Speichern …" : submitLabel}
         </button>
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-        {state?.ok && !isEditing && <p className="text-sm text-green-700">Auslage erfasst.</p>}
       </div>
+      <Notice kind="fehler">{state?.error}</Notice>
     </form>
   );
 }

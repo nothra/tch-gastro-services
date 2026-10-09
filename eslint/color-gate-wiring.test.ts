@@ -74,6 +74,16 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
     expect(messages.length).toBeGreaterThan(0);
   });
 
+  // spec-372 AK8: die Auslagen-Zeile ist umgestellt, rohe Farben lehnt das Gate dort ab.
+  it("should_reportRawColorClass_when_fileIsAuslageRow", async () => {
+    const messages = await rawColorMessages(
+      CODE_WITH_RAW_COLOR,
+      "app/veranstaltung/AuslageRow.tsx",
+    );
+
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
   // Gegenrichtung mit ähnlichem Nachbarpfad: die Auslagen-Unterseite ist noch nicht umgestellt
   // und bleibt bis dahin außerhalb des Gates.
   it("should_notReport_when_fileIsSiblingSubpageOfListedDynamicSegmentFile", async () => {

@@ -42,7 +42,7 @@ export function LinkKopieren({ url }: { url: string }) {
       <Notice kind="erfolg">{status === "kopiert" && "Link kopiert."}</Notice>
       <Notice kind="fehler">
         {status === "abgelehnt" &&
-          "Kopieren nicht möglich – der Link ist markiert und kann manuell kopiert werden."}
+          "Kopieren nicht möglich: der Link ist markiert und kann manuell kopiert werden."}
       </Notice>
     </div>
   );

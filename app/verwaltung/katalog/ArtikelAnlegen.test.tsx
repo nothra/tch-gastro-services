@@ -3,11 +3,14 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 
 // Externe Grenze: Server Action aus derselben Feature-Schicht.
 vi.mock("./actions", () => ({ createCatalogItemAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { createCatalogItemAction } from "./actions";
 import { ArtikelAnlegen } from "./ArtikelAnlegen";
 
 const createMock = vi.mocked(createCatalogItemAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function renderUndOeffnen() {
   render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Artikel" />);
@@ -59,6 +62,16 @@ describe("ArtikelAnlegen (spec-373 AK1, AK6.2)", () => {
     expect(formData.get("catalogId")).toBe("cat-2");
     expect(formData.get("name")).toBe("Radler");
     expect(document.querySelector("dialog")).not.toHaveAttribute("open");
+  });
+
+  it("should_reportAngelegt_when_anlegenSucceeds", async () => {
+    // spec-372 AK12.
+    renderUndOeffnen();
+    ausfuellen();
+
+    await anlegen();
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Artikel angelegt");
   });
 
   it("should_keepDialogWithErrorAndInput_when_duplicateRejected", async () => {

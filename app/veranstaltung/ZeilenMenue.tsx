@@ -113,7 +113,10 @@ function EntfernenBestaetigung({
   name,
   returnFocusRef,
 }: EntfernenBestaetigungProps) {
-  const [state, formAction, pending] = useSchliessendeAction(removeZeileAction, onClose);
+  const [state, formAction, pending] = useSchliessendeAction(removeZeileAction, {
+    onErfolg: onClose,
+    erfolgsMeldung: "Teilnehmer entfernt",
+  });
 
   return (
     <ConfirmDialog

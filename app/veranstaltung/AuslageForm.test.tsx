@@ -9,10 +9,22 @@ vi.mock("react", async () => {
   return { ...actual, useActionState: vi.fn() };
 });
 
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
 import { useActionState } from "react";
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { AuslageForm } from "./AuslageForm";
 
 const useActionStateMock = vi.mocked(useActionState);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
+
+// Der an useActionState übergebene Wrapper (Codify #49) – hier direkt ausgeführt.
+function wrappedAction() {
+  return useActionStateMock.mock.calls[0][0] as (
+    prev: AuslageFormState | undefined,
+    fd: FormData,
+  ) => Promise<AuslageFormState>;
+}
 const noopDispatch = vi.fn();
 
 const teilnehmer = [
@@ -82,15 +94,25 @@ describe("AuslageForm", () => {
     expect(screen.getByText("Betrag muss größer als 0 sein.")).toBeInTheDocument();
   });
 
-  it("should_showSuccessMessage_when_stateOkAndCreating", () => {
+  it("should_notShowInlineSuccessMessage_when_stateOk", () => {
+    // spec-372 AK17: die Rückmeldung ist der Toast, keine zweite Meldung am Formular.
     withState({ ok: true });
     render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
 
-    expect(screen.getByText(/erfasst/i)).toBeInTheDocument();
+    expect(screen.queryByText(/erfasst/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("should_notShowSuccessMessage_when_editing", () => {
-    withState({ ok: true });
+  it("should_reportErfasst_when_createSucceeds", async () => {
+    // spec-372 AK12 (Glossar: Beträge eintragen = erfassen).
+    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Auslage erfasst");
+  });
+
+  it("should_reportGespeichert_when_editSucceeds", async () => {
     render(
       <AuslageForm
         action={noopAction}
@@ -100,7 +122,27 @@ describe("AuslageForm", () => {
       />,
     );
 
-    expect(screen.queryByText(/erfasst/i)).not.toBeInTheDocument();
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
+  });
+
+  it("should_notReport_when_actionRejects", async () => {
+    // AK16: der Fehler bleibt am Formular.
+    const action = vi.fn(async () => ({ error: "abgelehnt" }) as AuslageFormState);
+    render(<AuslageForm action={action} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+
+    await wrappedAction()(undefined, new FormData());
+
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+  });
+
+  it("should_showErrorAsAlert_when_stateHasError", () => {
+    // AK16: Ablehnung als `role="alert"` am Ort der Aktion.
+    withState({ error: "Betrag ist zu hoch." });
+    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Betrag ist zu hoch.");
   });
 
   it("should_disableButtonWithPendingText_when_pending", () => {

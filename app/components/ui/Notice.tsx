@@ -12,7 +12,8 @@ interface NoticeStyle {
   classes: string;
 }
 
-const KIND_STYLES: Record<NoticeKind, NoticeStyle> = {
+/** Geteilt mit `Toaster`: Erfolg sieht als Toast aus wie als Inline-Meldung (ADR-058 D1). */
+export const NOTICE_STYLES: Record<NoticeKind, NoticeStyle> = {
   erfolg: {
     role: "status",
     glyph: "✓",
@@ -25,7 +26,7 @@ const KIND_STYLES: Record<NoticeKind, NoticeStyle> = {
   },
 };
 
-const BASE_CLASSES = "flex items-start gap-2 rounded-md border px-3 py-2 text-sm";
+export const NOTICE_BASE_CLASSES = "flex items-start gap-2 rounded-md border px-3 py-2 text-sm";
 
 interface NoticeProps {
   kind: NoticeKind;
@@ -45,9 +46,9 @@ interface NoticeProps {
 export function Notice({ kind, className, children }: NoticeProps) {
   if (!children) return null;
 
-  const { role, glyph, classes } = KIND_STYLES[kind];
+  const { role, glyph, classes } = NOTICE_STYLES[kind];
   return (
-    <p role={role} className={joinClasses(BASE_CLASSES, classes, className)}>
+    <p role={role} className={joinClasses(NOTICE_BASE_CLASSES, classes, className)}>
       <span aria-hidden="true" className="font-bold">
         {glyph}
       </span>

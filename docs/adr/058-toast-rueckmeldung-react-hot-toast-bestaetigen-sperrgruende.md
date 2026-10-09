@@ -62,6 +62,10 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
 - Eingehängt **einmal im Root-Layout** (`app/layout.tsx`, nach `{children}`), damit der Toast
   Client-Navigation (`router.replace`) überlebt; der Store der Bibliothek liegt im Modul, nicht
   im Komponentenbaum.
+- Ist ein modaler `<dialog>` offen, rendert der `Toaster` per Portal **in diesen Dialog** (den
+  zuletzt geöffneten, erkannt über `dialog[open]` und einen `MutationObserver`). Sonst läge der
+  Toast unter dem inerten Hintergrund: verdeckt, nicht anklickbar, für Screenreader stumm (FS6).
+  Nachgetragen in `/implement`: „Einstellungen" bleibt nach dem Speichern offen (ADR-056 D3).
 - Das Farb-Gate (`eslint/ui-token-files.mjs`) deckt `app/components/ui/` bereits ab; die neuen
   Dateien fallen darunter.
 
@@ -187,8 +191,8 @@ Baustein; verworfen zugunsten von `Dialog`.
   der Durchgang `/security-review` prüft sie (Lizenz, Advisories). Kein CSP im Projekt, die
   Laufzeit-Styles von `goober` kollidieren damit nicht.
 - **Live-Region-Grenze:** Der Toast mountet mit Inhalt; bei geöffnetem **modalem** Dialog ist die
-  Seite inert, eine Ansage kann entfallen. Der Toast erscheint daher erst nach dem Schließen
-  (FS6). Beides ist in der Spec-/E2E-Prüfung zu belegen (Verhalten sichtbar, Rolle vorhanden); eine
+  Seite inert, eine Ansage kann entfallen. Schließt der Erfolg den Dialog, erscheint der Toast
+  danach im `<body>`; bleibt der Dialog offen, hängt sich der Toast in ihn ein (D1, FS6). Beides ist in der Spec-/E2E-Prüfung zu belegen (Verhalten sichtbar, Rolle vorhanden); eine
   Screenreader-Garantie über alle Geräte gibt es nicht.
 - `ConfirmDialog`, `Dialog`, `Notice` bleiben in der Schnittstelle unverändert; `Notice` exportiert
   zusätzlich die Stil-Tabelle.
