@@ -6,7 +6,7 @@
 - [ ] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -83,7 +83,8 @@ ADR: [ADR-060](../docs/adr/060-listenzeile-dialog-ausloeser-notice-warnung.md) (
   Bericht gültig; ändert es Produktionscode, `/security-review` erneut laufen lassen.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- Zwei Lessons in `lessons/frontend-react.md` (+ Index): Ersatz-Fokus in zugeklapptem `<details>` → `<summary>`;
+  Ref-Prop-Komponenten → Props vorab destrukturieren (`react-hooks/refs`). Details: [`tasks/codify-405.md`](codify-405.md).
 
 ---
 Branch: `feature/405-teilnehmer-verwaltung-artikel-muster`
