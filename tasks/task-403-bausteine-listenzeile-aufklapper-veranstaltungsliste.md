@@ -171,3 +171,5 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
 ---
 Branch: `feature/403-bausteine-listenzeile-aufklapper-veranstaltungsliste`
 Erstellt: 2026-10-09 14:39
+
+PR-Shepherd 2026-10-09: Merge freigegeben – alle Gates grün (CI lief bei Freigabe, Auto-Merge wartet).
