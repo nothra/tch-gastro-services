@@ -42,11 +42,7 @@ function Seite({
   return (
     <>
       {zeileDa && (
-        <Zeile
-          ersatzFokusId={ersatzFokusId}
-          erfolg={erfolg}
-          onEntfernt={() => setZeileDa(false)}
-        />
+        <Zeile ersatzFokusId={ersatzFokusId} erfolg={erfolg} onEntfernt={() => setZeileDa(false)} />
       )}
       {ersatzInZugeklapptem ? (
         <details>
