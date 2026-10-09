@@ -81,6 +81,10 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
     `TEILNEHMER_NAME_MAX` in ein abhängigkeitsfreies Modul – vorbestehend, optional.
   - Gates: Lint, `tsc --noEmit`, `pnpm test` (1635 grün); E2E 15/15 grün (`E2E_404`,
     `E2E_WECHSEL_308`, `E2E_VERANSTALTUNG_352`, `E2E_372`, `E2E_DETAILSEITE_369`).
+- Iteration 2 (2026-10-09): **NEEDS_REWORK** – 0 kritisch, 2 wichtig, 5 Nitpicks; alle
+  Iteration-1-Funde behoben. Wichtig (beide Doku): Glossar-Anker `TeilnehmerHinzufuegenDialog.tsx:29`
+  durch den Rework auf `:36` verrutscht (Rezidiv #375); Kleinfund „`createWalkInAction` nicht
+  atomar" empfiehlt `db.transaction()` statt `runAtomic` – Gegenteil der Lesson #345.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
