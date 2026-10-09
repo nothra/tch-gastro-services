@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -155,6 +155,13 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   `ListenZeile`) unterscheiden sich in Farbe/Drehung – Zusammenlegen wäre Over-Engineering.
 - Kein Code geändert; Vitest (942 in `app/components/ui` + `app/veranstaltung`), ESLint und `tsc`
   unverändert grün.
+
+## Security-Notizen (`/security-review`, 2026-10-09)
+- **PASSED** – [security-403.md](security-403.md): 0 kritisch, 0 wichtig. Reiner UI-Umbau ohne
+  Server Action, Route Handler, Data-Layer- oder Dependency-Änderung. XSS (nur React-Escaping,
+  Überschrift-Ebene als Literal-Union), Link-Ziele, `editable`-Gate und `prefetch={false}` geprüft.
+  Einziger Hinweis: Wegwerf-Dateien `scripts/*403.tmp.sh` + `tasks/telemetry-raw-403-*.tmp.txt`
+  (gitignoret) von Hand löschen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
