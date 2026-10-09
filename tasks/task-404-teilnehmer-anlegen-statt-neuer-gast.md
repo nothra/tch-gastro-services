@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -110,6 +110,13 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
   `FormularDialog`, `createWalkInAction`). Einzige Lücke im Umfeld: `actions.ts:641`
   (`ensureThekeAction`, nicht Teil dieses PR). Jedes AK (AK1–AK8) hat mindestens einen Test
   (Unit und/oder E2E); keine Test-Ergänzung nötig, kein Produktionscode geändert.
+
+## Refactoring-Notizen
+- `/refactor` (2026-10-09): Diff gegen `origin/main` nach Naming, Funktionsgröße, Duplikation,
+  Verschachtelung und Kommentaren geprüft. Keine Strukturänderung nötig – die Duplikate
+  (Duplikat-Warnung, Namens-Obergrenze, Abbrechen-Knopf) sind bereits in gemeinsame Bausteine
+  gezogen. Einzige Änderung: Kommentar `actions.ts:325` „Stammteilnehmer“ → „Teilnehmer“
+  (Review-Nitpick Iteration 3). Kein Verhalten geändert; Lint und Pre-Commit grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

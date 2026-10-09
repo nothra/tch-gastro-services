@@ -322,7 +322,7 @@ export async function deleteVeranstaltungAction(
   return { ok: true };
 }
 
-// Prüft die gewählten Stammteilnehmer VOR dem Insert (#369 FS2): alle existieren, sind aktiv
+// Prüft die gewählten Teilnehmer VOR dem Insert (#369 FS2): alle existieren, sind aktiv
 // (ADR-022 – `getTeilnehmerByIds` selektiert unabhängig von `active`, ein manipulierter Request
 // darf keinen soft-gelöschten Teilnehmer erfassen) und sind noch nicht erfasst. Liefert die
 // geladenen Personen oder eine Meldung, die die Betroffenen beim Namen nennt. Der Unique-Index
