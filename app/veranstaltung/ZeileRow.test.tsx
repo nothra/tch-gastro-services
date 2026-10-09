@@ -82,4 +82,28 @@ describe("ZeileRow (spec-369 AK17/AK18/AK9)", () => {
     expect(karte).toContainElement(screen.getByTestId("zeilen-menue"));
     expect(screen.getByRole("link")).not.toContainElement(screen.getByTestId("zeilen-menue"));
   });
+
+  // ADR-059 D1: ohne Zeilenaktion steht der Pfeil im Link – die schreibgeschützte Zeile zeigt ihn,
+  // die bearbeitbare nicht (dort nimmt das ⋯ den Platz). Beide Richtungen (Lesson #211).
+  it("should_showArrowAndNoAktionContainer_when_notEditable", () => {
+    render(
+      <ul>
+        <ZeileRow zeile={aZeile} veranstaltungId="v-1" editable={false} />
+      </ul>,
+    );
+
+    expect(screen.getByRole("link").querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("listitem").children).toHaveLength(1);
+  });
+
+  it("should_showNoArrow_when_editable", () => {
+    render(
+      <ul>
+        <ZeileRow zeile={aZeile} veranstaltungId="v-1" editable />
+      </ul>,
+    );
+
+    expect(screen.getByRole("link").querySelector("svg")).toBeNull();
+    expect(screen.getByRole("listitem").children).toHaveLength(2);
+  });
 });

@@ -1076,12 +1076,24 @@ describe("KassierenPage – Abrechnung im Detail (spec-371 AK14/AK15)", () => {
     );
   });
 
+  it("should_frameAufklapperWithCardNotColorClasses_when_rendered", async () => {
+    // ADR-052 D1: Farben trägt die Karte, nicht der `className` des Aufklappers.
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    const details = abrechnungImDetail();
+    expect(details.parentElement).toHaveClass("border-line-subtle", "bg-surface");
+    expect(details.className).not.toMatch(/\b(bg|border|text)-/);
+  });
+
   it("should_placeAbrechnungImDetailAfterTeilnehmerliste_when_rendered", async () => {
     arrangeHappyPath();
 
     render(await KassierenPage(seite("v-1")));
 
-    expect(screen.getByRole("main").lastElementChild).toBe(abrechnungImDetail());
+    // Die Karte um den Aufklapper ist das letzte Element der Seite.
+    expect(screen.getByRole("main").lastElementChild).toBe(abrechnungImDetail().parentElement);
   });
 });
 

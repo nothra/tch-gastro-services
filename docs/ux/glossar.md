@@ -39,8 +39,11 @@ Zustandshinweis eines aufklappbaren Bereichs (Baustein `Aufklapper`, #403) – e
 Ansicht, kein Objekt. Wird ein Objekt selbst unsichtbar oder unwählbar, heißt es weiterhin
 **deaktivieren** (Tabelle oben).
 
-**Status-Badges** (z. B. an verblassten Listenzeilen) tragen den Zustand klein geschrieben als
-Partizip/Adjektiv: „abgeschlossen", „deaktiviert", „offen", „bezahlt".
+**Zustands-Badges** (ein Wort zum Zustand eines Objekts – an Listenzeilen über `ListenZeile`
+`zustand`, an Kassier-Zeilen, im Seitenkopf) tragen den Zustand klein geschrieben als
+Partizip/Adjektiv: „abgeschlossen", „deaktiviert", „offen", „bezahlt". Summen-
+oder Fortschritts-Badges mit ganzem Satzteil (z. B. „Alles bezahlt", „Noch 2 offen" in der
+`KassierSummenKarte`) fallen nicht darunter – sie beginnen groß wie eine Meldung.
 
 ---
 

@@ -7,20 +7,21 @@ import { Aufklapper } from "@/app/components/ui/Aufklapper";
 // Der `Aufklapper` (spec-403 AK5.2) ist natives <details>/<summary> → standardmäßig eingeklappt,
 // tastaturbedienbar und ohne Client-JS, damit die Kassier-Seite Server Component bleiben kann.
 // Titel nur „Verzehr" – die Handlungsaufforderung trägt der Hinweis „Anzeigen" (spec-403 Q3).
-// Reine Anzeige: die Positionen liefert das DB-freie
-// `verzehrPositionen` (SINGLE SOURCE mit dem Abschlussbericht), die Beträge formatiert `formatCents`
-// (de-DE) – die Summe der Positionsbeträge entspricht per Konstruktion dem Verzehr-Gesamt der Zeile.
+// Gedämpft wird nur der Inhalt, nicht der Aufklapper selbst (ADR-052 D1: `className` nur Layout).
+// Reine Anzeige: die Positionen liefert das DB-freie `verzehrPositionen` (SINGLE SOURCE mit dem
+// Abschlussbericht), die Beträge formatiert `formatCents` (de-DE) – die Summe der
+// Positionsbeträge entspricht per Konstruktion dem Verzehr-Gesamt der Zeile.
 export function VerzehrAufschluesselung({
   positionen,
 }: {
   positionen: readonly VerzehrPositionDetail[];
 }) {
   return (
-    <Aufklapper titel="Verzehr" className="text-sm text-muted">
+    <Aufklapper titel="Verzehr" className="text-sm">
       {positionen.length === 0 ? (
-        <p className="mt-2">Kein Verzehr erfasst</p>
+        <p className="mt-2 text-muted">Kein Verzehr erfasst</p>
       ) : (
-        <table className="mt-2 w-full">
+        <table className="mt-2 w-full text-muted">
           <thead className="sr-only">
             <tr>
               <th>Menge</th>

@@ -42,6 +42,18 @@ describe("VerzehrAufschluesselung", () => {
     expect(summary.querySelector("svg")).not.toBeNull();
   });
 
+  it.each([
+    ["Positionen", positionen],
+    ["keinePositionen", []],
+  ])("should_dimContentNotAufklapper_when_%s", (_fall, liste) => {
+    // ADR-052 D1: Farben nicht per `className` an den Aufklapper – gedämpft wird nur der Inhalt.
+    const { container } = render(<VerzehrAufschluesselung positionen={liste} />);
+
+    const details = container.querySelector("details")!;
+    expect(details.className).not.toMatch(/\btext-muted\b/);
+    expect(details.lastElementChild).toHaveClass("text-muted");
+  });
+
   it("should_showQuantityLabelUnitPriceAndLineTotal_when_positionsGiven", () => {
     render(<VerzehrAufschluesselung positionen={positionen} />);
 

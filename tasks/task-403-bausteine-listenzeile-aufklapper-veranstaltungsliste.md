@@ -63,6 +63,29 @@ Hinweise für `/implement`:
 - **Wegwerf-Datei** `scripts/format403.tmp.sh` (Prettier-Aufruf, gitignoret) liegt noch im
   Worktree – `rm` war in der Session nicht freigegeben; bitte von Hand löschen.
 
+### Notizen aus dem Rework nach Review-Iteration 1 (2026-10-09)
+- **K1:** E2E prüft den Pfeil jetzt per `toHaveCSS("rotate", "90deg" | "none")` (Tailwind v4 nutzt
+  die Eigenschaft `rotate`, nicht `transform`); `toHaveCSS` wiederholt bis zum Ende der Transition.
+  Lauf weiterhin ausstehend (siehe AK-Checkbox).
+- **W1:** `border-line-subtle` bleibt (AK2.1) – als begründete Ausnahme zu ADR-052 D2 in ADR-059 D1
+  festgehalten, ADR-052-Nachtrag und AK2.1 verweisen darauf.
+- **W2:** „Abrechnung im Detail" liegt in `Card` (`py-0`, das `<summary>` bringt die Tipp-Höhe mit);
+  die Verzehr-Aufschlüsselung dämpft nur ihren Inhalt. Aufklapper-JSDoc geschärft. Tests belegen
+  „keine Farbklassen am `<details>`".
+- **W3:** Tests für leeren `aktion`-Slot (ListenZeile, `false`/`null`) und `ZeileRow` mit
+  `editable={false}`/`true` (Pfeil ja/nein, Aktions-Container ja/nein); Mutationsbeleg
+  `zeigtPfeil = pfeil` → `should_showNoArrow_when_editable` rot.
+- **Nitpicks umgesetzt:** einheitliche Leer-Prüfung `hatInhalt` (Untertitel, Zustand, Aktion);
+  benannte Gruppe `group/aufklapper` (kein Mitdrehen in offenem Vorfahren); Hinweis `aria-hidden`;
+  ADR-059-Drift (`h-full`, „Vier Listen-Markups", Hover-Kontrast in D3, `focus-within`-Mechanik);
+  Spec Q2–Q5 abgehakt; Glossar-Badge-Regel auf Zustands-Badges eingegrenzt; Kontrast-Tests je
+  Theme getrennt, Gegenprobe `muted` in beiden Themes; Kopfkommentar neu umbrochen.
+- **Nitpick bewusst nicht umgesetzt:** Kachel-Ausrichtung (`items-center` statt oben). Bei
+  gleich hohen Kacheln ist mittig ausgerichteter Text optisch ruhig; Oben-Ausrichtung bräuchte eine
+  Layout-Variante im Baustein nur für diesen Konsumenten (YAGNI). Im Browser-Lauf mit ansehen.
+- **Wegwerf-Datei** `scripts/format403.tmp.sh` liegt weiter im Worktree – `rm` auch in dieser
+  Session nicht freigegeben; bitte von Hand löschen.
+
 ## Offene Fragen
 Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", ADR-059 D5).
 
@@ -72,6 +95,8 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   (E2E prüft `transform` statt Tailwind-v4-`rotate` → AK1.2-Beleg rot/aussagelos), 4 wichtig
   (`border-line-subtle` vs. ADR-052 D2; Farb-Token per `className` an den Aufklapper; Pfeil der
   schreibgeschützten `ZeileRow` ungetestet; E2E-Lauf ausstehend), 11 Nitpicks.
+  → Rework: K1, W1–W3 und 9 Nitpicks behoben, 1 Nitpick begründet abgelehnt, E2E-Lauf offen
+  (Notizen oben).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

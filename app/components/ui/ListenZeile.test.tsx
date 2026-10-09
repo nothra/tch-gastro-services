@@ -124,6 +124,36 @@ describe("ListenZeile (spec-403 AK2)", () => {
     expect(karte().querySelector("svg")).toBeNull();
   });
 
+  // Konsumenten übergeben bedingt (`aktion={editable && <Menue/>}`): ein leerer Slot zeigt den
+  // Pfeil und keinen Aktions-Container – Gegenrichtung zu den beiden Tests oben (Lesson #211).
+  it.each<[ReactNode, string]>([
+    [false, "false"],
+    [null, "null"],
+  ])("should_showArrowWithoutAktionContainer_when_aktionIs%s", (aktion) => {
+    renderZeile(<ListenZeile href="/ziel" titel="Erika" aktion={aktion} />);
+
+    expect(screen.getByRole("link").querySelector("svg")).not.toBeNull();
+    expect(karte().children).toHaveLength(1);
+  });
+
+  it.each<[ReactNode, string]>([
+    [false, "false"],
+    [null, "null"],
+    ["", "leer"],
+  ])("should_renderNoUntertitelSpan_when_untertitelIs%s", (untertitel) => {
+    renderZeile(<ListenZeile href="/ziel" titel="Montagsrunde" untertitel={untertitel} />);
+
+    expect(karte().querySelector(".text-sm")).toBeNull();
+  });
+
+  it("should_neitherDimNorShowBadge_when_zustandIsEmpty", () => {
+    // „Zustand immer als Text": ein leerer Zustand ergäbe ein leeres Badge ohne Aussage.
+    renderZeile(<ListenZeile href="/ziel" titel="Montagsrunde" zustand="" />);
+
+    expect(karte().querySelector(".opacity-60")).toBeNull();
+    expect(screen.getByRole("link").children).toHaveLength(2);
+  });
+
   it("should_dimTextAndArrowButNotBadge_when_zustandSet", () => {
     // AK2.5 / ADR-059 D3: Textblock + Pfeil verblasst, das Badge mit dem Zustandstext nicht.
     renderZeile(

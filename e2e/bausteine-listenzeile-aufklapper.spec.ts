@@ -26,7 +26,10 @@ const PREFIX = "__test__E2E403";
 const NACHWEIS_LISTE = path.resolve(process.cwd(), "test-results/403-veranstaltungsliste-375.png");
 
 const MIN_TIPP_HOEHE = 44;
-const KEINE_DREHUNG = "none";
+// Tailwind v4 setzt `rotate-90` über die eigenständige CSS-Eigenschaft `rotate`, nicht über
+// `transform` – geprüft wird deshalb `rotate` (Review #403, K1).
+const GEDREHT = "90deg";
+const UNGEDREHT = "none";
 
 // Das Dev-Overlay von Next.js („Rendering …" unten links) läge sonst über dem Nachweis.
 const OHNE_DEV_OVERLAY = "nextjs-portal { display: none !important; }";
@@ -61,10 +64,6 @@ function pfeil(details: Locator) {
   return zusammenfassung(details).locator("svg").first().locator("xpath=..");
 }
 
-async function drehung(locator: Locator): Promise<string> {
-  return locator.evaluate((element) => getComputedStyle(element).transform);
-}
-
 async function deckkraft(locator: Locator): Promise<string> {
   return locator.evaluate((element) => getComputedStyle(element).opacity);
 }
@@ -81,17 +80,20 @@ async function horizontalerUeberstand(page: Page): Promise<number> {
   );
 }
 
-/** Prüft Pfeil und Hinweis eines Aufklappers (`<details>`) im Zustand `offen` (AK1.2/AK1.3). */
+/**
+ * Prüft Pfeil und Hinweis eines Aufklappers (`<details>`) im Zustand `offen` (AK1.2/AK1.3).
+ * `toHaveCSS` wiederholt bis zum Ende der `transition-transform` – kein Zwischenwert.
+ */
 async function erwarteZustand(details: Locator, offen: boolean) {
   const summary = zusammenfassung(details);
   if (offen) {
     await expect(details).toHaveAttribute("open", "");
-    expect(await drehung(pfeil(details))).not.toBe(KEINE_DREHUNG);
+    await expect(pfeil(details)).toHaveCSS("rotate", GEDREHT);
     await expect(summary.getByText("Ausblenden", { exact: true })).toBeVisible();
     await expect(summary.getByText("Anzeigen", { exact: true })).toBeHidden();
   } else {
     await expect(details).not.toHaveAttribute("open");
-    expect(await drehung(pfeil(details))).toBe(KEINE_DREHUNG);
+    await expect(pfeil(details)).toHaveCSS("rotate", UNGEDREHT);
     await expect(summary.getByText("Anzeigen", { exact: true })).toBeVisible();
     await expect(summary.getByText("Ausblenden", { exact: true })).toBeHidden();
   }

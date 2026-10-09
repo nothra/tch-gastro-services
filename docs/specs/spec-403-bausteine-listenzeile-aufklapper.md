@@ -61,6 +61,7 @@ Primärer Nutzer: Rollen `veranstalter`/`verwalter`, überwiegend am Smartphone.
 
 - [ ] **AK2.1** GIVEN eine ListenZeile WHEN sie gerendert wird THEN ist sie eine Karte mit
   `bg-surface`, `border-line-subtle`, `rounded-lg`, und die **ganze Zeile** ist Tipp-Ziel.
+  (`line-subtle` statt `line` ist eine begründete Ausnahme zu ADR-052 D2, siehe ADR-059 D1.)
 - [ ] **AK2.2** GIVEN eine ListenZeile WHEN die Maus darüber fährt oder sie Fokus hat THEN wechselt
   sie auf `border-accent bg-accent-subtle` und zeigt einen sichtbaren Fokusring.
 - [ ] **AK2.3** GIVEN die Variante „führt woandershin" WHEN sie gerendert wird THEN ist sie ein
@@ -156,15 +157,15 @@ Primärer Nutzer: Rollen `veranstalter`/`verwalter`, überwiegend am Smartphone.
   Kontrast (WCAG AA, 4,5 : 1) im hellen **und** dunklen Theme gemessen werden? *Vorschlag:*
   ja – bei Unterschreitung gilt der Kontrast vor `opacity-60` (Wert anpassen, Entscheidung
   in `/architecture` bzw. `/implement`).
-- [ ] **Q2 Pfeil in den Arbeitsschritt-Kacheln:** Die Kacheln stehen dreispaltig, ein rechter Pfeil
+- [x] **Q2 Pfeil in den Arbeitsschritt-Kacheln:** Die Kacheln stehen dreispaltig, ein rechter Pfeil
   je Kachel wäre auf dem Smartphone sehr eng. *Vorschlag:* ListenZeile bekommt die Variante
   „führt woandershin" **ohne** Pfeil als Option für Kacheln (Karten-Optik identisch, Pfeil
   entfällt wegen der Breite).
-- [ ] **Q3 Titel der Verzehr-Aufschlüsselung:** Heute „Verzehr anzeigen" (Link-Optik). Im
+- [x] **Q3 Titel der Verzehr-Aufschlüsselung:** Heute „Verzehr anzeigen" (Link-Optik). Im
   Aufklapper mit Hinweis „Anzeigen" wäre das doppelt. *Vorschlag:* Titel „Verzehr", Hinweis
   rechts „Anzeigen"/„Ausblenden".
-- [ ] **Q4 Zähler:** Soll der Zähler im Titel immer sichtbar sein oder nur, wenn ein Konsument ihn
+- [x] **Q4 Zähler:** Soll der Zähler im Titel immer sichtbar sein oder nur, wenn ein Konsument ihn
   übergibt? *Vorschlag:* optionaler Prop – „Abrechnung im Detail" und „Verzehr" haben keinen.
-- [ ] **Q5 Ist der `/architecture`-Schritt nötig?** Zwei neue UI-Bausteine mit Varianten-API und
+- [x] **Q5 Ist der `/architecture`-Schritt nötig?** Zwei neue UI-Bausteine mit Varianten-API und
   ein Nachtrag zu ADR-052 (D1: Bausteine) sind wahrscheinlich; ein eigenes ADR nur, wenn
   die Variantenaufteilung (Link vs. Aktion) eine Grundsatzentscheidung ist.

@@ -5,7 +5,8 @@
 Accepted
 
 > Ergänzt **ADR-052** D1 um zwei weitere Bausteine unter `app/components/ui/`; die Regeln von
-> D1–D3 (route-neutral, Token-Klassen, keine neue Abhängigkeit, Farb-Gate) gelten unverändert.
+> D1–D3 (route-neutral, Token-Klassen, keine neue Abhängigkeit, Farb-Gate) gelten unverändert –
+> mit einer begründeten Ausnahme beim Kartenrand der `ListenZeile` (D1, „Rahmen").
 
 ## Datum
 
@@ -44,23 +45,42 @@ Ausgangslage im Code:
 | `zustand?` (Text) | gesetzt → Zeile verblasst + `Badge tone="neutral"` mit diesem Text (D3) |
 | `pfeil?` (Default `true`) | rechter Pfeil; die Arbeitsschritt-Kacheln setzen `false` (Q2) |
 | `aktion?` (`ReactNode`) | **Slot** für die Zeilenaktion rechts (⋯-Menü); Variante „mit Zeilenaktion" |
-| `className?` | nur Layout (z. B. `min-w-0`, `h-full` für das Kachel-Raster) |
+| `className?` | nur Layout (z. B. `min-w-0` für das Kachel-Raster) |
 
 Aufbau: das `<li>` ist die Karte (`flex items-center rounded-lg border border-line-subtle
 bg-surface`, Hover/Fokus `border-accent bg-accent-subtle`); der Link füllt `flex-1` mit
 `min-h-11 p-3`, die `aktion` steht als **Geschwister** rechts daneben. Mit `aktion` entfällt der
-Pfeil (der Knopf nimmt den Platz); ohne `aktion` steht der Pfeil rechts.
+Pfeil (der Knopf nimmt den Platz); ohne `aktion` steht der Pfeil rechts. Leere Slots
+(`false`/`null`/`""`, typisch bei `aktion={editable && …}`) zählen als nicht gesetzt.
+
+Hover/Fokus liegen per `hover:`/`focus-within:` am `<li>`: so hebt auch ein fokussierter ⋯-Knopf
+die Zeile hervor. `focus-within` greift ebenso, solange ein nicht portalierter Dialog der
+Zeilenaktion (z. B. `ConfirmDialog` des `ZeilenMenue`) offen ist – gewollt, er gehört zur Zeile.
+
+**Rahmen – Ausnahme zu ADR-052 D2:** Der Kartenrand ist `line-subtle`, obwohl die ganze Karte ein
+Link ist und ADR-052 D2 für Bedienelement-Rahmen `line` verlangt. Begründung: der Rand grenzt hier
+nur die Fläche ab wie bei `Card` (ADR-052 D2, Tabelle „Kartenrand"); erkennbar ist die Zeile an
+Titel und Pfeil, und WCAG 1.4.11 verlangt für Links keinen sichtbaren Rahmen. Bedienelemente mit
+eigenem Rahmen als einzigem Erkennungszeichen (Eingabefelder, Knöpfe) bleiben bei `line`.
 
 `ZeilenMenue` bleibt feature-lokal und wird von `ZeileRow` als `aktion` übergeben. Der Baustein
 kennt weder Menü noch Server Action → route-neutral (ADR-052 D1).
 
 ### D2 · Aufklapper: natives `<details>`, Zustand nur per CSS
 
-`Aufklapper` ist eine Server Component um `<details className="group">`:
+`Aufklapper` ist eine Server Component um `<details className="group/aufklapper">`:
 - `<summary>` mit `list-none` und `[&::-webkit-details-marker]:hidden` (Safari), darin Pfeil
-  (Inline-SVG in `icons.tsx`, `group-open:rotate-90`), Titel (+ optional Zähler) und rechts der
-  Hinweis. „Anzeigen"/„Ausblenden" sind **zwei** Elemente, die `group-open:` ein-/ausblendet –
-  kein State, kein Client-JS (spec F1; `Kassieren` bleibt Server Component).
+  (Inline-SVG in `icons.tsx`, `group-open/aufklapper:rotate-90`), Titel (+ optional Zähler) und
+  rechts der Hinweis. „Anzeigen"/„Ausblenden" sind **zwei** Elemente, die
+  `group-open/aufklapper:` ein-/ausblendet – kein State, kein Client-JS (spec F1; `Kassieren`
+  bleibt Server Component).
+- Die Gruppe ist **benannt**: eine unbenannte `group-open:`-Variante griffe bei jedem offenen
+  `.group`-Vorfahren, ein zugeklappter Aufklapper in einem offenen zeigte dann gedrehten Pfeil und
+  „Ausblenden". Mit dem Namen reagiert jeder Aufklapper nur auf sein eigenes `<details>`.
+- Der Hinweis ist `aria-hidden`: den Zustand meldet `<details>` dem Screenreader selbst; im
+  zugänglichen Namen des `<summary>` stünde er doppelt.
+- `className` nur für Layout (Abstand, Schriftgröße) – Rahmen und Fläche kommen von außen,
+  z. B. `Card` um den Aufklapper (Kassieren „Abrechnung im Detail").
 - Props: `titel`, `zaehler?` (optional, Q4), `offen?` (Startzustand, setzt `open` am `<details>`,
   Default zu – AK1.4), `children`, `className?`, sowie `ueberschrift?: { id: string; ebene: "h2" |
   "h3" }`: gesetzt, steckt der Titel in einer Überschrift **im** `<summary>` (HTML erlaubt
@@ -78,6 +98,7 @@ ADR-052 D2) gegen die Kartenfläche `surface`:
 | Titel (`foreground`) | ≈ 4,8 : 1 | ≈ 6,3 : 1 |
 | Untertitel (`muted`) | ≈ 2,9 : 1 ✗ | ≈ 3,3 : 1 ✗ |
 | Badge `neutral` (`muted` auf `background`) | ≈ 2,8 : 1 ✗ | ≈ 3,2 : 1 ✗ |
+| Titel (`foreground`) auf Hover-/Fokus-Fläche `accent-subtle` | ≈ 4,6 : 1 (knappster Wert) | ≥ 4,5 : 1 (Test) |
 
 Das Badge ist der **Textträger** des Zustands und der Untertitel enthält Datum/Katalog/Kasse –
 beides darf nicht unter 4,5 : 1 fallen. Entscheidung:
@@ -151,7 +172,9 @@ einer Barrierefreiheits-Regel weichen muss; die Rechnung steht oben.
 ## Konsequenzen
 
 **Positiv:**
-- Fünf Listen-Markups werden auf einen Baustein reduziert; Optik und Hover leben an einem Ort.
+- Vier Listen-Markups (Veranstaltungsliste, Startseite, Arbeitsschritt-Kacheln, Detail-
+  Teilnehmerzeile) werden auf einen Baustein reduziert; Optik und Hover leben an einem Ort. Die
+  Kassier-Zeilenliste behält ihr Markup und gleicht nur die Token an (D4).
 - Folge-Issues stellen um, indem sie `ListenZeile`/`Aufklapper` nutzen – ohne Farbwissen.
 - Kassieren bleibt Server Component.
 

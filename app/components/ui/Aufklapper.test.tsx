@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Aufklapper } from "./Aufklapper";
 
-// jsdom wertet die Tailwind-Variante `group-open:` nicht aus – hier werden Struktur, Klassen und
+// jsdom wertet die Tailwind-Variante `group-open/aufklapper:` nicht aus – hier werden Struktur, Klassen und
 // das `open`-Attribut geprüft; dass Pfeil und Hinweis im Browser wirklich wechseln, belegt
 // Playwright (ADR-059 D2, e2e/bausteine-listenzeile-aufklapper.spec.ts).
 
@@ -19,7 +19,7 @@ describe("Aufklapper (spec-403 AK1)", () => {
     // AK1.1: natives <details>/<summary>, natives Dreieck aus, eigener Pfeil vor dem Titel.
     const { container } = render(<Aufklapper titel="Abgeschlossen">Inhalt</Aufklapper>);
 
-    expect(details(container)).toHaveClass("group");
+    expect(details(container)).toHaveClass("group/aufklapper");
     expect(summary(container)).toHaveClass("list-none", "[&::-webkit-details-marker]:hidden");
     const pfeil = summary(container).querySelector("svg")!;
     const titel = screen.getByText("Abgeschlossen");
@@ -31,7 +31,15 @@ describe("Aufklapper (spec-403 AK1)", () => {
     const { container } = render(<Aufklapper titel="Abgeschlossen">Inhalt</Aufklapper>);
 
     const pfeilRahmen = summary(container).querySelector("svg")!.parentElement!;
-    expect(pfeilRahmen).toHaveClass("group-open:rotate-90");
+    expect(pfeilRahmen).toHaveClass("group-open/aufklapper:rotate-90");
+  });
+
+  it("should_reactOnlyToOwnDetails_when_nestedInOtherGroup", () => {
+    // Benannte Gruppe: ein zugeklappter Aufklapper in einem offenen `.group`-Vorfahren dreht
+    // seinen Pfeil nicht mit – keine unbenannte `group-open:`-Variante im Baustein.
+    const { container } = render(<Aufklapper titel="Abgeschlossen">Inhalt</Aufklapper>);
+
+    expect(container.innerHTML).not.toMatch(/group-open:/);
   });
 
   it("should_showTitleWithCounter_when_zaehlerGiven", () => {
@@ -64,15 +72,22 @@ describe("Aufklapper (spec-403 AK1)", () => {
   });
 
   it("should_switchHintBetweenAnzeigenAndAusblendenViaCss_when_rendered", () => {
-    // AK1.3 + F1: beide Hinweise stehen im Markup, `group-open:` blendet je einen aus.
+    // AK1.3 + F1: beide Hinweise stehen im Markup, `group-open/aufklapper:` blendet je einen aus.
     const { container } = render(<Aufklapper titel="Abgeschlossen">Inhalt</Aufklapper>);
 
     const anzeigen = screen.getByText("Anzeigen");
     const ausblenden = screen.getByText("Ausblenden");
     expect(summary(container)).toContainElement(anzeigen);
     expect(summary(container)).toContainElement(ausblenden);
-    expect(anzeigen).toHaveClass("group-open:hidden");
-    expect(ausblenden).toHaveClass("hidden", "group-open:inline");
+    expect(anzeigen).toHaveClass("group-open/aufklapper:hidden");
+    expect(ausblenden).toHaveClass("hidden", "group-open/aufklapper:inline");
+  });
+
+  it("should_keepHintOutOfAccessibleName_when_rendered", () => {
+    // Den Zustand meldet `<details>` nativ; der sichtbare Hinweis würde ihn im Namen doppeln.
+    render(<Aufklapper titel="Abgeschlossen">Inhalt</Aufklapper>);
+
+    expect(screen.getByText("Anzeigen").parentElement).toHaveAttribute("aria-hidden", "true");
   });
 
   it("should_beCollapsed_when_offenOmitted", () => {
@@ -169,6 +184,6 @@ describe("Aufklapper (spec-403 AK1)", () => {
       </Aufklapper>,
     );
 
-    expect(details(container)).toHaveClass("group", "text-sm");
+    expect(details(container)).toHaveClass("group/aufklapper", "text-sm");
   });
 });

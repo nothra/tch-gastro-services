@@ -51,7 +51,9 @@ Dateien.
   > unverändert.
   >
   > **Nachtrag (#403):** [ADR-059](059-bausteine-listenzeile-aufklapper.md) ergänzt `ListenZeile`
-  > und `Aufklapper`; die Regeln dieser Entscheidung gelten für sie unverändert.
+  > und `Aufklapper`; die Regeln dieser Entscheidung gelten für sie unverändert – mit einer
+  > begründeten Ausnahme zu D2: der Kartenrand der `ListenZeile` ist `line-subtle` wie bei
+  > `Card`, obwohl die ganze Karte ein Link ist (ADR-059 D1).
 - Varianten als typisierte `Record<Variante, string>`-Tabellen mit Tailwind-**Token**-Klassen,
   kein `cva`, kein `tailwind-merge`. Ein optionaler `className`-Prop wird angehängt und ist
   für **Layout** gedacht (Abstand, Breite, Ausrichtung), nicht für Farben. Farben erzwingt das

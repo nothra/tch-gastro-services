@@ -3,9 +3,11 @@ import { PfeilRechtsIcon } from "./icons";
 import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1, ADR-059 D2): natives `<details>`, dessen Zustand allein
-// per CSS (`group-open:`) sichtbar wird – Pfeil-Drehung und Hinweis „Anzeigen"/„Ausblenden"
-// funktionieren damit vor der Hydration und ohne JS (spec-403 F1), und Konsumenten wie die
-// Kassier-Seite bleiben Server Components.
+// per CSS (`group-open/aufklapper:`) sichtbar wird – Pfeil-Drehung und Hinweis
+// „Anzeigen"/„Ausblenden" funktionieren damit vor der Hydration und ohne JS (spec-403 F1), und
+// Konsumenten wie die Kassier-Seite bleiben Server Components. Die Gruppe ist benannt, damit ein
+// verschachtelter Aufklapper nur auf sein eigenes `<details>` reagiert, nicht auf einen offenen
+// Vorfahren.
 
 /** Überschrift im `<summary>`, auf deren `id` der umgebende Abschnitt per `aria-labelledby` zeigt. */
 interface AufklapperUeberschrift {
@@ -20,7 +22,10 @@ interface AufklapperProps {
   /** Startzustand beim Laden; ohne Angabe zugeklappt (AK1.4). */
   offen?: boolean;
   ueberschrift?: AufklapperUeberschrift;
-  /** Layout des `<details>` (Rahmen, Abstand, Schriftgröße) – nicht für Farben (ADR-052 D1). */
+  /**
+   * Layout des `<details>` (Abstand, Schriftgröße) – nicht für Farben, auch nicht für Rahmen- oder
+   * Flächenfarben; eine Umrandung kommt von außen, z. B. `Card` (ADR-052 D1).
+   */
   className?: string;
   children: ReactNode;
 }
@@ -37,17 +42,18 @@ export function Aufklapper({
   const beschriftung = zaehler === undefined ? titel : `${titel} (${zaehler})`;
 
   return (
-    <details open={offen} className={joinClasses("group", className)}>
+    <details open={offen} className={joinClasses("group/aufklapper", className)}>
       {/* `list-none` blendet das native Dreieck in Chrome/Firefox aus, der Marker-Selektor in
           Safari – ersetzt durch den eigenen Pfeil (AK1.1). */}
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
-        <span className="shrink-0 text-muted transition-transform group-open:rotate-90 [&>svg]:size-5">
+        <span className="shrink-0 text-muted transition-transform group-open/aufklapper:rotate-90 [&>svg]:size-5">
           <PfeilRechtsIcon />
         </span>
         <Titel ueberschrift={ueberschrift}>{beschriftung}</Titel>
-        <span className="ml-auto shrink-0 pl-2 text-sm text-accent">
-          <span className="group-open:hidden">Anzeigen</span>
-          <span className="hidden group-open:inline">Ausblenden</span>
+        {/* `aria-hidden`: den Zustand meldet `<details>` selbst; der Hinweis ist nur fürs Auge. */}
+        <span aria-hidden="true" className="ml-auto shrink-0 pl-2 text-sm text-accent">
+          <span className="group-open/aufklapper:hidden">Anzeigen</span>
+          <span className="hidden group-open/aufklapper:inline">Ausblenden</span>
         </span>
       </summary>
       {children}

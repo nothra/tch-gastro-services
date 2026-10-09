@@ -91,6 +91,10 @@ function blend(vordergrund: string, hintergrund: string, opacity: number): strin
 const VERBLASST_OPACITY = 0.6;
 const VERBLASST_HINTERGRUENDE = ["surface", "accent-subtle"] as const;
 
+// Getrennte Testfälle je Theme, damit ein Rot das betroffene Theme im Testnamen nennt.
+const THEME_TOKENS = { Light: lightTokens, Dark: darkTokens } as const;
+const THEMES = Object.keys(THEME_TOKENS) as ReadonlyArray<keyof typeof THEME_TOKENS>;
+
 // Die semantischen Token, die spec AK1.1 namentlich verlangt.
 const REQUIRED_TOKENS = [
   "accent",
@@ -155,24 +159,28 @@ describe("Farb-Tokens in globals.css (AK1)", () => {
     expect(contrastRatio(dark[fg], dark[bg])).toBeGreaterThanOrEqual(3);
   });
 
-  it.each(VERBLASST_HINTERGRUENDE)(
-    "should_keepWcagAaForDimmedForeground_when_on%sInBothModes",
-    (hintergrund) => {
-      for (const tokens of [lightTokens(), darkTokens()]) {
-        const sichtbar = blend(tokens["foreground"], tokens[hintergrund], VERBLASST_OPACITY);
+  const VERBLASST_FAELLE = THEMES.flatMap((theme) =>
+    VERBLASST_HINTERGRUENDE.map((hintergrund) => [hintergrund, theme] as const),
+  );
 
-        expect(contrastRatio(sichtbar, tokens[hintergrund])).toBeGreaterThanOrEqual(4.5);
-      }
+  it.each(VERBLASST_FAELLE)(
+    "should_keepWcagAaForDimmedForeground_when_on%sIn%sMode",
+    (hintergrund, theme) => {
+      const tokens = THEME_TOKENS[theme]();
+      const sichtbar = blend(tokens["foreground"], tokens[hintergrund], VERBLASST_OPACITY);
+
+      expect(contrastRatio(sichtbar, tokens[hintergrund])).toBeGreaterThanOrEqual(4.5);
     },
   );
 
-  // Gegenprobe zu D3: `muted` unter `opacity-60` reicht nicht – deshalb wechselt der Untertitel
-  // im verblassten Zustand auf `foreground`. Wird dieser Test rot, ist die Abweichung unnötig.
-  it("should_failWcagAaForDimmedMuted_when_onSurfaceInLightMode", () => {
-    const light = lightTokens();
-    const sichtbar = blend(light["muted"], light["surface"], VERBLASST_OPACITY);
+  // Gegenprobe zu D3: `muted` unter `opacity-60` reicht in keinem Theme – deshalb wechselt der
+  // Untertitel im verblassten Zustand auf `foreground`. Wird dieser Test rot, ist die Abweichung
+  // unnötig.
+  it.each(THEMES)("should_failWcagAaForDimmedMuted_when_onSurfaceIn%sMode", (theme) => {
+    const tokens = THEME_TOKENS[theme]();
+    const sichtbar = blend(tokens["muted"], tokens["surface"], VERBLASST_OPACITY);
 
-    expect(contrastRatio(sichtbar, light["surface"])).toBeLessThan(4.5);
+    expect(contrastRatio(sichtbar, tokens["surface"])).toBeLessThan(4.5);
   });
 
   it("should_blendChannelsLinearly_when_opacityApplied", () => {

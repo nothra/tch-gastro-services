@@ -7,12 +7,18 @@ import { joinClasses } from "./joinClasses";
 // Route-neutraler Baustein (ADR-052 D1, ADR-059 D1): eine Listenzeile als Karte, deren Link die
 // ganze Fläche füllt. Eine Zeilenaktion (z. B. ⋯-Menü) kommt als Slot und steht NEBEN dem Link,
 // nie darin – so steckt kein interaktives Element in einem anderen (spec-403 AK2.4). Der Baustein
-// kennt weder Menü noch Server Action.
+// kennt weder Menü noch Server Action. Der Kartenrand ist `line-subtle` wie bei `Card`: er grenzt
+// die Fläche nur ab, die Zeile erkennt man an Titel und Pfeil (ADR-059 D1, Ausnahme zu ADR-052 D2).
 
 // Verblasster Zustand (ADR-059 D3): abgeblendet werden nur Textblock und Pfeil, nicht das Badge –
 // es trägt den Zustand als Text und muss voll lesbar bleiben. Der Untertitel wechselt dabei auf
 // `text-foreground`, weil `text-muted` unter `opacity-60` unter 4,5 : 1 fiele (tokens.test.ts).
 const VERBLASST_CLASS = "opacity-60";
+
+/** Einheitliche Leer-Prüfung für bedingt übergebene Slots (`x && …` liefert `false`/`""`). */
+function hatInhalt(wert: ReactNode): boolean {
+  return wert !== undefined && wert !== null && wert !== false && wert !== "";
+}
 
 interface ListenZeileProps {
   href: string;
@@ -41,8 +47,9 @@ export function ListenZeile({
   aktion,
   className,
 }: ListenZeileProps) {
-  const verblasst = zustand !== undefined;
-  const zeigtPfeil = pfeil && !aktion;
+  const verblasst = hatInhalt(zustand);
+  const hatAktion = hatInhalt(aktion);
+  const zeigtPfeil = pfeil && !hatAktion;
 
   return (
     <li
@@ -63,7 +70,7 @@ export function ListenZeile({
           )}
         >
           <span className="font-semibold break-words">{titel}</span>
-          {untertitel !== undefined && (
+          {hatInhalt(untertitel) && (
             <span
               className={joinClasses(
                 "text-sm break-words",
@@ -90,7 +97,7 @@ export function ListenZeile({
           </span>
         )}
       </Link>
-      {aktion && <div className="shrink-0 pr-1">{aktion}</div>}
+      {hatAktion && <div className="shrink-0 pr-1">{aktion}</div>}
     </li>
   );
 }
