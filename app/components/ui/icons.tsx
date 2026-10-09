@@ -3,9 +3,11 @@ import type { ReactNode } from "react";
 // Route-neutraler Baustein (ADR-056 D1): Symbole als Inline-SVG statt Icon-Bibliothek. Die Farbe
 // kommt allein über `currentColor` aus der Token-Klasse des Elternelements (ADR-052) – dadurch im
 // hellen wie im dunklen Farbschema richtig. Den zugänglichen Namen trägt die Schaltfläche
-// (`IconButton.label`), deshalb ist das Symbol selbst für Hilfstechnik ausgeblendet.
+// (`IconButton.label`) bzw. der umgebende Link/Aufklapper (ADR-059), deshalb ist das Symbol selbst
+// für Hilfstechnik ausgeblendet.
 //
-// Die Pfade stammen aus Lucide (https://lucide.dev, Symbole „share-2", „settings", „trash-2"):
+// Die Pfade stammen aus Lucide (https://lucide.dev, Symbole „share-2", „settings", „trash-2",
+// „chevron-right"):
 //
 //   ISC License
 //   Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather
@@ -71,6 +73,14 @@ export function PapierkorbIcon() {
       <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
       <line x1="10" x2="10" y1="11" y2="17" />
       <line x1="14" x2="14" y1="11" y2="17" />
+    </SymbolRahmen>
+  );
+}
+
+export function PfeilRechtsIcon() {
+  return (
+    <SymbolRahmen>
+      <path d="m9 18 6-6-6-6" />
     </SymbolRahmen>
   );
 }

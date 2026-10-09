@@ -77,6 +77,20 @@ const NON_TEXT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["line", "background"],
 ];
 
+/** Hex-Farbe, die `opacity` über `hintergrund` ergibt (Alpha-Überblendung je Kanal). */
+function blend(vordergrund: string, hintergrund: string, opacity: number): string {
+  const kanal = (hex: string, offset: number) => parseInt(hex.slice(1 + offset, 3 + offset), 16);
+  const kanaele = [0, 2, 4].map((offset) =>
+    Math.round(opacity * kanal(vordergrund, offset) + (1 - opacity) * kanal(hintergrund, offset)),
+  );
+  return `#${kanaele.map((wert) => wert.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Verblasste ListenZeile (spec-403 AK2.5/F3, ADR-059 D3): Titel und Untertitel tragen beide
+// `text-foreground` unter `opacity-60` – auf der Kartenfläche und auf der Hover-/Fokus-Fläche.
+const VERBLASST_OPACITY = 0.6;
+const VERBLASST_HINTERGRUENDE = ["surface", "accent-subtle"] as const;
+
 // Die semantischen Token, die spec AK1.1 namentlich verlangt.
 const REQUIRED_TOKENS = [
   "accent",
@@ -139,6 +153,31 @@ describe("Farb-Tokens in globals.css (AK1)", () => {
     const dark = darkTokens();
 
     expect(contrastRatio(dark[fg], dark[bg])).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(VERBLASST_HINTERGRUENDE)(
+    "should_keepWcagAaForDimmedForeground_when_on%sInBothModes",
+    (hintergrund) => {
+      for (const tokens of [lightTokens(), darkTokens()]) {
+        const sichtbar = blend(tokens["foreground"], tokens[hintergrund], VERBLASST_OPACITY);
+
+        expect(contrastRatio(sichtbar, tokens[hintergrund])).toBeGreaterThanOrEqual(4.5);
+      }
+    },
+  );
+
+  // Gegenprobe zu D3: `muted` unter `opacity-60` reicht nicht – deshalb wechselt der Untertitel
+  // im verblassten Zustand auf `foreground`. Wird dieser Test rot, ist die Abweichung unnötig.
+  it("should_failWcagAaForDimmedMuted_when_onSurfaceInLightMode", () => {
+    const light = lightTokens();
+    const sichtbar = blend(light["muted"], light["surface"], VERBLASST_OPACITY);
+
+    expect(contrastRatio(sichtbar, light["surface"])).toBeLessThan(4.5);
+  });
+
+  it("should_blendChannelsLinearly_when_opacityApplied", () => {
+    // Fester Stützwert für die Überblendung: 60 % Schwarz auf Weiß = 0x66 je Kanal.
+    expect(blend("#000000", "#ffffff", VERBLASST_OPACITY)).toBe("#666666");
   });
 
   // Ohne `color-scheme` blieben native Teile (Auswahl-Popup, Zahlen-Spinner, Scrollbalken)

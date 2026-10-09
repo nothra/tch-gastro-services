@@ -34,10 +34,12 @@ export const UI_TOKEN_FILES = [
   // #370: die route-neutrale Verzehr-Erfassung (Einzelansicht, beide Zugangswege).
   "app/_verzehr/",
   // #371: Kassieren-Seite samt Summenkarte, Kassier-Formular und Abschluss im Detailseiten-Kopf.
-  // `KassierZeilenListe` und `VerzehrAufschluesselung` bleiben bis zum Listen-Umbau (#272) außen vor.
   "app/veranstaltung/[id]/kassieren/",
   "app/veranstaltung/[id]/AbschlussAktion.tsx",
   "app/veranstaltung/KassiereZeileForm.tsx",
+  // #403: Kassier-Zeilenliste und Verzehr-Aufschlüsselung (ADR-059 D4).
+  "app/veranstaltung/KassierZeilenListe.tsx",
+  "app/veranstaltung/VerzehrAufschluesselung.tsx",
   // #374: Kopfzeile, Konto-Menü, Gäste-Kopf und Startseite (ADR-057 D5).
   "app/components/headerStyles.ts",
   "app/components/AppNav.tsx",

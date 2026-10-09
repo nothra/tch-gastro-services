@@ -197,7 +197,7 @@ describe("KassierZeilenListe", () => {
 
   it("should_highlightOnlyTargetZeile_when_hervorgehobeneZeileIdGiven", () => {
     // #308 AK2: die Zielzeile ist von den übrigen unterscheidbar – semantisch (aria-current) und
-    // optisch (Rahmen + Fläche in Akzentfarbe, Light und Dark).
+    // optisch (Rahmen + Fläche in Akzent-Tokens, die hell und dunkel umschalten – spec-403 AK5.4).
     render(
       <KassierZeilenListe
         zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd"), zeile("z-3", "Carla")]}
@@ -206,21 +206,17 @@ describe("KassierZeilenListe", () => {
     );
 
     expect(hervorgehobeneNamen()).toEqual(["Bernd"]);
-    expect(listenEintrag("Bernd")).toHaveClass(
-      "border-cyan-600",
-      "bg-cyan-50",
-      "dark:border-cyan-500",
-      "dark:bg-cyan-950",
-    );
-    expect(listenEintrag("Anna")).toHaveClass("border-zinc-200", "dark:border-zinc-800");
-    expect(listenEintrag("Anna")).not.toHaveClass("border-cyan-600");
+    expect(listenEintrag("Bernd")).toHaveClass("border-accent", "bg-accent-subtle");
+    expect(listenEintrag("Anna")).toHaveClass("border-line-subtle");
+    expect(listenEintrag("Anna")).not.toHaveClass("border-accent");
+    expect(listenEintrag("Anna")).not.toHaveClass("bg-accent-subtle");
   });
 
   it("should_highlightNoZeile_when_hervorgehobeneZeileIdOmitted", () => {
     render(<KassierZeilenListe zeilen={[zeile("z-1", "Anna"), zeile("z-2", "Bernd")]} />);
 
     expect(hervorgehobeneNamen()).toEqual([]);
-    expect(listenEintrag("Anna")).toHaveClass("border-zinc-200");
+    expect(listenEintrag("Anna")).toHaveClass("border-line-subtle");
   });
 
   it("should_highlightNoZeile_when_hervorgehobeneZeileIdIsUnknown", () => {

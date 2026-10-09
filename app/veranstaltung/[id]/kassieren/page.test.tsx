@@ -216,7 +216,7 @@ function kennzahl(label: string): HTMLElement {
 }
 
 function abrechnungImDetail(): HTMLDetailsElement {
-  return screen.getByText("Abrechnung im Detail", { selector: "summary" }).closest("details")!;
+  return screen.getByText("Abrechnung im Detail", { selector: "summary span" }).closest("details")!;
 }
 
 // Alle zahlen- und statusführenden Texte der Seite: Summenkarte, je Teilnehmerzeile (Beträge,
@@ -375,7 +375,7 @@ describe("KassierenPage", () => {
     const disclosures = teilnehmer.querySelectorAll("details");
     expect(disclosures.length).toBe(2);
     disclosures.forEach((details) => expect(details).not.toHaveAttribute("open"));
-    expect(screen.getAllByText("Verzehr anzeigen").length).toBe(2);
+    expect(screen.getAllByText("Verzehr", { selector: "summary span" }).length).toBe(2);
 
     // z-1 listet ihre konsumierten Artikel (inkl. aufgelöstem Namen).
     const annaLi = screen.getByText("Anna Beispiel").closest("li")!;
@@ -851,7 +851,7 @@ describe("KassierenPage", () => {
     expect(screen.queryByTestId("kassiere-form")).not.toBeInTheDocument();
     expect(screen.getAllByText(/Erhalten:/).length).toBeGreaterThan(0);
     // Aufschlüsselung bleibt in der Lese-Ansicht je Teilnehmer verfügbar (AC7).
-    expect(screen.getAllByText("Verzehr anzeigen").length).toBe(2);
+    expect(screen.getAllByText("Verzehr", { selector: "summary span" }).length).toBe(2);
   });
 
   it("should_showEmptyState_when_noZeilen", async () => {
@@ -1059,6 +1059,21 @@ describe("KassierenPage – Abrechnung im Detail (spec-371 AK14/AK15)", () => {
     render(await KassierenPage(seite("v-1")));
 
     expect(abrechnungImDetail().firstElementChild?.tagName).toBe("SUMMARY");
+  });
+
+  it("should_beAufklapperWithArrowAndHint_when_rendered", async () => {
+    // spec-403 AK5.1: Aufklapper (zu, Pfeil, „Anzeigen"/„Ausblenden"), ohne Zähler.
+    arrangeHappyPath();
+
+    render(await KassierenPage(seite("v-1")));
+
+    const summary = abrechnungImDetail().querySelector("summary")!;
+    expect(summary.querySelector("svg")).not.toBeNull();
+    expect(within(summary).getByText("Anzeigen")).toBeInTheDocument();
+    expect(within(summary).getByText("Ausblenden")).toBeInTheDocument();
+    expect(within(summary).getByText("Abrechnung im Detail")).toHaveTextContent(
+      /^Abrechnung im Detail$/,
+    );
   });
 
   it("should_placeAbrechnungImDetailAfterTeilnehmerliste_when_rendered", async () => {

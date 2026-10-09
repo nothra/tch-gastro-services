@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ListenZeile } from "@/app/components/ui/ListenZeile";
 import type { KachelKennzahlen } from "../kachelKennzahlen";
 
 // Die drei Arbeitsschritt-Kacheln der Detailseite (spec-369 AK3–AK6): je ein Link auf die
@@ -22,21 +22,17 @@ interface ArbeitsschrittKachelnProps {
 export function ArbeitsschrittKacheln({ veranstaltungId, kennzahlen }: ArbeitsschrittKachelnProps) {
   return (
     <nav aria-label="Arbeitsschritte">
+      {/* Ohne Pfeil (spec-403 Q2): dreispaltig wäre er auf dem Smartphone zu eng. */}
       <ul className="grid grid-cols-3 gap-2">
         {SCHRITTE.map(({ schritt, titel }) => (
-          <li key={schritt} className="min-w-0">
-            <Link
-              href={`/veranstaltung/${veranstaltungId}/${schritt}`}
-              className="flex h-full min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-3 text-foreground hover:border-accent hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <span className="font-semibold break-words">{titel}</span>
-              {kennzahlen && (
-                <span className="text-sm break-words text-muted tabular-nums">
-                  {kennzahlen[schritt]}
-                </span>
-              )}
-            </Link>
-          </li>
+          <ListenZeile
+            key={schritt}
+            href={`/veranstaltung/${veranstaltungId}/${schritt}`}
+            titel={titel}
+            untertitel={kennzahlen && <span className="tabular-nums">{kennzahlen[schritt]}</span>}
+            pfeil={false}
+            className="min-w-0"
+          />
         ))}
       </ul>
     </nav>

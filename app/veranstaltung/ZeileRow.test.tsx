@@ -65,7 +65,21 @@ describe("ZeileRow (spec-369 AK17/AK18/AK9)", () => {
       <ZeileRow zeile={{ ...aZeile, anzeigename: langerName }} veranstaltungId="v-1" editable />,
     );
 
-    const link = screen.getByRole("link");
-    expect(link).toHaveClass("min-w-0", "break-words");
+    expect(screen.getByRole("link")).toHaveClass("min-w-0");
+    expect(screen.getByText(langerName.trim(), { selector: "a span" })).toHaveClass("break-words");
+  });
+
+  it("should_placeZeilenMenueNextToLinkInListenZeileCard_when_editable", () => {
+    // spec-403 AK4.3/AK4.4/AK2.4: Karte aus dem Baustein, Menü als Zeilenaktion neben dem Link.
+    render(
+      <ul>
+        <ZeileRow zeile={aZeile} veranstaltungId="v-1" editable />
+      </ul>,
+    );
+
+    const karte = screen.getByRole("listitem");
+    expect(karte).toHaveClass("border-line-subtle", "bg-surface", "hover:bg-accent-subtle");
+    expect(karte).toContainElement(screen.getByTestId("zeilen-menue"));
+    expect(screen.getByRole("link")).not.toContainElement(screen.getByTestId("zeilen-menue"));
   });
 });

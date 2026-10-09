@@ -34,6 +34,14 @@ Veranstaltung.
 „Abschließen", „Öffnen" (Veranstaltung wieder öffnen), „Umbenennen", „Duplizieren",
 „Katalog wechseln", „Teilen", „Anmelden", „Abmelden", „Abbrechen".
 
+**Abgrenzung ausblenden ↔ deaktivieren:** „Anzeigen" / „Ausblenden" ist ausschließlich der
+Zustandshinweis eines aufklappbaren Bereichs (Baustein `Aufklapper`, #403) – er ändert nur die
+Ansicht, kein Objekt. Wird ein Objekt selbst unsichtbar oder unwählbar, heißt es weiterhin
+**deaktivieren** (Tabelle oben).
+
+**Status-Badges** (z. B. an verblassten Listenzeilen) tragen den Zustand klein geschrieben als
+Partizip/Adjektiv: „abgeschlossen", „deaktiviert", „offen", „bezahlt".
+
 ---
 
 ## Meldungen

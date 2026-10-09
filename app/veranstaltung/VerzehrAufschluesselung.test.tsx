@@ -30,7 +30,16 @@ describe("VerzehrAufschluesselung", () => {
     const details = container.querySelector("details");
     expect(details).not.toBeNull();
     expect(details).not.toHaveAttribute("open");
-    expect(screen.getByText("Verzehr anzeigen")).toBeInTheDocument();
+  });
+
+  it("should_beAufklapperTitledVerzehrWithArrowAndHint_when_rendered", () => {
+    // spec-403 AK5.2 + Q3: Titel „Verzehr" ohne Zähler, Pfeil und Hinweis „Anzeigen".
+    const { container } = render(<VerzehrAufschluesselung positionen={positionen} />);
+
+    const summary = container.querySelector("summary")!;
+    expect(within(summary).getByText("Verzehr")).toHaveTextContent(/^Verzehr$/);
+    expect(within(summary).getByText("Anzeigen")).toBeInTheDocument();
+    expect(summary.querySelector("svg")).not.toBeNull();
   });
 
   it("should_showQuantityLabelUnitPriceAndLineTotal_when_positionsGiven", () => {
@@ -61,6 +70,6 @@ describe("VerzehrAufschluesselung", () => {
 
     expect(screen.getByText("Kein Verzehr erfasst")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.getByText("Verzehr anzeigen")).toBeInTheDocument();
+    expect(screen.getByText("Verzehr")).toBeInTheDocument();
   });
 });

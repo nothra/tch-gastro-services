@@ -1,8 +1,9 @@
-import Link from "next/link";
 import type { Catalog, Kasse, Veranstaltung } from "@/db/schema";
+import { Aufklapper } from "@/app/components/ui/Aufklapper";
 import { Leerzustand } from "@/app/components/ui/Leerzustand";
+import { ListenZeile } from "@/app/components/ui/ListenZeile";
 import { VeranstaltungAnlegen } from "./VeranstaltungAnlegen";
-import { KASSE_LABEL, formatDatum } from "./labels";
+import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "./labels";
 
 // Veranstaltungsliste nach Status gruppiert (spec-373 AK2, AK7). Die Reihenfolge innerhalb der
 // Gruppen kommt unverändert aus `listVeranstaltungen` (AK2.3) – hier wird nur aufgeteilt.
@@ -49,35 +50,43 @@ export function VeranstaltungListe({
     </ul>
   );
 
+  // Beide Gruppen sind Aufklapper (spec-403 AK3.1/AK3.2): „Offen" startet aufgeklappt,
+  // „Abgeschlossen" zu. Die Überschrift im <summary> benennt den jeweiligen Abschnitt.
   return (
     <>
-      <section aria-labelledby="gruppe-offen" className="flex flex-col gap-3">
-        <h2 id="gruppe-offen">Offen ({offen.length})</h2>
-        {offen.length === 0 ? (
-          <Leerzustand text="Keine offene Veranstaltung." aktion={anlegen} />
-        ) : (
-          zeilen(offen)
-        )}
+      <section aria-labelledby="gruppe-offen">
+        <Aufklapper
+          titel="Offen"
+          zaehler={offen.length}
+          offen
+          ueberschrift={{ id: "gruppe-offen", ebene: "h2" }}
+        >
+          <div className="pt-3">
+            {offen.length === 0 ? (
+              <Leerzustand text="Keine offene Veranstaltung." aktion={anlegen} />
+            ) : (
+              zeilen(offen)
+            )}
+          </div>
+        </Aufklapper>
       </section>
       {abgeschlossen.length > 0 && (
         <section aria-labelledby="gruppe-abgeschlossen">
-          {/* Eingeklappt (AK2.2): natives <details> ist ohne eigenes Script per Tipp und
-              Tastatur bedienbar. */}
-          <details>
-            <summary className="flex min-h-11 cursor-pointer items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-              <h2 id="gruppe-abgeschlossen" className="inline">
-                Abgeschlossen ({abgeschlossen.length})
-              </h2>
-            </summary>
+          <Aufklapper
+            titel="Abgeschlossen"
+            zaehler={abgeschlossen.length}
+            ueberschrift={{ id: "gruppe-abgeschlossen", ebene: "h2" }}
+          >
             <div className="pt-3">{zeilen(abgeschlossen)}</div>
-          </details>
+          </Aufklapper>
         </section>
       )}
     </>
   );
 }
 
-// Die Status-Angabe entfällt in der Zeile – die Gruppe trägt sie (AK7.1).
+// Die Status-Angabe „offen" entfällt in der Zeile – die Gruppe trägt sie (spec-373 AK7.1).
+// Abgeschlossene Zeilen verblassen und tragen den Status als Badge (spec-403 AK3.3).
 function VeranstaltungZeile({
   veranstaltung: v,
   katalogName,
@@ -86,16 +95,11 @@ function VeranstaltungZeile({
   katalogName: string;
 }) {
   return (
-    <li>
-      <Link
-        href={`/veranstaltung/${v.id}`}
-        className="flex min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-3 text-foreground hover:border-accent hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        <span className="font-semibold break-words">{v.bezeichnung}</span>
-        <span className="text-sm break-words text-muted">
-          {formatDatum(v.datum)} · {katalogName} · {KASSE_LABEL[v.kasse as Kasse]}
-        </span>
-      </Link>
-    </li>
+    <ListenZeile
+      href={`/veranstaltung/${v.id}`}
+      titel={v.bezeichnung}
+      untertitel={`${formatDatum(v.datum)} · ${katalogName} · ${KASSE_LABEL[v.kasse as Kasse]}`}
+      zustand={v.status === "abgeschlossen" ? STATUS_LABEL.abgeschlossen : undefined}
+    />
   );
 }

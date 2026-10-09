@@ -21,10 +21,10 @@ export type KassierZeile = {
   inhalt: ReactNode;
 };
 
-// Optik der Zielzeile eines personenbezogenen Aufrufs (#308 AK2) – dieselbe Akzentfarbe wie der
-// aktive Chip der Verzehrerfassung, damit „gemeinte Person" überall gleich aussieht.
-const HERVORHEBUNG_CLASS = "border-cyan-600 bg-cyan-50 dark:border-cyan-500 dark:bg-cyan-950";
-const NORMAL_CLASS = "border-zinc-200 dark:border-zinc-800";
+// Optik der Zielzeile eines personenbezogenen Aufrufs (#308 AK2) – dieselbe „gemeint/aktiv"-Sprache
+// wie der Hover der ListenZeile (ADR-059 D4), damit „gemeinte Person" überall gleich aussieht.
+const HERVORHEBUNG_CLASS = "border-accent bg-accent-subtle";
+const NORMAL_CLASS = "border-line-subtle";
 
 export function KassierZeilenListe({
   zeilen,

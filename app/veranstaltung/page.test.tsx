@@ -196,6 +196,50 @@ describe("VeranstaltungenPage – Gruppen (AK2)", () => {
     ]);
   });
 
+  it("should_renderBothGroupsAsAufklapperWithOffenExpanded_when_bothExist", async () => {
+    // spec-403 AK3.1/AK3.2: beide Gruppen sind Aufklapper (Pfeil + Hinweis), „Offen" auf.
+    listVeranstaltungenMock.mockResolvedValue([offenNeu, abgeschlossen]);
+    await renderAlsVeranstalter();
+
+    const offenDetails = abschnitt(/^Offen/).querySelector("details")!;
+    const abgeschlossenDetails = abschnitt(/^Abgeschlossen/).querySelector("details")!;
+    expect(offenDetails).toHaveAttribute("open");
+    expect(abgeschlossenDetails).not.toHaveAttribute("open");
+    for (const details of [offenDetails, abgeschlossenDetails]) {
+      const summary = details.querySelector("summary")!;
+      expect(summary.querySelector("svg")).not.toBeNull();
+      expect(summary).toHaveTextContent("Anzeigen");
+    }
+  });
+
+  it("should_dimAbgeschlosseneRowsWithBadge_when_rendered", async () => {
+    // spec-403 AK3.3: verblasst + Badge „abgeschlossen"; offene Zeilen ohne beides.
+    listVeranstaltungenMock.mockResolvedValue([offenNeu, abgeschlossen]);
+    await renderAlsVeranstalter();
+
+    const abgeschlosseneZeile = within(abschnitt(/^Abgeschlossen/)).getByRole("listitem", {
+      hidden: true,
+    });
+    expect(within(abgeschlosseneZeile).getByText("abgeschlossen")).toBeInTheDocument();
+    expect(abgeschlosseneZeile.querySelector(".opacity-60")).not.toBeNull();
+
+    const offeneZeile = within(abschnitt(/^Offen/)).getByRole("listitem");
+    expect(offeneZeile).not.toHaveTextContent("abgeschlossen");
+    expect(offeneZeile.querySelector(".opacity-60")).toBeNull();
+  });
+
+  it("should_useListenZeileCardStyle_when_rowsRendered", async () => {
+    // spec-403 AK4.4: einheitliche Karten-Optik aus dem Baustein, kein eigenes Zeilen-Styling.
+    listVeranstaltungenMock.mockResolvedValue([offenNeu]);
+    await renderAlsVeranstalter();
+
+    expect(within(abschnitt(/^Offen/)).getByRole("listitem")).toHaveClass(
+      "border-line-subtle",
+      "bg-surface",
+      "hover:bg-accent-subtle",
+    );
+  });
+
   it("should_showOffenEmptyStateWithAnlegenAndKeepAbgeschlossen_when_noOpenVeranstaltung", async () => {
     // AK2.4
     listVeranstaltungenMock.mockResolvedValue([abgeschlossen]);
@@ -203,7 +247,11 @@ describe("VeranstaltungenPage – Gruppen (AK2)", () => {
 
     const offen = abschnitt(/^Offen/);
     expect(within(offen).getByRole("heading", { name: "Offen (0)" })).toBeInTheDocument();
-    expect(within(offen).getByText(/Keine offene Veranstaltung/)).toBeInTheDocument();
+    // spec-403 AK3.4: der Leerzustand steht im aufgeklappten Aufklapper.
+    expect(offen.querySelector("details")).toHaveAttribute("open");
+    expect(offen.querySelector("details")).toContainElement(
+      within(offen).getByText(/Keine offene Veranstaltung/),
+    );
     fireEvent.click(within(offen).getByRole("button", { name: "Veranstaltung anlegen" }));
     expect(screen.getByRole("dialog", { name: "Veranstaltung anlegen" })).toBeInTheDocument();
     expect(abschnitt(/^Abgeschlossen/)).toBeInTheDocument();

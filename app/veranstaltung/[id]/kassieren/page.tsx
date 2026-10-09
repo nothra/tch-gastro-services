@@ -13,6 +13,7 @@ import {
   verzehrPositionen,
   type VerzehrPositionDetail,
 } from "@/app/_verzehr/positionen";
+import { Aufklapper } from "@/app/components/ui/Aufklapper";
 import { Badge } from "@/app/components/ui/Badge";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { kassiereZeileAction } from "../../actions";
@@ -249,7 +250,8 @@ function BetragEintrag({ label, cents }: { label: string; cents: number }) {
 }
 
 // Tagessummen, Gesamtabrechnung und Protokoll standardmäßig eingeklappt (spec-371 AK14/AK15,
-// ADR-055 D4): natives `<details>` – aufgeklappt dieselben Zeilen und Werte wie bisher.
+// ADR-055 D4): `Aufklapper` (natives `<details>`, spec-403 AK5.1) – aufgeklappt dieselben Zeilen
+// und Werte wie bisher.
 function AbrechnungImDetail({
   kasseLabel,
   tagessummen,
@@ -264,11 +266,11 @@ function AbrechnungImDetail({
   ereignisse: VeranstaltungEreignis[];
 }) {
   return (
-    <details className="rounded-lg border border-line-subtle bg-surface">
-      <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-accent">
-        Abrechnung im Detail
-      </summary>
-      <div className="flex flex-col gap-6 border-t border-line-subtle p-4">
+    <Aufklapper
+      titel="Abrechnung im Detail"
+      className="rounded-lg border border-line-subtle bg-surface px-4"
+    >
+      <div className="flex flex-col gap-6 border-t border-line-subtle py-4">
         <section className="flex flex-col gap-2">
           <h2>Tagessummen</h2>
           <table className="w-full text-sm">
@@ -330,7 +332,7 @@ function AbrechnungImDetail({
           )}
         </section>
       </div>
-    </details>
+    </Aufklapper>
   );
 }
 
