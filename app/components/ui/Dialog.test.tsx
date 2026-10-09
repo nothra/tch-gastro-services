@@ -60,6 +60,20 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     expect(dialog).toHaveAccessibleDescription("Wähle Stammteilnehmer oder lege einen Gast an.");
   });
 
+  it("should_wrapLongWordsInTitleAndDescription_when_open", () => {
+    // spec-372 FS5: Namen (Veranstaltung, Katalog, Teilnehmer) stehen im Titel wie in der
+    // Beschreibung; ein langes Wort darf den Dialog bei 375 px nicht verbreitern.
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Öffnen" }));
+
+    expect(screen.getByRole("heading", { name: "Teilnehmer hinzufügen" })).toHaveClass(
+      "break-words",
+    );
+    expect(screen.getByText("Wähle Stammteilnehmer oder lege einen Gast an.")).toHaveClass(
+      "break-words",
+    );
+  });
+
   it("should_callOnCloseAndClose_when_escapePressed", () => {
     const onClose = vi.fn();
     render(<Harness onClose={onClose} />);

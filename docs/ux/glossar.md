@@ -128,43 +128,38 @@ umgeschrieben werden. Neue Texte mit direkter Ansprache nutzen den Imperativ in 
 
 ---
 
-## Abweichungsliste (Stand 2026-10-08)
+## Abweichungsliste (Stand 2026-10-09)
 
 Ist-Texte in `app/`, die vom Glossar abweichen, mit Ziel-Issue. Arbeitsvorlage – eine Zeile wird
-beim Umsetzen gestrichen. Zeilenangaben gegen `main` @ `31e5fbf` geprüft.
+beim Umsetzen gestrichen. Zeilenangaben gegen den Stand von #372 (Review-Rework) geprüft.
 
-Von #369–#374 ist nur noch **#372** offen (Bestätigen und Rückmelden, AK5 „Meldungstexte nach dem
-Glossar"). Alles, was nicht dorthin gehört, sammelt **#401**.
+Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
+Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
+Alles Übrige sammelt **#401**.
 
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|
-| `app/veranstaltung/[id]/VeranstaltungMetaForm.tsx:67` | „Änderungen gespeichert." | „Gespeichert" | #372 |
-| `app/veranstaltung/KatalogWechsel.tsx:47` | „Katalog gewechselt." | „Katalog gewechselt" | #372 |
-| `app/verwaltung/katalog/[id]/CatalogControls.tsx:140` | „Reaktivieren" | „Aktivieren" | #372 |
-| `app/veranstaltung/[id]/LinkKopieren.tsx:45` | „Kopieren nicht möglich – der Link ist markiert und kann manuell kopiert werden." | „Kopieren nicht möglich: der Link ist markiert und kann manuell kopiert werden." | #372 |
-| `app/veranstaltung/KatalogWechsel.tsx:44` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
+| `app/veranstaltung/KatalogWechsel.tsx:47` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:207` | Button „Gast hinzufügen" | „Neuen Gast anlegen" | #401 |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:97` | „Alle aktiven Stammteilnehmer sind bereits erfasst." | „… sind bereits hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:357` (Text aus `nichtsAngelegt`, `:104–106`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:353` (Text aus `nichtsAngelegt`, `:104–106`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:101` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/VeranstaltungAnlegen.tsx:75` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
-| `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:47` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
-| `app/verwaltung/katalog/ArtikelAnlegen.tsx:46` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
-| `app/verwaltung/katalog/[id]/CatalogControls.tsx:86` | Busy „Speichern …" für „Anlegen"/„Umbenennen"/„Duplizieren" | „Anlegen …" / „Umbenennen …" / „Duplizieren …" | #401 |
-| `app/veranstaltung/KassiereZeileForm.tsx:63` | Busy „Speichern …" (Button „Kassieren") | „Kassieren …" | #401 |
-| `app/veranstaltung/AuslageForm.tsx:146` | Busy „Speichern …" (Button „Auslage erfassen") | „Erfassen …" (beim Bearbeiten bleibt „Speichern …") | #401 |
-| `app/veranstaltung/KassiereZeileForm.tsx:49` | „Erhalten (EUR)" | „Erhalten (€)" | #401 |
-| `app/veranstaltung/AuslageForm.tsx:116` | „Betrag (EUR)" | „Betrag (€)" | #401 |
+| `app/veranstaltung/actions.ts:339` (Text aus `nichtsAngelegt`, `:96–99`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:335` (Text aus `nichtsAngelegt`, `:96–99`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:93` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/VeranstaltungAnlegen.tsx:77` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
+| `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:49` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
+| `app/verwaltung/katalog/ArtikelAnlegen.tsx:48` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
+| `app/veranstaltung/KassiereZeileForm.tsx:67` | Busy „Speichern …" (Button „Kassieren") | „Kassieren …" | #401 |
+| `app/veranstaltung/AuslageForm.tsx:142` | Busy „Speichern …" (Button „Auslage erfassen") | „Erfassen …" (beim Bearbeiten bleibt „Speichern …") | #401 |
+| `app/veranstaltung/KassiereZeileForm.tsx:53` | „Erhalten (EUR)" | „Erhalten (€)" | #401 |
+| `app/veranstaltung/AuslageForm.tsx:112` | „Betrag (EUR)" | „Betrag (€)" | #401 |
 | `app/verwaltung/katalog/CatalogFields.tsx:45` | „Preis (EUR)" | „Preis (€)" | #401 |
 | `app/theke/[token]/IdentityGate.tsx:177` | „Bitte wählen…" | „Bitte wählen …" | #401 |
-| `app/verwaltung/theke/ThekeSetup.tsx:21` | „… ein erneutes Einrichten legt nicht doppelt an." | „… ein erneutes Anlegen legt nicht doppelt an." | #401 |
-| `app/verwaltung/theke/ThekeSetup.tsx:32` | Button „Einrichten" / Busy „Einrichten …" | „Anlegen" / „Anlegen …" | #401 |
-| `app/verwaltung/theke/ThekeSetup.tsx:35` | „Theke eingerichtet." | „Theke angelegt" | #401 |
+| `app/verwaltung/theke/ThekeSetup.tsx:24` | „… ein erneutes Einrichten legt nicht doppelt an." | „… ein erneutes Anlegen legt nicht doppelt an." | #401 |
+| `app/verwaltung/theke/ThekeSetup.tsx:35` | Button „Einrichten" / Busy „Einrichten …" | „Anlegen" / „Anlegen …" | #401 |
 | `app/verwaltung/theke/page.tsx:14` | „… nur Verwalter dürfen die Theke einrichten." | „… die Theke anlegen." | #401 |
 
 **Beim Umsetzen mitziehen** (kein UI-Text, aber an den Wortlaut gebunden): `e2e/helpers/detailseite.ts:23`
-(„Gast hinzufügen"), `e2e/listenseiten.spec.ts:148` („Preis (EUR)") sowie die Unit-Tests neben den
+(„Gast hinzufügen"), `e2e/listenseiten.spec.ts:149` („Preis (EUR)") sowie die Unit-Tests neben den
 Komponenten (per Grep auf den Ist-Text).
 
 **Bereits konform** (im Spec-Kontext genannt, keine Änderung nötig):
@@ -172,8 +167,8 @@ Komponenten (per Grep auf den Ist-Text).
 | Datei | Text | Regel |
 |---|---|---|
 | `app/veranstaltung/ZeilenMenue.tsx:125` | „Entfernen" (Teilnehmerzeile) | Zuordnung lösen = entfernen |
-| `app/veranstaltung/AuslageRow.tsx:99` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
-| `app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:76` | „Löschen …" (Veranstaltung) | dauerhaft verwerfen = löschen |
+| `app/veranstaltung/AuslageRow.tsx:131` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
+| `app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:96` | „Löschen …" (Veranstaltung) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/OffeneVeranstaltungen.tsx:28` | „Veranstaltung anlegen" | neues Objekt = anlegen |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:48` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
 | `app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:12` | „Verzehr erfassen" | Mengen eintragen = erfassen |

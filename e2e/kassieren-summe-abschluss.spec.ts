@@ -2,6 +2,7 @@ import path from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { gastHinzufuegen } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
+import { toast } from "./helpers/toast";
 
 // Oberflächen-Nachweis für die aufgeräumte Kassieren-Seite und den Abschluss im Kopf der
 // Detailseite (#371, spec-371, ADR-055). Prüft gegen einen echten Server, was jsdom nicht belegen
@@ -150,7 +151,8 @@ test.describe("Kassieren: Summe oben, Spende live, Abschluss im Kopf (#371)", ()
     // ── AK12: Rückmeldung mit Betrag und Spende, Summenkarte folgt ────────────────────────
     await feld.fill(alsEuroEingabe(verzehr + 100));
     await zeile.getByRole("button", { name: "Kassieren" }).click();
-    await expect(zeile.getByRole("status")).toHaveText(/erhalten, davon 1,00\s€ Spende/);
+    // Seit #372 als Toast aus dem Root-Layout, nicht mehr an der Zeile.
+    await expect(toast(page, /erhalten, davon 1,00\s€ Spende/)).toBeVisible();
     await expect(karte).toContainText("2 von 2 bezahlt");
     await expect(karte).toContainText("Alles bezahlt");
 

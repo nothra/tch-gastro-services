@@ -3,11 +3,14 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 
 // Externe Grenze: Server Action aus derselben Feature-Schicht.
 vi.mock("./actions", () => ({ createTeilnehmerAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { createTeilnehmerAction } from "./actions";
 import { TeilnehmerAnlegen } from "./TeilnehmerAnlegen";
 
 const createMock = vi.mocked(createTeilnehmerAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 const DUPLIKAT_WARNUNG = "Ein aktiver Teilnehmer mit diesem Namen existiert bereits.";
 
@@ -60,6 +63,27 @@ describe("TeilnehmerAnlegen (spec-373 AK8.1, AK1)", () => {
     expect(formData.get("name")).toBe("Anna");
     expect(formData.get("confirmDuplicate")).toBe("false");
     expect(document.querySelector("dialog")).not.toHaveAttribute("open");
+  });
+
+  it("should_reportAngelegt_when_anlegenSucceeds", async () => {
+    // spec-372 AK12.
+    renderUndOeffnen();
+    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+
+    await klicke("Anlegen");
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer angelegt");
+  });
+
+  it("should_notReport_when_duplicateWarningAsksForConfirmation", async () => {
+    // Die Duplikat-Warnung ist kein Erfolg – sie bleibt im Dialog.
+    createMock.mockResolvedValueOnce({ needsConfirm: true, warning: DUPLIKAT_WARNUNG });
+    renderUndOeffnen();
+    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+
+    await klicke("Anlegen");
+
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
   it("should_keepInputAndShowError_when_actionRejects", async () => {

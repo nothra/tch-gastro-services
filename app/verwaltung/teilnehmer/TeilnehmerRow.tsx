@@ -1,26 +1,26 @@
 "use client";
 
-import { useActionState, useCallback, useState } from "react";
+import { useState } from "react";
 import type { Teilnehmer } from "@/db/schema";
+import { Notice } from "@/app/components/ui/Notice";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { setTeilnehmerActiveAction, updateTeilnehmerAction } from "./actions";
 import { TeilnehmerFields, TYP_LABEL } from "./TeilnehmerFields";
 
-// Eine Teilnehmer-Zeile: Anzeige, Inline-Bearbeitung und Deaktivieren/Reaktivieren.
+const sekundaerButtonClass =
+  "rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700";
+
+// Eine Teilnehmer-Zeile: Anzeige, Inline-Bearbeitung und Deaktivieren/Aktivieren. Erfolge melden
+// sich als Toast, Ablehnungen an der Zeile (spec-372 AK12/AK16).
 export function TeilnehmerRow({ teilnehmer }: { teilnehmer: Teilnehmer }) {
   const [editing, setEditing] = useState(false);
 
-  // Schließt die Inline-Bearbeitung nach erfolgreichem Speichern. setState in der
-  // Action statt in einem useEffect (react-hooks/set-state-in-effect vermeiden).
-  const actionWithClose = useCallback(
-    async (prevState: Parameters<typeof updateTeilnehmerAction>[0], formData: FormData) => {
-      const result = await updateTeilnehmerAction(prevState, formData);
-      if (result.ok) setEditing(false);
-      return result;
-    },
-    [],
-  );
-
-  const [state, formAction, pending] = useActionState(actionWithClose, undefined);
+  // Schließt die Inline-Bearbeitung nach erfolgreichem Speichern – im Action-Wrapper des Hooks,
+  // nicht in einem useEffect (react-hooks/set-state-in-effect vermeiden).
+  const [state, formAction, pending] = useSchliessendeAction(updateTeilnehmerAction, {
+    onErfolg: () => setEditing(false),
+    erfolgsMeldung: "Gespeichert",
+  });
 
   return (
     <li
@@ -43,12 +43,12 @@ export function TeilnehmerRow({ teilnehmer }: { teilnehmer: Teilnehmer }) {
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+              className={sekundaerButtonClass}
             >
               Abbrechen
             </button>
-            {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
           </div>
+          <Notice kind="fehler">{state?.error}</Notice>
         </form>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -61,26 +61,31 @@ export function TeilnehmerRow({ teilnehmer }: { teilnehmer: Teilnehmer }) {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-            >
+            <button type="button" onClick={() => setEditing(true)} className={sekundaerButtonClass}>
               Bearbeiten
             </button>
-            <form action={setTeilnehmerActiveAction}>
-              <input type="hidden" name="id" value={teilnehmer.id} />
-              <input type="hidden" name="active" value={teilnehmer.active ? "false" : "true"} />
-              <button
-                type="submit"
-                className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-              >
-                {teilnehmer.active ? "Deaktivieren" : "Aktivieren"}
-              </button>
-            </form>
+            <AktivUmschalten teilnehmer={teilnehmer} />
           </div>
         </div>
       )}
     </li>
+  );
+}
+
+// Reversibel, deshalb ohne Bestätigung (spec-372 „Nicht inbegriffen").
+function AktivUmschalten({ teilnehmer }: { teilnehmer: Teilnehmer }) {
+  const [state, formAction, pending] = useSchliessendeAction(setTeilnehmerActiveAction, {
+    erfolgsMeldung: teilnehmer.active ? "Teilnehmer deaktiviert" : "Teilnehmer aktiviert",
+  });
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1">
+      <input type="hidden" name="id" value={teilnehmer.id} />
+      <input type="hidden" name="active" value={teilnehmer.active ? "false" : "true"} />
+      <button type="submit" disabled={pending} className={sekundaerButtonClass}>
+        {teilnehmer.active ? "Deaktivieren" : "Aktivieren"}
+      </button>
+      <Notice kind="fehler">{state?.error}</Notice>
+    </form>
   );
 }

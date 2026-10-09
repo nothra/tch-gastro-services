@@ -74,6 +74,9 @@ Dafür sind vier Fragen zu entscheiden (spec-391 Q2/Q3 und die Rest-Frage aus Q1
   Dialog schließen" nötig – der bräuchte einen Effekt auf den Action-Zustand
   (`react-hooks/set-state-in-effect`, Lesson #49) oder einen Callback durch zwei Formulare.
   Fehler (FS3) bleiben damit ebenfalls im offenen Dialog stehen, Eingaben bleiben erhalten.
+  > **Nachtrag (#372, [ADR-058](058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md)
+  > D1/D2):** Die Erfolgsmeldung ist seitdem ein Toast. Weil der Dialog offen bleibt, rendert der
+  > Toaster ihn per Portal **in** den Dialog – außerhalb läge er unter dem inerten Hintergrund.
 - Weil `Dialog` seine Kinder nur bei offenem Zustand mountet (ADR-053 D1), beginnt jedes Öffnen
   mit frischem `useActionState` der Formulare – keine alte Meldung beim Wiederöffnen.
 
@@ -86,6 +89,11 @@ Dafür sind vier Fragen zu entscheiden (spec-391 Q2/Q3 und die Rest-Frage aus Q1
 - **Die Ablehnungsmeldung steht im Bestätigungsdialog** (spec-391 AK12) – wie heute: der
   Nutzer steht nach dem Absenden dort, `ConfirmDialog` zeigt `error` über `Notice` und sperrt
   während `pending` Schließen und Escape. Bei Erfolg leitet die Action wie bisher selbst um.
+  > **Nachtrag (#372, [ADR-058](058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md)
+  > D2/D3):** Die Action leitet nicht mehr selbst um: sie gibt `{ ok: true }` zurück, der Client
+  > meldet „Veranstaltung gelöscht" als Toast und navigiert per `router.replace` zur Übersicht.
+  > Sperrt schon beim Laden etwas das Löschen, zeigt der Papierkorb statt der Bestätigung einen
+  > Dialog mit dem Grund.
 - Den Action-Zustand je Öffnen erneuern (Vertrag aus `ConfirmDialog`-Doku): die heutige
   `abgeschickt`-Logik bleibt oder wird durch einen `key` je Öffnungs-Zyklus ersetzt – beides
   erfüllt den Vertrag; der Reset gehört an `onSubmit` des Formulars bzw. das Öffnen, nicht an

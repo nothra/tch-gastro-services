@@ -48,9 +48,10 @@ export async function oeffneEinstellungen(page: Page) {
 }
 
 // Schließt ihn über „Schließen" – nötig, bevor eine andere Kopfaktion getippt wird: der modale
-// Dialog macht die Seite dahinter inert.
+// Dialog macht die Seite dahinter inert. `exact`, weil ein Toast im offenen Dialog
+// „Meldung schließen" mitbringt (spec-372 FS6).
 export async function schliesseEinstellungen(page: Page) {
-  await einstellungenDialog(page).getByRole("button", { name: "Schließen" }).click();
+  await einstellungenDialog(page).getByRole("button", { name: "Schließen", exact: true }).click();
   await expect(einstellungenDialog(page)).toBeHidden();
 }
 

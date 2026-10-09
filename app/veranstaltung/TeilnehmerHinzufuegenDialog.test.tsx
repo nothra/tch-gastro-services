@@ -2,12 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 vi.mock("./actions", () => ({ addZeilenAction: vi.fn(), createWalkInAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { addZeilenAction, createWalkInAction } from "./actions";
 import { TeilnehmerHinzufuegenDialog } from "./TeilnehmerHinzufuegenDialog";
 
 const addZeilenActionMock = vi.mocked(addZeilenAction);
 const createWalkInActionMock = vi.mocked(createWalkInAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 const VERFUEGBAR = [
   { id: "t-1", name: "Anna Beispiel" },
@@ -110,6 +113,8 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(formData.get("veranstaltungId")).toBe("v-1");
     expect(formData.getAll("teilnehmerId")).toEqual(["t-1", "t-2"]);
     expect(dialogElement()).not.toHaveAttribute("open");
+    // spec-372 AK12.
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer hinzugefügt");
   });
 
   it("should_keepCheckedSelection_when_searchHidesIt", async () => {
@@ -151,6 +156,7 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(auswahlBereich().getByRole("alert")).toHaveTextContent(
       "Bitte mindestens einen Teilnehmer wählen.",
     );
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
   it("should_createGastAndClose_when_nameConfirmed", async () => {
@@ -170,6 +176,7 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     expect(formData.get("typ")).toBe("person");
     expect(formData.get("mitglied")).toBe("on");
     expect(dialogElement()).not.toHaveAttribute("open");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Neuer Gast angelegt");
   });
 
   it("should_limitGastNameToSchemaMaximum_when_rendered", () => {

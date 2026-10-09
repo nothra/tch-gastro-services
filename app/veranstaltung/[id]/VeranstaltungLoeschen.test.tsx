@@ -5,13 +5,19 @@ import type { VeranstaltungFormState } from "../actions";
 // Externe Grenze: Server Action aus derselben Feature-Schicht. `useActionState` bleibt echt –
 // der Zustand je Öffnungs-Zyklus (`key`) ist genau das zu prüfende Verhalten (ADR-056 D4).
 vi.mock("../actions", () => ({ deleteVeranstaltungAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+// Q7: zur Übersicht navigiert der Client, nicht mehr die Action per `redirect`.
+const { replaceMock } = vi.hoisted(() => ({ replaceMock: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: replaceMock }) }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { deleteVeranstaltungAction } from "../actions";
 import { VeranstaltungLoeschen } from "./VeranstaltungLoeschen";
 
 const deleteMock = vi.mocked(deleteVeranstaltungAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
-const props = { id: "v-1", bezeichnung: "Montagsrunde Juli" };
+const props = { id: "v-1", bezeichnung: "Montagsrunde Juli", sperren: [] };
 
 // Offen gehaltene Action für die Pending-Tests. Jeder Test löst sie in `afterEach` innerhalb von
 // `act` auf – sonst hielte ein nie aufgelöstes Promise den Action-Scope für spätere Tests offen
@@ -124,8 +130,9 @@ describe("VeranstaltungLoeschen – Bestätigen (spec-391 AK12)", () => {
   });
 
   it("should_keepDialogOpenShowingRejection_when_serverRejects", async () => {
-    // AK12 / #352 AK5/AK6/AK12: die Ablehnung steht dort, wo der Nutzer gerade steht – im
-    // offenen Bestätigungsdialog (ADR-056 D4).
+    // AK12 / #352 AK5/AK6/AK12, spec-372 AK11: hat sich die Löschbarkeit seit dem Laden der
+    // Seite geändert, lehnt der Server ab – die Ablehnung steht im offenen Dialog, kein Toast,
+    // keine Navigation.
     const fehler = "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
     deleteMock.mockResolvedValue({ error: fehler });
     render(<VeranstaltungLoeschen {...props} />);
@@ -135,6 +142,21 @@ describe("VeranstaltungLoeschen – Bestätigen (spec-391 AK12)", () => {
 
     expect(dialogElement()).toHaveAttribute("open");
     expect(screen.getByRole("alert")).toHaveTextContent(fehler);
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it("should_reportGeloeschtAndNavigateToList_when_deleted", async () => {
+    // spec-372 AK12/AK13 + Q7: Toast „Veranstaltung gelöscht", dann zur Übersicht – der Toaster
+    // im Root-Layout trägt die Meldung über den Seitenwechsel.
+    deleteMock.mockResolvedValue({ ok: true });
+    render(<VeranstaltungLoeschen {...props} />);
+    fireEvent.click(papierkorb());
+
+    await bestaetigen();
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Veranstaltung gelöscht");
+    expect(replaceMock).toHaveBeenCalledWith("/veranstaltung");
   });
 
   it("should_notShowPreviousRejection_when_dialogReopened", async () => {
@@ -151,6 +173,64 @@ describe("VeranstaltungLoeschen – Bestätigen (spec-391 AK12)", () => {
 
     expect(dialogElement()).toHaveAttribute("open");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("VeranstaltungLoeschen – Sperrgrund beim Öffnen (spec-372 AK9/AK10, ADR-058 D3)", () => {
+  it("should_nameReasonWithoutConfirmButton_when_sperrenPresent", () => {
+    // AK9: der Grund steht sofort im Dialog, nicht erst nach dem Absenden; nur „Schließen".
+    render(<VeranstaltungLoeschen {...props} sperren={["kassiert"]} />);
+
+    fireEvent.click(papierkorb());
+
+    const dialog = screen.getByRole("dialog", { name: "Löschen nicht möglich" });
+    expect(dialog).toHaveAccessibleDescription(
+      "Für „Montagsrunde Juli“ ist bereits Geld kassiert.",
+    );
+    expect(screen.queryByRole("button", { name: "Endgültig löschen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Schließen" })).toBeInTheDocument();
+  });
+
+  it("should_nameAllReasons_when_severalSperrenPresent", () => {
+    // Q5: alle Gründe in der Reihenfolge Verzehr → Kassiert → Auslage.
+    render(<VeranstaltungLoeschen {...props} sperren={["verzehr", "kassiert", "auslage"]} />);
+
+    fireEvent.click(papierkorb());
+
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
+      "Für „Montagsrunde Juli“ ist bereits Verzehr erfasst, bereits Geld kassiert und bereits eine Auslage erstattet oder erfasst.",
+    );
+  });
+
+  it("should_closeAndFocusPapierkorbWithoutAction_when_schliessenClicked", () => {
+    render(<VeranstaltungLoeschen {...props} sperren={["auslage"]} />);
+    fireEvent.click(papierkorb());
+
+    fireEvent.click(screen.getByRole("button", { name: "Schließen" }));
+
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(papierkorb()).toHaveFocus();
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it("should_closeAndFocusPapierkorb_when_escapePressedInSperrDialog", () => {
+    render(<VeranstaltungLoeschen {...props} sperren={["verzehr"]} />);
+    fireEvent.click(papierkorb());
+
+    fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
+
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(papierkorb()).toHaveFocus();
+  });
+
+  it("should_offerConfirmation_when_noSperren", () => {
+    // AK10: ohne Sperre die Bestätigung wie bisher.
+    render(<VeranstaltungLoeschen {...props} sperren={[]} />);
+
+    fireEvent.click(papierkorb());
+
+    expect(screen.getByRole("dialog", { name: "Veranstaltung löschen?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Endgültig löschen" })).toBeInTheDocument();
   });
 });
 

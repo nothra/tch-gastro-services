@@ -7,6 +7,7 @@ import { listActiveTeilnehmer } from "@/db/teilnehmer";
 import { listCatalogs } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { listAuslagen } from "@/db/auslage";
+import { loeschSperren } from "../loeschSperren";
 import { Badge } from "@/app/components/ui/Badge";
 import { TeilenIcon, ZahnradIcon } from "@/app/components/ui/icons";
 import { PageHeader } from "@/app/components/ui/PageHeader";
@@ -83,6 +84,9 @@ async function ladeOffeneDaten(id: string) {
     // Wechselziele sind nur aktive Kataloge (#346 AK6) – dieselbe Filterung wie bei der Anlage.
     // Ob der Wechsel im konkreten Fall noch erlaubt ist, entscheidet die Action (#346 FS2).
     aktiveKataloge: kataloge.filter((katalog) => katalog.active),
+    // Hinweis im Lösch-Dialog aus denselben Daten und derselben Regel wie die Action (spec-372
+    // AK9, ADR-058 D3) – keine zusätzliche Abfrage.
+    sperren: loeschSperren({ zeilen, positionen, auslagen }),
   };
 }
 
@@ -94,6 +98,7 @@ function OffeneVeranstaltung({
   aktiveKataloge,
   offeneZeilen,
   offenerBetragCents,
+  sperren,
 }: { veranstaltung: Veranstaltung } & Awaited<ReturnType<typeof ladeOffeneDaten>>) {
   const { id } = veranstaltung;
   // Bearbeiten, Löschen und Abschließen gelten nur für datierte Veranstaltungen (#352 AK3/AK10,
@@ -118,7 +123,9 @@ function OffeneVeranstaltung({
         )}
       </KopfDialog>
       {/* Zerstörerische Aktion bewusst zuletzt (#352 AK4/AK8, spec-391 AK2). */}
-      {bearbeitbar && <VeranstaltungLoeschen id={id} bezeichnung={veranstaltung.bezeichnung} />}
+      {bearbeitbar && (
+        <VeranstaltungLoeschen id={id} bezeichnung={veranstaltung.bezeichnung} sperren={sperren} />
+      )}
     </>
   );
 

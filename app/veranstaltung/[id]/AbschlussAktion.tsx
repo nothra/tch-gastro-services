@@ -26,6 +26,7 @@ interface Richtung {
   title: string;
   confirmLabel: string;
   pendingLabel: string;
+  erfolgsMeldung: string;
   zielStatus: VeranstaltungStatus;
 }
 
@@ -34,6 +35,7 @@ const ABSCHLIESSEN: Richtung = {
   title: "Veranstaltung abschließen?",
   confirmLabel: "Abschließen",
   pendingLabel: "Abschließen …",
+  erfolgsMeldung: "Veranstaltung abgeschlossen",
   zielStatus: "abgeschlossen",
 };
 
@@ -42,6 +44,7 @@ const WIEDER_OEFFNEN: Richtung = {
   title: "Veranstaltung wieder öffnen?",
   confirmLabel: "Wieder öffnen",
   pendingLabel: "Öffnen …",
+  erfolgsMeldung: "Veranstaltung wieder geöffnet",
   zielStatus: "offen",
 };
 
@@ -110,7 +113,10 @@ function StatusBestaetigung({
   onClose,
   returnFocusRef,
 }: StatusBestaetigungProps) {
-  const [state, formAction, pending] = useSchliessendeAction(setStatusAction, onClose);
+  const [state, formAction, pending] = useSchliessendeAction(setStatusAction, {
+    onErfolg: onClose,
+    erfolgsMeldung: richtung.erfolgsMeldung,
+  });
 
   return (
     <ConfirmDialog

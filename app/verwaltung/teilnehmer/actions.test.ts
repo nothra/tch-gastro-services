@@ -170,22 +170,45 @@ describe("updateTeilnehmerAction", () => {
 });
 
 describe("setTeilnehmerActiveAction", () => {
-  it("should_deactivate_when_activeFalse", async () => {
-    await setTeilnehmerActiveAction(form({ id: "abc", active: "false" }));
+  // Seit spec-372 mit Rückgabe-State: der Client meldet den Erfolg als Toast und zeigt eine
+  // Ablehnung an der Zeile, statt stumm zu bleiben (ADR-058 D2).
+  beforeEach(() => setTeilnehmerActiveMock.mockResolvedValue(existing));
+
+  it("should_deactivateAndReturnOk_when_activeFalse", async () => {
+    const result = await setTeilnehmerActiveAction(undefined, form({ id: "abc", active: "false" }));
+
     expect(setTeilnehmerActiveMock).toHaveBeenCalledWith("abc", false);
+    expect(result).toEqual({ ok: true });
   });
 
   it("should_reactivate_when_activeTrue", async () => {
-    await setTeilnehmerActiveAction(form({ id: "abc", active: "true" }));
+    await setTeilnehmerActiveAction(undefined, form({ id: "abc", active: "true" }));
+
     expect(setTeilnehmerActiveMock).toHaveBeenCalledWith("abc", true);
+  });
+
+  it("should_returnError_when_idMissing", async () => {
+    const result = await setTeilnehmerActiveAction(undefined, form({ active: "false" }));
+
+    expect(result).toEqual({ error: "Kein Teilnehmer angegeben." });
+    expect(setTeilnehmerActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnNotFound_when_teilnehmerVanished", async () => {
+    // Guarded UPDATE ohne Treffer (Lesson #55): kein vorgetäuschter Erfolg.
+    setTeilnehmerActiveMock.mockResolvedValue(undefined);
+
+    const result = await setTeilnehmerActiveAction(undefined, form({ id: "abc", active: "false" }));
+
+    expect(result).toEqual({ error: "Teilnehmer nicht gefunden." });
   });
 
   it("should_rejectAndNotPersist_when_userLacksVerwalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["veranstalter"]));
 
-    await expect(setTeilnehmerActiveAction(form({ id: "abc", active: "false" }))).rejects.toThrow(
-      ForbiddenError,
-    );
+    await expect(
+      setTeilnehmerActiveAction(undefined, form({ id: "abc", active: "false" })),
+    ).rejects.toThrow(ForbiddenError);
     expect(setTeilnehmerActiveMock).not.toHaveBeenCalled();
   });
 });

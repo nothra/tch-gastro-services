@@ -1,62 +1,32 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, fireEvent, render, screen, cleanup } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { Catalog } from "@/db/schema";
 import type { CatalogFormState } from "../actions";
 
-// Externe Grenze: Server Actions aus derselben Feature-Schicht.
+// Externe Grenzen: Server Actions aus derselben Feature-Schicht und die Toast-Kapsel (ADR-058 D1).
+// `useActionState` bleibt echt – geprüft wird das Zusammenspiel mit den Dialog-Bausteinen.
 vi.mock("../actions", () => ({
   createCatalogAction: vi.fn(),
   renameCatalogAction: vi.fn(),
   setCatalogActiveAction: vi.fn(),
   duplicateCatalogAction: vi.fn(),
 }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
-// useActionState steuert Fehlerzustand/Pending direkt (etablierter Ansatz, Codify #49,
-// AuslageForm/WalkInForm). Vier Aufrufe pro Render in fester Reihenfolge: create, rename,
-// duplicate, setActive – siehe Aufrufreihenfolge in CatalogControls.tsx.
-vi.mock("react", async () => {
-  const actual = await vi.importActual<typeof import("react")>("react");
-  return { ...actual, useActionState: vi.fn() };
-});
-
-import { useActionState } from "react";
-import { createCatalogAction, renameCatalogAction, duplicateCatalogAction } from "../actions";
+import { meldeErfolg } from "@/app/components/ui/meldung";
+import {
+  createCatalogAction,
+  duplicateCatalogAction,
+  renameCatalogAction,
+  setCatalogActiveAction,
+} from "../actions";
 import { CatalogControls } from "./CatalogControls";
 
-const useActionStateMock = vi.mocked(useActionState);
-const createCatalogActionMock = vi.mocked(createCatalogAction);
-const renameCatalogActionMock = vi.mocked(renameCatalogAction);
-const duplicateCatalogActionMock = vi.mocked(duplicateCatalogAction);
-const noopDispatch = vi.fn();
-
-// Setzt den Rückgabewert für alle vier useActionState-Aufrufe eines Renders (Reihenfolge:
-// create, rename, duplicate, setActive). Ohne explizit gesetzten State bleibt er `undefined`,
-// ohne explizit gesetztes Pending-Flag bleibt es `false` (AuslageForm-Muster, Codify #49).
-function withStates(
-  states: {
-    create?: CatalogFormState;
-    rename?: CatalogFormState;
-    duplicate?: CatalogFormState;
-    setActive?: CatalogFormState;
-  } = {},
-  pending: { create?: boolean; rename?: boolean; duplicate?: boolean; setActive?: boolean } = {},
-) {
-  const stateSequence = [states.create, states.rename, states.duplicate, states.setActive];
-  const pendingSequence = [
-    pending.create ?? false,
-    pending.rename ?? false,
-    pending.duplicate ?? false,
-    pending.setActive ?? false,
-  ];
-  let callIndex = 0;
-  useActionStateMock.mockImplementation(() => {
-    const index = callIndex % stateSequence.length;
-    const state = stateSequence[index];
-    const isPending = pendingSequence[index];
-    callIndex += 1;
-    return [state, noopDispatch, isPending] as never;
-  });
-}
+const createMock = vi.mocked(createCatalogAction);
+const renameMock = vi.mocked(renameCatalogAction);
+const duplicateMock = vi.mocked(duplicateCatalogAction);
+const setActiveMock = vi.mocked(setCatalogActiveAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 const currentCatalog: Catalog = {
   id: "cat-1",
@@ -66,29 +36,63 @@ const currentCatalog: Catalog = {
   createdAt: new Date("2026-09-17T00:00:00.000Z"),
   updatedAt: new Date("2026-09-17T00:00:00.000Z"),
 };
+const inaktiverKatalog: Catalog = { ...currentCatalog, active: false };
+
+// Offen gehaltene Action für die Lauf-Tests. Aufgelöst wird in `afterEach` innerhalb von `act` –
+// auch wenn eine Assertion vorher scheitert; sonst hielte das Promise den Action-Scope für spätere
+// Tests offen (Lesson #370).
+let laufendeActionBeenden: (() => void) | undefined;
+
+function actionBleibtOffen(mock: typeof createMock) {
+  mock.mockImplementation(
+    () =>
+      new Promise<CatalogFormState>((resolve) => {
+        laufendeActionBeenden = () => resolve({ ok: true });
+      }),
+  );
+}
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  withStates();
+  vi.resetAllMocks();
+  laufendeActionBeenden = undefined;
+  for (const mock of [createMock, renameMock, duplicateMock, setActiveMock]) {
+    mock.mockResolvedValue({ ok: true });
+  }
 });
 
-afterEach(() => cleanup());
+afterEach(async () => {
+  await act(async () => laufendeActionBeenden?.());
+});
 
-// Holt den `useCallback`-Wrapper, den CatalogControls an das n-te useActionState übergeben hat
-// (0 = create, 1 = rename, 2 = duplicate) – analog zu AuslageForm.test.tsx. Wird direkt
-// aufgerufen, um das Schließen-bei-Erfolg-Verhalten ohne echte Formular-Submission zu prüfen.
-function nthWrappedAction(index: number) {
-  return useActionStateMock.mock.calls[index][0] as (
-    prev: CatalogFormState | undefined,
-    formData: FormData,
-  ) => Promise<CatalogFormState>;
+function knopf(name: string) {
+  return screen.getByRole("button", { name });
+}
+
+/** Der Dialog trägt seinen Titel als zugänglichen Namen (AK5: Titel verknüpft). */
+function offenerDialog(titel: string) {
+  return screen.getByRole("dialog", { name: titel });
+}
+
+/** Ein geschlossener Dialog rendert keinen Inhalt – der Titel fehlt dann. */
+function istOffen(titel: string) {
+  return screen.queryByRole("heading", { name: titel }) !== null;
+}
+
+async function klickeIm(dialog: HTMLElement, name: string) {
+  await act(async () => {
+    fireEvent.click(within(dialog).getByRole("button", { name }));
+  });
+}
+
+function escape(dialog: HTMLElement) {
+  fireEvent(dialog.closest("dialog")!, new Event("cancel", { cancelable: true }));
 }
 
 describe("CatalogControls – Grundstruktur", () => {
   it("should_showOnlyCreateButton_when_noCurrentCatalog", () => {
     render(<CatalogControls />);
 
-    expect(screen.getByRole("button", { name: "+ Katalog anlegen" })).toBeInTheDocument();
+    expect(knopf("+ Katalog anlegen")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Umbenennen" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Duplizieren" })).not.toBeInTheDocument();
   });
@@ -96,208 +100,361 @@ describe("CatalogControls – Grundstruktur", () => {
   it("should_showManagementButtons_when_currentCatalogGiven", () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
 
-    expect(screen.getByRole("button", { name: "Umbenennen" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Duplizieren" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Deaktivieren" })).toBeInTheDocument();
+    expect(knopf("Umbenennen")).toBeInTheDocument();
+    expect(knopf("Duplizieren")).toBeInTheDocument();
+    expect(knopf("Deaktivieren")).toBeInTheDocument();
   });
 
-  // Review-Finding #345 Runde 2 (Wichtig): AK5 erster Teil – ein deaktivierter Katalog darf
-  // im Duplizieren-Fluss nicht mehr als Quelle auswählbar sein. Der Button verschwand bisher
-  // nicht (unconditional gerendert), erst die serverseitige Ablehnung griff.
-  it("should_hideDuplicateButton_when_currentCatalogIsInactive", () => {
-    render(<CatalogControls currentCatalog={{ ...currentCatalog, active: false }} />);
+  // Review-Finding #345 Runde 2 (Wichtig): ein deaktivierter Katalog ist keine Duplizier-Quelle.
+  it("should_hideDuplicateButtonAndOfferAktivieren_when_currentCatalogIsInactive", () => {
+    render(<CatalogControls currentCatalog={inaktiverKatalog} />);
 
     expect(screen.queryByRole("button", { name: "Duplizieren" })).not.toBeInTheDocument();
-    // Umbenennen/Deaktivieren bleiben erreichbar (AK4: inaktiver Katalog bleibt editierbar) –
-    // nur das Duplizieren-Sourcing ist betroffen (AK5).
-    expect(screen.getByRole("button", { name: "Umbenennen" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reaktivieren" })).toBeInTheDocument();
+    expect(knopf("Umbenennen")).toBeInTheDocument();
+    // spec-372 Q4 + Glossar: „Aktivieren" statt „Reaktivieren".
+    expect(knopf("Aktivieren")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reaktivieren" })).not.toBeInTheDocument();
   });
 });
 
-describe("CatalogControls – Katalog anlegen", () => {
-  it("should_openCreateModal_when_createButtonClicked", () => {
+describe("CatalogControls – Katalog anlegen (spec-372 AK5/AK6)", () => {
+  const TITEL = "Neuen Katalog anlegen";
+
+  function oeffnen() {
+    fireEvent.click(knopf("+ Katalog anlegen"));
+    return offenerDialog(TITEL);
+  }
+
+  it("should_openDialogWithLinkedTitleAndLabel_when_triggerClicked", () => {
     render(<CatalogControls />);
 
-    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
+    const dialog = oeffnen();
 
-    expect(screen.getByRole("heading", { name: "Neuen Katalog anlegen" })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Katalogname")).toHaveAttribute("name", "name");
   });
 
-  it("should_showErrorMessage_when_createStateHasError", () => {
-    withStates({ create: { error: "Ein Katalog mit diesem Namen existiert bereits." } });
+  it("should_sendNameCloseAndReportAngelegt_when_createSucceeds", async () => {
     render(<CatalogControls />);
-
-    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
-
-    expect(screen.getByText("Ein Katalog mit diesem Namen existiert bereits.")).toBeInTheDocument();
-  });
-
-  // Kern des Review-Findings (Wichtig, Runde 1): Das Modal schloss sich bisher unabhängig vom
-  // Ergebnis der Action – ein Namenskonflikt verschwand kommentarlos statt eine Meldung zu zeigen.
-  it("should_keepCreateModalOpen_when_createFails", async () => {
-    createCatalogActionMock.mockResolvedValue({
-      error: "Ein Katalog mit diesem Namen existiert bereits.",
-    });
-    render(<CatalogControls />);
-    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
-
-    await act(async () => {
-      await nthWrappedAction(0)(undefined, new FormData());
+    const dialog = oeffnen();
+    fireEvent.change(within(dialog).getByLabelText("Katalogname"), {
+      target: { value: "Dorfmeisterschaften" },
     });
 
-    expect(screen.getByRole("heading", { name: "Neuen Katalog anlegen" })).toBeInTheDocument();
+    await klickeIm(dialog, "Anlegen");
+
+    expect(createMock.mock.calls[0][1].get("name")).toBe("Dorfmeisterschaften");
+    expect(istOffen(TITEL)).toBe(false);
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog angelegt");
   });
 
-  it("should_closeCreateModal_when_createSucceeds", async () => {
-    createCatalogActionMock.mockResolvedValue({ ok: true });
+  it("should_keepDialogWithAlertAndInput_when_createRejected", async () => {
+    createMock.mockResolvedValue({ error: "Ein Katalog mit diesem Namen existiert bereits." });
     render(<CatalogControls />);
-    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
-
-    await act(async () => {
-      await nthWrappedAction(0)(undefined, new FormData());
+    const dialog = oeffnen();
+    fireEvent.change(within(dialog).getByLabelText("Katalogname"), {
+      target: { value: "Montagsrunde" },
     });
 
-    expect(
-      screen.queryByRole("heading", { name: "Neuen Katalog anlegen" }),
-    ).not.toBeInTheDocument();
+    await klickeIm(dialog, "Anlegen");
+
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Ein Katalog mit diesem Namen existiert bereits.",
+    );
+    expect(within(dialog).getByLabelText("Katalogname")).toHaveValue("Montagsrunde");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
-  it("should_disableButtonWithPendingText_when_createPending", () => {
-    withStates({}, { create: true });
+  it("should_closeAndReturnFocus_when_cancelClicked", async () => {
     render(<CatalogControls />);
-    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
+    const dialog = oeffnen();
 
-    const button = screen.getByRole("button", { name: "Speichern …" });
-    expect(button).toBeDisabled();
+    await klickeIm(dialog, "Abbrechen");
+
+    expect(istOffen(TITEL)).toBe(false);
+    expect(createMock).not.toHaveBeenCalled();
+    expect(knopf("+ Katalog anlegen")).toHaveFocus();
   });
 
-  it("should_closeCreateModal_when_cancelClicked", () => {
+  it("should_close_when_escapePressed", () => {
     render(<CatalogControls />);
-    fireEvent.click(screen.getByRole("button", { name: "+ Katalog anlegen" }));
+    const dialog = oeffnen();
 
-    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    escape(dialog);
 
-    expect(
-      screen.queryByRole("heading", { name: "Neuen Katalog anlegen" }),
-    ).not.toBeInTheDocument();
-    expect(createCatalogActionMock).not.toHaveBeenCalled();
+    expect(istOffen(TITEL)).toBe(false);
+  });
+
+  it("should_lockEscapeAndButtons_when_createRunning", async () => {
+    // AK6
+    actionBleibtOffen(createMock);
+    render(<CatalogControls />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Anlegen");
+    escape(dialog);
+
+    expect(istOffen(TITEL)).toBe(true);
+    expect(within(dialog).getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Anlegen …" })).toBeDisabled();
   });
 });
 
-describe("CatalogControls – Katalog umbenennen", () => {
-  it("should_showErrorMessage_when_renameStateHasError", () => {
-    withStates({ rename: { error: "Katalog nicht gefunden." } });
+describe("CatalogControls – Katalog umbenennen (spec-372 AK5)", () => {
+  const TITEL = "Katalog umbenennen";
+
+  function oeffnen() {
+    fireEvent.click(knopf("Umbenennen"));
+    return offenerDialog(TITEL);
+  }
+
+  it("should_prefillCurrentName_when_opened", () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+    const dialog = oeffnen();
 
-    expect(screen.getByText("Katalog nicht gefunden.")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Neuer Name")).toHaveValue("Montagsrunde");
   });
 
-  it("should_keepRenameModalOpen_when_renameFails", async () => {
-    renameCatalogActionMock.mockResolvedValue({ error: "Katalog nicht gefunden." });
+  it("should_sendIdAndNameAndReportUmbenannt_when_renameSucceeds", async () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+    const dialog = oeffnen();
 
-    await act(async () => {
-      await nthWrappedAction(1)(undefined, new FormData());
-    });
+    await klickeIm(dialog, "Umbenennen");
 
-    expect(screen.getByRole("heading", { name: "Katalog umbenennen" })).toBeInTheDocument();
+    const formData = renameMock.mock.calls[0][1];
+    expect(formData.get("id")).toBe("cat-1");
+    expect(formData.get("name")).toBe("Montagsrunde");
+    expect(istOffen(TITEL)).toBe(false);
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog umbenannt");
   });
 
-  it("should_closeRenameModal_when_renameSucceeds", async () => {
-    renameCatalogActionMock.mockResolvedValue({ ok: true });
+  it("should_keepDialogWithAlert_when_renameRejected", async () => {
+    renameMock.mockResolvedValue({ error: "Katalog nicht gefunden." });
     render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+    const dialog = oeffnen();
 
-    await act(async () => {
-      await nthWrappedAction(1)(undefined, new FormData());
-    });
+    await klickeIm(dialog, "Umbenennen");
 
-    expect(screen.queryByRole("heading", { name: "Katalog umbenennen" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Katalog nicht gefunden.");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
-  it("should_disableButtonWithPendingText_when_renamePending", () => {
-    withStates({}, { rename: true });
+  it("should_returnFocusToTrigger_when_cancelled", async () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+    const dialog = oeffnen();
 
-    const button = screen.getByRole("button", { name: "Speichern …" });
-    expect(button).toBeDisabled();
+    await klickeIm(dialog, "Abbrechen");
+
+    expect(knopf("Umbenennen")).toHaveFocus();
   });
 
-  it("should_closeRenameModal_when_cancelClicked", () => {
+  it("should_showBusyLabel_when_renameRunning", async () => {
+    // Glossar: der Busy-Text folgt dem Verb des Knopfs.
+    actionBleibtOffen(renameMock);
     render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
+    const dialog = oeffnen();
 
-    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    await klickeIm(dialog, "Umbenennen");
 
-    expect(screen.queryByRole("heading", { name: "Katalog umbenennen" })).not.toBeInTheDocument();
-    expect(renameCatalogActionMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("CatalogControls – Katalog duplizieren", () => {
-  it("should_showErrorMessage_when_duplicateStateHasError", () => {
-    withStates({ duplicate: { error: "Der Quell-Katalog ist nicht aktiv." } });
-    render(<CatalogControls currentCatalog={currentCatalog} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
-
-    expect(screen.getByText("Der Quell-Katalog ist nicht aktiv.")).toBeInTheDocument();
-  });
-
-  it("should_keepDuplicateModalOpen_when_duplicateFails", async () => {
-    duplicateCatalogActionMock.mockResolvedValue({ error: "Der Quell-Katalog ist nicht aktiv." });
-    render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
-
-    await act(async () => {
-      await nthWrappedAction(2)(undefined, new FormData());
-    });
-
-    expect(screen.getByRole("heading", { name: "Katalog duplizieren" })).toBeInTheDocument();
-  });
-
-  it("should_closeDuplicateModal_when_duplicateSucceeds", async () => {
-    duplicateCatalogActionMock.mockResolvedValue({ ok: true });
-    render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
-
-    await act(async () => {
-      await nthWrappedAction(2)(undefined, new FormData());
-    });
-
-    expect(screen.queryByRole("heading", { name: "Katalog duplizieren" })).not.toBeInTheDocument();
-  });
-
-  it("should_disableButtonWithPendingText_when_duplicatePending", () => {
-    withStates({}, { duplicate: true });
-    render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
-
-    const button = screen.getByRole("button", { name: "Speichern …" });
-    expect(button).toBeDisabled();
-  });
-
-  it("should_closeDuplicateModal_when_cancelClicked", () => {
-    render(<CatalogControls currentCatalog={currentCatalog} />);
-    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
-
-    expect(screen.queryByRole("heading", { name: "Katalog duplizieren" })).not.toBeInTheDocument();
-    expect(duplicateCatalogActionMock).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole("button", { name: "Umbenennen …" })).toBeDisabled();
   });
 });
 
-describe("CatalogControls – Katalog deaktivieren/reaktivieren", () => {
-  it("should_showErrorMessage_when_setActiveStateHasError", () => {
-    withStates({ setActive: { error: "Katalog nicht gefunden." } });
+describe("CatalogControls – Katalog duplizieren (spec-372 AK5)", () => {
+  const TITEL = "Katalog duplizieren";
+
+  function oeffnen() {
+    fireEvent.click(knopf("Duplizieren"));
+    return offenerDialog(TITEL);
+  }
+
+  it("should_nameSourceCatalogInDescription_when_opened", () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
 
-    expect(screen.getByText("Katalog nicht gefunden.")).toBeInTheDocument();
+    const dialog = oeffnen();
+
+    expect(dialog).toHaveAccessibleDescription(/„Montagsrunde“/);
+    expect(within(dialog).getByLabelText("Name der Kopie")).toHaveAttribute(
+      "placeholder",
+      "Montagsrunde (Kopie)",
+    );
+  });
+
+  it("should_sendSourceIdAndReportDupliziert_when_duplicateSucceeds", async () => {
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+    fireEvent.change(within(dialog).getByLabelText("Name der Kopie"), {
+      target: { value: "Sommerfest" },
+    });
+
+    await klickeIm(dialog, "Duplizieren");
+
+    const formData = duplicateMock.mock.calls[0][1];
+    expect(formData.get("sourceId")).toBe("cat-1");
+    expect(formData.get("name")).toBe("Sommerfest");
+    expect(istOffen(TITEL)).toBe(false);
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog dupliziert");
+  });
+
+  it("should_keepDialogWithAlert_when_duplicateRejected", async () => {
+    duplicateMock.mockResolvedValue({ error: "Der Quell-Katalog ist nicht aktiv." });
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Duplizieren");
+
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Der Quell-Katalog ist nicht aktiv.",
+    );
+  });
+
+  it("should_showBusyLabel_when_duplicateRunning", async () => {
+    actionBleibtOffen(duplicateMock);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Duplizieren");
+
+    expect(within(dialog).getByRole("button", { name: "Duplizieren …" })).toBeDisabled();
+  });
+});
+
+describe("CatalogControls – Katalog deaktivieren mit Bestätigung (spec-372 AK3/AK6/AK7, FS3)", () => {
+  const TITEL = "Katalog deaktivieren?";
+
+  function oeffnen() {
+    fireEvent.click(knopf("Deaktivieren"));
+    return offenerDialog(TITEL);
+  }
+
+  it("should_openDangerConfirmationNamingCatalogAndConsequence_when_deaktivierenClicked", () => {
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+
+    const dialog = oeffnen();
+
+    // Q4: nur die Folge, ohne Zählung.
+    expect(dialog).toHaveAccessibleDescription(
+      "„Montagsrunde“ ist danach für neue Veranstaltungen nicht mehr wählbar.",
+    );
+    expect(within(dialog).getByRole("button", { name: "Deaktivieren" })).toHaveClass("bg-danger");
+    expect(setActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notSubmitByItself_when_triggerRendered", () => {
+    // Analog FS7: der Auslöser ist ein reiner Knopf, kein Absenden.
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+
+    expect(knopf("Deaktivieren")).toHaveAttribute("type", "button");
+  });
+
+  it("should_deactivateAndReportDeaktiviert_when_confirmed", async () => {
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Deaktivieren");
+
+    const formData = setActiveMock.mock.calls[0][1];
+    expect(formData.get("id")).toBe("cat-1");
+    expect(formData.get("active")).toBe("false");
+    expect(istOffen(TITEL)).toBe(false);
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog deaktiviert");
+  });
+
+  it("should_keepDialogWithAlertAndNoToast_when_deactivateRejected", async () => {
+    // FS3
+    setActiveMock.mockResolvedValue({ error: "Katalog nicht gefunden." });
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Deaktivieren");
+
+    expect(istOffen(TITEL)).toBe(true);
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Katalog nicht gefunden.");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notDeactivateAndReturnFocus_when_cancelled", async () => {
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Abbrechen");
+
+    expect(istOffen(TITEL)).toBe(false);
+    expect(setActiveMock).not.toHaveBeenCalled();
+    expect(knopf("Deaktivieren")).toHaveFocus();
+  });
+
+  it("should_notDeactivate_when_escaped", () => {
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    escape(dialog);
+
+    expect(istOffen(TITEL)).toBe(false);
+    expect(setActiveMock).not.toHaveBeenCalled();
+  });
+
+  it("should_notShowOldError_when_reopened", async () => {
+    setActiveMock.mockResolvedValue({ error: "Abgelehnt." });
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+    await klickeIm(dialog, "Deaktivieren");
+    await klickeIm(dialog, "Abbrechen");
+
+    oeffnen();
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("should_keepFocusOnToggle_when_catalogBecomesInactiveAfterConfirm", async () => {
+    // Lesson #371: der Statuswechsel tauscht die Beschriftung. Der Knopf bleibt derselbe Knoten,
+    // der Fokus geht also nicht an `<body>` verloren.
+    const { rerender } = render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+    await klickeIm(dialog, "Deaktivieren");
+
+    rerender(<CatalogControls currentCatalog={inaktiverKatalog} />);
+
+    expect(knopf("Aktivieren")).toHaveFocus();
+  });
+});
+
+describe("CatalogControls – Katalog aktivieren ohne Bestätigung (spec-372 AK4)", () => {
+  it("should_activateImmediatelyAndReportAktiviert_when_aktivierenClicked", async () => {
+    render(<CatalogControls currentCatalog={inaktiverKatalog} />);
+
+    await act(async () => {
+      fireEvent.click(knopf("Aktivieren"));
+    });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const formData = setActiveMock.mock.calls[0][1];
+    expect(formData.get("id")).toBe("cat-1");
+    expect(formData.get("active")).toBe("true");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog aktiviert");
+  });
+
+  it("should_disableToggle_when_activateRunning", async () => {
+    // Kein zweites Absenden, solange die erste Aktivierung läuft.
+    actionBleibtOffen(setActiveMock);
+    render(<CatalogControls currentCatalog={inaktiverKatalog} />);
+
+    await act(async () => {
+      fireEvent.click(knopf("Aktivieren"));
+    });
+
+    expect(knopf("Aktivieren")).toBeDisabled();
+  });
+
+  it("should_showAlertAndNoToast_when_activateRejected", async () => {
+    setActiveMock.mockResolvedValue({ error: "Katalog nicht gefunden." });
+    render(<CatalogControls currentCatalog={inaktiverKatalog} />);
+
+    await act(async () => {
+      fireEvent.click(knopf("Aktivieren"));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Katalog nicht gefunden.");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 });

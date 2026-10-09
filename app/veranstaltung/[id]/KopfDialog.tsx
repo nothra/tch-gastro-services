@@ -10,8 +10,9 @@ import { IconButton } from "@/app/components/ui/IconButton";
 // „Einstellungen". Der Inhalt kommt als `children` – beim Teilen aus der Server Component
 // `ZugangTeilen`, damit `qrcode` aus dem Client-Bundle bleibt (ADR-053 D5, #307).
 //
-// Nach erfolgreichem Speichern bleibt der Dialog bewusst offen: die Formulare zeigen ihre
-// Erfolgsmeldung darin, `revalidatePath` aktualisiert die Seite dahinter (ADR-056 D3).
+// Nach erfolgreichem Speichern bleibt der Dialog bewusst offen, `revalidatePath` aktualisiert die
+// Seite dahinter (ADR-056 D3). Den Erfolg meldet ein Toast, der sich dafür in den offenen Dialog
+// einhängt (`Toaster`, spec-372 FS6).
 export function KopfDialog({
   label,
   icon,

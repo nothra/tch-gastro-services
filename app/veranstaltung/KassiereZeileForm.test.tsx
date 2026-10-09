@@ -8,12 +8,24 @@ vi.mock("react", async () => {
   return { ...actual, useActionState: vi.fn() };
 });
 
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
 import { useActionState } from "react";
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { KassiereZeileForm } from "./KassiereZeileForm";
 
 const useActionStateMock = vi.mocked(useActionState);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 const noopDispatch = vi.fn();
 const noopAction = vi.fn(async () => ({ ok: true }) as VeranstaltungFormState);
+
+// Der an useActionState übergebene Wrapper (Codify #49) – hier direkt ausgeführt.
+function wrappedAction() {
+  return useActionStateMock.mock.calls[0][0] as (
+    prev: VeranstaltungFormState | undefined,
+    fd: FormData,
+  ) => Promise<VeranstaltungFormState>;
+}
 
 function withState(state: VeranstaltungFormState | undefined, isPending = false) {
   useActionStateMock.mockReturnValue([state, noopDispatch, isPending] as never);
@@ -166,33 +178,45 @@ describe("KassiereZeileForm", () => {
     });
   });
 
+  // Seit spec-372 (AK12/AK17, ADR-058 D2) als Toast – der Inhalt aus spec-371 bleibt.
   describe("Rückmeldung (spec-371 AK12/AK13, ADR-055 D2)", () => {
-    it("should_reportAmountAndSpende_when_kassiertWithOverpayment", () => {
-      withState({ ok: true, erhaltenCents: 700 });
-      renderForm({ initialErhalten: "7,00" });
-
-      expect(screen.getByRole("status")).toHaveTextContent("7,00 € erhalten, davon 1,50 € Spende");
-    });
-
-    it("should_reportAmountOnly_when_kassiertWithoutSpende", () => {
-      withState({ ok: true, erhaltenCents: 550 });
-      renderForm({ initialErhalten: "5,50" });
-
-      expect(screen.getByRole("status")).toHaveTextContent(/^✓5,50 € erhalten$/);
-    });
-
-    it("should_reportBetragEntfernt_when_amountCleared", () => {
-      withState({ ok: true, erhaltenCents: null });
+    async function kassiereMit(ergebnis: VeranstaltungFormState) {
+      noopAction.mockResolvedValue(ergebnis);
       renderForm();
+      await wrappedAction()(undefined, new FormData());
+    }
 
-      expect(screen.getByRole("status")).toHaveTextContent("Betrag entfernt");
+    it("should_reportAmountAndSpende_when_kassiertWithOverpayment", async () => {
+      await kassiereMit({ ok: true, erhaltenCents: 700 });
+
+      expect(meldeErfolgMock).toHaveBeenCalledWith("7,00 € erhalten, davon 1,50 € Spende");
     });
 
-    it("should_notSayGespeichert_when_kassiert", () => {
+    it("should_reportAmountOnly_when_kassiertWithoutSpende", async () => {
+      await kassiereMit({ ok: true, erhaltenCents: 550 });
+
+      expect(meldeErfolgMock).toHaveBeenCalledWith("5,50 € erhalten");
+    });
+
+    it("should_reportBetragEntfernt_when_amountCleared", async () => {
+      await kassiereMit({ ok: true, erhaltenCents: null });
+
+      expect(meldeErfolgMock).toHaveBeenCalledWith("Betrag entfernt");
+    });
+
+    it("should_notReport_when_rejected", async () => {
+      await kassiereMit({ error: "Betrag ist zu hoch." });
+
+      expect(meldeErfolgMock).not.toHaveBeenCalled();
+    });
+
+    it("should_notShowInlineSuccessMessage_when_kassiert", () => {
+      // AK17: keine zweite Meldung neben dem Toast.
       withState({ ok: true, erhaltenCents: 550 });
       renderForm({ initialErhalten: "5,50" });
 
-      expect(screen.queryByText(/Gespeichert/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(screen.queryByText(/erhalten$/)).not.toBeInTheDocument();
     });
 
     it("should_showServerErrorAsAlert_when_rejected", () => {

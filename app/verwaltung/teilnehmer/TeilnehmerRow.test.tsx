@@ -1,14 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Teilnehmer } from "@/db/schema";
 import { TeilnehmerRow } from "./TeilnehmerRow";
 
-// Externe Grenzen der Komponente: Server Actions und Next.js Cache.
+// Externe Grenzen der Komponente: Server Actions und die Toast-Kapsel (ADR-058 D1).
 vi.mock("./actions", () => ({
   updateTeilnehmerAction: vi.fn(),
   setTeilnehmerActiveAction: vi.fn(),
 }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
+import { meldeErfolg } from "@/app/components/ui/meldung";
+import { setTeilnehmerActiveAction, updateTeilnehmerAction } from "./actions";
+
+const updateMock = vi.mocked(updateTeilnehmerAction);
+const setActiveMock = vi.mocked(setTeilnehmerActiveAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
+
+async function klicke(name: string) {
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name }));
+  });
+}
 
 const aTeilnehmer: Teilnehmer = {
   id: "t-1",
@@ -20,7 +34,63 @@ const aTeilnehmer: Teilnehmer = {
   updatedAt: new Date(),
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  updateMock.mockResolvedValue({ ok: true });
+  setActiveMock.mockResolvedValue({ ok: true });
+});
+
+describe("TeilnehmerRow (Rückmeldung, spec-372 AK12/AK16)", () => {
+  it("should_reportGespeichertAndClose_when_saveSucceeds", async () => {
+    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+    await klicke("Bearbeiten");
+
+    await klicke("Speichern");
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
+    expect(screen.getByRole("button", { name: "Bearbeiten" })).toBeInTheDocument();
+  });
+
+  it("should_showAlertAndStayInEdit_when_saveRejected", async () => {
+    updateMock.mockResolvedValue({ error: "Anzeigename ist zu lang." });
+    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+    await klicke("Bearbeiten");
+
+    await klicke("Speichern");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Anzeigename ist zu lang.");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+  });
+
+  it("should_sendTargetStateAndReportDeaktiviert_when_deaktivierenSucceeds", async () => {
+    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+
+    await klicke("Deaktivieren");
+
+    const formData = setActiveMock.mock.calls[0][1];
+    expect(formData.get("id")).toBe("t-1");
+    expect(formData.get("active")).toBe("false");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer deaktiviert");
+  });
+
+  it("should_reportAktiviert_when_aktivierenSucceeds", async () => {
+    render(<TeilnehmerRow teilnehmer={{ ...aTeilnehmer, active: false }} />);
+
+    await klicke("Aktivieren");
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer aktiviert");
+  });
+
+  it("should_showAlertAndNoToast_when_toggleRejected", async () => {
+    setActiveMock.mockResolvedValue({ error: "Teilnehmer nicht gefunden." });
+    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+
+    await klicke("Deaktivieren");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Teilnehmer nicht gefunden.");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+  });
+});
 
 describe("TeilnehmerRow (Anzeigemodus)", () => {
   it("should_showNameAndTypLabel_when_rendered", () => {

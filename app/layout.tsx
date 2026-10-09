@@ -4,6 +4,7 @@ import "./globals.css";
 import { STAGE, currentStage } from "@/lib/stage";
 import { StageBanner } from "@/app/components/StageBanner";
 import { AppHeader } from "@/app/components/AppHeader";
+import { Toaster } from "@/app/components/ui/Toaster";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
@@ -50,6 +51,8 @@ export default function RootLayout({
         <StageBanner />
         <AppHeader />
         {children}
+        {/* Im Root-Layout, damit ein Toast den Seitenwechsel überlebt (ADR-058 D1). */}
+        <Toaster />
         <SpeedInsights />
       </body>
     </html>

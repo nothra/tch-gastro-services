@@ -59,8 +59,21 @@ vi.mock("./VeranstaltungMetaForm", () => ({
   ),
 }));
 vi.mock("./VeranstaltungLoeschen", () => ({
-  VeranstaltungLoeschen: ({ id, bezeichnung }: { id: string; bezeichnung: string }) => (
-    <button type="button" data-id={id} data-bezeichnung={bezeichnung}>
+  VeranstaltungLoeschen: ({
+    id,
+    bezeichnung,
+    sperren,
+  }: {
+    id: string;
+    bezeichnung: string;
+    sperren: readonly string[];
+  }) => (
+    <button
+      type="button"
+      data-id={id}
+      data-bezeichnung={bezeichnung}
+      data-sperren={sperren.join(",")}
+    >
       Veranstaltung löschen
     </button>
   ),
@@ -388,6 +401,34 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
     expect(kachel(/Kassieren/)).toHaveTextContent("1 von 2 bezahlt");
     expect(listPositionenMock).toHaveBeenCalledWith("v-1");
     expect(listAuslagenMock).toHaveBeenCalledWith("v-1");
+  });
+
+  it("should_passAllLoeschSperrenInOrder_when_verzehrKassiertAndAuslageErfasst", async () => {
+    // spec-372 AK9 + ADR-058 D3: die Sperren aus den schon geladenen Daten, keine Zusatzabfrage.
+    listZeilenMock.mockResolvedValue([zeile("z-1", "Anna", 500)]);
+    listPositionenMock.mockResolvedValue([
+      { zeileId: "z-1", menge: 1, priceCents: 250, category: "getraenk" },
+    ] as never);
+    listAuslagenMock.mockResolvedValue([
+      { kategorie: "essen", betragCents: 1250, status: "offen" },
+    ] as never);
+
+    await renderSeite();
+
+    expect(screen.getByRole("button", { name: "Veranstaltung löschen" })).toHaveAttribute(
+      "data-sperren",
+      "verzehr,kassiert,auslage",
+    );
+  });
+
+  it("should_passNoLoeschSperren_when_nothingErfasst", async () => {
+    // AK10: ohne Sperre bietet der Dialog die Bestätigung an.
+    await renderSeite();
+
+    expect(screen.getByRole("button", { name: "Veranstaltung löschen" })).toHaveAttribute(
+      "data-sperren",
+      "",
+    );
   });
 
   it("should_showZeroValues_when_nothingErfasst", async () => {

@@ -81,11 +81,11 @@ function StammteilnehmerBereich({
   onErfolg,
   onLaeuftChange,
 }: BereichProps & { verfuegbar: readonly StammteilnehmerAuswahl[] }) {
-  const [state, formAction, pending, meldeStart] = useSchliessendeAction(
-    addZeilenAction,
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(addZeilenAction, {
     onErfolg,
     onLaeuftChange,
-  );
+    erfolgsMeldung: "Teilnehmer hinzugefügt",
+  });
   const [suche, setSuche] = useState("");
   const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
 
@@ -167,11 +167,11 @@ function StammteilnehmerBereich({
 // umstellen und hier wiederverwenden – steht in `kleinfunde.md`. Bis dahin hält die gemeinsame
 // Konstante wenigstens die Längengrenze an der Zod-Grenze fest.
 function GastBereich({ veranstaltungId, onErfolg, onLaeuftChange }: BereichProps) {
-  const [state, formAction, pending, meldeStart] = useSchliessendeAction(
-    createWalkInAction,
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(createWalkInAction, {
     onErfolg,
     onLaeuftChange,
-  );
+    erfolgsMeldung: "Neuer Gast angelegt",
+  });
 
   return (
     <section

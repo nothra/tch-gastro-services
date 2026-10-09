@@ -3,11 +3,14 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { VeranstaltungFormState } from "../actions";
 
 vi.mock("../actions", () => ({ setStatusAction: vi.fn() }));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import { setStatusAction } from "../actions";
 import { AbschlussAktion } from "./AbschlussAktion";
 
 const setStatusActionMock = vi.mocked(setStatusAction);
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function dialog() {
   return document.querySelector("dialog")!;
@@ -101,6 +104,8 @@ describe("AbschlussAktion – Abschließen (spec-371 AK18–AK21, ADR-055 D3)", 
     expect(formData.get("id")).toBe("v-1");
     expect(formData.get("status")).toBe("abgeschlossen");
     expect(dialog()).not.toHaveAttribute("open");
+    // spec-372 AK12: Rückmeldung als Toast.
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Veranstaltung abgeschlossen");
   });
 
   it("should_nameCountAndAmount_when_zeilenStillOffen", () => {
@@ -225,6 +230,7 @@ describe("AbschlussAktion – Wieder öffnen (spec-371 AK22)", () => {
     expect(formData.get("id")).toBe("v-1");
     expect(formData.get("status")).toBe("offen");
     expect(dialog()).not.toHaveAttribute("open");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Veranstaltung wieder geöffnet");
   });
 
   it("should_showAlreadyOpenMessage_when_serverReportsDoubleCall", async () => {

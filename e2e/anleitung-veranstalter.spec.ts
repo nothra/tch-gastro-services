@@ -7,6 +7,7 @@ import {
   oeffneTeilnehmerDialog,
   teilnehmerDialog,
 } from "./helpers/detailseite";
+import { toast } from "./helpers/toast";
 import {
   fuelleVeranstaltung,
   neuerListenLink,
@@ -189,7 +190,7 @@ async function shotZugang(page: Page) {
       feld.scrollLeft = 0;
     });
   await shotEl(page, "07-zugang-teilen.png", dialog);
-  await dialog.getByRole("button", { name: "Schließen" }).click();
+  await dialog.getByRole("button", { name: "Schließen", exact: true }).click();
   await expect(dialog).toBeHidden();
 }
 
@@ -322,7 +323,7 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     await page.getByLabel("Betrag (EUR)").fill("15,00");
     await page.getByLabel("Notiz (optional)").fill("Getränkekiste vorgestreckt");
     await page.getByRole("button", { name: "Auslage erfassen" }).click();
-    await expect(page.getByText("Auslage erfasst.")).toBeVisible();
+    await expect(toast(page, "Auslage erfasst")).toBeVisible();
     await shot(page, "09-auslagen.png", page.getByRole("heading", { name: /^Auslagen · / }));
     // Als erstattet markieren (zweiter Teil des Erstattungs-Vorgangs) – erst dann fließt die Auslage
     // in die Gesamtabrechnung (Kassenveränderung = Σ Erhalten − Σ Erstattungen).

@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useEffect, useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+
+import { meldeErfolg } from "@/app/components/ui/meldung";
 import {
   AnlegeDialog,
   DialogAktionen,
+  FormularDialog,
   useDialogFormular,
   type DialogSteuerung,
 } from "./FormularDialog";
@@ -11,9 +16,12 @@ import {
 type State = { ok?: boolean; error?: string };
 
 const action = vi.fn<(prev: State | undefined, formData: FormData) => Promise<State>>();
+const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function Formular({ steuerung }: { steuerung: DialogSteuerung }) {
-  const { state, pending, absenden } = useDialogFormular(action, steuerung);
+  const { state, pending, absenden } = useDialogFormular(action, steuerung, {
+    erfolgsMeldung: "Etwas angelegt",
+  });
   return (
     <form onSubmit={absenden}>
       <label>
@@ -87,6 +95,28 @@ describe("AnlegeDialog + useDialogFormular (spec-373 AK1.1–AK1.5)", () => {
 
     expect(action).toHaveBeenCalledTimes(1);
     expect(dialogElement()).not.toHaveAttribute("open");
+  });
+
+  it("should_reportErfolgsMeldung_when_actionSucceeds", async () => {
+    // spec-372 AK12: der Dialog schließt, die Rückmeldung kommt als Toast.
+    action.mockResolvedValue({ ok: true });
+    renderDialog();
+    oeffnen();
+
+    await absenden();
+
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Etwas angelegt");
+  });
+
+  it("should_notReport_when_actionRejects", async () => {
+    // AK16: die Ablehnung bleibt im Dialog, kein Toast.
+    action.mockResolvedValue({ error: "Name fehlt." });
+    renderDialog();
+    oeffnen();
+
+    await absenden();
+
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
   it("should_sendFormFields_when_submitted", async () => {
@@ -176,6 +206,37 @@ describe("AnlegeDialog + useDialogFormular (spec-373 AK1.1–AK1.5)", () => {
       await act(async () => aufloesen({ error: "Abgelehnt." }));
       expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
     });
+  });
+});
+
+describe("FormularDialog (spec-372 AK5)", () => {
+  function renderFormularDialog() {
+    render(
+      <FormularDialog
+        ausloeser="Duplizieren"
+        ausloeserVariant="secondary"
+        titel="Katalog duplizieren"
+        beschreibung="„Montagsrunde“ wird kopiert."
+      >
+        {(steuerung) => <Formular steuerung={steuerung} />}
+      </FormularDialog>,
+    );
+  }
+
+  it("should_renderTriggerInGivenVariant_when_rendered", () => {
+    renderFormularDialog();
+
+    expect(screen.getByRole("button", { name: "Duplizieren" })).toHaveClass("border-line");
+  });
+
+  it("should_linkBeschreibungToDialog_when_opened", () => {
+    renderFormularDialog();
+
+    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
+
+    expect(screen.getByRole("dialog", { name: "Katalog duplizieren" })).toHaveAccessibleDescription(
+      "„Montagsrunde“ wird kopiert.",
+    );
   });
 });
 

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
@@ -43,6 +42,8 @@ import {
 } from "@/db/auslage";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
 import { kassierTagessummen, kassierZeilen } from "./kassierSummen";
+import { hatVerzehr, loeschSperreMeldung, loeschSperren } from "./loeschSperren";
+import { VERANSTALTUNG_LISTE_PATH } from "./pfade";
 import {
   auslageSchema,
   auslageStatusSchema,
@@ -54,8 +55,7 @@ import {
   zeilenAnlageSchema,
 } from "./schema";
 
-const LIST_PATH = "/veranstaltung";
-const detailPath = (id: string) => `${LIST_PATH}/${id}`;
+const detailPath = (id: string) => `${VERANSTALTUNG_LISTE_PATH}/${id}`;
 const verzehrPath = (id: string) => `${detailPath(id)}/verzehr`;
 const auslagenPath = (id: string) => `${detailPath(id)}/auslagen`;
 const kassierenPath = (id: string) => `${detailPath(id)}/kassieren`;
@@ -75,15 +75,6 @@ const VERZEHR_BEREITS_ERFASST =
   "Katalogwechsel nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
 const KEINE_VERANSTALTUNG = "Keine Veranstaltung angegeben.";
 const THEKE_NICHT_AENDERBAR = "Die stehende Theke kann nicht bearbeitet oder gelöscht werden.";
-// Eigene Meldungen fürs Löschen (#352 AK5/AK6): die Sperre ist dieselbe Bedingung wie beim
-// Katalogwechsel, der Vorgang aber ein anderer – `VERZEHR_BEREITS_ERFASST` spräche hier vom
-// Wechsel und wäre für den Thekenwart schlicht falsch.
-const LOESCHEN_VERZEHR_ERFASST =
-  "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.";
-const LOESCHEN_AUSLAGE_ERFASST =
-  "Löschen nicht möglich: für diese Veranstaltung ist bereits eine Auslage erstattet oder erfasst.";
-const LOESCHEN_KASSIERT_ERFASST =
-  "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.";
 
 export type VeranstaltungFormState = {
   ok?: boolean;
@@ -131,15 +122,10 @@ async function assertKatalogWaehlbar(catalogId: string): Promise<string | undefi
   return undefined;
 }
 
-// Ist für diese Veranstaltung tatsächlich Verzehr erfasst? Gefiltert wird auf `menge > 0` statt
-// auf bloße Zeilen-Existenz: `verzehr_position` löscht seine Zeile bei `menge = 0` nicht (Upsert
-// mit `GREATEST(0, …)`, db/verzehr.ts), eine hoch- und wieder runtergezählte Position ist also
-// kein tatsächlicher Verzehr (#346 AK4, #352 FS1). Geteilt von Katalogwechsel und Löschen –
-// zwei Kopien derselben Bedingung würden lautlos divergieren; die Meldung bleibt beim Aufrufer,
-// weil sie den jeweiligen Vorgang benennt.
+// Die Regel „Verzehr = `menge > 0`" steht in `hatVerzehr` (./loeschSperren.ts) – Katalogwechsel
+// und Löschen teilen sie, zwei Kopien würden lautlos divergieren.
 async function hatErfasstenVerzehr(veranstaltungId: string): Promise<boolean> {
-  const positionen = await listPositionen(veranstaltungId);
-  return positionen.some((position) => position.menge > 0);
+  return hatVerzehr(await listPositionen(veranstaltungId));
 }
 
 // Gemeinsame Guard-Sequenz für Bearbeiten und Löschen (#352): Existenz (FS4) → Typ (AK10, die
@@ -169,7 +155,7 @@ export async function createVeranstaltungAction(
   if (katalogError) return { error: katalogError };
 
   await createVeranstaltung(parsed.data);
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -259,17 +245,17 @@ export async function updateVeranstaltungMetaAction(
   revalidatePath(auslagenPath(id));
   revalidatePath(kassierenPath(id));
   revalidatePath(thekePath(updated.token));
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
 // Entfernt eine noch offene, datierte Veranstaltung endgültig (#352 AK4, Hard-Delete). Fail-closed
 // in dieser Reihenfolge: Veranstalter-Rolle (AK11) → Veranstaltung existiert, ist datiert und offen
-// (AK3/AK10/FS4) → kein Verzehr erfasst (AK5) → nichts kassiert (AK12) → keine Auslage erfasst
+// (AK3/AK10/FS4) → kein Verzehr erfasst (AK5), nichts kassiert (AK12), keine Auslage erfasst
 // (AK6) → guarded DELETE. Teilnehmer-Zeilen ohne Fachdaten sperren NICHT (AK7) – sie verschwinden
-// per Cascade. Alle drei Fachsperren laufen zum Zeitpunkt der Action, nicht
-// beim Rendern des Bestätigungsdialogs, und greifen damit auch im Race (FS3). Bei Erfolg
-// `redirect` statt `revalidatePath(detailPath)`: die Detailseite existiert danach nicht mehr (AK9).
+// per Cascade. Alle drei Fachsperren laufen zum Zeitpunkt der Action – der Hinweis im Dialog
+// (spec-372 AK9) kennt nur den Stand beim Laden der Seite –, und greifen damit auch im Race (FS3).
+// Bei Erfolg kein `revalidatePath(detailPath)`: die Detailseite existiert danach nicht mehr (AK9).
 //
 // Restrisiko (bewusst akzeptiert, Review-Runde 3, Wichtig-Finding 3; Genauigkeit der Begründung
 // korrigiert in Security-Review): Die drei Sperren oben sind Vor-Checks, nicht Teil der
@@ -280,8 +266,9 @@ export async function updateVeranstaltungMetaAction(
 // AUSGENOMMEN: sie verlangt selbst `requireRole("veranstalter")` und ist nicht über den
 // öffentlichen Theke-Link erreichbar, kann die Kassiert-Sperre also nicht im Race unterlaufen.
 // Das Fenster ist trotzdem hingenommen und nicht per `NOT EXISTS` im DELETE geschlossen: die
-// vier Abfragen liefen unter `neon-http` bereits als vier serielle Roundtrips, ein fünfter, in
-// das DELETE verschachtelter Existenz-Check würde die Unumkehrbarkeit nicht aufheben, nur das
+// Vor-Checks laufen unter `neon-http` als eigene Roundtrips (Existenz, danach die drei
+// Sperr-Quellen parallel), ein in das DELETE verschachtelter Existenz-Check würde die
+// Unumkehrbarkeit nicht aufheben, nur das
 // bereits enge Fenster (grobe Schätzung, nicht gemessen: deutlich unter 1 s zwischen
 // Löschbestätigung und Ausführung) weiter verkleinern. Ein Treffer setzt außerdem voraus, den
 // exakten Lösch-Moment zu kennen – das hat ein externer Angreifer nicht, der Rate-Limiter aus
@@ -299,27 +286,21 @@ export async function deleteVeranstaltungAction(
   const guardError = await assertVeranstaltungAenderbar(id);
   if (guardError) return { error: guardError };
 
-  if (await hatErfasstenVerzehr(id)) return { error: LOESCHEN_VERZEHR_ERFASST };
-
-  // Bar kassiertes Geld sperrt ebenfalls (AK12) – und zwar unabhängig vom Verzehr: `kassiereZeile`
-  // verlangt keinen Verzehr, eine reine Spende ist ein erstklassiger Fall (`kassierSummen.ts`).
-  // Ohne diese Sperre verschwände ein `Σ Erhalten`-Datensatz – die eine Hälfte der
-  // Kassenveränderung (PROJECT-CONTEXT) – unwiederbringlich im Cascade. `erhaltenCents === null`
-  // heißt „noch nicht kassiert"; `setErhalten(null)` nimmt ein Kassieren vollständig zurück und
-  // gibt das Löschen wieder frei (FS6, analog zur Auslagen-Rücknahme unten).
-  const zeilen = await listZeilen(id);
-  if (zeilen.some((zeile) => zeile.erhaltenCents !== null)) {
-    return { error: LOESCHEN_KASSIERT_ERFASST };
-  }
-
-  // Anders als beim Verzehr zählt hier die reine Zeilen-Existenz: `removeAuslage` ist ein echtes
-  // DELETE (ADR-028 D2), eine zurückgenommene Auslage hinterlässt also keine Zeile (FS2). Der
-  // Status (offen/erstattet) spielt keine Rolle – beide sperren (AK6).
-  const auslagen = await listAuslagen(id);
-  if (auslagen.length > 0) return { error: LOESCHEN_AUSLAGE_ERFASST };
+  // Verzehr, bar kassiertes Geld (auch eine reine Spende, `kassierSummen.ts`) und jede Auslage
+  // sperren – sonst verschwänden Fachdaten, darunter die Kassenveränderung, unwiederbringlich im
+  // Cascade (AK5/AK6/AK12). Die Regeln stehen in `loeschSperren`, die die Detailseite für den
+  // Hinweis beim Öffnen des Dialogs mitbenutzt (spec-372 AK9, ADR-058 D3); hier entscheidet der
+  // Stand zum Zeitpunkt der Action (AK11).
+  const [zeilen, positionen, auslagen] = await Promise.all([
+    listZeilen(id),
+    listPositionen(id),
+    listAuslagen(id),
+  ]);
+  const [ersteSperre] = loeschSperren({ zeilen, positionen, auslagen });
+  if (ersteSperre) return { error: loeschSperreMeldung(ersteSperre) };
 
   // `undefined` = der guarded DELETE traf keine Zeile (nebenläufiger Abschluss oder
-  // Zweit-Löschung, FS3/FS4) – kein Weiterleiten nach einem Löschvorgang, der nie stattfand.
+  // Zweit-Löschung, FS3/FS4) – kein Erfolg für einen Löschvorgang, der nie stattfand.
   const removed = await deleteVeranstaltung(id);
   if (!removed) return { error: NOT_OFFEN };
 
@@ -327,10 +308,10 @@ export async function deleteVeranstaltungAction(
   // Teilnehmer-Route die gelöschte Veranstaltung weiter aus, und ein Strich darauf läuft in
   // „Veranstaltung nicht gefunden." statt in die 404-Seite. Der Token kommt aus der
   // `.returning()`-Zeile des guarded DELETE, also aus dem tatsächlich entfernten Datensatz.
-  // Beide Revalidierungen müssen VOR dem `redirect` stehen – der wirft NEXT_REDIRECT.
+  // Zur Übersicht navigiert der Client (spec-372 Q7): erst dort kann er den Toast zeigen.
   revalidatePath(thekePath(removed.token));
-  revalidatePath(LIST_PATH);
-  redirect(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
+  return { ok: true };
 }
 
 // Prüft die gewählten Stammteilnehmer VOR dem Insert (#369 FS2): alle existieren, sind aktiv
@@ -512,7 +493,7 @@ export async function setStatusAction(
 
   revalidatePath(detailPath(id));
   revalidatePath(kassierenPath(id));
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -649,7 +630,7 @@ export async function ensureThekeAction(
     // Race mit einem parallelen Einrichten: die Theke existiert nun – ebenfalls Erfolg.
     if (!isUniqueViolation(error)) throw error;
   }
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -741,34 +722,55 @@ export async function updateAuslageAction(
   return { ok: true };
 }
 
-// Bestätigt oder nimmt eine Erstattung zurück (ADR-028 D3 – ein Weg, beide Richtungen).
-export async function setAuslageStatusAction(formData: FormData): Promise<void> {
-  await requireRole("veranstalter");
+// Liest die beiden Ids einer Auslagen-Mutation und prüft, dass die Veranstaltung noch offen ist.
+// Gibt die Ids zurück bzw. die Meldung, mit der die Action abbricht.
+async function offeneAuslageAus(
+  formData: FormData,
+): Promise<{ veranstaltungId: string; id: string } | { error: string }> {
   const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
   const id = String(formData.get("id") ?? "");
-  if (!veranstaltungId || !id) return;
-
-  const parsed = auslageStatusSchema.safeParse({ status: formData.get("status") });
-  if (!parsed.success) return;
+  if (!veranstaltungId || !id) return { error: AUSLAGE_NOT_FOUND };
 
   const ziel = await getVeranstaltung(veranstaltungId);
-  if (!ziel || ziel.status !== "offen") return;
+  if (!ziel) return { error: NOT_FOUND };
+  if (ziel.status !== "offen") return { error: NOT_OFFEN };
+  return { veranstaltungId, id };
+}
 
-  await setAuslageStatus(id, veranstaltungId, parsed.data.status);
-  revalidatePath(auslagenPath(veranstaltungId));
+// Bestätigt oder nimmt eine Erstattung zurück (ADR-028 D3 – ein Weg, beide Richtungen). Meldet
+// einen Zustand statt `void`, damit eine Ablehnung sichtbar wird (spec-372 FS1/FS2, ADR-058 D2).
+export async function setAuslageStatusAction(
+  _prevState: AuslageFormState | undefined,
+  formData: FormData,
+): Promise<AuslageFormState> {
+  await requireRole("veranstalter");
+  const parsed = auslageStatusSchema.safeParse({ status: formData.get("status") });
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const auslage = await offeneAuslageAus(formData);
+  if ("error" in auslage) return auslage;
+
+  const updated = await setAuslageStatus(auslage.id, auslage.veranstaltungId, parsed.data.status);
+  if (!updated) return { error: AUSLAGE_NOT_FOUND };
+
+  revalidatePath(auslagenPath(auslage.veranstaltungId));
+  return { ok: true };
 }
 
 // Hard-Delete (ADR-028 D2, Leaf-Entität ohne Referenzen/Audit-Bedarf) – nur solange die
-// Veranstaltung offen ist.
-export async function removeAuslageAction(formData: FormData): Promise<void> {
+// Veranstaltung offen ist. Ist die Auslage schon weg (anderes Gerät), meldet die Action das,
+// statt einen Erfolg vorzutäuschen (spec-372 FS1).
+export async function removeAuslageAction(
+  _prevState: AuslageFormState | undefined,
+  formData: FormData,
+): Promise<AuslageFormState> {
   await requireRole("veranstalter");
-  const veranstaltungId = String(formData.get("veranstaltungId") ?? "");
-  const id = String(formData.get("id") ?? "");
-  if (!veranstaltungId || !id) return;
+  const auslage = await offeneAuslageAus(formData);
+  if ("error" in auslage) return auslage;
 
-  const ziel = await getVeranstaltung(veranstaltungId);
-  if (!ziel || ziel.status !== "offen") return;
+  const removed = await removeAuslage(auslage.id, auslage.veranstaltungId);
+  if (!removed) return { error: AUSLAGE_NOT_FOUND };
 
-  await removeAuslage(id, veranstaltungId);
-  revalidatePath(auslagenPath(veranstaltungId));
+  revalidatePath(auslagenPath(auslage.veranstaltungId));
+  return { ok: true };
 }

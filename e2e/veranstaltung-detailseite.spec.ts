@@ -350,7 +350,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
       /\/theke\//,
     );
     await expect(zugang.getByRole("img", { name: /QR-Code/ })).toBeVisible();
-    await zugang.getByRole("button", { name: "Schließen" }).click();
+    await zugang.getByRole("button", { name: "Schließen", exact: true }).click();
     await expect(zugang).toBeHidden();
     await expect(teilen).toBeFocused();
 

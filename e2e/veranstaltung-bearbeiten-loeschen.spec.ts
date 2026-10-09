@@ -1,11 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import {
   gastHinzufuegen,
+  kopfAktion,
   oeffneEinstellungen,
   oeffneLoeschDialog,
   schliesseEinstellungen,
 } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
+import { toast } from "./helpers/toast";
 
 // Oberflächen-Nachweis für das Bearbeiten und Löschen einer Veranstaltung (#352, spec-352).
 // Prüft gegen einen echten Server, was jsdom nicht belegen kann: dass die geänderten Metadaten
@@ -52,6 +54,29 @@ function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
   return legeVeranstaltungAn(page, bezeichnung, "2026-09-14");
 }
 
+// Zeichnet ab jetzt auf, ob irgendwann die 404-Seite gerendert wird (Next-Standard: `<h1>404</h1>`).
+// Der Seitenwechsel nach dem Löschen ist eine Client-Navigation – `window` überlebt ihn, und der
+// Beobachter sieht auch ein Bild, das nur für einen Frame steht (Review-372 W4).
+async function beobachte404(page: Page) {
+  await page.evaluate(() => {
+    const fenster = window as unknown as { sah404?: boolean };
+    fenster.sah404 = false;
+    const pruefe = () => {
+      const ueberschriften = Array.from(document.querySelectorAll("h1"));
+      if (ueberschriften.some((h1) => h1.textContent?.trim() === "404")) fenster.sah404 = true;
+    };
+    new MutationObserver(pruefe).observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+  });
+}
+
+function sah404(page: Page): Promise<boolean | undefined> {
+  return page.evaluate(() => (window as unknown as { sah404?: boolean }).sah404);
+}
+
 // Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil der
 // Dialog „Einstellungen" (#391) zwei Formulare trägt (Katalogwechsel, Bearbeiten).
 function metaForm(page: Page) {
@@ -72,8 +97,8 @@ async function kassiere(page: Page, detailPfad: string, name: string, betrag: st
   const zeile = kassierZeile(page, name);
   await zeile.getByLabel("Erhalten (EUR)").fill(betrag);
   await zeile.getByRole("button", { name: "Kassieren" }).click();
-  // Rückmeldung mit Betrag (#371): „… erhalten" bzw. „Betrag entfernt" beim Zurücknehmen.
-  await expect(zeile.getByText(betrag === "" ? "Betrag entfernt" : /€ erhalten/)).toBeVisible();
+  // Rückmeldung mit Betrag (#371), seit #372 als Toast: „… erhalten" bzw. „Betrag entfernt".
+  await expect(toast(page, betrag === "" ? "Betrag entfernt" : /€ erhalten/)).toBeVisible();
 }
 
 test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
@@ -102,7 +127,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await metaForm(page).getByLabel("Datum").fill("2026-09-21");
     await metaForm(page).getByLabel("Kasse").selectOption({ label: "Vereinskasse" });
     await metaForm(page).getByRole("button", { name: "Änderungen speichern" }).click();
-    await expect(page.getByText("Änderungen gespeichert.")).toBeVisible();
+    await expect(toast(page, "Gespeichert")).toBeVisible();
 
     // Die Seite selbst zeigt den neuen Stand – nicht nur das Formular (revalidatePath wirkt). Der
     // Dialog bleibt dabei offen (ADR-056 D3, spec-391 AK7); der Kopf dahinter ist aktualisiert.
@@ -159,8 +184,18 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
 
     // ── AK4/AK9: erst die Bestätigung löscht – und leitet zur Übersicht weiter ──────────────
     await oeffneLoeschDialog(page);
+    await beobachte404(page);
     await page.getByRole("button", { name: "Endgültig löschen" }).click();
     await expect(page).toHaveURL(/\/veranstaltung$/);
+    // spec-372 AK13: der Toast überlebt den Seitenwechsel und steht auf der Übersicht.
+    await expect(toast(page, "Veranstaltung gelöscht")).toBeVisible();
+    // ADR-058 D2: auch kein kurzes 404-Bild der gelöschten Detailseite vor der Navigation.
+    expect(await sah404(page)).toBe(false);
+    // Positivkontrolle: der Beobachter erkennt ein 404 überhaupt.
+    await page.evaluate(() =>
+      document.body.append(Object.assign(document.createElement("h1"), { textContent: "404" })),
+    );
+    await expect.poll(() => sah404(page)).toBe(true);
 
     // ── AK4: die Veranstaltung ist aus der Übersicht verschwunden ───────────────────────────
     await expect(page.locator(`a[href="${detailPfad}"]`)).toHaveCount(0);
@@ -189,16 +224,14 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     // ── Reine Spende: Geld kassiert, kein einziger Strich erfasst ───────────────────────────
     await kassiere(page, detailPfad, gast, "10,00");
 
-    // ── AK12: der Lösch-Versuch wird serverseitig abgelehnt, der Grund steht im Dialog ───────
+    // ── AK12 + spec-372 AK9: der Grund steht schon beim Öffnen im Dialog, ohne Bestätigung ───
     await page.goto(detailPfad);
-    await oeffneLoeschDialog(page);
-    await page.getByRole("button", { name: "Endgültig löschen" }).click();
-    // spec-391 AK12: die Ablehnung steht im Bestätigungsdialog (ADR-056 D4).
-    await expect(
-      page
-        .getByRole("dialog", { name: "Veranstaltung löschen?" })
-        .getByText("Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert."),
-    ).toBeVisible();
+    await kopfAktion(page, "Veranstaltung löschen").click();
+    const sperrDialog = page.getByRole("dialog", { name: "Löschen nicht möglich" });
+    await expect(sperrDialog).toContainText(`Für „${bezeichnung}“ ist bereits Geld kassiert.`);
+    await expect(sperrDialog.getByRole("button", { name: "Endgültig löschen" })).toHaveCount(0);
+    await sperrDialog.getByRole("button", { name: "Schließen", exact: true }).click();
+    await expect(sperrDialog).toBeHidden();
 
     // Gegenbeweis nach echtem Neuladen: die Veranstaltung existiert noch (keine 404-Route).
     const nochDa = await page.goto(detailPfad);

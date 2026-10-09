@@ -56,10 +56,6 @@ vi.mock("@/db/auslage", () => ({
   listAuslagen: vi.fn(),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-// Der echte `redirect` wirft eine NEXT_REDIRECT-Kontrollfluss-Exception; der Mock tut das nicht.
-// Für die Tests reicht das: geprüft wird, OB und WOHIN umgeleitet wird – und beim Ablehnungspfad,
-// dass es gar nicht passiert.
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 // Der Limiter ist modul-lokaler Singleton-State (ADR-044 D1) – gemockt, damit jeder Test
 // seinen Zustand selbst setzt und keine Testreihenfolge-Abhängigkeit entsteht. Die echte
 // Fenster-Arithmetik inkl. der produktiven Parameter ist in `lib/rate-limit.test.ts` getestet.
@@ -68,7 +64,6 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { auth } from "@/auth";
 import { createTeilnehmer, getTeilnehmer, getTeilnehmerByIds } from "@/db/teilnehmer";
@@ -143,7 +138,6 @@ const setVeranstaltungCatalogMock = vi.mocked(setVeranstaltungCatalog);
 const updateVeranstaltungMetaMock = vi.mocked(updateVeranstaltungMeta);
 const deleteVeranstaltungMock = vi.mocked(deleteVeranstaltung);
 const listAuslagenMock = vi.mocked(listAuslagen);
-const redirectMock = vi.mocked(redirect);
 const adjustMengeMock = vi.mocked(adjustMenge);
 const tryAcquireMock = vi.mocked(selfServiceVerzehrRateLimiter.tryAcquire);
 const getPositionMock = vi.mocked(getPosition);
@@ -648,7 +642,6 @@ describe("updateVeranstaltungMetaAction", () => {
     const result = await updateVeranstaltungMetaAction(undefined, form(meta));
 
     expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
-    expect(redirectMock).not.toHaveBeenCalled();
   });
 });
 
@@ -669,18 +662,19 @@ describe("deleteVeranstaltungAction", () => {
     };
   }
 
-  it("should_deleteAndRedirectToList_when_noVerzehrAndNoAuslage", async () => {
-    // #352 AK4 + AK9: Hard-Delete, danach zurück zur Übersicht (die Detailseite existiert nicht
-    // mehr) – deshalb `redirect` statt `revalidatePath` auf den Detailpfad.
-    await deleteVeranstaltungAction(undefined, form(loeschen));
+  it("should_deleteAndReturnOk_when_noVerzehrAndNoAuslage", async () => {
+    // #352 AK4 + spec-372 Q7: Hard-Delete, danach meldet die Action Erfolg; zur Übersicht
+    // navigiert der Client, damit der Toast den Seitenwechsel überlebt (ADR-058 D2). Die
+    // Detailseite existiert nicht mehr – deshalb keine Revalidierung ihres Pfads.
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
 
+    expect(result).toEqual({ ok: true });
     expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
     expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung");
     expect(revalidatePathMock).not.toHaveBeenCalledWith("/veranstaltung/v1");
-    expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
   });
 
-  it("should_revalidateThekeRouteBeforeRedirecting_when_deleted", async () => {
+  it("should_revalidateThekeRoute_when_deleted", async () => {
     // Der geteilte QR-Link (`/theke/<token>`) überlebt den Hard-Delete: ohne Revalidierung
     // liefert die einzige auth-freie – und damit full-route-cache-fähige – Route der
     // Veranstaltung sie weiter aus, und ein Strich darauf läuft in „Veranstaltung nicht
@@ -688,14 +682,7 @@ describe("deleteVeranstaltungAction", () => {
     // guarded DELETE, also aus dem tatsächlich entfernten Datensatz.
     await deleteVeranstaltungAction(undefined, form(loeschen));
 
-    const thekeCall = revalidatePathMock.mock.calls.findIndex(([pfad]) => pfad === "/theke/tok");
-    expect(thekeCall).toBeGreaterThanOrEqual(0);
-    // Reihenfolge explizit: der echte `redirect` wirft NEXT_REDIRECT, eine hinter ihm stehende
-    // Revalidierung liefe in Produktion nie. Der Mock wirft nicht – eine bloße
-    // „wurde aufgerufen"-Assertion wäre also auch bei falscher Reihenfolge grün.
-    expect(revalidatePathMock.mock.invocationCallOrder[thekeCall]).toBeLessThan(
-      redirectMock.mock.invocationCallOrder[0],
-    );
+    expect(revalidatePathMock).toHaveBeenCalledWith("/theke/tok");
   });
 
   it("should_delete_when_zeilenExistButNothingKassiert", async () => {
@@ -704,10 +691,35 @@ describe("deleteVeranstaltungAction", () => {
     // (`setErhalten(null)`) – auch der gibt das Löschen wieder frei.
     listZeilenMock.mockResolvedValue([zeile, { ...zeile, id: "z2", erhaltenCents: null }]);
 
-    await deleteVeranstaltungAction(undefined, form(loeschen));
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
 
     expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
-    expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("should_rejectWithFirstReasonInOrder_when_allSperrenApply", async () => {
+    // spec-372 AK11: die Action nutzt dieselbe Sperren-Liste wie der Dialog und lehnt mit dem
+    // ersten Grund ab (Verzehr → Kassiert → Auslage).
+    listPositionenMock.mockResolvedValue([position(1)]);
+    listZeilenMock.mockResolvedValue([{ ...zeile, erhaltenCents: 500 }]);
+    listAuslagenMock.mockResolvedValue([
+      {
+        id: "a1",
+        teilnehmerId: "t1",
+        anzeigename: "Anna Beispiel",
+        kategorie: "sonstiges",
+        betragCents: 550,
+        zweck: null,
+        status: "offen",
+      },
+    ]);
+
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
+
+    expect(result.error).toBe(
+      "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
+    );
+    expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
   });
 
   it("should_returnErrorAndNotDelete_when_geldKassiertOhneVerzehr", async () => {
@@ -724,7 +736,6 @@ describe("deleteVeranstaltungAction", () => {
       "Löschen nicht möglich: für diese Veranstaltung ist bereits Geld kassiert.",
     );
     expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
-    expect(redirectMock).not.toHaveBeenCalled();
   });
 
   it("should_returnErrorAndNotDelete_when_kassiertBetragIsZero", async () => {
@@ -761,18 +772,17 @@ describe("deleteVeranstaltungAction", () => {
       "Löschen nicht möglich: für diese Veranstaltung ist bereits Verzehr erfasst.",
     );
     expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
-    expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("should_deleteAndRedirect_when_positionExistsButMengeZero", async () => {
+  it("should_delete_when_positionExistsButMengeZero", async () => {
     // #352 FS1: `verzehr_position` löscht seine Zeile bei menge = 0 nicht. Eine reine
     // Zeilen-Existenz-Prüfung würde hier falsch sperren – gefiltert wird auf `menge > 0`.
     listPositionenMock.mockResolvedValue([position(0)]);
 
-    await deleteVeranstaltungAction(undefined, form(loeschen));
+    const result = await deleteVeranstaltungAction(undefined, form(loeschen));
 
     expect(deleteVeranstaltungMock).toHaveBeenCalledWith("v1");
-    expect(redirectMock).toHaveBeenCalledWith("/veranstaltung");
+    expect(result).toEqual({ ok: true });
   });
 
   it("should_returnErrorAndNotDelete_when_auslageErfasst", async () => {
@@ -795,7 +805,6 @@ describe("deleteVeranstaltungAction", () => {
       "Löschen nicht möglich: für diese Veranstaltung ist bereits eine Auslage erstattet oder erfasst.",
     );
     expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
-    expect(redirectMock).not.toHaveBeenCalled();
   });
 
   it("should_returnErrorAndNotDelete_when_veranstaltungNotFound", async () => {
@@ -840,16 +849,16 @@ describe("deleteVeranstaltungAction", () => {
     expect(deleteVeranstaltungMock).not.toHaveBeenCalled();
   });
 
-  it("should_returnErrorAndNotRedirect_when_guardedDeleteMatchedNoRow", async () => {
+  it("should_returnError_when_guardedDeleteMatchedNoRow", async () => {
     // #352 FS3/FS4: der guarded DELETE meldet über `undefined`, dass er keine Zeile traf
-    // (nebenläufiger Abschluss oder Zweit-Löschung). Ohne Auswertung leitete die Action nach
-    // einem Löschvorgang weiter, der nie stattfand.
+    // (nebenläufiger Abschluss oder Zweit-Löschung). Ohne Auswertung meldete die Action Erfolg
+    // für einen Löschvorgang, der nie stattfand.
     deleteVeranstaltungMock.mockResolvedValue(undefined);
 
     const result = await deleteVeranstaltungAction(undefined, form(loeschen));
 
     expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
-    expect(redirectMock).not.toHaveBeenCalled();
+    expect(result.ok).toBeUndefined();
   });
 });
 
@@ -1765,76 +1774,127 @@ describe("updateAuslageAction", () => {
   });
 });
 
+// Beide Actions melden seit spec-372 einen Zustand (ADR-058 D2): eine Ablehnung war vorher stumm
+// (FS1/FS2), jetzt steht sie im Dialog bzw. an der Zeile.
 describe("setAuslageStatusAction", () => {
-  it("should_setStatusErstattet_when_inputValid", async () => {
-    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" }));
+  const umschalten = (fields: Record<string, string>) =>
+    setAuslageStatusAction(undefined, form(fields));
+
+  it("should_setStatusErstattetAndReturnOk_when_inputValid", async () => {
+    const result = await umschalten({ veranstaltungId: "v1", id: "a1", status: "erstattet" });
+
+    expect(result).toEqual({ ok: true });
     expect(setAuslageStatusMock).toHaveBeenCalledWith("a1", "v1", "erstattet");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/auslagen");
   });
 
   it("should_setStatusOffen_when_reopening", async () => {
-    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "offen" }));
+    await umschalten({ veranstaltungId: "v1", id: "a1", status: "offen" });
     expect(setAuslageStatusMock).toHaveBeenCalledWith("a1", "v1", "offen");
   });
 
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
     await expect(
-      setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" })),
+      umschalten({ veranstaltungId: "v1", id: "a1", status: "erstattet" }),
     ).rejects.toThrow(ForbiddenError);
     expect(setAuslageStatusMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_veranstaltungClosed", async () => {
+  it("should_returnNotOffen_when_veranstaltungClosed", async () => {
     getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
-    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" }));
+
+    const result = await umschalten({ veranstaltungId: "v1", id: "a1", status: "erstattet" });
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
     expect(setAuslageStatusMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+  it("should_returnNotFound_when_veranstaltungNotFound", async () => {
     getVeranstaltungMock.mockResolvedValue(undefined);
-    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "erstattet" }));
+
+    const result = await umschalten({ veranstaltungId: "v1", id: "a1", status: "erstattet" });
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(setAuslageStatusMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_idsMissing", async () => {
-    await setAuslageStatusAction(form({ status: "erstattet" }));
+  it("should_returnAuslageNotFound_when_idsMissing", async () => {
+    const result = await umschalten({ status: "erstattet" });
+
+    expect(result.error).toBe("Auslage nicht gefunden.");
     expect(setAuslageStatusMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_statusInvalid", async () => {
-    await setAuslageStatusAction(form({ veranstaltungId: "v1", id: "a1", status: "storniert" }));
+  it("should_returnErrorAndNotPersist_when_statusInvalid", async () => {
+    const result = await umschalten({ veranstaltungId: "v1", id: "a1", status: "storniert" });
+
+    expect(result.error).toBeDefined();
+    expect(result.ok).toBeUndefined();
     expect(setAuslageStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnAuslageNotFound_when_guardedUpdateMatchedNoRow", async () => {
+    // FS1: auf einem anderen Gerät gelöscht – kein Erfolg für eine Änderung, die nie stattfand.
+    setAuslageStatusMock.mockResolvedValue(undefined);
+
+    const result = await umschalten({ veranstaltungId: "v1", id: "a1", status: "erstattet" });
+
+    expect(result.error).toBe("Auslage nicht gefunden.");
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 });
 
 describe("removeAuslageAction", () => {
-  it("should_removeAuslage_when_veranstaltungOpen", async () => {
-    await removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }));
+  const loeschen = (fields: Record<string, string>) => removeAuslageAction(undefined, form(fields));
+
+  it("should_removeAuslageAndReturnOk_when_veranstaltungOpen", async () => {
+    const result = await loeschen({ veranstaltungId: "v1", id: "a1" });
+
+    expect(result).toEqual({ ok: true });
     expect(removeAuslageMock).toHaveBeenCalledWith("a1", "v1");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/veranstaltung/v1/auslagen");
   });
 
   it("should_rejectAndNotPersist_when_userLacksVeranstalterRole", async () => {
     authMock.mockResolvedValue(sessionWithRoles(["verwalter"]));
-    await expect(removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }))).rejects.toThrow(
-      ForbiddenError,
-    );
+    await expect(loeschen({ veranstaltungId: "v1", id: "a1" })).rejects.toThrow(ForbiddenError);
     expect(removeAuslageMock).not.toHaveBeenCalled();
   });
 
-  it("should_notRemove_when_veranstaltungClosed", async () => {
+  it("should_returnNotOffen_when_veranstaltungClosed", async () => {
+    // FS2: inzwischen abgeschlossen – die Ablehnung erscheint im Dialog.
     getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
-    await removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }));
+
+    const result = await loeschen({ veranstaltungId: "v1", id: "a1" });
+
+    expect(result.error).toBe("Die Veranstaltung ist abgeschlossen und schreibgeschützt.");
     expect(removeAuslageMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_veranstaltungNotFound", async () => {
+  it("should_returnNotFound_when_veranstaltungNotFound", async () => {
     getVeranstaltungMock.mockResolvedValue(undefined);
-    await removeAuslageAction(form({ veranstaltungId: "v1", id: "a1" }));
+
+    const result = await loeschen({ veranstaltungId: "v1", id: "a1" });
+
+    expect(result.error).toBe("Veranstaltung nicht gefunden.");
     expect(removeAuslageMock).not.toHaveBeenCalled();
   });
 
-  it("should_silentlySkip_when_idsMissing", async () => {
-    await removeAuslageAction(form({}));
+  it("should_returnAuslageNotFound_when_idsMissing", async () => {
+    const result = await loeschen({});
+
+    expect(result.error).toBe("Auslage nicht gefunden.");
     expect(removeAuslageMock).not.toHaveBeenCalled();
+  });
+
+  it("should_returnAuslageNotFound_when_alreadyRemoved", async () => {
+    // FS1: die Auslage ist auf einem anderen Gerät schon gelöscht – kein Erfolgs-Toast.
+    removeAuslageMock.mockResolvedValue(undefined);
+
+    const result = await loeschen({ veranstaltungId: "v1", id: "a1" });
+
+    expect(result.error).toBe("Auslage nicht gefunden.");
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 });

@@ -222,6 +222,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Refactor, der Klassen/Konstanten aus gegateten Dateien in eine neue Datei zieht: Zieldatei im selben Commit ins Farb-Gate (`eslint/ui-token-files.mjs`) und Handkopien greppen (aus #374, Review-Runde-2-Finding)
 - `<form action>` setzt Eingaben auch nach Ablehnung zurück – Dialog mit Fehler im Dialog: `onSubmit` + `startTransition` (aus #373, AK1.4)
 - Rezidiv #371: Dialog, dessen Erfolg den Auslöser unmountet, von Anfang an mit Fokus-Ersatzziel + Erfolgsfall-Test bauen; neuer Hook neben ähnlichem vorher abgleichen, route-neutral ablegen (aus #373, Review-Iteration 1 W1/W2)
+- Seitenweites Overlay (Toast) im `<body>` ist bei offenem modalem `<dialog>` verdeckt und inert, `toBeVisible()` bleibt grün – Portal in den offenen Dialog, Nachweis per Klick + Screenshot (aus #372, /implement-Selbstfund)
+- Rezidiv #373: Erfolgs-Fokus-Vertrag in zwei Hooks kopiert – den ganzen Vertrag in einen Helfer ziehen, nicht nur das letzte Stück; Helfer als eigenes Modul, nicht aus einer Komponenten-Datei (aus #372, Review-Iteration 1/2)
 
 **[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
 
@@ -298,11 +300,12 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Test-Double, das den geprüften Zweig nicht unterscheiden kann (jsdom-`SVGElement` hat ein wirkungsloses `focus()`), macht den Test zum Abdeckungs-Test – Spion-Double + Mutationsbeleg in drei Schritten (mutieren per `python3`, `git diff --stat` zeigt es, Test rot); BSD-`sed -i` ohne Suffix scheitert still und lässt einen grünen Lauf wie Beleg aussehen (aus #369, Review-Iteration 3 + /refactor-Selbstfund)
 - Playwright-`hasText` mit String ist ein Teilstring-Treffer (`Bier` trifft `Weizenbier`) – Namen exakt matchen; und eine Fehlerursache erst an den echten Daten messen, bevor sie in Kleinfund/Task-Notiz steht (aus #388, Review-Iteration 1)
 - Manuell gestartete Capture-/E2E-Spec (nicht in CI) rottet unbemerkt: Zählungen relativ zum Startwert (`Artikel (1)` brach an den 16 migrierten Standard-Artikeln, Migration 0004), Seed-/Migrations-PRs auf absolute Startannahmen prüfen, Dialog-Screenshots erst nach Fokus-/Scroll-Reset (aus #388, /implement)
+- Playwright `getByRole(name)` ist Teilstring-Treffer wie `hasText` – ein neues Bedienelement im Dialog (z. B. „Meldung schließen") bricht Locatoren auf „Schließen"; `exact: true` + Grep über alle Specs (aus #372, /implement) · **Laden bei:** `/implement`, `/test` – bei neuem Element in einem Dialog/einer Seite mit bestehenden E2E-Specs
 - React-19-Async-Actions: nie auflösende Promises halten einen modulweiten Scope offen – spätere Abwesenheits-Tests sind grün aus dem falschen Grund; Resolve-Liste + `afterEach` in `act`, Anwesenheits-Vorbedingung, Mutationsbeleg je Test (aus #370, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test`, `/review` – bei Tests mit offen gehaltener `useActionState`-Action
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, gitignore-Artefakte · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
-- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67); wiederholt bei Wegwerf-E2E-Verifikation + unverifizierter „ist gitignoret"-Behauptung im Dateikommentar (aus #324); drittes Vorkommnis als Wegwerf-`*.tmp.config.ts`, vom Muster nicht gedeckt (aus #374)
+- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67); wiederholt bei Wegwerf-E2E-Verifikation + unverifizierter „ist gitignoret"-Behauptung im Dateikommentar (aus #324); drittes Vorkommnis als Wegwerf-`*.tmp.config.ts`, vom Muster nicht gedeckt (aus #374); viertes Mal `playwright-372.tmp.config.ts` + `scripts/advisory372.tmp.sh` bis `/security-review` liegen geblieben, `rm` war nicht freigegeben – Wegwerf-Dateien direkt nach der Nutzung löschen, nicht „später" (aus #372)
 - Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
 - pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
 - Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)

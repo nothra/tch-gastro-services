@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Field } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
+import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { EURO_INPUT_RE, formatCents, parseEuroToCents } from "@/lib/money";
 import type { VeranstaltungFormState } from "./actions";
 import { spendeCents } from "./kassierSummen";
@@ -37,7 +38,10 @@ export function KassiereZeileForm({
   verzehrGesamtCents: number;
   autoFocusErhalten?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  // Betrag und Spende meldet ein Toast (spec-372 AK12/AK17); der Inhalt bleibt der aus spec-371.
+  const [state, formAction, pending] = useSchliessendeAction(action, {
+    erfolgsMeldung: (ergebnis) => erfolgsMeldung(ergebnis, verzehrGesamtCents),
+  });
   const [eingabe, setEingabe] = useState(initialErhalten);
   const spendeVorschau = spendeCents(verzehrGesamtCents, lesbarerBetragCents(eingabe));
 
@@ -70,7 +74,6 @@ export function KassiereZeileForm({
         </span>
       </p>
       <Notice kind="fehler">{state?.error}</Notice>
-      <Notice kind="erfolg">{state?.ok && erfolgsMeldung(state, verzehrGesamtCents)}</Notice>
     </form>
   );
 }

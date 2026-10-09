@@ -14,6 +14,8 @@ import { teilnehmerSchema } from "./schema";
 const TEILNEHMER_PATH = "/verwaltung/teilnehmer";
 const DUPLICATE_WARNING =
   "Ein aktiver Teilnehmer mit diesem Namen existiert bereits. Zum Anlegen erneut bestätigen.";
+const NO_TEILNEHMER = "Kein Teilnehmer angegeben.";
+const TEILNEHMER_NOT_FOUND = "Teilnehmer nicht gefunden.";
 
 // needsConfirm/warning tragen die nicht-blockierende Duplikat-Warnung (ADR-022): kein
 // DB-Unique, stattdessen ein überstimmbarer Hinweis an der Server-Grenze.
@@ -50,7 +52,7 @@ export async function updateTeilnehmerAction(
 ): Promise<TeilnehmerFormState> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
-  if (!id) return { error: "Kein Teilnehmer angegeben." };
+  if (!id) return { error: NO_TEILNEHMER };
 
   const parsed = teilnehmerSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
@@ -60,11 +62,19 @@ export async function updateTeilnehmerAction(
   return { ok: true };
 }
 
-// Deaktivieren/Reaktivieren als direkte Formular-Action (kein Formularzustand nötig).
-export async function setTeilnehmerActiveAction(formData: FormData): Promise<void> {
+// Deaktivieren/Aktivieren. Meldet einen Zustand statt `void`, damit der Client den Erfolg als
+// Toast zeigen und eine Ablehnung sichtbar machen kann (spec-372 AK12, ADR-058 D2).
+export async function setTeilnehmerActiveAction(
+  _prevState: TeilnehmerFormState | undefined,
+  formData: FormData,
+): Promise<TeilnehmerFormState> {
   await requireRole("verwalter");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await setTeilnehmerActive(id, formData.get("active") === "true");
+  if (!id) return { error: NO_TEILNEHMER };
+
+  const updated = await setTeilnehmerActive(id, formData.get("active") === "true");
+  if (!updated) return { error: TEILNEHMER_NOT_FOUND };
+
   revalidatePath(TEILNEHMER_PATH);
+  return { ok: true };
 }

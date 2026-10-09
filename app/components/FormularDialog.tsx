@@ -1,10 +1,15 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useRef, useState, type FormEvent } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
-import { useSchliessendeAction, type FormAction } from "./useSchliessendeAction";
+import { useErsatzFokus } from "./useErsatzFokus";
+import {
+  useSchliessendeAction,
+  type AktionsOptionen,
+  type FormAction,
+} from "./useSchliessendeAction";
 
 // Route-neutrale Hülle „Formular im Dialog" der Listenseiten (spec-373 AK1, AK4.3): Auslöser,
 // modaler Dialog, Schließen bei Erfolg, Escape-Sperre während der Action. Erfolgsregel und
@@ -37,13 +42,13 @@ export function useFormularDialog(ersatzFokusId?: string) {
   const [open, setOpen] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const ausloeserRef = useRef<HTMLButtonElement>(null);
-  const erfolgreichRef = useErsatzFokusBeimAushaengen(ersatzFokusId);
+  const { zuruecksetzen, markiereErfolg } = useErsatzFokus(ersatzFokusId);
   const schliessen = () => setOpen(false);
 
   const steuerung: DialogSteuerung = {
     schliessen,
     schliessenNachErfolg: () => {
-      erfolgreichRef.current = true;
+      markiereErfolg();
       setOpen(false);
     },
     meldeLauf: setLaeuft,
@@ -52,7 +57,7 @@ export function useFormularDialog(ersatzFokusId?: string) {
   return {
     ausloeserRef,
     oeffnen: () => {
-      erfolgreichRef.current = false;
+      zuruecksetzen();
       setOpen(true);
     },
     steuerung,
@@ -60,37 +65,21 @@ export function useFormularDialog(ersatzFokusId?: string) {
   };
 }
 
-// Läuft beim Aushängen, nach dem DOM-Umbau: ein entfernter fokussierter Knoten lässt den Fokus
-// auf `<body>` fallen. Nur dann – und nur nach einem Erfolg – wird umgelenkt, damit ein Nutzer,
-// der inzwischen woanders steht, nicht weggezogen wird. Ob React zuerst den Dialog schließt
-// oder gleich den ganzen Zweig tauscht, ist dabei gleich. Die Erfolgsmarke wird bewusst erst im
-// Cleanup gelesen: gefragt ist ihr Stand beim Aushängen, nicht beim Einhängen.
-function useErsatzFokusBeimAushaengen(ersatzFokusId: string | undefined) {
-  const erfolgsmarke = useRef(false);
-  useEffect(() => {
-    if (!ersatzFokusId) return;
-    const marke = erfolgsmarke;
-    return () => {
-      const fokusVerloren = document.activeElement === document.body;
-      if (marke.current && fokusVerloren) document.getElementById(ersatzFokusId)?.focus();
-    };
-  }, [ersatzFokusId]);
-  return erfolgsmarke;
-}
-
 /**
- * Verbindet eine Server Action mit dem Dialog: Erfolg schließt ihn, eine Ablehnung bleibt im
- * Zustand stehen. `absenden` gehört als `onSubmit` ans Formular.
+ * Verbindet eine Server Action mit dem Dialog: Erfolg schließt ihn und meldet `erfolgsMeldung`
+ * als Toast, eine Ablehnung bleibt im Zustand stehen. `absenden` gehört als `onSubmit` ans
+ * Formular.
  */
 export function useDialogFormular<State extends { ok?: boolean }>(
   action: FormAction<State>,
   steuerung: DialogSteuerung,
+  { erfolgsMeldung }: Pick<AktionsOptionen<State>, "erfolgsMeldung">,
 ) {
-  const [state, formAction, pending, meldeStart] = useSchliessendeAction(
-    action,
-    steuerung.schliessenNachErfolg,
-    steuerung.meldeLauf,
-  );
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(action, {
+    onErfolg: steuerung.schliessenNachErfolg,
+    onLaeuftChange: steuerung.meldeLauf,
+    erfolgsMeldung,
+  });
 
   function absenden(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,8 +93,49 @@ export function useDialogFormular<State extends { ok?: boolean }>(
   return { state, pending, absenden };
 }
 
+interface FormularDialogProps {
+  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Umbenennen". */
+  ausloeser: string;
+  ausloeserVariant: "primary" | "secondary";
+  ausloeserId?: string;
+  titel: string;
+  beschreibung?: string;
+  /** Fokusziel, falls ein Erfolg den Auslöser aushängt (siehe `useFormularDialog`). */
+  ersatzFokusId?: string;
+  /** Mountet erst beim Öffnen: jedes Öffnen beginnt ohne die Ablehnung des letzten Versuchs. */
+  children: (steuerung: DialogSteuerung) => ReactNode;
+}
+
+/** Button + Dialog mit Formular – für Auslöser in der Standard-Optik von `Button`. */
+export function FormularDialog({
+  ausloeser,
+  ausloeserVariant,
+  ausloeserId,
+  titel,
+  beschreibung,
+  ersatzFokusId,
+  children,
+}: FormularDialogProps) {
+  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(ersatzFokusId);
+  return (
+    <>
+      <Button
+        ref={ausloeserRef}
+        id={ausloeserId}
+        variant={ausloeserVariant}
+        size="sm"
+        onClick={oeffnen}
+      >
+        {ausloeser}
+      </Button>
+      <Dialog {...dialogProps} title={titel} description={beschreibung}>
+        {children(steuerung)}
+      </Dialog>
+    </>
+  );
+}
+
 interface AnlegeDialogProps {
-  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Teilnehmer anlegen". */
   ausloeser: string;
   titel: string;
   /**
@@ -117,7 +147,7 @@ interface AnlegeDialogProps {
 }
 
 /**
- * Button + Anlege-Dialog. Seitenkopf und Leerzustand bekommen je eine eigene Instanz: beim
+ * Anlege-Dialog der Listenseiten. Seitenkopf und Leerzustand bekommen je eine eigene Instanz: beim
  * Abbrechen kehrt der Fokus so auf den Button zurück, der den Dialog geöffnet hat (AK1.5).
  */
 export function AnlegeDialog({
@@ -126,24 +156,16 @@ export function AnlegeDialog({
   imLeerzustand = false,
   children,
 }: AnlegeDialogProps) {
-  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(
-    imLeerzustand ? SEITENKOPF_AUSLOESER_ID : undefined,
-  );
   return (
-    <>
-      <Button
-        ref={ausloeserRef}
-        id={imLeerzustand ? undefined : SEITENKOPF_AUSLOESER_ID}
-        variant={imLeerzustand ? "secondary" : "primary"}
-        size="sm"
-        onClick={oeffnen}
-      >
-        {ausloeser}
-      </Button>
-      <Dialog {...dialogProps} title={titel}>
-        {children(steuerung)}
-      </Dialog>
-    </>
+    <FormularDialog
+      ausloeser={ausloeser}
+      ausloeserVariant={imLeerzustand ? "secondary" : "primary"}
+      ausloeserId={imLeerzustand ? undefined : SEITENKOPF_AUSLOESER_ID}
+      ersatzFokusId={imLeerzustand ? SEITENKOPF_AUSLOESER_ID : undefined}
+      titel={titel}
+    >
+      {children}
+    </FormularDialog>
   );
 }
 

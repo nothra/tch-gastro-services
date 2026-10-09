@@ -47,7 +47,8 @@ describe("LinkKopieren (spec-369 AK22, ADR-053 D5)", () => {
     await kopieren();
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Kopieren nicht möglich – der Link ist markiert und kann manuell kopiert werden.",
+      // Glossar (#375): „<Aktion> nicht möglich: <Grund>." – Doppelpunkt, kein Gedankenstrich.
+      "Kopieren nicht möglich: der Link ist markiert und kann manuell kopiert werden.",
     );
     expect(feld).toHaveFocus();
     expect(feld.selectionStart).toBe(0);
