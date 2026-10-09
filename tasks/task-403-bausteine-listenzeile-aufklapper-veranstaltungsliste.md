@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -147,6 +147,14 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
 - **Weiterhin offen (Mensch, Vor-Merge):** Playwright-Lauf
   `e2e/bausteine-listenzeile-aufklapper.spec.ts` (AK1.2, F1/F2/F4) – braucht lokale DB +
   `.env.local`; Wegwerf-Dateien `scripts/*403.tmp.sh` von Hand löschen.
+
+## Refactoring-Notizen (`/refactor`, 2026-10-09)
+- Diff gegen `origin/main` nach der Checkliste geprüft (Naming, SRP, Duplikation, Magic Strings,
+  Kommentare = WHY): kein Befund, der eine Änderung rechtfertigt. `hatInhalt` und
+  `VERBLASST_CLASS` sind bereits extrahiert; die zwei Pfeil-Wrapper-Klassen (`Aufklapper`,
+  `ListenZeile`) unterscheiden sich in Farbe/Drehung – Zusammenlegen wäre Over-Engineering.
+- Kein Code geändert; Vitest (942 in `app/components/ui` + `app/veranstaltung`), ESLint und `tsc`
+  unverändert grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
