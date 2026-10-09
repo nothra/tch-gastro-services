@@ -3,6 +3,11 @@
 ## Status
 Accepted
 
+> **Nachtrag 2026-10-09:** Das hier als künftige Erweiterung genannte Kassenbuch mit laufendem
+> Saldo (#57) ist **nicht geplant** – die Vereinskasse wird in einem anderen Programm verwaltet,
+> die Montagsrunden-Kasse separat geführt. Die Entscheidung dieser ADR bleibt unverändert gültig;
+> die Verweise auf #57 beschreiben nur eine nicht verfolgte Option.
+
 ## Date
 2026-07-18
 

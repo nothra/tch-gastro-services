@@ -72,7 +72,7 @@ Getränke** und **Σ Auslagenerstattung Getränke**.
   bleiben Spende, Erhalten und Kassenveränderung unverändert erhalten.
 - Keine weiteren Kategorie-Varianten (Essen/Kaffee) in dieser Task.
 - Keine Persistenz/Archivierung, kein E-Mail-Versand (wie #185).
-- Kein laufender Kassen-Saldo über mehrere Veranstaltungen (#57).
+- Kein laufender Kassen-Saldo über mehrere Veranstaltungen (#57 – nicht geplant).
 
 ## Akzeptanzkriterien
 
