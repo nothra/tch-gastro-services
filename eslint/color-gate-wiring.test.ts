@@ -111,7 +111,10 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
   // und ist noch nicht umgestellt (kleinfunde.md). Seit #405 ist `TeilnehmerRow.tsx` gelistet und
   // taugt nicht mehr als Gegenbeispiel (Lesson #371).
   it("should_notReport_when_fileIsNotOnTheList", async () => {
-    const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, "app/veranstaltung/AuslageForm.tsx");
+    const messages = await rawColorMessages(
+      CODE_WITH_RAW_COLOR,
+      "app/veranstaltung/AuslageForm.tsx",
+    );
 
     expect(messages).toEqual([]);
   });

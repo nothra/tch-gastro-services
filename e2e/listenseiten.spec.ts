@@ -165,8 +165,11 @@ test.describe("Listenseiten – Liste zuerst, Anlegen per Dialog (#373)", () => 
   test("Teilnehmer: Liste zuerst, Anlegen per Dialog", async ({ page }) => {
     await page.goto("/verwaltung/teilnehmer");
     await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0);
+    // Seit #405 keine Gesamt-Überschrift mehr: Liste = Aufklapper „Aktiv (n)" oder Leerzustand.
     await expect(
-      page.getByRole("heading", { level: 2, name: /^Teilnehmer \(\d+\)$/ }),
+      page
+        .getByRole("heading", { level: 2, name: /^Aktiv \(\d+\)$/ })
+        .or(page.getByText("Noch keine Teilnehmer angelegt.", { exact: true })),
     ).toBeVisible();
 
     const dialog = await oeffneTeilnehmerAnlegen(page);

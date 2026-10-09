@@ -466,18 +466,19 @@
   gegen eine lokale DB (`scripts/e2e-369.tmp.sh` als Vorlage) – deshalb nicht im Review-Rework.
 - **Herkunft:** `/review` zu #369 (Runde 2, Iteration 2, Nitpick), klassifiziert im Rework.
 
-### Auslagen- und Teilnehmer-Dateien tragen noch rohe Farbklassen außerhalb des Farb-Gates
+### Auslagen-Dateien tragen noch rohe Farbklassen außerhalb des Farb-Gates
 
 - **Wo:** [`app/veranstaltung/AuslageForm.tsx:15, :61, :71`](../../app/veranstaltung/AuslageForm.tsx),
-  [`app/veranstaltung/[id]/auslagen/page.tsx:26, :75`](../../app/veranstaltung/[id]/auslagen/page.tsx),
-  [`app/verwaltung/teilnehmer/TeilnehmerRow.tsx:11, :27, :57`](../../app/verwaltung/teilnehmer/TeilnehmerRow.tsx)
+  [`app/veranstaltung/[id]/auslagen/page.tsx:26, :75`](../../app/veranstaltung/[id]/auslagen/page.tsx)
   (verifiziert am 2026-10-09).
 - **Was:** `zinc-*`- und `dark:`-Klassen statt Token-Klassen (ADR-052). #372 hat `AuslageRow.tsx`
-  umgestellt und ins Gate genommen (AK8); das Formular in derselben Zeile, die Auslagen-Seite und die
-  Teilnehmer-Zeile (dort nur in eine Konstante `sekundaerButtonClass` gezogen) blieben im Altstand.
-- **Fix:** Klassen auf Bausteine/Token-Klassen umstellen, die drei Pfade in
+  umgestellt und ins Gate genommen (AK8); das Formular in derselben Zeile und die Auslagen-Seite
+  blieben im Altstand. Die Teilnehmer-Zeile ist seit #405 umgestellt (Verzeichnis-Eintrag
+  `app/verwaltung/teilnehmer/`).
+- **Fix:** Klassen auf Bausteine/Token-Klassen umstellen, die beiden Pfade in
   `eslint/ui-token-files.mjs` eintragen. Je Datei wenige Zeilen; mitnehmen, wenn die Datei ohnehin
-  angefasst wird.
+  angefasst wird. Dabei die Gegenprobe in `eslint/color-gate-wiring.test.ts` (nutzt
+  `AuslageForm.tsx` als ungelisteten Nachbarn) auf einen anderen Pfad umstellen (Lesson #371).
 - **Herkunft:** `/review` zu #372 (Runde 1 + 2, Out-of-Scope).
 
 ### Bestätigungs-Steuerung in `ZeilenMenue` und `AbschlussAktion` handkopiert

@@ -69,7 +69,10 @@ abgesichert. `Toaster` nutzt weiter nur `NOTICE_STYLES.erfolg` – unberührt. `
 `Dialog title="Teilnehmer bearbeiten"`, zwei Formulare (Speichern / Aktiv-Umschalten, damit
 „Deaktivieren" keine ungespeicherten Felder mitsendet), `useDialogFormular`, `DialogAktionen`.
 Die Zeilen-`id` ist stabil (`teilnehmer-<id>`) als Ersatz-Fokusziel, weil der Gruppenwechsel
-(Aktiv ⇄ Deaktiviert) die Zeile neu mountet. Die Aufteilung in Aktiv/Deaktiviert macht die
+(Aktiv ⇄ Deaktiviert) die Zeile neu mountet. Landet die Zeile dabei in einem **zugeklappten**
+Aufklapper („Deaktiviert" startet zu), ist sie im Browser nicht fokussierbar; `useErsatzFokus`
+lenkt den Fokus dann auf das `<summary>` dieses Aufklappers („Deaktiviert (n)") statt ihn auf
+`<body>` fallen zu lassen (spec-405 AK3.5). Die Aufteilung in Aktiv/Deaktiviert macht die
 Server-Page mit `Aufklapper` (ADR-059 D2, `ueberschrift` + `aria-labelledby` wie
 `VeranstaltungListe`).
 

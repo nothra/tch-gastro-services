@@ -330,4 +330,52 @@ describe("TeilnehmerRow – Fokus nach Gruppenwechsel (spec-405 AK3.5)", () => {
     expect(deaktiviert).toContainElement(zeile());
     expect(zeile()).toHaveFocus();
   });
+
+  // Die Zielgruppe „Deaktiviert" startet zugeklappt (AK3.2): Im Browser ist eine Zeile in einem
+  // geschlossenen <details> nicht fokussierbar, der Fokus bliebe auf <body>. Ersatzziel ist dann der
+  // Kopf des Aufklappers, in den die Zeile gewandert ist.
+  function SeiteMitAufklapper({ zielOffen }: { zielOffen: boolean }) {
+    const [aktiv, setAktiv] = useState(true);
+    useEffect(() => {
+      seite.umziehen = () => setAktiv(false);
+    });
+    return (
+      <>
+        <ul aria-label="Aktiv">{aktiv && <TeilnehmerRow teilnehmer={aTeilnehmer} />}</ul>
+        <details open={zielOffen}>
+          <summary>Deaktiviert (1)</summary>
+          <ul aria-label="Deaktiviert">
+            {!aktiv && <TeilnehmerRow teilnehmer={{ ...aTeilnehmer, active: false }} />}
+          </ul>
+        </details>
+      </>
+    );
+  }
+
+  it("should_focusGroupSummary_when_movedRowIsInsideCollapsedGroup", async () => {
+    setActiveMock.mockImplementation(async () => {
+      seite.umziehen();
+      return { ok: true };
+    });
+    render(<SeiteMitAufklapper zielOffen={false} />);
+    oeffnen();
+
+    await klicke("Deaktivieren");
+
+    expect(screen.getByText("Deaktiviert (1)")).toHaveFocus();
+  });
+
+  it("should_focusMovedRow_when_targetGroupIsExpanded", async () => {
+    // Gegenrichtung: aufgeklappt ist die Zeile selbst erreichbar und bekommt den Fokus.
+    setActiveMock.mockImplementation(async () => {
+      seite.umziehen();
+      return { ok: true };
+    });
+    render(<SeiteMitAufklapper zielOffen />);
+    oeffnen();
+
+    await klicke("Deaktivieren");
+
+    expect(zeile()).toHaveFocus();
+  });
 });
