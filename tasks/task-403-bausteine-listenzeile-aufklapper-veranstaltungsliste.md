@@ -68,6 +68,10 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- **Iteration 1 (2026-10-09): NEEDS_REWORK** – [review-403.md](review-403.md): 1 kritisch
+  (E2E prüft `transform` statt Tailwind-v4-`rotate` → AK1.2-Beleg rot/aussagelos), 4 wichtig
+  (`border-line-subtle` vs. ADR-052 D2; Farb-Token per `className` an den Aufklapper; Pfeil der
+  schreibgeschützten `ZeileRow` ungetestet; E2E-Lauf ausstehend), 11 Nitpicks.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
