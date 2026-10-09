@@ -53,7 +53,7 @@ Das Issue wurde vor den UX-Folgearbeiten geschrieben; der Ist-Stand ist weiter:
 - Lade-Feedback bei laufenden Requests (#306).
 - Das Wording-Glossar selbst (#375) – hier nur Anwendung.
 - **Verzehr-Mengen ±** (`adjustVerzehrAction`, `adjustVerzehrByTokenAction`): die sichtbare Zahl
-  ist die Rückmeldung; ein Toast je Tipp wäre Lärm. (Bitte bestätigen, siehe Offene Fragen.)
+  ist die Rückmeldung; ein Toast je Tipp wäre Lärm. (Entschieden, Q1.)
 - Reversible Aktionen ohne Bestätigung: Artikel deaktivieren/aktivieren, Teilnehmer
   deaktivieren/aktivieren, Erstattung ⇄ zurücknehmen, Katalog reaktivieren.
 - Rückmeldung für „Link kopiert." (Zwischenablage, keine Schreibaktion; bleibt wie bisher am
@@ -94,8 +94,8 @@ Das Issue wurde vor den UX-Folgearbeiten geschrieben; der Ist-Stand ist weiter:
 
 - [ ] **AK9** – GIVEN eine offene Veranstaltung mit erfasstem Verzehr, bar Kassiertem oder
   mindestens einer Auslage WHEN die Nutzerin „Veranstaltung löschen" antippt THEN nennt der Dialog
-  **beim Öffnen** den Grund (welche der drei Sperren zutrifft; bei mehreren bis zur Klärung
-  von Q5 die erste in der Reihenfolge Verzehr → Kassiert → Auslage wie heute am Server), zeigt **keinen** Bestätigen-Button
+  **beim Öffnen** den Grund (welche der drei Sperren zutrifft; bei mehreren alle, in der
+  Reihenfolge Verzehr → Kassiert → Auslage, Q5), zeigt **keinen** Bestätigen-Button
   und bietet nur „Schließen" an.
 - [ ] **AK10** – GIVEN eine offene Veranstaltung ohne Verzehr, Kassiertes und Auslagen WHEN die
   Nutzerin „Veranstaltung löschen" antippt THEN zeigt der Dialog die Bestätigung wie bisher
@@ -152,17 +152,23 @@ Das Issue wurde vor den UX-Folgearbeiten geschrieben; der Ist-Stand ist weiter:
 - [ ] **FS7** – JavaScript im Browser (Hydration) noch nicht fertig: der Auslöser „Löschen" an der
   Auslage darf nicht mehr ohne Bestätigung absenden (kein verbliebener Direkt-Submit).
 
-## Offene Fragen
+## Geklärte Fragen
 
-- [ ] **Q1** – Verzehr-Mengen ±: wie oben ohne Toast (Zahl ist die Rückmeldung)? Bitte bestätigen.
-- [ ] **Q2** – Wie lange bleibt ein Toast stehen (Vorschlag ca. 4–5 s, Fehler nie als Toast), und
-  soll er unten (Daumen, über der Bedienung) oder oben (über dem Seitenkopf) erscheinen? Bei 375 px
-  entscheidend, damit er Kassieren-/Erfassen-Buttons nicht verdeckt.
-- [ ] **Q3** – Blockiert #375 hart (Task-Start erst nach Merge) oder darf `/implement` parallel
-  beginnen und die Texte nachziehen? Entscheidung hier: hart (Antwort der Klärung); falls #375
-  lange offen bleibt, neu entscheiden.
-- [ ] **Q4** – „Katalog deaktivieren": nennt der Dialog zusätzlich, wie viele offene
-  Veranstaltungen den Katalog noch nutzen? (Heute keine Sperre; bestehende Zuordnung bleibt
-  sichtbar, spec-346 AK6.) Vorschlag: nein, nur die Folge in einem Satz.
-- [ ] **Q5** – Reihenfolge mehrerer Sperrgründe beim Löschen (AK9): nur den ersten nennen oder alle
-  zutreffenden? Vorschlag: alle zutreffenden, damit der Nutzer weiß, was er alles zurücknehmen muss.
+- [x] **Q1** – Verzehr-Mengen ±: **kein Toast**, die sichtbare Zahl ist die Rückmeldung.
+- [x] **Q2** – Toast steht **5 s**, ist mit „×" schließbar und erscheint **unten mittig** über dem
+  Safe-Area-Rand. Fehler nie als Toast. (Oben würde er auf der Verzehr-Seite den fixierten
+  Personen-Block verdecken.)
+- [x] **Q3** – #375 blockiert hart; es ist auf `main` (`55c23f0`), damit erledigt.
+- [x] **Q4** – „Katalog deaktivieren": der Dialog nennt nur die Folge, ohne Zählung
+  („„<Name>" ist danach für neue Veranstaltungen nicht mehr wählbar."). Der Button „Reaktivieren"
+  heißt nach dem Glossar künftig **„Aktivieren"**.
+- [x] **Q5** – Löschsperre (AK9): der Dialog nennt **alle** zutreffenden Gründe in der Reihenfolge
+  Verzehr → Kassiert → Auslage.
+- [x] **Q6** – Toast-Technik: es wird eine **Toast-Bibliothek** verwendet, kein Eigenbau
+  (Entscheidung des Menschen, abweichend vom Vorschlag `Toast.tsx`). Das ist eine neue
+  Abhängigkeit und damit ein **ADR-Trigger**: `/architecture` wählt die Bibliothek (Kriterien:
+  `role="status"`-Live-Region, überlebt Client-Navigation im Root-Layout, Token-Klassen/ADR-052,
+  Größe, Pflege, Lizenz) und legt die ADR an, **bevor** `/implement` startet. Der Provider sitzt im
+  Root-Layout.
+- [x] **Q7** – „Veranstaltung löschen" (AK13): die Action gibt `{ ok: true }` zurück statt per
+  `redirect` weiterzuleiten; der Client zeigt den Toast und navigiert per `router.replace("/veranstaltung")`.
