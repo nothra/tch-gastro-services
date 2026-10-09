@@ -7,7 +7,7 @@ import { listActiveTeilnehmer } from "@/db/teilnehmer";
 import { listCatalogs } from "@/db/catalog";
 import { listPositionen } from "@/db/verzehr";
 import { listAuslagen } from "@/db/auslage";
-import { loeschSperren } from "@/lib/veranstaltung-loesch-sperren";
+import { loeschSperren } from "../loeschSperren";
 import { Badge } from "@/app/components/ui/Badge";
 import { TeilenIcon, ZahnradIcon } from "@/app/components/ui/icons";
 import { PageHeader } from "@/app/components/ui/PageHeader";

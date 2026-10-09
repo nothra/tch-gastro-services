@@ -6,7 +6,7 @@ import type { AuslageRow as AuslageRowData } from "@/db/auslage";
 import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 import { Notice } from "@/app/components/ui/Notice";
-import { useFormularDialog } from "@/app/components/FormularDialog";
+import { useBestaetigung } from "@/app/components/useBestaetigung";
 import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 import { AUSLAGE_KATEGORIE_LABEL, AUSLAGE_STATUS_LABEL } from "./labels";
 import { AuslageForm, type AuslageFormTeilnehmer } from "./AuslageForm";
@@ -122,27 +122,18 @@ function ErstattungUmschalten({ auslage, veranstaltungId }: AuslageAktionProps) 
 // `type="button"` außerhalb jedes Formulars: auch vor der Hydration sendet er nichts ab (FS7).
 function AuslageLoeschen({ auslage, veranstaltungId }: AuslageAktionProps) {
   // Nach dem Erfolg verschwindet die Zeile samt Auslöser – der Fokus geht auf die Liste.
-  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(AUSLAGEN_LISTE_ID);
-  // Jedes Öffnen ist ein neuer Versuch: der wechselnde `key` erneuert den Action-Zustand
-  // (ConfirmDialog-JSDoc, ADR-053 D1).
-  const [durchlauf, setDurchlauf] = useState(0);
-
-  function loeschenWaehlen() {
-    setDurchlauf((bisher) => bisher + 1);
-    oeffnen();
-  }
+  const { ausloeserRef, oeffnen, durchlauf, dialogProps, schliessenNachErfolg } =
+    useBestaetigung(AUSLAGEN_LISTE_ID);
 
   return (
     <>
-      <Button ref={ausloeserRef} variant="danger" size="sm" onClick={loeschenWaehlen}>
+      <Button ref={ausloeserRef} variant="danger" size="sm" onClick={oeffnen}>
         Löschen
       </Button>
       <LoeschBestaetigung
         key={durchlauf}
-        open={dialogProps.open}
-        onClose={steuerung.schliessen}
-        onErfolg={steuerung.schliessenNachErfolg}
-        returnFocusRef={ausloeserRef}
+        {...dialogProps}
+        onErfolg={schliessenNachErfolg}
         auslage={auslage}
         veranstaltungId={veranstaltungId}
       />

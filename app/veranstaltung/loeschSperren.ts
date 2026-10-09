@@ -5,6 +5,9 @@
 
 export type LoeschSperre = "verzehr" | "kassiert" | "auslage";
 
+/** Mindestens eine Sperre – nur dann gibt es einen Grund zu nennen. */
+export type LoeschSperren = readonly [LoeschSperre, ...LoeschSperre[]];
+
 export interface LoeschSperrenQuellen {
   zeilen: readonly { erhaltenCents: number | null }[];
   positionen: readonly { menge: number }[];
@@ -18,10 +21,19 @@ const SPERRGRUND: Record<LoeschSperre, string> = {
 };
 
 /**
+ * Ist tatsächlich Verzehr erfasst? Zählt nur `menge > 0`: `verzehr_position` löscht seine Zeile bei
+ * `menge = 0` nicht (Upsert mit `GREATEST(0, …)`, db/verzehr.ts), eine hoch- und wieder
+ * runtergezählte Position ist also kein Verzehr (#346 AK4, #352 FS1). Dieselbe Regel sperrt den
+ * Katalogwechsel und das Löschen.
+ */
+export function hatVerzehr(positionen: LoeschSperrenQuellen["positionen"]): boolean {
+  return positionen.some((position) => position.menge > 0);
+}
+
+/**
  * Alle zutreffenden Sperren in der festen Reihenfolge Verzehr → Kassiert → Auslage (Q5).
- * Verzehr zählt nur mit `menge > 0`: eine hoch- und wieder runtergezählte Position bleibt als
- * Zeile stehen (#346 AK4). Kassiert ist jede Zeile mit `erhaltenCents !== null`, auch 0 €. Eine
- * Auslage sperrt unabhängig vom Status – `removeAuslage` ist ein echtes DELETE (ADR-028 D2).
+ * Kassiert ist jede Zeile mit `erhaltenCents !== null`, auch 0 €. Eine Auslage sperrt unabhängig
+ * vom Status – `removeAuslage` ist ein echtes DELETE (ADR-028 D2).
  */
 export function loeschSperren({
   zeilen,
@@ -29,10 +41,14 @@ export function loeschSperren({
   auslagen,
 }: LoeschSperrenQuellen): LoeschSperre[] {
   const sperren: LoeschSperre[] = [];
-  if (positionen.some((position) => position.menge > 0)) sperren.push("verzehr");
+  if (hatVerzehr(positionen)) sperren.push("verzehr");
   if (zeilen.some((zeile) => zeile.erhaltenCents !== null)) sperren.push("kassiert");
   if (auslagen.length > 0) sperren.push("auslage");
   return sperren;
+}
+
+export function istGesperrt(sperren: readonly LoeschSperre[]): sperren is LoeschSperren {
+  return sperren.length > 0;
 }
 
 /** Ablehnung der Action für eine Sperre (Glossar: „<Aktion> nicht möglich: <Grund>."). */
@@ -41,12 +57,10 @@ export function loeschSperreMeldung(sperre: LoeschSperre): string {
 }
 
 /** Ein Satz, der alle Sperren nennt – für den Dialog, der statt der Bestätigung erscheint. */
-export function loeschSperrenBeschreibung(
-  bezeichnung: string,
-  sperren: readonly LoeschSperre[],
-): string {
+export function loeschSperrenBeschreibung(bezeichnung: string, sperren: LoeschSperren): string {
   const gruende = sperren.map((sperre) => SPERRGRUND[sperre]);
-  const letzter = gruende.pop();
-  const aufzaehlung = gruende.length > 0 ? `${gruende.join(", ")} und ${letzter}` : letzter;
+  const letzter = gruende[gruende.length - 1];
+  const davor = gruende.slice(0, -1);
+  const aufzaehlung = davor.length > 0 ? `${davor.join(", ")} und ${letzter}` : letzter;
   return `Für „${bezeichnung}“ ist ${aufzaehlung}.`;
 }

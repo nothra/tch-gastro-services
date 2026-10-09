@@ -1,15 +1,17 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import type { RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 import { Dialog } from "@/app/components/ui/Dialog";
 import { IconButton } from "@/app/components/ui/IconButton";
 import { PapierkorbIcon } from "@/app/components/ui/icons";
+import { useBestaetigung } from "@/app/components/useBestaetigung";
 import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
-import { loeschSperrenBeschreibung, type LoeschSperre } from "@/lib/veranstaltung-loesch-sperren";
 import { deleteVeranstaltungAction } from "../actions";
+import { istGesperrt, loeschSperrenBeschreibung, type LoeschSperre } from "../loeschSperren";
+import { VERANSTALTUNG_LISTE_PATH } from "../pfade";
 
 // Endgültiges Löschen einer noch offenen, datierten Veranstaltung (#352 AK4/AK8) – ausgelöst über
 // den Papierkorb im Seitenkopf (spec-391 AK11, ADR-056 D4). Der Bestätigungsdialog ist Pflicht
@@ -22,8 +24,6 @@ import { deleteVeranstaltungAction } from "../actions";
 // ist ein unumkehrbarer Hard-Delete – ein Abbrechen im Pending-Fenster schlösse nur den Dialog,
 // während die Action serverseitig zu Ende löscht.
 
-const LIST_PATH = "/veranstaltung";
-
 interface VeranstaltungLoeschenProps {
   id: string;
   bezeichnung: string;
@@ -32,37 +32,25 @@ interface VeranstaltungLoeschenProps {
 }
 
 export function VeranstaltungLoeschen({ id, bezeichnung, sperren }: VeranstaltungLoeschenProps) {
-  const [offen, setOffen] = useState(false);
-  // Jedes Öffnen ist ein neuer Versuch: der wechselnde `key` erneuert den Action-Zustand, damit
-  // keine Ablehnung aus einem früheren Durchlauf stehen bleibt (ConfirmDialog-JSDoc, ADR-053 D1).
-  const [durchlauf, setDurchlauf] = useState(0);
-  const papierkorbRef = useRef<HTMLButtonElement>(null);
-  const schliessen = () => setOffen(false);
-
-  function oeffnen() {
-    setDurchlauf((bisher) => bisher + 1);
-    setOffen(true);
-  }
+  const { ausloeserRef, oeffnen, durchlauf, dialogProps } = useBestaetigung();
 
   return (
     <>
       <IconButton
-        ref={papierkorbRef}
+        ref={ausloeserRef}
         label="Veranstaltung löschen"
         tone="danger"
         icon={<PapierkorbIcon />}
         onClick={oeffnen}
       />
-      {sperren.length > 0 ? (
+      {istGesperrt(sperren) ? (
         <Dialog
-          open={offen}
-          onClose={schliessen}
+          {...dialogProps}
           title="Löschen nicht möglich"
           description={loeschSperrenBeschreibung(bezeichnung, sperren)}
-          returnFocusRef={papierkorbRef}
         >
           <div className="flex justify-end">
-            <Button variant="secondary" onClick={schliessen}>
+            <Button variant="secondary" onClick={dialogProps.onClose}>
               Schließen
             </Button>
           </div>
@@ -70,11 +58,9 @@ export function VeranstaltungLoeschen({ id, bezeichnung, sperren }: Veranstaltun
       ) : (
         <LoeschBestaetigung
           key={durchlauf}
-          open={offen}
-          onClose={schliessen}
+          {...dialogProps}
           id={id}
           bezeichnung={bezeichnung}
-          returnFocusRef={papierkorbRef}
         />
       )}
     </>
@@ -100,7 +86,7 @@ function LoeschBestaetigung({
   // Die Detailseite existiert nach dem Löschen nicht mehr: der Client navigiert zur Übersicht,
   // der Toast aus dem Root-Layout überlebt den Seitenwechsel (spec-372 AK13, Q7).
   const [state, formAction, pending] = useSchliessendeAction(deleteVeranstaltungAction, {
-    onErfolg: () => router.replace(LIST_PATH),
+    onErfolg: () => router.replace(VERANSTALTUNG_LISTE_PATH),
     erfolgsMeldung: "Veranstaltung gelöscht",
   });
 

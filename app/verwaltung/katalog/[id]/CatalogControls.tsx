@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode, type RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { Catalog } from "@/db/schema";
 import {
   createCatalogAction,
@@ -10,15 +10,15 @@ import {
 } from "../actions";
 import {
   DialogAktionen,
+  FormularDialog,
   useDialogFormular,
-  useFormularDialog,
   type DialogSteuerung,
 } from "@/app/components/FormularDialog";
 import { Button } from "@/app/components/ui/Button";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
-import { Dialog } from "@/app/components/ui/Dialog";
 import { Field } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
+import { useBestaetigung } from "@/app/components/useBestaetigung";
 import { useSchliessendeAction, type FormAction } from "@/app/components/useSchliessendeAction";
 import type { CatalogFormState } from "../actions";
 
@@ -35,9 +35,9 @@ interface CatalogControlsProps {
 export function CatalogControls({ currentCatalog }: CatalogControlsProps) {
   return (
     <div className="flex flex-wrap items-start gap-2">
-      <FormularImDialog
+      <FormularDialog
         ausloeser="+ Katalog anlegen"
-        variant="primary"
+        ausloeserVariant="primary"
         titel="Neuen Katalog anlegen"
       >
         {(steuerung) => (
@@ -50,7 +50,7 @@ export function CatalogControls({ currentCatalog }: CatalogControlsProps) {
             <Field label="Katalogname" name="name" placeholder="z. B. Dorfmeisterschaften" />
           </KatalogFormular>
         )}
-      </FormularImDialog>
+      </FormularDialog>
 
       {currentCatalog && <KatalogVerwalten katalog={currentCatalog} />}
     </div>
@@ -60,7 +60,7 @@ export function CatalogControls({ currentCatalog }: CatalogControlsProps) {
 function KatalogVerwalten({ katalog }: { katalog: Catalog }) {
   return (
     <>
-      <FormularImDialog ausloeser="Umbenennen" variant="secondary" titel="Katalog umbenennen">
+      <FormularDialog ausloeser="Umbenennen" ausloeserVariant="secondary" titel="Katalog umbenennen">
         {(steuerung) => (
           <KatalogFormular
             action={renameCatalogAction}
@@ -72,7 +72,7 @@ function KatalogVerwalten({ katalog }: { katalog: Catalog }) {
             <Field label="Neuer Name" name="name" defaultValue={katalog.name} />
           </KatalogFormular>
         )}
-      </FormularImDialog>
+      </FormularDialog>
 
       <AktivSchalter katalog={katalog} />
 
@@ -80,9 +80,9 @@ function KatalogVerwalten({ katalog }: { katalog: Catalog }) {
           der Button verschwindet bei einem inaktiven Katalog, statt erst nach dem Absenden
           serverseitig abgelehnt zu werden (`SOURCE_CATALOG_INACTIVE`). */}
       {katalog.active && (
-        <FormularImDialog
+        <FormularDialog
           ausloeser="Duplizieren"
-          variant="secondary"
+          ausloeserVariant="secondary"
           titel="Katalog duplizieren"
           beschreibung={`„${katalog.name}“ wird mit allen aktiven Artikeln kopiert.`}
         >
@@ -97,38 +97,8 @@ function KatalogVerwalten({ katalog }: { katalog: Catalog }) {
               <Field label="Name der Kopie" name="name" placeholder={`${katalog.name} (Kopie)`} />
             </KatalogFormular>
           )}
-        </FormularImDialog>
+        </FormularDialog>
       )}
-    </>
-  );
-}
-
-interface FormularImDialogProps {
-  ausloeser: string;
-  variant: "primary" | "secondary";
-  titel: string;
-  beschreibung?: string;
-  children: (steuerung: DialogSteuerung) => ReactNode;
-}
-
-// Auslöser + Dialog. Die Kinder mounten erst beim Öffnen – jedes Öffnen beginnt ohne die
-// Ablehnung des letzten Versuchs (Dialog-JSDoc, ADR-053 D1).
-function FormularImDialog({
-  ausloeser,
-  variant,
-  titel,
-  beschreibung,
-  children,
-}: FormularImDialogProps) {
-  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog();
-  return (
-    <>
-      <Button ref={ausloeserRef} variant={variant} size="sm" onClick={oeffnen}>
-        {ausloeser}
-      </Button>
-      <Dialog {...dialogProps} title={titel} description={beschreibung}>
-        {children(steuerung)}
-      </Dialog>
     </>
   );
 }
@@ -149,7 +119,7 @@ function KatalogFormular({
   label,
   children,
 }: KatalogFormularProps) {
-  const { state, pending, absenden } = useDialogFormular(action, steuerung, erfolgsMeldung);
+  const { state, pending, absenden } = useDialogFormular(action, steuerung, { erfolgsMeldung });
   return (
     <form onSubmit={absenden} className="flex flex-col gap-3">
       {children}
@@ -168,19 +138,11 @@ function KatalogFormular({
 // Richtungen teilen EINEN Knopf an derselben Stelle im Baum: wechselt der Status, bleibt der
 // fokussierte Knoten erhalten und nur seine Beschriftung ändert sich (Lesson #371).
 function AktivSchalter({ katalog }: { katalog: Catalog }) {
-  const knopfRef = useRef<HTMLButtonElement>(null);
-  const [bestaetigungOffen, setBestaetigungOffen] = useState(false);
-  // Jedes Öffnen ist ein neuer Versuch: der wechselnde `key` erneuert den Action-Zustand der
-  // Bestätigung (ConfirmDialog-JSDoc, ADR-053 D1).
-  const [durchlauf, setDurchlauf] = useState(0);
+  const { ausloeserRef, oeffnen, durchlauf, dialogProps, schliessenNachErfolg } =
+    useBestaetigung();
   const [state, aktivierenAction, pending] = useSchliessendeAction(setCatalogActiveAction, {
     erfolgsMeldung: "Katalog aktiviert",
   });
-
-  function deaktivierenWaehlen() {
-    setDurchlauf((bisher) => bisher + 1);
-    setBestaetigungOffen(true);
-  }
 
   return (
     <>
@@ -188,9 +150,9 @@ function AktivSchalter({ katalog }: { katalog: Catalog }) {
         <input type="hidden" name="id" value={katalog.id} />
         <input type="hidden" name="active" value="true" />
         <Button
-          ref={knopfRef}
+          ref={ausloeserRef}
           type={katalog.active ? "button" : "submit"}
-          onClick={katalog.active ? deaktivierenWaehlen : undefined}
+          onClick={katalog.active ? oeffnen : undefined}
           variant="secondary"
           size="sm"
           disabled={pending}
@@ -201,9 +163,8 @@ function AktivSchalter({ katalog }: { katalog: Catalog }) {
       </form>
       <DeaktivierenBestaetigung
         key={durchlauf}
-        open={bestaetigungOffen}
-        onClose={() => setBestaetigungOffen(false)}
-        returnFocusRef={knopfRef}
+        {...dialogProps}
+        onErfolg={schliessenNachErfolg}
         katalog={katalog}
       />
     </>
@@ -213,6 +174,7 @@ function AktivSchalter({ katalog }: { katalog: Catalog }) {
 interface DeaktivierenBestaetigungProps {
   open: boolean;
   onClose: () => void;
+  onErfolg: () => void;
   returnFocusRef: RefObject<HTMLElement | null>;
   katalog: Catalog;
 }
@@ -220,11 +182,12 @@ interface DeaktivierenBestaetigungProps {
 function DeaktivierenBestaetigung({
   open,
   onClose,
+  onErfolg,
   returnFocusRef,
   katalog,
 }: DeaktivierenBestaetigungProps) {
   const [state, formAction, pending] = useSchliessendeAction(setCatalogActiveAction, {
-    onErfolg: onClose,
+    onErfolg,
     erfolgsMeldung: "Katalog deaktiviert",
   });
 

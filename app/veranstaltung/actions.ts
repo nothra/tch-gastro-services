@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
-import { loeschSperreMeldung, loeschSperren } from "@/lib/veranstaltung-loesch-sperren";
 import { createTeilnehmer, getTeilnehmer, getTeilnehmerByIds } from "@/db/teilnehmer";
 import { getCatalogById, getCatalogItem } from "@/db/catalog";
 import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
@@ -43,6 +42,8 @@ import {
 } from "@/db/auslage";
 import type { VerzehrActionState } from "@/app/_verzehr/types";
 import { kassierTagessummen, kassierZeilen } from "./kassierSummen";
+import { hatVerzehr, loeschSperreMeldung, loeschSperren } from "./loeschSperren";
+import { VERANSTALTUNG_LISTE_PATH } from "./pfade";
 import {
   auslageSchema,
   auslageStatusSchema,
@@ -54,7 +55,7 @@ import {
   zeilenAnlageSchema,
 } from "./schema";
 
-const LIST_PATH = "/veranstaltung";
+const LIST_PATH = VERANSTALTUNG_LISTE_PATH;
 const detailPath = (id: string) => `${LIST_PATH}/${id}`;
 const verzehrPath = (id: string) => `${detailPath(id)}/verzehr`;
 const auslagenPath = (id: string) => `${detailPath(id)}/auslagen`;
@@ -122,15 +123,10 @@ async function assertKatalogWaehlbar(catalogId: string): Promise<string | undefi
   return undefined;
 }
 
-// Ist für diese Veranstaltung tatsächlich Verzehr erfasst? Gefiltert wird auf `menge > 0` statt
-// auf bloße Zeilen-Existenz: `verzehr_position` löscht seine Zeile bei `menge = 0` nicht (Upsert
-// mit `GREATEST(0, …)`, db/verzehr.ts), eine hoch- und wieder runtergezählte Position ist also
-// kein tatsächlicher Verzehr (#346 AK4, #352 FS1). Dieselbe Regel gilt beim Löschen; dort steht
-// sie in `loeschSperren` (lib/veranstaltung-loesch-sperren.ts), weil die Detailseite sie ebenfalls
-// braucht.
+// Die Regel „Verzehr = `menge > 0`" steht in `hatVerzehr` (./loeschSperren.ts) – Katalogwechsel
+// und Löschen teilen sie, zwei Kopien würden lautlos divergieren.
 async function hatErfasstenVerzehr(veranstaltungId: string): Promise<boolean> {
-  const positionen = await listPositionen(veranstaltungId);
-  return positionen.some((position) => position.menge > 0);
+  return hatVerzehr(await listPositionen(veranstaltungId));
 }
 
 // Gemeinsame Guard-Sequenz für Bearbeiten und Löschen (#352): Existenz (FS4) → Typ (AK10, die

@@ -41,11 +41,9 @@ function VeranstaltungFormular({
   kataloge: Catalog[];
   steuerung: DialogSteuerung;
 }) {
-  const { state, pending, absenden } = useDialogFormular(
-    createVeranstaltungAction,
-    steuerung,
-    "Veranstaltung angelegt",
-  );
+  const { state, pending, absenden } = useDialogFormular(createVeranstaltungAction, steuerung, {
+    erfolgsMeldung: "Veranstaltung angelegt",
+  });
   // Vorbelegung ist der Standard-Katalog – der Regelfall kostet damit keinen Klick (#346 AK1). Ist
   // er deaktiviert, fehlt er in `kataloge`; dann fällt die Vorbelegung auf die erste angebotene
   // Option zurück, statt eine nicht wählbare Id an die Action zu schicken.

@@ -68,8 +68,9 @@ export function useFormularDialog(ersatzFokusId?: string) {
 // auf `<body>` fallen. Nur dann – und nur nach einem Erfolg – wird umgelenkt, damit ein Nutzer,
 // der inzwischen woanders steht, nicht weggezogen wird. Ob React zuerst den Dialog schließt
 // oder gleich den ganzen Zweig tauscht, ist dabei gleich. Die Erfolgsmarke wird bewusst erst im
-// Cleanup gelesen: gefragt ist ihr Stand beim Aushängen, nicht beim Einhängen.
-function useErsatzFokusBeimAushaengen(ersatzFokusId: string | undefined) {
+// Cleanup gelesen: gefragt ist ihr Stand beim Aushängen, nicht beim Einhängen. Geteilt mit
+// `useBestaetigung`.
+export function useErsatzFokusBeimAushaengen(ersatzFokusId: string | undefined) {
   const erfolgsmarke = useRef(false);
   useEffect(() => {
     if (!ersatzFokusId) return;
@@ -90,7 +91,7 @@ function useErsatzFokusBeimAushaengen(ersatzFokusId: string | undefined) {
 export function useDialogFormular<State extends { ok?: boolean }>(
   action: FormAction<State>,
   steuerung: DialogSteuerung,
-  erfolgsMeldung: AktionsOptionen<State>["erfolgsMeldung"],
+  { erfolgsMeldung }: Pick<AktionsOptionen<State>, "erfolgsMeldung">,
 ) {
   const [state, formAction, pending, meldeStart] = useSchliessendeAction(action, {
     onErfolg: steuerung.schliessenNachErfolg,
@@ -110,8 +111,49 @@ export function useDialogFormular<State extends { ok?: boolean }>(
   return { state, pending, absenden };
 }
 
+interface FormularDialogProps {
+  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Umbenennen". */
+  ausloeser: string;
+  ausloeserVariant: "primary" | "secondary";
+  ausloeserId?: string;
+  titel: string;
+  beschreibung?: string;
+  /** Fokusziel, falls ein Erfolg den Auslöser aushängt (siehe `useFormularDialog`). */
+  ersatzFokusId?: string;
+  /** Mountet erst beim Öffnen: jedes Öffnen beginnt ohne die Ablehnung des letzten Versuchs. */
+  children: (steuerung: DialogSteuerung) => ReactNode;
+}
+
+/** Button + Dialog mit Formular – für Auslöser in der Standard-Optik von `Button`. */
+export function FormularDialog({
+  ausloeser,
+  ausloeserVariant,
+  ausloeserId,
+  titel,
+  beschreibung,
+  ersatzFokusId,
+  children,
+}: FormularDialogProps) {
+  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(ersatzFokusId);
+  return (
+    <>
+      <Button
+        ref={ausloeserRef}
+        id={ausloeserId}
+        variant={ausloeserVariant}
+        size="sm"
+        onClick={oeffnen}
+      >
+        {ausloeser}
+      </Button>
+      <Dialog {...dialogProps} title={titel} description={beschreibung}>
+        {children(steuerung)}
+      </Dialog>
+    </>
+  );
+}
+
 interface AnlegeDialogProps {
-  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Teilnehmer anlegen". */
   ausloeser: string;
   titel: string;
   /**
@@ -123,7 +165,7 @@ interface AnlegeDialogProps {
 }
 
 /**
- * Button + Anlege-Dialog. Seitenkopf und Leerzustand bekommen je eine eigene Instanz: beim
+ * Anlege-Dialog der Listenseiten. Seitenkopf und Leerzustand bekommen je eine eigene Instanz: beim
  * Abbrechen kehrt der Fokus so auf den Button zurück, der den Dialog geöffnet hat (AK1.5).
  */
 export function AnlegeDialog({
@@ -132,24 +174,16 @@ export function AnlegeDialog({
   imLeerzustand = false,
   children,
 }: AnlegeDialogProps) {
-  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(
-    imLeerzustand ? SEITENKOPF_AUSLOESER_ID : undefined,
-  );
   return (
-    <>
-      <Button
-        ref={ausloeserRef}
-        id={imLeerzustand ? undefined : SEITENKOPF_AUSLOESER_ID}
-        variant={imLeerzustand ? "secondary" : "primary"}
-        size="sm"
-        onClick={oeffnen}
-      >
-        {ausloeser}
-      </Button>
-      <Dialog {...dialogProps} title={titel}>
-        {children(steuerung)}
-      </Dialog>
-    </>
+    <FormularDialog
+      ausloeser={ausloeser}
+      ausloeserVariant={imLeerzustand ? "secondary" : "primary"}
+      ausloeserId={imLeerzustand ? undefined : SEITENKOPF_AUSLOESER_ID}
+      ersatzFokusId={imLeerzustand ? SEITENKOPF_AUSLOESER_ID : undefined}
+      titel={titel}
+    >
+      {children}
+    </FormularDialog>
   );
 }
 

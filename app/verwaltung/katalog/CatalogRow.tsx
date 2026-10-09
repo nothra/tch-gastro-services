@@ -65,11 +65,9 @@ interface DialogBereichProps extends CatalogRowProps {
 }
 
 function ArtikelBearbeiten({ item, catalogId, steuerung }: DialogBereichProps) {
-  const { state, pending, absenden } = useDialogFormular(
-    updateCatalogItemAction,
-    steuerung,
-    "Gespeichert",
-  );
+  const { state, pending, absenden } = useDialogFormular(updateCatalogItemAction, steuerung, {
+    erfolgsMeldung: "Gespeichert",
+  });
   return (
     <form onSubmit={absenden} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={item.id} />
@@ -89,11 +87,9 @@ function ArtikelBearbeiten({ item, catalogId, steuerung }: DialogBereichProps) {
 // Eigenes Formular, damit „Deaktivieren" nicht die bearbeiteten Felder mitschickt. Schließt den
 // Dialog bei Erfolg wie „Speichern" (AK4.5).
 function ArtikelAktivUmschalten({ item, catalogId, steuerung }: DialogBereichProps) {
-  const { state, pending, absenden } = useDialogFormular(
-    setCatalogItemActiveAction,
-    steuerung,
-    item.active ? "Artikel deaktiviert" : "Artikel aktiviert",
-  );
+  const { state, pending, absenden } = useDialogFormular(setCatalogItemActiveAction, steuerung, {
+    erfolgsMeldung: item.active ? "Artikel deaktiviert" : "Artikel aktiviert",
+  });
   const label = item.active ? "Deaktivieren" : "Aktivieren";
   return (
     <form onSubmit={absenden} className="flex flex-col gap-3 border-t border-line-subtle pt-4">

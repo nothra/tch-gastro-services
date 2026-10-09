@@ -8,6 +8,7 @@ import { meldeErfolg } from "@/app/components/ui/meldung";
 import {
   AnlegeDialog,
   DialogAktionen,
+  FormularDialog,
   useDialogFormular,
   type DialogSteuerung,
 } from "./FormularDialog";
@@ -18,7 +19,9 @@ const action = vi.fn<(prev: State | undefined, formData: FormData) => Promise<St
 const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function Formular({ steuerung }: { steuerung: DialogSteuerung }) {
-  const { state, pending, absenden } = useDialogFormular(action, steuerung, "Etwas angelegt");
+  const { state, pending, absenden } = useDialogFormular(action, steuerung, {
+    erfolgsMeldung: "Etwas angelegt",
+  });
   return (
     <form onSubmit={absenden}>
       <label>
@@ -203,6 +206,37 @@ describe("AnlegeDialog + useDialogFormular (spec-373 AK1.1–AK1.5)", () => {
       await act(async () => aufloesen({ error: "Abgelehnt." }));
       expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
     });
+  });
+});
+
+describe("FormularDialog (spec-372 AK5)", () => {
+  function renderFormularDialog() {
+    render(
+      <FormularDialog
+        ausloeser="Duplizieren"
+        ausloeserVariant="secondary"
+        titel="Katalog duplizieren"
+        beschreibung="„Montagsrunde“ wird kopiert."
+      >
+        {(steuerung) => <Formular steuerung={steuerung} />}
+      </FormularDialog>,
+    );
+  }
+
+  it("should_renderTriggerInGivenVariant_when_rendered", () => {
+    renderFormularDialog();
+
+    expect(screen.getByRole("button", { name: "Duplizieren" })).toHaveClass("border-line");
+  });
+
+  it("should_linkBeschreibungToDialog_when_opened", () => {
+    renderFormularDialog();
+
+    fireEvent.click(screen.getByRole("button", { name: "Duplizieren" }));
+
+    expect(screen.getByRole("dialog", { name: "Katalog duplizieren" })).toHaveAccessibleDescription(
+      "„Montagsrunde“ wird kopiert.",
+    );
   });
 });
 

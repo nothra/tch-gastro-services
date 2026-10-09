@@ -29,11 +29,9 @@ export function TeilnehmerAnlegen({
 // sodass der Zweitversuch die Warnung überstimmt und anlegt (ADR-022). Die Eingabe bleibt dabei
 // stehen, weil der Dialog ohne Formular-Reset absendet.
 function TeilnehmerFormular({ steuerung }: { steuerung: DialogSteuerung }) {
-  const { state, pending, absenden } = useDialogFormular(
-    createTeilnehmerAction,
-    steuerung,
-    "Teilnehmer angelegt",
-  );
+  const { state, pending, absenden } = useDialogFormular(createTeilnehmerAction, steuerung, {
+    erfolgsMeldung: "Teilnehmer angelegt",
+  });
   return (
     <form onSubmit={absenden} className="flex flex-col gap-3">
       <TeilnehmerFields />
