@@ -97,6 +97,11 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   schreibgeschützten `ZeileRow` ungetestet; E2E-Lauf ausstehend), 11 Nitpicks.
   → Rework: K1, W1–W3 und 9 Nitpicks behoben, 1 Nitpick begründet abgelehnt, E2E-Lauf offen
   (Notizen oben).
+- **Iteration 2 (2026-10-09): NEEDS_REWORK** – [review-403.md](review-403.md): 0 kritisch, 4 wichtig
+  (benannte Gruppe verhindert Mitdrehen verschachtelter Aufklapper **nicht** – ADR/Kommentar/
+  Testname behaupten es; ADR-055 D4 „kein neuer Baustein" nicht nachgezogen; `line-subtle`-
+  Begründung „Titel und Pfeil" trägt nicht für die pfeillosen Kacheln; E2E-Lauf weiter offen,
+  braucht Freigabe des Menschen), 12 Nitpicks. Iteration-1-Befunde K1, W1–W3 bestätigt behoben.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
