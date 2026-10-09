@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Dialog „Teilnehmer hinzufügen" verschlanken; „Neuer Gast" wird zum eigenen Schritt „Teilnehmer anlegen" (gleiches Formular wie die Verwaltung). Spec: `docs/specs/spec-404-teilnehmer-anlegen-statt-neuer-gast.md`.
@@ -46,7 +46,8 @@ Dialog „Teilnehmer hinzufügen" verschlanken; „Neuer Gast" wird zum eigenen 
   (`E2E_404=1`) sowie die angepassten Specs `veranstaltung-detailseite` (`E2E_DETAILSEITE_369`),
   `bestaetigen-rueckmelden` (`E2E_372`) und `listenseiten` (`E2E_LISTENSEITEN_373`) – 14/14 grün.
   Zwei Locator-Fehler der neuen Spec behoben (Dev-DB-Namen mit „Gast"; Toast im Dialog-Portal, #372).
-- **Offen – menschlicher Schritt vor dem Merge:** `docs/anleitung/veranstalter/bilder/06-teilnehmer-hinzufuegen.png`
+- **Entschieden (2026-10-09, Ralf): Verzicht auf die Anleitungs-Anpassung** – das Bild bleibt
+  vorerst unverändert, der Alt-Text ist angepasst. Ursprünglicher Schritt: `docs/anleitung/veranstalter/bilder/06-teilnehmer-hinzufuegen.png`
   zeigt noch den alten Dialog mit „Neuer Gast"; per Capture-Spec (`CAPTURE_ANLEITUNG=1`) neu
   erzeugen. Der Alt-Text ist bereits angepasst; die Capture-Spec läuft laut `kleinfunde.md` nicht
   bis zum Ende durch.
