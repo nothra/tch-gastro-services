@@ -33,7 +33,7 @@ nur im Verwaltungs-Formular, `createWalkInAction` kennt sie nicht.
 - [ ] **AK1** GIVEN irgendeine Seite der App WHEN sie gerendert wird THEN kommt „Gast"/„Neuer Gast" nirgends als UI-Text vor; die Funktion heißt überall „Teilnehmer anlegen".
 - [ ] **AK2** GIVEN die Detailseite einer offenen Veranstaltung WHEN der Dialog „Teilnehmer hinzufügen" öffnet THEN enthält er nur Suche, Mehrfachauswahl und die Aktion „Hinzufügen" (plus „Abbrechen") sowie den Absprung aus AK3 – kein Namensfeld, keinen Typ, keine Mitglied-Checkbox.
 - [ ] **AK3.1** GIVEN der Auswahl-Schritt WHEN der Nutzer den Absprung „Teilnehmer anlegen" wählt THEN wechselt der Dialog zum Schritt „Teilnehmer anlegen" mit Zurück zur Auswahl.
-- [ ] **AK3.2** GIVEN der Schritt „Teilnehmer anlegen" WHEN der Nutzer „Zurück" wählt THEN erscheint wieder die Auswahl; zuvor gesetzte Auswahl/Suche bleibt erhalten (Annahme, s. Q1).
+- [ ] **AK3.2** GIVEN der Schritt „Teilnehmer anlegen" WHEN der Nutzer „Zurück" wählt THEN erscheint wieder die Auswahl; zuvor gesetzte Auswahl/Suche bleibt erhalten (entschieden, Q1).
 - [ ] **AK3.3** GIVEN die Suche liefert keinen Treffer WHEN der Absprung angezeigt wird THEN lautet er „„<Suchtext>" als Teilnehmer anlegen" und übernimmt den Suchtext als vorbelegten Namen.
 - [ ] **AK4.1** GIVEN der Schritt „Teilnehmer anlegen" WHEN er angezeigt wird THEN enthält er dieselben Felder wie die Verwaltung (Name, Typ, Mitglied; dieselbe Komponente) und einen Hinweis, dass die Person direkt zur Veranstaltung hinzugefügt wird.
 - [ ] **AK4.2** GIVEN gültige Eingaben, kein Namens-Duplikat WHEN der Nutzer „Anlegen" bestätigt THEN wird der Teilnehmer angelegt und der Veranstaltung hinzugefügt, der Dialog schließt, die Meldung „Teilnehmer angelegt und hinzugefügt" erscheint.
@@ -50,8 +50,11 @@ nur im Verwaltungs-Formular, `createWalkInAction` kennt sie nicht.
 - [ ] Doppelklick/zweiter Submit während Läuft → kein zweiter Teilnehmer (Busy-Zustand wie bisher).
 - [ ] Rollenprüfung bleibt serverseitig (`requireRole("veranstalter")`).
 
+## Entscheidungen (ehemals offene Fragen, 2026-10-09)
+- [x] **Q1** Auswahl und Suchtext bleiben beim Wechsel Auswahl → Anlegen → Zurück erhalten (AK3.2).
+- [x] **Q2** Nach erfolgreichem Anlegen schließt der Dialog (AK4.2).
+- [x] **Q3** Duplikat-Warnung „Trotzdem anlegen" gilt auch beim Anlegen aus der Veranstaltung (AK4.3).
+- [x] **Q4** Ersatztext: „Alle aktiven Teilnehmer sind bereits hinzugefügt."; der Kein-Treffer-Text folgt demselben Muster ohne „Stamm…" (AK5).
+
 ## Offene Fragen
-- [ ] **Q1** Bleibt die Auswahl/der Suchtext beim Wechsel Auswahl → Anlegen → Zurück erhalten? Vorschlag: ja (AK3.2), Kosmetik – bei Aufwand streichbar.
-- [ ] **Q2** Soll nach Anlegen der Dialog schließen (Vorschlag, wie bisher) oder zurück zur Auswahl springen, damit weitere Personen hinzugefügt werden können?
-- [ ] **Q3** Duplikat-Warnung in der Veranstaltung: Die bisherige Walk-in-Action hat keine; AK4.3 erweitert sie. Bestätigt?
-- [ ] **Q4** Wortlaut der „Stammteilnehmer"-Ersatztexte (z. B. „Alle aktiven Teilnehmer sind bereits hinzugefügt.") – Vorschlag nach Glossar, im /implement mit dem Wording-Glossar abzugleichen.
+_Keine._

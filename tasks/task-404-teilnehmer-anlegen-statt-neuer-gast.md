@@ -32,7 +32,7 @@ Dialog „Teilnehmer hinzufügen" verschlanken; „Neuer Gast" wird zum eigenen 
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
 ## Offene Fragen
-- Q1 Auswahl/Suche beim Zurück erhalten? · Q2 Dialog nach Anlegen schließen oder zur Auswahl? · Q3 Duplikat-Warnung auch in der Veranstaltung (neu)? · Q4 Ersatzwortlaut „Stammteilnehmer" – Details in der Spec
+Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach Anlegen · Q3 Duplikat-Warnung auch in der Veranstaltung · Q4 „Alle aktiven Teilnehmer sind bereits hinzugefügt."
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
