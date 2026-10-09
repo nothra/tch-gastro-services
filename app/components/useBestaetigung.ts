@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useErsatzFokusBeimAushaengen } from "./FormularDialog";
+import { useErsatzFokus } from "./useErsatzFokus";
 
 // Route-neutrale Steuerung einer Bestätigung (`ConfirmDialog`) mit eigenem Auslöser (spec-372
 // AK1/AK3, Lesson #369: Verhaltensvertrag in den Baustein). Sie bündelt, was jede Bestätigung
@@ -17,19 +17,19 @@ export function useBestaetigung(ersatzFokusId?: string) {
   const [open, setOpen] = useState(false);
   const [durchlauf, setDurchlauf] = useState(0);
   const ausloeserRef = useRef<HTMLButtonElement>(null);
-  const erfolgreichRef = useErsatzFokusBeimAushaengen(ersatzFokusId);
+  const { zuruecksetzen, markiereErfolg } = useErsatzFokus(ersatzFokusId);
   const schliessen = () => setOpen(false);
 
   return {
     ausloeserRef,
     durchlauf,
     oeffnen: () => {
-      erfolgreichRef.current = false;
+      zuruecksetzen();
       setDurchlauf((bisher) => bisher + 1);
       setOpen(true);
     },
     schliessenNachErfolg: () => {
-      erfolgreichRef.current = true;
+      markiereErfolg();
       setOpen(false);
     },
     dialogProps: { open, onClose: schliessen, returnFocusRef: ausloeserRef },

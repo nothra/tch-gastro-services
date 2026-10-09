@@ -1,9 +1,10 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useRef, useState, type FormEvent } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
+import { useErsatzFokus } from "./useErsatzFokus";
 import {
   useSchliessendeAction,
   type AktionsOptionen,
@@ -41,13 +42,13 @@ export function useFormularDialog(ersatzFokusId?: string) {
   const [open, setOpen] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const ausloeserRef = useRef<HTMLButtonElement>(null);
-  const erfolgreichRef = useErsatzFokusBeimAushaengen(ersatzFokusId);
+  const { zuruecksetzen, markiereErfolg } = useErsatzFokus(ersatzFokusId);
   const schliessen = () => setOpen(false);
 
   const steuerung: DialogSteuerung = {
     schliessen,
     schliessenNachErfolg: () => {
-      erfolgreichRef.current = true;
+      markiereErfolg();
       setOpen(false);
     },
     meldeLauf: setLaeuft,
@@ -56,31 +57,12 @@ export function useFormularDialog(ersatzFokusId?: string) {
   return {
     ausloeserRef,
     oeffnen: () => {
-      erfolgreichRef.current = false;
+      zuruecksetzen();
       setOpen(true);
     },
     steuerung,
     dialogProps: { open, onClose: schliessen, schliessbar: !laeuft, returnFocusRef: ausloeserRef },
   };
-}
-
-// Läuft beim Aushängen, nach dem DOM-Umbau: ein entfernter fokussierter Knoten lässt den Fokus
-// auf `<body>` fallen. Nur dann – und nur nach einem Erfolg – wird umgelenkt, damit ein Nutzer,
-// der inzwischen woanders steht, nicht weggezogen wird. Ob React zuerst den Dialog schließt
-// oder gleich den ganzen Zweig tauscht, ist dabei gleich. Die Erfolgsmarke wird bewusst erst im
-// Cleanup gelesen: gefragt ist ihr Stand beim Aushängen, nicht beim Einhängen. Geteilt mit
-// `useBestaetigung`.
-export function useErsatzFokusBeimAushaengen(ersatzFokusId: string | undefined) {
-  const erfolgsmarke = useRef(false);
-  useEffect(() => {
-    if (!ersatzFokusId) return;
-    const marke = erfolgsmarke;
-    return () => {
-      const fokusVerloren = document.activeElement === document.body;
-      if (marke.current && fokusVerloren) document.getElementById(ersatzFokusId)?.focus();
-    };
-  }, [ersatzFokusId]);
-  return erfolgsmarke;
 }
 
 /**

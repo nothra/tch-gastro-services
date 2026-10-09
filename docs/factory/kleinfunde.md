@@ -484,7 +484,7 @@
 
 ### Bestätigungs-Steuerung in `ZeilenMenue` und `AbschlussAktion` handkopiert
 
-- **Wo:** [`app/veranstaltung/ZeilenMenue.tsx:26-90`](../../app/veranstaltung/ZeilenMenue.tsx),
+- **Wo:** [`app/veranstaltung/ZeilenMenue.tsx:21-96`](../../app/veranstaltung/ZeilenMenue.tsx),
   [`app/veranstaltung/[id]/AbschlussAktion.tsx:61-76`](../../app/veranstaltung/[id]/AbschlussAktion.tsx)
   (verifiziert am 2026-10-09).
 - **Was:** Offen-Zustand, `durchlauf`-Zähler als `key` und `returnFocusRef` um einen `ConfirmDialog`

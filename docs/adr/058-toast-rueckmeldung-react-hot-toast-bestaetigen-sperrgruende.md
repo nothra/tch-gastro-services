@@ -221,8 +221,8 @@ Baustein; verworfen zugunsten von `Dialog`.
   beim Server-Rendern einen eigenen Hydrations-Weg – bewusst nicht gebaut.
 - `ConfirmDialog`, `Dialog`, `Notice` bleiben in der Schnittstelle unverändert; `Notice` exportiert
   zusätzlich die Stil-Tabelle.
-- Mehrere Server Actions ändern ihre Signatur (`removeAuslageAction`, `setAuslageStatusAction`
-  auf `(prev, formData)` + State; `deleteVeranstaltungAction` ohne `redirect`). Zugehörige Tests,
+- Mehrere Server Actions ändern ihre Signatur (`removeAuslageAction`, `setAuslageStatusAction`,
+  `setTeilnehmerActiveAction` auf `(prev, formData)` + State; `deleteVeranstaltungAction` ohne `redirect`). Zugehörige Tests,
   `docs/routes.md` (keine Pfadänderung) und E2E-Helfer sind mitzuziehen.
 - Inline-Erfolgs-`Notice` entfallen (`„Gespeichert.“`, `„Änderungen gespeichert.“`,
   `„Katalog gewechselt.“`, `„Theke eingerichtet.“`, Kassieren-Rückmeldung) zugunsten des Toasts;

@@ -105,9 +105,9 @@ describe("loeschSperrenBeschreibung – Text im Dialog (AK9)", () => {
     );
   });
 
-  it("should_rejectEmptyList_when_typeChecked", () => {
-    // Ohne Sperre gibt es keinen Grund zu nennen – der Typ lässt die leere Liste nicht zu
-    // (`pnpm typecheck` schlägt fehl, sobald die Direktive unnötig wird).
+  it("should_rejectEmptyList_at_typeLevel_only", () => {
+    // Reiner Typ-Test: Ohne Sperre gibt es keinen Grund zu nennen – der Typ lässt die leere Liste
+    // nicht zu (`pnpm typecheck` schlägt fehl, sobald die Direktive unnötig wird).
     // @ts-expect-error -- leere Liste ist kein `LoeschSperren`
     const aufruf = () => loeschSperrenBeschreibung("M", []);
     expect(aufruf).toBeTypeOf("function");

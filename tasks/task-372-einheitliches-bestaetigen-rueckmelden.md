@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -86,6 +86,18 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
 - Übrige Restlücken (`Dialog.tsx` Z. 59, `actions.ts` Z. 625, `IdentityGate`, `db/*`) liegen in
   Code, den #372 nicht ändert.
 - Kein Produktionscode geändert.
+
+## Refactor-Notizen (/refactor, 2026-10-09)
+- Erfolgs-Fokus-Vertrag (Marke zurücksetzen/setzen + Ersatz-Fokus beim Aushängen) steht jetzt einmal
+  in `app/components/useErsatzFokus.ts`; `useBestaetigung` und `useFormularDialog` rufen ihn auf
+  (vorher zwei wortgleiche Kopien, der Helfer lag in einer Komponenten-Datei).
+- `LIST_PATH`-Alias in `app/veranstaltung/actions.ts` entfernt (direkt `VERANSTALTUNG_LISTE_PATH`).
+- Typ-Test in `loeschSperren.test.ts` ehrlich benannt; ADR-058 „Konsequenzen" nennt
+  `setTeilnehmerActiveAction`; kleinfunde-Anker auf `ZeilenMenue.tsx:21-96` korrigiert.
+- Kein neues Verhalten. `vitest app/components app/veranstaltung`: 938/938 grün, pre-commit (Lint) grün.
+  `pnpm typecheck` war in dieser Session nicht freigegeben – läuft im pre-push.
+- Die gitignorete Wegwerf-Datei `playwright-372.tmp.config.ts` konnte nicht gelöscht werden
+  (Freigabe fehlte) – vor dem Merge manuell entfernen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

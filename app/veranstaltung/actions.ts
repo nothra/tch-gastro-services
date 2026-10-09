@@ -55,8 +55,7 @@ import {
   zeilenAnlageSchema,
 } from "./schema";
 
-const LIST_PATH = VERANSTALTUNG_LISTE_PATH;
-const detailPath = (id: string) => `${LIST_PATH}/${id}`;
+const detailPath = (id: string) => `${VERANSTALTUNG_LISTE_PATH}/${id}`;
 const verzehrPath = (id: string) => `${detailPath(id)}/verzehr`;
 const auslagenPath = (id: string) => `${detailPath(id)}/auslagen`;
 const kassierenPath = (id: string) => `${detailPath(id)}/kassieren`;
@@ -156,7 +155,7 @@ export async function createVeranstaltungAction(
   if (katalogError) return { error: katalogError };
 
   await createVeranstaltung(parsed.data);
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -246,7 +245,7 @@ export async function updateVeranstaltungMetaAction(
   revalidatePath(auslagenPath(id));
   revalidatePath(kassierenPath(id));
   revalidatePath(thekePath(updated.token));
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -311,7 +310,7 @@ export async function deleteVeranstaltungAction(
   // `.returning()`-Zeile des guarded DELETE, also aus dem tatsächlich entfernten Datensatz.
   // Zur Übersicht navigiert der Client (spec-372 Q7): erst dort kann er den Toast zeigen.
   revalidatePath(thekePath(removed.token));
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -494,7 +493,7 @@ export async function setStatusAction(
 
   revalidatePath(detailPath(id));
   revalidatePath(kassierenPath(id));
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
@@ -631,7 +630,7 @@ export async function ensureThekeAction(
     // Race mit einem parallelen Einrichten: die Theke existiert nun – ebenfalls Erfolg.
     if (!isUniqueViolation(error)) throw error;
   }
-  revalidatePath(LIST_PATH);
+  revalidatePath(VERANSTALTUNG_LISTE_PATH);
   return { ok: true };
 }
 
