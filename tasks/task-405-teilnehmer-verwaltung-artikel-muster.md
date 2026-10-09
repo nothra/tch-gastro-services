@@ -27,9 +27,9 @@ Listenzeilen, Bearbeiten-Dialog mit Aktiv/Deaktiviert, Aufklapper „Aktiv“/�
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
 ## Offene Fragen
-- [ ] Q1 Wortlaut der Wirkungssätze (Spec)
+- [x] Q1 Wortlaut der Wirkungssätze (Spec)
 - [ ] Q2 ListenZeile braucht Button-Variante → /architecture (Nachtrag ADR-059)
-- [ ] Q3 Rolle der Warnung (status vs. alert)
+- [x] Q3 Rolle der Warnung (status vs. alert)
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

@@ -76,9 +76,10 @@ Primärer Nutzer: Rolle `verwalter`, überwiegend am Smartphone.
   werden keine Änderungen gespeichert und der Fokus kehrt zur Zeile zurück.
 - [ ] **AK2.6** GIVEN ein **aktiver** Teilnehmer WHEN der Dialog geöffnet ist THEN steht unter dem
   Formular abgesetzt (Trennlinie, wie im Artikel-Dialog) der Button „Deaktivieren“ mit
-  einem Satz zur Wirkung (Wortlaut: Q1).
+  einem Satz zur Wirkung: „Deaktivierte Teilnehmer lassen sich keiner Veranstaltung mehr
+  hinzufügen. Bestehende Abrechnungen bleiben unverändert.“ (Q1)
 - [ ] **AK2.7** GIVEN ein **deaktivierter** Teilnehmer WHEN der Dialog geöffnet ist THEN heißt der
-  Button „Aktivieren“, mit einem Satz zur Wirkung (Wortlaut: Q1).
+  Button „Aktivieren“, mit dem Satz „Der Teilnehmer lässt sich wieder Veranstaltungen hinzufügen.“ (Q1)
 - [ ] **AK2.8** GIVEN „Deaktivieren“/„Aktivieren“ WHEN der Button gedrückt wird THEN wirkt es
   **ohne Bestätigungsdialog** (reversibel, spec-372), zeigt im Lauf „Deaktivieren …“ bzw.
   „Aktivieren …“, schließt den Dialog bei Erfolg und meldet per Toast „Teilnehmer
@@ -162,15 +163,13 @@ Primärer Nutzer: Rolle `verwalter`, überwiegend am Smartphone.
 
 ## Offene Fragen
 
-- [ ] **Q1 Wortlaut der Wirkungssätze** unter „Deaktivieren“/„Aktivieren“. *Vorschlag:*
-  Deaktivieren: „Deaktivierte Teilnehmer lassen sich keiner Veranstaltung mehr hinzufügen.
-  Bestehende Abrechnungen bleiben unverändert.“ · Aktivieren: „Der Teilnehmer lässt sich
-  wieder Veranstaltungen hinzufügen.“ – vor `/implement` bestätigen (Fachwirkung gegen
-  `listActive`/Veranstaltungs-Auswahl prüfen).
+> **Entschieden mit Ralf:**
+
+- [x] **Q1 Wortlaut der Wirkungssätze:** wie in AK2.6/AK2.7 (Ralf bestätigt).
 - [ ] **Q2 `ListenZeile` ist heute nur ein Link** (`href` Pflicht). Die Teilnehmerzeile ist ein
   Dialog-Auslöser (Button). Nötig ist eine Variante „öffnet etwas“ (Button statt Link)
   – bei gleicher Karten-Optik, Pfeil, Verblassen/Badge. Das ändert die API eines geteilten
   Bausteins (ADR-059 D1) → **Anlass für `/architecture`** (Nachtrag zu ADR-059) vor
   `/implement`.
-- [ ] **Q3 Rolle der Warnung:** `Notice` `warnung` mit `role="status"` (wie die heutige
-  Duplikat-Warnung, nicht unterbrechend) – bestätigen oder `alert` wählen.
+- [x] **Q3 Rolle der Warnung:** `Notice` `warnung` mit `role="status"` (wie bisher, nicht
+  unterbrechend) – übernommen (AK4.1).
