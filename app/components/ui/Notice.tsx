@@ -3,7 +3,7 @@ import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1).
 
-export type NoticeKind = "erfolg" | "fehler";
+export type NoticeKind = "erfolg" | "fehler" | "warnung";
 
 interface NoticeStyle {
   role: "status" | "alert";
@@ -24,6 +24,13 @@ export const NOTICE_STYLES: Record<NoticeKind, NoticeStyle> = {
     glyph: "!",
     classes: "border-danger bg-danger-subtle text-danger",
   },
+  // Nicht unterbrechend: eine Warnung (z. B. Duplikat, ADR-022) lässt sich überstimmen und ist
+  // keine Ablehnung (ADR-060 D2).
+  warnung: {
+    role: "status",
+    glyph: "⚠",
+    classes: "border-warning bg-warning-subtle text-warning",
+  },
 };
 
 const NOTICE_BASE_CLASSES = "flex items-start gap-2 rounded-md border px-3 py-2 text-sm";
@@ -36,8 +43,8 @@ interface NoticeProps {
 }
 
 /**
- * Rückmeldung an den Nutzer. Erfolg wird als `role="status"` angesagt, ein Fehler als
- * `role="alert"` (spec AK2.10).
+ * Rückmeldung an den Nutzer. Erfolg und Warnung werden als `role="status"` angesagt, ein Fehler
+ * als `role="alert"` (spec AK2.10, spec-405 AK4.1).
  *
  * Ohne Inhalt entsteht bewusst KEIN Element: ein leerer Live-Bereich würde vom Screenreader
  * beim Einfügen angesagt, obwohl nichts zu melden ist (Fehlerszenario der Spec). Konsumenten

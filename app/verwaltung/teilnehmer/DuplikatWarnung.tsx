@@ -1,5 +1,8 @@
 // Die überstimmbare Duplikat-Warnung beim Anlegen eines Teilnehmers (ADR-022). Verwaltung und
 // „Teilnehmer anlegen" aus der Veranstaltung zeigen und bestätigen sie gleich (spec-404 AK4.3).
+// Dargestellt als `Notice` der Art `warnung` (spec-405 AK4.2, ADR-060 D2).
+
+import { Notice } from "@/app/components/ui/Notice";
 
 export interface DuplikatState {
   needsConfirm?: boolean;
@@ -14,11 +17,7 @@ export function DuplikatWarnung({ state }: { state: DuplikatState | undefined })
   return (
     <>
       <input type="hidden" name="confirmDuplicate" value={state?.needsConfirm ? "true" : "false"} />
-      {state?.needsConfirm && (
-        <p role="status" className="text-sm text-warning">
-          {state.warning}
-        </p>
-      )}
+      {state?.needsConfirm && <Notice kind="warnung">{state.warning}</Notice>}
     </>
   );
 }

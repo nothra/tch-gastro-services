@@ -20,7 +20,7 @@ export function useErsatzFokus(ersatzFokusId: string | undefined) {
     const marke = erfolgsmarke;
     return () => {
       const fokusVerloren = document.activeElement === document.body;
-      if (marke.current && fokusVerloren) document.getElementById(ersatzFokusId)?.focus();
+      if (marke.current && fokusVerloren) fokussiereErsatzziel(ersatzFokusId);
     };
   }, [ersatzFokusId]);
 
@@ -33,4 +33,16 @@ export function useErsatzFokus(ersatzFokusId: string | undefined) {
       erfolgsmarke.current = true;
     },
   };
+}
+
+/**
+ * Inhalt eines zugeklappten `<details>` ist im Browser nicht fokussierbar – `focus()` liefe ins
+ * Leere. Dann bekommt der Kopf des Aufklappers den Fokus, z. B. „Deaktiviert (2)", wenn eine
+ * Teilnehmerzeile in die zugeklappte Gruppe wandert (spec-405 AK3.5).
+ */
+function fokussiereErsatzziel(id: string) {
+  const ziel = document.getElementById(id);
+  const zugeklappt = ziel?.closest("details:not([open])");
+  const kopf = zugeklappt?.querySelector("summary");
+  (kopf ?? ziel)?.focus();
 }

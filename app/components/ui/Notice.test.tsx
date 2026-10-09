@@ -53,6 +53,29 @@ describe("Notice (AK2.10)", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  // spec-405 AK4.1 / ADR-060 D2: Warnung ist nicht unterbrechend wie die bisherige Duplikat-Warnung.
+  it("should_useStatusRoleAndWarningToken_when_kindIsWarnung", () => {
+    render(<Notice kind="warnung">Gibt es schon.</Notice>);
+
+    const warnung = screen.getByRole("status");
+    expect(warnung).toHaveTextContent("Gibt es schon.");
+    expect(warnung).toHaveClass("border-warning", "bg-warning-subtle", "text-warning");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("should_showWarningGlyph_when_kindIsWarnung", () => {
+    render(<Notice kind="warnung">Gibt es schon.</Notice>);
+
+    const zeichen = screen.getByRole("status").querySelector("[aria-hidden='true']");
+    expect(zeichen).toHaveTextContent("⚠");
+  });
+
+  it("should_renderNothing_when_warnungContentIsEmpty", () => {
+    render(<Notice kind="warnung">{undefined}</Notice>);
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("should_appendLayoutClassName_when_classNameGiven", () => {
     render(
       <Notice kind="fehler" className="mt-2">

@@ -399,3 +399,22 @@ Iteration 2 auf.
 **Regel:** Wechselt ein Dialog den Schritt, ohne zu schließen, den Fokus je Richtung per Ref/Effekt setzen und je Richtung
 testen – plus Gegenprobe „beim Öffnen **nicht**" (Reset beim erneuten Öffnen) und jeden Zweig, der den Absprung-Knopf
 nicht rendert (Leer-Zweig). Fokus-Tests per Mutation belegen (Zeile entfernen → genau dieser Test rot). Ergänzt #371/#373.
+
+### Ersatz-Fokusziel kann in einem zugeklappten `<details>` liegen – dann den `<summary>` fokussieren (aus #405, /implement-Selbstfund)
+
+**Smell:** Ein Statuswechsel („Deaktivieren") verschiebt die Zeile in die Gruppe „Deaktiviert", die als `Aufklapper` zugeklappt
+startet. `useErsatzFokus` fokussierte die stabile Zeilen-`id`, die Zeile ist im zugeklappten `<details>` aber nicht
+fokussierbar – der Fokus fiel auf `<body>`. jsdom kennt das nicht; sichtbar wurde es erst im Browser.
+
+**Regel:** Kann das Ersatzziel in einem zugeklappten `<details>` landen, auf dessen `<summary>` ausweichen (im Baustein
+`useErsatzFokus`, nicht im Konsumenten) und beide Richtungen testen (zu → Kopf, offen → Zeile). Nachweis zusätzlich per
+Playwright mit Gegenprobe (Fallback entfernen → E2E rot). Ergänzt #371/#373.
+
+### Props vorab destrukturieren, wenn `props` einen Ref trägt (`react-hooks/refs`) (aus #405, /implement-Selbstfund)
+
+**Smell:** `ListenZeile` (diskriminierte Union `href` | `onOeffnen`, Prop `ausloeserRef`) las `props.x`; `react-hooks/refs`
+meldete jeden Prop-Zugriff als Ref-Zugriff während des Renders, weil das `props`-Objekt einen Ref enthält.
+
+**Regel:** Bei Komponenten mit Ref-Prop die Props im Funktionskopf destrukturieren, nie `props.x` im Rumpf lesen. Bei einer
+Union dafür `never`-Gegenstücke für alle Props der jeweils anderen Betriebsart deklarieren und den Typ-Wächter per
+`@ts-expect-error`-Test belegen (`tsc` prüft ihn).

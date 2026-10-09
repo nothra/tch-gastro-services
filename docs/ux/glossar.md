@@ -186,7 +186,7 @@ Grep auf den Ist-Text).
 | `app/veranstaltung/OffeneVeranstaltungen.tsx:28` | „Veranstaltung anlegen" | neues Objekt = anlegen |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:36` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
 | `app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:12` | „Verzehr erfassen" | Mengen eintragen = erfassen |
-| `app/verwaltung/teilnehmer/TeilnehmerRow.tsx:78`, `app/verwaltung/katalog/CatalogRow.tsx:89` | „Aktivieren" | umschalten = (de)aktivieren |
+| `app/verwaltung/teilnehmer/TeilnehmerRow.tsx:83`, `app/verwaltung/katalog/CatalogRow.tsx:93` | „Aktivieren" | umschalten = (de)aktivieren |
 | `app/veranstaltung/AuslageForm.tsx:86` | „Bitte wählen …" | Platzhalter mit Leerzeichen |
 | `app/veranstaltung/[id]/kassieren/page.tsx:236` | „← Verzehr erfassen" | Zurück-Link, Pfeil vor dem Ziel |
 | `app/_verzehr/VerzehrEinzelansicht.tsx:156` | „Nächste Person →" | Weiter-Aktion, Pfeil nach dem Ziel |

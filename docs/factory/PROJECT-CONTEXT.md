@@ -225,6 +225,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Seitenweites Overlay (Toast) im `<body>` ist bei offenem modalem `<dialog>` verdeckt und inert, `toBeVisible()` bleibt grün – Portal in den offenen Dialog, Nachweis per Klick + Screenshot (aus #372, /implement-Selbstfund)
 - Rezidiv #373: Erfolgs-Fokus-Vertrag in zwei Hooks kopiert – den ganzen Vertrag in einen Helfer ziehen, nicht nur das letzte Stück; Helfer als eigenes Modul, nicht aus einer Komponenten-Datei (aus #372, Review-Iteration 1/2)
 - Schrittwechsel im selben Dialog: `autoFocus` greift nur beim Mount – Fokus je Richtung explizit setzen, je Richtung + Gegenprobe „beim Öffnen nicht“ testen (aus #404, Review-Iteration 1 W1)
+- Ersatz-Fokusziel in zugeklapptem `<details>` ist nicht fokussierbar (Fokus → `<body>`, jsdom blind) – im Hook auf den `<summary>` ausweichen, beide Richtungen + Playwright-Gegenprobe (aus #405, /implement-Selbstfund)
+- Komponente mit Ref-Prop: Props vorab destrukturieren, sonst meldet `react-hooks/refs` jeden `props.x`-Zugriff; Union mit `never`-Gegenstücken + `@ts-expect-error`-Test (aus #405, /implement-Selbstfund)
 
 **[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
 

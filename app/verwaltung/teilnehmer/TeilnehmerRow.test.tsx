@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { useEffect, useState } from "react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { Teilnehmer } from "@/db/schema";
 import { TeilnehmerRow } from "./TeilnehmerRow";
 
@@ -18,12 +18,6 @@ const updateMock = vi.mocked(updateTeilnehmerAction);
 const setActiveMock = vi.mocked(setTeilnehmerActiveAction);
 const meldeErfolgMock = vi.mocked(meldeErfolg);
 
-async function klicke(name: string) {
-  await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name }));
-  });
-}
-
 const aTeilnehmer: Teilnehmer = {
   id: "t-1",
   name: "Anna Müller",
@@ -34,122 +28,354 @@ const aTeilnehmer: Teilnehmer = {
   updatedAt: new Date(),
 };
 
+function renderRow(teilnehmer: Teilnehmer = aTeilnehmer) {
+  render(
+    <ul>
+      <TeilnehmerRow teilnehmer={teilnehmer} />
+    </ul>,
+  );
+}
+
+function zeile() {
+  return screen.getByRole("button", { name: /^Anna Müller/ });
+}
+
+function oeffnen() {
+  fireEvent.click(zeile());
+  return screen.getByRole("dialog", { name: "Teilnehmer bearbeiten" });
+}
+
+function dialogElement() {
+  return document.querySelector("dialog")!;
+}
+
+async function klicke(name: string) {
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name }));
+  });
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   updateMock.mockResolvedValue({ ok: true });
   setActiveMock.mockResolvedValue({ ok: true });
 });
 
-describe("TeilnehmerRow (Rückmeldung, spec-372 AK12/AK16)", () => {
-  it("should_reportGespeichertAndClose_when_saveSucceeds", async () => {
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
-    await klicke("Bearbeiten");
+describe("TeilnehmerRow – Zeile (spec-405 AK1)", () => {
+  it("should_renderWhiteCardWithButtonNotLink_when_rendered", () => {
+    // AK1.1/AK1.3: ListenZeile im Auslöser-Betrieb – ganze Karte ist ein Button, kein Link.
+    renderRow();
 
-    await klicke("Speichern");
-
-    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
-    expect(screen.getByRole("button", { name: "Bearbeiten" })).toBeInTheDocument();
+    const karte = screen.getByRole("listitem");
+    expect(karte).toHaveClass("bg-surface", "rounded-lg");
+    expect(within(karte).queryByRole("link")).not.toBeInTheDocument();
+    expect(zeile()).toHaveAttribute("type", "button");
+    expect(zeile()).toHaveClass("min-h-11");
+    expect(zeile().querySelector("svg")).not.toBeNull();
   });
 
-  it("should_showAlertAndStayInEdit_when_saveRejected", async () => {
-    updateMock.mockResolvedValue({ error: "Anzeigename ist zu lang." });
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
-    await klicke("Bearbeiten");
+  it("should_beOnlyControlInRow_when_rendered", () => {
+    // Entschiedene Annahme: „Bearbeiten"/„Deaktivieren" stehen nicht mehr in der Zeile.
+    renderRow();
+
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+
+  it.each<[Teilnehmer["typ"], boolean, string]>([
+    ["person", true, "Person · Mitglied"],
+    ["person", false, "Person · kein Mitglied"],
+    ["familie", true, "Familie · Mitglied"],
+    ["familie", false, "Familie · kein Mitglied"],
+  ])("should_showUntertitel_when_typ%sAndMitglied%s", (typ, mitglied, untertitel) => {
+    // AK1.2
+    renderRow({ ...aTeilnehmer, typ, mitglied });
+
+    expect(screen.getByText("Anna Müller")).toBeInTheDocument();
+    expect(screen.getByText(untertitel)).toBeInTheDocument();
+  });
+
+  it("should_dimAndShowBadge_when_teilnehmerIsInactive", () => {
+    // AK3.3: Zustand als Text (Badge), nicht nur als Abblendung.
+    renderRow({ ...aTeilnehmer, active: false });
+
+    expect(zeile()).toHaveAccessibleName(/deaktiviert/);
+    expect(screen.getByText("Anna Müller").parentElement).toHaveClass("opacity-60");
+  });
+
+  it("should_neitherDimNorBadge_when_teilnehmerIsActive", () => {
+    renderRow();
+
+    expect(screen.queryByText("deaktiviert")).not.toBeInTheDocument();
+    expect(screen.getByRole("listitem").querySelector(".opacity-60")).toBeNull();
+  });
+
+  it("should_useStableRowId_when_rendered", () => {
+    // ADR-060 D3: Ersatz-Fokusziel nach dem Gruppenwechsel.
+    renderRow();
+
+    expect(zeile()).toHaveAttribute("id", "teilnehmer-t-1");
+  });
+});
+
+describe("TeilnehmerRow – Dialog „Teilnehmer bearbeiten“ (spec-405 AK2)", () => {
+  it("should_openDialogWithPrefilledFields_when_rowTapped", () => {
+    // AK2.1/AK2.2
+    renderRow({ ...aTeilnehmer, typ: "familie", mitglied: true });
+
+    const dialog = oeffnen();
+
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Anna Müller");
+    expect(screen.getByLabelText("Typ")).toHaveValue("familie");
+    expect(screen.getByLabelText("Mitglied")).toBeChecked();
+    expect(screen.getByRole("button", { name: "Speichern" })).toHaveAttribute("type", "submit");
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeInTheDocument();
+  });
+
+  it("should_sendIdAndFieldsCloseAndReport_when_saveSucceeds", async () => {
+    // AK2.3
+    renderRow();
+    oeffnen();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna Schmidt" } });
 
     await klicke("Speichern");
 
+    const formData = updateMock.mock.calls[0][1];
+    expect(formData.get("id")).toBe("t-1");
+    expect(formData.get("name")).toBe("Anna Schmidt");
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
+  });
+
+  it("should_keepDialogInputAndShowFehlerNotice_when_saveRejected", async () => {
+    // AK2.4 / F3: kein Formular-Reset nach Ablehnung.
+    updateMock.mockResolvedValue({ error: "Anzeigename ist zu lang." });
+    renderRow();
+    oeffnen();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna Schmidt" } });
+
+    await klicke("Speichern");
+
+    expect(dialogElement()).toHaveAttribute("open");
     expect(screen.getByRole("alert")).toHaveTextContent("Anzeigename ist zu lang.");
+    expect(screen.getByRole("alert")).toHaveClass("text-danger");
+    expect(screen.getByLabelText("Name")).toHaveValue("Anna Schmidt");
     expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
-  it("should_sendTargetStateAndReportDeaktiviert_when_deaktivierenSucceeds", async () => {
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+  it("should_closeWithoutActionAndReturnFocusToRow_when_abbrechen", () => {
+    // AK2.5
+    renderRow();
+    oeffnen();
+
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(setActiveMock).not.toHaveBeenCalled();
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(zeile()).toHaveFocus();
+  });
+
+  it("should_offerDeaktivierenWithWirkungssatz_when_teilnehmerIsActive", () => {
+    // AK2.6
+    renderRow();
+    oeffnen();
+
+    expect(screen.getByRole("button", { name: "Deaktivieren" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Deaktivierte Teilnehmer lassen sich keiner Veranstaltung mehr hinzufügen. Bestehende Abrechnungen bleiben unverändert.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aktivieren" })).not.toBeInTheDocument();
+  });
+
+  it("should_offerAktivierenWithWirkungssatz_when_teilnehmerIsInactive", () => {
+    // AK2.7
+    renderRow({ ...aTeilnehmer, active: false });
+    oeffnen();
+
+    expect(screen.getByRole("button", { name: "Aktivieren" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Der Teilnehmer lässt sich wieder Veranstaltungen hinzufügen."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deaktivieren" })).not.toBeInTheDocument();
+  });
+
+  it("should_separateToggleFromForm_when_dialogOpen", () => {
+    // AK2.6: abgesetzt per Trennlinie wie im Artikel-Dialog.
+    renderRow();
+    oeffnen();
+
+    const umschalten = screen.getByRole("button", { name: "Deaktivieren" }).closest("form")!;
+    expect(umschalten).toHaveClass("border-t", "border-line-subtle");
+    expect(umschalten).not.toContainElement(screen.getByLabelText("Name"));
+  });
+
+  it("should_sendOnlyIdAndTargetStateCloseAndReport_when_deaktivierenSucceeds", async () => {
+    // AK2.8/AK2.9: eigenes Formular – bearbeitete Felder gehen nicht mit.
+    renderRow();
+    oeffnen();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ungespeichert" } });
 
     await klicke("Deaktivieren");
 
     const formData = setActiveMock.mock.calls[0][1];
     expect(formData.get("id")).toBe("t-1");
     expect(formData.get("active")).toBe("false");
+    expect(formData.get("name")).toBeNull();
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(dialogElement()).not.toHaveAttribute("open");
     expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer deaktiviert");
   });
 
-  it("should_reportAktiviert_when_aktivierenSucceeds", async () => {
-    render(<TeilnehmerRow teilnehmer={{ ...aTeilnehmer, active: false }} />);
+  it("should_sendActiveTrueAndReportAktiviert_when_aktivierenSucceeds", async () => {
+    renderRow({ ...aTeilnehmer, active: false });
+    oeffnen();
 
     await klicke("Aktivieren");
 
+    expect(setActiveMock.mock.calls[0][1].get("active")).toBe("true");
     expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer aktiviert");
   });
 
-  it("should_showAlertAndNoToast_when_toggleRejected", async () => {
+  it("should_keepDialogWithFehlerNotice_when_toggleRejected", async () => {
+    // AK2.9 / F1
     setActiveMock.mockResolvedValue({ error: "Teilnehmer nicht gefunden." });
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+    renderRow();
+    oeffnen();
 
     await klicke("Deaktivieren");
 
+    expect(dialogElement()).toHaveAttribute("open");
     expect(screen.getByRole("alert")).toHaveTextContent("Teilnehmer nicht gefunden.");
     expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
+
+  it("should_lockSaveAndAbbrechen_when_toggleIsPending", async () => {
+    // AK2.10 – die Antwort wird am Testende aufgelöst (Lesson #370).
+    let antworten: (state: { error: string }) => void = () => {};
+    setActiveMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          antworten = resolve;
+        }),
+    );
+    renderRow();
+    oeffnen();
+
+    await klicke("Deaktivieren");
+
+    expect(screen.getByRole("button", { name: "Speichern" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Deaktivieren …" })).toBeDisabled();
+
+    await act(async () => antworten({ error: "Teilnehmer nicht gefunden." }));
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
+  });
+
+  it("should_lockToggle_when_saveIsPending", async () => {
+    // AK2.10 Gegenrichtung (Lesson #211).
+    let antworten: (state: { error: string }) => void = () => {};
+    updateMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          antworten = resolve;
+        }),
+    );
+    renderRow();
+    oeffnen();
+
+    await klicke("Speichern");
+
+    expect(screen.getByRole("button", { name: "Speichern …" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Deaktivieren" })).toBeDisabled();
+
+    await act(async () => antworten({ error: "Anzeigename ist zu lang." }));
+    expect(screen.getByRole("button", { name: "Deaktivieren" })).toBeEnabled();
+  });
 });
 
-describe("TeilnehmerRow (Anzeigemodus)", () => {
-  it("should_showNameAndTypLabel_when_rendered", () => {
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
+describe("TeilnehmerRow – Fokus nach Gruppenwechsel (spec-405 AK3.5)", () => {
+  // Die Seite teilt in „Aktiv"/„Deaktiviert": Nach „Deaktivieren" wandert die Zeile in die andere
+  // Liste und wird dort neu gemountet – ihr alter Auslöser ist weg (Lesson #371/#373).
+  const seite = { umziehen: () => {} };
 
-    expect(screen.getByText("Anna Müller")).toBeInTheDocument();
-    // TYP_LABEL["person"] = "Person"
-    expect(screen.getByText("Person")).toBeInTheDocument();
+  function GruppierteSeite() {
+    const [aktiv, setAktiv] = useState(true);
+    useEffect(() => {
+      seite.umziehen = () => setAktiv(false);
+    });
+    const zeileIn = (gruppeAktiv: boolean) =>
+      aktiv === gruppeAktiv && <TeilnehmerRow teilnehmer={{ ...aTeilnehmer, active: aktiv }} />;
+    return (
+      <>
+        <ul aria-label="Aktiv">{zeileIn(true)}</ul>
+        <ul aria-label="Deaktiviert">{zeileIn(false)}</ul>
+      </>
+    );
+  }
+
+  it("should_focusMovedRow_when_deaktivierenMovesRowToOtherGroup", async () => {
+    setActiveMock.mockImplementation(async () => {
+      seite.umziehen();
+      return { ok: true };
+    });
+    render(<GruppierteSeite />);
+    oeffnen();
+
+    await klicke("Deaktivieren");
+
+    const deaktiviert = screen.getByRole("list", { name: "Deaktiviert" });
+    expect(deaktiviert).toContainElement(zeile());
+    expect(zeile()).toHaveFocus();
   });
 
-  it("should_showFamilieLabel_when_typFamilie", () => {
-    render(<TeilnehmerRow teilnehmer={{ ...aTeilnehmer, typ: "familie" }} />);
+  // Die Zielgruppe „Deaktiviert" startet zugeklappt (AK3.2): Im Browser ist eine Zeile in einem
+  // geschlossenen <details> nicht fokussierbar, der Fokus bliebe auf <body>. Ersatzziel ist dann der
+  // Kopf des Aufklappers, in den die Zeile gewandert ist.
+  function SeiteMitAufklapper({ zielOffen }: { zielOffen: boolean }) {
+    const [aktiv, setAktiv] = useState(true);
+    useEffect(() => {
+      seite.umziehen = () => setAktiv(false);
+    });
+    return (
+      <>
+        <ul aria-label="Aktiv">{aktiv && <TeilnehmerRow teilnehmer={aTeilnehmer} />}</ul>
+        <details open={zielOffen}>
+          <summary>Deaktiviert (1)</summary>
+          <ul aria-label="Deaktiviert">
+            {!aktiv && <TeilnehmerRow teilnehmer={{ ...aTeilnehmer, active: false }} />}
+          </ul>
+        </details>
+      </>
+    );
+  }
 
-    expect(screen.getByText("Familie")).toBeInTheDocument();
+  it("should_focusGroupSummary_when_movedRowIsInsideCollapsedGroup", async () => {
+    setActiveMock.mockImplementation(async () => {
+      seite.umziehen();
+      return { ok: true };
+    });
+    render(<SeiteMitAufklapper zielOffen={false} />);
+    oeffnen();
+
+    await klicke("Deaktivieren");
+
+    expect(screen.getByText("Deaktiviert (1)")).toHaveFocus();
   });
 
-  it("should_showMitgliedLabel_when_mitgliedTrue", () => {
-    render(<TeilnehmerRow teilnehmer={{ ...aTeilnehmer, mitglied: true }} />);
+  it("should_focusMovedRow_when_targetGroupIsExpanded", async () => {
+    // Gegenrichtung: aufgeklappt ist die Zeile selbst erreichbar und bekommt den Fokus.
+    setActiveMock.mockImplementation(async () => {
+      seite.umziehen();
+      return { ok: true };
+    });
+    render(<SeiteMitAufklapper zielOffen />);
+    oeffnen();
 
-    expect(screen.getByText(/Mitglied/)).toBeInTheDocument();
-  });
+    await klicke("Deaktivieren");
 
-  it("should_showDeaktivierenButton_when_teilnehmerIsActive", () => {
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
-
-    expect(screen.getByRole("button", { name: "Deaktivieren" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Aktivieren" })).not.toBeInTheDocument();
-  });
-
-  it("should_showAktivierenButtonAndDeactivatedLabel_when_teilnehmerIsInactive", () => {
-    render(<TeilnehmerRow teilnehmer={{ ...aTeilnehmer, active: false }} />);
-
-    expect(screen.getByRole("button", { name: "Aktivieren" })).toBeInTheDocument();
-    expect(screen.getByText(/deaktiviert/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Deaktivieren" })).not.toBeInTheDocument();
-  });
-});
-
-describe("TeilnehmerRow (Bearbeiten-Toggle)", () => {
-  it("should_showEditFormWithSpeichernAndAbbrechen_when_BearbeitenClicked", async () => {
-    const user = userEvent.setup();
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
-
-    await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
-
-    expect(screen.getByRole("button", { name: "Speichern" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeInTheDocument();
-    // Bearbeiten-Button ist im Editmodus nicht mehr sichtbar
-    expect(screen.queryByRole("button", { name: "Bearbeiten" })).not.toBeInTheDocument();
-  });
-
-  it("should_returnToDisplayView_when_AbbrechenClicked", async () => {
-    const user = userEvent.setup();
-    render(<TeilnehmerRow teilnehmer={aTeilnehmer} />);
-
-    await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
-    await user.click(screen.getByRole("button", { name: "Abbrechen" }));
-
-    expect(screen.getByRole("button", { name: "Bearbeiten" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Speichern" })).not.toBeInTheDocument();
+    expect(zeile()).toHaveFocus();
   });
 });
