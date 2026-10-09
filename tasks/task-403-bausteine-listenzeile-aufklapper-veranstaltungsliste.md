@@ -1,7 +1,7 @@
 # Task 403: bausteine-listenzeile-aufklapper-veranstaltungsliste
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -15,12 +15,15 @@ Umstellung der Konsumenten aus Issue #403. Spec: [spec-403](../docs/specs/spec-4
 
 ## Akzeptanzkriterien
 Volltext (GIVEN/WHEN/THEN) in der Spec; hier die Gliederung:
-- [ ] AK1.1–AK1.7 – Baustein Aufklapper (eigener Pfeil, Zähler, Anzeigen/Ausblenden, Tastatur, Token-Farben)
-- [ ] AK2.1–AK2.8 – Baustein ListenZeile (Karte, Hover, Varianten Link/Zeilenaktion, verblasst + Badge)
-- [ ] AK3.1–AK3.6 – `/veranstaltung`: Offen aufgeklappt, Abgeschlossen zu, verblasste Zeilen mit Badge
-- [ ] AK4.1–AK4.4 – Startseite, Arbeitsschritt-Kacheln, Detail-Teilnehmer (`ZeileRow`) nutzen ListenZeile
-- [ ] AK5.1–AK5.4 – Kassieren/Verzehr-Aufschlüsselung nutzen Aufklapper; beide Dateien im Farb-Gate
-- [ ] F1–F4 – Fehlerszenarien (ohne JS, Überlänge, Kontrast, Tastatur am ⋯-Knopf)
+- [x] AK1.1–AK1.7 – Baustein Aufklapper (eigener Pfeil, Zähler, Anzeigen/Ausblenden, Tastatur, Token-Farben)
+- [x] AK2.1–AK2.8 – Baustein ListenZeile (Karte, Hover, Varianten Link/Zeilenaktion, verblasst + Badge)
+- [x] AK3.1–AK3.6 – `/veranstaltung`: Offen aufgeklappt, Abgeschlossen zu, verblasste Zeilen mit Badge
+- [x] AK4.1–AK4.4 – Startseite, Arbeitsschritt-Kacheln, Detail-Teilnehmer (`ZeileRow`) nutzen ListenZeile
+- [x] AK5.1–AK5.4 – Kassieren/Verzehr-Aufschlüsselung nutzen Aufklapper; beide Dateien im Farb-Gate
+- [x] F3 – Kontrast der verblassten Zeile (tokens.test.ts, hell + dunkel, Karte + Hover-Fläche)
+- [ ] F1/F2/F4 + Browser-Beleg AK1.2/AK1.3 – Playwright `e2e/bausteine-listenzeile-aufklapper.spec.ts`
+      (geschrieben, Lauf ausstehend: braucht lokale DB + `.env.local` per `dotenv`, Freigabe durch
+      den Menschen – siehe Notiz unten)
 
 ## Technische Notizen
 Entscheidungen: [ADR-059](../docs/adr/059-bausteine-listenzeile-aufklapper.md) (Nachtrag in ADR-052 D1).
@@ -44,6 +47,21 @@ Hinweise für `/implement`:
   beide Dateien in `eslint/ui-token-files.mjs` (Kommentar „bleiben außen vor" streichen).
 - Doku: `docs/ux/glossar.md` prüfen („Anzeigen"/„Ausblenden", Badge „abgeschlossen"); keine
   Routen-Änderung → `docs/routes.md` unberührt.
+
+### Notizen aus `/implement` (2026-10-09)
+- **Hover/Fokus der Karte** über `hover:`/`focus-within:` am `<li>` – damit hebt auch ein fokussierter
+  ⋯-Knopf die Zeile hervor (gleiche „gemeint"-Sprache); der Fokusring sitzt am Link.
+- **Untertitel als `ReactNode`**: die Kacheln reichen die Kennzahl mit `tabular-nums` durch (AK4.2
+  „unverändert"); Veranstaltungslisten übergeben Text.
+- **Kontrast-Test (D3)** rechnet `foreground` unter `opacity-60` auf `surface` **und**
+  `accent-subtle` (Hover-Fläche, hell ≈ 4,6 : 1 – knapp) in beiden Themes; eine Gegenprobe belegt,
+  dass `muted` unter `opacity-60` durchfiele (sonst wäre die Abweichung von AK2.5 unnötig).
+- **Glossar** um die Abgrenzung „Ausblenden (Ansicht) ↔ deaktivieren (Objekt)" und die
+  Badge-Schreibweise ergänzt – die Verb-Tabelle führte „ausblenden" als *Nicht verwenden*.
+- **Kassieren „Abrechnung im Detail"**: Rahmen/Fläche/`px-4` am `<details>` (Aufklapper-`className`),
+  Trennlinie zum Inhalt jetzt eingerückt statt randbündig.
+- **Wegwerf-Datei** `scripts/format403.tmp.sh` (Prettier-Aufruf, gitignoret) liegt noch im
+  Worktree – `rm` war in der Session nicht freigegeben; bitte von Hand löschen.
 
 ## Offene Fragen
 Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", ADR-059 D5).
