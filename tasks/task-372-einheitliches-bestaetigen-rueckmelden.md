@@ -64,6 +64,8 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-09): **NEEDS_REWORK** – 0 kritisch, 8 wichtig, 15 Nitpicks → `tasks/review-372.md`.
+  Out-of-Scope: Issue #402 (Hook umbenennen), drei Einträge + eine Ergänzung in `docs/factory/kleinfunde.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
