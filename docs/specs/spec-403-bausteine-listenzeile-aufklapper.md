@@ -71,10 +71,13 @@ Primärer Nutzer: Rollen `veranstalter`/`verwalter`, überwiegend am Smartphone.
   den ⋯-Knopf (Zeilenmenü); der Knopf liegt **neben**, nicht **in** dem Link/Tipp-Ziel
   (keine verschachtelten interaktiven Elemente), und ein Tipp auf den Knopf löst die
   Zeilen-Navigation nicht aus.
-- [ ] **AK2.5** GIVEN der Zustand „verblasst" WHEN er gesetzt ist THEN ist die Zeile mit
-  `opacity-60` abgeblendet und trägt ein Badge (Ton `neutral`) mit dem Text des Zustands
-  (z. B. „abgeschlossen", „deaktiviert"); der Zustand steht zusätzlich als Text, nie nur als
-  Abblendung (Badge-Regel spec-368 AK2.9).
+- [ ] **AK2.5** GIVEN der Zustand „verblasst" WHEN er gesetzt ist THEN sind Titel, Untertitel und
+  Pfeil der Zeile mit `opacity-60` abgeblendet und die Zeile trägt ein **nicht** abgeblendetes
+  Badge (Ton `neutral`) mit dem Text des Zustands (z. B. „abgeschlossen", „deaktiviert"); der
+  Zustand steht zusätzlich als Text, nie nur als Abblendung (Badge-Regel spec-368 AK2.9).
+  Der Untertitel nutzt dabei `text-foreground` statt `text-muted`, damit Titel und Untertitel
+  im abgeblendeten Zustand ≥ 4,5 : 1 behalten (ADR-059 D3; Abweichung vom Issue-Wortlaut
+  „Zeile `opacity-60`", aus Q1).
 - [ ] **AK2.6** GIVEN lange Texte WHEN Titel oder Untertitel nicht in die Zeile passen THEN brechen
   sie um (`break-words`), statt Pfeil/Knopf aus dem Bild zu schieben.
 - [ ] **AK2.7** GIVEN der Baustein WHEN sein Quelltext geprüft wird THEN enthält er nur Token-Farben
@@ -145,7 +148,11 @@ Primärer Nutzer: Rollen `veranstalter`/`verwalter`, überwiegend am Smartphone.
 
 ## Offene Fragen
 
-- [ ] **Q1 Kontrast bei `opacity-60`:** Die Vorgabe `opacity-60` dämpft auch Text. Muss der
+> **Entschieden in `/architecture` (ADR-059):** Q1 → `opacity-60` nur auf Text/Pfeil, Badge
+> unabgeblendet, Untertitel `text-foreground` (AK2.5 angepasst); Q2 → `pfeil={false}` an den
+> Kacheln; Q3 → Titel „Verzehr"; Q4 → Zähler optional; Q5 → ADR-059 geschrieben.
+
+- [x] **Q1 Kontrast bei `opacity-60`:** Die Vorgabe `opacity-60` dämpft auch Text. Muss der
   Kontrast (WCAG AA, 4,5 : 1) im hellen **und** dunklen Theme gemessen werden? *Vorschlag:*
   ja – bei Unterschreitung gilt der Kontrast vor `opacity-60` (Wert anpassen, Entscheidung
   in `/architecture` bzw. `/implement`).

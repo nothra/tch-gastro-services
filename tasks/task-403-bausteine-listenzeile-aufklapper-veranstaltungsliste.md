@@ -23,11 +23,30 @@ Volltext (GIVEN/WHEN/THEN) in der Spec; hier die Gliederung:
 - [ ] F1–F4 – Fehlerszenarien (ohne JS, Überlänge, Kontrast, Tastatur am ⋯-Knopf)
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+Entscheidungen: [ADR-059](../docs/adr/059-bausteine-listenzeile-aufklapper.md) (Nachtrag in ADR-052 D1).
+
+Hinweise für `/implement`:
+- `ListenZeile.tsx`/`Aufklapper.tsx` je mit Test unter `app/components/ui/` (Server Components,
+  kein `"use client"`). Props siehe ADR-059 D1/D2. Pfeil-Symbol als Inline-SVG in `icons.tsx`.
+- `ListenZeile` rendert `<li>`; Link füllt die Karte, `aktion`-Slot ist **Geschwister** des
+  Links (nie darin). Ohne `aktion` Pfeil rechts, mit `aktion` kein Pfeil. `prefetch` durchreichen.
+- Verblasst (D3): `opacity-60` nur auf Textblock+Pfeil, Badge unberührt, Untertitel
+  `text-foreground`. Kontrast-Test mit der vorhandenen Funktion in `tokens.test.ts` ergänzen.
+- `Aufklapper`: `<details className="group">`, Hinweis zweigeteilt per `group-open:hidden` /
+  `hidden group-open:inline`; `ueberschrift`-Prop für `aria-labelledby`. jsdom wertet
+  `group-open:` nicht aus → Funktionsbeleg per Playwright (Pfeil dreht, Hinweis wechselt,
+  `localhost` statt `127.0.0.1`, eigener Dev-Server-Port – Lessons in `PROJECT-CONTEXT.md`).
+- Umstellen: `VeranstaltungListe` (Offen offen/Abgeschlossen zu, `zustand="abgeschlossen"`),
+  `OffeneVeranstaltungen`, `ArbeitsschrittKacheln` (`pfeil={false}`, `className="min-w-0"`),
+  `ZeileRow` (`aktion={<ZeilenMenue …/>}`), `kassieren/page.tsx` „Abrechnung im Detail",
+  `VerzehrAufschluesselung` (Titel „Verzehr", ohne Zähler).
+- `KassierZeilenListe`: Hervorhebung `border-accent bg-accent-subtle`, normal `border-line-subtle`;
+  beide Dateien in `eslint/ui-token-files.mjs` (Kommentar „bleiben außen vor" streichen).
+- Doku: `docs/ux/glossar.md` prüfen („Anzeigen"/„Ausblenden", Badge „abgeschlossen"); keine
+  Routen-Änderung → `docs/routes.md` unberührt.
 
 ## Offene Fragen
-Q1–Q5 mit Vorschlägen in der Spec (Kontrast bei `opacity-60`, Pfeil in den Kacheln,
-Titel der Verzehr-Aufschlüsselung, Zähler optional, Bedarf `/architecture`).
+Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", ADR-059 D5).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

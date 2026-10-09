@@ -49,6 +49,9 @@ Dateien.
   > **Nachtrag (#369):** [ADR-053](053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md)
   > D1 ergänzt `Dialog` und `ConfirmDialog`; die Regeln dieser Entscheidung gelten für sie
   > unverändert.
+  >
+  > **Nachtrag (#403):** [ADR-059](059-bausteine-listenzeile-aufklapper.md) ergänzt `ListenZeile`
+  > und `Aufklapper`; die Regeln dieser Entscheidung gelten für sie unverändert.
 - Varianten als typisierte `Record<Variante, string>`-Tabellen mit Tailwind-**Token**-Klassen,
   kein `cva`, kein `tailwind-merge`. Ein optionaler `className`-Prop wird angehängt und ist
   für **Layout** gedacht (Abstand, Breite, Ausrichtung), nicht für Farben. Farben erzwingt das
