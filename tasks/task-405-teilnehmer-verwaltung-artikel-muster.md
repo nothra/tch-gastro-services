@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [ ] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -75,6 +75,12 @@ ADR: [ADR-060](../docs/adr/060-listenzeile-dialog-ausloeser-notice-warnung.md) (
   `getAllByRole("button")` statt über `.font-semibold`; Kommentar in `anleitung-veranstalter.spec.ts`
   klargestellt. Nitpick 2 (eigener `useErsatzFokus`-Test) → `/test`; duplizierte
   Aktiv-Umschalten-Formulare stehen bereits in `kleinfunde.md`.
+
+### Security-Review (/security-review, 2026-10-09)
+- **PASSED**, keine Findings: reine UI-Änderung, Actions (`requireRole` + Zod), Page-Gate,
+  Data-Layer und Dependencies unverändert. Details: [`tasks/security-405.md`](security-405.md).
+- Reihenfolge: lief vor `/test` (Lesson #351). Ändert `/test` nur Testdateien, bleibt der
+  Bericht gültig; ändert es Produktionscode, `/security-review` erneut laufen lassen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
