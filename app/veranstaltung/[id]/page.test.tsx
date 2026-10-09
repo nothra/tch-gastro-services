@@ -375,10 +375,27 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
     // spec-374 AK5.1: „Verzehr erfassen", „Auslagen erfassen", „Kassieren" – in dieser Reihenfolge.
     await renderSeite();
 
-    const titel = within(screen.getByRole("navigation", { name: "Arbeitsschritte" }))
-      .getAllByRole("link")
-      .map((link) => link.querySelector("span")?.textContent);
-    expect(titel).toEqual(["Verzehr erfassen", "Auslagen erfassen", "Kassieren"]);
+    const links = within(screen.getByRole("navigation", { name: "Arbeitsschritte" })).getAllByRole(
+      "link",
+    );
+    // Der Name beginnt mit dem Titel; dahinter folgt die Kennzahl der Kachel.
+    expect(links).toHaveLength(3);
+    expect(links[0]).toHaveAccessibleName(/^Verzehr erfassen/);
+    expect(links[1]).toHaveAccessibleName(/^Auslagen erfassen/);
+    expect(links[2]).toHaveAccessibleName(/^Kassieren/);
+  });
+
+  it("should_renderKachelnAsListenZeileWithoutArrowInThreeColumns_when_rendered", async () => {
+    // spec-403 AK4.2/AK4.4 + Q2: Karten-Optik aus dem Baustein, ohne Pfeil, Raster unverändert.
+    await renderSeite();
+
+    const navigation = screen.getByRole("navigation", { name: "Arbeitsschritte" });
+    expect(within(navigation).getByRole("list")).toHaveClass("grid", "grid-cols-3");
+    const kacheln = within(navigation).getAllByRole("listitem");
+    for (const kachelZeile of kacheln) {
+      expect(kachelZeile).toHaveClass("min-w-0", "border-line-subtle", "hover:bg-accent-subtle");
+      expect(kachelZeile.querySelector("svg")).toBeNull();
+    }
   });
 
   it("should_showKennzahlenFromSummen_when_verzehrAndAuslagenErfasst", async () => {

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Kasse, Veranstaltung } from "@/db/schema";
 import { ButtonLink } from "@/app/components/ui/Button";
+import { ListenZeile } from "@/app/components/ui/ListenZeile";
 import { Notice } from "@/app/components/ui/Notice";
 import { KASSE_LABEL, formatDatum } from "./labels";
 
@@ -35,19 +35,14 @@ export function OffeneVeranstaltungen({ veranstaltungen }: { veranstaltungen: Ve
     <Abschnitt>
       <ul className="flex flex-col gap-2">
         {veranstaltungen.map((v) => (
-          <li key={v.id}>
-            <Link
-              href={`/veranstaltung/${v.id}`}
-              // Kein Auto-Prefetch geschützter Routen (ADR-031, Defense-in-depth zu #164).
-              prefetch={false}
-              className="flex min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-3 text-foreground hover:border-accent hover:bg-accent-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <span className="font-semibold break-words">{v.bezeichnung}</span>
-              <span className="text-sm text-muted">
-                {formatDatum(v.datum)} · {KASSE_LABEL[v.kasse as Kasse]}
-              </span>
-            </Link>
-          </li>
+          <ListenZeile
+            key={v.id}
+            href={`/veranstaltung/${v.id}`}
+            // Kein Auto-Prefetch geschützter Routen (ADR-031, Defense-in-depth zu #164).
+            prefetch={false}
+            titel={v.bezeichnung}
+            untertitel={`${formatDatum(v.datum)} · ${KASSE_LABEL[v.kasse as Kasse]}`}
+          />
         ))}
       </ul>
     </Abschnitt>

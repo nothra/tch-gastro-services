@@ -1,7 +1,28 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { Veranstaltung } from "@/db/schema";
 import { OffeneVeranstaltungen, OffeneVeranstaltungenLadefehler } from "./OffeneVeranstaltungen";
+
+// Transparenter next/link-Mock: spiegelt den prefetch-Prop als data-prefetch (das echte <Link>
+// rendert ihn nicht ins DOM).
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    prefetch,
+    children,
+    ...rest
+  }: {
+    href: string;
+    prefetch?: boolean;
+    children: ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} data-prefetch={String(prefetch)} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
 function veranstaltung(overrides: Partial<Veranstaltung>): Veranstaltung {
   return {
@@ -48,6 +69,15 @@ describe("OffeneVeranstaltungen", () => {
       "/veranstaltung/v-2",
     );
     expect(zeilen[1]).toHaveTextContent("06.07.2026 · Vereinskasse");
+  });
+
+  it("should_renderRowsAsListenZeileWithoutPrefetch_when_veranstaltungenGiven", () => {
+    // spec-403 AK4.1/AK4.4: Karten-Optik aus dem Baustein, `prefetch={false}` bleibt (ADR-031).
+    render(<OffeneVeranstaltungen veranstaltungen={[veranstaltung({})]} />);
+
+    const zeile = within(abschnitt()).getByRole("listitem");
+    expect(zeile).toHaveClass("border-line-subtle", "bg-surface", "hover:bg-accent-subtle");
+    expect(within(zeile).getByRole("link")).toHaveAttribute("data-prefetch", "false");
   });
 
   it("should_keepGivenOrder_when_rendered", () => {

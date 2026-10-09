@@ -49,6 +49,11 @@ Dateien.
   > **Nachtrag (#369):** [ADR-053](053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md)
   > D1 ergänzt `Dialog` und `ConfirmDialog`; die Regeln dieser Entscheidung gelten für sie
   > unverändert.
+  >
+  > **Nachtrag (#403):** [ADR-059](059-bausteine-listenzeile-aufklapper.md) ergänzt `ListenZeile`
+  > und `Aufklapper`; die Regeln dieser Entscheidung gelten für sie unverändert – mit einer
+  > begründeten Ausnahme zu D2: der Kartenrand der `ListenZeile` ist `line-subtle` wie bei
+  > `Card`, obwohl die ganze Karte ein Link ist (ADR-059 D1).
 - Varianten als typisierte `Record<Variante, string>`-Tabellen mit Tailwind-**Token**-Klassen,
   kein `cva`, kein `tailwind-merge`. Ein optionaler `className`-Prop wird angehängt und ist
   für **Layout** gedacht (Abstand, Breite, Ausrichtung), nicht für Farben. Farben erzwingt das
@@ -101,7 +106,8 @@ Dateien.
   (knappstes Paar: `success` auf `success-subtle`), dunkel ≥ 5,84 : 1. `line` gegen `surface`
   und `background` hell ≥ 4,40, dunkel ≥ 3,67. Fokus-Rahmen (`accent`) hell ≥ 4,87, dunkel
   ≥ 9,80. `line-subtle` ist rein dekorativ und nach WCAG 1.4.11 vom 3 : 1-Kriterium
-  ausgenommen. Bedienelement-Rahmen nutzen deshalb immer `line`, nie `line-subtle`.
+  ausgenommen. Bedienelement-Rahmen nutzen deshalb immer `line`, nie `line-subtle`
+  (Ausnahme: Kartenrand der `ListenZeile`, ADR-059 D1).
 - **Schrift (AK3):** Der `font-family: Arial, …`-Override in `body` entfällt. `--font-sans`
   zeigt bereits auf Geist, `body` nutzt `font-sans`.
 - **Typo-Skala (AK4):** Basis-Stile für `h1`/`h2`/`h3` in `@layer base` von `globals.css`

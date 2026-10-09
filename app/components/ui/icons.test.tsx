@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { PapierkorbIcon, TeilenIcon, ZahnradIcon } from "./icons";
+import { PapierkorbIcon, PfeilRechtsIcon, TeilenIcon, ZahnradIcon } from "./icons";
 
 const ICONS = [
   ["TeilenIcon", TeilenIcon],
   ["ZahnradIcon", ZahnradIcon],
   ["PapierkorbIcon", PapierkorbIcon],
+  // ADR-059: Pfeil der ListenZeile und des Aufklappers.
+  ["PfeilRechtsIcon", PfeilRechtsIcon],
 ] as const;
 
 function renderSvg(Icon: (typeof ICONS)[number][1]) {
@@ -34,7 +36,7 @@ describe("Symbole (ADR-056 D1, spec-391 AK3/AK15)", () => {
   });
 
   it("should_drawDistinctShapes_when_iconsCompared", () => {
-    // Drei verschiedene Aktionen brauchen drei unterscheidbare Symbole.
+    // Verschiedene Bedeutungen brauchen unterscheidbare Symbole.
     const formen = ICONS.map(([, Icon]) => {
       const { container, unmount } = render(<Icon />);
       const innerHtml = container.querySelector("svg")!.innerHTML;

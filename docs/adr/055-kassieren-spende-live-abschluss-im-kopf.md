@@ -94,6 +94,10 @@ Tagessummen, Gesamtabrechnung und Protokoll liegen in einem standardmäßig gesc
 `<details>` – dieselbe Mechanik wie „Einstellungen" (ADR-053 D6). Ein gemeinsamer
 `Disclosure`-Baustein wäre erst bei einem dritten Verbraucher gerechtfertigt (YAGNI).
 
+> **Nachtrag (#403):** Der dritte Verbraucher ist da (Veranstaltungsliste, Verzehr-Aufschlüsselung,
+> Kassieren). „Abrechnung im Detail" nutzt jetzt den Baustein `Aufklapper` – weiterhin ein natives
+> `<details>`, Kassieren bleibt Server Component. → [ADR-059 D2](059-bausteine-listenzeile-aufklapper.md)
+
 ## Alternativen
 
 ### D1 — Spenden-Formel im Client

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
+import { VERBLASST_CLASS } from "./ListenZeile";
 
 // Prüft die Farb-Tokens aus `app/globals.css` gegen die Zusagen von spec-368 AK1/AK3/AK4.
 // Die Werte werden aus der CSS-Datei GELESEN und nachgerechnet (WCAG-2-Formel), nicht im Test
@@ -77,6 +78,33 @@ const NON_TEXT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["line", "background"],
 ];
 
+/** Hex-Farbe, die `opacity` über `hintergrund` ergibt (Alpha-Überblendung je Kanal). */
+function blend(vordergrund: string, hintergrund: string, opacity: number): string {
+  const kanal = (hex: string, offset: number) => parseInt(hex.slice(1 + offset, 3 + offset), 16);
+  const kanaele = [0, 2, 4].map((offset) =>
+    Math.round(opacity * kanal(vordergrund, offset) + (1 - opacity) * kanal(hintergrund, offset)),
+  );
+  return `#${kanaele.map((wert) => wert.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Tailwind-Klasse `opacity-<prozent>` → Anteil 0…1; andere Formen sind ein Testfehler. */
+function opacityFromClass(klasse: string): number {
+  const treffer = klasse.match(/^opacity-(\d+)$/);
+  if (!treffer) throw new Error(`Unerwartete Opazitäts-Klasse: ${klasse}`);
+  return Number(treffer[1]) / 100;
+}
+
+// Verblasste ListenZeile (spec-403 AK2.5/F3, ADR-059 D3): Titel und Untertitel tragen beide
+// `text-foreground` unter `opacity-60` – auf der Kartenfläche und auf der Hover-/Fokus-Fläche.
+// Die Opazität wird aus der Klasse des Bausteins gelesen, damit eine Änderung dort (z. B.
+// `opacity-50`) den Nachweis neu rechnet statt ihn still grün zu lassen.
+const VERBLASST_OPACITY = opacityFromClass(VERBLASST_CLASS);
+const VERBLASST_HINTERGRUENDE = ["surface", "accent-subtle"] as const;
+
+// Getrennte Testfälle je Theme, damit ein Rot das betroffene Theme im Testnamen nennt.
+const THEME_TOKENS = { Light: lightTokens, Dark: darkTokens } as const;
+const THEMES = Object.keys(THEME_TOKENS) as ReadonlyArray<keyof typeof THEME_TOKENS>;
+
 // Die semantischen Token, die spec AK1.1 namentlich verlangt.
 const REQUIRED_TOKENS = [
   "accent",
@@ -139,6 +167,40 @@ describe("Farb-Tokens in globals.css (AK1)", () => {
     const dark = darkTokens();
 
     expect(contrastRatio(dark[fg], dark[bg])).toBeGreaterThanOrEqual(3);
+  });
+
+  const VERBLASST_FAELLE = THEMES.flatMap((theme) =>
+    VERBLASST_HINTERGRUENDE.map((hintergrund) => [hintergrund, theme] as const),
+  );
+
+  it.each(VERBLASST_FAELLE)(
+    "should_keepWcagAaForDimmedForeground_when_on%sIn%sMode",
+    (hintergrund, theme) => {
+      const tokens = THEME_TOKENS[theme]();
+      const sichtbar = blend(tokens["foreground"], tokens[hintergrund], VERBLASST_OPACITY);
+
+      expect(contrastRatio(sichtbar, tokens[hintergrund])).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  // Gegenprobe zu D3: `muted` unter `opacity-60` reicht in keinem Theme – deshalb wechselt der
+  // Untertitel im verblassten Zustand auf `foreground`. Wird dieser Test rot, ist die Abweichung
+  // unnötig.
+  it.each(THEMES)("should_failWcagAaForDimmedMuted_when_onSurfaceIn%sMode", (theme) => {
+    const tokens = THEME_TOKENS[theme]();
+    const sichtbar = blend(tokens["muted"], tokens["surface"], VERBLASST_OPACITY);
+
+    expect(contrastRatio(sichtbar, tokens["surface"])).toBeLessThan(4.5);
+  });
+
+  it("should_blendChannelsLinearly_when_opacityApplied", () => {
+    // Fester Stützwert für die Überblendung: 60 % Schwarz auf Weiß = 0x66 je Kanal.
+    expect(blend("#000000", "#ffffff", 0.6)).toBe("#666666");
+  });
+
+  it("should_readOpacityShare_when_classIsTailwindOpacity", () => {
+    expect(opacityFromClass("opacity-60")).toBe(0.6);
+    expect(() => opacityFromClass("opacity-[.6]")).toThrow("Unerwartete Opazitäts-Klasse");
   });
 
   // Ohne `color-scheme` blieben native Teile (Auswahl-Popup, Zahlen-Spinner, Scrollbalken)

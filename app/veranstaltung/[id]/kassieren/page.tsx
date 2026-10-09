@@ -13,7 +13,9 @@ import {
   verzehrPositionen,
   type VerzehrPositionDetail,
 } from "@/app/_verzehr/positionen";
+import { Aufklapper } from "@/app/components/ui/Aufklapper";
 import { Badge } from "@/app/components/ui/Badge";
+import { Card } from "@/app/components/ui/Card";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { kassiereZeileAction } from "../../actions";
 import {
@@ -249,7 +251,9 @@ function BetragEintrag({ label, cents }: { label: string; cents: number }) {
 }
 
 // Tagessummen, Gesamtabrechnung und Protokoll standardmäßig eingeklappt (spec-371 AK14/AK15,
-// ADR-055 D4): natives `<details>` – aufgeklappt dieselben Zeilen und Werte wie bisher.
+// ADR-055 D4): `Aufklapper` (natives `<details>`, spec-403 AK5.1) – aufgeklappt dieselben Zeilen
+// und Werte wie bisher. Rahmen und Fläche trägt die `Card` (ADR-052 D1); `py-0`, weil das
+// `<summary>` seine Tipp-Höhe selbst mitbringt.
 function AbrechnungImDetail({
   kasseLabel,
   tagessummen,
@@ -264,73 +268,72 @@ function AbrechnungImDetail({
   ereignisse: VeranstaltungEreignis[];
 }) {
   return (
-    <details className="rounded-lg border border-line-subtle bg-surface">
-      <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-accent">
-        Abrechnung im Detail
-      </summary>
-      <div className="flex flex-col gap-6 border-t border-line-subtle p-4">
-        <section className="flex flex-col gap-2">
-          <h2>Tagessummen</h2>
-          <table className="w-full text-sm">
-            <tbody>
-              <SummenZeile label="Getränke" cents={tagessummen.getraenkeCents} />
-              <SummenZeile label="Essen" cents={tagessummen.essenCents} />
-              <SummenZeile label="Kaffee" cents={tagessummen.kaffeeCents} />
-              <SummenZeile label="Verzehr-Gesamt" cents={tagessummen.verzehrGesamtCents} bold />
-              <SummenZeile label="Erhalten" cents={tagessummen.erhaltenCents} />
-              <SummenZeile label="Spende" cents={tagessummen.spendeCents} bold />
-            </tbody>
-          </table>
-          <p className="text-sm text-muted">
-            Offene Zeilen: <span className="tabular-nums">{tagessummen.offeneZeilen}</span>
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <h2>Gesamtabrechnung (Kasse: {kasseLabel})</h2>
-          <table className="w-full text-sm">
-            <tbody>
-              <SummenZeile label="Einnahmen (Σ Erhalten)" cents={abrechnung.einnahmenCents} />
-              {AUSLAGE_KATEGORIE_ORDER.map((kategorie) => (
-                <SummenZeile
-                  key={kategorie}
-                  label={`Ausgaben – ${AUSLAGE_KATEGORIE_LABEL[kategorie]}`}
-                  cents={ausgaben[kategorie].erstattetCents}
-                />
-              ))}
-              <SummenZeile
-                label="Ausgaben – Auslagenerstattungen gesamt"
-                cents={abrechnung.ausgabenErstattetCents}
-              />
-              <SummenZeile
-                label="Kassenveränderung"
-                cents={abrechnung.kassenveraenderungCents}
-                bold
-              />
-            </tbody>
-          </table>
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <h2>Protokoll</h2>
-          {ereignisse.length === 0 ? (
+    <Card className="py-0">
+      <Aufklapper titel="Abrechnung im Detail">
+        <div className="flex flex-col gap-6 border-t border-line-subtle py-4">
+          <section className="flex flex-col gap-2">
+            <h2>Tagessummen</h2>
+            <table className="w-full text-sm">
+              <tbody>
+                <SummenZeile label="Getränke" cents={tagessummen.getraenkeCents} />
+                <SummenZeile label="Essen" cents={tagessummen.essenCents} />
+                <SummenZeile label="Kaffee" cents={tagessummen.kaffeeCents} />
+                <SummenZeile label="Verzehr-Gesamt" cents={tagessummen.verzehrGesamtCents} bold />
+                <SummenZeile label="Erhalten" cents={tagessummen.erhaltenCents} />
+                <SummenZeile label="Spende" cents={tagessummen.spendeCents} bold />
+              </tbody>
+            </table>
             <p className="text-sm text-muted">
-              Noch kein Abschluss oder Wiederöffnen protokolliert.
+              Offene Zeilen: <span className="tabular-nums">{tagessummen.offeneZeilen}</span>
             </p>
-          ) : (
-            <ul className="flex flex-col gap-1 text-sm">
-              {ereignisse.map((ereignis) => (
-                <li key={ereignis.id} className="flex flex-wrap gap-x-2 text-foreground">
-                  <span className="font-medium">{EREIGNIS_ART_LABEL[ereignis.art]}</span>
-                  <span>· {ereignis.akteurName ?? "—"}</span>
-                  <span className="tabular-nums">· {formatZeitpunkt(ereignis.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </details>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h2>Gesamtabrechnung (Kasse: {kasseLabel})</h2>
+            <table className="w-full text-sm">
+              <tbody>
+                <SummenZeile label="Einnahmen (Σ Erhalten)" cents={abrechnung.einnahmenCents} />
+                {AUSLAGE_KATEGORIE_ORDER.map((kategorie) => (
+                  <SummenZeile
+                    key={kategorie}
+                    label={`Ausgaben – ${AUSLAGE_KATEGORIE_LABEL[kategorie]}`}
+                    cents={ausgaben[kategorie].erstattetCents}
+                  />
+                ))}
+                <SummenZeile
+                  label="Ausgaben – Auslagenerstattungen gesamt"
+                  cents={abrechnung.ausgabenErstattetCents}
+                />
+                <SummenZeile
+                  label="Kassenveränderung"
+                  cents={abrechnung.kassenveraenderungCents}
+                  bold
+                />
+              </tbody>
+            </table>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h2>Protokoll</h2>
+            {ereignisse.length === 0 ? (
+              <p className="text-sm text-muted">
+                Noch kein Abschluss oder Wiederöffnen protokolliert.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1 text-sm">
+                {ereignisse.map((ereignis) => (
+                  <li key={ereignis.id} className="flex flex-wrap gap-x-2 text-foreground">
+                    <span className="font-medium">{EREIGNIS_ART_LABEL[ereignis.art]}</span>
+                    <span>· {ereignis.akteurName ?? "—"}</span>
+                    <span className="tabular-nums">· {formatZeitpunkt(ereignis.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </Aufklapper>
+    </Card>
   );
 }
 

@@ -34,6 +34,17 @@ Veranstaltung.
 „Abschließen", „Öffnen" (Veranstaltung wieder öffnen), „Umbenennen", „Duplizieren",
 „Katalog wechseln", „Teilen", „Anmelden", „Abmelden", „Abbrechen".
 
+**Abgrenzung ausblenden ↔ deaktivieren:** „Anzeigen" / „Ausblenden" ist ausschließlich der
+Zustandshinweis eines aufklappbaren Bereichs (Baustein `Aufklapper`, #403) – er ändert nur die
+Ansicht, kein Objekt. Wird ein Objekt selbst unsichtbar oder unwählbar, heißt es weiterhin
+**deaktivieren** (Tabelle oben).
+
+**Zustands-Badges** (ein Wort zum Zustand eines Objekts – an Listenzeilen über `ListenZeile`
+`zustand`, an Kassier-Zeilen, im Seitenkopf) tragen den Zustand klein geschrieben als
+Partizip/Adjektiv: „abgeschlossen", „deaktiviert", „offen", „bezahlt". Summen-
+oder Fortschritts-Badges mit ganzem Satzteil (z. B. „Alles bezahlt", „Noch 2 offen" in der
+`KassierSummenKarte`) fallen nicht darunter – sie beginnen groß wie eine Meldung.
+
 ---
 
 ## Meldungen
