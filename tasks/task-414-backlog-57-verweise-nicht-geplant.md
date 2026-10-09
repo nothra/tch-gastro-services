@@ -32,3 +32,5 @@ Reiner Doku-Task: Review/Test/Security/Refactor/Codify entfallen mangels Code; k
 ---
 Branch: `docs/414-backlog-57-verweise-nicht-geplant`
 Erstellt: 2026-10-09 16:33
+
+PR-Shepherd 2026-10-09: Merge freigegeben – alle Gates grün.
