@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { Catalog } from "@/db/schema";
 import type { CatalogFormState } from "../actions";
@@ -38,11 +38,30 @@ const currentCatalog: Catalog = {
 };
 const inaktiverKatalog: Catalog = { ...currentCatalog, active: false };
 
+// Offen gehaltene Action für die Lauf-Tests. Aufgelöst wird in `afterEach` innerhalb von `act` –
+// auch wenn eine Assertion vorher scheitert; sonst hielte das Promise den Action-Scope für spätere
+// Tests offen (Lesson #370).
+let laufendeActionBeenden: (() => void) | undefined;
+
+function actionBleibtOffen(mock: typeof createMock) {
+  mock.mockImplementation(
+    () =>
+      new Promise<CatalogFormState>((resolve) => {
+        laufendeActionBeenden = () => resolve({ ok: true });
+      }),
+  );
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
+  laufendeActionBeenden = undefined;
   for (const mock of [createMock, renameMock, duplicateMock, setActiveMock]) {
     mock.mockResolvedValue({ ok: true });
   }
+});
+
+afterEach(async () => {
+  await act(async () => laufendeActionBeenden?.());
 });
 
 function knopf(name: string) {
@@ -64,8 +83,6 @@ async function klickeIm(dialog: HTMLElement, name: string) {
     fireEvent.click(within(dialog).getByRole("button", { name }));
   });
 }
-
-const sendeAb = klickeIm;
 
 function escape(dialog: HTMLElement) {
   fireEvent(dialog.closest("dialog")!, new Event("cancel", { cancelable: true }));
@@ -123,7 +140,7 @@ describe("CatalogControls – Katalog anlegen (spec-372 AK5/AK6)", () => {
       target: { value: "Dorfmeisterschaften" },
     });
 
-    await sendeAb(dialog, "Anlegen");
+    await klickeIm(dialog, "Anlegen");
 
     expect(createMock.mock.calls[0][1].get("name")).toBe("Dorfmeisterschaften");
     expect(istOffen(TITEL)).toBe(false);
@@ -138,7 +155,7 @@ describe("CatalogControls – Katalog anlegen (spec-372 AK5/AK6)", () => {
       target: { value: "Montagsrunde" },
     });
 
-    await sendeAb(dialog, "Anlegen");
+    await klickeIm(dialog, "Anlegen");
 
     expect(within(dialog).getByRole("alert")).toHaveTextContent(
       "Ein Katalog mit diesem Namen existiert bereits.",
@@ -168,20 +185,17 @@ describe("CatalogControls – Katalog anlegen (spec-372 AK5/AK6)", () => {
   });
 
   it("should_lockEscapeAndButtons_when_createRunning", async () => {
-    // AK6. Die Action wird am Ende aufgelöst – ein nie endendes Promise hielte den Scope offen
-    // (Lesson #370).
-    let beenden: (state: CatalogFormState) => void = () => {};
-    createMock.mockReturnValue(new Promise((resolve) => (beenden = resolve)));
+    // AK6
+    actionBleibtOffen(createMock);
     render(<CatalogControls />);
     const dialog = oeffnen();
 
-    await sendeAb(dialog, "Anlegen");
+    await klickeIm(dialog, "Anlegen");
     escape(dialog);
 
     expect(istOffen(TITEL)).toBe(true);
     expect(within(dialog).getByRole("button", { name: "Abbrechen" })).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Anlegen …" })).toBeDisabled();
-    await act(async () => beenden({ ok: true }));
   });
 });
 
@@ -205,7 +219,7 @@ describe("CatalogControls – Katalog umbenennen (spec-372 AK5)", () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
 
-    await sendeAb(dialog, "Umbenennen");
+    await klickeIm(dialog, "Umbenennen");
 
     const formData = renameMock.mock.calls[0][1];
     expect(formData.get("id")).toBe("cat-1");
@@ -219,7 +233,7 @@ describe("CatalogControls – Katalog umbenennen (spec-372 AK5)", () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
 
-    await sendeAb(dialog, "Umbenennen");
+    await klickeIm(dialog, "Umbenennen");
 
     expect(within(dialog).getByRole("alert")).toHaveTextContent("Katalog nicht gefunden.");
     expect(meldeErfolgMock).not.toHaveBeenCalled();
@@ -232,6 +246,17 @@ describe("CatalogControls – Katalog umbenennen (spec-372 AK5)", () => {
     await klickeIm(dialog, "Abbrechen");
 
     expect(knopf("Umbenennen")).toHaveFocus();
+  });
+
+  it("should_showBusyLabel_when_renameRunning", async () => {
+    // Glossar: der Busy-Text folgt dem Verb des Knopfs.
+    actionBleibtOffen(renameMock);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Umbenennen");
+
+    expect(within(dialog).getByRole("button", { name: "Umbenennen …" })).toBeDisabled();
   });
 });
 
@@ -262,7 +287,7 @@ describe("CatalogControls – Katalog duplizieren (spec-372 AK5)", () => {
       target: { value: "Sommerfest" },
     });
 
-    await sendeAb(dialog, "Duplizieren");
+    await klickeIm(dialog, "Duplizieren");
 
     const formData = duplicateMock.mock.calls[0][1];
     expect(formData.get("sourceId")).toBe("cat-1");
@@ -276,11 +301,21 @@ describe("CatalogControls – Katalog duplizieren (spec-372 AK5)", () => {
     render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
 
-    await sendeAb(dialog, "Duplizieren");
+    await klickeIm(dialog, "Duplizieren");
 
     expect(within(dialog).getByRole("alert")).toHaveTextContent(
       "Der Quell-Katalog ist nicht aktiv.",
     );
+  });
+
+  it("should_showBusyLabel_when_duplicateRunning", async () => {
+    actionBleibtOffen(duplicateMock);
+    render(<CatalogControls currentCatalog={currentCatalog} />);
+    const dialog = oeffnen();
+
+    await klickeIm(dialog, "Duplizieren");
+
+    expect(within(dialog).getByRole("button", { name: "Duplizieren …" })).toBeDisabled();
   });
 });
 
@@ -316,7 +351,7 @@ describe("CatalogControls – Katalog deaktivieren mit Bestätigung (spec-372 AK
     render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
 
-    await sendeAb(dialog, "Deaktivieren");
+    await klickeIm(dialog, "Deaktivieren");
 
     const formData = setActiveMock.mock.calls[0][1];
     expect(formData.get("id")).toBe("cat-1");
@@ -331,7 +366,7 @@ describe("CatalogControls – Katalog deaktivieren mit Bestätigung (spec-372 AK
     render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
 
-    await sendeAb(dialog, "Deaktivieren");
+    await klickeIm(dialog, "Deaktivieren");
 
     expect(istOffen(TITEL)).toBe(true);
     expect(within(dialog).getByRole("alert")).toHaveTextContent("Katalog nicht gefunden.");
@@ -363,7 +398,7 @@ describe("CatalogControls – Katalog deaktivieren mit Bestätigung (spec-372 AK
     setActiveMock.mockResolvedValue({ error: "Abgelehnt." });
     render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
-    await sendeAb(dialog, "Deaktivieren");
+    await klickeIm(dialog, "Deaktivieren");
     await klickeIm(dialog, "Abbrechen");
 
     oeffnen();
@@ -376,7 +411,7 @@ describe("CatalogControls – Katalog deaktivieren mit Bestätigung (spec-372 AK
     // der Fokus geht also nicht an `<body>` verloren.
     const { rerender } = render(<CatalogControls currentCatalog={currentCatalog} />);
     const dialog = oeffnen();
-    await sendeAb(dialog, "Deaktivieren");
+    await klickeIm(dialog, "Deaktivieren");
 
     rerender(<CatalogControls currentCatalog={inaktiverKatalog} />);
 
@@ -397,6 +432,18 @@ describe("CatalogControls – Katalog aktivieren ohne Bestätigung (spec-372 AK4
     expect(formData.get("id")).toBe("cat-1");
     expect(formData.get("active")).toBe("true");
     expect(meldeErfolgMock).toHaveBeenCalledWith("Katalog aktiviert");
+  });
+
+  it("should_disableToggle_when_activateRunning", async () => {
+    // Kein zweites Absenden, solange die erste Aktivierung läuft.
+    actionBleibtOffen(setActiveMock);
+    render(<CatalogControls currentCatalog={inaktiverKatalog} />);
+
+    await act(async () => {
+      fireEvent.click(knopf("Aktivieren"));
+    });
+
+    expect(knopf("Aktivieren")).toBeDisabled();
   });
 
   it("should_showAlertAndNoToast_when_activateRejected", async () => {

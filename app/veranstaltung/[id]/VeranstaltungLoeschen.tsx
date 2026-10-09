@@ -56,12 +56,7 @@ export function VeranstaltungLoeschen({ id, bezeichnung, sperren }: Veranstaltun
           </div>
         </Dialog>
       ) : (
-        <LoeschBestaetigung
-          key={durchlauf}
-          {...dialogProps}
-          id={id}
-          bezeichnung={bezeichnung}
-        />
+        <LoeschBestaetigung key={durchlauf} {...dialogProps} id={id} bezeichnung={bezeichnung} />
       )}
     </>
   );

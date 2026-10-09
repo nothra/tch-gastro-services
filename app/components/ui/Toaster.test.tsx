@@ -24,6 +24,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function schliessenKnopf() {
+  return screen.getByRole("button", { name: "Meldung schließen" });
+}
+
 describe("Toaster + meldeErfolg (spec-372 AK12–AK15, ADR-058 D1)", () => {
   it("should_showMessageAsStatus_when_meldeErfolgCalled", () => {
     render(<Toaster />);
@@ -58,7 +62,7 @@ describe("Toaster + meldeErfolg (spec-372 AK12–AK15, ADR-058 D1)", () => {
 
     act(() => meldeErfolg("Gespeichert"));
 
-    const karte = screen.getByRole("status").parentElement!;
+    const karte = screen.getByRole("group", { name: "Gespeichert" });
     expect(karte).toHaveClass("border-success", "bg-success-subtle", "text-success");
   });
 
@@ -82,6 +86,55 @@ describe("Toaster + meldeErfolg (spec-372 AK12–AK15, ADR-058 D1)", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
 
     act(() => vi.advanceTimersByTime(1));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("should_pauseCountdown_when_closeButtonFocused", () => {
+    // Review-372 W2: die Bibliothek pausiert nur bei Hover – per Tastatur auf „×" darf der Toast
+    // nicht unter dem Fokus verschwinden (der fiele sonst auf `<body>`).
+    vi.useFakeTimers();
+    render(<Toaster />);
+    act(() => meldeErfolg("Gespeichert"));
+
+    act(() => schliessenKnopf().focus());
+    act(() => vi.advanceTimersByTime(10_000));
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
+  it("should_resumeFullCountdown_when_focusLeaves", () => {
+    vi.useFakeTimers();
+    render(
+      <>
+        <button>Anderswo</button>
+        <Toaster />
+      </>,
+    );
+    act(() => meldeErfolg("Gespeichert"));
+    act(() => vi.advanceTimersByTime(1_000));
+    act(() => schliessenKnopf().focus());
+    act(() => vi.advanceTimersByTime(3_000));
+
+    act(() => screen.getByRole("button", { name: "Anderswo" }).focus());
+
+    // 1 s war vor der Pause verstrichen, die Pausenzeit zählt nicht: noch 4 s Reststandzeit.
+    act(() => vi.advanceTimersByTime(3_999));
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("should_releasePause_when_focusedToastClosedWithX", () => {
+    // Ein ausgehängter Knopf meldet kein `blur` – ohne Freigabe stünden alle späteren Toasts still.
+    vi.useFakeTimers();
+    render(<Toaster />);
+    act(() => meldeErfolg("Gespeichert"));
+    act(() => schliessenKnopf().focus());
+    fireEvent.click(schliessenKnopf());
+    act(() => meldeErfolg("Auslage gelöscht"));
+
+    act(() => vi.advanceTimersByTime(5_000));
+
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -150,6 +203,25 @@ describe("Toaster bei offenem modalem Dialog (spec-372 FS6)", () => {
     await act(async () => dialog.setAttribute("open", ""));
 
     expect(dialog).toContainElement(screen.getByRole("status"));
+  });
+
+  it("should_releasePause_when_focusedToastRemountsIntoDialog", async () => {
+    // Der Portalwechsel hängt die fokussierte Karte aus – ohne Freigabe stünde die Standzeit
+    // für immer still.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    render(
+      <>
+        <dialog aria-label="Einstellungen" data-testid="dialog" />
+        <Toaster />
+      </>,
+    );
+    act(() => meldeErfolg("Gespeichert"));
+    act(() => schliessenKnopf().focus());
+
+    await act(async () => screen.getByTestId("dialog").setAttribute("open", ""));
+    act(() => vi.advanceTimersByTime(5_000));
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("should_keepToastOutOfClosedDialog_when_noDialogIsOpen", () => {

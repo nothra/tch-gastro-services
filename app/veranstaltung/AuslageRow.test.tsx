@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AuslageRow as AuslageRowData } from "@/db/auslage";
@@ -59,10 +59,20 @@ function renderRow(overrides: Partial<Parameters<typeof AuslageRow>[0]> = {}) {
   );
 }
 
+// Offen gehaltene Action für den Lauf-Test. Aufgelöst wird in `afterEach` innerhalb von `act` –
+// auch wenn eine Assertion vorher scheitert; sonst hielte das Promise den Action-Scope für spätere
+// Tests offen (Lesson #370).
+let laufendeActionBeenden: (() => void) | undefined;
+
 beforeEach(() => {
   vi.resetAllMocks();
+  laufendeActionBeenden = undefined;
   removeMock.mockResolvedValue({ ok: true });
   setStatusMock.mockResolvedValue({ ok: true });
+});
+
+afterEach(async () => {
+  await act(async () => laufendeActionBeenden?.());
 });
 
 function dialog() {
@@ -232,10 +242,13 @@ describe("AuslageRow (Löschen mit Bestätigung, spec-372 AK1/AK2/AK6/AK7)", () 
   });
 
   it("should_lockCancelConfirmAndEscape_when_actionRunning", async () => {
-    // AK6: kein Schließen während des Schreibens. Die Action wird am Ende aufgelöst – ein nie
-    // endendes Promise hielte den Action-Scope für spätere Tests offen (Lesson #370).
-    let beenden: (state: { ok: true }) => void = () => {};
-    removeMock.mockReturnValue(new Promise((resolve) => (beenden = resolve)));
+    // AK6: kein Schließen während des Schreibens.
+    removeMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          laufendeActionBeenden = () => resolve({ ok: true });
+        }),
+    );
     renderRow();
     fireEvent.click(loeschenAusloeser());
 
@@ -247,7 +260,6 @@ describe("AuslageRow (Löschen mit Bestätigung, spec-372 AK1/AK2/AK6/AK7)", () 
     expect(dialog()).toHaveAttribute("open");
     expect(within(dialog()).getByRole("button", { name: "Abbrechen" })).toBeDisabled();
     expect(within(dialog()).getByRole("button", { name: "Löschen …" })).toBeDisabled();
-    await act(async () => beenden({ ok: true }));
   });
 
   it("should_notShowOldError_when_reopened", async () => {

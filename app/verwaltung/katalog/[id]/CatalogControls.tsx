@@ -60,7 +60,11 @@ export function CatalogControls({ currentCatalog }: CatalogControlsProps) {
 function KatalogVerwalten({ katalog }: { katalog: Catalog }) {
   return (
     <>
-      <FormularDialog ausloeser="Umbenennen" ausloeserVariant="secondary" titel="Katalog umbenennen">
+      <FormularDialog
+        ausloeser="Umbenennen"
+        ausloeserVariant="secondary"
+        titel="Katalog umbenennen"
+      >
         {(steuerung) => (
           <KatalogFormular
             action={renameCatalogAction}
@@ -138,8 +142,7 @@ function KatalogFormular({
 // Richtungen teilen EINEN Knopf an derselben Stelle im Baum: wechselt der Status, bleibt der
 // fokussierte Knoten erhalten und nur seine Beschriftung ändert sich (Lesson #371).
 function AktivSchalter({ katalog }: { katalog: Catalog }) {
-  const { ausloeserRef, oeffnen, durchlauf, dialogProps, schliessenNachErfolg } =
-    useBestaetigung();
+  const { ausloeserRef, oeffnen, durchlauf, dialogProps, schliessenNachErfolg } = useBestaetigung();
   const [state, aktivierenAction, pending] = useSchliessendeAction(setCatalogActiveAction, {
     erfolgsMeldung: "Katalog aktiviert",
   });
