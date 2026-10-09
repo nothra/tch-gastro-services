@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Zwei route-neutrale Bausteine `Aufklapper` und `ListenZeile` unter `app/components/ui/` und
@@ -17,15 +17,14 @@ Umstellung der Konsumenten aus Issue #403. Spec: [spec-403](../docs/specs/spec-4
 Volltext (GIVEN/WHEN/THEN) in der Spec; hier die Gliederung:
 - [x] AK1.1, AK1.3–AK1.7 – Baustein Aufklapper (eigener Pfeil, Zähler, Anzeigen/Ausblenden,
       Tastatur, Token-Farben) – Unit-Tests
-- [ ] AK1.2 (Pfeil dreht) – nur im Browser belegbar, hängt an der Playwright-Checkbox unten
+- [x] AK1.2 (Pfeil dreht) – nur im Browser belegbar, hängt an der Playwright-Checkbox unten
 - [x] AK2.1–AK2.8 – Baustein ListenZeile (Karte, Hover, Varianten Link/Zeilenaktion, verblasst + Badge)
 - [x] AK3.1–AK3.6 – `/veranstaltung`: Offen aufgeklappt, Abgeschlossen zu, verblasste Zeilen mit Badge
 - [x] AK4.1–AK4.4 – Startseite, Arbeitsschritt-Kacheln, Detail-Teilnehmer (`ZeileRow`) nutzen ListenZeile
 - [x] AK5.1–AK5.4 – Kassieren/Verzehr-Aufschlüsselung nutzen Aufklapper; beide Dateien im Farb-Gate
 - [x] F3 – Kontrast der verblassten Zeile (tokens.test.ts, hell + dunkel, Karte + Hover-Fläche)
-- [ ] F1/F2/F4 + Browser-Beleg AK1.2/AK1.3 – Playwright `e2e/bausteine-listenzeile-aufklapper.spec.ts`
-      (geschrieben, Lauf ausstehend: braucht lokale DB + `.env.local` per `dotenv`, Freigabe durch
-      den Menschen – siehe Notiz unten)
+- [x] F1/F2/F4 + Browser-Beleg AK1.2/AK1.3 – Playwright `e2e/bausteine-listenzeile-aufklapper.spec.ts`
+      (Lauf 2026-10-09 grün: 2/2 Tests, eigener Dev-Server auf Port 3403, `localhost`)
 
 ## Technische Notizen
 Entscheidungen: [ADR-059](../docs/adr/059-bausteine-listenzeile-aufklapper.md) (Nachtrag in ADR-052 D1).
