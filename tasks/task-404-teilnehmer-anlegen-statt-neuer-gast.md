@@ -129,3 +129,5 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
 ---
 Branch: `feature/404-teilnehmer-anlegen-statt-neuer-gast`
 Erstellt: 2026-10-09 16:18
+
+PR-Shepherd 2026-10-09: Merge freigegeben – alle Gates grün (Anleitungs-Bild bewusst nicht aktualisiert, Entscheidung Ralf).
