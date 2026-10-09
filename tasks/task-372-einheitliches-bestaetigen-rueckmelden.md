@@ -29,11 +29,18 @@ Teilnehmer entfernen, Veranstaltung löschen und Abschließen nutzen den `Confir
 - [ ] FS1–FS7 Fehlerszenarien der Spec
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md) (Accepted).
+- **D1** `react-hot-toast`, nur in `ui/Toaster.tsx` + `ui/meldung.ts` (`meldeErfolg`); Toaster im Root-Layout, unten mittig, 5 s, „×".
+- **D2** Meldung entsteht in der Client-Hülle (`useSchliessendeAction` + Erfolgstext), nicht im Server. `removeAuslageAction`/`setAuslageStatusAction` werden State-Actions; `deleteVeranstaltungAction` gibt `{ ok: true }`, Client `router.replace` (404-Flash im E2E prüfen).
+- **D3** Reine Funktion `lib/…LoeschSperren` (Seite + Action teilen sie), Prop `sperren` an `VeranstaltungLoeschen`; Sperr-Dialog auf `Dialog`, nicht in `ConfirmDialog`.
+- **D4** Auslage löschen/Katalog deaktivieren → `ConfirmDialog` (danger); drei Katalog-Modals → `FormularDialog`-Hooks, `CatalogModal` samt `useCloseOnSuccess` löschen.
+- Neue Abhängigkeit: `pnpm add react-hot-toast` – im `/security-review` prüfen.
+- Glossar-Abweichungen mit Ziel #372 (`docs/ux/glossar.md`) im selben PR streichen.
+- Reihenfolge und Risiken: ADR-058 → Implementierungs-Hinweise.
 
 ## Offene Fragen
 - **Abhängigkeit:** #375 (Glossar) zuerst umsetzen; `/implement` erst danach starten.
-- Q1–Q5 der Spec (Verzehr ±, Toast-Dauer/Position, Blocker-Härte #375, Katalog-Dialogtext, Sperrgründe).
+- Keine offenen Fragen: Q1–Q7 sind in der Spec geklärt, Q6 (Bibliothek) durch ADR-058.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

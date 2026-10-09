@@ -168,7 +168,7 @@ Das Issue wurde vor den UX-Folgearbeiten geschrieben; der Ist-Stand ist weiter:
   (Entscheidung des Menschen, abweichend vom Vorschlag `Toast.tsx`). Das ist eine neue
   Abhängigkeit und damit ein **ADR-Trigger**: `/architecture` wählt die Bibliothek (Kriterien:
   `role="status"`-Live-Region, überlebt Client-Navigation im Root-Layout, Token-Klassen/ADR-052,
-  Größe, Pflege, Lizenz) und legt die ADR an, **bevor** `/implement` startet. Der Provider sitzt im
+  Größe, Pflege, Lizenz) und legt die ADR an, **bevor** `/implement` startet. **Entschieden: `react-hot-toast`, siehe [ADR-058](../adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md).** Der Provider sitzt im
   Root-Layout.
 - [x] **Q7** – „Veranstaltung löschen" (AK13): die Action gibt `{ ok: true }` zurück statt per
   `redirect` weiterzuleiten; der Client zeigt den Toast und navigiert per `router.replace("/veranstaltung")`.
