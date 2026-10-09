@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -137,6 +137,16 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   Prettier, `tsc`. Der einzige offene Punkt ist der Playwright-Lauf. Er ist an den Menschen
   eskaliert und **Vor-Merge-Bedingung** (AK1.2 und die Playwright-Checkbox bleiben bis dahin
   offen). Nitpicks: Kurzzeile in ADR-059 „Konsequenzen"; Wegwerf-Dateien `scripts/*403.tmp.sh`.
+
+## Test-Notizen (`/test`, 2026-10-09)
+- Vitest gesamt: 1621 grün, 112 DB-Tests übersprungen (ohne dotenv, bekannt); Lint grün.
+- Coverage der Task-Dateien (`Aufklapper`, `ListenZeile`, `icons`, Konsumenten): 100 %
+  Stmts/Branch/Funcs/Lines – keine davon steht unter den <100-%-Zeilen des Reports.
+  Gesamt 95,8 % ≥ 80 %.
+- Keine Testlücke gegenüber den AK gefunden: keine neuen Tests, kein Produktionscode geändert.
+- **Weiterhin offen (Mensch, Vor-Merge):** Playwright-Lauf
+  `e2e/bausteine-listenzeile-aufklapper.spec.ts` (AK1.2, F1/F2/F4) – braucht lokale DB +
+  `.env.local`; Wegwerf-Dateien `scripts/*403.tmp.sh` von Hand löschen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
