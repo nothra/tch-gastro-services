@@ -93,6 +93,7 @@ describe("ZeileRow (spec-369 AK17/AK18/AK9)", () => {
     );
 
     expect(screen.getByRole("link").querySelector("svg")).not.toBeNull();
+    // Einziges Kind der Zeile ist der Link – kein Aktions-Container für das Menü.
     expect(screen.getByRole("listitem").children).toHaveLength(1);
   });
 
@@ -104,6 +105,7 @@ describe("ZeileRow (spec-369 AK17/AK18/AK9)", () => {
     );
 
     expect(screen.getByRole("link").querySelector("svg")).toBeNull();
+    // Link + Aktions-Container mit dem Zeilenmenü daneben.
     expect(screen.getByRole("listitem").children).toHaveLength(2);
   });
 });

@@ -8,14 +8,20 @@ import { joinClasses } from "./joinClasses";
 // ganze Fläche füllt. Eine Zeilenaktion (z. B. ⋯-Menü) kommt als Slot und steht NEBEN dem Link,
 // nie darin – so steckt kein interaktives Element in einem anderen (spec-403 AK2.4). Der Baustein
 // kennt weder Menü noch Server Action. Der Kartenrand ist `line-subtle` wie bei `Card`: er grenzt
-// die Fläche nur ab, die Zeile erkennt man an Titel und Pfeil (ADR-059 D1, Ausnahme zu ADR-052 D2).
+// die Fläche nur ab, die Zeile erkennt man an Titel und Pfeil bzw. – pfeillos – am Text-Link
+// (ADR-059 D1, Ausnahme zu ADR-052 D2).
 
 // Verblasster Zustand (ADR-059 D3): abgeblendet werden nur Textblock und Pfeil, nicht das Badge –
 // es trägt den Zustand als Text und muss voll lesbar bleiben. Der Untertitel wechselt dabei auf
 // `text-foreground`, weil `text-muted` unter `opacity-60` unter 4,5 : 1 fiele (tokens.test.ts).
-const VERBLASST_CLASS = "opacity-60";
+// Exportiert, damit der Kontrastnachweis in tokens.test.ts mit derselben Opazität rechnet.
+export const VERBLASST_CLASS = "opacity-60";
 
-/** Einheitliche Leer-Prüfung für bedingt übergebene Slots (`x && …` liefert `false`/`""`). */
+/**
+ * Einheitliche Leer-Prüfung für bedingt übergebene Slots (`x && …` liefert `false`/`""`).
+ * Die Zahl `0` zählt bewusst als Inhalt (`0 && …` ergibt `0`) – Konsumenten mit Zahlen-Bedingung
+ * schreiben `n > 0 && …`.
+ */
 function hatInhalt(wert: ReactNode): boolean {
   return wert !== undefined && wert !== null && wert !== false && wert !== "";
 }

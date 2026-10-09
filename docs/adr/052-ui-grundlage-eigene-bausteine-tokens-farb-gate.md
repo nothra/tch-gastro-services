@@ -106,7 +106,8 @@ Dateien.
   (knappstes Paar: `success` auf `success-subtle`), dunkel ≥ 5,84 : 1. `line` gegen `surface`
   und `background` hell ≥ 4,40, dunkel ≥ 3,67. Fokus-Rahmen (`accent`) hell ≥ 4,87, dunkel
   ≥ 9,80. `line-subtle` ist rein dekorativ und nach WCAG 1.4.11 vom 3 : 1-Kriterium
-  ausgenommen. Bedienelement-Rahmen nutzen deshalb immer `line`, nie `line-subtle`.
+  ausgenommen. Bedienelement-Rahmen nutzen deshalb immer `line`, nie `line-subtle`
+  (Ausnahme: Kartenrand der `ListenZeile`, ADR-059 D1).
 - **Schrift (AK3):** Der `font-family: Arial, …`-Override in `body` entfällt. `--font-sans`
   zeigt bereits auf Geist, `body` nutzt `font-sans`.
 - **Typo-Skala (AK4):** Basis-Stile für `h1`/`h2`/`h3` in `@layer base` von `globals.css`

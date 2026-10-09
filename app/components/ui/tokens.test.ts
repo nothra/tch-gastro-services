@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
+import { VERBLASST_CLASS } from "./ListenZeile";
 
 // Prüft die Farb-Tokens aus `app/globals.css` gegen die Zusagen von spec-368 AK1/AK3/AK4.
 // Die Werte werden aus der CSS-Datei GELESEN und nachgerechnet (WCAG-2-Formel), nicht im Test
@@ -86,9 +87,18 @@ function blend(vordergrund: string, hintergrund: string, opacity: number): strin
   return `#${kanaele.map((wert) => wert.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** Tailwind-Klasse `opacity-<prozent>` → Anteil 0…1; andere Formen sind ein Testfehler. */
+function opacityFromClass(klasse: string): number {
+  const treffer = klasse.match(/^opacity-(\d+)$/);
+  if (!treffer) throw new Error(`Unerwartete Opazitäts-Klasse: ${klasse}`);
+  return Number(treffer[1]) / 100;
+}
+
 // Verblasste ListenZeile (spec-403 AK2.5/F3, ADR-059 D3): Titel und Untertitel tragen beide
 // `text-foreground` unter `opacity-60` – auf der Kartenfläche und auf der Hover-/Fokus-Fläche.
-const VERBLASST_OPACITY = 0.6;
+// Die Opazität wird aus der Klasse des Bausteins gelesen, damit eine Änderung dort (z. B.
+// `opacity-50`) den Nachweis neu rechnet statt ihn still grün zu lassen.
+const VERBLASST_OPACITY = opacityFromClass(VERBLASST_CLASS);
 const VERBLASST_HINTERGRUENDE = ["surface", "accent-subtle"] as const;
 
 // Getrennte Testfälle je Theme, damit ein Rot das betroffene Theme im Testnamen nennt.
@@ -185,7 +195,12 @@ describe("Farb-Tokens in globals.css (AK1)", () => {
 
   it("should_blendChannelsLinearly_when_opacityApplied", () => {
     // Fester Stützwert für die Überblendung: 60 % Schwarz auf Weiß = 0x66 je Kanal.
-    expect(blend("#000000", "#ffffff", VERBLASST_OPACITY)).toBe("#666666");
+    expect(blend("#000000", "#ffffff", 0.6)).toBe("#666666");
+  });
+
+  it("should_readOpacityShare_when_classIsTailwindOpacity", () => {
+    expect(opacityFromClass("opacity-60")).toBe(0.6);
+    expect(() => opacityFromClass("opacity-[.6]")).toThrow("Unerwartete Opazitäts-Klasse");
   });
 
   // Ohne `color-scheme` blieben native Teile (Auswahl-Popup, Zahlen-Spinner, Scrollbalken)

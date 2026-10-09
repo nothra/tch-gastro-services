@@ -126,21 +126,22 @@ describe("ListenZeile (spec-403 AK2)", () => {
 
   // Konsumenten übergeben bedingt (`aktion={editable && <Menue/>}`): ein leerer Slot zeigt den
   // Pfeil und keinen Aktions-Container – Gegenrichtung zu den beiden Tests oben (Lesson #211).
-  it.each<[ReactNode, string]>([
-    [false, "false"],
-    [null, "null"],
-  ])("should_showArrowWithoutAktionContainer_when_aktionIs%s", (aktion) => {
+  it.each<{ aktion: ReactNode; label: string }>([
+    { aktion: false, label: "False" },
+    { aktion: null, label: "Null" },
+  ])("should_showArrowWithoutAktionContainer_when_aktionIs$label", ({ aktion }) => {
     renderZeile(<ListenZeile href="/ziel" titel="Erika" aktion={aktion} />);
 
     expect(screen.getByRole("link").querySelector("svg")).not.toBeNull();
+    // Einziges Kind der Karte ist der Link – kein Aktions-Container daneben.
     expect(karte().children).toHaveLength(1);
   });
 
-  it.each<[ReactNode, string]>([
-    [false, "false"],
-    [null, "null"],
-    ["", "leer"],
-  ])("should_renderNoUntertitelSpan_when_untertitelIs%s", (untertitel) => {
+  it.each<{ untertitel: ReactNode; label: string }>([
+    { untertitel: false, label: "False" },
+    { untertitel: null, label: "Null" },
+    { untertitel: "", label: "Leer" },
+  ])("should_renderNoUntertitelSpan_when_untertitelIs$label", ({ untertitel }) => {
     renderZeile(<ListenZeile href="/ziel" titel="Montagsrunde" untertitel={untertitel} />);
 
     expect(karte().querySelector(".text-sm")).toBeNull();
@@ -151,6 +152,7 @@ describe("ListenZeile (spec-403 AK2)", () => {
     renderZeile(<ListenZeile href="/ziel" titel="Montagsrunde" zustand="" />);
 
     expect(karte().querySelector(".opacity-60")).toBeNull();
+    // Link-Kinder: Textblock + Pfeil – kein Badge dazwischen.
     expect(screen.getByRole("link").children).toHaveLength(2);
   });
 

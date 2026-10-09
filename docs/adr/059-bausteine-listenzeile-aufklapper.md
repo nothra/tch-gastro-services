@@ -60,7 +60,12 @@ Zeilenaktion (z. B. `ConfirmDialog` des `ZeilenMenue`) offen ist – gewollt, er
 **Rahmen – Ausnahme zu ADR-052 D2:** Der Kartenrand ist `line-subtle`, obwohl die ganze Karte ein
 Link ist und ADR-052 D2 für Bedienelement-Rahmen `line` verlangt. Begründung: der Rand grenzt hier
 nur die Fläche ab wie bei `Card` (ADR-052 D2, Tabelle „Kartenrand"); erkennbar ist die Zeile an
-Titel und Pfeil, und WCAG 1.4.11 verlangt für Links keinen sichtbaren Rahmen. Bedienelemente mit
+Titel und Pfeil, und WCAG 1.4.11 verlangt für Links keinen sichtbaren Rahmen. Das gilt auch für
+die **pfeillose** Variante der Arbeitsschritt-Kacheln (vorher `border-line`): Tipp-Ziel ist dort
+der Text-Link selbst (WCAG 1.4.11 gilt nicht für Text, 1.4.3 deckt ihn ab), und die Kacheln
+stehen als Navigation im `nav` mit Titel und Kennzahl – der Rahmen ist auch dort nicht das
+einzige Erkennungszeichen. Ein Wechsel auf `line` nur für die Kacheln hätte zwei Kartenränder
+für dieselbe Zeilen-Sprache bedeutet. Bedienelemente mit
 eigenem Rahmen als einzigem Erkennungszeichen (Eingabefelder, Knöpfe) bleiben bei `line`.
 
 `ZeilenMenue` bleibt feature-lokal und wird von `ZeileRow` als `aktion` übergeben. Der Baustein
@@ -74,9 +79,13 @@ kennt weder Menü noch Server Action → route-neutral (ADR-052 D1).
   rechts der Hinweis. „Anzeigen"/„Ausblenden" sind **zwei** Elemente, die
   `group-open/aufklapper:` ein-/ausblendet – kein State, kein Client-JS (spec F1; `Kassieren`
   bleibt Server Component).
-- Die Gruppe ist **benannt**: eine unbenannte `group-open:`-Variante griffe bei jedem offenen
-  `.group`-Vorfahren, ein zugeklappter Aufklapper in einem offenen zeigte dann gedrehten Pfeil und
-  „Ausblenden". Mit dem Namen reagiert jeder Aufklapper nur auf sein eigenes `<details>`.
+- Die Gruppe ist **benannt** (`group/aufklapper`): eine unbenannte `group-open:`-Variante griffe
+  bei jedem offenen fremden `.group`-Vorfahren. Der Name schützt **nur davor**. Tailwind erzeugt
+  für `group-open/aufklapper:` einen Nachfahren-Selektor, und jeder Aufklapper trägt dieselbe
+  Klasse – ein zugeklappter Aufklapper **in** einem offenen zeigte also weiterhin gedrehten Pfeil
+  und „Ausblenden". Deshalb gilt: **Aufklapper nicht verschachteln.** Heute verschachtelt kein
+  Konsument; braucht ein Folge-Issue das, wird der Selektor an das eigene `<details>` gebunden
+  (direkter Kind-Kombinator) und mit einem Browser-Test belegt.
 - Der Hinweis ist `aria-hidden`: den Zustand meldet `<details>` dem Screenreader selbst; im
   zugänglichen Namen des `<summary>` stünde er doppelt.
 - `className` nur für Layout (Abstand, Schriftgröße) – Rahmen und Fläche kommen von außen,
@@ -95,10 +104,10 @@ ADR-052 D2) gegen die Kartenfläche `surface`:
 
 | Text bei `opacity-60` | hell | dunkel |
 |---|---|---|
-| Titel (`foreground`) | ≈ 4,8 : 1 | ≈ 6,3 : 1 |
+| Titel (`foreground`) | ≈ 4,7 : 1 | ≈ 6,5 : 1 |
 | Untertitel (`muted`) | ≈ 2,9 : 1 ✗ | ≈ 3,3 : 1 ✗ |
 | Badge `neutral` (`muted` auf `background`) | ≈ 2,8 : 1 ✗ | ≈ 3,2 : 1 ✗ |
-| Titel (`foreground`) auf Hover-/Fokus-Fläche `accent-subtle` | ≈ 4,6 : 1 (knappster Wert) | ≥ 4,5 : 1 (Test) |
+| Titel (`foreground`) auf Hover-/Fokus-Fläche `accent-subtle` | ≈ 4,6 : 1 (knappster Wert) | ≈ 5,4 : 1 |
 
 Das Badge ist der **Textträger** des Zustands und der Untertitel enthält Datum/Katalog/Kasse –
 beides darf nicht unter 4,5 : 1 fallen. Entscheidung:
@@ -106,10 +115,10 @@ beides darf nicht unter 4,5 : 1 fallen. Entscheidung:
   gesamten `<li>` und **nicht** auf dem Badge. Das Badge bleibt voll lesbar; Rahmen und
   Kartenfläche bleiben unverändert.
 - Im verblassten Zustand nutzt der Untertitel `text-foreground` statt `text-muted`
-  (≈ 4,8 / 6,3 : 1 – gedämpft wie der Titel, aber lesbar).
-- Ein Test in `tokens.test.ts` (oder `ListenZeile.test.tsx`) rechnet diese beiden Paare mit der
-  vorhandenen Kontrast-Funktion nach (Überblendung `0,6·Vordergrund + 0,4·Karte`); fällt ein
-  Token-Wert später darunter, wird er rot.
+  (≈ 4,7 / 6,5 : 1 – gedämpft wie der Titel, aber lesbar).
+- `tokens.test.ts` rechnet diese Paare (auf `surface` und auf `accent-subtle`, je Theme) mit der
+  vorhandenen Kontrast-Funktion nach (Überblendung `0,6·Vordergrund + 0,4·Fläche`) und prüft
+  ≥ 4,5 : 1; fällt ein Token-Wert später darunter, wird er rot. Die Werte oben sind gerundet.
 
 Das weicht vom Wortlaut „Zeile `opacity-60`" des Issues ab (Spec AK2.5 wird entsprechend
 nachgezogen); die erkennbare Wirkung – ausgegraute Zeile mit Status-Badge – bleibt.
@@ -145,7 +154,7 @@ Teilnehmer-Verwaltung/Auslagen/Katalog können eigene Aktionen einhängen.
 ### D2 – Option A: Aufklapper als Client Component mit `useState`
 **Vorteile:** Hinweiswechsel und Zustand in React beobachtbar.
 **Nachteile:** Kassieren und `VerzehrAufschluesselung` würden Client-Inseln oder selbst
-Client Components; Hydrations-Abhängigkeit; kein Mehrwert gegenüber `group-open:`.
+Client Components; Hydrations-Abhängigkeit; kein Mehrwert gegenüber `group-open/aufklapper:`.
 
 ### D2 – Option B: Natives `<details>` + CSS (gewählt)
 **Vorteile:** funktioniert vor Hydration und ohne JS, Tastatur/Screenreader nativ.
@@ -165,7 +174,7 @@ bricht.
 ## Begründung
 
 Der Slot hält den Baustein klein und route-neutral und lässt die Folge-Issues ihre Aktionen
-selbst bestimmen. Natives `<details>` mit `group-open:` ist die einzige Lösung, die ohne JS und
+selbst bestimmen. Natives `<details>` mit `group-open/aufklapper:` ist die einzige Lösung, die ohne JS und
 ohne Client-Komponenten auskommt. Die Abblendung ist die einzige Stelle, an der der Spec-Wortlaut
 einer Barrierefreiheits-Regel weichen muss; die Rechnung steht oben.
 
@@ -179,7 +188,8 @@ einer Barrierefreiheits-Regel weichen muss; die Rechnung steht oben.
 - Kassieren bleibt Server Component.
 
 **Negativ / Trade-offs:**
-- Pfeil/Hinweis-Wechsel hängt an der Tailwind-Variante `group-open:`; ein Tailwind-Update, das sie
+- Pfeil/Hinweis-Wechsel hängt an der Tailwind-Variante `group-open/aufklapper:`; ein
+  Tailwind-Update, das sie
   ändert, fiele im Browser-Test (Playwright) auf, nicht im jsdom-Test (jsdom wertet
   CSS-Varianten nicht aus). Der Unit-Test prüft Klassen und `open`, der Funktionsbeleg ist
   Playwright (Lesson „Nativer Popover").
@@ -189,4 +199,7 @@ einer Barrierefreiheits-Regel weichen muss; die Rechnung steht oben.
 
 - **ADR-052 D1/D2/D3:** Bausteinort, Token, Farb-Gate – erhält einen Nachtrag auf diese ADR.
 - **ADR-031:** `prefetch={false}` der Startseite wird durchgereicht.
+- **ADR-055 D4:** „Abrechnung im Detail" war dort bewusst *kein* eigener Baustein (erst ab dem
+  dritten Verbraucher); mit Aufschlüsselung, Kassieren und Veranstaltungsliste ist der erreicht –
+  die Stelle nutzt jetzt den `Aufklapper` (D2). ADR-055 trägt einen Nachtrag.
 - **ADR-053/ADR-056:** Baustein-/Symbol-Konventionen (Inline-SVG in `icons.tsx`).

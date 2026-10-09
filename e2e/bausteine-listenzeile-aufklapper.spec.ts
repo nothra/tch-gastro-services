@@ -4,7 +4,7 @@ import { gastHinzufuegen } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für die Bausteine `Aufklapper` und `ListenZeile` (#403, spec-403,
-// ADR-059). Prüft gegen einen echten Browser, was jsdom nicht belegen kann: dass `group-open:` den
+// ADR-059). Prüft gegen einen echten Browser, was jsdom nicht belegen kann: dass `group-open/aufklapper:` den
 // Pfeil dreht und den Hinweis „Anzeigen"/„Ausblenden" wechselt – auch ohne JavaScript (F1) –, die
 // berechnete Abblendung der verblassten Zeile (AK2.5) und die Tastaturbedienung (AK1.5, F4).
 //
@@ -144,7 +144,7 @@ test.describe("Bausteine ListenZeile und Aufklapper (#403)", () => {
     await page.keyboard.press("Enter");
     await erwarteZustand(abgeschlossen, true);
     await expect(summary).toBeFocused();
-    expect(await summary.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("solid");
+    await expect(summary).toHaveCSS("outline-style", "solid");
 
     // ── AK3.3 / AK2.5: verblasste Zeile mit unabgeblendetem Badge ──────────────────────────
     const link = abgeschlossen.locator(`a[href="${abgeschlossenPfad}"]`);

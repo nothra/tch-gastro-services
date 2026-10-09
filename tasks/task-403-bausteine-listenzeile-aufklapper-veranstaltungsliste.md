@@ -15,7 +15,9 @@ Umstellung der Konsumenten aus Issue #403. Spec: [spec-403](../docs/specs/spec-4
 
 ## Akzeptanzkriterien
 Volltext (GIVEN/WHEN/THEN) in der Spec; hier die Gliederung:
-- [x] AK1.1–AK1.7 – Baustein Aufklapper (eigener Pfeil, Zähler, Anzeigen/Ausblenden, Tastatur, Token-Farben)
+- [x] AK1.1, AK1.3–AK1.7 – Baustein Aufklapper (eigener Pfeil, Zähler, Anzeigen/Ausblenden,
+      Tastatur, Token-Farben) – Unit-Tests
+- [ ] AK1.2 (Pfeil dreht) – nur im Browser belegbar, hängt an der Playwright-Checkbox unten
 - [x] AK2.1–AK2.8 – Baustein ListenZeile (Karte, Hover, Varianten Link/Zeilenaktion, verblasst + Badge)
 - [x] AK3.1–AK3.6 – `/veranstaltung`: Offen aufgeklappt, Abgeschlossen zu, verblasste Zeilen mit Badge
 - [x] AK4.1–AK4.4 – Startseite, Arbeitsschritt-Kacheln, Detail-Teilnehmer (`ZeileRow`) nutzen ListenZeile
@@ -35,7 +37,8 @@ Hinweise für `/implement`:
   Links (nie darin). Ohne `aktion` Pfeil rechts, mit `aktion` kein Pfeil. `prefetch` durchreichen.
 - Verblasst (D3): `opacity-60` nur auf Textblock+Pfeil, Badge unberührt, Untertitel
   `text-foreground`. Kontrast-Test mit der vorhandenen Funktion in `tokens.test.ts` ergänzen.
-- `Aufklapper`: `<details className="group">`, Hinweis zweigeteilt per `group-open:hidden` /
+- *(überholt: Gruppe heißt jetzt `group/aufklapper`, siehe Rework-Notizen)*
+  `Aufklapper`: `<details className="group">`, Hinweis zweigeteilt per `group-open:hidden` /
   `hidden group-open:inline`; `ueberschrift`-Prop für `aria-labelledby`. jsdom wertet
   `group-open:` nicht aus → Funktionsbeleg per Playwright (Pfeil dreht, Hinweis wechselt,
   `localhost` statt `127.0.0.1`, eigener Dev-Server-Port – Lessons in `PROJECT-CONTEXT.md`).
@@ -58,8 +61,9 @@ Hinweise für `/implement`:
   dass `muted` unter `opacity-60` durchfiele (sonst wäre die Abweichung von AK2.5 unnötig).
 - **Glossar** um die Abgrenzung „Ausblenden (Ansicht) ↔ deaktivieren (Objekt)" und die
   Badge-Schreibweise ergänzt – die Verb-Tabelle führte „ausblenden" als *Nicht verwenden*.
-- **Kassieren „Abrechnung im Detail"**: Rahmen/Fläche/`px-4` am `<details>` (Aufklapper-`className`),
-  Trennlinie zum Inhalt jetzt eingerückt statt randbündig.
+- *(überholt durch Rework W2: Rahmen/Fläche kommen jetzt von `Card`)* **Kassieren „Abrechnung im
+  Detail"**: Rahmen/Fläche/`px-4` am `<details>` (Aufklapper-`className`), Trennlinie zum Inhalt
+  jetzt eingerückt statt randbündig.
 - **Wegwerf-Datei** `scripts/format403.tmp.sh` (Prettier-Aufruf, gitignoret) liegt noch im
   Worktree – `rm` war in der Session nicht freigegeben; bitte von Hand löschen.
 
@@ -76,7 +80,8 @@ Hinweise für `/implement`:
   `editable={false}`/`true` (Pfeil ja/nein, Aktions-Container ja/nein); Mutationsbeleg
   `zeigtPfeil = pfeil` → `should_showNoArrow_when_editable` rot.
 - **Nitpicks umgesetzt:** einheitliche Leer-Prüfung `hatInhalt` (Untertitel, Zustand, Aktion);
-  benannte Gruppe `group/aufklapper` (kein Mitdrehen in offenem Vorfahren); Hinweis `aria-hidden`;
+  benannte Gruppe `group/aufklapper` (schützt nur vor fremden `.group`-Vorfahren – Korrektur
+  siehe Rework Iteration 2); Hinweis `aria-hidden`;
   ADR-059-Drift (`h-full`, „Vier Listen-Markups", Hover-Kontrast in D3, `focus-within`-Mechanik);
   Spec Q2–Q5 abgehakt; Glossar-Badge-Regel auf Zustands-Badges eingegrenzt; Kontrast-Tests je
   Theme getrennt, Gegenprobe `muted` in beiden Themes; Kopfkommentar neu umbrochen.
@@ -85,6 +90,29 @@ Hinweise für `/implement`:
   Layout-Variante im Baustein nur für diesen Konsumenten (YAGNI). Im Browser-Lauf mit ansehen.
 - **Wegwerf-Datei** `scripts/format403.tmp.sh` liegt weiter im Worktree – `rm` auch in dieser
   Session nicht freigegeben; bitte von Hand löschen.
+
+### Notizen aus dem Rework nach Review-Iteration 2 (2026-10-09)
+- **W1:** Wirkungsbehauptung korrigiert statt Selektor umgebaut – heute verschachtelt kein
+  Konsument (YAGNI). ADR-059 D2, Aufklapper-Kopfkommentar und Testname
+  (`should_useOnlyNamedGroupVariant_when_rendered`) sagen jetzt: Name schützt vor fremden
+  `.group`-Vorfahren, **nicht** vor verschachtelten Aufklappern → „Aufklapper nicht
+  verschachteln"; bei Bedarf Selektor per Kind-Kombinator binden + Browser-Test.
+- **W2:** Nachtrag in ADR-055 D4 (dritter Verbraucher erreicht → ADR-059 D2), ADR-055 in
+  ADR-059 „Bezug zu anderen ADRs".
+- **W3:** ADR-059 D1 begründet `line-subtle` auch für die pfeillosen Kacheln (Text-Link, `nav`,
+  Kennzahl; einheitlicher Kartenrand); Kopfkommentar `ListenZeile.tsx` angeglichen.
+- **W4:** AK1.2 aus der abgehakten AK1-Zeile herausgelöst – hängt jetzt sichtbar am offenen
+  Playwright-Lauf. Lauf weiter ausstehend (Freigabe des Menschen: lokale DB, `.env.local`,
+  eigener Port, `localhost`); Tipp-Höhe „Abrechnung im Detail" dabei mit ansehen.
+- **Nitpicks umgesetzt:** D3-Kontrastwerte angeglichen (4,7/6,5, dunkel Hover 5,4) und
+  Planungsform entfernt; `group-open:` → `group-open/aufklapper:` in ADR-059 + E2E-Kopf;
+  ADR-052 D2 mit Querverweis auf die Ausnahme; `hatInhalt`-JSDoc dokumentiert `0` als Inhalt;
+  `$label`-Objektzeilen in `ListenZeile.test.tsx`; `toHaveLength`-Herleitungen kommentiert;
+  `VERBLASST_OPACITY` aus der exportierten `VERBLASST_CLASS` gelesen (+ Test für den Parser);
+  Fokusring per `toHaveCSS("outline-style", "solid")`; Kommentarzeile umbrochen; überholte
+  Notizen markiert.
+- **Wegwerf-Dateien** `scripts/format403.tmp.sh`, `scripts/review403.tmp.sh` (gitignoret) –
+  vor dem Merge von Hand löschen.
 
 ## Offene Fragen
 Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", ADR-059 D5).
@@ -102,6 +130,7 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   Testname behaupten es; ADR-055 D4 „kein neuer Baustein" nicht nachgezogen; `line-subtle`-
   Begründung „Titel und Pfeil" trägt nicht für die pfeillosen Kacheln; E2E-Lauf weiter offen,
   braucht Freigabe des Menschen), 12 Nitpicks. Iteration-1-Befunde K1, W1–W3 bestätigt behoben.
+  → Rework: W1–W3 und alle Nitpicks behoben, W4 (E2E-Lauf) weiter offen (Notizen oben).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

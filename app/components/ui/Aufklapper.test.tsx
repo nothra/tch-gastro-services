@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Aufklapper } from "./Aufklapper";
 
-// jsdom wertet die Tailwind-Variante `group-open/aufklapper:` nicht aus – hier werden Struktur, Klassen und
-// das `open`-Attribut geprüft; dass Pfeil und Hinweis im Browser wirklich wechseln, belegt
+// jsdom wertet die Tailwind-Variante `group-open/aufklapper:` nicht aus – hier werden Struktur,
+// Klassen und das `open`-Attribut geprüft; dass Pfeil und Hinweis im Browser wirklich wechseln, belegt
 // Playwright (ADR-059 D2, e2e/bausteine-listenzeile-aufklapper.spec.ts).
 
 function details(container: HTMLElement) {
@@ -34,9 +34,9 @@ describe("Aufklapper (spec-403 AK1)", () => {
     expect(pfeilRahmen).toHaveClass("group-open/aufklapper:rotate-90");
   });
 
-  it("should_reactOnlyToOwnDetails_when_nestedInOtherGroup", () => {
-    // Benannte Gruppe: ein zugeklappter Aufklapper in einem offenen `.group`-Vorfahren dreht
-    // seinen Pfeil nicht mit – keine unbenannte `group-open:`-Variante im Baustein.
+  it("should_useOnlyNamedGroupVariant_when_rendered", () => {
+    // Benannte Gruppe: ein fremder offener `.group`-Vorfahre schaltet nicht mit – keine unbenannte
+    // `group-open:`-Variante im Baustein. Verschachtelte Aufklapper schützt das nicht (ADR-059 D2).
     const { container } = render(<Aufklapper titel="Abgeschlossen">Inhalt</Aufklapper>);
 
     expect(container.innerHTML).not.toMatch(/group-open:/);

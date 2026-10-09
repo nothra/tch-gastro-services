@@ -5,9 +5,9 @@ import { joinClasses } from "./joinClasses";
 // Route-neutraler Baustein (ADR-052 D1, ADR-059 D2): natives `<details>`, dessen Zustand allein
 // per CSS (`group-open/aufklapper:`) sichtbar wird – Pfeil-Drehung und Hinweis
 // „Anzeigen"/„Ausblenden" funktionieren damit vor der Hydration und ohne JS (spec-403 F1), und
-// Konsumenten wie die Kassier-Seite bleiben Server Components. Die Gruppe ist benannt, damit ein
-// verschachtelter Aufklapper nur auf sein eigenes `<details>` reagiert, nicht auf einen offenen
-// Vorfahren.
+// Konsumenten wie die Kassier-Seite bleiben Server Components. Die Gruppe ist benannt, damit
+// fremde offene `.group`-Vorfahren nicht mitschalten; gegen einen offenen Aufklapper als Vorfahren
+// schützt der Name nicht (Nachfahren-Selektor, gleiche Klasse) – Aufklapper nicht verschachteln.
 
 /** Überschrift im `<summary>`, auf deren `id` der umgebende Abschnitt per `aria-labelledby` zeigt. */
 interface AufklapperUeberschrift {
