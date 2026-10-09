@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -73,6 +73,19 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
   Oberflächentests gegen eigenen Dev-Server (Port 3172): alle Specs 37 grün, 1 übersprungen, ein
   `page.goto`-Timeout unter Last (AK12-Test), im Einzellauf zweimal grün; 404-Zwischenbild nach
   „Veranstaltung löschen" per `MutationObserver` ausgeschlossen.
+- Iteration 2 (2026-10-09): **APPROVED** – 0 kritisch, 0 wichtig, 6 Nitpicks (optional) →
+  `tasks/review-372.md`. Alle acht wichtigen Findings aus Iteration 1 nachgeprüft; keine neuen
+  Out-of-Scope-Funde.
+
+## Test-Notizen (/test, 2026-10-09)
+- Gesamtlauf inkl. DB (`dotenv -e .env.local`): 119 Dateien, 1668/1668 grün; Coverage 98,63 % Stmts /
+  98,74 % Branch / 98,75 % Lines (Schwelle 80 %).
+- Einzige Lücke im neuen Code: `Toaster.tsx` – das `disconnect` des `MutationObserver` beim Unmount.
+  Neuer Test `should_stopObservingDialogs_when_toasterUnmounts`; Mutationsbeleg (Aufräumfunktion
+  geleert → Test rot, wiederhergestellt → 16/16 grün).
+- Übrige Restlücken (`Dialog.tsx` Z. 59, `actions.ts` Z. 625, `IdentityGate`, `db/*`) liegen in
+  Code, den #372 nicht ändert.
+- Kein Produktionscode geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

@@ -236,4 +236,14 @@ describe("Toaster bei offenem modalem Dialog (spec-372 FS6)", () => {
 
     expect(screen.getByTestId("dialog")).not.toContainElement(screen.getByRole("status"));
   });
+
+  it("should_stopObservingDialogs_when_toasterUnmounts", () => {
+    const disconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
+    const { unmount } = render(<Toaster />);
+
+    unmount();
+
+    expect(disconnect).toHaveBeenCalled();
+    disconnect.mockRestore();
+  });
 });

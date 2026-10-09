@@ -1,8 +1,11 @@
 # Review: Task 372
 
-Iteration 1 · Diff `origin/main...HEAD` (72 Dateien) · drei Runden: Logik, Code-Qualität, Architektur.
-Unit-Suiten der betroffenen Bereiche grün (1311 Tests in `app/components`, `app/veranstaltung`,
-`app/verwaltung`, `lib/`); E2E und DB-Integrationstests im Review nicht erneut gelaufen.
+Iteration 2 · Schwerpunkt Rework-Diff `f894c0c..HEAD` (35 Dateien) im Kontext von
+`origin/main...HEAD` (81 Dateien) · drei Runden: Logik, Code-Qualität, Architektur.
+Im Review gelaufen: `pnpm vitest run app/components app/veranstaltung app/verwaltung eslint`
+→ 78 Dateien, 1215 Tests grün; `pnpm lint` → 0 Fehler (1 Warnung aus einer ungetrackten
+Wegwerf-Datei, siehe Nitpicks). `pnpm typecheck` wurde nicht freigegeben und lief nicht; E2E und
+DB-Integrationstests liefen im Review nicht erneut (Ergebnisse dazu in der Task-Datei).
 
 ## Kritische Findings (müssen behoben werden)
 
@@ -10,81 +13,86 @@ Keine.
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [x] [docs/adr/056-detailseite-kopfaktionen-symbol-schaltflaechen.md:71-72, :88; docs/adr/055-kassieren-spende-live-abschluss-im-kopf.md:63; docs/adr/052-ui-grundlage-eigene-bausteine-tokens-farb-gate.md:56; docs/adr/058-…:83-88, :199-200] **ADRs beschreiben die geänderte Mechanik im alten Stand** (Lessons #211/#55/#176). ADR-056 D3 „Die Formulare zeigen ihre bestehende Erfolgsmeldung im Dialog" → jetzt Toast im Dialog; ADR-056 D4 „Bei Erfolg leitet die Action wie bisher selbst um" → jetzt `{ ok: true }` + Client-`router.replace` (`actions.ts:319`, `VeranstaltungLoeschen.tsx:103`); ADR-055 „Die Meldung ist ein `Notice`" → Toast (`KassiereZeileForm.tsx:41-44`); ADR-052 „Keine neuen npm-Abhängigkeiten" ohne Rückverweis auf ADR-058 (Muster: „Nachtrag (#369)" in ADR-052:49-51). ADR-058 selbst nennt `setTeilnehmerActiveAction` nicht unter den umgestellten Actions (`app/verwaltung/teilnehmer/actions.ts:66-79`) und behauptet, die Aufrufer liefen „unverändert weiter" – tatsächlich wurden alle auf das Optionsobjekt umgestellt. Fix: je ein „Nachtrag (#372)" in ADR-052/055/056, ADR-058 D2 + Konsequenzen korrigieren.
-- [x] [app/components/ui/Toaster.tsx:24-34; docs/adr/058-…:59-60] **Toast pausiert nur bei Hover, nicht bei Fokus – ADR behauptet „Hover/Fokus pausiert".** `react-hot-toast` verdrahtet nur `onMouseEnter`/`onMouseLeave` (`node_modules/react-hot-toast/dist/index.mjs`, kein `onFocus` – im Review nachgeprüft). Wer per Tastatur auf „Meldung schließen" geht, verliert nach 5 s den Fokus an `<body>`; auf Touch gibt es kein Hover. Fix: in `ToastKarte` Fokus/Blur ans Pausieren binden (über `useToaster`/`toast`-API) und mit Test belegen – oder den ADR-Satz korrigieren und die Einschränkung bewusst festhalten.
-- [x] [app/veranstaltung/actions.ts:131-134; lib/veranstaltung-loesch-sperren.ts:32] **Verzehr-Regel `menge > 0` wieder an zwei Stellen.** Katalogwechsel prüft über `hatErfasstenVerzehr`, Löschen über `loeschSperren`; der alte Kommentar „zwei Kopien würden lautlos divergieren" wurde umgeschrieben, statt die Kopie zu vermeiden – im Widerspruch zu ADR-058 D3. Fix: `hatVerzehr(positionen)` aus dem Sperren-Modul exportieren und in beiden nutzen.
-- [x] [app/veranstaltung/actions.ts:316-319; e2e/veranstaltung-bearbeiten-loeschen.spec.ts:165-168] **404-Zwischenbild nach „Veranstaltung löschen" nicht belegt** (ADR-058 D2: „im E2E prüfen"). `revalidatePath` in der Action lässt Next die aktuelle Route `/veranstaltung/[id]` mitrendern, die in `notFound()` läuft (`[id]/page.tsx:50`); der Reducer übernimmt diesen Baum vor dem `router.replace` aus `useSchliessendeAction`. Der E2E prüft „404" erst nach dem URL-Wechsel, sieht also nur den Endzustand. Fix: Zwischenbild wirklich prüfen (z. B. `MutationObserver` per `page.evaluate` vor dem Klick); bei Flash die Abhilfe aus ADR-058 umsetzen, sonst Ergebnis mit Begründung in der Task-Datei festhalten.
-- [x] [e2e/bestaetigen-rueckmelden.spec.ts:170, :181] **Flaky: zwei gleiche Toasts „Katalog deaktiviert" innerhalb von 5 s.** Zwischen beiden liegen nur Aktivieren + eine Prüfung; der erste Toast steht noch (`STANDZEIT_MS` 5000), `toast(page, …)` trifft dann zwei `role="status"`-Elemente → Strict-Mode-Fehler bei `toBeVisible()`. Fix: ersten Toast vor dem Aufräum-Deaktivieren schließen oder auf `toHaveCount(0)` warten.
-- [x] [app/veranstaltung/AuslageRow.tsx:123-148; app/verwaltung/katalog/[id]/CatalogControls.tsx:170-212] **Bestätigungs-Steuerung zweimal neu kopiert, in zwei Varianten.** Offen-Zustand + `durchlauf`-`key` + `returnFocusRef` + `ConfirmDialog` stand schon dreimal im Code; `AuslageLoeschen` nutzt dafür `useFormularDialog` nur wegen des Ersatz-Fokus (Steuerung/`schliessbar` ungenutzt), `CatalogControls` baut es per `useState`. Lesson #369: Verhaltensvertrag in den Baustein. Fix: Hook (z. B. `useBestaetigung(ersatzFokusId?)`) in `app/components/` und die beiden neuen Stellen darauf; die drei älteren sind als Kleinfund erfasst.
-- [x] [app/verwaltung/katalog/[id]/CatalogControls.tsx:116-136] **`FormularImDialog` dupliziert `AnlegeDialog`** (`app/components/FormularDialog.tsx:129-154`): gleicher Aufbau Auslöser + `ausloeserRef` + `<Dialog {...dialogProps}>{children(steuerung)}</Dialog>`, nur `variant`/`beschreibung`/Seitenkopf-Id unterscheiden sich. Fix: route-neutralen Baustein mit diesen Props in `FormularDialog.tsx`, `AnlegeDialog` darauf aufsetzen.
-- [x] [app/verwaltung/katalog/[id]/CatalogControls.test.tsx:171-185; app/veranstaltung/AuslageRow.test.tsx:234-249] **Offen gehaltene Action-Promise wird nur in der letzten Testzeile aufgelöst** – scheitert vorher eine Assertion, bleibt der Action-Scope für Folgetests offen (Lesson #370). `VeranstaltungLoeschen.test.tsx:22-56` macht es im selben PR richtig. Fix: dasselbe Muster (Resolve-Liste + `afterEach` in `act`).
+Keine. Alle acht wichtigen Findings aus Iteration 1 sind behoben und im Code nachgeprüft (siehe
+„Verlauf" unten).
 
 ## Nitpicks (optional)
 
-- [x] [docs/ux/glossar.md:139-159] Abweichungsliste: die verbleibenden #401-Anker sind durch diesen PR verschoben (z. B. `KatalogWechsel.tsx` :44→:47, `ThekeSetup.tsx` :21/:32→:24/:35, `VeranstaltungAnlegen.tsx` :75→:79, `TeilnehmerAnlegen.tsx` :47→:51, `ArtikelAnlegen.tsx` :46→:50, `AuslageForm.tsx` :146→:142, `KassiereZeileForm.tsx` :63/:49→:67/:53, `e2e/listenseiten.spec.ts` :148→:149); Stand-Hinweis `:134` mitziehen (Lesson #375).
-- [x] [app/components/ui/Toaster.tsx:34] Wechsel `createPortal(…, dialog)` ↔ direktes Rendern remountet `<Toasts>` samt Live-Region – passiert bei jedem Erfolg, der einen Dialog schließt (Toast erst in den noch offenen Dialog, nach `dialog.close()` in den Body). Screenreader-Wirkung ungeprüft. Fester Container-Knoten, der per `appendChild` umgehängt wird, oder in ADR-058 „Konsequenzen" nennen.
-- [x] [app/components/ui/Toaster.tsx:39-41, :56-62] Kommentar/ADR sagen „zuletzt geöffneter Dialog", `obersterOffenerDialog` nimmt den letzten in Dokumentreihenfolge (= innerster bei Verschachtelung). Kommentar präzisieren.
-- [x] [app/components/ui/Toaster.tsx:72] `py-0 pr-0` soll `px-3 py-2` aus `NOTICE_BASE_CLASSES` überschreiben; `joinClasses` merged nicht, es entscheidet die Stylesheet-Reihenfolge. Eigene Abstandsklassen statt Überschreiben.
-- [x] [app/components/FormularDialog.tsx:89-93] `useDialogFormular(action, steuerung, erfolgsMeldung)` – dritter Positionsparameter, während `useSchliessendeAction` bewusst ein Optionsobjekt bekam (ADR-058 D2). Konsistent als Optionsobjekt.
-- [x] [lib/veranstaltung-loesch-sperren.ts] Reine Veranstaltungs-Fachregel mit drei Nutzern nur in `app/veranstaltung/` – Projektmuster wäre `app/veranstaltung/` (vgl. `kassierSummen.ts`, `auslagenSummen.ts`); ADR-058:97 nennt zudem einen anderen Dateinamen (`lib/veranstaltungLoeschSperren.ts`). Verschieben oder in D3 begründen + Namen angleichen.
-- [x] [lib/veranstaltung-loesch-sperren.ts:44-52] `loeschSperrenBeschreibung([])` liefert „… ist undefined.". Nicht-leeren Tupel-Typ oder Guard.
-- [x] [app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:25] `LIST_PATH = "/veranstaltung"` doppelt zu `app/veranstaltung/actions.ts:57`.
-- [x] [app/verwaltung/teilnehmer/actions.ts:75] „Teilnehmer nicht gefunden." inline neben der neuen Konstante `NO_TEILNEHMER` (`:17`).
-- [x] [app/veranstaltung/AuslageForm.test.tsx:22] Neuer Helfer `wrappedAction()`, die vier Inline-Kopien derselben Datei (`:169`, `:188`, `:214`, `:236`) bleiben; wortgleich in vier weiteren Testdateien.
-- [x] [app/verwaltung/katalog/[id]/CatalogControls.test.tsx:68] `const sendeAb = klickeIm;` – zweiter Name für dieselbe Funktion.
-- [x] [app/verwaltung/katalog/[id]/CatalogControls.test.tsx] Busy-Text nur für „Anlegen …" belegt; „Umbenennen …"/„Duplizieren …" und `disabled={pending}` am Aktivieren-Knopf (`CatalogControls.tsx:197`) ohne Test.
-- [x] [app/components/ui/Toaster.test.tsx:62] `getByRole("status").parentElement!` hängt am DOM-Aufbau; Karte über Rolle/Namen finden.
-- [x] [app/verwaltung/theke/ThekeSetup.tsx:18] `ensureThekeAction` ist idempotent – „Theke angelegt" erscheint auch, wenn sie schon existierte.
-- [x] [docs/factory/lessons/frontend-react.md:8-24] Lesson #49 empfiehlt im Präsens einen handgebauten `useCallback`-Wrapper; Verweis auf `useSchliessendeAction` als den einen Weg ergänzen (Lesson #176).
+- [ ] [app/components/useBestaetigung.ts:16-36; app/components/FormularDialog.tsx:40-65] Der
+  Erfolgs-Fokus-Vertrag steht zweimal: `oeffnen` setzt die Erfolgsmarke zurück,
+  `schliessenNachErfolg` setzt sie und schließt – wortgleich in `useBestaetigung` und
+  `useFormularDialog`. Geteilt ist nur `useErsatzFokusBeimAushaengen`, das außerdem aus einer
+  Komponenten-Datei exportiert wird. Möglich: Der Helfer liefert `markiereErfolg`/`zuruecksetzen`
+  (oder ein eigenes Modul), beide Hooks rufen ihn auf (Lesson #373).
+- [ ] [docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md:224-226]
+  „Konsequenzen" nennt bei den geänderten Signaturen weiter nur `removeAuslageAction`/
+  `setAuslageStatusAction`. `setTeilnehmerActiveAction` fehlt, D2 nennt sie inzwischen (W1 aus
+  Iteration 1 bat um D2 **und** Konsequenzen).
+- [ ] [app/veranstaltung/actions.ts:58] `const LIST_PATH = VERANSTALTUNG_LISTE_PATH;` gibt
+  derselben Konstante einen zweiten Namen – das gleiche Muster wie das in Iteration 1 entfernte
+  `sendeAb = klickeIm`. Direkt `VERANSTALTUNG_LISTE_PATH` nutzen.
+- [ ] [app/veranstaltung/loeschSperren.test.ts:108-114] Zur Laufzeit prüft
+  `expect(aufruf).toBeTypeOf("function")` nichts. Die Garantie kommt allein aus
+  `@ts-expect-error` + `pnpm typecheck` (pre-push). Klarer wäre `expectTypeOf` aus Vitest oder ein
+  Testname, der sagt, dass dies ein reiner Typ-Test ist.
+- [ ] [docs/factory/kleinfunde.md:487] Der Anker `ZeilenMenue.tsx:26-90` deckt nicht alles ab,
+  was der Eintrag behauptet: `bestaetigungOffen` steht in `:21`, `returnFocusRef` in `:96`.
+  Richtig ist `:21-96` (Lesson #351).
+- [ ] [playwright-372.tmp.config.ts] Die gitignorete Wegwerf-Config aus `/implement` liegt noch im
+  Worktree und erzeugt die einzige Lint-Warnung. Vor dem Merge löschen (Lesson aus #374,
+  `build-tooling.md`).
 
 ## Positives
 
-- Server Actions: `removeAuslageAction`/`setAuslageStatusAction`/`setTeilnehmerActiveAction` prüfen Rolle → Ids → offene Veranstaltung → guarded UPDATE/DELETE mit Parent-Key und werten `undefined` aus; jeder neue Zweig hat einen eigenen Test. Keine neuen Mehrfach-Writes (Neon-HTTP unkritisch).
-- Löschsperren (AK9–AK11): eine reine Funktion für Seite und Action, ohne Zusatzabfrage, feste Reihenfolge getestet; Sperr-Dialog auf `Dialog` statt Sonderfall in `ConfirmDialog` (ADR-058 D3); `sperren` Pflicht-Prop (FS4).
-- `react-hot-toast` sauber gekapselt (nur `Toaster.tsx`/`meldung.ts`), 18 Testdateien mocken nur `meldung`; `STANDZEIT_MS` benannt, Grenze 4999/5000 ms exakt getestet; 5-s-Dauer greift auch für `toast.success` (Bibliothek nachgeprüft).
-- Toast genau einmal und nur bei `result.ok`, Text aus der Render-Closure des Absendens.
-- Fokus: Ersatzziel für „Auslage löschen" samt Erfolgsfall-Test (Lessons #371/#373); `AktivSchalter` behält seinen Knoten über den Statuswechsel.
-- Portal-Lösung für FS6 mit Mutationsbeleg im E2E und Nachtrag in ADR-058 – genau die Art Nachweis, die die Lessons verlangen.
-- `CatalogModal`/`useCloseOnSuccess` vollständig abgeräumt; gelöschte Tests haben je einen verhaltensbasierten Ersatz.
-- AK18: alle neuen Texte glossar-konform, die vier #372-Abweichungen gestrichen; `AuslageRow.tsx` im Farb-Gate mit Wiring-Test.
+- **W2 Fokus-Pause** sauber gelöst: Die Pause-Handler kommen aus `useToaster` und teilen sich mit
+  `<Toasts>` ein Optionsobjekt (sonst griffe für `success` die Vorgabe von 2 s). Die Pause endet bei
+  Blur, beim Ausblenden und beim Aushängen. Die Restzeit ist exakt getestet (3 999/1 ms), ebenso der
+  Fall „Portalwechsel hängt die fokussierte Karte aus". Die verbleibende Grenze (Maus verlässt den
+  Toast, während er den Fokus hat) steht ehrlich in ADR-058.
+- **W4 404-Zwischenbild** wirklich belegt: `MutationObserver` vor dem Klick, mit Positivkontrolle.
+  Die App hat keine eigene `not-found.tsx`, der Next-Standard `<h1>404</h1>` ist also das richtige
+  Erkennungsmerkmal (geprüft).
+- **W3/D3** `hatVerzehr` ist die eine Quelle für Katalogwechsel und Löschen. Der nicht-leere Typ
+  `LoeschSperren` mit dem Typwächter `istGesperrt` schließt den Satz „… ist undefined." schon im
+  Typ aus.
+- **W6/W7** `useBestaetigung` und `FormularDialog` sind route-neutral, haben eigene Verhaltenstests
+  (Fokus-Rückgabe, frischer Zustand je Öffnen, Ersatz-Fokusziel nach Erfolg) und werden an allen
+  fünf neuen bzw. umgestellten Stellen genutzt. `FormularImDialog` ist restlos entfernt.
+- **W8** Resolve-Liste + `afterEach` in `act` konsistent in `AuslageRow.test.tsx` und
+  `CatalogControls.test.tsx`; neue Busy-/Sperr-Tests für Umbenennen, Duplizieren und Aktivieren.
+- Doku-Drift abgeräumt: Nachträge in ADR-052/055/056 im etablierten Format. Alle 13 verschobenen
+  Glossar-Anker stimmen mit dem Ist-Stand (Zeile für Zeile nachgeprüft). Alte Pfade/Namen
+  (`lib/veranstaltung-loesch-sperren`, `FormularImDialog`, exportiertes `NOTICE_BASE_CLASSES`)
+  kommen per `git grep` nicht mehr vor.
 - Routen unverändert, `docs/routes.md` stimmt weiter.
 
 ## Out-of-Scope
 
-- Issue **#402** – `useSchliessendeAction` nach seiner Rolle als Rückmelde-Hook umbenennen (sieben Aufrufer schließen nichts; ~20 Dateien + ADRs).
-- `docs/factory/kleinfunde.md`: rohe Farbklassen in `AuslageForm`/`auslagen/page`/`TeilnehmerRow`; die drei älteren Kopien der Bestätigungs-Steuerung; kein Lint-Gate gegen direkte `react-hot-toast`-Importe; vierte `login`-Kopie am bestehenden E2E-Helfer-Eintrag ergänzt.
+Keine neuen Funde. Aus Iteration 1 bleiben Issue #402 und die Einträge in
+`docs/factory/kleinfunde.md` (im Rework angepasst: Bestätigungs-Steuerung auf zwei Stellen
+reduziert, neu „Theke angelegt").
 
 ## Empfehlung
 
-NEEDS_REWORK
+APPROVED
 
-## Rework Iteration 1 (2026-10-09)
+---
 
-Alle acht wichtigen Findings behoben; Nitpicks behoben oder bewusst eingeordnet:
+## Verlauf
 
-- **W1** Nachträge (#372) in ADR-052 D1, ADR-055 D2, ADR-056 D3/D4; ADR-058 D1–D4, Konsequenzen
-  und Implementierungs-Hinweise auf den Ist-Stand gezogen (Optionsobjekt, `setTeilnehmerActiveAction`,
-  Fokus-Pause, Portalziel, `loeschSperren`-Ort, `useBestaetigung`, `FormularDialog`).
-- **W2** Fokus pausiert jetzt wirklich: `ToastKarte` nutzt die Pause-Handler aus `useToaster`
-  (gleiches Optionsobjekt wie `<Toasts>`), Freigabe bei Blur, Ausblenden und Aushängen. Drei neue
-  Tests; Freigabe-Zweige und geteilte Optionen je per Mutation belegt (rot → zurückgedreht).
-- **W3** `hatVerzehr(positionen)` in `app/veranstaltung/loeschSperren.ts`, Katalogwechsel und
-  Löschen nutzen sie.
-- **W4** E2E beobachtet per `MutationObserver` (mit Positivkontrolle) zwischen Bestätigen und
-  Übersicht: kein 404-Bild. Ergebnis in ADR-058 vermerkt, keine Abhilfe nötig.
-- **W5** Erster „Katalog deaktiviert"-Toast wird per neuem Helfer `schliesseToast` geschlossen.
-- **W6** Hook `useBestaetigung` (`app/components/`), genutzt von `AuslageRow`, `CatalogControls`,
-  `VeranstaltungLoeschen`; `ZeilenMenue`/`AbschlussAktion` bleiben Kleinfund.
-- **W7** Route-neutraler Baustein `FormularDialog`; `AnlegeDialog` setzt darauf auf.
-- **W8** Resolve-Liste + `afterEach` in `act` in `CatalogControls.test.tsx`/`AuslageRow.test.tsx`.
-- Nitpicks: Glossar-Anker neu gemessen; Portal-Remount als Konsequenz in ADR-058 (kein fester
-  Container – Hydrations-Weg wäre nötig); Kommentar „letzter offener Dialog" präzisiert; Toast-Karte
-  mit eigenen Abstandsklassen, `NOTICE_BASE_CLASSES` wieder modulintern; `useDialogFormular` mit
-  Optionsobjekt; Sperren-Modul nach `app/veranstaltung/loeschSperren.ts`, nicht-leerer Typ
-  `LoeschSperren` + `istGesperrt`; `VERANSTALTUNG_LISTE_PATH` in `app/veranstaltung/pfade.ts`;
-  `TEILNEHMER_NOT_FOUND`; `wrappedAction()` in `AuslageForm.test.tsx` (Kopien in anderen
-  Testdateien unverändert); `sendeAb` entfernt; Busy-Tests für Umbenennen/Duplizieren und
-  gesperrtes Aktivieren; Toast-Karte über `role="group"` + Namen auffindbar; „Theke angelegt" als
-  Kleinfund; Lesson #49 mit Nachtrag auf `useSchliessendeAction`.
-- Folge der Toast-Gruppe: `getByLabel("Katalog")` traf die Karte „Katalog angelegt" (Teilstring) –
-  E2E-Locator auf `exact: true`.
+### Iteration 1 (2026-10-09) – 0 kritisch, 8 wichtig, 15 Nitpicks
+
+Volltext im Commit `f894c0c` (`git show f894c0c:tasks/review-372.md`). Wichtige Findings, alle im
+Rework behoben und in Iteration 2 nachgeprüft:
+
+- W1 ADRs 052/055/056/058 beschrieben die geänderte Mechanik im alten Stand → Nachträge (#372).
+- W2 Toast pausierte nur bei Hover, nicht bei Fokus → Fokus-Pause über `useToaster`-Handler.
+- W3 Verzehr-Regel `menge > 0` an zwei Stellen → `hatVerzehr` in `app/veranstaltung/loeschSperren.ts`.
+- W4 404-Zwischenbild nach „Veranstaltung löschen" nicht belegt → `MutationObserver` im E2E.
+- W5 Flaky: zwei gleiche Toasts „Katalog deaktiviert" → `schliesseToast`-Helfer.
+- W6 Bestätigungs-Steuerung zweimal kopiert → Hook `useBestaetigung`.
+- W7 `FormularImDialog` duplizierte `AnlegeDialog` → route-neutraler Baustein `FormularDialog`.
+- W8 Offen gehaltene Action nur in der letzten Testzeile aufgelöst → Resolve-Liste + `afterEach`.
+
+Nitpicks: behoben oder eingeordnet (Portal-Remount als Konsequenz in ADR-058, „Theke angelegt" als
+Kleinfund, `wrappedAction()`-Kopien in anderen Testdateien bewusst unverändert).
