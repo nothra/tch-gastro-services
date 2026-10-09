@@ -62,6 +62,9 @@ Protokoll.
   `revalidatePath` ohnehin.
 - Die Meldung ist ein `Notice` (#368) statt „Gespeichert."; Fehler erscheinen als `Notice` im
   Fehler-Ton.
+  > **Nachtrag (#372, [ADR-058](058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md)
+  > D2):** Die Erfolgsmeldung erscheint seitdem als Toast mit unverändertem Inhalt (Betrag,
+  > Spende); Fehler bleiben `Notice` an der Zeile.
 
 ### D3 · Abschließen/Wieder öffnen: eine Client-Komponente im `PageHeader`-Slot der Detailseite
 

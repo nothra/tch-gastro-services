@@ -24,6 +24,11 @@ const [state, formAction, pending] = useActionState(actionWithClose, undefined);
 `useActionState` akzeptiert jeden async `(prev, formData) => State`-Wrapper, nicht nur
 eine direkte Server Action. Der `useCallback`-Wrapper hält die Referenz stabil.
 
+> **Nachtrag (#372):** Diesen Wrapper nicht mehr von Hand bauen – er steckt in
+> `useSchliessendeAction` (`app/components/useSchliessendeAction.ts`), der bei `ok` `onErfolg`
+> ruft und die Erfolgsmeldung als Toast ausgibt (ADR-058 D2). Das Muster oben erklärt, warum der
+> Hook so gebaut ist.
+
 ### Route-neutrale Module: keine Feature-Imports beim Implementieren prüfen (aus #52, Review-Finding)
 
 `app/_verzehr/VerzehrErfassung.tsx` importierte `CATEGORY_LABEL` aus

@@ -54,6 +54,9 @@ Dateien.
   für **Layout** gedacht (Abstand, Breite, Ausrichtung), nicht für Farben. Farben erzwingt das
   Gate aus D3.
 - **Keine neuen npm-Abhängigkeiten.**
+  > **Nachtrag (#372):** [ADR-058](058-toast-rueckmeldung-react-hot-toast-bestaetigen-sperrgruende.md)
+  > D1 macht genau eine benannte Ausnahme: `react-hot-toast`, gekapselt hinter `ui/Toaster.tsx`
+  > und `ui/meldung.ts`, mit eigenem Markup aus Token-Klassen.
 - shadcn/ui bleibt eine Option für spätere komplexe Widgets (z. B. Combobox). Deren Einführung
   braucht dann eine eigene ADR, die an diese Tokens andockt.
 

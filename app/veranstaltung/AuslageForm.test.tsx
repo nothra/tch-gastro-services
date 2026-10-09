@@ -165,12 +165,7 @@ describe("AuslageForm", () => {
       />,
     );
 
-    // Der an useActionState übergebene Wrapper (Codify #49) wird hier direkt ausgeführt.
-    const wrapped = useActionStateMock.mock.calls[0][0] as (
-      prev: AuslageFormState | undefined,
-      fd: FormData,
-    ) => Promise<AuslageFormState>;
-    const result = await wrapped(undefined, new FormData());
+    const result = await wrappedAction()(undefined, new FormData());
 
     expect(result.ok).toBe(true);
     expect(onSuccess).toHaveBeenCalledOnce();
@@ -185,11 +180,7 @@ describe("AuslageForm", () => {
     fireEvent.change(betrag, { target: { value: "9,99" } });
     expect(betrag).toHaveValue("9,99");
 
-    const wrapped = useActionStateMock.mock.calls[0][0] as (
-      prev: AuslageFormState | undefined,
-      fd: FormData,
-    ) => Promise<AuslageFormState>;
-    await wrapped(undefined, new FormData());
+    await wrappedAction()(undefined, new FormData());
 
     expect(betrag).toHaveValue("");
   });
@@ -211,11 +202,7 @@ describe("AuslageForm", () => {
     const betrag = screen.getByLabelText(/Betrag/i);
     fireEvent.change(betrag, { target: { value: "9,99" } });
 
-    const wrapped = useActionStateMock.mock.calls[0][0] as (
-      prev: AuslageFormState | undefined,
-      fd: FormData,
-    ) => Promise<AuslageFormState>;
-    await wrapped(undefined, new FormData());
+    await wrappedAction()(undefined, new FormData());
 
     // Im Korrektur-Modus schließt onSuccess das Formular – kein Feld-Reset.
     expect(betrag).toHaveValue("9,99");
@@ -233,11 +220,7 @@ describe("AuslageForm", () => {
       />,
     );
 
-    const wrapped = useActionStateMock.mock.calls[0][0] as (
-      prev: AuslageFormState | undefined,
-      fd: FormData,
-    ) => Promise<AuslageFormState>;
-    await wrapped(undefined, new FormData());
+    await wrappedAction()(undefined, new FormData());
 
     expect(onSuccess).not.toHaveBeenCalled();
   });

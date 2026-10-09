@@ -57,13 +57,21 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
   `Notice` (Stil-Tabelle aus `Notice.tsx` exportieren, nicht kopieren).
 - Konfiguration: Position `bottom-center`, Dauer **5 000 ms** (`duration` am `Toaster`, nicht je
   Aufruf), Container-Abstand `calc(env(safe-area-inset-bottom) + 1rem)` (ADR-031 Safe-Area),
-  Hover/Fokus pausiert die Laufzeit (Bibliotheksverhalten). Es gibt nur `meldeErfolg`; **kein**
+  Hover pausiert die Laufzeit (Bibliotheksverhalten). Es gibt nur `meldeErfolg`; **kein**
   `meldeFehler` – Fehler bleiben `Notice kind="fehler"` am Ort (AK16).
+- **Fokus pausiert ebenfalls – als eigener Zusatz** (Nachtrag Review #372): die Bibliothek bindet
+  nur `onMouseEnter`/`onMouseLeave`. Die Toast-Karte hält deshalb bei Fokus (Tastatur auf „×")
+  über die Pause-Handler aus `useToaster` an und gibt beim Verlassen, beim Ausblenden und beim
+  Aushängen wieder frei. `useToaster` plant die Standzeit ein zweites Mal ein; beide Stellen
+  teilen deshalb dasselbe Optionsobjekt (sonst griffe für `success` die Bibliotheks-Vorgabe 2 s).
+  Bekannte Grenze: verlässt die Maus den Toast, während er den Fokus hat, endet die Pause mit dem
+  Hover – die Bibliothek kennt nur einen Pausen-Zustand.
 - Eingehängt **einmal im Root-Layout** (`app/layout.tsx`, nach `{children}`), damit der Toast
   Client-Navigation (`router.replace`) überlebt; der Store der Bibliothek liegt im Modul, nicht
   im Komponentenbaum.
 - Ist ein modaler `<dialog>` offen, rendert der `Toaster` per Portal **in diesen Dialog** (den
-  zuletzt geöffneten, erkannt über `dialog[open]` und einen `MutationObserver`). Sonst läge der
+  letzten offenen in Dokumentreihenfolge – bei Verschachtelung der innerste –, erkannt über
+  `dialog[open]` und einen `MutationObserver`). Sonst läge der
   Toast unter dem inerten Hintergrund: verdeckt, nicht anklickbar, für Screenreader stumm (FS6).
   Nachgetragen in `/implement`: „Einstellungen" bleibt nach dem Speichern offen (ADR-056 D3).
 - Das Farb-Gate (`eslint/ui-token-files.mjs`) deckt `app/components/ui/` bereits ab; die neuen
@@ -80,12 +88,14 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
   `await`**, nicht in einem `useEffect` auf den State (Lesson `react-hooks/set-state-in-effect`,
   und StrictMode-Doppelaufruf vermeiden). Inline-Formulare ohne Dialog (`VeranstaltungMetaForm`,
   `KatalogWechsel`, `ThekeSetup`, Anlege-Formulare) nutzen denselben Hook bzw. dessen
-  Meldungs-Teil, damit es **einen** Weg gibt. Die Signatur ist beim Implementieren so zu ändern,
-  dass alle bestehenden Aufrufer unverändert weiterlaufen (Optionsobjekt statt weiterer
-  Positionsparameter; Funktion bleibt unter der 3-Parameter-Regel).
+  Meldungs-Teil, damit es **einen** Weg gibt. Die Signatur bekommt ein Optionsobjekt
+  (`{ onErfolg?, onLaeuftChange?, erfolgsMeldung? }`) statt weiterer Positionsparameter; alle
+  bestehenden Aufrufer wurden darauf umgestellt. `useDialogFormular` nimmt die Meldung ebenso als
+  Optionsobjekt (`{ erfolgsMeldung }`).
 - `Promise<void>`-Actions der AK12-Liste werden auf `{ ok?: true; error?: string }` umgestellt:
-  `removeAuslageAction` und `setAuslageStatusAction`. Die Ablehnungen (Veranstaltung nicht offen,
-  Auslage nicht gefunden) werden dabei **sichtbar** (FS1/FS2) statt stumm.
+  `removeAuslageAction`, `setAuslageStatusAction` und `setTeilnehmerActiveAction`. Die
+  Ablehnungen (Veranstaltung nicht offen, Auslage/Teilnehmer nicht gefunden) werden dabei
+  **sichtbar** (FS1/FS2) statt stumm.
 - **Veranstaltung löschen (Q7):** `deleteVeranstaltungAction` ersetzt `redirect(LIST_PATH)` durch
   `return { ok: true }`; der Client ruft `meldeErfolg("Veranstaltung gelöscht")` und
   `router.replace(LIST_PATH)`. Die Revalidierungen von `thekePath(token)` und `LIST_PATH` bleiben,
@@ -94,8 +104,9 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
 
 ### D3 · Löschsperren aus einer reinen Funktion, vorab berechnet, serverseitig weiter erzwungen
 
-- Neue reine Funktion in `lib/` mit fachlichem Namen (z. B. `lib/veranstaltungLoeschSperren.ts`,
-  kein `utils`): Eingabe `zeilen`, `positionen`, `auslagen`, Ausgabe die **geordnete Liste** der
+- Neue reine Funktion `loeschSperren` in `app/veranstaltung/loeschSperren.ts` – neben
+  `kassierSummen.ts`/`auslagenSummen.ts`, denn alle Nutzer liegen in `app/veranstaltung/`
+  (Nachtrag Review #372; ursprünglich als `lib/…` geplant). Eingabe `zeilen`, `positionen`, `auslagen`, Ausgabe die **geordnete Liste** der
   zutreffenden Gründe `("verzehr" | "kassiert" | "auslage")[]` (Reihenfolge Verzehr → Kassiert →
   Auslage, Q5). Regeln wie heute: Verzehr = Position mit `menge > 0`, Kassiert = Zeile mit
   `erhaltenCents !== null`, Auslage = jede Zeile unabhängig vom Status. **Die Texte zu den Gründen
@@ -104,7 +115,10 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
 - `deleteVeranstaltungAction` lädt weiterhin die drei Quellen und ruft **dieselbe** Funktion; sie
   nimmt den ersten Grund als Ablehnung (Verhalten und Reihenfolge bleiben, AK11). Zwei Kopien der
   Bedingung (Dialog und Action) sind damit ausgeschlossen (Lesson zu `hatErfasstenVerzehr`:
-  geteilt, sonst divergiert es).
+  geteilt, sonst divergiert es). Die Verzehr-Regel selbst steht als `hatVerzehr(positionen)` in
+  derselben Datei; auch die Sperre des Katalogwechsels (`setVeranstaltungCatalogAction`) nutzt sie.
+- Der Sperr-Dialog nimmt nur eine **nicht-leere** Liste an (Typ `LoeschSperren`, Typwächter
+  `istGesperrt`): ohne Grund gibt es keinen Satz zu bilden.
 - Die Detailseite berechnet die Liste aus den schon geladenen Daten (**keine** zusätzliche DB-
   Abfrage) und reicht sie als Prop `sperren` an `VeranstaltungLoeschen`. Bei `sperren.length > 0`
   zeigt der Dialog die Gründe und nur „Schließen" – gebaut auf `Dialog`, **nicht** durch einen
@@ -121,9 +135,15 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
 - **Katalog deaktivieren:** `ConfirmDialog` (danger) mit der Folge in einem Satz (Q4);
   „Reaktivieren" (reversibel) bleibt ein direkter Schalter, heißt aber **„Aktivieren"** (Glossar)
   und meldet per Toast.
-- **Katalog anlegen/umbenennen/duplizieren:** `FormularDialog`-Hooks wie in `CatalogRow`
-  (`useFormularDialog` + `useDialogFormular`), `CatalogModal` und `useCloseOnSuccess` entfallen
-  samt Tests (Lesson „Verschieben eines route-neutralen Moduls": Altcode im selben Schritt löschen).
+- **Katalog anlegen/umbenennen/duplizieren:** der route-neutrale Baustein `FormularDialog`
+  (Auslöser + Dialog mit Titel/Beschreibung, `app/components/FormularDialog.tsx`; `AnlegeDialog`
+  setzt darauf auf) mit `useDialogFormular`; `CatalogModal` und `useCloseOnSuccess` entfallen samt
+  Tests (Lesson „Verschieben eines route-neutralen Moduls": Altcode im selben Schritt löschen).
+- **Bestätigungs-Steuerung als Hook** (Nachtrag Review #372): `useBestaetigung(ersatzFokusId?)`
+  (`app/components/useBestaetigung.ts`) bündelt Offen-Zustand, Fokus-Rückgabe, `key` je Öffnen und
+  das Ersatz-Fokusziel nach einem Erfolg, der den Auslöser aushängt. Auslage löschen, Katalog
+  deaktivieren und Veranstaltung löschen nutzen ihn; `ZeilenMenue` und `AbschlussAktion` ziehen
+  nach (`docs/factory/kleinfunde.md`).
 - Alle Texte nach `docs/ux/glossar.md`; die Abweichungen mit Ziel #372 stehen dort in der
   Abweichungsliste und sind im selben PR zu streichen.
 
@@ -194,6 +214,11 @@ Baustein; verworfen zugunsten von `Dialog`.
   Seite inert, eine Ansage kann entfallen. Schließt der Erfolg den Dialog, erscheint der Toast
   danach im `<body>`; bleibt der Dialog offen, hängt sich der Toast in ihn ein (D1, FS6). Beides ist in der Spec-/E2E-Prüfung zu belegen (Verhalten sichtbar, Rolle vorhanden); eine
   Screenreader-Garantie über alle Geräte gibt es nicht.
+- **Portalwechsel montiert neu:** Wechselt das Portalziel (Dialog öffnet/schließt, während ein
+  Toast steht), montiert React den Toast-Container samt Live-Region neu. Ein Screenreader kann
+  die Meldung dabei ein zweites Mal ansagen oder eine laufende Ansage abbrechen; nicht auf Geräten
+  geprüft. Ein fester Container, der per `appendChild` umgehängt wird, vermiede das, bräuchte aber
+  beim Server-Rendern einen eigenen Hydrations-Weg – bewusst nicht gebaut.
 - `ConfirmDialog`, `Dialog`, `Notice` bleiben in der Schnittstelle unverändert; `Notice` exportiert
   zusätzlich die Stil-Tabelle.
 - Mehrere Server Actions ändern ihre Signatur (`removeAuslageAction`, `setAuslageStatusAction`
@@ -206,7 +231,7 @@ Baustein; verworfen zugunsten von `Dialog`.
 
 ## Implementierungs-Hinweise
 
-- Reihenfolge (jeweils Red → Green): `lib/…LoeschSperren` (reine Funktion + Test) →
+- Reihenfolge (jeweils Red → Green): `loeschSperren` (reine Funktion + Test) →
   `deleteVeranstaltungAction` auf die Funktion und auf `{ ok: true }` umstellen →
   `ui/meldung.ts` + `ui/Toaster.tsx` (RTL-Test: Rolle `status`, Schließen, 5 s mit
   `vi.useFakeTimers`) → `useSchliessendeAction`-Erweiterung → `VeranstaltungLoeschen` (Sperr-/
@@ -217,7 +242,9 @@ Baustein; verworfen zugunsten von `Dialog`.
   Route (die gelöschte Detailseite) im Action-Response neu rendern und kurz eine 404-Seite
   zeigen, bevor `router.replace` greift. Tritt das auf, die Navigation im selben `startTransition`
   wie die Action auslösen oder die Revalidierung der Liste erst am Ziel sicherstellen – nicht
-  `revalidatePath(detailPath)` hinzufügen.
+  `revalidatePath(detailPath)` hinzufügen. **Geprüft (Review #372):** ein `MutationObserver` im
+  E2E (`veranstaltung-bearbeiten-loeschen.spec.ts`, mit Positivkontrolle) sah zwischen Bestätigen
+  und Ankunft auf der Übersicht kein 404-Bild; keine Abhilfe nötig.
 - Tests mocken `@/app/components/ui/meldung`, nicht die Bibliothek; ein einziger Test montiert
   den echten `Toaster`. Lint-Regel (`no-restricted-imports` auf `react-hot-toast` außerhalb der
   beiden Dateien) als Nachziehen vorschlagen, nicht erzwingen.

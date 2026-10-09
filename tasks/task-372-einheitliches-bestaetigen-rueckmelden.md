@@ -66,6 +66,13 @@ ADR: [ADR-058](../docs/adr/058-toast-rueckmeldung-react-hot-toast-bestaetigen-sp
 <!-- Wird durch /review befüllt -->
 - Iteration 1 (2026-10-09): **NEEDS_REWORK** – 0 kritisch, 8 wichtig, 15 Nitpicks → `tasks/review-372.md`.
   Out-of-Scope: Issue #402 (Hook umbenennen), drei Einträge + eine Ergänzung in `docs/factory/kleinfunde.md`.
+- Rework Iteration 1 (2026-10-09): alle 8 wichtigen Findings behoben, Nitpicks behoben oder
+  eingeordnet (Details: `tasks/review-372.md` → „Rework Iteration 1"). Neu: `useBestaetigung`,
+  `FormularDialog`, `app/veranstaltung/loeschSperren.ts` (statt `lib/`), Fokus-Pause im Toast.
+  Kleinfunde: Bestätigungs-Eintrag auf zwei Stellen reduziert, neu „Theke angelegt" (idempotent).
+  Oberflächentests gegen eigenen Dev-Server (Port 3172): alle Specs 37 grün, 1 übersprungen, ein
+  `page.goto`-Timeout unter Last (AK12-Test), im Einzellauf zweimal grün; 404-Zwischenbild nach
+  „Veranstaltung löschen" per `MutationObserver` ausgeschlossen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

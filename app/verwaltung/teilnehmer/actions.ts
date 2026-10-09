@@ -15,6 +15,7 @@ const TEILNEHMER_PATH = "/verwaltung/teilnehmer";
 const DUPLICATE_WARNING =
   "Ein aktiver Teilnehmer mit diesem Namen existiert bereits. Zum Anlegen erneut bestätigen.";
 const NO_TEILNEHMER = "Kein Teilnehmer angegeben.";
+const TEILNEHMER_NOT_FOUND = "Teilnehmer nicht gefunden.";
 
 // needsConfirm/warning tragen die nicht-blockierende Duplikat-Warnung (ADR-022): kein
 // DB-Unique, stattdessen ein überstimmbarer Hinweis an der Server-Grenze.
@@ -72,7 +73,7 @@ export async function setTeilnehmerActiveAction(
   if (!id) return { error: NO_TEILNEHMER };
 
   const updated = await setTeilnehmerActive(id, formData.get("active") === "true");
-  if (!updated) return { error: "Teilnehmer nicht gefunden." };
+  if (!updated) return { error: TEILNEHMER_NOT_FOUND };
 
   revalidatePath(TEILNEHMER_PATH);
   return { ok: true };

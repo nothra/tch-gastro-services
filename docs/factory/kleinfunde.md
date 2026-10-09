@@ -482,18 +482,31 @@
   angefasst wird (für `TeilnehmerRow` zusammen mit dem Eintrag „Neuer Gast" oben).
 - **Herkunft:** `/review` zu #372 (Runde 1 + 2, Out-of-Scope).
 
-### Bestätigungs-Steuerung in `ZeilenMenue`, `AbschlussAktion`, `VeranstaltungLoeschen` handkopiert
+### Bestätigungs-Steuerung in `ZeilenMenue` und `AbschlussAktion` handkopiert
 
 - **Wo:** [`app/veranstaltung/ZeilenMenue.tsx:26-90`](../../app/veranstaltung/ZeilenMenue.tsx),
-  [`app/veranstaltung/[id]/AbschlussAktion.tsx:61-76`](../../app/veranstaltung/[id]/AbschlussAktion.tsx),
-  [`app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:38-72`](../../app/veranstaltung/[id]/VeranstaltungLoeschen.tsx)
+  [`app/veranstaltung/[id]/AbschlussAktion.tsx:61-76`](../../app/veranstaltung/[id]/AbschlussAktion.tsx)
   (verifiziert am 2026-10-09).
 - **Was:** Offen-Zustand, `durchlauf`-Zähler als `key` und `returnFocusRef` um einen `ConfirmDialog`
-  stehen je Datei von Hand. #372 fügt zwei weitere Kopien hinzu (`AuslageRow`, `CatalogControls`);
-  ob dort ein gemeinsamer Hook entsteht, entscheidet das Rework zu `tasks/review-372.md` (Runde 2, W2).
-- **Fix:** Die drei älteren Stellen auf diesen Hook umstellen, sobald er existiert; je Datei unter zehn
-  Zeilen. Gibt es den Hook nach #372 nicht, wird der Eintrag ein Issue.
-- **Herkunft:** `/review` zu #372 (Runde 2, Out-of-Scope).
+  stehen je Datei von Hand. Seit #372 gibt es dafür den Hook `useBestaetigung`
+  ([`app/components/useBestaetigung.ts`](../../app/components/useBestaetigung.ts)); `AuslageRow`,
+  `CatalogControls` und `VeranstaltungLoeschen` nutzen ihn bereits.
+- **Fix:** Die beiden Stellen auf `useBestaetigung` umstellen; je Datei unter zehn Zeilen.
+  `ZeilenMenue` öffnet die Bestätigung aus einem Menü heraus – vorher prüfen, ob der Auslöser dort
+  als `ausloeserRef` taugt.
+- **Herkunft:** `/review` zu #372 (Runde 2, Out-of-Scope); im Rework auf zwei Stellen reduziert.
+
+### „Theke angelegt" erscheint auch, wenn die Theke schon bestand
+
+- **Wo:** [`app/verwaltung/theke/ThekeSetup.tsx:17-18`](../../app/verwaltung/theke/ThekeSetup.tsx),
+  `ensureThekeAction` in [`app/veranstaltung/actions.ts`](../../app/veranstaltung/actions.ts)
+  (verifiziert am 2026-10-09).
+- **Was:** `ensureThekeAction` ist idempotent und meldet in beiden Fällen `{ ok: true }`; der Toast
+  sagt deshalb „Theke angelegt", auch wenn nichts angelegt wurde.
+- **Fix:** Die Action liefert `angelegt: boolean` (aus `ensureThekeForKasse`), der Client wählt
+  „Theke angelegt" bzw. „Theke besteht bereits". Etwa zehn Zeilen plus Test; passt zu #401, wo
+  die Theke-Texte ohnehin auf „Anlegen" umgestellt werden.
+- **Herkunft:** `/review` zu #372 (Iteration 1, Nitpick), klassifiziert im Rework.
 
 ### Kein Lint-Gate gegen direkte `react-hot-toast`-Importe
 

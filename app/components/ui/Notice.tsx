@@ -26,7 +26,7 @@ export const NOTICE_STYLES: Record<NoticeKind, NoticeStyle> = {
   },
 };
 
-export const NOTICE_BASE_CLASSES = "flex items-start gap-2 rounded-md border px-3 py-2 text-sm";
+const NOTICE_BASE_CLASSES = "flex items-start gap-2 rounded-md border px-3 py-2 text-sm";
 
 interface NoticeProps {
   kind: NoticeKind;
