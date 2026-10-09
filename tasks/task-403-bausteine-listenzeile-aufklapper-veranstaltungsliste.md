@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -164,7 +164,10 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   (gitignoret) von Hand löschen.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- 2 Lessons + 2 Index-Zeilen (Details: [codify-403.md](codify-403.md)): Opt-in-E2E nie gelaufen /
+  Tailwind-v4-`rotate` (`testing.md`); Rezidiv „X schützt vor Y" bei benannter Tailwind-Gruppe (`code-style.md`).
+- Offen für den Menschen (Vor-Merge): Playwright-Lauf AK1.2/F1/F2/F4, Wegwerf-Dateien `scripts/*403.tmp.sh` und
+  `tasks/telemetry-raw-403-*.tmp.txt` löschen. „Fertig / PR erstellt" bleibt deshalb offen.
 
 ---
 Branch: `feature/403-bausteine-listenzeile-aufklapper-veranstaltungsliste`
