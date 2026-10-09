@@ -164,13 +164,13 @@ test.describe("Listenseiten – Liste zuerst, Anlegen per Dialog (#373)", () => 
 
   test("Teilnehmer: Liste zuerst, Anlegen per Dialog", async ({ page }) => {
     await page.goto("/verwaltung/teilnehmer");
-    await expect(page.getByLabel("Anzeigename")).toHaveCount(0);
+    await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0);
     await expect(
       page.getByRole("heading", { level: 2, name: /^Teilnehmer \(\d+\)$/ }),
     ).toBeVisible();
 
     const dialog = await oeffneTeilnehmerAnlegen(page);
-    await expect(dialog.getByLabel("Anzeigename")).toHaveValue("");
+    await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue("");
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("button", { name: "+ Neu", exact: true })).toBeFocused();

@@ -56,6 +56,8 @@ export const UI_TOKEN_FILES = [
   "app/verwaltung/teilnehmer/page.tsx",
   "app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx",
   "app/verwaltung/teilnehmer/TeilnehmerFields.tsx",
+  // #404: gemeinsame Duplikat-Warnung von Verwaltung und „Teilnehmer anlegen" der Veranstaltung.
+  "app/verwaltung/teilnehmer/DuplikatWarnung.tsx",
   "app/verwaltung/theke/",
   // #372: Auslagen-Zeile mit Lösch-Bestätigung (spec-372 AK8).
   "app/veranstaltung/AuslageRow.tsx",

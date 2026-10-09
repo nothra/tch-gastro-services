@@ -387,3 +387,15 @@ verlangt; Auflösung in `/refactor` (`useErsatzFokus.ts`).
 **Regel:** Entsteht ein zweiter Hook mit derselben Zustandsmaschine, den **ganzen** Vertrag (nicht nur das letzte Stück)
 in einen gemeinsamen Helfer ziehen, bevor der zweite Hook fertig ist – und den Helfer nie aus einer Komponenten-Datei
 exportieren, sondern als eigenes Modul in `app/components/` ablegen.
+
+### Schrittwechsel im selben Dialog: Fokus explizit setzen, `autoFocus` greift nur beim Mount (aus #404, Review-Iteration 1 W1)
+
+Der Dialog „Teilnehmer hinzufügen" wechselt zwischen Auswahl und „Teilnehmer anlegen", ohne zu schließen. React-`autoFocus`
+wirkt nur beim Mount des Elements; im schon offenen Dialog blieb der Fokus nach dem Schrittwechsel auf dem entfernten
+Auslöser bzw. am Dialog-Anfang. Der erste Wurf hatte weder für „Anlegen" (→ Namensfeld) noch für „← Zur Auswahl"
+(→ Absprung-Knopf) einen Fokus-Test; zwei weitere Zweige (Leer-Zweig, erneutes Öffnen nach Zurück) fielen erst in
+Iteration 2 auf.
+
+**Regel:** Wechselt ein Dialog den Schritt, ohne zu schließen, den Fokus je Richtung per Ref/Effekt setzen und je Richtung
+testen – plus Gegenprobe „beim Öffnen **nicht**" (Reset beim erneuten Öffnen) und jeden Zweig, der den Absprung-Knopf
+nicht rendert (Leer-Zweig). Fokus-Tests per Mutation belegen (Zeile entfernen → genau dieser Test rot). Ergänzt #371/#373.

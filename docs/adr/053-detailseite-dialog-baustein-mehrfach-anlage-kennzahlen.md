@@ -53,22 +53,28 @@ Dialog-Grundlage):
   (`role="alert"`) und ein `pending`-Zustand, der beide Schaltflächen **und Escape** sperrt –
   sonst schlösse sich der Dialog, während der Server den Vorgang trotzdem ausführt, und eine
   Ablehnung sähe niemand. Die Escape-Sperre liegt im `Dialog` selbst (Prop `schliessbar`), damit
-  jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf beider
-  Bereiche dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`), weil ein `setState`
-  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
-  angeschlossen werden können.
+  jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf seines
+  jeweils sichtbaren Schritts dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`;
+  seit #404 meldet `useDialogFormular`, die Sperre hält `useFormularDialog`), weil ein `setState`
+  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein
+  `<form action>`, damit Server Actions direkt angeschlossen werden können.
 - „Bei Erfolg schließen" liegt einmal im Hook `app/components/useSchliessendeAction.ts`
   (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`). Seit #373 ist er
-  route-neutral: neben den Dialogen der Detailseite (`TeilnehmerHinzufuegenDialog`,
-  `ZeilenMenue`, `AbschlussAktion`) baut auch `useDialogFormular` in
-  `app/components/FormularDialog.tsx` (Listenseiten) auf ihm auf. Wie `formAction` ans Formular
+  route-neutral: neben den Dialogen der Detailseite (`ZeilenMenue`, `AbschlussAktion`) baut auch
+  `useDialogFormular` in `app/components/FormularDialog.tsx` (Listenseiten, seit #404 auch
+  `TeilnehmerHinzufuegenDialog`) auf ihm auf. Wie `formAction` ans Formular
   kommt, entscheidet der Konsument: die Listenseiten schicken über `onSubmit` +
   `startTransition` ab, damit eine Ablehnung die Eingaben nicht zurücksetzt (spec-373 AK1.4); die
-  Detailseiten-Dialoge nutzen noch `<form action>` (#398).
+  übrigen Detailseiten-Dialoge nutzen noch `<form action>` (#398). `TeilnehmerHinzufuegenDialog`
+  schickt seit #404 ebenfalls über `useDialogFormular` ab – die Duplikat-Warnung beim Anlegen
+  muss die Eingaben stehen lassen (spec-404 AK4.3).
 - Verschwindet der Auslöser nach einem Erfolg, weil die Revalidierung den Seitenzweig tauscht
   (Leerzustand → Liste, Katalogzeile wechselt die Kategorie), lenkt `useFormularDialog` den Fokus
   auf ein Ersatzziel (`ersatzFokusId`: Seitenkopf-Auslöser bzw. die umgezogene Zeile) statt ihn
-  auf `<body>` fallen zu lassen (#373, Lesson #371).
+  auf `<body>` fallen zu lassen (#373, Lesson #371). Dasselbe gilt im mehrstufigen Dialog beim
+  Schrittwechsel, der den auslösenden Knopf aushängt: dort setzt der neue Schritt den Fokus selbst
+  (seit #404 in `TeilnehmerHinzufuegenDialog` – Anlegen aufs Namensfeld, die Rückkehr auf den
+  Absprung).
 - Die vier bestehenden Dialoge werden in #369 **nicht** migriert (das ist #372 AK1). Sie dürfen
   aber nach dieser ADR nicht als Vorbild für neue Dialoge dienen.
 - Keine neue Abhängigkeit (ADR-052 D1). Ein Fokus-Trap ist beim nativen modalen `<dialog>`
@@ -118,6 +124,10 @@ Dialog-Grundlage):
 - „Neuer Gast" bleibt `createWalkInAction` unverändert (legt Teilnehmer an und erfasst ihn). Die
   dort liegende Zweischritt-Schreibung (Teilnehmer anlegen, dann Zeile) ist vorbestehend und
   nicht Teil dieser Entscheidung.
+  > **Nachtrag (#404):** „Neuer Gast" gibt es nicht mehr – der Bereich ist der eigene
+  > Dialog-Schritt „Teilnehmer anlegen", und `createWalkInAction` kennt jetzt die überstimmbare
+  > Duplikat-Warnung der Verwaltung (ADR-022, `confirmDuplicate`). Die Zweischritt-Schreibung
+  > bleibt unverändert.
 
 ### D4 · Kacheln-Kennzahlen aus den bestehenden Summen, ein reiner Adapter
 
@@ -153,7 +163,8 @@ Dialog-Grundlage):
 > einem Zahnrad im Seitenkopf; Teilen und Löschen sind eigene Symbol-Schaltflächen dort.
 
 - Die Seite bleibt eine Server Component und besteht nur noch aus Komposition: `PageHeader`
-  (mit `Badge` für den Status), Kachel-Reihe, Teilnehmerliste mit `+ Teilnehmer`-Dialog,
+  (mit `Badge` für den Status), Kachel-Reihe, Teilnehmerliste mit `+ Teilnehmer`-Dialog (seit
+  #404: Auslöser „Teilnehmer hinzufügen"),
   Einstellungen als natives `<details>` (kein JS, Standard geschlossen).
 - `StatusToggle` wird unverändert an das **Ende der Kassieren-Seite** verschoben und dort
   entfernt aus dem Seitenkopf (heute steht er auch dort oben). Bestätigung und Offen-Hinweis

@@ -9,11 +9,9 @@ import {
   setTeilnehmerActive,
   updateTeilnehmer,
 } from "@/db/teilnehmer";
-import { teilnehmerSchema } from "./schema";
+import { TEILNEHMER_DUPLIKAT_WARNUNG, teilnehmerSchema } from "./schema";
 
 const TEILNEHMER_PATH = "/verwaltung/teilnehmer";
-const DUPLICATE_WARNING =
-  "Ein aktiver Teilnehmer mit diesem Namen existiert bereits. Zum Anlegen erneut bestätigen.";
 const NO_TEILNEHMER = "Kein Teilnehmer angegeben.";
 const TEILNEHMER_NOT_FOUND = "Teilnehmer nicht gefunden.";
 
@@ -38,7 +36,7 @@ export async function createTeilnehmerAction(
   // ohne zu speichern zurückmelden; erst der bestätigte Zweitversuch legt an (ADR-022).
   const confirmDuplicate = formData.get("confirmDuplicate") === "true";
   if (!confirmDuplicate && (await findActiveByName(parsed.data.name))) {
-    return { needsConfirm: true, warning: DUPLICATE_WARNING };
+    return { needsConfirm: true, warning: TEILNEHMER_DUPLIKAT_WARNUNG };
   }
 
   await createTeilnehmer(parsed.data);

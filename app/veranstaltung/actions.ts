@@ -4,9 +4,14 @@ import { revalidatePath } from "next/cache";
 import { requireAnyRole, requireRole } from "@/lib/authz";
 import { firstIssueMessage } from "@/lib/form-errors";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
-import { createTeilnehmer, getTeilnehmer, getTeilnehmerByIds } from "@/db/teilnehmer";
+import {
+  createTeilnehmer,
+  findActiveByName,
+  getTeilnehmer,
+  getTeilnehmerByIds,
+} from "@/db/teilnehmer";
 import { getCatalogById, getCatalogItem } from "@/db/catalog";
-import { teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
+import { TEILNEHMER_DUPLIKAT_WARNUNG, teilnehmerSchema } from "@/app/verwaltung/teilnehmer/schema";
 import {
   KASSEN,
   veranstaltungStatus,
@@ -82,6 +87,9 @@ export type VeranstaltungFormState = {
   // Nur `kassiereZeileAction`: der soeben gespeicherte Betrag für die Rückmeldung (ADR-055 D2);
   // `null` heißt „Kassieren zurückgenommen".
   erhaltenCents?: number | null;
+  // Nur `createWalkInAction`: die überstimmbare Duplikat-Warnung (ADR-022, spec-404 AK4.3).
+  needsConfirm?: boolean;
+  warning?: string;
 };
 
 // Jede Ablehnung der Mehrfach-Anlage stellt klar, dass kein Teilerfolg entstanden ist (#369 FS2).
@@ -314,7 +322,7 @@ export async function deleteVeranstaltungAction(
   return { ok: true };
 }
 
-// Prüft die gewählten Stammteilnehmer VOR dem Insert (#369 FS2): alle existieren, sind aktiv
+// Prüft die gewählten Teilnehmer VOR dem Insert (#369 FS2): alle existieren, sind aktiv
 // (ADR-022 – `getTeilnehmerByIds` selektiert unabhängig von `active`, ein manipulierter Request
 // darf keinen soft-gelöschten Teilnehmer erfassen) und sind noch nicht erfasst. Liefert die
 // geladenen Personen oder eine Meldung, die die Betroffenen beim Namen nennt. Der Unique-Index
@@ -340,7 +348,7 @@ async function waehlbareTeilnehmer(
   return { personen };
 }
 
-// Legt die im „+ Teilnehmer"-Dialog gewählten Stammteilnehmer als Zeilen an (#369 AK12, ADR-053
+// Legt die im Dialog „Teilnehmer hinzufügen" gewählten Teilnehmer als Zeilen an (#369 AK12, ADR-053
 // D3) – ersetzt die frühere Einzel-Action, der Einzelfall ist eine Liste der Länge 1. Fail-closed
 // in dieser Reihenfolge: Rolle (FS4) → Eingabe (Zod, AK14) → Veranstaltung existiert und ist
 // `offen` (FS1) → alle Teilnehmer wählbar (FS2) → EIN Multi-Row-INSERT. Alles oder nichts: bei
@@ -381,7 +389,11 @@ export async function addZeilenAction(
   return { ok: true };
 }
 
-// Walk-in durch den Veranstalter (ADR-022): der Walk-in bleibt beim Veranstalter, nicht beim Gast.
+// „Teilnehmer anlegen" aus der Veranstaltung (ADR-022 Walk-in, spec-404): legt den Teilnehmer an
+// und fügt ihn sofort hinzu. Fail-closed: Rolle → Veranstaltung offen → Eingabe (Zod) →
+// Duplikat-Warnung wie in der Verwaltung, überstimmbar per `confirmDuplicate` (AK4.3). Die
+// Veranstaltung wird vor der Warnung geprüft, damit „Trotzdem anlegen" nicht in die nächste
+// Ablehnung läuft.
 export async function createWalkInAction(
   _prevState: VeranstaltungFormState | undefined,
   formData: FormData,
@@ -396,6 +408,11 @@ export async function createWalkInAction(
 
   const parsed = teilnehmerSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const confirmDuplicate = formData.get("confirmDuplicate") === "true";
+  if (!confirmDuplicate && (await findActiveByName(parsed.data.name))) {
+    return { needsConfirm: true, warning: TEILNEHMER_DUPLIKAT_WARNUNG };
+  }
 
   const person = await createTeilnehmer(parsed.data);
   await addZeile(veranstaltungId, person);

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { gastHinzufuegen } from "./helpers/detailseite";
+import { teilnehmerAnlegenUndHinzufuegen } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für den personenbezogenen Wechsel zwischen Verzehrerfassung und Kassieren
@@ -18,10 +18,14 @@ const email = process.env.SEED_ADMIN_EMAIL ?? "";
 const password = process.env.SEED_ADMIN_PASSWORD ?? "";
 
 // Zwei Teilnehmer genügen für den Personenbezug: einer ist Ziel, einer ist Gegenprobe. Namen mit
-// Lauf-Suffix, damit wiederholte Läufe auf derselben lokalen DB nicht auf Altbestand matchen.
-const LAUF = String(process.env.E2E_WECHSEL_308_SUFFIX ?? "a");
+// Lauf-Suffix, damit wiederholte Läufe auf derselben lokalen DB nicht auf Altbestand matchen –
+// Default `Date.now()`: ein fester Default liefe ab dem zweiten Lauf in die Duplikat-Warnung beim
+// Anlegen (spec-404 AK4.3), weil Teilnehmer ihre Veranstaltung überleben.
+const LAUF = String(process.env.E2E_WECHSEL_308_SUFFIX ?? Date.now().toString(36));
 const ZIEL = `Zielperson ${LAUF}`;
 const ANDERE = `Andere Person ${LAUF}`;
+// Eigener Name für F1: die Tests laufen parallel, und ein zweites Anlegen von ZIEL warnte ebenso.
+const FREMDBEZUG_PERSON = `Fremdbezug-Person ${LAUF}`;
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -72,8 +76,8 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     const detailPfad = await createVeranstaltung(page, `Wechsel-Hin-Rueck ${LAUF}`);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, ZIEL);
-    await gastHinzufuegen(page, ANDERE);
+    await teilnehmerAnlegenUndHinzufuegen(page, ZIEL);
+    await teilnehmerAnlegenUndHinzufuegen(page, ANDERE);
 
     // ── AK7 (seit #370): genau eine Wechsel-Aktion – die der aktiven Person ─────────────────
     await page.goto(`${detailPfad}/verzehr`);
@@ -152,7 +156,7 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
 
     const detailPfad = await createVeranstaltung(page, `Wechsel-Fremdbezug ${LAUF}`);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, ZIEL);
+    await teilnehmerAnlegenUndHinzufuegen(page, FREMDBEZUG_PERSON);
 
     // Zufallswert, der in dieser Veranstaltung keine Zeile ist – fail-soft, kein 404, keine Meldung.
     const fremd = "00000000-0000-4000-8000-000000000000";
@@ -160,13 +164,15 @@ test.describe("Personenbezogener Wechsel Verzehr ↔ Kassieren (#308)", () => {
     await page.goto(`${detailPfad}/kassieren?zeile=${fremd}`);
     await expect(page.getByRole("heading", { name: /^Kassieren · / })).toBeVisible();
     await expect(page.locator('li[aria-current="true"]')).toHaveCount(0);
-    await expect(kassierZeile(page, ZIEL).getByLabel("Erhalten (EUR)")).not.toBeFocused();
+    await expect(
+      kassierZeile(page, FREMDBEZUG_PERSON).getByLabel("Erhalten (EUR)"),
+    ).not.toBeFocused();
 
     await page.goto(`${detailPfad}/verzehr?zeile=${fremd}`);
     await expect(page.getByRole("heading", { name: /^Verzehr · / })).toBeVisible();
     // Standardzustand seit #370 (spec-370 AK1a.5): die erste Person ist aktiv, ihr Kassieren-Weg
     // steht in der Fußleiste – keine Fehlermeldung, kein Bezug auf den fremden Wert.
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText(ZIEL);
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(FREMDBEZUG_PERSON);
     await expect(page.getByRole("link", { name: /Kassieren/ })).toHaveCount(1);
     await expect(page.getByText(fremd)).toHaveCount(0);
   });

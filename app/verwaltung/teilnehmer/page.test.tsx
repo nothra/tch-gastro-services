@@ -83,7 +83,7 @@ describe("TeilnehmerPage", () => {
 
     const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
     expect(within(kopf).getByRole("button", { name: "+ Neu" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Anzeigename")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
   it("should_notShowNeuButton_when_userIsNotVerwalter", async () => {

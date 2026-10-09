@@ -1,0 +1,133 @@
+# Task 404: teilnehmer-anlegen-statt-neuer-gast
+
+## Status
+- [x] In Bearbeitung
+- [x] Review bestanden
+- [x] Tests vollständig
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
+
+## Beschreibung
+Dialog „Teilnehmer hinzufügen" verschlanken; „Neuer Gast" wird zum eigenen Schritt „Teilnehmer anlegen" (gleiches Formular wie die Verwaltung). Spec: `docs/specs/spec-404-teilnehmer-anlegen-statt-neuer-gast.md`.
+
+## Akzeptanzkriterien
+<!-- Von /requirements befüllt oder manuell eingeben -->
+- [x] AK1 Kein „Gast"/„Neuer Gast" mehr in der UI
+- [x] AK2 Dialog nur Suche, Mehrfachauswahl, „Hinzufügen"/„Abbrechen"
+- [x] AK3.1 Absprung „Teilnehmer anlegen" → eigener Schritt mit Zurück
+- [x] AK3.2 Zurück behält Auswahl/Suche
+- [x] AK3.3 Ohne Treffer: „„<Suchtext>" als Teilnehmer anlegen" übernimmt Namen
+- [x] AK4.1 Gleiche Felder/Komponente wie Verwaltung + Hinweis „direkt hinzugefügt"
+- [x] AK4.2 Anlegen + Hinzufügen, Meldung „Teilnehmer angelegt und hinzugefügt"
+- [x] AK4.3 Duplikat-Warnung „Trotzdem anlegen" (ADR-022)
+- [x] AK4.4 Ablehnung: Dialog bleibt offen, Fehler am Namensfeld, nichts angelegt
+- [x] AK5 Label „Name" überall; „Stammteilnehmer" entfällt
+- [x] AK6 `TeilnehmerFields` von beiden Stellen genutzt; Kleinfund aufgelöst
+- [x] AK7 Auslöser „Teilnehmer hinzufügen"
+- [x] AK8 `docs/ux/glossar.md` angepasst
+
+## Technische Notizen
+<!-- Von /architecture befüllt oder eigene Notizen -->
+- ADR-Trigger-Check (2026-10-09): keine Kategorie – reiner UI-Umbau; die Server Action übernimmt
+  nur die bestehende Duplikat-Warnung (ADR-022). ADR-053 D1/D3 im selben PR nachgezogen.
+- Duplikat-Warnung als gemeinsamer Baustein `app/verwaltung/teilnehmer/DuplikatWarnung.tsx`
+  (Hidden-Feld + Warnung + Button-Label); Wortlaut `TEILNEHMER_DUPLIKAT_WARNUNG` in `schema.ts`,
+  nicht in einer `"use server"`-Datei, weil beide Actions ihn melden.
+- `createWalkInAction` prüft die Veranstaltung **vor** der Duplikat-Warnung, damit „Trotzdem
+  anlegen" nicht in die nächste Ablehnung läuft.
+- Der Dialog schickt jetzt über `useFormularDialog`/`useDialogFormular` (`onSubmit` +
+  `startTransition`) ab – `<form action>` setzte die Eingaben nach der Duplikat-Warnung zurück
+  (Lesson #373 AK1.4).
+- Zod-Meldungen „Anzeigename ist erforderlich./zu lang." bleiben (Spec: Schema unverändert); als
+  Ist→Soll-Zeilen an #401 übergeben (`docs/ux/glossar.md`).
+- Oberflächentests (2026-10-09) gegen den lokalen Dev-Server: `e2e/teilnehmer-anlegen.spec.ts`
+  (`E2E_404=1`) sowie die angepassten Specs `veranstaltung-detailseite` (`E2E_DETAILSEITE_369`),
+  `bestaetigen-rueckmelden` (`E2E_372`) und `listenseiten` (`E2E_LISTENSEITEN_373`) – 14/14 grün.
+  Zwei Locator-Fehler der neuen Spec behoben (Dev-DB-Namen mit „Gast"; Toast im Dialog-Portal, #372).
+- **Entschieden (2026-10-09, Ralf): Verzicht auf die Anleitungs-Anpassung** – das Bild bleibt
+  vorerst unverändert, der Alt-Text ist angepasst. Ursprünglicher Schritt: `docs/anleitung/veranstalter/bilder/06-teilnehmer-hinzufuegen.png`
+  zeigt noch den alten Dialog mit „Neuer Gast"; per Capture-Spec (`CAPTURE_ANLEITUNG=1`) neu
+  erzeugen. Der Alt-Text ist bereits angepasst; die Capture-Spec läuft laut `kleinfunde.md` nicht
+  bis zum Ende durch.
+
+## Offene Fragen
+Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach Anlegen · Q3 Duplikat-Warnung auch in der Veranstaltung · Q4 „Alle aktiven Teilnehmer sind bereits hinzugefügt."
+
+## Review-Findings
+<!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-09): **NEEDS_REWORK** – 0 kritisch, 4 wichtig, 10 Nitpicks; Details in
+  `tasks/review-404.md`. Wichtig: Fokus beim Schrittwechsel, E2E-Helfer vs. Duplikat-Warnung,
+  offen gehaltene Promises im Unit-Test (Lesson #370), verrutschte Glossar-Zeilenverweise.
+  Out-of-Scope: Issue #416 (Duplikat-Bestätigung an den gewarnten Namen binden), Kleinfund
+  „`createWalkInAction` nicht atomar".
+- Rework nach Iteration 1 (2026-10-09), alle 4 Wichtig-Funde behoben:
+  - Fokus beim Schrittwechsel: Anlegen fokussiert das Namensfeld (`TeilnehmerFields`
+    `nameFokussieren`), „← Zur Auswahl" den Absprung (`Schritt.zurueckVomAnlegen`, React-`autoFocus`
+    greift nur beim Mount im schon offenen Dialog). Unit-Tests in beide Richtungen + Gegenprobe
+    „beim Öffnen nicht", E2E prüft beide Ziele im echten Browser.
+  - E2E-Helfer heißt `teilnehmerAnlegenUndHinzufuegen`, Kommentar korrigiert; `wechsel-…` und
+    `veranstaltung-bearbeiten-loeschen` mit `Date.now()`-Default, F1 mit eigenem Namen; Capture-Spec
+    legt „Clara Neumann" an (frische DB vorausgesetzt, kein „Gast" mehr im Bild 05).
+  - Offen gehaltene Promises im Dialog-Test: Resolve-Liste + `afterEach` in `act` (Lesson #370);
+    Ablehnungstest prüft zusätzlich die angezeigte Meldung.
+  - Glossar-Zeilenverweise auf `actions.ts` nachgezogen, alle Tabellenzeilen per Grep geprüft.
+  - Nitpicks erledigt: `AbbrechenKnopf` als Baustein (kein Handnachbau im Leer-Zweig), Kommentar
+    zu Ablehnungen enger, `useAuswahl` senkt die Props des Auswahl-Schritts, ADR-053-Drift,
+    Kopfkommentar `FormularDialog`, `exact: true` in `teilnehmer-anlegen.spec.ts` (Abwesenheit
+    jetzt ohne Namensfilter), Fixture-Name + „nichts angelegt"-Assertion in `actions.test.ts`.
+  - Bewusst nicht umgesetzt: Duplikat-Prüf-Helfer in `schema.ts` – `schema.ts` wird von
+    `TeilnehmerFields` im Client importiert, ein DB-Zugriff dort zöge `db/` ins Client-Bundle;
+    `TEILNEHMER_NAME_MAX` in ein abhängigkeitsfreies Modul – vorbestehend, optional.
+  - Gates: Lint, `tsc --noEmit`, `pnpm test` (1635 grün); E2E 15/15 grün (`E2E_404`,
+    `E2E_WECHSEL_308`, `E2E_VERANSTALTUNG_352`, `E2E_372`, `E2E_DETAILSEITE_369`).
+- Iteration 2 (2026-10-09): **NEEDS_REWORK** – 0 kritisch, 2 wichtig, 5 Nitpicks; alle
+  Iteration-1-Funde behoben. Wichtig (beide Doku): Glossar-Anker `TeilnehmerHinzufuegenDialog.tsx:29`
+  durch den Rework auf `:36` verrutscht (Rezidiv #375); Kleinfund „`createWalkInAction` nicht
+  atomar" empfiehlt `db.transaction()` statt `runAtomic` – Gegenteil der Lesson #345.
+- Rework nach Iteration 2 (2026-10-09), beide Wichtig-Funde behoben:
+  - Glossar-Anker `TeilnehmerHinzufuegenDialog.tsx:29` → `:36`. Danach alle `Datei:Zeile`-Anker
+    des Glossars auf die in diesem PR geänderten Dateien gegen den Code geprüft (`actions.ts:100`,
+    `:103–106`, `:342`, `:346`; `schema.ts:20–21`; `TeilnehmerAnlegen.tsx:42`) – alle stimmen.
+  - Kleinfund-Fix umgedreht: `runAtomic`, nie `db.transaction()`; Teilnehmer-ID vorab per
+    `crypto.randomUUID()`, Treiber-Mock-Test + DB-Integrationstest, Aufwand ~25 Zeilen. Dass der
+    FK `veranstaltung_zeile.veranstaltung_id` im Rennen den Batch scheitern lässt, ist gegen
+    `db/schema.ts:254-256` geprüft.
+  - Nitpicks erledigt: Fokus-Test für den Leer-Zweig, Test „erneutes Öffnen nach Zurück fokussiert
+    den Absprung nicht“ (beide per Mutation belegt, je Mutation genau der neue Test rot), ADR-053
+    Zeile umbrochen und um die Fokus-Regel beim Schrittwechsel ergänzt.
+  - Weiter offen (menschlicher Schritt vor dem Merge): Bild `06-teilnehmer-hinzufuegen.png` neu
+    erzeugen.
+  - Gates: Lint, `format:check`, `tsc --noEmit`, `pnpm test` (1637 grün).
+- Iteration 3 (2026-10-09): **APPROVED** – 0 kritisch, 0 wichtig, 2 Nitpicks (Bild 06 als bekannter
+  menschlicher Schritt; Code-Kommentar „Stammteilnehmer“ in `actions.ts:325`). Alle
+  Iteration-2-Funde nachgeprüft und behoben; Unit-Tests der betroffenen Bereiche 1064/1064 grün.
+
+## Test-Notizen
+- `/test` (2026-10-09): Coverage-Lauf mit DB-Integrationstests (`dotenv -e .env.local`) – 121 Dateien,
+  1749 Tests grün; gesamt 98,64 % Statements / 98,78 % Branches. Alle in diesem PR geänderten
+  Dateien liegen bei 100 % (Dialog, `DuplikatWarnung`, `TeilnehmerFields`, `TeilnehmerAnlegen`,
+  `FormularDialog`, `createWalkInAction`). Einzige Lücke im Umfeld: `actions.ts:641`
+  (`ensureThekeAction`, nicht Teil dieses PR). Jedes AK (AK1–AK8) hat mindestens einen Test
+  (Unit und/oder E2E); keine Test-Ergänzung nötig, kein Produktionscode geändert.
+
+## Refactoring-Notizen
+- `/refactor` (2026-10-09): Diff gegen `origin/main` nach Naming, Funktionsgröße, Duplikation,
+  Verschachtelung und Kommentaren geprüft. Keine Strukturänderung nötig – die Duplikate
+  (Duplikat-Warnung, Namens-Obergrenze, Abbrechen-Knopf) sind bereits in gemeinsame Bausteine
+  gezogen. Einzige Änderung: Kommentar `actions.ts:325` „Stammteilnehmer“ → „Teilnehmer“
+  (Review-Nitpick Iteration 3). Kein Verhalten geändert; Lint und Pre-Commit grün.
+
+## Codify-Notizen
+- `/codify` (2026-10-09), Details in `tasks/codify-404.md`: zwei neue Lessons – Fokus beim
+  Schrittwechsel im selben Dialog (`frontend-react.md`) und Rezidiv #375/#345 Anker-/Fix-Empfehlungs-
+  Drift nach Rework (`factory-workflow.md`); Index-Zeilen in `PROJECT-CONTEXT.md`. Keine neuen
+  Issues/Kleinfunde. Offen bleibt der menschliche Schritt: Bild `06-teilnehmer-hinzufuegen.png`
+  neu erzeugen – danach „Fertig / PR erstellt" abhaken.
+
+---
+Branch: `feature/404-teilnehmer-anlegen-statt-neuer-gast`
+Erstellt: 2026-10-09 16:18
+
+PR-Shepherd 2026-10-09: Merge freigegeben – alle Gates grün (Anleitungs-Bild bewusst nicht aktualisiert, Entscheidung Ralf).

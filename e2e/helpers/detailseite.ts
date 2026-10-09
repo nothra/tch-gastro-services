@@ -1,27 +1,44 @@
 import { expect, type Page } from "@playwright/test";
 
 // Gemeinsame Bedienschritte der Detailseite `/veranstaltung/[id]` (#369, #391) für alle E2E-Specs,
-// die sie brauchen – vorher lagen sie viermal (Gast) bzw. zweimal in unterschiedlicher Form
-// (Einstellungen) kopiert in den Specs. Keine `*.spec.ts`-Datei: Playwright sammelt sie nicht als
-// Test ein.
+// die sie brauchen – vorher lagen sie viermal (Teilnehmer anlegen) bzw. zweimal in
+// unterschiedlicher Form (Einstellungen) kopiert in den Specs. Keine `*.spec.ts`-Datei:
+// Playwright sammelt sie nicht als Test ein.
+
+// Auslöser und Dialogtitel lauten gleich („Teilnehmer hinzufügen", spec-404 AK7) – Rolle und
+// `exact` halten sie auseinander.
+export function teilnehmerAusloeser(page: Page) {
+  return page.getByRole("button", { name: "Teilnehmer hinzufügen", exact: true });
+}
 
 export function teilnehmerDialog(page: Page) {
   return page.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
 }
 
+// Zweiter Schritt desselben Dialogs (spec-404 AK3.1): der Titel wechselt.
+export function anlegeSchritt(page: Page) {
+  return page.getByRole("dialog", { name: "Teilnehmer anlegen" });
+}
+
 export async function oeffneTeilnehmerDialog(page: Page) {
-  await page.getByRole("button", { name: "+ Teilnehmer" }).click();
+  await teilnehmerAusloeser(page).click();
   await expect(teilnehmerDialog(page)).toBeVisible();
 }
 
-// „Neuer Gast" im „+ Teilnehmer"-Dialog (spec-369 AK13, früher Walk-in-Formular). Erfolgreich ist
-// der Schritt erst, wenn der Dialog zu ist und der Gast als Link in der Liste steht (AK17).
-export async function gastHinzufuegen(page: Page, name: string) {
+// „Teilnehmer anlegen" aus dem Dialog (spec-404 AK4.2, früher „Neuer Gast"/Walk-in). Erfolgreich
+// ist der Schritt erst, wenn der Dialog zu ist und der Teilnehmer als Link in der Liste steht
+// (spec-369 AK17). Eine Duplikat-Warnung (AK4.3) wäre hier ein Fehler, kein Fall zum Überstimmen:
+// angelegte Teilnehmer überleben ihre Veranstaltung, jeder Aufrufer muss den Namen deshalb je Lauf
+// UND je Aufruf eindeutig machen (Lauf-Suffix mit `Date.now()`-Default).
+export async function teilnehmerAnlegenUndHinzufuegen(page: Page, name: string) {
   await oeffneTeilnehmerDialog(page);
-  const gast = teilnehmerDialog(page).getByRole("group", { name: "Neuer Gast" });
-  await gast.getByLabel("Name").fill(name);
-  await gast.getByRole("button", { name: "Gast hinzufügen" }).click();
-  await expect(teilnehmerDialog(page)).toBeHidden();
+  await teilnehmerDialog(page)
+    .getByRole("button", { name: "Teilnehmer anlegen", exact: true })
+    .click();
+  const schritt = anlegeSchritt(page);
+  await schritt.getByLabel("Name", { exact: true }).fill(name);
+  await schritt.getByRole("button", { name: "Anlegen", exact: true }).click();
+  await expect(schritt).toBeHidden();
   await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
 }
 

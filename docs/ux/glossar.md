@@ -17,7 +17,7 @@ Ein Aktionstyp, ein Verb. Das Verb steht im Button, im Dialogtitel und im Busy-T
 
 | Aktionstyp | Verb | Beispiel | Nicht verwenden |
 |---|---|---|---|
-| Neues Objekt erzeugen | **anlegen** | „Veranstaltung anlegen", „Katalog anlegen", „Artikel anlegen", „Teilnehmer anlegen" (Stammdaten), „Neuen Gast anlegen", „Theke anlegen" | einrichten, erstellen, erfassen, neu hinzufügen |
+| Neues Objekt erzeugen | **anlegen** | „Veranstaltung anlegen", „Katalog anlegen", „Artikel anlegen", „Teilnehmer anlegen", „Theke anlegen" | einrichten, erstellen, erfassen, neu hinzufügen |
 | Bestehendes Objekt einer Veranstaltung zuordnen | **hinzufügen** | „Teilnehmer hinzufügen" | anlegen, erfassen, aufnehmen |
 | Mengen oder Beträge eintragen | **erfassen** | „Verzehr erfassen", „Auslagen erfassen", „Auslage erfassen" | eintragen, buchen, hinzufügen |
 | Zuordnung lösen, Objekt bleibt bestehen | **entfernen** | Teilnehmerzeile aus der Veranstaltung „Entfernen" | löschen |
@@ -25,10 +25,10 @@ Ein Aktionstyp, ein Verb. Das Verb steht im Button, im Dialogtitel und im Busy-T
 | Sichtbarkeit/Wählbarkeit umschalten | **deaktivieren** / **aktivieren** | Teilnehmer, Artikel, Katalog „Deaktivieren" ⇄ „Aktivieren" | reaktivieren, ausblenden, sperren |
 | Bestehende Werte ändern | **speichern** | „Speichern", „Änderungen speichern" | übernehmen, sichern |
 
-**Abgrenzung anlegen ↔ hinzufügen:** In der Verwaltung wird ein Teilnehmer **angelegt** (neuer
-Stammdatensatz). In einer Veranstaltung wird ein vorhandener Teilnehmer **hinzugefügt**. Ein Gast,
-den es noch nicht gibt, wird **angelegt** („Neuen Gast anlegen") – er landet dabei zugleich in der
-Veranstaltung.
+**Abgrenzung anlegen ↔ hinzufügen:** Ein Teilnehmer, den es noch nicht gibt, wird **angelegt** –
+in der Verwaltung wie in der Veranstaltung, mit denselben Feldern. Ein vorhandener Teilnehmer wird
+einer Veranstaltung **hinzugefügt**. Wird er aus der Veranstaltung heraus angelegt, wird er
+dabei zugleich hinzugefügt („Teilnehmer angelegt und hinzugefügt").
 
 **Weitere feste Verben** (eigene Vorgänge, kein Synonym für die Tabelle oben): „Kassieren",
 „Abschließen", „Öffnen" (Veranstaltung wieder öffnen), „Umbenennen", „Duplizieren",
@@ -112,16 +112,19 @@ umgeschrieben werden. Neue Texte mit direkter Ansprache nutzen den Imperativ in 
 
 | Begriff | Bedeutung | Nicht verwenden |
 |---|---|---|
-| **Neuer Gast** | Ein Gast, der nicht in der Teilnehmerliste steht und vom Veranstalter direkt in der Veranstaltung angelegt wird. | Walk-in, Laufkundschaft, Spontangast |
 | **Veranstaltung** | Abzurechnende Zusammenkunft (siehe `PROJECT-CONTEXT.md` → Fachdomäne). | Abend, Event |
-| **Teilnehmer** | Person oder Familie, eine Abrechnungszeile. | Gast (außer „Neuer Gast"), Kunde |
+| **Teilnehmer** | Person oder Familie, eine Abrechnungszeile – auch wenn er erst in der Veranstaltung angelegt wird. | Gast, Neuer Gast, Stammteilnehmer, Walk-in, Kunde |
 
 **Feste Texte für den Teilnehmer-Dialog** auf der Veranstaltungs-Detailseite:
 
-- Dialogtitel: „Teilnehmer hinzufügen"
-- Bereich für vorhandene Teilnehmer, Button: „Hinzufügen" (Busy „Hinzufügen …")
-- Bereich für den neuen Gast, Überschrift „Neuer Gast", Button: **„Neuen Gast anlegen"**
-  (Busy „Anlegen …")
+- Auslöser und Dialogtitel: „Teilnehmer hinzufügen"
+- Auswahl vorhandener Teilnehmer, Button: „Hinzufügen" (Busy „Hinzufügen …"); ohne Treffer
+  „Kein Teilnehmer passt zu „<Suchtext>".", sind alle schon dabei „Alle aktiven Teilnehmer sind
+  bereits hinzugefügt."
+- Absprung: **„Teilnehmer anlegen"**, ohne Treffer **„„<Suchtext>" als Teilnehmer anlegen"**
+- Schritt „Teilnehmer anlegen" (Dialogtitel): Zurück **„← Zur Auswahl"**, Button **„Anlegen"**
+  (Busy „Anlegen …", nach Duplikat-Warnung „Trotzdem anlegen"), Erfolg **„Teilnehmer angelegt
+  und hinzugefügt"**
 
 ---
 
@@ -151,13 +154,13 @@ Alles Übrige sammelt **#401**.
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|
 | `app/veranstaltung/KatalogWechsel.tsx:47` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
-| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:207` | Button „Gast hinzufügen" | „Neuen Gast anlegen" | #401 |
-| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:97` | „Alle aktiven Stammteilnehmer sind bereits erfasst." | „… sind bereits hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:339` (Text aus `nichtsAngelegt`, `:96–99`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:335` (Text aus `nichtsAngelegt`, `:96–99`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:93` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:346` (Text aus `nichtsAngelegt`, `:103–106`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:342` (Text aus `nichtsAngelegt`, `:103–106`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:100` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
 | `app/veranstaltung/VeranstaltungAnlegen.tsx:77` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
-| `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:49` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
+| `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:42` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
+| `app/verwaltung/teilnehmer/schema.ts:20` | „Anzeigename ist erforderlich." (Feld heißt seit #404 „Name") | „Name ist erforderlich." | #401 |
+| `app/verwaltung/teilnehmer/schema.ts:21` | „Anzeigename ist zu lang." (Feld heißt seit #404 „Name") | „Name ist zu lang." | #401 |
 | `app/verwaltung/katalog/ArtikelAnlegen.tsx:48` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:67` | Busy „Speichern …" (Button „Kassieren") | „Kassieren …" | #401 |
 | `app/veranstaltung/AuslageForm.tsx:142` | Busy „Speichern …" (Button „Auslage erfassen") | „Erfassen …" (beim Bearbeiten bleibt „Speichern …") | #401 |
@@ -169,9 +172,9 @@ Alles Übrige sammelt **#401**.
 | `app/verwaltung/theke/ThekeSetup.tsx:35` | Button „Einrichten" / Busy „Einrichten …" | „Anlegen" / „Anlegen …" | #401 |
 | `app/verwaltung/theke/page.tsx:14` | „… nur Verwalter dürfen die Theke einrichten." | „… die Theke anlegen." | #401 |
 
-**Beim Umsetzen mitziehen** (kein UI-Text, aber an den Wortlaut gebunden): `e2e/helpers/detailseite.ts:23`
-(„Gast hinzufügen"), `e2e/listenseiten.spec.ts:149` („Preis (EUR)") sowie die Unit-Tests neben den
-Komponenten (per Grep auf den Ist-Text).
+**Beim Umsetzen mitziehen** (kein UI-Text, aber an den Wortlaut gebunden):
+`e2e/listenseiten.spec.ts:149` („Preis (EUR)") sowie die Unit-Tests neben den Komponenten (per
+Grep auf den Ist-Text).
 
 **Bereits konform** (im Spec-Kontext genannt, keine Änderung nötig):
 
@@ -181,7 +184,7 @@ Komponenten (per Grep auf den Ist-Text).
 | `app/veranstaltung/AuslageRow.tsx:131` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:96` | „Löschen …" (Veranstaltung) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/OffeneVeranstaltungen.tsx:28` | „Veranstaltung anlegen" | neues Objekt = anlegen |
-| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:48` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
+| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:36` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
 | `app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:12` | „Verzehr erfassen" | Mengen eintragen = erfassen |
 | `app/verwaltung/teilnehmer/TeilnehmerRow.tsx:78`, `app/verwaltung/katalog/CatalogRow.tsx:89` | „Aktivieren" | umschalten = (de)aktivieren |
 | `app/veranstaltung/AuslageForm.tsx:86` | „Bitte wählen …" | Platzhalter mit Leerzeichen |

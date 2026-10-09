@@ -1,6 +1,6 @@
 import path from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { gastHinzufuegen } from "./helpers/detailseite";
+import { teilnehmerAnlegenUndHinzufuegen } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
 import { toast } from "./helpers/toast";
 
@@ -118,8 +118,8 @@ test.describe("Kassieren: Summe oben, Spende live, Abschluss im Kopf (#371)", ()
     const ohneVerzehr = `${PREFIX} Ohne ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Kassieren ${LAUF}`);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, gast);
-    await gastHinzufuegen(page, ohneVerzehr);
+    await teilnehmerAnlegenUndHinzufuegen(page, gast);
+    await teilnehmerAnlegenUndHinzufuegen(page, ohneVerzehr);
     await erfasseEinGetraenk(page, detailPfad, gast);
 
     await page.goto(`${detailPfad}/kassieren`);
@@ -199,7 +199,7 @@ test.describe("Kassieren: Summe oben, Spende live, Abschluss im Kopf (#371)", ()
     const gast = `${PREFIX} Abschluss ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Abschluss ${LAUF}`);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, gast);
+    await teilnehmerAnlegenUndHinzufuegen(page, gast);
     await erfasseEinGetraenk(page, detailPfad, gast);
 
     // ── AK18/AK20/FS1: Dialog nennt die offene Zeile, der Server lehnt trotzdem ab ─────────

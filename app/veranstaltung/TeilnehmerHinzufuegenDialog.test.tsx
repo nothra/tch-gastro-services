@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 vi.mock("./actions", () => ({ addZeilenAction: vi.fn(), createWalkInAction: vi.fn() }));
@@ -18,25 +18,52 @@ const VERFUEGBAR = [
   { id: "t-3", name: "Familie Annabell" },
 ];
 
+const DUPLIKAT_WARNUNG = "Ein aktiver Teilnehmer mit diesem Namen existiert bereits.";
+const HINWEIS_DIREKT_HINZUGEFUEGT =
+  "Der Teilnehmer wird angelegt und direkt zu dieser Veranstaltung hinzugefügt.";
+
 function renderDialog(verfuegbar = VERFUEGBAR) {
   render(<TeilnehmerHinzufuegenDialog veranstaltungId="v-1" verfuegbar={verfuegbar} />);
 }
 
+function ausloeser() {
+  return screen.getByRole("button", { name: "Teilnehmer hinzufügen" });
+}
+
 function oeffnen() {
-  fireEvent.click(screen.getByRole("button", { name: "+ Teilnehmer" }));
+  fireEvent.click(ausloeser());
+  return auswahlSchritt();
+}
+
+function auswahlSchritt() {
   return screen.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
+}
+
+function anlegeSchritt() {
+  return screen.getByRole("dialog", { name: "Teilnehmer anlegen" });
 }
 
 function dialogElement() {
   return document.querySelector("dialog")!;
 }
 
-function auswahlBereich() {
-  return within(screen.getByRole("group", { name: "Stammteilnehmer" }));
+function im(schritt: HTMLElement) {
+  return within(schritt);
 }
 
-function gastBereich() {
-  return within(screen.getByRole("group", { name: "Neuer Gast" }));
+function suche(begriff: string) {
+  fireEvent.change(im(auswahlSchritt()).getByRole("searchbox", { name: "Suchen" }), {
+    target: { value: begriff },
+  });
+}
+
+function zumAnlegen(absprung = "Teilnehmer anlegen") {
+  fireEvent.click(im(auswahlSchritt()).getByRole("button", { name: absprung }));
+  return anlegeSchritt();
+}
+
+function nameFeld() {
+  return im(anlegeSchritt()).getByRole("textbox", { name: "Name" });
 }
 
 async function absenden(button: HTMLElement) {
@@ -45,69 +72,96 @@ async function absenden(button: HTMLElement) {
   });
 }
 
+function buttonNamen(schritt: HTMLElement) {
+  return im(schritt)
+    .getAllByRole("button")
+    .map((button) => button.textContent);
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   addZeilenActionMock.mockResolvedValue({ ok: true });
   createWalkInActionMock.mockResolvedValue({ ok: true });
 });
 
-describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => {
-  it("should_openOneDialogWithStammteilnehmerAboveNeuerGast_when_triggerTapped", () => {
-    // AK10: EIN Dialog, oben die Auswahl, darunter „Neuer Gast".
+describe("TeilnehmerHinzufuegenDialog – Auslöser (spec-404 AK7)", () => {
+  it("should_beNamedTeilnehmerHinzufuegen_when_rendered", () => {
     renderDialog();
 
-    const dialog = oeffnen();
-
-    const bereiche = within(dialog).getAllByRole("group");
-    expect(bereiche.map((bereich) => bereich.getAttribute("aria-label"))).toEqual([
-      "Stammteilnehmer",
-      "Neuer Gast",
-    ]);
-    expect(auswahlBereich().getAllByRole("checkbox")).toHaveLength(3);
+    expect(ausloeser()).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Teilnehmer" })).not.toBeInTheDocument();
   });
 
   it("should_meetTouchSize_when_triggerRendered", () => {
     renderDialog();
 
-    expect(screen.getByRole("button", { name: "+ Teilnehmer" })).toHaveClass("min-h-11");
+    expect(ausloeser()).toHaveClass("min-h-11");
+  });
+});
+
+describe("TeilnehmerHinzufuegenDialog – Auswahl (spec-404 AK2, AK5; spec-369 AK11–AK16)", () => {
+  it("should_offerOnlySearchSelectionAndActions_when_opened", () => {
+    // AK2: Suche, Mehrfachauswahl, Absprung, „Abbrechen" und „Hinzufügen" – kein Namensfeld,
+    // kein Typ, keine Mitglied-Checkbox.
+    renderDialog();
+
+    const schritt = oeffnen();
+
+    expect(im(schritt).getByRole("searchbox", { name: "Suchen" })).toBeInTheDocument();
+    expect(im(schritt).getAllByRole("checkbox")).toHaveLength(3);
+    expect(buttonNamen(schritt)).toEqual(["Teilnehmer anlegen", "Abbrechen", "Hinzufügen"]);
+    expect(im(schritt).queryByRole("textbox", { name: "Name" })).not.toBeInTheDocument();
+    expect(im(schritt).queryByRole("combobox", { name: "Typ" })).not.toBeInTheDocument();
+    expect(im(schritt).queryByRole("checkbox", { name: "Mitglied" })).not.toBeInTheDocument();
+  });
+
+  it("should_mentionNeitherGastNorStammteilnehmer_when_opened", () => {
+    // AK1/AK5
+    renderDialog();
+
+    const schritt = oeffnen();
+
+    expect(schritt.textContent).not.toMatch(/Gast|Stammteilnehmer/);
+    expect(im(schritt).queryAllByRole("group", { name: /Stammteilnehmer/ })).toHaveLength(0);
   });
 
   it("should_showOnlyMatchingCaseInsensitive_when_searchTermEntered", () => {
-    // AK11: Groß-/Kleinschreibung egal, Treffer im Namen.
+    // spec-369 AK11: Groß-/Kleinschreibung egal, Treffer im Namen.
     renderDialog();
     oeffnen();
 
-    fireEvent.change(auswahlBereich().getByRole("searchbox", { name: "Suchen" }), {
-      target: { value: "ANNA" },
-    });
+    suche("ANNA");
 
     expect(
-      auswahlBereich()
+      im(auswahlSchritt())
         .getAllByRole("checkbox")
         .map((box) => box.getAttribute("value")),
     ).toEqual(["t-1", "t-3"]);
   });
 
-  it("should_showEmptyState_when_searchHasNoMatch", () => {
+  it("should_showEmptyStateAndNamedAbsprung_when_searchHasNoMatch", () => {
+    // AK3.3 + Q4: Kein-Treffer-Text ohne „Stamm…", Absprung nennt den Suchtext.
     renderDialog();
     oeffnen();
 
-    fireEvent.change(auswahlBereich().getByRole("searchbox", { name: "Suchen" }), {
-      target: { value: "Zacharias" },
-    });
+    suche("  Zacharias ");
 
-    expect(auswahlBereich().queryAllByRole("checkbox")).toHaveLength(0);
-    expect(auswahlBereich().getByText("Kein Stammteilnehmer passt zu „Zacharias“.")).toBeVisible();
+    expect(im(auswahlSchritt()).queryAllByRole("checkbox")).toHaveLength(0);
+    expect(im(auswahlSchritt()).getByText("Kein Teilnehmer passt zu „Zacharias“.")).toBeVisible();
+    expect(
+      im(auswahlSchritt()).getByRole("button", { name: "„Zacharias“ als Teilnehmer anlegen" }),
+    ).toBeEnabled();
+    expect(auswahlSchritt().textContent).not.toMatch(/Gast|Stammteilnehmer/);
   });
 
   it("should_submitAllCheckedAndClose_when_hinzufuegenTapped", async () => {
-    // AK12: mehrere angehakt → alle an die Action, Dialog schließt bei Erfolg.
+    // spec-369 AK12: mehrere angehakt → alle an die Action, Dialog schließt bei Erfolg.
     renderDialog();
     oeffnen();
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Bernd Muster" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Bernd Muster" }));
 
-    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
 
     const formData = addZeilenActionMock.mock.calls[0][1];
     expect(formData.get("veranstaltungId")).toBe("v-1");
@@ -121,13 +175,11 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     // Die Suche ist nur ein Filter der Anzeige – eine bereits angehakte Person bleibt gewählt.
     renderDialog();
     oeffnen();
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Bernd Muster" }));
-    fireEvent.change(auswahlBereich().getByRole("searchbox", { name: "Suchen" }), {
-      target: { value: "anna" },
-    });
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Bernd Muster" }));
+    suche("anna");
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
 
-    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
 
     expect(addZeilenActionMock.mock.calls[0][1].getAll("teilnehmerId")).toEqual(["t-1", "t-2"]);
   });
@@ -135,83 +187,35 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
   it("should_notSubmitPerson_when_checkedThenUnchecked", async () => {
     renderDialog();
     oeffnen();
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Bernd Muster" }));
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Bernd Muster" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
 
-    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
 
     expect(addZeilenActionMock.mock.calls[0][1].getAll("teilnehmerId")).toEqual(["t-2"]);
   });
 
   it("should_stayOpenAndShowReason_when_serverRejectsSelection", async () => {
-    // AK14 (Meldung aus der Zod-Grenze der Action) – ebenso FS1/FS2: der Dialog bleibt offen.
+    // spec-369 AK14 (Meldung aus der Zod-Grenze der Action) – ebenso FS1/FS2: Dialog bleibt offen.
     addZeilenActionMock.mockResolvedValue({ error: "Bitte mindestens einen Teilnehmer wählen." });
     renderDialog();
     oeffnen();
 
-    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
 
     expect(dialogElement()).toHaveAttribute("open");
-    expect(auswahlBereich().getByRole("alert")).toHaveTextContent(
+    expect(im(auswahlSchritt()).getByRole("alert")).toHaveTextContent(
       "Bitte mindestens einen Teilnehmer wählen.",
     );
     expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
-  it("should_createGastAndClose_when_nameConfirmed", async () => {
-    // AK13: gleiche Wirkung wie der bisherige Walk-in – dieselbe Action, dieselben Felder.
-    renderDialog();
-    oeffnen();
-    fireEvent.change(gastBereich().getByRole("textbox", { name: "Name" }), {
-      target: { value: "Gustav Gast" },
-    });
-    fireEvent.click(gastBereich().getByRole("checkbox", { name: "Mitglied" }));
-
-    await absenden(gastBereich().getByRole("button", { name: "Gast hinzufügen" }));
-
-    const formData = createWalkInActionMock.mock.calls[0][1];
-    expect(formData.get("veranstaltungId")).toBe("v-1");
-    expect(formData.get("name")).toBe("Gustav Gast");
-    expect(formData.get("typ")).toBe("person");
-    expect(formData.get("mitglied")).toBe("on");
-    expect(dialogElement()).not.toHaveAttribute("open");
-    expect(meldeErfolgMock).toHaveBeenCalledWith("Neuer Gast angelegt");
-  });
-
-  it("should_limitGastNameToSchemaMaximum_when_rendered", () => {
-    // Dieselbe Grenze wie `teilnehmerSchema` (200 Zeichen) – keine zweite, abweichende Zahl.
-    renderDialog();
-    oeffnen();
-
-    expect(gastBereich().getByRole("textbox", { name: "Name" })).toHaveAttribute(
-      "maxLength",
-      "200",
-    );
-  });
-
-  it("should_stayOpenAndShowFieldError_when_gastNameRejected", async () => {
-    // FS3: Feldfehler aus der Validierung des Walk-in.
-    createWalkInActionMock.mockResolvedValue({ error: "Anzeigename ist erforderlich." });
-    renderDialog();
-    oeffnen();
-    fireEvent.change(gastBereich().getByRole("textbox", { name: "Name" }), {
-      target: { value: "   " },
-    });
-
-    await absenden(gastBereich().getByRole("button", { name: "Gast hinzufügen" }));
-
-    expect(dialogElement()).toHaveAttribute("open");
-    const name = gastBereich().getByRole("textbox", { name: "Name" });
-    expect(name).toHaveAttribute("aria-invalid", "true");
-    expect(name).toHaveAccessibleDescription("Anzeigename ist erforderlich.");
-  });
-
   it("should_closeWithoutChangeAndFocusTrigger_when_abbrechenTapped", () => {
-    // AK15. Kein `trigger.focus()` vorab: Safari fokussiert einen getippten Button nicht, der
-    // Rücksprung darf daran nicht hängen.
+    // spec-369 AK15. Kein `trigger.focus()` vorab: Safari fokussiert einen getippten Button nicht,
+    // der Rücksprung darf daran nicht hängen.
     renderDialog();
-    const trigger = screen.getByRole("button", { name: "+ Teilnehmer" });
+    const trigger = ausloeser();
     oeffnen();
 
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
@@ -223,19 +227,19 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
   });
 
   it("should_closeWithoutChangeAndFocusTrigger_when_escapePressed", () => {
-    // AK15 verlangt den Fokus-Rücksprung auch bei Escape.
+    // spec-369 AK15 verlangt den Fokus-Rücksprung auch bei Escape.
     renderDialog();
     oeffnen();
 
     fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
 
     expect(dialogElement()).not.toHaveAttribute("open");
-    expect(screen.getByRole("button", { name: "+ Teilnehmer" })).toHaveFocus();
+    expect(ausloeser()).toHaveFocus();
     expect(addZeilenActionMock).not.toHaveBeenCalled();
   });
 
   it("should_keepRejectionVisible_when_lastAvailablePersonWasRejected", async () => {
-    // FS2: war die abgelehnte Person die letzte verfügbare, ist `verfuegbar` nach dem
+    // spec-369 FS2: war die abgelehnte Person die letzte verfügbare, ist `verfuegbar` nach dem
     // Neu-Rendern leer – die Meldung mit ihrem Namen muss trotzdem stehen bleiben.
     const meldung = "Nicht mehr wählbar: Anna Beispiel. Es wurde niemand hinzugefügt.";
     addZeilenActionMock.mockResolvedValue({ error: meldung });
@@ -243,14 +247,14 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
       <TeilnehmerHinzufuegenDialog veranstaltungId="v-1" verfuegbar={[VERFUEGBAR[0]]} />,
     );
     oeffnen();
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
-    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
 
     rerender(<TeilnehmerHinzufuegenDialog veranstaltungId="v-1" verfuegbar={[]} />);
 
-    expect(auswahlBereich().getByRole("alert")).toHaveTextContent(meldung);
+    expect(im(auswahlSchritt()).getByRole("alert")).toHaveTextContent(meldung);
     expect(
-      auswahlBereich().getByText("Alle aktiven Stammteilnehmer sind bereits erfasst."),
+      im(auswahlSchritt()).getByText("Alle aktiven Teilnehmer sind bereits hinzugefügt."),
     ).toBeVisible();
   });
 
@@ -260,72 +264,293 @@ describe("TeilnehmerHinzufuegenDialog (spec-369 AK10–AK16, FS1–FS3)", () => 
     addZeilenActionMock.mockResolvedValue({ error: "Abgelehnt." });
     renderDialog();
     oeffnen();
-    fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
-    await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
 
     oeffnen();
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" })).not.toBeChecked();
+    expect(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" })).not.toBeChecked();
   });
 
-  it("should_explainAndKeepGastUsable_when_allStammteilnehmerErfasst", () => {
-    // AK16
+  it("should_explainAndOfferAnlegen_when_allTeilnehmerAlreadyAdded", () => {
+    // spec-369 AK16, spec-404 Q4: Ersatztext ohne „Stamm…", Anlegen bleibt erreichbar.
     renderDialog([]);
+
+    const schritt = oeffnen();
+
+    expect(
+      im(schritt).getByText("Alle aktiven Teilnehmer sind bereits hinzugefügt."),
+    ).toBeVisible();
+    expect(im(schritt).queryByRole("button", { name: "Hinzufügen" })).not.toBeInTheDocument();
+    expect(im(schritt).getByRole("button", { name: "Teilnehmer anlegen" })).toBeEnabled();
+    expect(schritt.textContent).not.toMatch(/Gast|Stammteilnehmer/);
+  });
+});
+
+describe("TeilnehmerHinzufuegenDialog – Schritt „Teilnehmer anlegen“ (spec-404 AK3, AK4)", () => {
+  it("should_switchToAnlegeSchrittWithZurueck_when_absprungTapped", () => {
+    // AK3.1
+    renderDialog();
+    oeffnen();
+
+    const schritt = zumAnlegen();
+
+    expect(im(schritt).getByRole("button", { name: "← Zur Auswahl" })).toBeEnabled();
+    expect(screen.queryByRole("dialog", { name: "Teilnehmer hinzufügen" })).not.toBeInTheDocument();
+    expect(nameFeld()).toHaveValue("");
+  });
+
+  it("should_focusNameField_when_absprungTapped", () => {
+    // Der Absprung hängt sich mit dem Wechsel selbst aus (Lesson #371) – ohne neues Ziel landete
+    // der Fokus auf <body> im modalen Dialog.
+    renderDialog();
+    oeffnen();
+
+    zumAnlegen();
+
+    expect(nameFeld()).toHaveFocus();
+  });
+
+  it("should_focusAbsprung_when_zurueckTapped", () => {
+    renderDialog();
+    oeffnen();
+    suche("Zacharias");
+    zumAnlegen("„Zacharias“ als Teilnehmer anlegen");
+
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+
+    expect(
+      im(auswahlSchritt()).getByRole("button", { name: "„Zacharias“ als Teilnehmer anlegen" }),
+    ).toHaveFocus();
+  });
+
+  it("should_focusAbsprung_when_zurueckTappedWithoutVerfuegbare", () => {
+    // Der Leer-Zweig rendert den Absprung getrennt vom Treffer-Zweig (Lesson #352).
+    renderDialog([]);
+    oeffnen();
+    zumAnlegen();
+
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+
+    expect(im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" })).toHaveFocus();
+  });
+
+  it("should_notFocusAbsprung_when_dialogOpenedFresh", () => {
+    // Gegenrichtung: beim Öffnen bestimmt der Dialog das Fokusziel, nicht der Absprung.
+    renderDialog();
+
     oeffnen();
 
     expect(
-      auswahlBereich().getByText("Alle aktiven Stammteilnehmer sind bereits erfasst."),
-    ).toBeVisible();
-    expect(auswahlBereich().queryByRole("button", { name: "Hinzufügen" })).not.toBeInTheDocument();
-    expect(gastBereich().getByRole("button", { name: "Gast hinzufügen" })).toBeEnabled();
+      im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" }),
+    ).not.toHaveFocus();
   });
 
-  describe("während eine Action läuft", () => {
-    function neverResolving() {
-      return new Promise<never>(() => {});
-    }
+  it("should_notFocusAbsprung_when_dialogReopenedAfterZurueck", () => {
+    // Die Rückkehr aus dem Anlegen darf das nächste Öffnen nicht mitprägen.
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("button", { name: "Abbrechen" }));
 
-    it("should_lockCloseAndShowPendingLabel_when_stammteilnehmerActionRuns", async () => {
-      addZeilenActionMock.mockImplementation(neverResolving);
-      renderDialog();
-      oeffnen();
-      fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+    oeffnen();
 
-      await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
-      const cancel = new Event("cancel", { cancelable: true });
-      fireEvent(dialogElement(), cancel);
+    expect(
+      im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" }),
+    ).not.toHaveFocus();
+  });
 
-      expect(cancel.defaultPrevented).toBe(true);
-      expect(dialogElement()).toHaveAttribute("open");
-      expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Hinzufügen …" })).toBeDisabled();
+  it("should_keepSelectionAndSearch_when_zurueckTapped", async () => {
+    // AK3.2 / Q1
+    renderDialog();
+    oeffnen();
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Bernd Muster" }));
+    suche("anna");
+    zumAnlegen();
+
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+
+    expect(im(auswahlSchritt()).getByRole("searchbox", { name: "Suchen" })).toHaveValue("anna");
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
+    expect(addZeilenActionMock.mock.calls[0][1].getAll("teilnehmerId")).toEqual(["t-2"]);
+  });
+
+  it("should_prefillNameFromSearch_when_namedAbsprungTapped", () => {
+    // AK3.3
+    renderDialog();
+    oeffnen();
+    suche("  Zacharias ");
+
+    zumAnlegen("„Zacharias“ als Teilnehmer anlegen");
+
+    expect(nameFeld()).toHaveValue("Zacharias");
+  });
+
+  it("should_offerVerwaltungFieldsAndHint_when_shown", () => {
+    // AK4.1/AK5: Name, Typ, Mitglied aus `TeilnehmerFields`, dazu der Hinweis.
+    renderDialog();
+    oeffnen();
+
+    const schritt = zumAnlegen();
+
+    expect(nameFeld()).toBeRequired();
+    expect(nameFeld()).toHaveAttribute("maxLength", "200");
+    expect(im(schritt).getByRole("combobox", { name: "Typ" })).toHaveValue("person");
+    expect(im(schritt).getByRole("checkbox", { name: "Mitglied" })).not.toBeChecked();
+    expect(im(schritt).getByText(HINWEIS_DIREKT_HINZUGEFUEGT)).toBeVisible();
+    expect(buttonNamen(schritt)).toEqual(["← Zur Auswahl", "Abbrechen", "Anlegen"]);
+    expect(schritt.textContent).not.toMatch(/Gast|Stammteilnehmer/);
+  });
+
+  it("should_createAddAndClose_when_anlegenConfirmed", async () => {
+    // AK4.2 / Q2
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
+    fireEvent.change(nameFeld(), { target: { value: "Gustav Neu" } });
+    fireEvent.click(im(anlegeSchritt()).getByRole("checkbox", { name: "Mitglied" }));
+
+    await absenden(im(anlegeSchritt()).getByRole("button", { name: "Anlegen" }));
+
+    const formData = createWalkInActionMock.mock.calls[0][1];
+    expect(formData.get("veranstaltungId")).toBe("v-1");
+    expect(formData.get("name")).toBe("Gustav Neu");
+    expect(formData.get("typ")).toBe("person");
+    expect(formData.get("mitglied")).toBe("on");
+    expect(formData.get("confirmDuplicate")).toBe("false");
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer angelegt und hinzugefügt");
+  });
+
+  it("should_warnKeepInputAndConfirmOnRetry_when_nameIsDuplicate", async () => {
+    // AK4.3 / Q3 (ADR-022)
+    createWalkInActionMock.mockResolvedValueOnce({ needsConfirm: true, warning: DUPLIKAT_WARNUNG });
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
+    fireEvent.change(nameFeld(), { target: { value: "Anna Beispiel" } });
+
+    await absenden(im(anlegeSchritt()).getByRole("button", { name: "Anlegen" }));
+
+    expect(im(anlegeSchritt()).getByRole("status")).toHaveTextContent(DUPLIKAT_WARNUNG);
+    expect(nameFeld()).toHaveValue("Anna Beispiel");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+
+    await absenden(im(anlegeSchritt()).getByRole("button", { name: "Trotzdem anlegen" }));
+
+    expect(createWalkInActionMock.mock.calls[1][1].get("confirmDuplicate")).toBe("true");
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Teilnehmer angelegt und hinzugefügt");
+  });
+
+  it("should_stayInSchrittAndShowFieldError_when_actionRejects", async () => {
+    // AK4.4: Fehler am Namensfeld, Eingabe bleibt stehen.
+    createWalkInActionMock.mockResolvedValue({
+      error: "Die Veranstaltung ist abgeschlossen und schreibgeschützt.",
     });
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
+    fireEvent.change(nameFeld(), { target: { value: "Gustav Neu" } });
 
-    it("should_lockCloseAndShowPendingLabel_when_gastActionRuns", async () => {
-      createWalkInActionMock.mockImplementation(neverResolving);
-      renderDialog();
-      oeffnen();
-      fireEvent.change(gastBereich().getByLabelText("Name"), { target: { value: "Gast Eins" } });
+    await absenden(im(anlegeSchritt()).getByRole("button", { name: "Anlegen" }));
 
-      await absenden(gastBereich().getByRole("button", { name: "Gast hinzufügen" }));
-      fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
+    expect(dialogElement()).toHaveAttribute("open");
+    expect(nameFeld()).toHaveValue("Gustav Neu");
+    expect(nameFeld()).toHaveAttribute("aria-invalid", "true");
+    expect(nameFeld()).toHaveAccessibleDescription(
+      "Die Veranstaltung ist abgeschlossen und schreibgeschützt.",
+    );
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+  });
 
-      expect(dialogElement()).toHaveAttribute("open");
-      expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Anlegen …" })).toBeDisabled();
-    });
+  it("should_closeAndFocusTrigger_when_abbrechenTappedInAnlegeSchritt", () => {
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
 
-    it("should_unlockClose_when_actionRejected", async () => {
-      addZeilenActionMock.mockResolvedValue({ error: "Nicht mehr wählbar: Anna Beispiel" });
-      renderDialog();
-      oeffnen();
-      fireEvent.click(auswahlBereich().getByRole("checkbox", { name: "Anna Beispiel" }));
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "Abbrechen" }));
 
-      await absenden(auswahlBereich().getByRole("button", { name: "Hinzufügen" }));
+    expect(dialogElement()).not.toHaveAttribute("open");
+    expect(ausloeser()).toHaveFocus();
+    expect(createWalkInActionMock).not.toHaveBeenCalled();
+  });
 
-      expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
-    });
+  it("should_startAtAuswahl_when_reopenedAfterAnlegeSchritt", () => {
+    renderDialog();
+    oeffnen();
+    suche("anna");
+    zumAnlegen();
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "Abbrechen" }));
+
+    const schritt = oeffnen();
+
+    expect(im(schritt).getByRole("searchbox", { name: "Suchen" })).toHaveValue("");
+  });
+});
+
+describe("TeilnehmerHinzufuegenDialog – während eine Action läuft", () => {
+  // React 19 bündelt laufende Async-Actions in einem modulweiten Scope: eine nie aufgelöste Aktion
+  // hielte ihn über das Testende hinaus offen, und spätere Tests dieser Datei sähen ihre
+  // Action-Ergebnisse nie committet (Lesson #370). Darum löst jeder Test sie am Ende auf.
+  const offeneAntworten: Array<(zustand: { ok: true }) => void> = [];
+
+  function offeneAktion() {
+    return new Promise<{ ok: true }>((resolve) => offeneAntworten.push(resolve));
+  }
+
+  afterEach(async () => {
+    await act(async () => offeneAntworten.splice(0).forEach((loese) => loese({ ok: true })));
+  });
+
+  it("should_lockCloseAndShowPendingLabel_when_auswahlActionRuns", async () => {
+    addZeilenActionMock.mockImplementation(offeneAktion);
+    renderDialog();
+    oeffnen();
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
+
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
+    const cancel = new Event("cancel", { cancelable: true });
+    fireEvent(dialogElement(), cancel);
+
+    expect(cancel.defaultPrevented).toBe(true);
+    expect(dialogElement()).toHaveAttribute("open");
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hinzufügen …" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Teilnehmer anlegen" })).toBeDisabled();
+  });
+
+  it("should_lockCloseZurueckAndShowPendingLabel_when_anlegenActionRuns", async () => {
+    // FS: kein zweiter Submit und kein Schrittwechsel während des Laufs.
+    createWalkInActionMock.mockImplementation(offeneAktion);
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
+    fireEvent.change(nameFeld(), { target: { value: "Gustav Neu" } });
+
+    await absenden(im(anlegeSchritt()).getByRole("button", { name: "Anlegen" }));
+    fireEvent(dialogElement(), new Event("cancel", { cancelable: true }));
+
+    expect(dialogElement()).toHaveAttribute("open");
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Anlegen …" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "← Zur Auswahl" })).toBeDisabled();
+  });
+
+  it("should_unlockClose_when_actionRejected", async () => {
+    addZeilenActionMock.mockResolvedValue({ error: "Nicht mehr wählbar: Anna Beispiel" });
+    renderDialog();
+    oeffnen();
+    fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
+
+    await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
+
+    expect(im(auswahlSchritt()).getByRole("alert")).toHaveTextContent(
+      "Nicht mehr wählbar: Anna Beispiel",
+    );
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
   });
 });
