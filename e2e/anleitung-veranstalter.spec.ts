@@ -121,7 +121,8 @@ async function createStammTeilnehmer(page: Page) {
     await dialog.getByLabel("Typ").selectOption({ label: person.typ });
     if (person.mitglied) await dialog.getByLabel("Mitglied").check();
     await schickeAnlegeDialogAb(dialog);
-    // Frisch geseedete DB (Header): alle Stammteilnehmer stehen im Aufklapper „Aktiv" (#405).
+    // Voraussetzung wie in der Kopfzeile der Spec (frisch geseedete DB): Alle Stammteilnehmer
+    // stehen im Aufklapper „Aktiv" (#405).
     await expect(page.getByRole("heading", { name: `Aktiv (${i + 1})` })).toBeVisible();
   }
 }

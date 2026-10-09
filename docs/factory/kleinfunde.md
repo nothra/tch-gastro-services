@@ -543,3 +543,20 @@
   (Fixture `undici@8.10.1` + Nachbarzeile `7.30.0`). Etwa zehn Zeilen.
 - **Herkunft:** `/implement` zu #390 (Rework nach Review-Iteration 1, bei der Floor-Messung über alle Major-Linien).
 
+### Aktiv-Umschalten-Formular in `CatalogRow` und `TeilnehmerRow` handkopiert
+
+- **Wo:** [`app/verwaltung/katalog/CatalogRow.tsx:89-110`](../../app/verwaltung/katalog/CatalogRow.tsx)
+  (`ArtikelAktivUmschalten`) und
+  [`app/verwaltung/teilnehmer/TeilnehmerRow.tsx:79-102`](../../app/verwaltung/teilnehmer/TeilnehmerRow.tsx)
+  (`TeilnehmerAktivUmschalten`) – verifiziert am 2026-10-09.
+- **Was:** Beide Funktionen sind bis auf versteckte Zusatzfelder (`catalogId`), Toast-Texte und den
+  Wirkungssatz gleich: `useDialogFormular`, Formular mit Trennlinie, `id`/`active`-Felder,
+  `Notice`, Button mit Lauf-Label und Sperre über `steuerung.gesperrt`. #405 hat das Gerüst
+  bewusst übernommen (ADR-060 D3); eine dritte Dialog-Liste (z. B. Auslagen) würde es ein drittes
+  Mal kopieren.
+- **Fix:** Einen Baustein `AktivUmschaltenFormular` neben `DialogAktionen` in
+  `app/components/FormularDialog.tsx` ziehen (Props: Action, `steuerung`, `active`,
+  Erfolgsmeldungen, Wirkungssatz optional, Zusatzfelder als `children`) und beide Zeilen darauf
+  umstellen. Etwa zehn Zeilen netto; mitnehmen, wenn eine der Zeilen ohnehin angefasst wird.
+- **Herkunft:** `/review` zu #405 (Runde 2, Code-Qualität, Out-of-Scope weil `CatalogRow` betroffen).
+

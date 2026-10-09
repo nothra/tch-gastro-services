@@ -150,10 +150,10 @@ describe("TeilnehmerPage – Aktiv/Deaktiviert (spec-405 AK3)", () => {
 
     render(await TeilnehmerPage());
 
-    const namen = within(abschnitt(/^Aktiv/))
-      .getAllByRole("listitem")
-      .map((zeile) => zeile.querySelector(".font-semibold")?.textContent);
-    expect(namen).toEqual(["Berta", "Anton"]);
+    const zeilen = within(abschnitt(/^Aktiv/)).getAllByRole("button");
+    expect(zeilen).toHaveLength(2);
+    expect(zeilen[0]).toHaveTextContent(/^Berta/);
+    expect(zeilen[1]).toHaveTextContent(/^Anton/);
   });
 
   it("should_omitDeaktiviertGroup_when_noInactiveTeilnehmer", async () => {

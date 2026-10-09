@@ -2,10 +2,10 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -63,6 +63,18 @@ ADR: [ADR-060](../docs/adr/060-listenzeile-dialog-ausloeser-notice-warnung.md) (
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-09): **APPROVED** – keine kritischen/wichtigen Findings, drei Nitpicks
+  (Styling-Selektor im Reihenfolge-Test, Hook-Vertrag nur über Konsumenten getestet, unklarer
+  E2E-Kommentar). Out-of-Scope: duplizierte Aktiv-Umschalten-Formulare → `kleinfunde.md`.
+  Details: [`tasks/review-405.md`](review-405.md).
+
+### Refactoring (/refactor, 2026-10-09)
+- Produktionscode unverändert: Naming, Funktionslängen, Duplikate und Kommentare in `ListenZeile`,
+  `TeilnehmerRow`, `page.tsx`, `useErsatzFokus` geprüft, keine Befunde.
+- Review-Nitpicks 1 und 3 umgesetzt: Reihenfolge-Test in `page.test.tsx` liest Zeilen über
+  `getAllByRole("button")` statt über `.font-semibold`; Kommentar in `anleitung-veranstalter.spec.ts`
+  klargestellt. Nitpick 2 (eigener `useErsatzFokus`-Test) → `/test`; duplizierte
+  Aktiv-Umschalten-Formulare stehen bereits in `kleinfunde.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
