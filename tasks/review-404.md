@@ -1,41 +1,58 @@
 # Review: Task 404
 
-Iteration 2 · 2026-10-09 · Diff `origin/main...HEAD` (33 Dateien), Schwerpunkt Rework `e0275b1..HEAD`
-(`0b891e0`, `b04b5aa`) · drei Runden (Logik, Code-Qualität, Architektur), im Orchestrator direkt
-durchgeführt. Alle Funde gegen den Code nachgeprüft; betroffene Unit-Tests lokal grün
-(`TeilnehmerHinzufuegenDialog.test.tsx`, `actions.test.ts`, `app/verwaltung/teilnehmer` – 234/234).
+Iteration 3 · 2026-10-09 · Diff `origin/main...HEAD` (33 Dateien), Schwerpunkt Rework `e88f87a..HEAD`
+(`39f8edb`) · drei Runden (Logik, Code-Qualität, Architektur), im Orchestrator direkt
+durchgeführt. Betroffene Unit-Tests lokal grün (`app/veranstaltung`, `app/verwaltung/teilnehmer`,
+`app/components` – 64 Dateien, 1064/1064).
 
-Iteration-1-Funde: alle vier Wichtig-Funde behoben (Fokus beim Schrittwechsel, E2E-Namen/Helfer,
-Promise-Aufräumen nach Lesson #370, Zeilenverweise auf `actions.ts`); Nitpicks bis auf die
-begründet abgelehnten zwei erledigt.
+Iteration-2-Funde: beide Wichtig-Funde behoben, alle Nitpicks erledigt (Bild 06 bleibt bewusst als
+menschlicher Schritt vor dem Merge offen).
+
+- Glossar-Anker `TeilnehmerHinzufuegenDialog.tsx:36` stimmt (`SCHRITT_TITEL.auswahl`). Alle übrigen
+  Anker auf in diesem PR geänderte Dateien nachgeprüft: `actions.ts:100` (`GLEICHZEITIG_ERFASST`),
+  `:103–106` (`nichtsAngelegt`), `:342`, `:346`; `schema.ts:20–21`; `TeilnehmerAnlegen.tsx:42` –
+  alle treffen.
+- Kleinfund „`createWalkInAction` nicht atomar“: Fix empfiehlt jetzt `runAtomic`, nie
+  `db.transaction()` (Lesson #345). Die referenzierten Dateien existieren (`db/atomic.ts`,
+  `db/catalog.duplicateCatalog-driver.test.ts`). Die FK-Behauptung stimmt gegen `db/schema.ts:254-256`
+  (`veranstaltung_id … references … onDelete: "cascade"`): Fehlt die Veranstaltung, scheitert der
+  Batch.
+- Neue Tests `should_focusAbsprung_when_zurueckTappedWithoutVerfuegbare` (Leer-Zweig) und
+  `should_notFocusAbsprung_when_dialogReopenedAfterZurueck` (Reset in `oeffnenBeiAuswahl`) decken
+  die beiden offenen Zweige ab.
+- ADR-053: Zeile umbrochen; Fokus-Regel beim Schrittwechsel ergänzt, deckungsgleich mit dem
+  WHY-Kommentar `TeilnehmerHinzufuegenDialog.tsx:27-29`.
 
 ## Kritische Findings (müssen behoben werden)
 
 _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] [docs/ux/glossar.md:187] Rezidiv des Iteration-1-Funds W4 (Lesson #375): Die Zeile verweist auf `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:29` („Teilnehmer hinzufügen"). Durch den Rework (mehrzeiliger `Schritt`-Typ, WHY-Kommentar, `AUSWAHL_BEIM_OEFFNEN`) steht der Text jetzt in `:36`. Vor dem Rework stimmte `:29` (Hunk `@@ -23,7 +24,13`). Die Task-Datei sagt dazu „alle Tabellenzeilen per Grep geprüft“. Geprüft wurden aber nur die `actions.ts`-Zeilen, nicht die Anker in Dateien, die der Rework selbst geändert hat. Fix: `:29` → `:36`. Danach alle `Datei:Zeile`-Anker der Glossar-Tabellen gegen die Dateien prüfen, die dieser PR ändert (`TeilnehmerHinzufuegenDialog.tsx`, `schema.ts`, `TeilnehmerAnlegen.tsx`, `actions.ts`); die übrigen stimmen derzeit.
-- [ ] [docs/factory/kleinfunde.md:46-47] Der in diesem PR angelegte Eintrag „`createWalkInAction`: Anlegen und Hinzufügen nicht atomar" empfiehlt das Gegenteil der Lesson #345: „mit `db.transaction()` bündeln (Lesson #345: nicht `runAtomic`)". Laut `docs/factory/lessons/db-drizzle.md:169-171` gilt: ausschließlich `runAtomic` (`db/atomic.ts`), **nie** `db.transaction()` direkt. Der Neon-HTTP-Treiber in INT/PRD wirft bei `.transaction()` „No transactions support in neon-http driver", lokal und in CI bleibt alles grün. Wer den Eintrag wörtlich umsetzt, baut genau den Fehler, der nur in Produktion auffällt. Fix: Fix-Zeile umdrehen (`runAtomic`, ID für den Teilnehmer vorab per `crypto.randomUUID()`, weil `.batch()` keine Abhängigkeit zwischen Abfragen erlaubt; Treiber-Mock-Test analog `db/catalog.duplicateCatalog-driver.test.ts`). Aufwandsschätzung entsprechend anpassen.
+
+_Keine._
 
 ## Nitpicks (optional)
-- [ ] [app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:164-169] `fokussieren` wird auch im Leer-Zweig (`verfuegbar.length === 0`) durchgereicht. Der Unit-Test `should_focusAbsprung_when_zurueckTapped` prüft aber nur den Kein-Treffer-Zweig, das E2E nur den Treffer-Zweig. Der Leer-Zweig (Anlegen → Zurück ohne verfügbare Teilnehmer) hat keine `toHaveFocus`-Assertion (Lesson #352/#211: beide Zweige eines aufgespaltenen Pfads belegen).
-- [ ] [app/veranstaltung/TeilnehmerHinzufuegenDialog.test.tsx] Kein Test prüft, dass `zurueckVomAnlegen` beim erneuten Öffnen zurückgesetzt wird (Anlegen → Zurück → Abbrechen → Öffnen → Absprung **nicht** fokussiert). `should_notFocusAbsprung_when_dialogOpenedFresh` deckt nur das erste Öffnen ab. Den Reset hält `oeffnenBeiAuswahl` (`:54-57`); eine Regression dort bliebe unbemerkt.
-- [ ] [docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md:59] Die Zeile ist nach der Rework-Einfügung nicht umbrochen (~125 Zeichen, Rest der ADR ≤ 100). Rein kosmetisch.
-- [ ] [docs/adr/053-detailseite-dialog-baustein-mehrfach-anlage-kennzahlen.md:71-74] Der Fokus-Absatz nennt nur den Erfolgsfall (`ersatzFokusId`). Die neue Regel für den Schrittwechsel („der neue Schritt setzt den Fokus selbst“) steht nur im Code-Kommentar (`TeilnehmerHinzufuegenDialog.tsx:27-29`). Optional einen Halbsatz ergänzen, damit künftige mehrstufige Dialoge die Regel in der ADR finden.
-- [ ] [docs/anleitung/veranstalter/bilder/06-teilnehmer-hinzufuegen.png] Unverändert offen als menschlicher Schritt vor dem Merge (Task-Datei). Die Capture-Spec legt jetzt „Clara Neumann" an, kollidiert also nicht mehr mit der Duplikat-Warnung; laut `kleinfunde.md` läuft sie aber weiterhin nicht bis zum Ende durch.
+- [ ] [docs/anleitung/veranstalter/bilder/06-teilnehmer-hinzufuegen.png] Weiterhin offen als menschlicher Schritt vor dem Merge (Task-Datei, „Offen – menschlicher Schritt“). Das Bild zeigt noch „Neuer Gast“. Kein Agenten-Fund, nur als Erinnerung für `/pr-shepherd`.
+- [ ] [app/veranstaltung/actions.ts:325] Ein Code-Kommentar spricht noch von „Stammteilnehmer“ (`waehlbareTeilnehmer`). AK5 betrifft nur UI-Texte, der Kommentar ist also kein AK-Verstoß. Beim nächsten Anfassen der Funktion die Begriffe aber angleichen (der Nachbarkommentar `:351` wurde in diesem PR bereits umgestellt).
 
 ## Out-of-Scope (klassifiziert nach ADR-043)
-_Keine neuen._ Aus Iteration 1 bestehen Issue #416 und der Kleinfund „`createWalkInAction` nicht atomar“ (siehe Wichtig-Fund 2 zu dessen Fix-Text).
+_Keine neuen._ Es bestehen weiterhin Issue #416 und der Kleinfund „`createWalkInAction` nicht atomar“
+(Fix-Text jetzt korrekt).
 
 ## Positives
-- Fokus beim Schrittwechsel sauber gelöst. Das Ziel hängt am Zustand (`Schritt.zurueckVomAnlegen`) statt an einem Effekt, und React-`autoFocus` greift genau beim Mount im schon offenen Dialog. Der WHY-Kommentar nennt Lesson #371. Unit-Tests decken beide Richtungen ab, dazu die Gegenprobe „beim Öffnen nicht". Das E2E prüft beide Ziele im echten Browser.
-- Lesson #370 korrekt umgesetzt: Resolve-Liste, `afterEach` in `act`, und der Ablehnungstest prüft jetzt die angezeigte Meldung statt nur den Zustand des Knopfes.
-- E2E-Namen konsequent je Lauf eindeutig (alle `LAUF`-Defaults auf `Date.now()`). F1 in `wechsel-…` hat einen eigenen Namen, weil die Tests parallel laufen. Der Kommentar des Helfers erklärt das Warum („Teilnehmer überleben ihre Veranstaltung“). Geprüft: alle zehn Aufrufer von `teilnehmerAnlegenUndHinzufuegen` nutzen eindeutige Namen.
-- `AbbrechenKnopf` als Baustein in `FormularDialog.tsx`: Der Leer-Zweig hat keine Handkopie mehr, `DialogAktionen` nutzt denselben Knopf (Lesson #369).
-- `useAuswahl` senkt die Props von `AuswahlSchritt` von 8 auf 6 und bündelt Suche und Auswahl dort, wo sie den Schrittwechsel überstehen müssen.
-- Die ADR-053-Drift aus Iteration 1 ist behoben; der Widerruf zu D3 ist als markierter Nachtrag statt als stille Umschreibung eingetragen.
-- Die Ablehnung der beiden Nitpicks ist in der Task-Datei begründet: `schema.ts` landet im Client-Bundle, ein Duplikat-Helfer mit DB-Zugriff würde `db/` dorthin ziehen. Das ist ein guter Architektur-Einwand.
-- Alle AK1–AK8 und die Fehlerszenarien der Spec sind weiterhin erfüllt; keine Routen geändert → `docs/routes.md` nicht betroffen.
+- Der Rework ist eng am Fund geblieben: fünf Dateien, keine Nebenänderungen. Die Anker-Prüfung lief
+  diesmal über alle in diesem PR geänderten Dateien, nicht nur über die gemeldete Zeile
+  (Lesson #375 wirksam).
+- Der korrigierte Kleinfund begründet die vorab erzeugte ID technisch (`.batch()` erlaubt keine
+  Abhängigkeit zwischen Abfragen) und benennt den Treiber-Mock-Test als Vorbild. Damit lässt er sich
+  ohne erneutes Nachlesen der Lesson umsetzen.
+- Die neuen Fokus-Tests haben je einen WHY-Kommentar und prüfen genau den Zweig, der vorher fehlte.
+  Die Task-Datei belegt beide per Mutation.
+- Über den gesamten PR: AK1–AK8 und FS der Spec erfüllt. Kein „Gast“/„Stammteilnehmer“ mehr in
+  UI-Texten (Grep über `app/`, nur noch Kommentare und Negativ-Assertions in Tests).
+  `TeilnehmerFields` und `DuplikatWarnung` werden von Verwaltung und Veranstaltung gemeinsam
+  genutzt. `createWalkInAction` prüft fail-closed in der dokumentierten Reihenfolge. Keine
+  Routen geändert → `docs/routes.md` nicht betroffen.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED

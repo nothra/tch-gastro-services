@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -99,6 +99,9 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
   - Weiter offen (menschlicher Schritt vor dem Merge): Bild `06-teilnehmer-hinzufuegen.png` neu
     erzeugen.
   - Gates: Lint, `format:check`, `tsc --noEmit`, `pnpm test` (1637 grün).
+- Iteration 3 (2026-10-09): **APPROVED** – 0 kritisch, 0 wichtig, 2 Nitpicks (Bild 06 als bekannter
+  menschlicher Schritt; Code-Kommentar „Stammteilnehmer“ in `actions.ts:325`). Alle
+  Iteration-2-Funde nachgeprüft und behoben; Unit-Tests der betroffenen Bereiche 1064/1064 grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
