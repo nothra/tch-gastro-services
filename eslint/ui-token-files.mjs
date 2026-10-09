@@ -47,17 +47,13 @@ export const UI_TOKEN_FILES = [
   "app/components/PublicHeader.tsx",
   "app/page.tsx",
   "app/veranstaltung/OffeneVeranstaltungen.tsx",
-  // #373: Listenseiten mit Anlege-Dialog und die neue Theke-Verwaltung. `TeilnehmerRow` bleibt
-  // unverändert (spec-373 AK8.1) und trägt noch rohe Farben.
+  // #373: Listenseiten mit Anlege-Dialog und die neue Theke-Verwaltung.
   "app/components/FormularDialog.tsx",
   "app/veranstaltung/page.tsx",
   "app/veranstaltung/VeranstaltungAnlegen.tsx",
   "app/veranstaltung/VeranstaltungListe.tsx",
-  "app/verwaltung/teilnehmer/page.tsx",
-  "app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx",
-  "app/verwaltung/teilnehmer/TeilnehmerFields.tsx",
-  // #404: gemeinsame Duplikat-Warnung von Verwaltung und „Teilnehmer anlegen" der Veranstaltung.
-  "app/verwaltung/teilnehmer/DuplikatWarnung.tsx",
+  // #405: die ganze Teilnehmer-Verwaltung im Artikel-Muster (spec-405 AK6.1).
+  "app/verwaltung/teilnehmer/",
   "app/verwaltung/theke/",
   // #372: Auslagen-Zeile mit Lösch-Bestätigung (spec-372 AK8).
   "app/veranstaltung/AuslageRow.tsx",

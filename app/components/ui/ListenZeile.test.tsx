@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { createRef, type ReactNode } from "react";
 import { ListenZeile } from "./ListenZeile";
 
 // Transparenter next/link-Mock: spiegelt den prefetch-Prop als data-prefetch, damit das
@@ -231,6 +231,16 @@ describe("ListenZeile (spec-403 AK2)", () => {
     expect(karte()).toHaveClass("bg-surface", "min-w-0");
   });
 
+  it("should_renderAnhangAsSiblingOfLink_when_anhangGiven", () => {
+    // ADR-060 D1: unsichtbarer Begleitinhalt im <li>, nicht im Tipp-Ziel, Pfeil bleibt.
+    renderZeile(<ListenZeile href="/ziel" titel="Erika" anhang={<span>Begleiter</span>} />);
+
+    const anhang = screen.getByText("Begleiter");
+    expect(screen.getByRole("link")).not.toContainElement(anhang);
+    expect(karte()).toContainElement(anhang);
+    expect(screen.getByRole("link").querySelector("svg")).not.toBeNull();
+  });
+
   it("should_renderUntertitelNode_when_reactNodeGiven", () => {
     // Kacheln übergeben die Kennzahl als eigenes Element (tabular-nums).
     renderZeile(
@@ -242,5 +252,90 @@ describe("ListenZeile (spec-403 AK2)", () => {
     );
 
     expect(screen.getByText("3 offen")).toHaveClass("tabular-nums");
+  });
+});
+
+describe("ListenZeile als Dialog-Auslöser (ADR-060 D1, spec-405 AK1)", () => {
+  function ausloeser() {
+    return within(karte()).getByRole("button");
+  }
+
+  it("should_renderButtonInsteadOfLink_when_onOeffnenGiven", () => {
+    renderZeile(<ListenZeile onOeffnen={() => {}} titel="Anna" untertitel="Person · Mitglied" />);
+
+    expect(within(karte()).queryByRole("link")).not.toBeInTheDocument();
+    expect(ausloeser()).toHaveAttribute("type", "button");
+    expect(ausloeser()).toHaveAttribute("aria-haspopup", "dialog");
+    expect(ausloeser()).toHaveTextContent("Anna");
+    expect(ausloeser()).toHaveTextContent("Person · Mitglied");
+  });
+
+  it("should_callOnOeffnen_when_buttonClicked", () => {
+    const oeffnen = vi.fn();
+    renderZeile(<ListenZeile onOeffnen={oeffnen} titel="Anna" />);
+
+    fireEvent.click(ausloeser());
+
+    expect(oeffnen).toHaveBeenCalledTimes(1);
+  });
+
+  it("should_shareLinkLayoutAndArrow_when_buttonMode", () => {
+    // Ein Markup für beide Betriebsarten: Fläche, Fokusring, Tipp-Höhe und Pfeil wie der Link.
+    renderZeile(<ListenZeile onOeffnen={() => {}} titel="Anna" />);
+
+    expect(karte()).toHaveClass("bg-surface", "rounded-lg", "hover:bg-accent-subtle");
+    expect(ausloeser()).toHaveClass(
+      "min-h-11",
+      "min-w-0",
+      "flex-1",
+      "self-stretch",
+      "text-left",
+      "focus-visible:outline-accent",
+    );
+    expect(ausloeser().querySelector("svg")).not.toBeNull();
+  });
+
+  it("should_setIdAndRef_when_given", () => {
+    const ref = createRef<HTMLButtonElement>();
+    renderZeile(
+      <ListenZeile onOeffnen={() => {}} titel="Anna" id="teilnehmer-1" ausloeserRef={ref} />,
+    );
+
+    expect(ausloeser()).toHaveAttribute("id", "teilnehmer-1");
+    expect(ref.current).toBe(ausloeser());
+  });
+
+  it("should_dimAndShowBadgeInButtonName_when_zustandSet", () => {
+    renderZeile(<ListenZeile onOeffnen={() => {}} titel="Anna" zustand="deaktiviert" />);
+
+    expect(screen.getByText("Anna").parentElement).toHaveClass("opacity-60");
+    expect(screen.getByText("deaktiviert").closest(".opacity-60")).toBeNull();
+    expect(ausloeser()).toHaveAccessibleName(/deaktiviert/);
+  });
+
+  it("should_rejectMixedOrMissingMode_when_typeChecked", () => {
+    // ADR-060 D1: genau eine Betriebsart – `tsc` schlägt fehl, wenn eine Zeile hier kompiliert.
+    const beide = (
+      // @ts-expect-error href und onOeffnen schließen sich aus
+      <ListenZeile href="/ziel" onOeffnen={() => {}} titel="Anna" />
+    );
+    // @ts-expect-error eine der beiden Betriebsarten ist Pflicht
+    const keine = <ListenZeile titel="Anna" />;
+    const linkMitRef = (
+      // @ts-expect-error ausloeserRef gibt es nur im Auslöser-Betrieb
+      <ListenZeile href="/ziel" ausloeserRef={createRef<HTMLButtonElement>()} titel="Anna" />
+    );
+
+    expect([beide, keine, linkMitRef]).toHaveLength(3);
+  });
+
+  it("should_renderAnhangOutsideButton_when_anhangGiven", () => {
+    renderZeile(
+      <ListenZeile onOeffnen={() => {}} titel="Anna" anhang={<span>Dialog-Inhalt</span>} />,
+    );
+
+    const anhang = screen.getByText("Dialog-Inhalt");
+    expect(ausloeser()).not.toContainElement(anhang);
+    expect(karte()).toContainElement(anhang);
   });
 });

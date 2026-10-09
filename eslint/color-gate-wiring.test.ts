@@ -95,14 +95,23 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
     expect(messages).toEqual([]);
   });
 
+  // spec-405 AK6.1: die Teilnehmer-Verwaltung ist ein Verzeichnis-Eintrag – auch die früher
+  // ausgenommene `TeilnehmerRow.tsx` und künftige Dateien dort sind gedeckt.
+  it.each(["app/verwaltung/teilnehmer/TeilnehmerRow.tsx", "app/verwaltung/teilnehmer/Neu.tsx"])(
+    "should_reportRawColorClass_when_fileIsInTeilnehmerDirectory_%s",
+    async (filePath) => {
+      const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, filePath);
+
+      expect(messages.length).toBeGreaterThan(0);
+    },
+  );
+
   // Diskriminierungs-Kontrolle mit einem ÄHNLICHEN Nachbarpfad, nicht einem entfernten
-  // (Lesson aus #172/#297): `TeilnehmerRow.tsx` liegt direkt neben den seit #373 gelisteten
-  // Dateien aus `app/verwaltung/teilnehmer/` und ist bewusst nicht umgestellt (spec-373 AK8.1).
+  // (Lesson aus #172/#297): `AuslageForm.tsx` liegt direkt neben der gelisteten `AuslageRow.tsx`
+  // und ist noch nicht umgestellt (kleinfunde.md). Seit #405 ist `TeilnehmerRow.tsx` gelistet und
+  // taugt nicht mehr als Gegenbeispiel (Lesson #371).
   it("should_notReport_when_fileIsNotOnTheList", async () => {
-    const messages = await rawColorMessages(
-      CODE_WITH_RAW_COLOR,
-      "app/verwaltung/teilnehmer/TeilnehmerRow.tsx",
-    );
+    const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, "app/veranstaltung/AuslageForm.tsx");
 
     expect(messages).toEqual([]);
   });
