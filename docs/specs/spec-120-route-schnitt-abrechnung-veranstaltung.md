@@ -145,8 +145,8 @@ Ablehnung der verworfenen (ADR-README: *Alternatives*).
 - **Data-Layer bleibt in `db/`**; neue `lib/`-Module domänenspezifisch benennen, **kein**
   generisches `utils` (#105).
 - **YAGNI/kein Gold-Plating:** nicht tiefer verschachteln, als F5–F8 es brauchen.
-- **Zukunftsfestigkeit:** Backlog #56 (offene Posten) / #57 (Kassenbuch, Saldo je Kasse) setzt
-  an der Kasse/Veranstaltung an – das Zielbild soll das nicht verbauen.
+- **Zukunftsfestigkeit:** Backlog #56 (offene Posten) setzt
+  an der Kasse/Veranstaltung an (das Kassenbuch #57 ist nicht geplant) – das Zielbild soll das nicht verbauen.
 
 ## Akzeptanzkriterien
 

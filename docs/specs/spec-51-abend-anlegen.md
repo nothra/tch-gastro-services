@@ -77,8 +77,8 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
   und dieselbe Verzehr-/Zeilen-Mechanik (Wiederverwendung, keine polymorphe Doppelstruktur).
 - **Kasse zukunftssicher modellieren:** Im MVP fester Satz (`montagsrunde` | `vereinskasse`).
   Das Modell so schneiden, dass daraus später leicht eine **Kassen-Entität** (Referenz statt
-  loses Enum-Feld) wird – nötig, sobald eine dritte Kasse dazukommt oder das Kassenbuch (#57)
-  mit laufendem Saldo je Kasse kommt. Ziel: Erweiterung ohne Migration bestehender Daten.
+  loses Enum-Feld) wird – nötig, sobald eine dritte Kasse dazukommt (ein Kassenbuch mit
+  laufendem Saldo je Kasse, #57, ist nicht geplant). Ziel: Erweiterung ohne Migration bestehender Daten.
 - **Kein Essenpreis** am Veranstaltungs-Datensatz (weder `veranstaltung` noch `theke`). Essen
   ist ein Katalogartikel der Kategorie `essen` (F2); die Preis-/Cent-Behandlung erbt der Katalog
   (ADR-021, int4-Grenze, bereits in F2 abgesichert).
@@ -142,7 +142,7 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 
 **Aus Requirements-Session 2026-07-11:**
 - **Kasse je Veranstaltung, fester Satz**, Pflichtfeld, nicht pflegbar im MVP. Laufender
-  Kassenstand über mehrere Termine bleibt Backlog #57 – im MVP nur die **Kassenveränderung**
+  Kassenstand über mehrere Termine bleibt #57 (nicht geplant) – im MVP nur die **Kassenveränderung**
   je Veranstaltung (F8).
 - ~~Essenpreis gilt je Veranstaltung einheitlich~~ – **überholt am 2026-07-15** (siehe unten: Essen
   kommt aus dem Katalog).
@@ -170,8 +170,8 @@ Einnahmen und Auslagenerstattungen wirken (F6/F8).
 
 - [ ] **Abrechnungs-Periodik der stehenden Theke:** Wie werden bereits **kassierte** von noch
       **offenen** Einträgen getrennt, wenn die Theke nie „abschließt"? (Perioden/Snapshot pro
-      Kassiervorgang?) Zusammenspiel mit F8/#55 sowie Backlog #56 (offene Posten) / #57
-      (Kassenbuch). → /architecture, ggf. Anpassung an #55.
+      Kassiervorgang?) Zusammenspiel mit F8/#55 sowie Backlog #56 (offene Posten); das Kassenbuch (#57)
+      ist nicht geplant. → /architecture, ggf. Anpassung an #55.
 - [ ] **Fester Theken-Token vs. per-Veranstaltung-Token (F7/#54):** Der Theken-Zugang ist
       **dauerhaft** gültig (nicht tagesabhängig). Token-Länge/Zufälligkeit, Rotation und eine
       Missbrauchsbremse (Rate-Limit) sind höheres Risiko als der per-Termin-Link. →

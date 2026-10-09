@@ -61,7 +61,7 @@ Bericht-Snapshot ist fachlich nicht erforderlich.
 - Keine serverseitige **Persistenz/Archivierung** des Berichts (On-demand-Download); ein
   Ablage-/Historien-Konzept ist nicht Teil dieser Task.
 - Keine Auslagen-Verrechnung in den Teilnehmerzeilen (Domänenregel, s. o.).
-- Kein laufender Kassen-Saldo über mehrere Veranstaltungen (Backlog #57).
+- Kein laufender Kassen-Saldo über mehrere Veranstaltungen (#57 – nicht geplant).
 - Kein E-Mail-Versand / kein automatischer Export.
 
 ## Akzeptanzkriterien

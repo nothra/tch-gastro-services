@@ -1,23 +1,24 @@
 # Task 414: backlog-57-verweise-nicht-geplant
 
 ## Status
-- [ ] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
-- [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] In Bearbeitung
+- [x] Review bestanden
+- [x] Tests vollständig
+- [x] Security-Review bestanden
+- [x] Refactoring abgeschlossen
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+Issue #57 (Kassenbuch mit laufendem Saldo je Kasse) ist als „nicht geplant“ geschlossen: Die Vereinskasse wird in einem anderen Programm verwaltet, die Montagsrunden-Kasse separat geführt. Doku-Verweise, die #57 als Backlog/künftige Erweiterung nennen, werden angepasst. Reiner Doku-Task, kein Code.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [x] GIVEN die Specs, `PROJECT-CONTEXT.md` und ADR-023/028/033 WHEN sie #57 nennen THEN steht dort „nicht geplant“ statt „Backlog/später“ (ADRs per Nachtrag, Entscheidung unverändert).
+- [x] Historische Task-/Security-/Codify-Berichte (task-53/55, security-55, codify-55) bleiben unverändert.
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+Reiner Doku-Task: Review/Test/Security/Refactor/Codify entfallen mangels Code; keine neue Lesson.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
