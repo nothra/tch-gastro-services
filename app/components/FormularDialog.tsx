@@ -11,7 +11,8 @@ import {
   type FormAction,
 } from "./useSchliessendeAction";
 
-// Route-neutrale Hülle „Formular im Dialog" der Listenseiten (spec-373 AK1, AK4.3): Auslöser,
+// Route-neutrale Hülle „Formular im Dialog" der Listenseiten (spec-373 AK1, AK4.3), seit #404 auch
+// vom Dialog „Teilnehmer hinzufügen" der Detailseite genutzt: Auslöser,
 // modaler Dialog, Schließen bei Erfolg, Escape-Sperre während der Action. Erfolgsregel und
 // Lauf-Meldung kommen aus `useSchliessendeAction`; neu ist hier nur der Weg ans Formular.
 //
@@ -180,12 +181,19 @@ interface DialogAktionenProps {
 export function DialogAktionen({ steuerung, pending, label, laufLabel }: DialogAktionenProps) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
-      <Button variant="secondary" onClick={steuerung.schliessen} disabled={steuerung.gesperrt}>
-        Abbrechen
-      </Button>
+      <AbbrechenKnopf steuerung={steuerung} />
       <Button type="submit" disabled={pending || steuerung.gesperrt}>
         {pending ? laufLabel : label}
       </Button>
     </div>
+  );
+}
+
+/** „Abbrechen" der Dialog-Formulare – auch für Schritte ohne eigenes Absenden (spec-404). */
+export function AbbrechenKnopf({ steuerung }: { steuerung: DialogSteuerung }) {
+  return (
+    <Button variant="secondary" onClick={steuerung.schliessen} disabled={steuerung.gesperrt}>
+      Abbrechen
+    </Button>
   );
 }

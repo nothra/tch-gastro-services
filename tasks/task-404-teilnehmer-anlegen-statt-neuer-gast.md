@@ -61,6 +61,26 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
   offen gehaltene Promises im Unit-Test (Lesson #370), verrutschte Glossar-Zeilenverweise.
   Out-of-Scope: Issue #416 (Duplikat-Bestätigung an den gewarnten Namen binden), Kleinfund
   „`createWalkInAction` nicht atomar".
+- Rework nach Iteration 1 (2026-10-09), alle 4 Wichtig-Funde behoben:
+  - Fokus beim Schrittwechsel: Anlegen fokussiert das Namensfeld (`TeilnehmerFields`
+    `nameFokussieren`), „← Zur Auswahl" den Absprung (`Schritt.zurueckVomAnlegen`, React-`autoFocus`
+    greift nur beim Mount im schon offenen Dialog). Unit-Tests in beide Richtungen + Gegenprobe
+    „beim Öffnen nicht", E2E prüft beide Ziele im echten Browser.
+  - E2E-Helfer heißt `teilnehmerAnlegenUndHinzufuegen`, Kommentar korrigiert; `wechsel-…` und
+    `veranstaltung-bearbeiten-loeschen` mit `Date.now()`-Default, F1 mit eigenem Namen; Capture-Spec
+    legt „Clara Neumann" an (frische DB vorausgesetzt, kein „Gast" mehr im Bild 05).
+  - Offen gehaltene Promises im Dialog-Test: Resolve-Liste + `afterEach` in `act` (Lesson #370);
+    Ablehnungstest prüft zusätzlich die angezeigte Meldung.
+  - Glossar-Zeilenverweise auf `actions.ts` nachgezogen, alle Tabellenzeilen per Grep geprüft.
+  - Nitpicks erledigt: `AbbrechenKnopf` als Baustein (kein Handnachbau im Leer-Zweig), Kommentar
+    zu Ablehnungen enger, `useAuswahl` senkt die Props des Auswahl-Schritts, ADR-053-Drift,
+    Kopfkommentar `FormularDialog`, `exact: true` in `teilnehmer-anlegen.spec.ts` (Abwesenheit
+    jetzt ohne Namensfilter), Fixture-Name + „nichts angelegt"-Assertion in `actions.test.ts`.
+  - Bewusst nicht umgesetzt: Duplikat-Prüf-Helfer in `schema.ts` – `schema.ts` wird von
+    `TeilnehmerFields` im Client importiert, ein DB-Zugriff dort zöge `db/` ins Client-Bundle;
+    `TEILNEHMER_NAME_MAX` in ein abhängigkeitsfreies Modul – vorbestehend, optional.
+  - Gates: Lint, `tsc --noEmit`, `pnpm test` (1635 grün); E2E 15/15 grün (`E2E_404`,
+    `E2E_WECHSEL_308`, `E2E_VERANSTALTUNG_352`, `E2E_372`, `E2E_DETAILSEITE_369`).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

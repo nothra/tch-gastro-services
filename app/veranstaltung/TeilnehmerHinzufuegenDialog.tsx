@@ -6,6 +6,7 @@ import { Dialog } from "@/app/components/ui/Dialog";
 import { Field } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
 import {
+  AbbrechenKnopf,
   DialogAktionen,
   useDialogFormular,
   useFormularDialog,
@@ -23,7 +24,14 @@ import { addZeilenAction, createWalkInAction } from "./actions";
 
 type TeilnehmerAuswahl = Pick<Teilnehmer, "id" | "name">;
 
-type Schritt = { art: "auswahl" } | { art: "anlegen"; namensVorschlag: string };
+// Ein Schrittwechsel hängt den Knopf aus, der ihn ausgelöst hat (Lesson #371): der neue Schritt
+// setzt den Fokus deshalb selbst – Anlegen aufs Namensfeld, die Rückkehr auf den Absprung. Beim
+// Öffnen bestimmt dagegen der Dialog das Fokusziel.
+type Schritt =
+  | { art: "auswahl"; zurueckVomAnlegen: boolean }
+  | { art: "anlegen"; namensVorschlag: string };
+
+const AUSWAHL_BEIM_OEFFNEN: Schritt = { art: "auswahl", zurueckVomAnlegen: false };
 
 const SCHRITT_TITEL: Record<Schritt["art"], string> = {
   auswahl: "Teilnehmer hinzufügen",
@@ -42,10 +50,10 @@ export function TeilnehmerHinzufuegenDialog({
 }: TeilnehmerHinzufuegenDialogProps) {
   const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog();
   // Hier statt im Dialog-Inhalt, weil der Titel des Dialogs vom Schritt abhängt.
-  const [schritt, setSchritt] = useState<Schritt>({ art: "auswahl" });
+  const [schritt, setSchritt] = useState<Schritt>(AUSWAHL_BEIM_OEFFNEN);
 
   function oeffnenBeiAuswahl() {
-    setSchritt({ art: "auswahl" });
+    setSchritt(AUSWAHL_BEIM_OEFFNEN);
     oeffnen();
   }
 
@@ -83,8 +91,7 @@ function DialogInhalt({
   onSchrittWechsel,
   steuerung,
 }: DialogInhaltProps) {
-  const [suche, setSuche] = useState("");
-  const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
+  const auswahl = useAuswahl();
 
   if (schritt.art === "anlegen") {
     return (
@@ -92,10 +99,28 @@ function DialogInhalt({
         veranstaltungId={veranstaltungId}
         namensVorschlag={schritt.namensVorschlag}
         steuerung={steuerung}
-        onZurueck={() => onSchrittWechsel({ art: "auswahl" })}
+        onZurueck={() => onSchrittWechsel({ art: "auswahl", zurueckVomAnlegen: true })}
       />
     );
   }
+
+  return (
+    <AuswahlSchritt
+      veranstaltungId={veranstaltungId}
+      verfuegbar={verfuegbar}
+      auswahl={auswahl}
+      onAnlegen={(namensVorschlag) => onSchrittWechsel({ art: "anlegen", namensVorschlag })}
+      absprungFokussieren={schritt.zurueckVomAnlegen}
+      steuerung={steuerung}
+    />
+  );
+}
+
+type Auswahl = ReturnType<typeof useAuswahl>;
+
+function useAuswahl() {
+  const [suche, setSuche] = useState("");
+  const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
 
   function umschalten(id: string) {
     setGewaehlt((bisher) => {
@@ -106,39 +131,24 @@ function DialogInhalt({
     });
   }
 
-  return (
-    <AuswahlSchritt
-      veranstaltungId={veranstaltungId}
-      verfuegbar={verfuegbar}
-      suche={suche}
-      onSuche={setSuche}
-      gewaehlt={gewaehlt}
-      onUmschalten={umschalten}
-      onAnlegen={(namensVorschlag) => onSchrittWechsel({ art: "anlegen", namensVorschlag })}
-      steuerung={steuerung}
-    />
-  );
+  return { suche, setSuche, gewaehlt, umschalten };
 }
 
 interface AuswahlSchrittProps {
   veranstaltungId: string;
   verfuegbar: readonly TeilnehmerAuswahl[];
-  suche: string;
-  onSuche: (suche: string) => void;
-  gewaehlt: ReadonlySet<string>;
-  onUmschalten: (id: string) => void;
+  auswahl: Auswahl;
   onAnlegen: (namensVorschlag: string) => void;
+  absprungFokussieren: boolean;
   steuerung: DialogSteuerung;
 }
 
 function AuswahlSchritt({
   veranstaltungId,
   verfuegbar,
-  suche,
-  onSuche,
-  gewaehlt,
-  onUmschalten,
+  auswahl: { suche, setSuche, gewaehlt, umschalten },
   onAnlegen,
+  absprungFokussieren,
   steuerung,
 }: AuswahlSchrittProps) {
   const { state, pending, absenden } = useDialogFormular(addZeilenAction, steuerung, {
@@ -152,11 +162,14 @@ function AuswahlSchritt({
       <>
         <p className="text-sm text-muted">Alle aktiven Teilnehmer sind bereits hinzugefügt.</p>
         <Notice kind="fehler">{state?.error}</Notice>
-        <AnlegenAbsprung namensVorschlag="" onAnlegen={onAnlegen} gesperrt={steuerung.gesperrt} />
-        <div className="flex justify-end">
-          <Button variant="secondary" onClick={steuerung.schliessen} disabled={steuerung.gesperrt}>
-            Abbrechen
-          </Button>
+        <AnlegenAbsprung
+          namensVorschlag=""
+          onAnlegen={onAnlegen}
+          fokussieren={absprungFokussieren}
+          gesperrt={steuerung.gesperrt}
+        />
+        <div className="flex flex-wrap justify-end gap-2">
+          <AbbrechenKnopf steuerung={steuerung} />
         </div>
       </>
     );
@@ -175,7 +188,7 @@ function AuswahlSchritt({
         label="Suchen"
         type="search"
         value={suche}
-        onChange={(event) => onSuche(event.target.value)}
+        onChange={(event) => setSuche(event.target.value)}
         autoComplete="off"
       />
       {keinTreffer ? (
@@ -189,7 +202,7 @@ function AuswahlSchritt({
                   type="checkbox"
                   value={person.id}
                   checked={gewaehlt.has(person.id)}
-                  onChange={() => onUmschalten(person.id)}
+                  onChange={() => umschalten(person.id)}
                   className="h-5 w-5 shrink-0 accent-accent"
                 />
                 <span className="min-w-0">{person.name}</span>
@@ -201,6 +214,7 @@ function AuswahlSchritt({
       <AnlegenAbsprung
         namensVorschlag={keinTreffer ? suchtext : ""}
         onAnlegen={onAnlegen}
+        fokussieren={absprungFokussieren}
         gesperrt={steuerung.gesperrt}
       />
       <form onSubmit={absenden} className="flex flex-col gap-3">
@@ -228,14 +242,22 @@ interface AnlegenAbsprungProps {
   /** Leer: „Teilnehmer anlegen"; sonst übernimmt der Schritt den Suchtext (spec-404 AK3.3). */
   namensVorschlag: string;
   onAnlegen: (namensVorschlag: string) => void;
+  /** Rückkehr aus dem Anlege-Schritt: der Absprung bekommt den Fokus zurück. */
+  fokussieren: boolean;
   gesperrt: boolean;
 }
 
-function AnlegenAbsprung({ namensVorschlag, onAnlegen, gesperrt }: AnlegenAbsprungProps) {
+function AnlegenAbsprung({
+  namensVorschlag,
+  onAnlegen,
+  fokussieren,
+  gesperrt,
+}: AnlegenAbsprungProps) {
   return (
     <Button
       variant="ghost"
       onClick={() => onAnlegen(namensVorschlag)}
+      autoFocus={fokussieren}
       disabled={gesperrt}
       className="self-start break-words"
     >
@@ -251,8 +273,9 @@ interface AnlegeSchrittProps {
   onZurueck: () => void;
 }
 
-// Jede Ablehnung betrifft den eingegebenen Namen oder den Zustand der Veranstaltung; das
-// Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb als Feldfehler (spec-404 AK4.4).
+// Ablehnungen betreffen praktisch nur den eingegebenen Namen oder den Zustand der Veranstaltung –
+// Typ und Mitglied lassen sich über die Oberfläche nicht ungültig wählen. Das Namensfeld ist die
+// einzige Freitexteingabe und trägt jede Ablehnung deshalb als Feldfehler (spec-404 AK4.4).
 function AnlegeSchritt({
   veranstaltungId,
   namensVorschlag,
@@ -277,7 +300,11 @@ function AnlegeSchritt({
         Der Teilnehmer wird angelegt und direkt zu dieser Veranstaltung hinzugefügt.
       </p>
       <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
-      <TeilnehmerFields namensVorschlag={namensVorschlag} nameFehler={state?.error} />
+      <TeilnehmerFields
+        namensVorschlag={namensVorschlag}
+        nameFehler={state?.error}
+        nameFokussieren
+      />
       <DuplikatWarnung state={state} />
       <DialogAktionen
         steuerung={steuerung}

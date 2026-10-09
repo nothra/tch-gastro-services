@@ -2,7 +2,7 @@ import path from "node:path";
 import { mkdirSync } from "node:fs";
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import {
-  gastHinzufuegen,
+  teilnehmerAnlegenUndHinzufuegen,
   kopfAktion,
   oeffneTeilnehmerDialog,
   teilnehmerDialog,
@@ -298,7 +298,10 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
       page,
       STAMMTEILNEHMER.map((person) => person.name),
     );
-    await gastHinzufuegen(page, "Gastspieler");
+    // Fester Name ohne Lauf-Suffix, damit die Bilder stabil bleiben: die Spec setzt ohnehin eine
+    // frisch geseedete DB voraus (Header), dort kann „Teilnehmer anlegen" nicht in die
+    // Duplikat-Warnung laufen (spec-404 AK4.3).
+    await teilnehmerAnlegenUndHinzufuegen(page, "Clara Neumann");
     await shot(page, "05-veranstaltung-fuehren.png");
 
     // Schritt 4 – Verzehr erfassen

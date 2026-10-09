@@ -15,6 +15,8 @@ interface TeilnehmerFieldsProps {
   namensVorschlag?: string;
   /** Ablehnung der Action am Namensfeld (spec-404 AK4.4). */
   nameFehler?: string;
+  /** Das Namensfeld bekommt beim Erscheinen den Fokus (Schrittwechsel im Dialog, spec-404). */
+  nameFokussieren?: boolean;
 }
 
 // Gemeinsame Eingabefelder für Anlegen und Bearbeiten in der Verwaltung und für „Teilnehmer
@@ -25,6 +27,7 @@ export function TeilnehmerFields({
   teilnehmer,
   namensVorschlag,
   nameFehler,
+  nameFokussieren = false,
 }: TeilnehmerFieldsProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -35,6 +38,7 @@ export function TeilnehmerFields({
         maxLength={TEILNEHMER_NAME_MAX}
         defaultValue={teilnehmer?.name ?? namensVorschlag ?? ""}
         error={nameFehler}
+        autoFocus={nameFokussieren}
       />
       <SelectField label="Typ" name="typ" defaultValue={teilnehmer?.typ ?? "person"}>
         {(Object.entries(TYP_LABEL) as [Teilnehmer["typ"], string][]).map(([value, label]) => (

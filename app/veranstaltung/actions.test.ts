@@ -1011,14 +1011,14 @@ describe("addZeilenAction (#369 AK12/AK14/FS1/FS2/FS4, ADR-053 D3)", () => {
 });
 
 describe("createWalkInAction", () => {
-  const walkIn = { veranstaltungId: "v1", name: "Neuer Gast", typ: "person", mitglied: "on" };
+  const walkIn = { veranstaltungId: "v1", name: "Gustav Neu", typ: "person", mitglied: "on" };
 
   it("should_createTeilnehmerAndAddZeile_when_inputValid", async () => {
     const result = await createWalkInAction(undefined, form(walkIn));
 
     expect(result).toEqual({ ok: true });
     expect(createTeilnehmerMock).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Neuer Gast", typ: "person" }),
+      expect.objectContaining({ name: "Gustav Neu", typ: "person" }),
     );
     expect(addZeileMock).toHaveBeenCalledWith("v1", person);
   });
@@ -1048,7 +1048,7 @@ describe("createWalkInAction", () => {
 
   it("should_returnNotFound_when_veranstaltungUnknown", async () => {
     // Guard-Branch (Codify #51): ohne diesen Test bliebe das Anlegen für eine gelöschte
-    // Veranstaltung ungeprüft – der Gast dürfte dann nicht entstehen.
+    // Veranstaltung ungeprüft – der Teilnehmer dürfte dann nicht entstehen.
     getVeranstaltungMock.mockResolvedValue(undefined);
 
     const result = await createWalkInAction(undefined, form(walkIn));
@@ -1075,7 +1075,7 @@ describe("createWalkInAction", () => {
       warning:
         "Ein aktiver Teilnehmer mit diesem Namen existiert bereits. Zum Anlegen erneut bestätigen.",
     });
-    expect(findActiveByNameMock).toHaveBeenCalledWith("Neuer Gast");
+    expect(findActiveByNameMock).toHaveBeenCalledWith("Gustav Neu");
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
     expect(addZeileMock).not.toHaveBeenCalled();
   });
@@ -1103,6 +1103,8 @@ describe("createWalkInAction", () => {
     const result = await createWalkInAction(undefined, form(walkIn));
 
     expect(result).toEqual({ error: "Die Veranstaltung ist abgeschlossen und schreibgeschützt." });
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+    expect(addZeileMock).not.toHaveBeenCalled();
   });
 
   it("should_returnError_when_veranstaltungIdMissing", async () => {

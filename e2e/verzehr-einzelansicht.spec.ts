@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { gastHinzufuegen, kopfAktion } from "./helpers/detailseite";
+import { teilnehmerAnlegenUndHinzufuegen, kopfAktion } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis der Verzehr-Einzelansicht (#370, spec-370, ADR-054). Prüft gegen einen
@@ -111,8 +111,8 @@ test.describe("Verzehr-Einzelansicht (#370)", () => {
     await login(page);
     detailPfad = await createVeranstaltung(page, `__test__ Einzelansicht ${LAUF}`);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, LANGER_NAME);
-    await gastHinzufuegen(page, ZWEITE);
+    await teilnehmerAnlegenUndHinzufuegen(page, LANGER_NAME);
+    await teilnehmerAnlegenUndHinzufuegen(page, ZWEITE);
     await page.close();
   });
 

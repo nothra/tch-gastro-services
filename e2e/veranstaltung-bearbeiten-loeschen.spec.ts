@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import {
-  gastHinzufuegen,
+  teilnehmerAnlegenUndHinzufuegen,
   kopfAktion,
   oeffneEinstellungen,
   oeffneLoeschDialog,
@@ -34,8 +34,10 @@ const password = process.env.SEED_ADMIN_PASSWORD ?? "";
 
 // Lauf-Suffix, damit wiederholte Läufe auf derselben lokalen DB nicht auf Altbestand matchen –
 // er trennt parallel laufende AUSFÜHRUNGEN dieser Datei, nicht die drei Tests untereinander
-// (die trennen ihre Basisnamen selbst: "Bearbeiten", "Loeschen", "Kassiert").
-const LAUF = String(process.env.E2E_VERANSTALTUNG_352_SUFFIX ?? "a");
+// (die trennen ihre Basisnamen selbst: "Bearbeiten", "Loeschen", "Kassiert"). Default `Date.now()`:
+// die angelegten Teilnehmer überleben das Löschen der Veranstaltung, ein fester Default liefe ab
+// dem zweiten Lauf in die Duplikat-Warnung (spec-404 AK4.3).
+const LAUF = String(process.env.E2E_VERANSTALTUNG_352_SUFFIX ?? Date.now().toString(36));
 const PREFIX = "__test__E2E352";
 
 async function login(page: Page) {
@@ -162,7 +164,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     await page.goto(detailPfad);
 
     // ── AK7: eine Teilnehmer-Zeile ohne jeden Verzehr darf das Löschen NICHT sperren ────────
-    await gastHinzufuegen(page, `${PREFIX} Gast ${LAUF}`);
+    await teilnehmerAnlegenUndHinzufuegen(page, `${PREFIX} Gast ${LAUF}`);
 
     // ── AK8: der erste Klick öffnet nur den Dialog ──────────────────────────────────────────
     await oeffneLoeschDialog(page);
@@ -219,7 +221,7 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
     const gast = `${PREFIX} Spender ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, bezeichnung);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, gast);
+    await teilnehmerAnlegenUndHinzufuegen(page, gast);
 
     // ── Reine Spende: Geld kassiert, kein einziger Strich erfasst ───────────────────────────
     await kassiere(page, detailPfad, gast, "10,00");

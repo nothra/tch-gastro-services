@@ -75,7 +75,8 @@ test.describe("Teilnehmer anlegen aus der Veranstaltung (#404)", () => {
     // ── AK2/AK1/AK5: nur Suche, Auswahl, Absprung und Aktionen; kein „Gast" ───────────────
     await oeffneTeilnehmerDialog(page);
     const auswahl = teilnehmerDialog(page);
-    await expect(auswahl.getByRole("textbox", { name: "Name", exact: true })).toHaveCount(0);
+    // Ohne Namensfilter: auch ein zurückkehrendes „Anzeigename" fiele auf (die Suche ist `searchbox`).
+    await expect(auswahl.getByRole("textbox")).toHaveCount(0);
     await expect(auswahl.getByRole("combobox", { name: "Typ" })).toHaveCount(0);
     // Erst nach dem Filtern prüfen: die geteilte Dev-DB enthält Teilnehmernamen mit „Gast" aus
     // älteren E2E-Läufen – das sind Daten, keine UI-Texte.
@@ -86,14 +87,23 @@ test.describe("Teilnehmer anlegen aus der Veranstaltung (#404)", () => {
     await auswahl.getByRole("checkbox", { name: vorhanden }).check();
     await auswahl.getByRole("button", { name: "Teilnehmer anlegen", exact: true }).click();
     await expect(anlegeSchritt(page)).toBeVisible();
-    await anlegeSchritt(page).getByRole("button", { name: "← Zur Auswahl" }).click();
+    // Der Schrittwechsel hängt den getippten Knopf aus – der Fokus muss ein neues Ziel finden.
+    await expect(anlegeSchritt(page).getByLabel("Name", { exact: true })).toBeFocused();
+    await anlegeSchritt(page).getByRole("button", { name: "← Zur Auswahl", exact: true }).click();
     await expect(auswahl.getByRole("searchbox", { name: "Suchen" })).toHaveValue(suchbegriff);
     await expect(auswahl.getByRole("checkbox", { name: vorhanden })).toBeChecked();
+    await expect(
+      auswahl.getByRole("button", { name: "Teilnehmer anlegen", exact: true }),
+    ).toBeFocused();
 
     // ── AK3.3: ohne Treffer übernimmt der Absprung den Suchtext ────────────────────────────
     await auswahl.getByRole("searchbox", { name: "Suchen" }).fill(neu);
-    await expect(auswahl.getByText(`Kein Teilnehmer passt zu „${neu}“.`)).toBeVisible();
-    await auswahl.getByRole("button", { name: `„${neu}“ als Teilnehmer anlegen` }).click();
+    await expect(
+      auswahl.getByText(`Kein Teilnehmer passt zu „${neu}“.`, { exact: true }),
+    ).toBeVisible();
+    await auswahl
+      .getByRole("button", { name: `„${neu}“ als Teilnehmer anlegen`, exact: true })
+      .click();
     const schritt = anlegeSchritt(page);
     await expect(schritt.getByLabel("Name", { exact: true })).toHaveValue(neu);
 
@@ -127,12 +137,12 @@ test.describe("Teilnehmer anlegen aus der Veranstaltung (#404)", () => {
     ).toBeVisible();
     await expect(anlegeSchritt(page).getByLabel("Name", { exact: true })).toHaveValue(vorhanden);
     await expect(page.getByRole("link", { name: vorhanden, exact: true })).toHaveCount(0);
-    await anlegeSchritt(page).getByRole("button", { name: "Trotzdem anlegen" }).click();
+    await anlegeSchritt(page).getByRole("button", { name: "Trotzdem anlegen", exact: true }).click();
     await expect(anlegeSchritt(page)).toBeHidden();
     await expect(page.getByRole("link", { name: vorhanden, exact: true })).toBeVisible();
 
     await oeffneLoeschDialog(page);
-    await page.getByRole("button", { name: "Endgültig löschen" }).click();
+    await page.getByRole("button", { name: "Endgültig löschen", exact: true }).click();
     await expect(page).toHaveURL(/\/veranstaltung$/);
   });
 });

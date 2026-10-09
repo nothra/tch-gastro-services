@@ -154,9 +154,9 @@ Alles Übrige sammelt **#401**.
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|
 | `app/veranstaltung/KatalogWechsel.tsx:47` | Busy „Speichern …" (Button „Katalog wechseln") | „Wechseln …" | #401 |
-| `app/veranstaltung/actions.ts:339` (Text aus `nichtsAngelegt`, `:96–99`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:335` (Text aus `nichtsAngelegt`, `:96–99`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
-| `app/veranstaltung/actions.ts:93` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:346` (Text aus `nichtsAngelegt`, `:103–106`) | „Bereits erfasst: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> bereits hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:342` (Text aus `nichtsAngelegt`, `:103–106`) | „Nicht mehr wählbar: <Namen>. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: <Namen> nicht mehr wählbar. Es wurde niemand hinzugefügt." | #401 |
+| `app/veranstaltung/actions.ts:100` | „Bereits erfasst: jemand aus der Auswahl wurde gerade auf einem anderen Gerät erfasst. Es wurde niemand hinzugefügt." | „Hinzufügen nicht möglich: jemand aus der Auswahl wurde gerade auf einem anderen Gerät hinzugefügt. Es wurde niemand hinzugefügt." | #401 |
 | `app/veranstaltung/VeranstaltungAnlegen.tsx:77` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:42` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/teilnehmer/schema.ts:20` | „Anzeigename ist erforderlich." (Feld heißt seit #404 „Name") | „Name ist erforderlich." | #401 |

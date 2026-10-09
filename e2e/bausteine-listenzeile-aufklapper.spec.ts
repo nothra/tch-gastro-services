@@ -1,6 +1,6 @@
 import path from "node:path";
 import { test, expect, type Browser, type Locator, type Page } from "@playwright/test";
-import { gastHinzufuegen } from "./helpers/detailseite";
+import { teilnehmerAnlegenUndHinzufuegen } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
 
 // Oberflächen-Nachweis für die Bausteine `Aufklapper` und `ListenZeile` (#403, spec-403,
@@ -187,7 +187,7 @@ test.describe("Bausteine ListenZeile und Aufklapper (#403)", () => {
     const gast = `${PREFIX} Gast ${LAUF}`;
     const detailPfad = await legeVeranstaltungAn(page, `${PREFIX} Kassieren ${LAUF}`, "2026-10-09");
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, gast);
+    await teilnehmerAnlegenUndHinzufuegen(page, gast);
 
     // ── F4 / AK2.4: ⋯-Knopf per Tastatur, ohne die Zeilen-Navigation auszulösen ────────────
     const menueKnopf = page.getByRole("button", { name: `Aktionen für ${gast}` });

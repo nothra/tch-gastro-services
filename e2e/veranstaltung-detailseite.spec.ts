@@ -2,7 +2,7 @@ import path from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import {
   einstellungenDialog,
-  gastHinzufuegen,
+  teilnehmerAnlegenUndHinzufuegen,
   kopfAktion,
   oeffneEinstellungen,
   oeffneLoeschDialog,
@@ -118,7 +118,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
 
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Mobil ${LAUF}`);
     await page.goto(detailPfad);
-    for (const nummer of [1, 2, 3]) await gastHinzufuegen(page, `${PREFIX} Gast${nummer} ${LAUF}`);
+    for (const nummer of [1, 2, 3]) await teilnehmerAnlegenUndHinzufuegen(page, `${PREFIX} Gast${nummer} ${LAUF}`);
 
     await page.reload();
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -207,7 +207,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await page.getByRole("button", { name: "Abbrechen" }).click();
 
     // ── AK13: Teilnehmer anlegen über denselben Dialog (spec-404) ──────────────────────────
-    await gastHinzufuegen(page, `${PREFIX} Neu ${LAUF}`);
+    await teilnehmerAnlegenUndHinzufuegen(page, `${PREFIX} Neu ${LAUF}`);
     await expect(page.getByRole("heading", { name: "Teilnehmer (3)" })).toBeVisible();
 
     await loescheVeranstaltung(page, detailPfad);
@@ -222,7 +222,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     const gast = `${PREFIX} Entfernen ${LAUF}`;
     const detailPfad = await createVeranstaltung(page, `${PREFIX} Zeile ${LAUF}`);
     await page.goto(detailPfad);
-    await gastHinzufuegen(page, gast);
+    await teilnehmerAnlegenUndHinzufuegen(page, gast);
 
     // ── AK18/AK19: Menü → Entfernen öffnet die Bestätigung mit dem Namen ───────────────────
     const bestaetigung = page.getByRole("dialog", { name: "Teilnehmer entfernen?" });

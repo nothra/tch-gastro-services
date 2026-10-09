@@ -27,9 +27,10 @@ export async function oeffneTeilnehmerDialog(page: Page) {
 
 // „Teilnehmer anlegen" aus dem Dialog (spec-404 AK4.2, früher „Neuer Gast"/Walk-in). Erfolgreich
 // ist der Schritt erst, wenn der Dialog zu ist und der Teilnehmer als Link in der Liste steht
-// (spec-369 AK17). Die Namen der Specs sind je Lauf eindeutig – eine Duplikat-Warnung (AK4.3)
-// wäre hier ein Fehler, kein Fall zum Überstimmen.
-export async function gastHinzufuegen(page: Page, name: string) {
+// (spec-369 AK17). Eine Duplikat-Warnung (AK4.3) wäre hier ein Fehler, kein Fall zum Überstimmen:
+// angelegte Teilnehmer überleben ihre Veranstaltung, jeder Aufrufer muss den Namen deshalb je Lauf
+// UND je Aufruf eindeutig machen (Lauf-Suffix mit `Date.now()`-Default).
+export async function teilnehmerAnlegenUndHinzufuegen(page: Page, name: string) {
   await oeffneTeilnehmerDialog(page);
   await teilnehmerDialog(page)
     .getByRole("button", { name: "Teilnehmer anlegen", exact: true })

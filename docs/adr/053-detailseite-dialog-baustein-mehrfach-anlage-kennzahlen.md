@@ -55,14 +55,14 @@ Dialog-Grundlage):
   Ablehnung sähe niemand. Die Escape-Sperre liegt im `Dialog` selbst (Prop `schliessbar`), damit
   jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf seines
   jeweils sichtbaren Schritts dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`;
-  seit #404 über `useFormularDialog`), weil ein `setState` am Anfang der Action erst mit ihrem
-  Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
+  seit #404 meldet `useDialogFormular`, die Sperre hält `useFormularDialog`), weil ein `setState`
+  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
   angeschlossen werden können.
 - „Bei Erfolg schließen" liegt einmal im Hook `app/components/useSchliessendeAction.ts`
   (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`). Seit #373 ist er
-  route-neutral: neben den Dialogen der Detailseite (`TeilnehmerHinzufuegenDialog`,
-  `ZeilenMenue`, `AbschlussAktion`) baut auch `useDialogFormular` in
-  `app/components/FormularDialog.tsx` (Listenseiten) auf ihm auf. Wie `formAction` ans Formular
+  route-neutral: neben den Dialogen der Detailseite (`ZeilenMenue`, `AbschlussAktion`) baut auch
+  `useDialogFormular` in `app/components/FormularDialog.tsx` (Listenseiten, seit #404 auch
+  `TeilnehmerHinzufuegenDialog`) auf ihm auf. Wie `formAction` ans Formular
   kommt, entscheidet der Konsument: die Listenseiten schicken über `onSubmit` +
   `startTransition` ab, damit eine Ablehnung die Eingaben nicht zurücksetzt (spec-373 AK1.4); die
   übrigen Detailseiten-Dialoge nutzen noch `<form action>` (#398). `TeilnehmerHinzufuegenDialog`
@@ -120,9 +120,11 @@ Dialog-Grundlage):
   SQLSTATE). Kein `onConflictDoNothing`: stille Teilerfolge wären die verwirrendere Variante.
 - „Neuer Gast" bleibt `createWalkInAction` unverändert (legt Teilnehmer an und erfasst ihn). Die
   dort liegende Zweischritt-Schreibung (Teilnehmer anlegen, dann Zeile) ist vorbestehend und
-  nicht Teil dieser Entscheidung. Seit #404 heißt der Bereich „Teilnehmer anlegen" (eigener
-  Dialog-Schritt), und `createWalkInAction` kennt die überstimmbare Duplikat-Warnung der
-  Verwaltung (ADR-022, `confirmDuplicate`).
+  nicht Teil dieser Entscheidung.
+  > **Nachtrag (#404):** „Neuer Gast" gibt es nicht mehr – der Bereich ist der eigene
+  > Dialog-Schritt „Teilnehmer anlegen", und `createWalkInAction` kennt jetzt die überstimmbare
+  > Duplikat-Warnung der Verwaltung (ADR-022, `confirmDuplicate`). Die Zweischritt-Schreibung
+  > bleibt unverändert.
 
 ### D4 · Kacheln-Kennzahlen aus den bestehenden Summen, ein reiner Adapter
 
@@ -158,7 +160,8 @@ Dialog-Grundlage):
 > einem Zahnrad im Seitenkopf; Teilen und Löschen sind eigene Symbol-Schaltflächen dort.
 
 - Die Seite bleibt eine Server Component und besteht nur noch aus Komposition: `PageHeader`
-  (mit `Badge` für den Status), Kachel-Reihe, Teilnehmerliste mit `+ Teilnehmer`-Dialog,
+  (mit `Badge` für den Status), Kachel-Reihe, Teilnehmerliste mit `+ Teilnehmer`-Dialog (seit
+  #404: Auslöser „Teilnehmer hinzufügen"),
   Einstellungen als natives `<details>` (kein JS, Standard geschlossen).
 - `StatusToggle` wird unverändert an das **Ende der Kassieren-Seite** verschoben und dort
   entfernt aus dem Seitenkopf (heute steht er auch dort oben). Bestätigung und Offen-Hinweis

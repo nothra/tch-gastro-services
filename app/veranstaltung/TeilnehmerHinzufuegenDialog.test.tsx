@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 vi.mock("./actions", () => ({ addZeilenAction: vi.fn(), createWalkInAction: vi.fn() }));
@@ -302,6 +302,39 @@ describe("TeilnehmerHinzufuegenDialog – Schritt „Teilnehmer anlegen“ (spec
     expect(nameFeld()).toHaveValue("");
   });
 
+  it("should_focusNameField_when_absprungTapped", () => {
+    // Der Absprung hängt sich mit dem Wechsel selbst aus (Lesson #371) – ohne neues Ziel landete
+    // der Fokus auf <body> im modalen Dialog.
+    renderDialog();
+    oeffnen();
+
+    zumAnlegen();
+
+    expect(nameFeld()).toHaveFocus();
+  });
+
+  it("should_focusAbsprung_when_zurueckTapped", () => {
+    renderDialog();
+    oeffnen();
+    suche("Zacharias");
+    zumAnlegen("„Zacharias“ als Teilnehmer anlegen");
+
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+
+    expect(
+      im(auswahlSchritt()).getByRole("button", { name: "„Zacharias“ als Teilnehmer anlegen" }),
+    ).toHaveFocus();
+  });
+
+  it("should_notFocusAbsprung_when_dialogOpenedFresh", () => {
+    // Gegenrichtung: beim Öffnen bestimmt der Dialog das Fokusziel, nicht der Absprung.
+    renderDialog();
+
+    oeffnen();
+
+    expect(im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" })).not.toHaveFocus();
+  });
+
   it("should_keepSelectionAndSearch_when_zurueckTapped", async () => {
     // AK3.2 / Q1
     renderDialog();
@@ -432,12 +465,21 @@ describe("TeilnehmerHinzufuegenDialog – Schritt „Teilnehmer anlegen“ (spec
 });
 
 describe("TeilnehmerHinzufuegenDialog – während eine Action läuft", () => {
-  function neverResolving() {
-    return new Promise<never>(() => {});
+  // React 19 bündelt laufende Async-Actions in einem modulweiten Scope: eine nie aufgelöste Aktion
+  // hielte ihn über das Testende hinaus offen, und spätere Tests dieser Datei sähen ihre
+  // Action-Ergebnisse nie committet (Lesson #370). Darum löst jeder Test sie am Ende auf.
+  const offeneAntworten: Array<(zustand: { ok: true }) => void> = [];
+
+  function offeneAktion() {
+    return new Promise<{ ok: true }>((resolve) => offeneAntworten.push(resolve));
   }
 
+  afterEach(async () => {
+    await act(async () => offeneAntworten.splice(0).forEach((loese) => loese({ ok: true })));
+  });
+
   it("should_lockCloseAndShowPendingLabel_when_auswahlActionRuns", async () => {
-    addZeilenActionMock.mockImplementation(neverResolving);
+    addZeilenActionMock.mockImplementation(offeneAktion);
     renderDialog();
     oeffnen();
     fireEvent.click(im(auswahlSchritt()).getByRole("checkbox", { name: "Anna Beispiel" }));
@@ -455,7 +497,7 @@ describe("TeilnehmerHinzufuegenDialog – während eine Action läuft", () => {
 
   it("should_lockCloseZurueckAndShowPendingLabel_when_anlegenActionRuns", async () => {
     // FS: kein zweiter Submit und kein Schrittwechsel während des Laufs.
-    createWalkInActionMock.mockImplementation(neverResolving);
+    createWalkInActionMock.mockImplementation(offeneAktion);
     renderDialog();
     oeffnen();
     zumAnlegen();
@@ -478,6 +520,9 @@ describe("TeilnehmerHinzufuegenDialog – während eine Action läuft", () => {
 
     await absenden(im(auswahlSchritt()).getByRole("button", { name: "Hinzufügen" }));
 
+    expect(im(auswahlSchritt()).getByRole("alert")).toHaveTextContent(
+      "Nicht mehr wählbar: Anna Beispiel",
+    );
     expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
   });
 });
