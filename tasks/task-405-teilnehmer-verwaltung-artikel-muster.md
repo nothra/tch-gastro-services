@@ -24,7 +24,15 @@ Listenzeilen, Bearbeiten-Dialog mit Aktiv/Deaktiviert, Aufklapper „Aktiv“/�
 - [ ] AK6 `app/verwaltung/teilnehmer/` als Verzeichnis im Farb-Gate
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+ADR: [ADR-060](../docs/adr/060-listenzeile-dialog-ausloeser-notice-warnung.md) (Q2 entschieden).
+- `ListenZeile`: diskriminierte Union `href` | `onOeffnen` (+ `id`, `ausloeserRef`), neuer Slot `anhang`
+  für den Dialog; Link-Konsumenten unverändert. Ein Markup, kein zweiter Baustein.
+- `Notice`: Art `warnung` (`role="status"`, Zeichen ⚠, Token `warning`); `DuplikatWarnung` nutzt sie.
+- `TeilnehmerRow` nach Muster `CatalogRow` (`useFormularDialog`, zwei Formulare, stabile Zeilen-`id`
+  `teilnehmer-<id>` als Ersatz-Fokusziel); Gruppen per `Aufklapper` in der Server-Page.
+- Tests: ListenZeile-Button-Betrieb, Notice `warnung`, Gruppen-Logik (Aktiv/Deaktiviert, leere Gruppe
+  entfällt), Fokus nach Gruppenwechsel (Playwright), Farb-Gate-Verzeichniseintrag.
+- Lessons laden: `frontend-react.md` (Dialog/Fokus), `testing.md` (Gate-Pfadlisten).
 
 ## Offene Fragen
 - [x] Q1 Wortlaut der Wirkungssätze (Spec)

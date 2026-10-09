@@ -166,10 +166,10 @@ Primärer Nutzer: Rolle `verwalter`, überwiegend am Smartphone.
 > **Entschieden mit Ralf:**
 
 - [x] **Q1 Wortlaut der Wirkungssätze:** wie in AK2.6/AK2.7 (Ralf bestätigt).
-- [ ] **Q2 `ListenZeile` ist heute nur ein Link** (`href` Pflicht). Die Teilnehmerzeile ist ein
+- [x] **Q2 `ListenZeile` ist heute nur ein Link** (`href` Pflicht). Die Teilnehmerzeile ist ein
   Dialog-Auslöser (Button). Nötig ist eine Variante „öffnet etwas“ (Button statt Link)
   – bei gleicher Karten-Optik, Pfeil, Verblassen/Badge. Das ändert die API eines geteilten
-  Bausteins (ADR-059 D1) → **Anlass für `/architecture`** (Nachtrag zu ADR-059) vor
-  `/implement`.
+  Bausteins (ADR-059 D1) → **entschieden in `/architecture`:** ADR-060 (Union `href` | `onOeffnen`,
+  Slot `anhang`).
 - [x] **Q3 Rolle der Warnung:** `Notice` `warnung` mit `role="status"` (wie bisher, nicht
   unterbrechend) – übernommen (AK4.1).
