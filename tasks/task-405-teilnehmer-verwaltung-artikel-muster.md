@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
@@ -89,3 +89,11 @@ ADR: [ADR-060](../docs/adr/060-listenzeile-dialog-ausloeser-notice-warnung.md) (
 ---
 Branch: `feature/405-teilnehmer-verwaltung-artikel-muster`
 Erstellt: 2026-10-09 18:07
+
+## /test-Notizen
+
+- Neu: `app/components/useErsatzFokus.test.tsx` (5 Tests) belegt den geteilten Hook beim Baustein
+  (Review-Nitpick 2): Ersatzziel, `<summary>` bei zugeklapptem `<details>`, kein Erfolg, keine ID,
+  Nutzer steht woanders. Mutationsbeleg: ohne `kopf ??` bzw. ohne `marke.current` je Test rot.
+- Suite mit DB-Tests (`dotenv … vitest run --coverage`): 123 Dateien / 1790 Tests grün, Coverage 98,65 %.
+- Kein Produktionscode geändert – der Security-Bericht bleibt gültig.
