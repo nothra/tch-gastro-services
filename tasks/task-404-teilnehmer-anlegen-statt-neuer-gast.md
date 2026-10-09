@@ -56,6 +56,11 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-09): **NEEDS_REWORK** – 0 kritisch, 4 wichtig, 10 Nitpicks; Details in
+  `tasks/review-404.md`. Wichtig: Fokus beim Schrittwechsel, E2E-Helfer vs. Duplikat-Warnung,
+  offen gehaltene Promises im Unit-Test (Lesson #370), verrutschte Glossar-Zeilenverweise.
+  Out-of-Scope: Issue #416 (Duplikat-Bestätigung an den gewarnten Namen binden), Kleinfund
+  „`createWalkInAction` nicht atomar".
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

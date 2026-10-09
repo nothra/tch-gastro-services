@@ -35,6 +35,18 @@
 
 ## Offen
 
+### `createWalkInAction`: Anlegen und Hinzufügen nicht atomar
+
+- **Wo:** [`app/veranstaltung/actions.ts:405-418`](../../app/veranstaltung/actions.ts) – verifiziert
+  am 2026-10-09.
+- **Was:** Statusprüfung (`:405-407`), `createTeilnehmer` (`:417`) und `addZeile` (`:418`) laufen
+  ohne gemeinsame Transaktion. Wird die Veranstaltung zwischen Prüfung und INSERT gelöscht, bleibt
+  ein Teilnehmer ohne Zeile zurück – ein Wiederholungsversuch läuft seit #404 dann in die
+  Duplikat-Warnung. Nur im Rennen zweier Geräte herstellbar; älter als #404.
+- **Fix:** Anlegen + Zeile in einer `db/`-Funktion mit `db.transaction()` bündeln (Lesson #345:
+  nicht `runAtomic`), Rennen per DB-Integrationstest belegen. Aufwand: ~15 Zeilen + Test.
+- **Herkunft:** `/review` #404, Runde 1 (N1).
+
 ### `Dialog` meldet natives Schließen ohne `schliessbar`-Prüfung – Escape-Sperre ggf. umgehbar
 
 - **Wo:** [`app/components/ui/Dialog.tsx:75-81`](../../app/components/ui/Dialog.tsx) –
