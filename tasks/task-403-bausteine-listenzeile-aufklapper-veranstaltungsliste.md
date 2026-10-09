@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -131,6 +131,12 @@ Q1–Q5 sind in `/architecture` entschieden (Spec-Abschnitt „Offene Fragen", A
   Begründung „Titel und Pfeil" trägt nicht für die pfeillosen Kacheln; E2E-Lauf weiter offen,
   braucht Freigabe des Menschen), 12 Nitpicks. Iteration-1-Befunde K1, W1–W3 bestätigt behoben.
   → Rework: W1–W3 und alle Nitpicks behoben, W4 (E2E-Lauf) weiter offen (Notizen oben).
+- **Iteration 3 (2026-10-09): APPROVED, Circuit Breaker** – [review-403.md](review-403.md):
+  0 kritisch, 1 wichtig, 2 Nitpicks. Iteration-2-Befunde W1–W3 und alle Nitpicks sind bestätigt
+  behoben. Gates grün: Vitest (942 Tests in `app/components/ui` + `app/veranstaltung`), Lint,
+  Prettier, `tsc`. Der einzige offene Punkt ist der Playwright-Lauf. Er ist an den Menschen
+  eskaliert und **Vor-Merge-Bedingung** (AK1.2 und die Playwright-Checkbox bleiben bis dahin
+  offen). Nitpicks: Kurzzeile in ADR-059 „Konsequenzen"; Wegwerf-Dateien `scripts/*403.tmp.sh`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
