@@ -31,7 +31,7 @@ damit auf beide, ohne Zusatzarbeit.
 
 **Nicht inbegriffen:**
 - Keine Änderung an der Summen-Berechnung selbst (Kategorie-Summen bleiben unverändert).
-- Keine veranstaltungs- oder kassenübergreifende Gesamtsumme (das ist Backlog #57).
+- Keine veranstaltungs- oder kassenübergreifende Gesamtsumme (nicht geplant, siehe #57).
 - Kein Umbau der Kopf-Hierarchie (Gesamt wird nicht zur Primär-Zahl; Kategorie-Aufschlüsselung
   bleibt gleichwertig sichtbar).
 - Keine Änderung an Auslagen/Kassieren.

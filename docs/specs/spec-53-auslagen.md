@@ -43,7 +43,7 @@ Teilnehmer beim Kassieren. Die Kassenwirkung der Veranstaltung steht in F8.
 
 **Nicht inbegriffen:**
 - Netto-Verrechnung mit dem Verzehr des Teilnehmers beim Kassieren (bewusst getrennt).
-- Kassenbuch / laufender Kassen-Saldo über mehrere Veranstaltungen (Backlog #57).
+- Kassenbuch / laufender Kassen-Saldo über mehrere Veranstaltungen (#57 – nicht geplant).
 - Belegverwaltung / Foto-Upload von Quittungen.
 - Übertrag einer nicht erfolgten Erstattung auf die nächste Veranstaltung (analog Backlog #56).
 
@@ -109,5 +109,5 @@ Teilnehmer beim Kassieren. Die Kassenwirkung der Veranstaltung steht in F8.
       da gelöschte Einträge nicht in die Summen eingehen.)
 - [ ] Statusmodell mit Rücknahme (`offen` ⇄ `erstattet`): als einfaches Boolean/Enum-Feld
       abbilden, keine Übergangs-Historie im MVP.
-- [ ] Anbindung an ein späteres Kassenbuch (#57): Auslagenerstattung als kategorisierter
-      Kassen-Ausgang vormerken? Im MVP nur je Veranstaltung, ohne laufenden Saldo.
+- [x] Anbindung an ein Kassenbuch (#57): entfällt – #57 ist nicht geplant, die Kassen werden
+      außerhalb dieser App geführt. Auslagenerstattung bleibt je Veranstaltung, ohne laufenden Saldo.

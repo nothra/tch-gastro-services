@@ -44,13 +44,13 @@ Erstattung ist ein eigener Vorgang (F6). Der Verzehr-Gesamt ist daher immer ≥ 
   - **Kassenveränderung der Veranstaltung** = Σ Erhalten − Σ Auslagenerstattungen,
     ausgewiesen **für die zugeordnete Kasse**.
   Kassieren bleibt dabei je Teilnehmer **brutto** (kein Netto mit Auslagen). Ein
-  laufender Saldo je Kasse über mehrere Veranstaltungen ist **nicht** Teil des MVP (Backlog #57).
+  laufender Saldo je Kasse über mehrere Veranstaltungen ist **nicht** Teil des MVP (#57 – nicht geplant).
 
 **Nicht inbegriffen:**
 - Verrechnung/Anzeige von Auslagen in der Kassierzeile (eigener Vorgang, F6).
 - Teilzahlung / offener Restbetrag (bewusst nicht, MVP).
 - Übertrag offener Beträge / Teilnehmer-Saldo über Veranstaltungen (Backlog #56).
-- Kassenbuch / laufender Kassen-Saldo (Backlog #57).
+- Kassenbuch / laufender Kassen-Saldo (#57 – nicht geplant).
 - Bargeldlose Zahlung / PayPal (Backlog #58).
 
 ## Akzeptanzkriterien

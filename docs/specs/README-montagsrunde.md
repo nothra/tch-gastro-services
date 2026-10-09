@@ -20,7 +20,8 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 | Rollen (mit Login) | **Verwalter** (Stammdaten/Preise) + **Veranstalter** (Veranstaltungen/kassieren) |
 | Teilnehmer | Zentrale Stammdaten, **kein** eigenes Konto |
 | Bezahlung | Nur **bar** im MVP (PayPal später) |
-| Offene Posten & Kassenbuch | **später** (Backlog) |
+| Offene Posten | **später** (Backlog) |
+| Kassenbuch | **nicht geplant** (#57; Kassen werden außerhalb dieser App geführt) |
 | Offline | **keine** Offline-Anforderung (WLAN stabil), PWA nur installierbar |
 
 ## MVP-Features (Issues #48–#55)
@@ -39,7 +40,7 @@ Essen, Kaffee, Auslagen – pro Teilnehmer bzw. Familie – und kassiert bar.
 ## Backlog (bewusst nicht im MVP, Issues #56–#60)
 
 - #56 Offene Posten übertragen & Teilnehmer-Saldo über mehrere Veranstaltungen
-- #57 Kassenbuch mit laufendem Saldo **je Kasse** (Montagsrunde-Kasse, Vereinskasse, …)
+- ~~#57 Kassenbuch mit laufendem Saldo **je Kasse**~~ – **nicht geplant** (geschlossen 2026-10-09): Die Vereinskasse wird in einem anderen Programm verwaltet, die Montagsrunden-Kasse separat geführt
 - #58 Online-Bezahlung (PayPal)
 - #59 Preis-Templates je Veranstaltungstyp (z. B. Kaffee 1 € vs. 2,50 €)
 - #60 Wiederkehrende Veranstaltungsserie / Vorlagen
@@ -78,7 +79,7 @@ Siehe [spec-53](spec-53-auslagen.md) und [spec-55](spec-55-kassieren-abschluss.m
 Montagsrunde über ihre eigene **Montagsrunde-Kasse**, andere Veranstaltungen (z. B.
 Dorfmeisterschaften) über die **Vereinskasse**. Im MVP ist die Kasse ein **fester Satz**
 (`montagsrunde` | `vereinskasse`), Pflichtfeld je Veranstaltung (F4). Ein **laufender Saldo je
-Kasse** über mehrere Veranstaltungen ist Backlog #57 – im MVP nur die Kassenveränderung je Veranstaltung.
+Kasse** über mehrere Veranstaltungen ist #57 (nicht geplant) – im MVP nur die Kassenveränderung je Veranstaltung.
 
 ## Gesetzte MVP-Entscheidungen (Requirements-Schärfung 2026-07-11)
 
@@ -92,5 +93,5 @@ Kasse** über mehrere Veranstaltungen ist Backlog #57 – im MVP nur die Kassenv
   in der Gesamt-/Kassenabrechnung als Ausgaben berücksichtigt (siehe oben).
 - **Kassen:** je Veranstaltung eine zugeordnete Kasse aus **festem Satz** (`montagsrunde` |
   `vereinskasse`), Pflichtfeld; nur **Kassenveränderung je Veranstaltung**, kein laufender Saldo
-  (Backlog #57).
+  (#57 – nicht geplant).
 - **Abschluss-Korrektur:** ein **Veranstalter** darf eine abgeschlossene Veranstaltung **wieder öffnen**, korrigieren und erneut abschließen (protokolliert).

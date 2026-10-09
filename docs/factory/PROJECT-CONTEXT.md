@@ -60,7 +60,7 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
 - Auslagen mindern den Verzehr **nicht** (Abweichung vom Excel); Erstattung ist ein
   eigener Vorgang.
 - `Kassenveränderung der Veranstaltung = Σ Erhalten − Σ Auslagenerstattungen` – **je zugeordneter
-  Kasse**. Ein laufender Saldo über mehrere Veranstaltungen ist noch nicht umgesetzt (Backlog #57).
+  Kasse**. Ein laufender Saldo über mehrere Veranstaltungen wird in dieser App nicht geführt (#57 – nicht geplant; Kassen laufen außerhalb).
 
 **Rollen:** `verwalter` (Stammdaten & Preise) und `veranstalter` (Owner des Veranstaltungs-
 Lebenszyklus: anlegen, führen, kassieren – vormals `abrechner`, umbenannt in ADR-024);
