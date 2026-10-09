@@ -184,7 +184,7 @@ Grep auf den Ist-Text).
 | `app/veranstaltung/AuslageRow.tsx:131` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:96` | „Löschen …" (Veranstaltung) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/OffeneVeranstaltungen.tsx:28` | „Veranstaltung anlegen" | neues Objekt = anlegen |
-| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:29` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
+| `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:36` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
 | `app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:12` | „Verzehr erfassen" | Mengen eintragen = erfassen |
 | `app/verwaltung/teilnehmer/TeilnehmerRow.tsx:78`, `app/verwaltung/katalog/CatalogRow.tsx:89` | „Aktivieren" | umschalten = (de)aktivieren |
 | `app/veranstaltung/AuslageForm.tsx:86` | „Bitte wählen …" | Platzhalter mit Leerzeichen |

@@ -56,8 +56,8 @@ Dialog-Grundlage):
   jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf seines
   jeweils sichtbaren Schritts dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`;
   seit #404 meldet `useDialogFormular`, die Sperre hält `useFormularDialog`), weil ein `setState`
-  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
-  angeschlossen werden können.
+  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein
+  `<form action>`, damit Server Actions direkt angeschlossen werden können.
 - „Bei Erfolg schließen" liegt einmal im Hook `app/components/useSchliessendeAction.ts`
   (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`). Seit #373 ist er
   route-neutral: neben den Dialogen der Detailseite (`ZeilenMenue`, `AbschlussAktion`) baut auch
@@ -71,7 +71,10 @@ Dialog-Grundlage):
 - Verschwindet der Auslöser nach einem Erfolg, weil die Revalidierung den Seitenzweig tauscht
   (Leerzustand → Liste, Katalogzeile wechselt die Kategorie), lenkt `useFormularDialog` den Fokus
   auf ein Ersatzziel (`ersatzFokusId`: Seitenkopf-Auslöser bzw. die umgezogene Zeile) statt ihn
-  auf `<body>` fallen zu lassen (#373, Lesson #371).
+  auf `<body>` fallen zu lassen (#373, Lesson #371). Dasselbe gilt im mehrstufigen Dialog beim
+  Schrittwechsel, der den auslösenden Knopf aushängt: dort setzt der neue Schritt den Fokus selbst
+  (seit #404 in `TeilnehmerHinzufuegenDialog` – Anlegen aufs Namensfeld, die Rückkehr auf den
+  Absprung).
 - Die vier bestehenden Dialoge werden in #369 **nicht** migriert (das ist #372 AK1). Sie dürfen
   aber nach dieser ADR nicht als Vorbild für neue Dialoge dienen.
 - Keine neue Abhängigkeit (ADR-052 D1). Ein Fokus-Trap ist beim nativen modalen `<dialog>`

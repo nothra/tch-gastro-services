@@ -326,9 +326,35 @@ describe("TeilnehmerHinzufuegenDialog – Schritt „Teilnehmer anlegen“ (spec
     ).toHaveFocus();
   });
 
+  it("should_focusAbsprung_when_zurueckTappedWithoutVerfuegbare", () => {
+    // Der Leer-Zweig rendert den Absprung getrennt vom Treffer-Zweig (Lesson #352).
+    renderDialog([]);
+    oeffnen();
+    zumAnlegen();
+
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+
+    expect(im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" })).toHaveFocus();
+  });
+
   it("should_notFocusAbsprung_when_dialogOpenedFresh", () => {
     // Gegenrichtung: beim Öffnen bestimmt der Dialog das Fokusziel, nicht der Absprung.
     renderDialog();
+
+    oeffnen();
+
+    expect(
+      im(auswahlSchritt()).getByRole("button", { name: "Teilnehmer anlegen" }),
+    ).not.toHaveFocus();
+  });
+
+  it("should_notFocusAbsprung_when_dialogReopenedAfterZurueck", () => {
+    // Die Rückkehr aus dem Anlegen darf das nächste Öffnen nicht mitprägen.
+    renderDialog();
+    oeffnen();
+    zumAnlegen();
+    fireEvent.click(im(anlegeSchritt()).getByRole("button", { name: "← Zur Auswahl" }));
+    fireEvent.click(im(auswahlSchritt()).getByRole("button", { name: "Abbrechen" }));
 
     oeffnen();
 

@@ -43,8 +43,12 @@
   ohne gemeinsame Transaktion. Wird die Veranstaltung zwischen Prüfung und INSERT gelöscht, bleibt
   ein Teilnehmer ohne Zeile zurück – ein Wiederholungsversuch läuft seit #404 dann in die
   Duplikat-Warnung. Nur im Rennen zweier Geräte herstellbar; älter als #404.
-- **Fix:** Anlegen + Zeile in einer `db/`-Funktion mit `db.transaction()` bündeln (Lesson #345:
-  nicht `runAtomic`), Rennen per DB-Integrationstest belegen. Aufwand: ~15 Zeilen + Test.
+- **Fix:** Anlegen + Zeile in einer `db/`-Funktion über `runAtomic` (`db/atomic.ts`) bündeln –
+  **nie** `db.transaction()` direkt, das wirft unter dem Neon-HTTP-Treiber in INT/PRD (Lesson #345).
+  Die Teilnehmer-ID vorab per `crypto.randomUUID()` erzeugen, weil `.batch()` keine Abhängigkeit
+  zwischen den Abfragen erlaubt; der FK der Zeile lässt dann im Rennen den ganzen Batch scheitern.
+  Belegen per Treiber-Mock-Test analog `db/catalog.duplicateCatalog-driver.test.ts` plus
+  DB-Integrationstest. Aufwand: ~25 Zeilen + zwei Tests.
 - **Herkunft:** `/review` #404, Runde 1 (N1).
 
 ### `Dialog` meldet natives Schließen ohne `schliessbar`-Prüfung – Escape-Sperre ggf. umgehbar

@@ -85,6 +85,20 @@ Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach A
   Iteration-1-Funde behoben. Wichtig (beide Doku): Glossar-Anker `TeilnehmerHinzufuegenDialog.tsx:29`
   durch den Rework auf `:36` verrutscht (Rezidiv #375); Kleinfund „`createWalkInAction` nicht
   atomar" empfiehlt `db.transaction()` statt `runAtomic` – Gegenteil der Lesson #345.
+- Rework nach Iteration 2 (2026-10-09), beide Wichtig-Funde behoben:
+  - Glossar-Anker `TeilnehmerHinzufuegenDialog.tsx:29` → `:36`. Danach alle `Datei:Zeile`-Anker
+    des Glossars auf die in diesem PR geänderten Dateien gegen den Code geprüft (`actions.ts:100`,
+    `:103–106`, `:342`, `:346`; `schema.ts:20–21`; `TeilnehmerAnlegen.tsx:42`) – alle stimmen.
+  - Kleinfund-Fix umgedreht: `runAtomic`, nie `db.transaction()`; Teilnehmer-ID vorab per
+    `crypto.randomUUID()`, Treiber-Mock-Test + DB-Integrationstest, Aufwand ~25 Zeilen. Dass der
+    FK `veranstaltung_zeile.veranstaltung_id` im Rennen den Batch scheitern lässt, ist gegen
+    `db/schema.ts:254-256` geprüft.
+  - Nitpicks erledigt: Fokus-Test für den Leer-Zweig, Test „erneutes Öffnen nach Zurück fokussiert
+    den Absprung nicht“ (beide per Mutation belegt, je Mutation genau der neue Test rot), ADR-053
+    Zeile umbrochen und um die Fokus-Regel beim Schrittwechsel ergänzt.
+  - Weiter offen (menschlicher Schritt vor dem Merge): Bild `06-teilnehmer-hinzufuegen.png` neu
+    erzeugen.
+  - Gates: Lint, `format:check`, `tsc --noEmit`, `pnpm test` (1637 grün).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
