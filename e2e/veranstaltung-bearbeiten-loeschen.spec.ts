@@ -54,6 +54,29 @@ function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
   return legeVeranstaltungAn(page, bezeichnung, "2026-09-14");
 }
 
+// Zeichnet ab jetzt auf, ob irgendwann die 404-Seite gerendert wird (Next-Standard: `<h1>404</h1>`).
+// Der Seitenwechsel nach dem Löschen ist eine Client-Navigation – `window` überlebt ihn, und der
+// Beobachter sieht auch ein Bild, das nur für einen Frame steht (Review-372 W4).
+async function beobachte404(page: Page) {
+  await page.evaluate(() => {
+    const fenster = window as unknown as { sah404?: boolean };
+    fenster.sah404 = false;
+    const pruefe = () => {
+      const ueberschriften = Array.from(document.querySelectorAll("h1"));
+      if (ueberschriften.some((h1) => h1.textContent?.trim() === "404")) fenster.sah404 = true;
+    };
+    new MutationObserver(pruefe).observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+  });
+}
+
+function sah404(page: Page): Promise<boolean | undefined> {
+  return page.evaluate(() => (window as unknown as { sah404?: boolean }).sah404);
+}
+
 // Das Bearbeiten-Formular der Detailseite – über seinen Absende-Button identifiziert, weil der
 // Dialog „Einstellungen" (#391) zwei Formulare trägt (Katalogwechsel, Bearbeiten).
 function metaForm(page: Page) {
@@ -161,11 +184,18 @@ test.describe("Veranstaltung bearbeiten und löschen (#352)", () => {
 
     // ── AK4/AK9: erst die Bestätigung löscht – und leitet zur Übersicht weiter ──────────────
     await oeffneLoeschDialog(page);
+    await beobachte404(page);
     await page.getByRole("button", { name: "Endgültig löschen" }).click();
     await expect(page).toHaveURL(/\/veranstaltung$/);
     // spec-372 AK13: der Toast überlebt den Seitenwechsel und steht auf der Übersicht.
     await expect(toast(page, "Veranstaltung gelöscht")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "404" })).toHaveCount(0);
+    // ADR-058 D2: auch kein kurzes 404-Bild der gelöschten Detailseite vor der Navigation.
+    expect(await sah404(page)).toBe(false);
+    // Positivkontrolle: der Beobachter erkennt ein 404 überhaupt.
+    await page.evaluate(() =>
+      document.body.append(Object.assign(document.createElement("h1"), { textContent: "404" })),
+    );
+    await expect.poll(() => sah404(page)).toBe(true);
 
     // ── AK4: die Veranstaltung ist aus der Übersicht verschwunden ───────────────────────────
     await expect(page.locator(`a[href="${detailPfad}"]`)).toHaveCount(0);

@@ -7,7 +7,7 @@ import {
   schliesseEinstellungen,
 } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
-import { toast } from "./helpers/toast";
+import { schliesseToast, toast } from "./helpers/toast";
 
 // Oberflächen-Nachweis für das einheitliche Bestätigen und Rückmelden (#372, spec-372, ADR-058).
 // Prüft gegen einen echten Browser, was jsdom nicht belegen kann: dass Escape und der inerte
@@ -141,7 +141,8 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
 
     // Die Auswahl führt auf die Seite des neuen Katalogs (CatalogSwitcher).
     const vorher = page.url();
-    await page.getByLabel("Katalog").selectOption({ label: name });
+    // `exact`: die Toast-Karte „Katalog angelegt" trägt ihren Text als Namen (Lesson #388).
+    await page.getByLabel("Katalog", { exact: true }).selectOption({ label: name });
     await page.waitForURL((url) => url.href !== vorher);
 
     // ── AK5: Umbenennen-Dialog mit verknüpftem Feld, Escape schließt ────────────────────────
@@ -168,6 +169,9 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
     await bestaetigung.getByRole("button", { name: "Deaktivieren" }).click();
     await expect(bestaetigung).toBeHidden();
     await expect(toast(page, "Katalog deaktiviert")).toBeVisible();
+    // Das Aufräumen unten meldet dasselbe noch einmal – innerhalb der Standzeit stünden sonst zwei
+    // gleiche Toasts (Review-372 W5).
+    await schliesseToast(page, "Katalog deaktiviert");
 
     // ── AK4: Aktivieren wirkt sofort, ohne Dialog ───────────────────────────────────────────
     await page.getByRole("button", { name: "Aktivieren", exact: true }).click();
