@@ -39,14 +39,16 @@ describe("TeilnehmerAnlegen (spec-373 AK8.1, AK1)", () => {
   it("should_showOnlyTrigger_when_rendered", () => {
     render(<TeilnehmerAnlegen ausloeser="+ Neu" />);
 
-    expect(screen.queryByLabelText("Anzeigename")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
   it("should_showFieldsOfFormerForm_when_opened", () => {
     // AK1.2: gleiche Felder wie bisher.
     renderUndOeffnen();
 
-    expect(screen.getByLabelText("Anzeigename")).toBeRequired();
+    expect(screen.getByLabelText("Name")).toBeRequired();
+    // spec-404: dieselbe Grenze wie `teilnehmerSchema`, jetzt auch in der Verwaltung am Feld.
+    expect(screen.getByLabelText("Name")).toHaveAttribute("maxLength", "200");
     expect(screen.getByLabelText("Typ")).toHaveValue("person");
     expect(screen.getByLabelText("Mitglied")).not.toBeChecked();
     expect(confirmDuplicate()).toHaveValue("false");
@@ -55,7 +57,7 @@ describe("TeilnehmerAnlegen (spec-373 AK8.1, AK1)", () => {
   it("should_sendFieldsAndClose_when_anlegenSucceeds", async () => {
     // AK1.3
     renderUndOeffnen();
-    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna" } });
 
     await klicke("Anlegen");
 
@@ -68,7 +70,7 @@ describe("TeilnehmerAnlegen (spec-373 AK8.1, AK1)", () => {
   it("should_reportAngelegt_when_anlegenSucceeds", async () => {
     // spec-372 AK12.
     renderUndOeffnen();
-    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna" } });
 
     await klicke("Anlegen");
 
@@ -79,7 +81,7 @@ describe("TeilnehmerAnlegen (spec-373 AK8.1, AK1)", () => {
     // Die Duplikat-Warnung ist kein Erfolg – sie bleibt im Dialog.
     createMock.mockResolvedValueOnce({ needsConfirm: true, warning: DUPLIKAT_WARNUNG });
     renderUndOeffnen();
-    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna" } });
 
     await klicke("Anlegen");
 
@@ -90,24 +92,24 @@ describe("TeilnehmerAnlegen (spec-373 AK8.1, AK1)", () => {
     // AK1.4
     createMock.mockResolvedValue({ error: "Anzeigename ist zu lang." });
     renderUndOeffnen();
-    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna" } });
 
     await klicke("Anlegen");
 
     expect(screen.getByRole("alert")).toHaveTextContent("Anzeigename ist zu lang.");
-    expect(screen.getByLabelText("Anzeigename")).toHaveValue("Anna");
+    expect(screen.getByLabelText("Name")).toHaveValue("Anna");
   });
 
   it("should_offerTrotzdemAnlegenWithConfirm_when_duplicateWarning", async () => {
     // ADR-022: die überstimmbare Duplikat-Warnung bleibt im Dialog, der Zweitversuch bestätigt.
     createMock.mockResolvedValueOnce({ needsConfirm: true, warning: DUPLIKAT_WARNUNG });
     renderUndOeffnen();
-    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Anna" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Anna" } });
 
     await klicke("Anlegen");
 
     expect(screen.getByRole("status")).toHaveTextContent(DUPLIKAT_WARNUNG);
-    expect(screen.getByLabelText("Anzeigename")).toHaveValue("Anna");
+    expect(screen.getByLabelText("Name")).toHaveValue("Anna");
     expect(confirmDuplicate()).toHaveValue("true");
 
     await klicke("Trotzdem anlegen");

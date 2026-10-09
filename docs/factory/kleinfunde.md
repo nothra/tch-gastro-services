@@ -404,24 +404,6 @@
 - **Herkunft:** `/review` zu #351 (Runde 2, Nitpick, bewusst kein Rework-Grund – kein
   erreichbarer Auslöser).
 
-### „Neuer Gast" baut die Felder von `TeilnehmerFields` nach, statt sie wiederzuverwenden
-
-- **Wo:** [`app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:148-192`](../../app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx)
-  (`GastBereich` samt WHY-Kommentar) gegen [`app/verwaltung/teilnehmer/TeilnehmerFields.tsx:9-41`](../../app/verwaltung/teilnehmer/TeilnehmerFields.tsx)
-  (verifiziert am 2026-10-01).
-- **Was:** Name, Typ und Mitglied existieren zweimal. Der frühere `WalkInForm` nutzte
-  `TeilnehmerFields` gerade gegen diese Duplikation; der neue Dialog darf es nicht, weil
-  `TeilnehmerFields` noch rohe Farbklassen (`inputClass` mit `zinc-*`/`dark:`) trägt und die neue
-  Oberfläche nur Bausteine und Tokens nutzen darf (spec-369 AK31, ADR-052). Die Beschriftung
-  weicht bereits ab („Name" im Dialog, „Anzeigename" in der Verwaltung); die Längengrenze ist seit
-  #369 über `TEILNEHMER_NAME_MAX` gekoppelt.
-- **Fix:** `TeilnehmerFields` auf `Field`/`SelectField` umstellen, Pfad in
-  `eslint/ui-token-files.mjs` eintragen und `GastBereich` darauf zurückführen; Beschriftung
-  dabei vereinheitlichen (E2E-Specs nutzen `getByLabel("Name")` bzw. `"Anzeigename"`). Etwa zehn
-  Zeilen plus Testanpassung – mitnehmen, wenn die Teilnehmer-Verwaltung ohnehin auf die
-  Bausteine umgestellt wird.
-- **Herkunft:** `/review` zu #369 (Runde 2, Wichtig-Finding), in der Rework-Runde klassifiziert.
-
 ### Capture-Spec der Anleitung läuft nicht bis zum Ende durch – Bilder `10`–`12` ungeprüft
 
 - **Wo:** [`e2e/anleitung-veranstalter.spec.ts:173`](../../e2e/anleitung-veranstalter.spec.ts)
@@ -479,7 +461,7 @@
   Teilnehmer-Zeile (dort nur in eine Konstante `sekundaerButtonClass` gezogen) blieben im Altstand.
 - **Fix:** Klassen auf Bausteine/Token-Klassen umstellen, die drei Pfade in
   `eslint/ui-token-files.mjs` eintragen. Je Datei wenige Zeilen; mitnehmen, wenn die Datei ohnehin
-  angefasst wird (für `TeilnehmerRow` zusammen mit dem Eintrag „Neuer Gast" oben).
+  angefasst wird.
 - **Herkunft:** `/review` zu #372 (Runde 1 + 2, Out-of-Scope).
 
 ### Bestätigungs-Steuerung in `ZeilenMenue` und `AbschlussAktion` handkopiert

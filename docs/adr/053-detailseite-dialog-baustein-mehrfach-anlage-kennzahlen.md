@@ -53,9 +53,10 @@ Dialog-Grundlage):
   (`role="alert"`) und ein `pending`-Zustand, der beide Schaltflächen **und Escape** sperrt –
   sonst schlösse sich der Dialog, während der Server den Vorgang trotzdem ausführt, und eine
   Ablehnung sähe niemand. Die Escape-Sperre liegt im `Dialog` selbst (Prop `schliessbar`), damit
-  jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf beider
-  Bereiche dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`), weil ein `setState`
-  am Anfang der Action erst mit ihrem Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
+  jeder Konsument dieselbe Regel nutzt; `TeilnehmerHinzufuegenDialog` meldet den Lauf seines
+  jeweils sichtbaren Schritts dorthin (Start aus `onSubmit`, Ende aus `useSchliessendeAction`;
+  seit #404 über `useFormularDialog`), weil ein `setState` am Anfang der Action erst mit ihrem
+  Ende sichtbar würde. Die Bestätigung ist ein `<form action>`, damit Server Actions direkt
   angeschlossen werden können.
 - „Bei Erfolg schließen" liegt einmal im Hook `app/components/useSchliessendeAction.ts`
   (umschließt die Action, ruft bei `ok` den Schließ-Handler, ohne `useEffect`). Seit #373 ist er
@@ -64,7 +65,9 @@ Dialog-Grundlage):
   `app/components/FormularDialog.tsx` (Listenseiten) auf ihm auf. Wie `formAction` ans Formular
   kommt, entscheidet der Konsument: die Listenseiten schicken über `onSubmit` +
   `startTransition` ab, damit eine Ablehnung die Eingaben nicht zurücksetzt (spec-373 AK1.4); die
-  Detailseiten-Dialoge nutzen noch `<form action>` (#398).
+  übrigen Detailseiten-Dialoge nutzen noch `<form action>` (#398). `TeilnehmerHinzufuegenDialog`
+  schickt seit #404 ebenfalls über `useDialogFormular` ab – die Duplikat-Warnung beim Anlegen
+  muss die Eingaben stehen lassen (spec-404 AK4.3).
 - Verschwindet der Auslöser nach einem Erfolg, weil die Revalidierung den Seitenzweig tauscht
   (Leerzustand → Liste, Katalogzeile wechselt die Kategorie), lenkt `useFormularDialog` den Fokus
   auf ein Ersatzziel (`ersatzFokusId`: Seitenkopf-Auslöser bzw. die umgezogene Zeile) statt ihn
@@ -117,7 +120,9 @@ Dialog-Grundlage):
   SQLSTATE). Kein `onConflictDoNothing`: stille Teilerfolge wären die verwirrendere Variante.
 - „Neuer Gast" bleibt `createWalkInAction` unverändert (legt Teilnehmer an und erfasst ihn). Die
   dort liegende Zweischritt-Schreibung (Teilnehmer anlegen, dann Zeile) ist vorbestehend und
-  nicht Teil dieser Entscheidung.
+  nicht Teil dieser Entscheidung. Seit #404 heißt der Bereich „Teilnehmer anlegen" (eigener
+  Dialog-Schritt), und `createWalkInAction` kennt die überstimmbare Duplikat-Warnung der
+  Verwaltung (ADR-022, `confirmDuplicate`).
 
 ### D4 · Kacheln-Kennzahlen aus den bestehenden Summen, ein reiner Adapter
 

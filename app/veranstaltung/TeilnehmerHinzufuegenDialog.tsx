@@ -1,109 +1,101 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
-import { Field, SelectField } from "@/app/components/ui/Field";
+import { Field } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
-import { TEILNEHMER_NAME_MAX } from "@/app/verwaltung/teilnehmer/schema";
-import { TYP_LABEL } from "@/app/verwaltung/teilnehmer/TeilnehmerFields";
+import {
+  DialogAktionen,
+  useDialogFormular,
+  useFormularDialog,
+  type DialogSteuerung,
+} from "@/app/components/FormularDialog";
+import { anlegenLabel, DuplikatWarnung } from "@/app/verwaltung/teilnehmer/DuplikatWarnung";
+import { TeilnehmerFields } from "@/app/verwaltung/teilnehmer/TeilnehmerFields";
 import type { Teilnehmer } from "@/db/schema";
 import { addZeilenAction, createWalkInAction } from "./actions";
-import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
 
-// Der eine „+ Teilnehmer"-Dialog der Detailseite (spec-369 AK10–AK16, ADR-053 D1/D3): oben die
-// Auswahl aus den noch nicht erfassten aktiven Stammteilnehmern, darunter „Neuer Gast". Er ersetzt
-// die beiden früheren Formulare (Teilnehmer hinzufügen, Walk-in). Validierung und Ablehnungen
-// kommen ausschließlich aus den Server Actions – hier entsteht keine zweite Regel.
+// Der Dialog „Teilnehmer hinzufügen" der Detailseite (spec-369 AK10–AK16, ADR-053 D1/D3) in zwei
+// Schritten (spec-404): die Auswahl vorhandener Teilnehmer und, als Absprung daraus, „Teilnehmer
+// anlegen" mit denselben Feldern wie die Verwaltung. Validierung und Ablehnungen kommen
+// ausschließlich aus den Server Actions – hier entsteht keine zweite Regel.
 
-type StammteilnehmerAuswahl = Pick<Teilnehmer, "id" | "name">;
+type TeilnehmerAuswahl = Pick<Teilnehmer, "id" | "name">;
+
+type Schritt = { art: "auswahl" } | { art: "anlegen"; namensVorschlag: string };
+
+const SCHRITT_TITEL: Record<Schritt["art"], string> = {
+  auswahl: "Teilnehmer hinzufügen",
+  anlegen: "Teilnehmer anlegen",
+};
 
 interface TeilnehmerHinzufuegenDialogProps {
   veranstaltungId: string;
-  /** Aktive Stammteilnehmer ohne Zeile in dieser Veranstaltung (serverseitig gefiltert). */
-  verfuegbar: readonly StammteilnehmerAuswahl[];
+  /** Aktive Teilnehmer ohne Zeile in dieser Veranstaltung (serverseitig gefiltert). */
+  verfuegbar: readonly TeilnehmerAuswahl[];
 }
 
 export function TeilnehmerHinzufuegenDialog({
   veranstaltungId,
   verfuegbar,
 }: TeilnehmerHinzufuegenDialogProps) {
-  const [open, setOpen] = useState(false);
-  const ausloeserRef = useRef<HTMLButtonElement>(null);
-  const [laufendeActions, setLaufendeActions] = useState(0);
-  const schliessen = () => setOpen(false);
-  // Zähler statt Boolean: beide Bereiche können gleichzeitig abschicken.
-  const meldeLauf = (laeuft: boolean) => setLaufendeActions((n) => n + (laeuft ? 1 : -1));
-  const gesperrt = laufendeActions > 0;
+  const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog();
+  // Hier statt im Dialog-Inhalt, weil der Titel des Dialogs vom Schritt abhängt.
+  const [schritt, setSchritt] = useState<Schritt>({ art: "auswahl" });
+
+  function oeffnenBeiAuswahl() {
+    setSchritt({ art: "auswahl" });
+    oeffnen();
+  }
 
   return (
     <>
-      <Button ref={ausloeserRef} size="sm" onClick={() => setOpen(true)}>
-        + Teilnehmer
+      <Button ref={ausloeserRef} size="sm" onClick={oeffnenBeiAuswahl}>
+        Teilnehmer hinzufügen
       </Button>
-      <Dialog
-        open={open}
-        onClose={schliessen}
-        schliessbar={!gesperrt}
-        title="Teilnehmer hinzufügen"
-        returnFocusRef={ausloeserRef}
-      >
-        <StammteilnehmerBereich
+      <Dialog {...dialogProps} title={SCHRITT_TITEL[schritt.art]}>
+        <DialogInhalt
           veranstaltungId={veranstaltungId}
           verfuegbar={verfuegbar}
-          onErfolg={schliessen}
-          onLaeuftChange={meldeLauf}
+          schritt={schritt}
+          onSchrittWechsel={setSchritt}
+          steuerung={steuerung}
         />
-        <GastBereich
-          veranstaltungId={veranstaltungId}
-          onErfolg={schliessen}
-          onLaeuftChange={meldeLauf}
-        />
-        <div className="flex justify-end">
-          <Button variant="secondary" onClick={schliessen} disabled={gesperrt}>
-            Abbrechen
-          </Button>
-        </div>
       </Dialog>
     </>
   );
 }
 
-interface BereichProps {
-  veranstaltungId: string;
-  onErfolg: () => void;
-  onLaeuftChange: (laeuft: boolean) => void;
+interface DialogInhaltProps extends TeilnehmerHinzufuegenDialogProps {
+  schritt: Schritt;
+  onSchrittWechsel: (schritt: Schritt) => void;
+  steuerung: DialogSteuerung;
 }
 
-function StammteilnehmerBereich({
+// Suche und Auswahl leben hier, nicht im Auswahl-Schritt: sie überstehen den Wechsel zum Anlegen
+// und zurück (spec-404 Q1), beginnen aber mit jedem Öffnen frisch, weil der Dialog seine Kinder
+// nur offen mountet (ADR-053 D1).
+function DialogInhalt({
   veranstaltungId,
   verfuegbar,
-  onErfolg,
-  onLaeuftChange,
-}: BereichProps & { verfuegbar: readonly StammteilnehmerAuswahl[] }) {
-  const [state, formAction, pending, meldeStart] = useSchliessendeAction(addZeilenAction, {
-    onErfolg,
-    onLaeuftChange,
-    erfolgsMeldung: "Teilnehmer hinzugefügt",
-  });
+  schritt,
+  onSchrittWechsel,
+  steuerung,
+}: DialogInhaltProps) {
   const [suche, setSuche] = useState("");
   const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
 
-  if (verfuegbar.length === 0) {
-    // Die Meldung bleibt auch hier stehen: war die abgelehnte Person die letzte verfügbare, ist
-    // die Auswahl nach dem Neu-Rendern leer, ihr Name gehört trotzdem angezeigt (FS2).
+  if (schritt.art === "anlegen") {
     return (
-      <section role="group" aria-label="Stammteilnehmer" className="flex flex-col gap-2">
-        <p className="text-sm text-muted">Alle aktiven Stammteilnehmer sind bereits erfasst.</p>
-        <Notice kind="fehler">{state?.error}</Notice>
-      </section>
+      <AnlegeSchritt
+        veranstaltungId={veranstaltungId}
+        namensVorschlag={schritt.namensVorschlag}
+        steuerung={steuerung}
+        onZurueck={() => onSchrittWechsel({ art: "auswahl" })}
+      />
     );
   }
-
-  const begriff = suche.trim().toLocaleLowerCase("de");
-  const treffer = verfuegbar.filter((person) =>
-    person.name.toLocaleLowerCase("de").includes(begriff),
-  );
 
   function umschalten(id: string) {
     setGewaehlt((bisher) => {
@@ -115,16 +107,79 @@ function StammteilnehmerBereich({
   }
 
   return (
-    <section role="group" aria-label="Stammteilnehmer" className="flex flex-col gap-3">
+    <AuswahlSchritt
+      veranstaltungId={veranstaltungId}
+      verfuegbar={verfuegbar}
+      suche={suche}
+      onSuche={setSuche}
+      gewaehlt={gewaehlt}
+      onUmschalten={umschalten}
+      onAnlegen={(namensVorschlag) => onSchrittWechsel({ art: "anlegen", namensVorschlag })}
+      steuerung={steuerung}
+    />
+  );
+}
+
+interface AuswahlSchrittProps {
+  veranstaltungId: string;
+  verfuegbar: readonly TeilnehmerAuswahl[];
+  suche: string;
+  onSuche: (suche: string) => void;
+  gewaehlt: ReadonlySet<string>;
+  onUmschalten: (id: string) => void;
+  onAnlegen: (namensVorschlag: string) => void;
+  steuerung: DialogSteuerung;
+}
+
+function AuswahlSchritt({
+  veranstaltungId,
+  verfuegbar,
+  suche,
+  onSuche,
+  gewaehlt,
+  onUmschalten,
+  onAnlegen,
+  steuerung,
+}: AuswahlSchrittProps) {
+  const { state, pending, absenden } = useDialogFormular(addZeilenAction, steuerung, {
+    erfolgsMeldung: "Teilnehmer hinzugefügt",
+  });
+
+  if (verfuegbar.length === 0) {
+    // Die Meldung bleibt auch hier stehen: war die abgelehnte Person die letzte verfügbare, ist
+    // die Auswahl nach dem Neu-Rendern leer, ihr Name gehört trotzdem angezeigt (FS2).
+    return (
+      <>
+        <p className="text-sm text-muted">Alle aktiven Teilnehmer sind bereits hinzugefügt.</p>
+        <Notice kind="fehler">{state?.error}</Notice>
+        <AnlegenAbsprung namensVorschlag="" onAnlegen={onAnlegen} gesperrt={steuerung.gesperrt} />
+        <div className="flex justify-end">
+          <Button variant="secondary" onClick={steuerung.schliessen} disabled={steuerung.gesperrt}>
+            Abbrechen
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  const suchtext = suche.trim();
+  const begriff = suchtext.toLocaleLowerCase("de");
+  const treffer = verfuegbar.filter((person) =>
+    person.name.toLocaleLowerCase("de").includes(begriff),
+  );
+  const keinTreffer = treffer.length === 0;
+
+  return (
+    <>
       <Field
         label="Suchen"
         type="search"
         value={suche}
-        onChange={(event) => setSuche(event.target.value)}
+        onChange={(event) => onSuche(event.target.value)}
         autoComplete="off"
       />
-      {treffer.length === 0 ? (
-        <p className="text-sm text-muted">Kein Stammteilnehmer passt zu „{suche.trim()}“.</p>
+      {keinTreffer ? (
+        <p className="text-sm text-muted">Kein Teilnehmer passt zu „{suchtext}“.</p>
       ) : (
         <ul className="flex max-h-64 flex-col overflow-y-auto">
           {treffer.map((person) => (
@@ -134,7 +189,7 @@ function StammteilnehmerBereich({
                   type="checkbox"
                   value={person.id}
                   checked={gewaehlt.has(person.id)}
-                  onChange={() => umschalten(person.id)}
+                  onChange={() => onUmschalten(person.id)}
                   className="h-5 w-5 shrink-0 accent-accent"
                 />
                 <span className="min-w-0">{person.name}</span>
@@ -143,7 +198,12 @@ function StammteilnehmerBereich({
           ))}
         </ul>
       )}
-      <form action={formAction} onSubmit={meldeStart} className="flex flex-col gap-3">
+      <AnlegenAbsprung
+        namensVorschlag={keinTreffer ? suchtext : ""}
+        onAnlegen={onAnlegen}
+        gesperrt={steuerung.gesperrt}
+      />
+      <form onSubmit={absenden} className="flex flex-col gap-3">
         <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
         {/* Die Auswahl wird aus dem Zustand abgeschickt, nicht aus den sichtbaren Checkboxen:
             die Suche filtert nur die Anzeige, eine angehakte Person bleibt gewählt. */}
@@ -153,60 +213,78 @@ function StammteilnehmerBereich({
             <input key={person.id} type="hidden" name="teilnehmerId" value={person.id} />
           ))}
         <Notice kind="fehler">{state?.error}</Notice>
-        <Button type="submit" disabled={pending} className="self-start">
-          {pending ? "Hinzufügen …" : "Hinzufügen"}
-        </Button>
+        <DialogAktionen
+          steuerung={steuerung}
+          pending={pending}
+          label="Hinzufügen"
+          laufLabel="Hinzufügen …"
+        />
       </form>
-    </section>
+    </>
   );
 }
 
-// Name/Typ/Mitglied bewusst NICHT über `TeilnehmerFields` (anders als der frühere `WalkInForm`):
-// jene Felder tragen noch rohe Farbklassen, die neue Oberfläche darf nur Bausteine und Tokens
-// nutzen (spec-369 AK31, ADR-052). Die Zusammenführung – `TeilnehmerFields` auf die Bausteine
-// umstellen und hier wiederverwenden – steht in `kleinfunde.md`. Bis dahin hält die gemeinsame
-// Konstante wenigstens die Längengrenze an der Zod-Grenze fest.
-function GastBereich({ veranstaltungId, onErfolg, onLaeuftChange }: BereichProps) {
-  const [state, formAction, pending, meldeStart] = useSchliessendeAction(createWalkInAction, {
-    onErfolg,
-    onLaeuftChange,
-    erfolgsMeldung: "Neuer Gast angelegt",
+interface AnlegenAbsprungProps {
+  /** Leer: „Teilnehmer anlegen"; sonst übernimmt der Schritt den Suchtext (spec-404 AK3.3). */
+  namensVorschlag: string;
+  onAnlegen: (namensVorschlag: string) => void;
+  gesperrt: boolean;
+}
+
+function AnlegenAbsprung({ namensVorschlag, onAnlegen, gesperrt }: AnlegenAbsprungProps) {
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => onAnlegen(namensVorschlag)}
+      disabled={gesperrt}
+      className="self-start break-words"
+    >
+      {namensVorschlag ? `„${namensVorschlag}“ als Teilnehmer anlegen` : "Teilnehmer anlegen"}
+    </Button>
+  );
+}
+
+interface AnlegeSchrittProps {
+  veranstaltungId: string;
+  namensVorschlag: string;
+  steuerung: DialogSteuerung;
+  onZurueck: () => void;
+}
+
+// Jede Ablehnung betrifft den eingegebenen Namen oder den Zustand der Veranstaltung; das
+// Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb als Feldfehler (spec-404 AK4.4).
+function AnlegeSchritt({
+  veranstaltungId,
+  namensVorschlag,
+  steuerung,
+  onZurueck,
+}: AnlegeSchrittProps) {
+  const { state, pending, absenden } = useDialogFormular(createWalkInAction, steuerung, {
+    erfolgsMeldung: "Teilnehmer angelegt und hinzugefügt",
   });
 
   return (
-    <section
-      role="group"
-      aria-label="Neuer Gast"
-      className="flex flex-col gap-3 border-t border-line-subtle pt-4"
-    >
-      <h3 className="text-sm font-semibold">Neuer Gast</h3>
-      <form action={formAction} onSubmit={meldeStart} className="flex flex-col gap-3">
-        <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
-        {/* Jede Ablehnung des Walk-in betrifft den eingegebenen Gast oder den Zustand der
-            Veranstaltung; das Namensfeld ist die einzige Freitexteingabe und trägt sie deshalb
-            als Feldfehler (FS3). */}
-        <Field
-          label="Name"
-          name="name"
-          required
-          maxLength={TEILNEHMER_NAME_MAX}
-          error={state?.error}
-        />
-        <SelectField label="Typ" name="typ" defaultValue="person">
-          {(Object.entries(TYP_LABEL) as [Teilnehmer["typ"], string][]).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </SelectField>
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <input type="checkbox" name="mitglied" className="h-5 w-5 accent-accent" />
-          Mitglied
-        </label>
-        <Button type="submit" variant="secondary" disabled={pending} className="self-start">
-          {pending ? "Anlegen …" : "Gast hinzufügen"}
-        </Button>
-      </form>
-    </section>
+    <form onSubmit={absenden} className="flex flex-col gap-3">
+      <Button
+        variant="ghost"
+        onClick={onZurueck}
+        disabled={steuerung.gesperrt}
+        className="self-start"
+      >
+        ← Zur Auswahl
+      </Button>
+      <p className="text-sm text-muted">
+        Der Teilnehmer wird angelegt und direkt zu dieser Veranstaltung hinzugefügt.
+      </p>
+      <input type="hidden" name="veranstaltungId" value={veranstaltungId} />
+      <TeilnehmerFields namensVorschlag={namensVorschlag} nameFehler={state?.error} />
+      <DuplikatWarnung state={state} />
+      <DialogAktionen
+        steuerung={steuerung}
+        pending={pending}
+        label={anlegenLabel(state)}
+        laufLabel="Anlegen …"
+      />
+    </form>
   );
 }

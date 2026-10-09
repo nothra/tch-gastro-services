@@ -133,20 +133,24 @@ Bei einer abgeschlossenen Veranstaltung fehlen die drei Symbole; dort steht nur 
 
 ![Übersicht der Veranstaltung mit „Veranstaltung abschließen" und den Symbolen Teilen, Zahnrad und Papierkorb im Kopf, den Kacheln „Verzehr erfassen", „Auslagen erfassen" und „Kassieren" und der Teilnehmerliste.](bilder/05-veranstaltung-fuehren.png)
 
-**Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„+ Teilnehmer"**. Es öffnet
-sich ein Fenster mit zwei Bereichen:
+**Was tue ich?** Tippen Sie neben der Überschrift **„Teilnehmer"** auf **„Teilnehmer hinzufügen"**.
+Es öffnet sich ein Fenster:
 
-- **Bekannte Personen/Familien (oben im Fenster):** Suchen Sie nach dem Namen, haken Sie **eine oder mehrere**
+- **Bekannte Personen/Familien:** Suchen Sie nach dem Namen, haken Sie **eine oder mehrere**
   Personen an und tippen Sie auf **„Hinzufügen"**.
-- **Neuer Gast, noch nicht in der Liste:** Tragen Sie unter **„Neuer Gast"** den **Namen** ein,
-  wählen Sie **Person** oder **Familie**, setzen Sie bei Vereinsmitgliedern den Haken
-  **„Mitglied"** und tippen Sie auf **„Gast hinzufügen"**.
+- **Noch nicht in der Liste:** Tippen Sie auf **„Teilnehmer anlegen"** – findet die Suche
+  niemanden, heißt der Knopf **„„<Name>" als Teilnehmer anlegen"** und übernimmt den gesuchten
+  Namen. Im nächsten Schritt tragen Sie den **Namen** ein, wählen **Person** oder **Familie**,
+  setzen bei Vereinsmitgliedern den Haken **„Mitglied"** und tippen auf **„Anlegen"**. Die Person
+  wird angelegt und direkt zur Veranstaltung hinzugefügt. Gibt es den Namen schon, weist die App
+  darauf hin; **„Trotzdem anlegen"** legt die Person dennoch an. **„← Zur Auswahl"** führt zurück,
+  ohne Ihre Auswahl zu verlieren.
 
 **Was passiert?** Das Fenster schließt sich, und die Teilnehmer erscheinen in der Liste. Ein Tipp
 auf einen Namen öffnet direkt die Verzehr-Erfassung dieser Person. Über **„⋯"** am Zeilenende
 können Sie eine Person wieder **entfernen** – die App fragt vorher nach.
 
-![Fenster „Teilnehmer hinzufügen" mit Suche, Auswahl und dem Bereich „Neuer Gast".](bilder/06-teilnehmer-hinzufuegen.png)
+![Fenster „Teilnehmer hinzufügen" mit Suche, Auswahl und dem Knopf „Teilnehmer anlegen".](bilder/06-teilnehmer-hinzufuegen.png)
 
 ### Zugang teilen (Selbstbedienung)
 

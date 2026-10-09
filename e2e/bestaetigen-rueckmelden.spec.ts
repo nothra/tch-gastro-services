@@ -54,7 +54,9 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
   test("AK1/AK2/AK7: Auslage löschen fragt nach, Abbrechen und Escape lassen sie stehen", async ({
     page,
   }) => {
-    const gast = `${PREFIX}Gast`;
+    // Zeitstempel: der Teilnehmer überlebt die Veranstaltung, ein fester Name liefe ab dem zweiten
+    // Lauf in die Duplikat-Warnung (spec-404 AK4.3).
+    const gast = `${PREFIX}Teilnehmer${Date.now()}`;
     const detailPfad = await legeVeranstaltungAn(page, `${PREFIX}Auslage`, "2026-09-14");
     await page.goto(detailPfad);
     await gastHinzufuegen(page, gast);

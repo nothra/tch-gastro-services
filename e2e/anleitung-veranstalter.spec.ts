@@ -117,7 +117,7 @@ async function createStammTeilnehmer(page: Page) {
   for (let i = 0; i < STAMMTEILNEHMER.length; i++) {
     const person = STAMMTEILNEHMER[i];
     const dialog = await oeffneTeilnehmerAnlegen(page);
-    await dialog.getByLabel("Anzeigename").fill(person.name);
+    await dialog.getByLabel("Name", { exact: true }).fill(person.name);
     await dialog.getByLabel("Typ").selectOption({ label: person.typ });
     if (person.mitglied) await dialog.getByLabel("Mitglied").check();
     await schickeAnlegeDialogAb(dialog);
@@ -169,10 +169,10 @@ async function shotStartseiteMitOffener(page: Page, detailPfad: string) {
 // Alle Stammteilnehmer in einem Schwung anhaken; der Screenshot zeigt den Dialog mit der Auswahl.
 async function addStammTeilnehmer(page: Page, namen: readonly string[]) {
   await oeffneTeilnehmerDialog(page);
-  const auswahl = teilnehmerDialog(page).getByRole("group", { name: "Stammteilnehmer" });
+  const auswahl = teilnehmerDialog(page);
   for (const name of namen) await auswahl.getByRole("checkbox", { name }).check();
   await shotEl(page, "06-teilnehmer-hinzufuegen.png", teilnehmerDialog(page));
-  await auswahl.getByRole("button", { name: "Hinzufügen" }).click();
+  await auswahl.getByRole("button", { name: "Hinzufügen", exact: true }).click();
   await expect(teilnehmerDialog(page)).toBeHidden();
 }
 
@@ -292,7 +292,7 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     await expect(page.getByRole("heading", { name: VERANSTALTUNG.bezeichnung })).toBeVisible();
 
     // Schritt 3 – führen: Zugang teilen (Teilen-Symbol im Seitenkopf), Teilnehmer über den
-    // „+ Teilnehmer"-Dialog erfassen, dann die Übersicht oben aufnehmen.
+    // Dialog „Teilnehmer hinzufügen" erfassen, dann die Übersicht oben aufnehmen.
     await shotZugang(page);
     await addStammTeilnehmer(
       page,

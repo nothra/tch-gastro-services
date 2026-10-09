@@ -8,6 +8,7 @@ import {
   oeffneLoeschDialog,
   oeffneTeilnehmerDialog,
   seitenkopf,
+  teilnehmerAusloeser,
   teilnehmerDialog,
 } from "./helpers/detailseite";
 import {
@@ -29,7 +30,7 @@ import {
 //
 // Jeder Test räumt seine Veranstaltung am Ende über den Lösch-Weg wieder ab. Alle angelegten Namen
 // tragen das `__test__`-Präfix der DB-Integrationstests, weil die Spec in dieselbe geteilte Dev-DB
-// schreibt (#346); angelegte Stammteilnehmer und Gäste bleiben als präfixierter Bestand liegen.
+// schreibt (#346); angelegte Teilnehmer bleiben als präfixierter Bestand liegen.
 
 const email = process.env.SEED_ADMIN_EMAIL ?? "";
 const password = process.env.SEED_ADMIN_PASSWORD ?? "";
@@ -64,7 +65,7 @@ function createVeranstaltung(page: Page, bezeichnung: string): Promise<string> {
 async function createStammteilnehmer(page: Page, name: string) {
   await page.goto("/verwaltung/teilnehmer");
   const dialog = await oeffneTeilnehmerAnlegen(page);
-  await dialog.getByLabel("Anzeigename").fill(name);
+  await dialog.getByLabel("Name", { exact: true }).fill(name);
   await schickeAnlegeDialogAb(dialog);
   await expect(page.getByText(name, { exact: true })).toBeVisible();
 }
@@ -140,9 +141,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     for (const kachel of await kacheln.all()) {
       expect(await hoehe(kachel)).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
     }
-    expect(await hoehe(page.getByRole("button", { name: "+ Teilnehmer" }))).toBeGreaterThanOrEqual(
-      MIN_TIPP_HOEHE,
-    );
+    expect(await hoehe(teilnehmerAusloeser(page))).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
     const menue = page.getByRole("button", { name: `Aktionen für ${PREFIX} Gast1 ${LAUF}` });
     const menueBox = await groesse(menue);
     expect(menueBox.height).toBeGreaterThanOrEqual(MIN_TIPP_HOEHE);
@@ -157,14 +156,14 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await loescheVeranstaltung(page, detailPfad);
   });
 
-  test("AK10–AK16: ein Dialog für Stammteilnehmer (Mehrfachauswahl) und neuen Gast", async ({
+  test("AK10–AK16: ein Dialog für Auswahl (Mehrfachauswahl) und Teilnehmer anlegen", async ({
     page,
   }) => {
     test.setTimeout(120_000);
     await login(page);
 
-    // Eigener Suchbegriff: die parallel laufenden Tests legen Gäste (= aktive Stammteilnehmer) mit
-    // demselben Lauf-Suffix an – eine Suche nur nach LAUF fände auch sie.
+    // Eigener Suchbegriff: die parallel laufenden Tests legen Teilnehmer mit demselben Lauf-Suffix
+    // an – eine Suche nur nach LAUF fände auch sie.
     const suchbegriff = `Auswahl-${LAUF}`;
     const anna = `${PREFIX} Anna ${suchbegriff}`;
     const bernd = `${PREFIX} Bernd ${suchbegriff}`;
@@ -178,15 +177,15 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
 
     // ── AK14: Hinzufügen ohne Auswahl → Dialog bleibt offen, nennt den Grund ───────────────
     await oeffneTeilnehmerDialog(page);
-    const auswahl = teilnehmerDialog(page).getByRole("group", { name: "Stammteilnehmer" });
-    await auswahl.getByRole("button", { name: "Hinzufügen" }).click();
+    const auswahl = teilnehmerDialog(page);
+    await auswahl.getByRole("button", { name: "Hinzufügen", exact: true }).click();
     await expect(auswahl.getByRole("alert")).toHaveText(/Bitte mindestens einen Teilnehmer wählen/);
     await expect(teilnehmerDialog(page)).toBeVisible();
 
-    // ── AK15: Escape schließt ohne Änderung, Fokus zurück auf „+ Teilnehmer" ───────────────
+    // ── AK15: Escape schließt ohne Änderung, Fokus zurück auf den Auslöser ─────────────────
     await page.keyboard.press("Escape");
     await expect(teilnehmerDialog(page)).toBeHidden();
-    await expect(page.getByRole("button", { name: "+ Teilnehmer" })).toBeFocused();
+    await expect(teilnehmerAusloeser(page)).toBeFocused();
     await expect(page.getByRole("heading", { name: "Teilnehmer (0)" })).toBeVisible();
 
     // ── AK11/AK12: suchen, beide anhaken, gemeinsam hinzufügen ─────────────────────────────
@@ -195,7 +194,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     await expect(auswahl.getByRole("checkbox")).toHaveCount(2);
     await auswahl.getByRole("checkbox", { name: anna }).check();
     await auswahl.getByRole("checkbox", { name: bernd }).check();
-    await auswahl.getByRole("button", { name: "Hinzufügen" }).click();
+    await auswahl.getByRole("button", { name: "Hinzufügen", exact: true }).click();
     await expect(teilnehmerDialog(page)).toBeHidden();
     await expect(page.getByRole("heading", { name: "Teilnehmer (2)" })).toBeVisible();
     await expect(teilnehmerZeile(page, anna)).toBeVisible();
@@ -204,11 +203,11 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     // ── AK11: kein Treffer → Leerzustand; bereits Erfasste stehen nicht mehr zur Wahl ──────
     await oeffneTeilnehmerDialog(page);
     await auswahl.getByRole("searchbox", { name: "Suchen" }).fill(suchbegriff);
-    await expect(auswahl.getByText(/Kein Stammteilnehmer passt zu/)).toBeVisible();
+    await expect(auswahl.getByText(/Kein Teilnehmer passt zu/)).toBeVisible();
     await page.getByRole("button", { name: "Abbrechen" }).click();
 
-    // ── AK13: neuer Gast über denselben Dialog ─────────────────────────────────────────────
-    await gastHinzufuegen(page, `${PREFIX} Gast ${LAUF}`);
+    // ── AK13: Teilnehmer anlegen über denselben Dialog (spec-404) ──────────────────────────
+    await gastHinzufuegen(page, `${PREFIX} Neu ${LAUF}`);
     await expect(page.getByRole("heading", { name: "Teilnehmer (3)" })).toBeVisible();
 
     await loescheVeranstaltung(page, detailPfad);
@@ -382,7 +381,7 @@ test.describe("Veranstaltungs-Detailseite neu geordnet (#369)", () => {
     for (const name of ["Link & QR teilen", "Einstellungen", "Veranstaltung löschen"]) {
       await expect(kopfAktion(page, name), name).toHaveCount(0);
     }
-    await expect(page.getByRole("button", { name: "+ Teilnehmer" })).toHaveCount(0);
+    await expect(teilnehmerAusloeser(page)).toHaveCount(0);
 
     // Aufräumen: wieder öffnen, dann löschen.
     await bestaetigeStatuswechsel(page, "Wieder öffnen", "Wieder öffnen");

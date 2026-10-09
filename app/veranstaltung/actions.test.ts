@@ -35,6 +35,7 @@ vi.mock("@/db/teilnehmer", () => ({
   getTeilnehmer: vi.fn(),
   getTeilnehmerByIds: vi.fn(),
   createTeilnehmer: vi.fn(),
+  findActiveByName: vi.fn(),
 }));
 // Der Mock ersetzt das ganze Modul – die Konstante muss mitgeliefert werden, sonst reichte die
 // Action `undefined` als Katalogbezug durch und die Wiring-Assertion unten wäre wertlos.
@@ -66,7 +67,12 @@ vi.mock("@/lib/rate-limit", () => ({
 import { revalidatePath } from "next/cache";
 import { selfServiceVerzehrRateLimiter } from "@/lib/rate-limit";
 import { auth } from "@/auth";
-import { createTeilnehmer, getTeilnehmer, getTeilnehmerByIds } from "@/db/teilnehmer";
+import {
+  createTeilnehmer,
+  findActiveByName,
+  getTeilnehmer,
+  getTeilnehmerByIds,
+} from "@/db/teilnehmer";
 import { getCatalogById, getCatalogItem } from "@/db/catalog";
 import { adjustMenge, getPosition, listPositionen } from "@/db/verzehr";
 import {
@@ -132,6 +138,7 @@ const listPositionenMock = vi.mocked(listPositionen);
 const ensureThekeMock = vi.mocked(ensureThekeForKasse);
 const getTeilnehmerMock = vi.mocked(getTeilnehmer);
 const createTeilnehmerMock = vi.mocked(createTeilnehmer);
+const findActiveByNameMock = vi.mocked(findActiveByName);
 const getCatalogItemMock = vi.mocked(getCatalogItem);
 const getCatalogByIdMock = vi.mocked(getCatalogById);
 const setVeranstaltungCatalogMock = vi.mocked(setVeranstaltungCatalog);
@@ -1055,6 +1062,47 @@ describe("createWalkInAction", () => {
 
     await expect(createWalkInAction(undefined, form(walkIn))).rejects.toThrow(ForbiddenError);
     expect(createTeilnehmerMock).not.toHaveBeenCalled();
+  });
+
+  it("should_warnWithoutPersisting_when_activeTeilnehmerWithSameNameExists", async () => {
+    // spec-404 AK4.3: dieselbe überstimmbare Duplikat-Warnung wie in der Verwaltung (ADR-022).
+    findActiveByNameMock.mockResolvedValue(person);
+
+    const result = await createWalkInAction(undefined, form(walkIn));
+
+    expect(result).toEqual({
+      needsConfirm: true,
+      warning:
+        "Ein aktiver Teilnehmer mit diesem Namen existiert bereits. Zum Anlegen erneut bestätigen.",
+    });
+    expect(findActiveByNameMock).toHaveBeenCalledWith("Neuer Gast");
+    expect(createTeilnehmerMock).not.toHaveBeenCalled();
+    expect(addZeileMock).not.toHaveBeenCalled();
+  });
+
+  it("should_createAndAddDespiteDuplicate_when_duplicateConfirmed", async () => {
+    // spec-404 AK4.3: erst der bestätigte Zweitversuch legt an und fügt hinzu.
+    findActiveByNameMock.mockResolvedValue(person);
+
+    const result = await createWalkInAction(
+      undefined,
+      form({ ...walkIn, confirmDuplicate: "true" }),
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(createTeilnehmerMock).toHaveBeenCalledTimes(1);
+    expect(addZeileMock).toHaveBeenCalledWith("v1", person);
+  });
+
+  it("should_notWarn_when_veranstaltungClosedAndNameDuplicate", async () => {
+    // spec-404 AK4.4: eine nicht offene Veranstaltung lehnt ab, bevor die Warnung greift – sonst
+    // führte „Trotzdem anlegen" nur in die nächste Ablehnung.
+    getVeranstaltungMock.mockResolvedValue({ ...offeneVeranstaltung, status: "abgeschlossen" });
+    findActiveByNameMock.mockResolvedValue(person);
+
+    const result = await createWalkInAction(undefined, form(walkIn));
+
+    expect(result).toEqual({ error: "Die Veranstaltung ist abgeschlossen und schreibgeschützt." });
   });
 
   it("should_returnError_when_veranstaltungIdMissing", async () => {

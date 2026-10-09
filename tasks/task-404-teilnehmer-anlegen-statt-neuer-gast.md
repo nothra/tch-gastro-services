@@ -1,7 +1,7 @@
 # Task 404: teilnehmer-anlegen-statt-neuer-gast
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -14,22 +14,42 @@ Dialog „Teilnehmer hinzufügen" verschlanken; „Neuer Gast" wird zum eigenen 
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 Kein „Gast"/„Neuer Gast" mehr in der UI
-- [ ] AK2 Dialog nur Suche, Mehrfachauswahl, „Hinzufügen"/„Abbrechen"
-- [ ] AK3.1 Absprung „Teilnehmer anlegen" → eigener Schritt mit Zurück
-- [ ] AK3.2 Zurück behält Auswahl/Suche
-- [ ] AK3.3 Ohne Treffer: „„<Suchtext>" als Teilnehmer anlegen" übernimmt Namen
-- [ ] AK4.1 Gleiche Felder/Komponente wie Verwaltung + Hinweis „direkt hinzugefügt"
-- [ ] AK4.2 Anlegen + Hinzufügen, Meldung „Teilnehmer angelegt und hinzugefügt"
-- [ ] AK4.3 Duplikat-Warnung „Trotzdem anlegen" (ADR-022)
-- [ ] AK4.4 Ablehnung: Dialog bleibt offen, Fehler am Namensfeld, nichts angelegt
-- [ ] AK5 Label „Name" überall; „Stammteilnehmer" entfällt
-- [ ] AK6 `TeilnehmerFields` von beiden Stellen genutzt; Kleinfund aufgelöst
-- [ ] AK7 Auslöser „Teilnehmer hinzufügen"
-- [ ] AK8 `docs/ux/glossar.md` angepasst
+- [x] AK1 Kein „Gast"/„Neuer Gast" mehr in der UI
+- [x] AK2 Dialog nur Suche, Mehrfachauswahl, „Hinzufügen"/„Abbrechen"
+- [x] AK3.1 Absprung „Teilnehmer anlegen" → eigener Schritt mit Zurück
+- [x] AK3.2 Zurück behält Auswahl/Suche
+- [x] AK3.3 Ohne Treffer: „„<Suchtext>" als Teilnehmer anlegen" übernimmt Namen
+- [x] AK4.1 Gleiche Felder/Komponente wie Verwaltung + Hinweis „direkt hinzugefügt"
+- [x] AK4.2 Anlegen + Hinzufügen, Meldung „Teilnehmer angelegt und hinzugefügt"
+- [x] AK4.3 Duplikat-Warnung „Trotzdem anlegen" (ADR-022)
+- [x] AK4.4 Ablehnung: Dialog bleibt offen, Fehler am Namensfeld, nichts angelegt
+- [x] AK5 Label „Name" überall; „Stammteilnehmer" entfällt
+- [x] AK6 `TeilnehmerFields` von beiden Stellen genutzt; Kleinfund aufgelöst
+- [x] AK7 Auslöser „Teilnehmer hinzufügen"
+- [x] AK8 `docs/ux/glossar.md` angepasst
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
+- ADR-Trigger-Check (2026-10-09): keine Kategorie – reiner UI-Umbau; die Server Action übernimmt
+  nur die bestehende Duplikat-Warnung (ADR-022). ADR-053 D1/D3 im selben PR nachgezogen.
+- Duplikat-Warnung als gemeinsamer Baustein `app/verwaltung/teilnehmer/DuplikatWarnung.tsx`
+  (Hidden-Feld + Warnung + Button-Label); Wortlaut `TEILNEHMER_DUPLIKAT_WARNUNG` in `schema.ts`,
+  nicht in einer `"use server"`-Datei, weil beide Actions ihn melden.
+- `createWalkInAction` prüft die Veranstaltung **vor** der Duplikat-Warnung, damit „Trotzdem
+  anlegen" nicht in die nächste Ablehnung läuft.
+- Der Dialog schickt jetzt über `useFormularDialog`/`useDialogFormular` (`onSubmit` +
+  `startTransition`) ab – `<form action>` setzte die Eingaben nach der Duplikat-Warnung zurück
+  (Lesson #373 AK1.4).
+- Zod-Meldungen „Anzeigename ist erforderlich./zu lang." bleiben (Spec: Schema unverändert); als
+  Ist→Soll-Zeilen an #401 übergeben (`docs/ux/glossar.md`).
+- Oberflächentests (2026-10-09) gegen den lokalen Dev-Server: `e2e/teilnehmer-anlegen.spec.ts`
+  (`E2E_404=1`) sowie die angepassten Specs `veranstaltung-detailseite` (`E2E_DETAILSEITE_369`),
+  `bestaetigen-rueckmelden` (`E2E_372`) und `listenseiten` (`E2E_LISTENSEITEN_373`) – 14/14 grün.
+  Zwei Locator-Fehler der neuen Spec behoben (Dev-DB-Namen mit „Gast"; Toast im Dialog-Portal, #372).
+- **Offen – menschlicher Schritt vor dem Merge:** `docs/anleitung/veranstalter/bilder/06-teilnehmer-hinzufuegen.png`
+  zeigt noch den alten Dialog mit „Neuer Gast"; per Capture-Spec (`CAPTURE_ANLEITUNG=1`) neu
+  erzeugen. Der Alt-Text ist bereits angepasst; die Capture-Spec läuft laut `kleinfunde.md` nicht
+  bis zum Ende durch.
 
 ## Offene Fragen
 Keine. Entschieden: Q1 Auswahl bleibt beim Zurück · Q2 Dialog schließt nach Anlegen · Q3 Duplikat-Warnung auch in der Veranstaltung · Q4 „Alle aktiven Teilnehmer sind bereits hinzugefügt."

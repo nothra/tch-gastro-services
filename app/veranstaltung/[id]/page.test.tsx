@@ -94,7 +94,7 @@ vi.mock("./KopfDialog", () => ({
 vi.mock("../TeilnehmerHinzufuegenDialog", () => ({
   TeilnehmerHinzufuegenDialog: ({ verfuegbar }: { verfuegbar: { id: string }[] }) => (
     <button type="button" data-testid="teilnehmer-dialog">
-      + Teilnehmer ({verfuegbar.map((t) => t.id).join(",")})
+      Teilnehmer hinzufügen ({verfuegbar.map((t) => t.id).join(",")})
     </button>
   ),
 }));
@@ -525,8 +525,8 @@ describe("VeranstaltungDetailPage – Kacheln (AK3–AK7)", () => {
 
 describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
   it("should_showCountHeadingWithDialogInSameRow_when_veranstaltungOffen", async () => {
-    // AK8: Überschrift und „+ Teilnehmer" in derselben Zeile; nur noch nicht erfasste aktive
-    // Stammteilnehmer stehen zur Wahl.
+    // AK8: Überschrift und „Teilnehmer hinzufügen" in derselben Zeile; nur noch nicht
+    // hinzugefügte aktive Teilnehmer stehen zur Wahl.
     listZeilenMock.mockResolvedValue([zeile("z-1", "Anna")]);
     listActiveTeilnehmerMock.mockResolvedValue([
       teilnehmer("t-z-1", "Anna"),
@@ -538,7 +538,7 @@ describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
     const ueberschrift = screen.getByRole("heading", { name: "Teilnehmer (1)" });
     const knopf = screen.getByTestId("teilnehmer-dialog");
     expect(ueberschrift.parentElement).toBe(knopf.parentElement);
-    expect(knopf).toHaveTextContent("+ Teilnehmer (t-9)");
+    expect(knopf).toHaveTextContent("Teilnehmer hinzufügen (t-9)");
   });
 
   it("should_renderRowsEditable_when_veranstaltungOffen", async () => {
@@ -550,7 +550,7 @@ describe("VeranstaltungDetailPage – Teilnehmerliste (AK8, AK9)", () => {
   });
 
   it("should_renderRowsReadOnlyWithoutDialog_when_veranstaltungAbgeschlossen", async () => {
-    // AK9 / AK6: Liste schreibgeschützt sichtbar, kein „+ Teilnehmer", kein Zeilenmenü.
+    // AK9 / AK6: Liste schreibgeschützt sichtbar, kein „Teilnehmer hinzufügen", kein Zeilenmenü.
     listZeilenMock.mockResolvedValue([zeile("z-1", "Anna Beispiel")]);
 
     await renderSeite(abgeschlossen);

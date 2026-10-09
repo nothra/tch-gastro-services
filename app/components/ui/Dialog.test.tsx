@@ -19,7 +19,7 @@ function Harness({ onClose = () => {} }: { onClose?: () => void }) {
           setOpen(false);
         }}
         title="Teilnehmer hinzufügen"
-        description="Wähle Stammteilnehmer oder lege einen Gast an."
+        description="Wähle Teilnehmer aus oder lege einen neuen an."
       >
         <input aria-label="Suche" />
       </Dialog>
@@ -57,7 +57,7 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Öffnen" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teilnehmer hinzufügen" });
-    expect(dialog).toHaveAccessibleDescription("Wähle Stammteilnehmer oder lege einen Gast an.");
+    expect(dialog).toHaveAccessibleDescription("Wähle Teilnehmer aus oder lege einen neuen an.");
   });
 
   it("should_wrapLongWordsInTitleAndDescription_when_open", () => {
@@ -69,7 +69,7 @@ describe("Dialog (ADR-053 D1, spec-369 AK29/AK30)", () => {
     expect(screen.getByRole("heading", { name: "Teilnehmer hinzufügen" })).toHaveClass(
       "break-words",
     );
-    expect(screen.getByText("Wähle Stammteilnehmer oder lege einen Gast an.")).toHaveClass(
+    expect(screen.getByText("Wähle Teilnehmer aus oder lege einen neuen an.")).toHaveClass(
       "break-words",
     );
   });
