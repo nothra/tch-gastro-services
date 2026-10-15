@@ -222,15 +222,12 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone, an der Theke
 - [x] **Q3 Abgeschlossene Veranstaltung:** nur lesen – kein „+ Neu“, kein ⋯, Zeile nicht
   antippbar (Ralf, 2026-10-15; entspricht dem heutigen Verhalten).
 
-> **Für `/architecture` (kein Requirement, aber Entscheidungsbedarf):**
+> **Entschieden in `/architecture` (ADR-061):**
 
-- [ ] **Q4 Zeilenmenü:** `ZeilenMenue` ist feature-lokal mit **einem** Konsumenten (ADR-053 D2:
-  „ein projektweites Menü-Muster ist noch nicht belegt“). Mit den Auslagen entsteht der
-  **zweite** Konsument mit abweichenden Einträgen. Ist jetzt der Zeitpunkt, ein route-neutrales
-  Menü-Muster zu schaffen, oder bleibt es bei einer zweiten feature-lokalen Variante?
-- [ ] **Q5 Betrag in der Zeile:** `ListenZeile` hat keinen Slot für einen Betrag rechts neben dem
-  Titelblock (nur `zustand`-Badge und `aktion`). Betrag im Untertitel, im Titel oder neuer Slot?
-- [ ] **Q6 Badge-Art `warnung`:** `Badge` kennt `warnung` (laut Issue) – prüfen, dass das Verblassen
-  (`zustand`) **nicht** für „offen/erstattet“ missbraucht wird (Status ≠ Deaktiviert); wahrscheinlich
-  eigener `Badge`-Aufruf neben `ListenZeile`.
-- [ ] **Q7 ADR-Trigger:** Falls Q4/Q5 die API geteilter Bausteine ändern, ADR nötig (Muster ADR-059/060).
+- [x] **Q4 Zeilenmenü:** route-neutraler Baustein `AktionsMenue` (+ `MenueEintrag`), `ZeilenMenue`
+  wird darauf umgestellt (ADR-061 D1).
+- [x] **Q5 Betrag in der Zeile:** neuer `ListenZeile`-Slot `kennzeichen` (Betrag + Badge), nicht
+  verblasst (ADR-061 D2).
+- [x] **Q6 Badge-Art:** eigener `Badge` (`warnung`/`erfolg`) im Slot `kennzeichen`; `zustand`/Verblassen
+  bleibt für „deaktiviert/abgeschlossen" reserviert (ADR-061 D2).
+- [x] **Q7 ADR:** ADR-061 angelegt (API-Erweiterung geteilter Bausteine).

@@ -25,10 +25,15 @@ Auslagen-Seite an die UI-Grundlage angleichen: Liste zuerst, „+ Neu“-Dialog,
 - [ ] Fehlerszenarien F1–F5 (u. a. F2: abgeschlossene Veranstaltung = nur lesen)
 
 ## Technische Notizen
-<!-- Von /architecture befüllt oder eigene Notizen -->
+ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md`):
+- `AktionsMenue` + `MenueEintrag` als Baustein unter `app/components/ui/`; `ZeilenMenue` darauf umstellen (Tests unverändert grün).
+- `ListenZeile`: neuer Slot `kennzeichen` (Betrag + Badge, nicht verblasst).
+- Erstatten = Formular im Menü-Popup, Fehler als `Notice` dort; Löschen weiter über `ConfirmDialog`.
+- Nur-lesen (abgeschlossene Veranstaltung): reine Anzeigekarte statt `ListenZeile`.
+- TDD-Reihenfolge, Farb-Gate-Einträge und Fokus-Lessons siehe ADR „Implementierungs-Hinweise".
 
 ## Offene Fragen
-- Q4–Q7 (Zeilenmenü-Muster, Betrag-Slot, Badge-Art, ADR) → `/architecture` (siehe Spec)
+- Q4–Q7 entschieden in ADR-061.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
