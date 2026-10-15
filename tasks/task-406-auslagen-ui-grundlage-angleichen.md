@@ -44,8 +44,10 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
 - E2E: neue Opt-in-Spec `e2e/auslagen.spec.ts` (`E2E_406=1`), Helfer `e2e/helpers/auslagen.ts`;
   `bestaetigen-rueckmelden.spec.ts` und Capture-Spec `anleitung-veranstalter.spec.ts` auf den
   neuen Einstieg umgestellt, Anleitung (Schritt 5) angepasst.
-- [ ] Oberflächentest: `e2e/auslagen.spec.ts` + `bestaetigen-rueckmelden.spec.ts` gegen lokalen
-  Dev-Server gelaufen
+- [x] Oberflächentest: `e2e/auslagen.spec.ts` + `bestaetigen-rueckmelden.spec.ts` gegen lokalen
+  Dev-Server gelaufen (2026-10-16, Rework Iteration 2: eigener `next dev -p 3106` über
+  `localhost`, `db:migrate` + `db:seed`, `E2E_406=1 E2E_372=1`, Wegwerf-Config ohne `webServer`
+  – 4/4 grün)
 - [ ] Vor dem Merge (Mensch): Screenshot `docs/anleitung/veranstalter/bilder/09-auslagen.png`
   neu aufnehmen (Capture-Spec, `CAPTURE_ANLEITUNG=1`) – zeigt noch das Formular über der Liste
 
@@ -71,6 +73,17 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   Iteration 1 behoben. Offen: „Bearbeiten"/„Löschen" schließen das Menü während laufender
   Erstattung (Ablehnung verpufft, AK3.4) – Sperre auf die Einträge ausweiten; Opt-in-E2E
   `e2e/auslagen.spec.ts` nie gelaufen (Lesson #403). Details in `tasks/review-406.md`.
+- Rework Iteration 2 (2026-10-16): beide wichtigen Findings behoben – `AktionsMenue` sperrt
+  während eines gemeldeten Laufs alle `MenueEintrag`e über einen Kontext (Konsument verdrahtet
+  kein `disabled`); Tests im Baustein (Sperre + Freigabe nach Laufende) und in `AuslageRow`
+  („Bearbeiten"/„Löschen" während laufender Erstattung → Menü bleibt, kein Dialog, Ablehnung
+  sichtbar; danach wieder bedienbar), RED vor GREEN belegt. E2E gelaufen (siehe Umsetzung).
+  Nitpicks: JSDoc `meldeLauf` präzisiert (nur der Erfolg schließt frei), ADR-061 D1 um die
+  Eintrags-Sperre ergänzt und neu umbrochen, ADR-060 Z. 41–45 neu umbrochen. Die neue Sperre
+  selbst ist nur in jsdom belegt – eine verzögerte Server-Ablehnung lässt sich im E2E nicht ohne
+  Eingriff in die Action erzeugen. Gitignorte Wegwerf-Dateien (`scripts/e2e406.tmp.sh`,
+  `playwright-406.tmp.config.ts`, `e2e406-*.tmp.log`) konnten mangels `rm`-Freigabe nicht
+  gelöscht werden – bitte manuell entfernen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
