@@ -15,14 +15,14 @@ Auslagen-Seite an die UI-Grundlage angleichen: Liste zuerst, „+ Neu“-Dialog,
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] AK1 Seitenaufbau: Übersicht über Liste, „+ Neu“ → Dialog „Auslage erfassen“, Leerzustand
-- [ ] AK2 Zeile als `ListenZeile` mit Badge offen/erstattet; Tipp → „Auslage bearbeiten“
-- [ ] AK3 ⋯-Menü: Als erstattet markieren / Erstattung zurücknehmen, Bearbeiten, Löschen
-- [ ] AK4 Löschen mit `ConfirmDialog` (bleibt erhalten), Toast „Auslage gelöscht“
-- [ ] AK5 Bausteine `Field`/`SelectField`/`Notice`/`Button`/`PageHeader` statt Eigenbau
-- [ ] AK6 Texte nach Glossar (Toast, Busy, Platzhalter, Kein-Zugriff, „Betrag (€)“)
-- [ ] AK7 Dateien im Farb-Gate (`eslint/ui-token-files.mjs`)
-- [ ] Fehlerszenarien F1–F5 (u. a. F2: abgeschlossene Veranstaltung = nur lesen)
+- [x] AK1 Seitenaufbau: Übersicht über Liste, „+ Neu“ → Dialog „Auslage erfassen“, Leerzustand
+- [x] AK2 Zeile als `ListenZeile` mit Badge offen/erstattet; Tipp → „Auslage bearbeiten“
+- [x] AK3 ⋯-Menü: Als erstattet markieren / Erstattung zurücknehmen, Bearbeiten, Löschen
+- [x] AK4 Löschen mit `ConfirmDialog` (bleibt erhalten), Toast „Auslage gelöscht“
+- [x] AK5 Bausteine `Field`/`SelectField`/`Notice`/`Button`/`PageHeader` statt Eigenbau
+- [x] AK6 Texte nach Glossar (Toast, Busy, Platzhalter, Kein-Zugriff, „Betrag (€)“)
+- [x] AK7 Dateien im Farb-Gate (`eslint/ui-token-files.mjs`)
+- [x] Fehlerszenarien F1–F5 (u. a. F2: abgeschlossene Veranstaltung = nur lesen)
 
 ## Technische Notizen
 ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md`):
@@ -31,6 +31,23 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
 - Erstatten = Formular im Menü-Popup, Fehler als `Notice` dort; Löschen weiter über `ConfirmDialog`.
 - Nur-lesen (abgeschlossene Veranstaltung): reine Anzeigekarte statt `ListenZeile`.
 - TDD-Reihenfolge, Farb-Gate-Einträge und Fokus-Lessons siehe ADR „Implementierungs-Hinweise".
+
+### Umsetzung (/implement, 2026-10-15)
+- Kein neuer ADR-Trigger: alle Entscheidungen stehen in ADR-061.
+- `AktionsMenue` ruft die Render-Funktion über eine innere Komponente auf (`MenueEintraege`):
+  `schliessen` fasst die Auslöser-Ref an, direkt im Render übergeben meldet `react-hooks/refs`.
+- `ZeilenMenue` nutzt jetzt `useBestaetigung` (Kleinfund auf `AbschlussAktion` verkleinert).
+- `AuslageForm.tsx` enthält `AuslageFormular` (Erfassen + Bearbeiten); `AuslageErfassen.tsx` ist
+  die Client-Hülle für `AnlegeDialog` (Seite ist Server Component). ADR-061 D4 angeglichen.
+- Farb-Gate: Negativ-Fixtures in `eslint/color-gate-wiring.test.ts` auf `labels.ts` bzw.
+  `[id]/verzehr/page.tsx` umgestellt (Lesson #371). Kleinfund „Auslagen rohe Farben" gelöscht.
+- E2E: neue Opt-in-Spec `e2e/auslagen.spec.ts` (`E2E_406=1`), Helfer `e2e/helpers/auslagen.ts`;
+  `bestaetigen-rueckmelden.spec.ts` und Capture-Spec `anleitung-veranstalter.spec.ts` auf den
+  neuen Einstieg umgestellt, Anleitung (Schritt 5) angepasst.
+- [ ] Oberflächentest: `e2e/auslagen.spec.ts` + `bestaetigen-rueckmelden.spec.ts` gegen lokalen
+  Dev-Server gelaufen
+- [ ] Vor dem Merge (Mensch): Screenshot `docs/anleitung/veranstalter/bilder/09-auslagen.png`
+  neu aufnehmen (Capture-Spec, `CAPTURE_ANLEITUNG=1`) – zeigt noch das Formular über der Liste
 
 ## Offene Fragen
 - Q4–Q7 entschieden in ADR-061.

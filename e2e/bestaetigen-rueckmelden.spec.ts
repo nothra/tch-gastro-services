@@ -8,6 +8,7 @@ import {
 } from "./helpers/detailseite";
 import { legeVeranstaltungAn } from "./helpers/listenseiten";
 import { schliesseToast, toast } from "./helpers/toast";
+import { auslageMenueKnopf, erfasseAuslage, waehleAuslageAktion } from "./helpers/auslagen";
 
 // Oberflächen-Nachweis für das einheitliche Bestätigen und Rückmelden (#372, spec-372, ADR-058).
 // Prüft gegen einen echten Browser, was jsdom nicht belegen kann: dass Escape und der inerte
@@ -62,17 +63,15 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
     await teilnehmerAnlegenUndHinzufuegen(page, gast);
 
     await page.goto(`${detailPfad}/auslagen`);
-    await page.getByLabel("Teilnehmer").selectOption({ label: gast });
-    await page.getByLabel("Kategorie").selectOption({ label: "Getränke" });
-    await page.getByLabel("Betrag (EUR)").fill("12,50");
-    await page.getByRole("button", { name: "Auslage erfassen" }).click();
+    await erfasseAuslage(page, { teilnehmer: gast, kategorie: "Getränke", betrag: "12,50" });
     await expect(toast(page, "Auslage erfasst")).toBeVisible();
 
-    const ausloeser = page.getByRole("listitem").getByRole("button", { name: "Löschen" });
+    // Seit #406 löst das ⋯-Menü der Zeile das Löschen aus; der Fokus kehrt auf den ⋯-Knopf zurück.
+    const ausloeser = auslageMenueKnopf(page, gast);
     const dialog = page.getByRole("dialog", { name: "Auslage löschen?" });
 
     // ── AK1: Dialog nennt Teilnehmer, Kategorie, Betrag – AK7: Gefahr-Variante ──────────────
-    await ausloeser.click();
+    await waehleAuslageAktion(page, gast, "Löschen");
     await expect(dialog).toContainText(gast);
     await expect(dialog).toContainText("Getränke");
     await expect(dialog).toContainText("12,50 €");
@@ -82,7 +81,7 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
     await expect(dialog).toBeHidden();
     await expect(ausloeser).toBeFocused();
 
-    await ausloeser.click();
+    await waehleAuslageAktion(page, gast, "Löschen");
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
@@ -90,7 +89,7 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
     await expect(page.getByRole("listitem").filter({ hasText: "12,50 €" })).toHaveCount(1);
 
     // ── AK1/AK12: erst „Löschen" im Dialog entfernt sie, ein Toast meldet es ────────────────
-    await ausloeser.click();
+    await waehleAuslageAktion(page, gast, "Löschen");
     await dialog.getByRole("button", { name: "Löschen" }).click();
     await expect(dialog).toBeHidden();
     await expect(toast(page, "Auslage gelöscht")).toBeVisible();
