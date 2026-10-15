@@ -455,7 +455,8 @@
   [`e2e/wechsel-verzehr-kassieren.spec.ts:25-55`](../../e2e/wechsel-verzehr-kassieren.spec.ts)
   (verifiziert am 2026-10-01); vierte `login`-Kopie in
   [`e2e/bestaetigen-rueckmelden.spec.ts:34`](../../e2e/bestaetigen-rueckmelden.spec.ts) (#372,
-  verifiziert am 2026-10-09).
+  verifiziert am 2026-10-09); fünfte `login`-Kopie in
+  [`e2e/auslagen.spec.ts:33`](../../e2e/auslagen.spec.ts) (#406, verifiziert am 2026-10-15).
 - **Was:** `login` und `createVeranstaltung` (Link-Zuwachs-Identifikation) sind je Spec kopiert; sie
   unterscheiden sich nur im Datum und in der Kommentierung. `e2e/helpers/detailseite.ts` (#369)
   bündelt bislang nur die Detailseiten-Schritte. Das Kopiermuster ist älter als #369; der PR

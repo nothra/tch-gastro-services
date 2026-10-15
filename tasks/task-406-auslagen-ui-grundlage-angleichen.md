@@ -54,6 +54,10 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-15): **NEEDS_REWORK** – 0 kritisch, 4 wichtig, 15 Nitpicks; Details in
+  `tasks/review-406.md`. Kern: AktionsMenue schließt während laufender Erstatten-Action (AK3.4),
+  Farb-Gate-Gegenprobe grün aus falschem Grund, „Drift-Anker" ohne Bindung, ADR-052/059/060
+  ohne Rückverweis auf ADR-061. Out-of-Scope: Issue #419, Kleinfund `login`-Kopie ergänzt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
