@@ -330,8 +330,9 @@ describe("AuslageRow – Zeilenmenü (spec-406 AK3)", () => {
     expect(screen.getByRole("menuitem", { name: "Als erstattet markieren" })).toBeDisabled();
   });
 
-  // FS2: Während der Action hängt das Formular im Menü – Außenklick, Escape und ⋯ schließen
-  // nicht, damit eine Ablehnung als Notice sichtbar wird (Sperre im Baustein, Lesson #369).
+  // FS2: Während der Action hängt das Formular im Menü – Außenklick, Escape, ⋯ und die übrigen
+  // Einträge schließen nicht, damit eine Ablehnung als Notice sichtbar wird (Sperre im Baustein,
+  // Lesson #369).
   function erstattenOffenHalten() {
     setStatusMock.mockImplementation(
       () =>
@@ -359,6 +360,8 @@ describe("AuslageRow – Zeilenmenü (spec-406 AK3)", () => {
     ["Außenklick", () => fireEvent.pointerDown(document.body)],
     ["Escape", () => fireEvent.keyDown(document.body, { key: "Escape" })],
     ["⋯-Tipp", () => fireEvent.click(menueKnopf())],
+    ["Bearbeiten", () => fireEvent.click(screen.getByRole("menuitem", { name: "Bearbeiten" }))],
+    ["Löschen", () => fireEvent.click(screen.getByRole("menuitem", { name: "Löschen" }))],
   ])("should_showRejectionInMenu_when_%sDuringRunningErstatten", async (_name, schliessVersuch) => {
     erstattenOffenHalten();
     renderRow();
@@ -366,11 +369,24 @@ describe("AuslageRow – Zeilenmenü (spec-406 AK3)", () => {
 
     schliessVersuch();
     expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(offenerDialog()).toBeNull();
     await ablehnen();
 
     expect(within(screen.getByRole("menu")).getByRole("alert")).toHaveTextContent(
       "Veranstaltung ist nicht mehr offen.",
     );
+  });
+
+  it("should_enableBearbeitenAndLoeschenAgain_when_erstattenRejected", async () => {
+    erstattenOffenHalten();
+    renderRow();
+    await erstattenAbsenden();
+    expect(screen.getByRole("menuitem", { name: "Bearbeiten" })).toBeDisabled();
+
+    await ablehnen();
+
+    expect(screen.getByRole("menuitem", { name: "Bearbeiten" })).toBeEnabled();
+    expect(screen.getByRole("menuitem", { name: "Löschen" })).toBeEnabled();
   });
 
   it("should_closeMenuAgain_when_outsideClickedAfterRejection", async () => {

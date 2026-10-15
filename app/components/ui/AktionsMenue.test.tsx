@@ -158,10 +158,13 @@ function renderMitLauf() {
   render(
     <>
       <AktionsMenue label="Aktionen für Anna">
-        {({ meldeLauf }) => {
+        {({ schliessen, meldeLauf }) => {
           laufMelden = meldeLauf;
           return (
-            <MenueEintrag onClick={() => meldeLauf(true)}>Als erstattet markieren</MenueEintrag>
+            <>
+              <MenueEintrag onClick={() => meldeLauf(true)}>Als erstattet markieren</MenueEintrag>
+              <MenueEintrag onClick={schliessen}>Bearbeiten</MenueEintrag>
+            </>
           );
         }}
       </AktionsMenue>
@@ -197,6 +200,27 @@ describe("AktionsMenue – Sperre während eines Laufs (spec-406 AK3.4, FS2)", (
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
     expect(ausloeser()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("should_disableAllEntriesAndStayOpen_when_otherEntryClickedWhileRunning", () => {
+    // Ein Eintrag, der `schliessen` ruft, hängte sonst das laufende Formular aus.
+    renderMitLauf();
+    const bearbeiten = screen.getByRole("menuitem", { name: "Bearbeiten" });
+
+    fireEvent.click(bearbeiten);
+
+    expect(bearbeiten).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Als erstattet markieren" })).toBeDisabled();
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("should_enableEntriesAgain_when_runEnded", () => {
+    const { laufBeenden } = renderMitLauf();
+
+    laufBeenden();
+
+    expect(screen.getByRole("menuitem", { name: "Bearbeiten" })).toBeEnabled();
+    expect(screen.getByRole("menuitem", { name: "Als erstattet markieren" })).toBeEnabled();
   });
 
   it("should_closeAgain_when_runEnded", () => {

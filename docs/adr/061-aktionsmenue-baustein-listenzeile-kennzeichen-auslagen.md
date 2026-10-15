@@ -42,13 +42,15 @@ Bestätigungsdialoge.
 API: `label` (zugänglicher Name, z. B. „Aktionen für Anna"), optional `ausloeserRef`,
 `children` als **Render-Funktion** `({ schliessen, meldeLauf }) => ReactNode`, dazu der exportierte
 Eintrag **`MenueEintrag`** (`gefahr?`, `type?: "button" | "submit"`, sonst Button-Props wie
-`onClick`/`disabled`). Den
-ersten Eintrag sucht der Baustein selbst im Popup (`[role="menuitem"]`), der Konsument verdrahtet
-keine Fokus-Ref. Solange eine per `meldeLauf(true)` gemeldete Action läuft, schließen Außenklick,
-Escape und Auslöser nicht – sonst hinge das Formular aus und eine Ablehnung verpuffte (spec-406
-AK3.4; Sperr-Vertrag im Baustein, Lesson #369). Render-Funktion statt
-Eintragsliste, weil die Erstatten-Aktion ein Formular mit `Notice` im Popup ist (D3) – eine
-starre `{label, onWaehlen}`-Liste könnte das nicht tragen.
+`onClick`/`disabled`). Den ersten Eintrag sucht der Baustein selbst im Popup
+(`[role="menuitem"]`), der Konsument verdrahtet keine Fokus-Ref. Solange eine per
+`meldeLauf(true)` gemeldete Action läuft, schließen Außenklick, Escape und Auslöser nicht, und
+alle `MenueEintrag`e sind gesperrt (über einen Kontext des Bausteins, ohne `disabled` beim
+Konsumenten) – sonst hinge das Formular aus und eine Ablehnung verpuffte (spec-406 AK3.4;
+Sperr-Vertrag im Baustein, Lesson #369). `schliessen` selbst sperrt nicht: der Erfolg der Action
+schließt darüber das Menü. Render-Funktion statt Eintragsliste, weil die Erstatten-Aktion ein
+Formular mit `Notice` im Popup ist (D3) – eine starre `{label, onWaehlen}`-Liste könnte das nicht
+tragen.
 
 `ZeilenMenue` wird auf `AktionsMenue` umgestellt (Verhalten und Tests unverändert, nur das
 Gerüst wandert). Das ist Teil dieser Task, damit die Verhaltensregeln an **einer** Stelle stehen
@@ -89,9 +91,9 @@ bestehende `ConfirmDialog` (spec-372, ADR-058 D4) mit dem Menü-Auslöser als Fo
 - **Nur-lesen-Fall (F2):** `ListenZeile` hat keinen „weder Link noch Button"-Modus. Statt die
   API zu erweitern, rendert `AuslageRow` bei `editable === false` eine eigene, **reine
   Anzeigekarte** mit der von `ListenZeile` exportierten Kartenoptik (`KARTEN_CLASS`), ohne
-  Tipp-Ziel und Menü. Das ist ein
-  Kompromiss, der keine dritte Betriebsart am geteilten Baustein einführt; die zwei Darstellungen
-  teilen sich Untertitel (`untertitel()`) und Kennzeichen (`AuslageKennzeichen`: Betrag, Badge).
+  Tipp-Ziel und Menü. Das ist ein Kompromiss, der keine dritte Betriebsart am geteilten Baustein
+  einführt; die zwei Darstellungen teilen sich Untertitel (`untertitel()`) und Kennzeichen
+  (`AuslageKennzeichen`: Betrag, Badge).
 
 ## Alternativen
 

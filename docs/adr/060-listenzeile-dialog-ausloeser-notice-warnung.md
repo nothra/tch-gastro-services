@@ -39,9 +39,10 @@ ein Flag):
 | weitere Props | `prefetch?` | `id?`, `ausloeserRef?` (auf den Button), `aria-haspopup="dialog"` fix |
 
 Gemeinsam bleiben `titel`, `untertitel`, `zustand`, `pfeil`, `aktion`, `className` (seit
-[ADR-061](061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md) D2 auch `kennzeichen`). Layout,
-Karten-Optik, Verblassen/Badge (D3 aus ADR-059), Fokusring und 44-px-Fläche sind **ein** Markup:
-der Inhalt des Tipp-Ziels wird intern einmal gebaut, nur das umschließende Element wechselt.
+[ADR-061](061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md) D2 auch
+`kennzeichen`). Layout, Karten-Optik, Verblassen/Badge (D3 aus ADR-059), Fokusring und
+44-px-Fläche sind **ein** Markup: der Inhalt des Tipp-Ziels wird intern einmal gebaut, nur das
+umschließende Element wechselt.
 Kein Doppel-Markup, kein zweiter Baustein.
 
 Neuer Slot **`anhang?: ReactNode`**: wird als Geschwister nach dem Tipp-Ziel im `<li>` gerendert
