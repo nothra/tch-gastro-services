@@ -57,6 +57,12 @@ export const UI_TOKEN_FILES = [
   "app/verwaltung/theke/",
   // #372: Auslagen-Zeile mit Lösch-Bestätigung (spec-372 AK8).
   "app/veranstaltung/AuslageRow.tsx",
+  // #406: die übrige Auslagen-Seite samt Anlege-Dialog (spec-406 AK7.1). `AktionsMenue` deckt
+  // bereits der Eintrag `app/components/ui/` ab, `ZeilenMenue.tsx` steht seit #369 hier.
+  "app/veranstaltung/[id]/auslagen/page.tsx",
+  "app/veranstaltung/AuslageErfassen.tsx",
+  "app/veranstaltung/AuslageForm.tsx",
+  "app/veranstaltung/AuslagenSummary.tsx",
 ];
 
 /**

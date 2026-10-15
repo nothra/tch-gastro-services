@@ -8,6 +8,7 @@ import {
   teilnehmerDialog,
 } from "./helpers/detailseite";
 import { toast } from "./helpers/toast";
+import { erfasseAuslage, waehleAuslageAktion } from "./helpers/auslagen";
 import {
   fuelleVeranstaltung,
   neuerListenLink,
@@ -323,17 +324,18 @@ test.describe("Anleitung Veranstalter – Screenshots", () => {
     // Schritt 5 – Auslagen erstatten
     await page.goto(`${detailPfad}/auslagen`);
     await expect(page.getByRole("heading", { name: /^Auslagen · / })).toBeVisible();
-    await page.getByLabel("Teilnehmer").selectOption({ label: "Anna Becker" });
-    await page.getByLabel("Kategorie").selectOption({ label: "Getränke" });
-    await page.getByLabel("Betrag (EUR)").fill("15,00");
-    await page.getByLabel("Notiz (optional)").fill("Getränkekiste vorgestreckt");
-    await page.getByRole("button", { name: "Auslage erfassen" }).click();
+    await erfasseAuslage(page, {
+      teilnehmer: "Anna Becker",
+      kategorie: "Getränke",
+      betrag: "15,00",
+      notiz: "Getränkekiste vorgestreckt",
+    });
     await expect(toast(page, "Auslage erfasst")).toBeVisible();
     await shot(page, "09-auslagen.png", page.getByRole("heading", { name: /^Auslagen · / }));
     // Als erstattet markieren (zweiter Teil des Erstattungs-Vorgangs) – erst dann fließt die Auslage
     // in die Gesamtabrechnung (Kassenveränderung = Σ Erhalten − Σ Erstattungen).
-    await page.getByRole("button", { name: "Als erstattet markieren" }).click();
-    await expect(page.getByRole("button", { name: "Erstattung zurücknehmen" })).toBeVisible();
+    await waehleAuslageAktion(page, "Anna Becker", "Als erstattet markieren");
+    await expect(toast(page, "Auslage erstattet")).toBeVisible();
 
     // Schritt 6 – Kassieren & Abschluss
     await page.goto(`${detailPfad}/kassieren`);

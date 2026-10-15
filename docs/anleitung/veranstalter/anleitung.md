@@ -194,17 +194,22 @@ Hat jemand etwas **vorgestreckt** (z. B. Getränke gekauft), erfassen Sie das hi
 ein **eigener Vorgang** und werden **nicht** mit dem Verzehr verrechnet.
 
 **Was tue ich?** Tippen Sie auf die Kachel **„Auslagen erfassen"**. Über dem Titel führt
-**„← Zur Veranstaltung"** zurück zur Übersicht. Wählen Sie den **Teilnehmer** und die
-**Kategorie** (Getränke, Essen oder Sonstiges), tragen Sie den **Betrag (EUR)** ein (z. B. „15,00"),
-optional eine **Notiz**, und tippen Sie auf **„Auslage erfassen"**.
+**„← Zur Veranstaltung"** zurück zur Übersicht. Oben steht die **Übersicht** der Summen, darunter
+die Liste der Auslagen. Tippen Sie rechts im Seitenkopf auf **„+ Neu"**. Im Dialog **„Auslage
+erfassen"** wählen Sie den **Teilnehmer** und die **Kategorie** (Getränke, Essen oder Sonstiges),
+tragen den **Betrag (€)** ein (z. B. „15,00"), optional eine **Notiz**, und tippen auf
+**„Erfassen"**.
 
-**Was passiert?** Die Auslage erscheint in der Liste als **„offen zu erstatten"**.
+**Was passiert?** Der Dialog schließt sich, die Auslage erscheint in der Liste mit Betrag und dem
+Kennzeichen **„offen"**.
 
-![Auslagen-Seite mit Erfassungsformular und der erfassten Auslage in der Liste.](bilder/09-auslagen.png)
+![Auslagen-Seite mit Übersicht und der erfassten Auslage in der Liste.](bilder/09-auslagen.png)
 
-**Wenn Sie das Geld tatsächlich zurückgezahlt haben:** Tippen Sie bei der Auslage auf
-**„Als erstattet markieren"**. Erst dann fließt der Betrag in die Gesamtabrechnung ein und
-verringert die Kassenveränderung.
+**Wenn Sie das Geld tatsächlich zurückgezahlt haben:** Tippen Sie bei der Auslage auf **„⋯"** und
+wählen Sie **„Als erstattet markieren"**. Das Kennzeichen wechselt auf **„erstattet"**; erst dann
+fließt der Betrag in die Gesamtabrechnung ein und verringert die Kassenveränderung. Im selben Menü
+stehen **„Bearbeiten"** und **„Löschen"**; ein Tipp auf die Auslage selbst öffnet ebenfalls
+„Auslage bearbeiten".
 
 ---
 
@@ -266,7 +271,7 @@ und `getraenke` im Dateinamen, damit Sie die beiden Fassungen nicht verwechseln.
   Ihrem Konto fehlt die Rolle **Veranstalter**. Das können Sie nicht selbst ändern – wenden Sie
   sich an den **Verwalter** des Vereins; er schaltet die Rolle frei.
 - **Ich habe mich vertippt.** Solange die Veranstaltung **offen** ist, können Sie jede Eingabe
-  ändern: Verzehr über „+"/„−", Auslagen über **„Bearbeiten"**, Erhaltenes durch erneutes
+  ändern: Verzehr über „+"/„−", Auslagen per Tipp auf die Auslage, Erhaltenes durch erneutes
   Kassieren. Notfalls die abgeschlossene Veranstaltung **„Wieder öffnen"**.
 - **Der Abschluss funktioniert nicht.** Es ist noch mindestens eine Teilnehmer-Zeile **offen**.
   Prüfen Sie unter „Kassieren" die Summenkarte (**„Noch n offen"**) und kassieren Sie die

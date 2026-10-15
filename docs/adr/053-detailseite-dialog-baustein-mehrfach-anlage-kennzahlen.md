@@ -82,6 +82,9 @@ Dialog-Grundlage):
 
 ### D2 · Zeilenmenü als kleine feature-lokale Client Component
 
+> **Abgelöst durch ADR-061 D1 (#406):** das Menü-Verhalten liegt im route-neutralen Baustein
+> `AktionsMenue`; `ZeilenMenue` trägt nur noch Eintrag und Bestätigung.
+
 - `app/veranstaltung/ZeilenMenue.tsx`: Auslöser-Button „⋯" (`aria-haspopup="menu"`,
   `aria-expanded`, `aria-label` mit Personenname, 44 × 44 px), darunter ein `role="menu"` mit
   einem `role="menuitem"` „Entfernen". Schließt bei Escape, Klick außerhalb und nach Auswahl.

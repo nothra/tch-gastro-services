@@ -1,18 +1,27 @@
 "use client";
 
-import { useRef } from "react";
 import type { AuslageKategorie } from "@/db/schema";
+import {
+  AbbrechenKnopf,
+  DialogAktionen,
+  useDialogFormular,
+  type DialogSteuerung,
+} from "@/app/components/FormularDialog";
+import { Field, SelectField } from "@/app/components/ui/Field";
 import { Notice } from "@/app/components/ui/Notice";
-import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
+import type { FormAction } from "@/app/components/useSchliessendeAction";
 import { AUSLAGE_KATEGORIE_LABEL, AUSLAGE_KATEGORIE_ORDER } from "./labels";
 import type { AuslageFormState } from "./actions";
 
-// Erfassungs-/Korrektur-Formular einer Auslage (F6, #53, ADR-028 D4). Client-Komponente, damit
-// Fehler/Pending über `useActionState` sichtbar werden. `action` ist die bereits scope-gebundene
-// Server-Action (create: `.bind(null, veranstaltungId)`, edit: `.bind(null, veranstaltungId,
-// auslageId)`); der Client liefert die IDs nie im Formular (IDOR-Schutz sitzt serverseitig).
+// Erfassungs-/Korrektur-Formular einer Auslage im Dialog (F6, #53, ADR-028 D4, ADR-061 D4).
+// `action` ist die bereits scope-gebundene Server-Action (create: `.bind(null, veranstaltungId)`,
+// edit: `.bind(null, veranstaltungId, auslageId)`); der Client liefert die IDs nie im Formular
+// (IDOR-Schutz sitzt serverseitig). Absenden, Schließen und Lauf-Sperre kommen aus
+// `useDialogFormular` – Eingaben bleiben nach einer Ablehnung stehen (Lesson #373).
 
-const inputClass = "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
+const KEINE_TEILNEHMER =
+  "Zuerst Teilnehmer zur Veranstaltung hinzufügen, dann sind Auslagen erfassbar.";
+const PLATZHALTER = "Bitte wählen …";
 
 export type AuslageFormTeilnehmer = { teilnehmerId: string; anzeigename: string };
 
@@ -24,125 +33,103 @@ export type AuslageFormInitial = {
   zweck: string;
 };
 
-type BoundAuslageAction = (
-  prevState: AuslageFormState | undefined,
-  formData: FormData,
-) => Promise<AuslageFormState>;
-
-export function AuslageForm({
-  action,
-  teilnehmer,
-  submitLabel,
-  initial,
-  onSuccess,
-}: {
-  action: BoundAuslageAction;
+interface AuslageFormularProps {
+  action: FormAction<AuslageFormState>;
   teilnehmer: readonly AuslageFormTeilnehmer[];
-  submitLabel: string;
+  /** Gesetzt → Bearbeiten („Speichern"), sonst Erfassen. */
   initial?: AuslageFormInitial;
-  onSuccess?: () => void;
-}) {
-  const isEditing = initial !== undefined;
-  const formRef = useRef<HTMLFormElement>(null);
+  steuerung: DialogSteuerung;
+}
 
-  // Erfolg schließt (Korrektur) bzw. leert die Felder (Neuerfassung) und meldet per Toast
-  // (spec-372 AK12) – im Action-Wrapper, nicht per useEffect (Codify #49). form.reset() leert bei
-  // JEDER erfolgreichen Erfassung, nicht nur der ersten wie ein key-basierter Remount.
-  const [state, formAction, pending] = useSchliessendeAction<AuslageFormState>(action, {
-    onErfolg: () => {
-      onSuccess?.();
-      if (!isEditing) formRef.current?.reset();
-    },
-    erfolgsMeldung: isEditing ? "Gespeichert" : "Auslage erfasst",
+export function AuslageFormular({ action, teilnehmer, initial, steuerung }: AuslageFormularProps) {
+  const bearbeiten = initial !== undefined;
+  const { state, pending, absenden } = useDialogFormular(action, steuerung, {
+    erfolgsMeldung: bearbeiten ? "Gespeichert" : "Auslage erfasst",
   });
 
   if (teilnehmer.length === 0) {
     return (
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Zuerst Teilnehmer zur Veranstaltung hinzufügen, dann sind Auslagen erfassbar.
-      </p>
+      <div className="flex flex-col gap-3">
+        <Notice kind="warnung">{KEINE_TEILNEHMER}</Notice>
+        <div className="flex justify-end">
+          <AbbrechenKnopf steuerung={steuerung} />
+        </div>
+      </div>
     );
   }
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="flex flex-col gap-3 rounded border border-zinc-200 p-4 dark:border-zinc-800"
-    >
-      <label className="flex flex-col gap-1 text-sm">
-        Teilnehmer
-        <select
-          name="teilnehmerId"
-          defaultValue={initial?.teilnehmerId ?? ""}
-          required
-          className={inputClass}
-        >
-          <option value="" disabled>
-            Bitte wählen …
-          </option>
-          {teilnehmer.map((t) => (
-            <option key={t.teilnehmerId} value={t.teilnehmerId}>
-              {t.anzeigename}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Kategorie
-        <select
-          name="kategorie"
-          defaultValue={initial?.kategorie ?? ""}
-          required
-          className={inputClass}
-        >
-          <option value="" disabled>
-            Bitte wählen …
-          </option>
-          {AUSLAGE_KATEGORIE_ORDER.map((kategorie) => (
-            <option key={kategorie} value={kategorie}>
-              {AUSLAGE_KATEGORIE_LABEL[kategorie]}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Betrag (EUR)
-        <input
-          name="betrag"
-          type="text"
-          inputMode="decimal"
-          defaultValue={initial?.betrag ?? ""}
-          required
-          placeholder="z. B. 12,50"
-          className={inputClass}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Notiz (optional)
-        <input
-          name="zweck"
-          type="text"
-          maxLength={200}
-          defaultValue={initial?.zweck ?? ""}
-          placeholder="z. B. Grillfleisch"
-          className={inputClass}
-        />
-      </label>
-
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Speichern …" : submitLabel}
-        </button>
-      </div>
+    <form onSubmit={absenden} className="flex flex-col gap-3">
+      <AuslageFelder teilnehmer={teilnehmer} initial={initial} />
       <Notice kind="fehler">{state?.error}</Notice>
+      <DialogAktionen
+        steuerung={steuerung}
+        pending={pending}
+        label={bearbeiten ? "Speichern" : "Erfassen"}
+        laufLabel={bearbeiten ? "Speichern …" : "Erfassen …"}
+      />
     </form>
+  );
+}
+
+interface AuslageFelderProps {
+  teilnehmer: readonly AuslageFormTeilnehmer[];
+  initial?: AuslageFormInitial;
+}
+
+function AuslageFelder({ teilnehmer, initial }: AuslageFelderProps) {
+  return (
+    <>
+      <SelectField
+        label="Teilnehmer"
+        name="teilnehmerId"
+        defaultValue={initial?.teilnehmerId ?? ""}
+        required
+      >
+        <option value="" disabled>
+          {PLATZHALTER}
+        </option>
+        {teilnehmer.map((t) => (
+          <option key={t.teilnehmerId} value={t.teilnehmerId}>
+            {t.anzeigename}
+          </option>
+        ))}
+      </SelectField>
+
+      <SelectField
+        label="Kategorie"
+        name="kategorie"
+        defaultValue={initial?.kategorie ?? ""}
+        required
+      >
+        <option value="" disabled>
+          {PLATZHALTER}
+        </option>
+        {AUSLAGE_KATEGORIE_ORDER.map((kategorie) => (
+          <option key={kategorie} value={kategorie}>
+            {AUSLAGE_KATEGORIE_LABEL[kategorie]}
+          </option>
+        ))}
+      </SelectField>
+
+      <Field
+        label="Betrag (€)"
+        name="betrag"
+        type="text"
+        inputMode="decimal"
+        defaultValue={initial?.betrag ?? ""}
+        required
+        placeholder="z. B. 12,50"
+      />
+
+      <Field
+        label="Notiz (optional)"
+        name="zweck"
+        type="text"
+        maxLength={200}
+        defaultValue={initial?.zweck ?? ""}
+        placeholder="z. B. Grillfleisch"
+      />
+    </>
   );
 }
