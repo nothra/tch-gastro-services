@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Auslagen-Seite an die UI-Grundlage angleichen: Liste zuerst, „+ Neu“-Dialog, ListenZeile mit Badge,
@@ -103,7 +103,13 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   Wegwerf-Dateien vor dem Worktree-Abbau löschen. Details in `tasks/security-406.md`.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- /codify (2026-10-16): zwei Rezidiv-Lessons – Lauf-Sperre für alle Geschwister-Einträge im Baustein
+  (`frontend-react.md`, #369) und Opt-in-E2E im selben `/implement`-Schritt laufen lassen (`testing.md`, #403).
+  Details in `tasks/codify-406.md`.
+
+## PR-Shepherd-Notizen
+- PR-Shepherd 2026-10-16: alle Gates grün, Auto-Merge freigegeben. Offen bleibt nur der menschliche
+  Screenshot-Schritt (`09-auslagen.png`, siehe „Umsetzung") – nicht agentenerfüllbar, als Folgearbeit.
 
 ---
 Branch: `feature/406-auslagen-ui-grundlage-angleichen`

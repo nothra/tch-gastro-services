@@ -418,3 +418,14 @@ meldete jeden Prop-Zugriff als Ref-Zugriff während des Renders, weil das `props
 **Regel:** Bei Komponenten mit Ref-Prop die Props im Funktionskopf destrukturieren, nie `props.x` im Rumpf lesen. Bei einer
 Union dafür `never`-Gegenstücke für alle Props der jeweils anderen Betriebsart deklarieren und den Typ-Wächter per
 `@ts-expect-error`-Test belegen (`tsc` prüft ihn).
+
+### Rezidiv #369: Lauf-Sperre im Baustein nur für den auffälligen Eintrag – Geschwister-Einträge übersehen (aus #406, Review-Iteration 1/2)
+
+**Smell:** `AktionsMenue` schloss während einer laufenden Erstatten-Action (AK3.4: Ablehnung muss im Menü sichtbar
+bleiben). Der Fix in Iteration 1 sperrte nur den Erstatten-Eintrag; „Bearbeiten"/„Löschen" schlossen das Menü weiterhin
+und ließen die Ablehnung verpuffen – erst Iteration 2 fand es. Lesson #369 (Vertrag in den Baustein) war bekannt, wurde
+aber nur auf den Auslöser des Befunds angewandt.
+
+**Regel:** Betrifft ein Befund „während der Aktion X ist Y erlaubt/gesperrt", die Sperre im Baustein für **alle**
+Interaktionsflächen gleichen Typs lösen (hier Kontext → jeder `MenueEintrag`), nicht pro Eintrag im Konsumenten. Test
+als `it.each` über alle Einträge, je Richtung (gesperrt/freigegeben nach Laufende).
