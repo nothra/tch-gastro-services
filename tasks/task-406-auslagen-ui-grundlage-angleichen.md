@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -88,6 +88,13 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   `disabled={pending}` am Erstatten-Eintrag, Wegwerf-Dateien noch im Baum, Fokus nach Ablehnung
   als Teil der offenen A11y-Runde). Beide Findings aus Iteration 2 behoben. Vitest 158/158,
   Lint grün; Typecheck in der Review-Session nicht gelaufen (pre-push prüft ihn).
+
+## Refactoring-Notizen
+- /refactor (2026-10-16): Diff gegen `origin/main` geprüft (AktionsMenue, AuslageRow, AuslageForm,
+  AuslageErfassen, ZeilenMenue, Seite). Keine Änderung nötig: Funktionen kurz, Namen sprechend,
+  keine Duplikation, Kommentare erklären das WHY. Bewusst belassen (Review-Nitpicks, ohne
+  Mehrwert bzw. mit Verhaltensrisiko): `disabled={pending}` am Erstatten-Eintrag, `STATUS_BADGE`
+  in `AuslageRow`. Vitest (ui, veranstaltung, eslint) 1115/1115 grün.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
