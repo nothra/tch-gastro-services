@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { AktionsMenue, MenueEintrag } from "./AktionsMenue";
 
@@ -120,6 +120,28 @@ describe("AktionsMenue (ADR-061 D1)", () => {
     expect(ausloeser()).toHaveFocus();
   });
 
+  it("should_startWithoutPreviousEntryState_when_reopened", () => {
+    // JSDoc `children`: die Einträge mounten erst beim Öffnen – eine Ablehnung im Popup
+    // (hier: Zustand eines Eintrags) steht beim nächsten Öffnen nicht mehr da.
+    function EintragMitZustand() {
+      const [gewaehlt, setGewaehlt] = useState(false);
+      return (
+        <MenueEintrag onClick={() => setGewaehlt(true)}>
+          {gewaehlt ? "Abgelehnt" : "Erstatten"}
+        </MenueEintrag>
+      );
+    }
+    render(<AktionsMenue label="Aktionen für Anna">{() => <EintragMitZustand />}</AktionsMenue>);
+    fireEvent.click(ausloeser());
+    fireEvent.click(screen.getByRole("menuitem", { name: "Erstatten" }));
+    expect(screen.getByRole("menuitem", { name: "Abgelehnt" })).toBeInTheDocument();
+
+    fireEvent.click(ausloeser());
+    fireEvent.click(ausloeser());
+
+    expect(screen.getByRole("menuitem", { name: "Erstatten" })).toBeInTheDocument();
+  });
+
   it("should_attachGivenRefToTrigger_when_ausloeserRefPassed", () => {
     // Der Konsument braucht den Auslöser als Fokus-Rückgabe einer Bestätigung (ADR-061 D3).
     const ausloeserRef = createRef<HTMLButtonElement>();
@@ -138,7 +160,9 @@ function renderMitLauf() {
       <AktionsMenue label="Aktionen für Anna">
         {({ meldeLauf }) => {
           laufMelden = meldeLauf;
-          return <MenueEintrag onClick={() => meldeLauf(true)}>Als erstattet markieren</MenueEintrag>;
+          return (
+            <MenueEintrag onClick={() => meldeLauf(true)}>Als erstattet markieren</MenueEintrag>
+          );
         }}
       </AktionsMenue>
       <p>Außerhalb</p>

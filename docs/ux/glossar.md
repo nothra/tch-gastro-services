@@ -145,7 +145,8 @@ umgeschrieben werden. Neue Texte mit direkter Ansprache nutzen den Imperativ in 
 ## Abweichungsliste (Stand 2026-10-09)
 
 Ist-Texte in `app/`, die vom Glossar abweichen, mit Ziel-Issue. Arbeitsvorlage – eine Zeile wird
-beim Umsetzen gestrichen. Zeilenangaben gegen den Stand von #372 (Review-Rework) geprüft.
+beim Umsetzen gestrichen. Zeilenangaben gegen den Stand von #372 (Review-Rework) geprüft; die
+Auslagen- und `ZeilenMenue`-Zeilen (auch unter „Bereits konform") gegen den Stand von #406.
 
 Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
 Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
@@ -179,7 +180,7 @@ Grep auf den Ist-Text).
 | Datei | Text | Regel |
 |---|---|---|
 | `app/veranstaltung/ZeilenMenue.tsx:34` | „Entfernen" (Teilnehmerzeile) | Zuordnung lösen = entfernen |
-| `app/veranstaltung/AuslageRow.tsx:141` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
+| `app/veranstaltung/AuslageRow.tsx:143` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:96` | „Löschen …" (Veranstaltung) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/OffeneVeranstaltungen.tsx:28` | „Veranstaltung anlegen" | neues Objekt = anlegen |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:36` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |

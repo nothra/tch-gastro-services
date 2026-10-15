@@ -16,8 +16,9 @@ import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 
 // Authentifizierte Auslagen-Seite (F6, #53, ADR-028 D4; Aufbau spec-406, ADR-061 D4): lädt Auslagen
 // + Teilnehmerzeilen, zeigt Seitenkopf mit „+ Neu", die Summen-Übersicht und die Auslagen-Liste.
-// Erfasst wird nur im Dialog und nur, solange die Veranstaltung offen ist. Nur Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter
-// dem bereits von `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
+// Erfasst wird nur im Dialog und nur, solange die Veranstaltung offen ist. Nur Veranstalter
+// (serverseitig auch in den Actions durchgesetzt). Liegt unter dem bereits von `proxy.ts`
+// geschützten Bereich – keine Ausnahme nötig (Codify #63).
 export default async function AuslagenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();

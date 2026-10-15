@@ -157,7 +157,9 @@ describe("AuslagenPage", () => {
     expect(uebersicht.compareDocumentPosition(liste)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    expect(screen.getAllByText("12,50 €").length).toBeGreaterThanOrEqual(1);
+    // Zweimal in der Spalte „offen" der Übersicht: Zeile „Essen" + Summenzeile. Die gestubbte
+    // `AuslageRow` zeigt keinen Betrag.
+    expect(screen.getAllByText("12,50 €")).toHaveLength(2);
     expect(screen.getByTestId("auslage-row")).toHaveAttribute("data-editable", "true");
   });
 

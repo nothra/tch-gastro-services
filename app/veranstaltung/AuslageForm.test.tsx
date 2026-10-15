@@ -51,7 +51,7 @@ afterEach(async () => {
   await act(async () => laufendeActionBeenden?.());
 });
 
-function renderErfassen(props: Partial<Parameters<typeof AuslageFormular>[0]> = {}) {
+function renderFormular(props: Partial<Parameters<typeof AuslageFormular>[0]> = {}) {
   const dialog = steuerung();
   render(<AuslageFormular action={action} teilnehmer={teilnehmer} steuerung={dialog} {...props} />);
   return dialog;
@@ -68,6 +68,7 @@ function felderFuellen() {
   fireEvent.change(screen.getByLabelText("Teilnehmer"), { target: { value: "t-1" } });
   fireEvent.change(screen.getByLabelText("Kategorie"), { target: { value: "essen" } });
   fireEvent.change(screen.getByLabelText("Betrag (€)"), { target: { value: "12,50" } });
+  fireEvent.change(screen.getByLabelText("Notiz (optional)"), { target: { value: "Grillkohle" } });
 }
 
 async function klicke(name: string) {
@@ -78,20 +79,20 @@ async function klicke(name: string) {
 
 describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () => {
   it("should_offerTeilnehmerWithGlossaryPlaceholder_when_rendered", () => {
-    renderErfassen();
+    renderFormular();
 
     expect(optionen("Teilnehmer")).toEqual(["Bitte wählen …", "Anna", "Bernd"]);
     expect(screen.getByLabelText("Teilnehmer")).toBeRequired();
   });
 
   it("should_offerAllThreeKategorien_when_rendered", () => {
-    renderErfassen();
+    renderFormular();
 
     expect(optionen("Kategorie")).toEqual(["Bitte wählen …", "Getränke", "Essen", "Sonstiges"]);
   });
 
   it("should_labelBetragWithEuroSign_when_rendered", () => {
-    renderErfassen();
+    renderFormular();
 
     const betrag = screen.getByLabelText("Betrag (€)");
     expect(betrag).toHaveAttribute("inputmode", "decimal");
@@ -100,7 +101,7 @@ describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () 
   });
 
   it("should_offerOptionalNotizWithLimit_when_rendered", () => {
-    renderErfassen();
+    renderFormular();
 
     const notiz = screen.getByLabelText("Notiz (optional)");
     expect(notiz).toHaveAttribute("name", "zweck");
@@ -110,7 +111,7 @@ describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () 
 
   it("should_useFieldBuildingBlocks_when_rendered", () => {
     // AK5.1: Steuerelemente aus `Field`/`SelectField`, keine eigenen Styles.
-    renderErfassen();
+    renderFormular();
 
     for (const label of ["Teilnehmer", "Kategorie", "Betrag (€)", "Notiz (optional)"]) {
       expect(screen.getByLabelText(label)).toHaveClass("min-h-11", "border-line", "bg-surface");
@@ -119,7 +120,7 @@ describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () 
 
   it("should_prefillFields_when_initialGiven", () => {
     // AK2a.1: Vorbelegung beim Bearbeiten, Betrag als EUR-Eingabewert.
-    renderErfassen({ initial });
+    renderFormular({ initial });
 
     expect(screen.getByLabelText("Teilnehmer")).toHaveValue("t-2");
     expect(screen.getByLabelText("Kategorie")).toHaveValue("sonstiges");
@@ -128,7 +129,7 @@ describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () 
   });
 
   it("should_startEmpty_when_noInitial", () => {
-    renderErfassen();
+    renderFormular();
 
     expect(screen.getByLabelText("Teilnehmer")).toHaveValue("");
     expect(screen.getByLabelText("Kategorie")).toHaveValue("");
@@ -139,14 +140,14 @@ describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () 
 
 describe("AuslageFormular – Erfassen (spec-406 AK1.4/AK1.5, AK6.1/AK6.2)", () => {
   it("should_offerErfassenAndAbbrechen_when_noInitial", () => {
-    renderErfassen();
+    renderFormular();
 
     expect(screen.getByRole("button", { name: "Erfassen" })).toHaveAttribute("type", "submit");
     expect(screen.getByRole("button", { name: "Abbrechen" })).toBeInTheDocument();
   });
 
   it("should_submitFieldsCloseAndReportErfasst_when_actionSucceeds", async () => {
-    const dialog = renderErfassen();
+    const dialog = renderFormular();
     felderFuellen();
 
     await klicke("Erfassen");
@@ -155,6 +156,7 @@ describe("AuslageFormular – Erfassen (spec-406 AK1.4/AK1.5, AK6.1/AK6.2)", () 
     expect(formData.get("teilnehmerId")).toBe("t-1");
     expect(formData.get("kategorie")).toBe("essen");
     expect(formData.get("betrag")).toBe("12,50");
+    expect(formData.get("zweck")).toBe("Grillkohle");
     expect(dialog.schliessenNachErfolg).toHaveBeenCalledTimes(1);
     expect(meldeErfolgMock).toHaveBeenCalledWith("Auslage erfasst");
   });
@@ -162,7 +164,7 @@ describe("AuslageFormular – Erfassen (spec-406 AK1.4/AK1.5, AK6.1/AK6.2)", () 
   it("should_keepInputsAndShowAlert_when_actionRejects", async () => {
     // AK1.5: kein `<form action>`-Reset (Lesson #373), Meldung als Notice im Dialog.
     action.mockResolvedValue({ error: "Betrag muss größer als 0 sein." });
-    const dialog = renderErfassen();
+    const dialog = renderFormular();
     felderFuellen();
 
     await klicke("Erfassen");
@@ -181,7 +183,7 @@ describe("AuslageFormular – Erfassen (spec-406 AK1.4/AK1.5, AK6.1/AK6.2)", () 
           laufendeActionBeenden = () => resolve({ ok: true });
         }),
     );
-    const dialog = renderErfassen();
+    const dialog = renderFormular();
     felderFuellen();
 
     await klicke("Erfassen");
@@ -193,14 +195,14 @@ describe("AuslageFormular – Erfassen (spec-406 AK1.4/AK1.5, AK6.1/AK6.2)", () 
 
 describe("AuslageFormular – Bearbeiten (spec-406 AK2a.2/AK2a.3)", () => {
   it("should_offerSpeichern_when_initialGiven", () => {
-    renderErfassen({ initial });
+    renderFormular({ initial });
 
     expect(screen.getByRole("button", { name: "Speichern" })).toHaveAttribute("type", "submit");
     expect(screen.queryByRole("button", { name: "Erfassen" })).not.toBeInTheDocument();
   });
 
   it("should_closeAndReportGespeichert_when_editSucceeds", async () => {
-    const dialog = renderErfassen({ initial });
+    const dialog = renderFormular({ initial });
 
     await klicke("Speichern");
 
@@ -211,7 +213,7 @@ describe("AuslageFormular – Bearbeiten (spec-406 AK2a.2/AK2a.3)", () => {
 
   it("should_keepEditedInputsAndShowAlert_when_editRejects", async () => {
     action.mockResolvedValue({ error: "Auslage nicht gefunden." });
-    renderErfassen({ initial });
+    renderFormular({ initial });
     fireEvent.change(screen.getByLabelText("Notiz (optional)"), { target: { value: "Becher" } });
 
     await klicke("Speichern");
@@ -228,7 +230,7 @@ describe("AuslageFormular – Bearbeiten (spec-406 AK2a.2/AK2a.3)", () => {
           laufendeActionBeenden = () => resolve({ ok: true });
         }),
     );
-    renderErfassen({ initial });
+    renderFormular({ initial });
 
     await klicke("Speichern");
 
@@ -238,7 +240,7 @@ describe("AuslageFormular – Bearbeiten (spec-406 AK2a.2/AK2a.3)", () => {
 
 describe("AuslageFormular – ohne Teilnehmer (spec-406 AK1.7)", () => {
   it("should_showHintInsteadOfForm_when_noTeilnehmer", () => {
-    renderErfassen({ teilnehmer: [] });
+    renderFormular({ teilnehmer: [] });
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "Zuerst Teilnehmer zur Veranstaltung hinzufügen, dann sind Auslagen erfassbar.",
@@ -248,7 +250,7 @@ describe("AuslageFormular – ohne Teilnehmer (spec-406 AK1.7)", () => {
   });
 
   it("should_closeDialog_when_abbrechenClickedWithoutTeilnehmer", () => {
-    const dialog = renderErfassen({ teilnehmer: [] });
+    const dialog = renderFormular({ teilnehmer: [] });
 
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
 

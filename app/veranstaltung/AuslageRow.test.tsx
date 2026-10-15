@@ -336,8 +336,7 @@ describe("AuslageRow – Zeilenmenü (spec-406 AK3)", () => {
     setStatusMock.mockImplementation(
       () =>
         new Promise((resolve) => {
-          laufendeActionBeenden = () =>
-            resolve({ error: "Veranstaltung ist nicht mehr offen." });
+          laufendeActionBeenden = () => resolve({ error: "Veranstaltung ist nicht mehr offen." });
         }),
     );
   }

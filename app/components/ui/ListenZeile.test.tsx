@@ -359,6 +359,10 @@ describe("ListenZeile mit Kennzeichen (ADR-061 D2, spec-406 AK2)", () => {
     const tippZiel = screen.getByRole("button", { name: /Anna/ });
     expect(tippZiel).toContainElement(kennzeichen());
     expect(tippZiel).toHaveAccessibleName(/12,50 €/);
+    // Mit `aktion` entfällt der Pfeil: Textblock (0) → Kennzeichen (1), unmittelbar danach.
+    const kinder = Array.from(tippZiel.children);
+    const textIndex = kinder.findIndex((kind) => kind.textContent === "Anna");
+    expect(kinder.findIndex((kind) => kind.contains(kennzeichen()))).toBe(textIndex + 1);
   });
 
   it("should_renderKennzeichenInsideLinkBeforeArrow_when_linkMode", () => {

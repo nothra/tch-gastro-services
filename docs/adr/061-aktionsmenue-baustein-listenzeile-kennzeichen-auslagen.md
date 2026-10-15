@@ -39,9 +39,14 @@ Auslöser „⋯" (`aria-haspopup="menu"`, `aria-expanded`, Tippfläche ≥ 44 p
 beim Schließen zurück auf den Auslöser. Der Baustein kennt weder Server Actions noch
 Bestätigungsdialoge.
 
-API: `label` (zugänglicher Name, z. B. „Aktionen für Anna"), `children` als **Render-Funktion**
-`({ schliessen }) => ReactNode`, dazu der exportierte Eintrag **`MenueEintrag`** (`onClick`,
-`gefahr?`, Fokus-Ref für den ersten Eintrag über den Baustein). Render-Funktion statt
+API: `label` (zugänglicher Name, z. B. „Aktionen für Anna"), optional `ausloeserRef`,
+`children` als **Render-Funktion** `({ schliessen, meldeLauf }) => ReactNode`, dazu der exportierte
+Eintrag **`MenueEintrag`** (`gefahr?`, `type?: "button" | "submit"`, sonst Button-Props wie
+`onClick`/`disabled`). Den
+ersten Eintrag sucht der Baustein selbst im Popup (`[role="menuitem"]`), der Konsument verdrahtet
+keine Fokus-Ref. Solange eine per `meldeLauf(true)` gemeldete Action läuft, schließen Außenklick,
+Escape und Auslöser nicht – sonst hinge das Formular aus und eine Ablehnung verpuffte (spec-406
+AK3.4; Sperr-Vertrag im Baustein, Lesson #369). Render-Funktion statt
 Eintragsliste, weil die Erstatten-Aktion ein Formular mit `Notice` im Popup ist (D3) – eine
 starre `{label, onWaehlen}`-Liste könnte das nicht tragen.
 
@@ -83,7 +88,8 @@ bestehende `ConfirmDialog` (spec-372, ADR-058 D4) mit dem Menü-Auslöser als Fo
   ist und der `AnlegeDialog` eine Render-Funktion braucht.
 - **Nur-lesen-Fall (F2):** `ListenZeile` hat keinen „weder Link noch Button"-Modus. Statt die
   API zu erweitern, rendert `AuslageRow` bei `editable === false` eine eigene, **reine
-  Anzeigekarte** mit denselben Tokens (`Card`-ähnlich, ohne Tipp-Ziel und Menü). Das ist ein
+  Anzeigekarte** mit der von `ListenZeile` exportierten Kartenoptik (`KARTEN_CLASS`), ohne
+  Tipp-Ziel und Menü. Das ist ein
   Kompromiss, der keine dritte Betriebsart am geteilten Baustein einführt; die zwei Darstellungen
   teilen sich Untertitel (`untertitel()`) und Kennzeichen (`AuslageKennzeichen`: Betrag, Badge).
 
@@ -133,8 +139,10 @@ am geteilten Baustein.
 **Negativ / Trade-offs:**
 - Eingriff in zwei geteilte Dateien (`ListenZeile` +Slot, `ZeilenMenue` Umbau) – deren Tests
   müssen unverändert grün bleiben, dazu neue Tests für `AktionsMenue` und `kennzeichen`.
-- Die Nur-lesen-Karte dupliziert Kartenoptik (Rahmen/Hintergrund) aus `ListenZeile`; ein
-  Drift-Risiko, bewusst in Kauf genommen und im Test an `ListenZeile`-Tokens verankert.
+- Die Nur-lesen-Karte ist eine zweite Darstellung neben `ListenZeile`. Rahmen, Hintergrund und
+  Schrift teilen beide über die exportierte Konstante `KARTEN_CLASS` (keine Kopie); Abstand und
+  Innenrand (`gap-3 p-3`, wie das Tipp-Ziel) stehen als Literal in `AuslageRow` und können
+  driften.
 
 ## Bezug zu anderen ADRs
 
@@ -150,8 +158,8 @@ am geteilten Baustein.
    abgeleitet → `ZeilenMenue` darauf umstellen (Tests unverändert grün) → `ListenZeile`
    `kennzeichen` → `AuslageForm` als Feldblock + Dialoge → `AuslageRow` → Seite → Farb-Gate.
 2. `eslint/ui-token-files.mjs`: `AuslageRow.tsx` besteht; ergänzen `AuslageForm.tsx`,
-   `AuslagenSummary.tsx`, `[id]/auslagen/page.tsx`, `AktionsMenue.tsx`, `ZeilenMenue.tsx`
-   und jede neue Datei.
+   `AuslagenSummary.tsx`, `[id]/auslagen/page.tsx` und jede neue Datei. `AktionsMenue.tsx`
+   (über `app/components/ui/`) und `ZeilenMenue.tsx` (seit #369) sind bereits gedeckt.
 3. Fokus: Dialog „Bearbeiten" über `useFormularDialog` (Rückgabe auf Zeile); Löschen über
    `useBestaetigung` wie heute, Rückgabe auf den ⋯-Auslöser bzw. `AUSLAGEN_LISTE_ID` nach
    Erfolg. Fokus-/Rezidiv-Lessons #371/#372/#373/#404 vor dem Bauen lesen.

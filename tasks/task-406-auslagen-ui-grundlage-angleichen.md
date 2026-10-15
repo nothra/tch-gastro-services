@@ -58,6 +58,15 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   `tasks/review-406.md`. Kern: AktionsMenue schließt während laufender Erstatten-Action (AK3.4),
   Farb-Gate-Gegenprobe grün aus falschem Grund, „Drift-Anker" ohne Bindung, ADR-052/059/060
   ohne Rückverweis auf ADR-061. Out-of-Scope: Issue #419, Kleinfund `login`-Kopie ergänzt.
+- Rework Iteration 1 (2026-10-16): alle 4 wichtigen Findings behoben – Sperre im `AktionsMenue`
+  (`meldeLauf`, Tests mit laufender Action), Farb-Gate-Gegenprobe auf ungelistete `.tsx` + `fatal`-
+  Ausschluss im Helfer, `KARTEN_CLASS` aus `ListenZeile` statt Drift-Anker (ADR-061 angepasst),
+  Nachträge in ADR-052/059/060. Nitpicks erledigt: ADR-061 D1-API + Hinweis 2, Kommentarumbruch
+  `page.tsx`, Test für Neustart beim Öffnen, Kennzeichen-Reihenfolge im Button-Modus, exakte Zählung
+  in `page.test.tsx`, `renderFormular` + `zweck` im Erfassen-Test, Glossar-Stand + Anker
+  (`AuslageRow.tsx:143`), Kleinfund-Anker `AbschlussAktion.tsx:57-87`. Bewusst offen (Hinweise ohne
+  Spec-Bedarf): Menü-Label-Eindeutigkeit, `STATUS_BADGE` in `labels.ts`, Busy-Text beim Erstatten
+  (vorbestehend), `role="menu"`-A11y-Runde.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

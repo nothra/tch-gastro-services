@@ -469,8 +469,8 @@
 
 ### Bestätigungs-Steuerung in `AbschlussAktion` handkopiert
 
-- **Wo:** [`app/veranstaltung/[id]/AbschlussAktion.tsx:61-76`](../../app/veranstaltung/[id]/AbschlussAktion.tsx)
-  (verifiziert am 2026-10-09).
+- **Wo:** [`app/veranstaltung/[id]/AbschlussAktion.tsx:57-87`](../../app/veranstaltung/[id]/AbschlussAktion.tsx)
+  (verifiziert am 2026-10-16).
 - **Was:** Offen-Zustand, `durchlauf`-Zähler als `key` und `returnFocusRef` um einen `ConfirmDialog`
   stehen von Hand. Seit #372 gibt es dafür den Hook `useBestaetigung`
   ([`app/components/useBestaetigung.ts`](../../app/components/useBestaetigung.ts)); `AuslageRow`,
