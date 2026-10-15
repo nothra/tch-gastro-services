@@ -16,7 +16,7 @@ function SummenRow({
 }) {
   const cellClass = bold ? "font-semibold" : "";
   return (
-    <tr className="border-t border-zinc-200 dark:border-zinc-800">
+    <tr className="border-t border-line-subtle">
       <td className={`py-1 pr-4 ${cellClass}`}>{label}</td>
       <td className={`py-1 pr-4 text-right tabular-nums ${cellClass}`}>
         {formatCents(summen.offenCents)}
@@ -34,7 +34,7 @@ export function AuslagenSummary({ summen }: { summen: AuslagenSummen }) {
       <h2 className="font-semibold">Übersicht</h2>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <tr className="text-left text-xs tracking-wide text-muted uppercase">
             <th className="py-1 pr-4 font-medium">Kategorie</th>
             <th className="py-1 pr-4 text-right font-medium">{AUSLAGE_STATUS_LABEL.offen}</th>
             <th className="py-1 text-right font-medium">{AUSLAGE_STATUS_LABEL.erstattet}</th>

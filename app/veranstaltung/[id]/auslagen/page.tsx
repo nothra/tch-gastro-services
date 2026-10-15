@@ -4,18 +4,19 @@ import { hasRole } from "@/lib/authz";
 import type { Kasse } from "@/db/schema";
 import { getVeranstaltung, listZeilen } from "@/db/veranstaltung";
 import { listAuslagen } from "@/db/auslage";
+import { Leerzustand } from "@/app/components/ui/Leerzustand";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { createAuslageAction } from "../../actions";
 import { auslagenSummen } from "../../auslagenSummen";
 import { AuslagenSummary } from "../../AuslagenSummary";
-import { AuslageForm } from "../../AuslageForm";
+import { AuslageErfassen } from "../../AuslageErfassen";
 import { AuslageRow } from "../../AuslageRow";
 import { AUSLAGEN_LISTE_ID } from "../../auslagenListe";
 import { KASSE_LABEL, STATUS_LABEL, formatDatum } from "../../labels";
 
-// Authentifizierte Auslagen-Seite (F6, #53, ADR-028 D4): lädt Auslagen + Teilnehmerzeilen, zeigt
-// die Summen-Übersicht, das Erfassungsformular (nur solange die Veranstaltung offen ist) und die
-// Auslagen-Liste. Nur Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter
+// Authentifizierte Auslagen-Seite (F6, #53, ADR-028 D4; Aufbau spec-406, ADR-061 D4): lädt Auslagen
+// + Teilnehmerzeilen, zeigt Seitenkopf mit „+ Neu", die Summen-Übersicht und die Auslagen-Liste.
+// Erfasst wird nur im Dialog und nur, solange die Veranstaltung offen ist. Nur Veranstalter (serverseitig auch in den Actions durchgesetzt). Liegt unter
 // dem bereits von `proxy.ts` geschützten Bereich – keine Ausnahme nötig (Codify #63).
 export default async function AuslagenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,9 +24,7 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
   if (!hasRole(session?.user?.roles, "veranstalter")) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Kein Zugriff – nur Veranstalter dürfen Auslagen erstatten.
-        </p>
+        <p className="text-muted">Kein Zugriff – nur Veranstalter dürfen Auslagen erfassen.</p>
       </main>
     );
   }
@@ -45,26 +44,25 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
   // (analog adjustVerzehrAction) – der Client liefert sie nicht.
   const createAction = createAuslageAction.bind(null, id);
 
+  const erfassen = (ausloeser: string, imLeerzustand?: boolean) => (
+    <AuslageErfassen
+      action={createAction}
+      teilnehmer={teilnehmer}
+      ausloeser={ausloeser}
+      imLeerzustand={imLeerzustand}
+    />
+  );
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
       <PageHeader
         title={`Auslagen · ${veranstaltung.bezeichnung}`}
         back={{ href: `/veranstaltung/${id}`, label: "Zur Veranstaltung" }}
         meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]} · ${STATUS_LABEL[veranstaltung.status]}`}
+        action={offen ? erfassen("+ Neu") : undefined}
       />
 
       <AuslagenSummary summen={summen} />
-
-      {offen && (
-        <section className="flex flex-col gap-3">
-          <h2 className="font-semibold">Auslage erfassen</h2>
-          <AuslageForm
-            action={createAction}
-            teilnehmer={teilnehmer}
-            submitLabel="Auslage erfassen"
-          />
-        </section>
-      )}
 
       <section className="flex flex-col gap-3">
         {/* Fokusziel, wenn eine gelöschte Auslage samt Auslöser verschwindet (spec-372 AK1). */}
@@ -72,7 +70,10 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
           Auslagen ({auslagen.length})
         </h2>
         {auslagen.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Noch keine Auslagen erfasst.</p>
+          <Leerzustand
+            text="Noch keine Auslagen erfasst."
+            aktion={offen ? erfassen("Auslage erfassen", true) : null}
+          />
         ) : (
           <ul className="flex flex-col gap-2">
             {auslagen.map((auslage) => (

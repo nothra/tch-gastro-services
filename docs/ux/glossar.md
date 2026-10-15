@@ -149,7 +149,7 @@ beim Umsetzen gestrichen. Zeilenangaben gegen den Stand von #372 (Review-Rework)
 
 Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
 Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
-Alles Übrige sammelt **#401**.
+Die Auslagen-Zeilen hat #406 erledigt. Alles Übrige sammelt **#401**.
 
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|
@@ -163,9 +163,7 @@ Alles Übrige sammelt **#401**.
 | `app/verwaltung/teilnehmer/schema.ts:21` | „Anzeigename ist zu lang." (Feld heißt seit #404 „Name") | „Name ist zu lang." | #401 |
 | `app/verwaltung/katalog/ArtikelAnlegen.tsx:48` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:67` | Busy „Speichern …" (Button „Kassieren") | „Kassieren …" | #401 |
-| `app/veranstaltung/AuslageForm.tsx:142` | Busy „Speichern …" (Button „Auslage erfassen") | „Erfassen …" (beim Bearbeiten bleibt „Speichern …") | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:53` | „Erhalten (EUR)" | „Erhalten (€)" | #401 |
-| `app/veranstaltung/AuslageForm.tsx:112` | „Betrag (EUR)" | „Betrag (€)" | #401 |
 | `app/verwaltung/katalog/CatalogFields.tsx:45` | „Preis (EUR)" | „Preis (€)" | #401 |
 | `app/theke/[token]/IdentityGate.tsx:177` | „Bitte wählen…" | „Bitte wählen …" | #401 |
 | `app/verwaltung/theke/ThekeSetup.tsx:24` | „… ein erneutes Einrichten legt nicht doppelt an." | „… ein erneutes Anlegen legt nicht doppelt an." | #401 |
@@ -180,14 +178,14 @@ Grep auf den Ist-Text).
 
 | Datei | Text | Regel |
 |---|---|---|
-| `app/veranstaltung/ZeilenMenue.tsx:125` | „Entfernen" (Teilnehmerzeile) | Zuordnung lösen = entfernen |
-| `app/veranstaltung/AuslageRow.tsx:131` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
+| `app/veranstaltung/ZeilenMenue.tsx:34` | „Entfernen" (Teilnehmerzeile) | Zuordnung lösen = entfernen |
+| `app/veranstaltung/AuslageRow.tsx:141` | „Löschen" (Auslage) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/[id]/VeranstaltungLoeschen.tsx:96` | „Löschen …" (Veranstaltung) | dauerhaft verwerfen = löschen |
 | `app/veranstaltung/OffeneVeranstaltungen.tsx:28` | „Veranstaltung anlegen" | neues Objekt = anlegen |
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:36` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
 | `app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:12` | „Verzehr erfassen" | Mengen eintragen = erfassen |
 | `app/verwaltung/teilnehmer/TeilnehmerRow.tsx:83`, `app/verwaltung/katalog/CatalogRow.tsx:93` | „Aktivieren" | umschalten = (de)aktivieren |
-| `app/veranstaltung/AuslageForm.tsx:86` | „Bitte wählen …" | Platzhalter mit Leerzeichen |
+| `app/veranstaltung/AuslageForm.tsx:24` | „Bitte wählen …" | Platzhalter mit Leerzeichen |
 | `app/veranstaltung/[id]/kassieren/page.tsx:236` | „← Verzehr erfassen" | Zurück-Link, Pfeil vor dem Ziel |
 | `app/_verzehr/VerzehrEinzelansicht.tsx:156` | „Nächste Person →" | Weiter-Aktion, Pfeil nach dem Ziel |
 | `app/theke/[token]/IdentityGate.tsx:235` | „Wer bist du?" | Anrede Du |

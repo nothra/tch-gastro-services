@@ -70,7 +70,8 @@ einzige Erkennungszeichen. Ein Wechsel auf `line` nur für die Kacheln hätte zw
 für dieselbe Zeilen-Sprache bedeutet. Bedienelemente mit
 eigenem Rahmen als einzigem Erkennungszeichen (Eingabefelder, Knöpfe) bleiben bei `line`.
 
-`ZeilenMenue` bleibt feature-lokal und wird von `ZeileRow` als `aktion` übergeben. Der Baustein
+`ZeilenMenue` bleibt feature-lokal und wird von `ZeileRow` als `aktion` übergeben (seit ADR-061 D1
+auf dem Baustein `AktionsMenue` gebaut). Der Baustein
 kennt weder Menü noch Server Action → route-neutral (ADR-052 D1).
 
 ### D2 · Aufklapper: natives `<details>`, Zustand nur per CSS

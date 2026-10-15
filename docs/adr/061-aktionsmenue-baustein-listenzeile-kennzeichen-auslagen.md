@@ -76,14 +76,16 @@ bestehende `ConfirmDialog` (spec-372, ADR-058 D4) mit dem Menü-Auslöser als Fo
   `kennzeichen` (Betrag + Badge), `aktion` = `AktionsMenue`, `anhang` = Bearbeiten-`Dialog`.
   Stabile Zeilen-`id` (`auslage-<id>`) als Ersatz-Fokusziel (Statuswechsel mountet nicht neu, aber
   Löschen entfernt die Zeile – bestehendes Ziel `AUSLAGEN_LISTE_ID` bleibt).
-- `AuslageForm` wird zum reinen Feld-Block im Dialog (Muster `CatalogFields`), die
-  Absende-/Dialoglogik liefert `useDialogFormular`/`DialogAktionen`; Felder über
-  `Field`/`SelectField`.
+- `AuslageForm.tsx` enthält das Dialog-Formular `AuslageFormular` (Erfassen und Bearbeiten) mit
+  dem Feld-Block (Muster `CatalogFields`); die Absende-/Dialoglogik liefert
+  `useDialogFormular`/`DialogAktionen`, Felder über `Field`/`SelectField`. Der Anlege-Dialog
+  „+ Neu" liegt als Client-Hülle in `AuslageErfassen.tsx`, weil die Seite ein Server Component
+  ist und der `AnlegeDialog` eine Render-Funktion braucht.
 - **Nur-lesen-Fall (F2):** `ListenZeile` hat keinen „weder Link noch Button"-Modus. Statt die
   API zu erweitern, rendert `AuslageRow` bei `editable === false` eine eigene, **reine
   Anzeigekarte** mit denselben Tokens (`Card`-ähnlich, ohne Tipp-Ziel und Menü). Das ist ein
   Kompromiss, der keine dritte Betriebsart am geteilten Baustein einführt; die zwei Darstellungen
-  teilen sich den Inhalt (`AuslageInhalt`: Titel, Untertitel, Betrag, Badge).
+  teilen sich Untertitel (`untertitel()`) und Kennzeichen (`AuslageKennzeichen`: Betrag, Badge).
 
 ## Alternativen
 

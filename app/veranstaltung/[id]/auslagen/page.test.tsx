@@ -20,11 +20,24 @@ vi.mock("next/link", () => ({
 }));
 
 // Client-Komponenten (eigene Tests) durch Stubs ersetzen, die die relevanten Props spiegeln.
-vi.mock("../../AuslageForm", () => ({
-  AuslageForm: ({ submitLabel, teilnehmer }: { submitLabel: string; teilnehmer: unknown[] }) => (
-    <div data-testid="create-form" data-teilnehmer={teilnehmer.length}>
-      {submitLabel}
-    </div>
+vi.mock("../../AuslageErfassen", () => ({
+  AuslageErfassen: ({
+    ausloeser,
+    teilnehmer,
+    imLeerzustand,
+  }: {
+    ausloeser: string;
+    teilnehmer: unknown[];
+    imLeerzustand?: boolean;
+  }) => (
+    <button
+      type="button"
+      data-testid="auslage-erfassen"
+      data-teilnehmer={teilnehmer.length}
+      data-leerzustand={String(Boolean(imLeerzustand))}
+    >
+      {ausloeser}
+    </button>
   ),
 }));
 vi.mock("../../AuslageRow", () => ({
@@ -118,7 +131,19 @@ describe("AuslagenPage", () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it("should_renderSummaryFormAndRows_when_veranstalterAndOpen", async () => {
+  it("should_showGlossaryNoAccessText_when_userIsNotVeranstalter", async () => {
+    // spec-406 AK6.4 (Q1): „erfassen" statt „erstatten".
+    authMock.mockResolvedValue(session(["verwalter"]));
+
+    render(await AuslagenPage({ params: params("v-1") }));
+
+    expect(
+      screen.getByText("Kein Zugriff – nur Veranstalter dürfen Auslagen erfassen."),
+    ).toHaveClass("text-muted");
+  });
+
+  it("should_renderSummaryThenListWithoutForm_when_veranstalterAndOpen", async () => {
+    // spec-406 AK1.1: Übersicht über der Liste, kein Erfassen-Formular auf der Seite.
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -127,18 +152,32 @@ describe("AuslagenPage", () => {
     render(await AuslagenPage({ params: params("v-1") }));
 
     expect(listAuslagenMock).toHaveBeenCalledWith("v-1");
-    // Übersicht (Summe Essen offen = 12,50 €, zusätzlich in der Gesamt-Zeile)
-    expect(screen.getByText("Übersicht")).toBeInTheDocument();
+    const uebersicht = screen.getByRole("heading", { name: "Übersicht" });
+    const liste = screen.getByRole("heading", { name: "Auslagen (1)" });
+    expect(uebersicht.compareDocumentPosition(liste)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.getAllByText("12,50 €").length).toBeGreaterThanOrEqual(1);
-    // Erfassungsformular offen → sichtbar, Teilnehmer aus den Zeilen abgeleitet
-    const form = screen.getByTestId("create-form");
-    expect(form).toBeInTheDocument();
-    expect(form).toHaveAttribute("data-teilnehmer", "1");
-    // Zeile editierbar, weil Veranstaltung offen
     expect(screen.getByTestId("auslage-row")).toHaveAttribute("data-editable", "true");
   });
 
-  it("should_hideCreateFormAndMarkRowsReadonly_when_abgeschlossen", async () => {
+  it("should_offerNeuInPageHeader_when_open", async () => {
+    // spec-406 AK1.2: „+ Neu" rechts im Seitenkopf; Teilnehmer aus den Zeilen abgeleitet.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([aZeile]);
+    listAuslagenMock.mockResolvedValue([aAuslage]);
+
+    render(await AuslagenPage({ params: params("v-1") }));
+
+    const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+    const neu = within(kopf).getByRole("button", { name: "+ Neu" });
+    expect(neu).toHaveAttribute("data-teilnehmer", "1");
+    expect(neu).toHaveAttribute("data-leerzustand", "false");
+  });
+
+  it("should_offerNoNeuAndMarkRowsReadonly_when_abgeschlossen", async () => {
+    // spec-406 F2: nur lesen.
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -146,11 +185,12 @@ describe("AuslagenPage", () => {
 
     render(await AuslagenPage({ params: params("v-1") }));
 
-    expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("auslage-erfassen")).not.toBeInTheDocument();
     expect(screen.getByTestId("auslage-row")).toHaveAttribute("data-editable", "false");
   });
 
-  it("should_showEmptyHint_when_noAuslagen", async () => {
+  it("should_showLeerzustandWithErfassenAction_when_noAuslagenAndOpen", async () => {
+    // spec-406 AK1.8: Leerzustand mit „Auslage erfassen", derselbe Dialog (imLeerzustand).
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -158,8 +198,38 @@ describe("AuslagenPage", () => {
 
     render(await AuslagenPage({ params: params("v-1") }));
 
-    expect(screen.getByText(/Noch keine Auslagen/i)).toBeInTheDocument();
+    expect(screen.getByText("Noch keine Auslagen erfasst.")).toHaveClass("text-muted");
+    expect(screen.getByRole("button", { name: "Auslage erfassen" })).toHaveAttribute(
+      "data-leerzustand",
+      "true",
+    );
     expect(screen.queryByTestId("auslage-row")).not.toBeInTheDocument();
+  });
+
+  it("should_showLeerzustandWithoutAction_when_noAuslagenAndAbgeschlossen", async () => {
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue({ ...aVeranstaltung, status: "abgeschlossen" });
+    listZeilenMock.mockResolvedValue([aZeile]);
+    listAuslagenMock.mockResolvedValue([]);
+
+    render(await AuslagenPage({ params: params("v-1") }));
+
+    expect(screen.getByText("Noch keine Auslagen erfasst.")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("should_keepListHeadingAsFocusTarget_when_rendered", async () => {
+    // spec-406 AK4.4: Ersatz-Fokusziel nach dem Löschen bleibt die Listen-Überschrift.
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([aZeile]);
+    listAuslagenMock.mockResolvedValue([aAuslage]);
+
+    render(await AuslagenPage({ params: params("v-1") }));
+
+    const ueberschrift = screen.getByRole("heading", { name: "Auslagen (1)" });
+    expect(ueberschrift).toHaveAttribute("id", "auslagen-liste");
+    expect(ueberschrift).toHaveAttribute("tabindex", "-1");
   });
 });
 

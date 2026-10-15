@@ -38,3 +38,12 @@ describe("AuslagenSummary", () => {
     expect(screen.getByText("erstattet")).toBeInTheDocument();
   });
 });
+
+describe("AuslagenSummary – Tokens (spec-406 AK5.2)", () => {
+  it("should_useTokenClassesForHeaderAndRowBorders_when_rendered", () => {
+    render(<AuslagenSummary summen={summen} />);
+
+    expect(screen.getByText("Kategorie").closest("tr")).toHaveClass("text-muted");
+    expect(screen.getByText("Gesamt").closest("tr")).toHaveClass("border-line-subtle");
+  });
+});

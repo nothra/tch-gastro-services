@@ -1,227 +1,257 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { DialogSteuerung } from "@/app/components/FormularDialog";
 import type { AuslageFormState } from "./actions";
-
-// useActionState steuert alle Renderzustände direkt (Fehler/Erfolg/Pending) – etablierter
-// Ansatz (WalkInForm/MengeControl, Codify #49).
-vi.mock("react", async () => {
-  const actual = await vi.importActual<typeof import("react")>("react");
-  return { ...actual, useActionState: vi.fn() };
-});
 
 vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
 
-import { useActionState } from "react";
 import { meldeErfolg } from "@/app/components/ui/meldung";
-import { AuslageForm } from "./AuslageForm";
+import { AuslageFormular, type AuslageFormInitial } from "./AuslageForm";
 
-const useActionStateMock = vi.mocked(useActionState);
 const meldeErfolgMock = vi.mocked(meldeErfolg);
-
-// Der an useActionState übergebene Wrapper (Codify #49) – hier direkt ausgeführt.
-function wrappedAction() {
-  return useActionStateMock.mock.calls[0][0] as (
-    prev: AuslageFormState | undefined,
-    fd: FormData,
-  ) => Promise<AuslageFormState>;
-}
-const noopDispatch = vi.fn();
 
 const teilnehmer = [
   { teilnehmerId: "t-1", anzeigename: "Anna" },
   { teilnehmerId: "t-2", anzeigename: "Bernd" },
 ];
 
-function withState(state: AuslageFormState | undefined, isPending = false) {
-  useActionStateMock.mockReturnValue([state, noopDispatch, isPending] as never);
+const initial: AuslageFormInitial = {
+  teilnehmerId: "t-2",
+  kategorie: "sonstiges",
+  betrag: "7,30",
+  zweck: "Servietten",
+};
+
+// Die Dialog-Steuerung kommt im Betrieb aus `useFormularDialog` (eigene Tests); hier genügt ein
+// Double, das die Aufrufe sichtbar macht.
+function steuerung(overrides: Partial<DialogSteuerung> = {}): DialogSteuerung {
+  return {
+    schliessen: vi.fn(),
+    schliessenNachErfolg: vi.fn(),
+    meldeLauf: vi.fn(),
+    gesperrt: false,
+    ...overrides,
+  };
 }
 
-const noopAction = vi.fn(async () => ({ ok: true }) as AuslageFormState);
+const action =
+  vi.fn<(prev: AuslageFormState | undefined, fd: FormData) => Promise<AuslageFormState>>();
+
+// Offen gehaltene Action für den Lauf-Test; Auflösung in `afterEach` innerhalb von `act`
+// (Lesson #370).
+let laufendeActionBeenden: (() => void) | undefined;
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  withState(undefined);
+  vi.resetAllMocks();
+  laufendeActionBeenden = undefined;
+  action.mockResolvedValue({ ok: true });
 });
 
-describe("AuslageForm", () => {
-  it("should_renderTeilnehmerOptions_when_teilnehmerGiven", () => {
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+afterEach(async () => {
+  await act(async () => laufendeActionBeenden?.());
+});
 
-    expect(screen.getByRole("option", { name: "Anna" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Bernd" })).toBeInTheDocument();
+function renderErfassen(props: Partial<Parameters<typeof AuslageFormular>[0]> = {}) {
+  const dialog = steuerung();
+  render(<AuslageFormular action={action} teilnehmer={teilnehmer} steuerung={dialog} {...props} />);
+  return dialog;
+}
+
+function optionen(label: string) {
+  const select = screen.getByLabelText(label);
+  return [...select.querySelectorAll("option")].map((option) => option.textContent);
+}
+
+// Pflichtfelder füllen, damit eine Ablehnung aus der Action stammt, nicht aus der nativen
+// Pflichtfeld-Prüfung.
+function felderFuellen() {
+  fireEvent.change(screen.getByLabelText("Teilnehmer"), { target: { value: "t-1" } });
+  fireEvent.change(screen.getByLabelText("Kategorie"), { target: { value: "essen" } });
+  fireEvent.change(screen.getByLabelText("Betrag (€)"), { target: { value: "12,50" } });
+}
+
+async function klicke(name: string) {
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name }));
+  });
+}
+
+describe("AuslageFormular – Felder (spec-406 AK1.3, AK5.1, AK6.3, AK6.5)", () => {
+  it("should_offerTeilnehmerWithGlossaryPlaceholder_when_rendered", () => {
+    renderErfassen();
+
+    expect(optionen("Teilnehmer")).toEqual(["Bitte wählen …", "Anna", "Bernd"]);
+    expect(screen.getByLabelText("Teilnehmer")).toBeRequired();
   });
 
-  it("should_renderAllThreeKategorieOptions_when_rendered", () => {
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+  it("should_offerAllThreeKategorien_when_rendered", () => {
+    renderErfassen();
 
-    expect(screen.getByRole("option", { name: "Getränke" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Essen" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Sonstiges" })).toBeInTheDocument();
+    expect(optionen("Kategorie")).toEqual(["Bitte wählen …", "Getränke", "Essen", "Sonstiges"]);
   });
 
-  it("should_showHint_when_noTeilnehmer", () => {
-    render(<AuslageForm action={noopAction} teilnehmer={[]} submitLabel="Erfassen" />);
+  it("should_labelBetragWithEuroSign_when_rendered", () => {
+    renderErfassen();
 
-    expect(screen.getByText(/zuerst Teilnehmer/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Erfassen" })).not.toBeInTheDocument();
+    const betrag = screen.getByLabelText("Betrag (€)");
+    expect(betrag).toHaveAttribute("inputmode", "decimal");
+    expect(betrag).toBeRequired();
+    expect(screen.queryByLabelText("Betrag (EUR)")).not.toBeInTheDocument();
   });
 
-  it("should_prefillFields_when_editingWithInitial", () => {
-    render(
-      <AuslageForm
-        action={noopAction}
-        teilnehmer={teilnehmer}
-        submitLabel="Speichern"
-        initial={{
-          teilnehmerId: "t-2",
-          kategorie: "essen",
-          betrag: "12,50",
-          zweck: "Grillfleisch",
-        }}
-      />,
-    );
+  it("should_offerOptionalNotizWithLimit_when_rendered", () => {
+    renderErfassen();
 
-    expect(screen.getByLabelText(/Teilnehmer/i)).toHaveValue("t-2");
-    expect(screen.getByLabelText(/Kategorie/i)).toHaveValue("essen");
-    expect(screen.getByLabelText(/Betrag/i)).toHaveValue("12,50");
-    expect(screen.getByLabelText(/Notiz/i)).toHaveValue("Grillfleisch");
+    const notiz = screen.getByLabelText("Notiz (optional)");
+    expect(notiz).toHaveAttribute("name", "zweck");
+    expect(notiz).toHaveAttribute("maxlength", "200");
+    expect(notiz).not.toBeRequired();
   });
 
-  it("should_showErrorMessage_when_stateHasError", () => {
-    withState({ error: "Betrag muss größer als 0 sein." });
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+  it("should_useFieldBuildingBlocks_when_rendered", () => {
+    // AK5.1: Steuerelemente aus `Field`/`SelectField`, keine eigenen Styles.
+    renderErfassen();
 
-    expect(screen.getByText("Betrag muss größer als 0 sein.")).toBeInTheDocument();
+    for (const label of ["Teilnehmer", "Kategorie", "Betrag (€)", "Notiz (optional)"]) {
+      expect(screen.getByLabelText(label)).toHaveClass("min-h-11", "border-line", "bg-surface");
+    }
   });
 
-  it("should_notShowInlineSuccessMessage_when_stateOk", () => {
-    // spec-372 AK17: die Rückmeldung ist der Toast, keine zweite Meldung am Formular.
-    withState({ ok: true });
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+  it("should_prefillFields_when_initialGiven", () => {
+    // AK2a.1: Vorbelegung beim Bearbeiten, Betrag als EUR-Eingabewert.
+    renderErfassen({ initial });
 
-    expect(screen.queryByText(/erfasst/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Teilnehmer")).toHaveValue("t-2");
+    expect(screen.getByLabelText("Kategorie")).toHaveValue("sonstiges");
+    expect(screen.getByLabelText("Betrag (€)")).toHaveValue("7,30");
+    expect(screen.getByLabelText("Notiz (optional)")).toHaveValue("Servietten");
   });
 
-  it("should_reportErfasst_when_createSucceeds", async () => {
-    // spec-372 AK12 (Glossar: Beträge eintragen = erfassen).
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
+  it("should_startEmpty_when_noInitial", () => {
+    renderErfassen();
 
-    await wrappedAction()(undefined, new FormData());
+    expect(screen.getByLabelText("Teilnehmer")).toHaveValue("");
+    expect(screen.getByLabelText("Kategorie")).toHaveValue("");
+    expect(screen.getByLabelText("Betrag (€)")).toHaveValue("");
+    expect(screen.getByLabelText("Notiz (optional)")).toHaveValue("");
+  });
+});
 
+describe("AuslageFormular – Erfassen (spec-406 AK1.4/AK1.5, AK6.1/AK6.2)", () => {
+  it("should_offerErfassenAndAbbrechen_when_noInitial", () => {
+    renderErfassen();
+
+    expect(screen.getByRole("button", { name: "Erfassen" })).toHaveAttribute("type", "submit");
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeInTheDocument();
+  });
+
+  it("should_submitFieldsCloseAndReportErfasst_when_actionSucceeds", async () => {
+    const dialog = renderErfassen();
+    felderFuellen();
+
+    await klicke("Erfassen");
+
+    const formData = action.mock.calls[0][1];
+    expect(formData.get("teilnehmerId")).toBe("t-1");
+    expect(formData.get("kategorie")).toBe("essen");
+    expect(formData.get("betrag")).toBe("12,50");
+    expect(dialog.schliessenNachErfolg).toHaveBeenCalledTimes(1);
     expect(meldeErfolgMock).toHaveBeenCalledWith("Auslage erfasst");
   });
 
-  it("should_reportGespeichert_when_editSucceeds", async () => {
-    render(
-      <AuslageForm
-        action={noopAction}
-        teilnehmer={teilnehmer}
-        submitLabel="Speichern"
-        initial={{ teilnehmerId: "t-1", kategorie: "getraenke", betrag: "1,00", zweck: "" }}
-      />,
-    );
+  it("should_keepInputsAndShowAlert_when_actionRejects", async () => {
+    // AK1.5: kein `<form action>`-Reset (Lesson #373), Meldung als Notice im Dialog.
+    action.mockResolvedValue({ error: "Betrag muss größer als 0 sein." });
+    const dialog = renderErfassen();
+    felderFuellen();
 
-    await wrappedAction()(undefined, new FormData());
+    await klicke("Erfassen");
 
-    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
-  });
-
-  it("should_notReport_when_actionRejects", async () => {
-    // AK16: der Fehler bleibt am Formular.
-    const action = vi.fn(async () => ({ error: "abgelehnt" }) as AuslageFormState);
-    render(<AuslageForm action={action} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
-
-    await wrappedAction()(undefined, new FormData());
-
+    expect(screen.getByRole("alert")).toHaveTextContent("Betrag muss größer als 0 sein.");
+    expect(screen.getByLabelText("Betrag (€)")).toHaveValue("12,50");
+    expect(screen.getByLabelText("Teilnehmer")).toHaveValue("t-1");
+    expect(dialog.schliessenNachErfolg).not.toHaveBeenCalled();
     expect(meldeErfolgMock).not.toHaveBeenCalled();
   });
 
-  it("should_showErrorAsAlert_when_stateHasError", () => {
-    // AK16: Ablehnung als `role="alert"` am Ort der Aktion.
-    withState({ error: "Betrag ist zu hoch." });
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Betrag ist zu hoch.");
-  });
-
-  it("should_disableButtonWithPendingText_when_pending", () => {
-    withState(undefined, true);
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
-
-    const button = screen.getByRole("button", { name: /Speichern …/ });
-    expect(button).toBeDisabled();
-  });
-
-  it("should_callOnSuccess_when_wrappedActionSucceeds", async () => {
-    const onSuccess = vi.fn();
-    const action = vi.fn(async () => ({ ok: true }) as AuslageFormState);
-    render(
-      <AuslageForm
-        action={action}
-        teilnehmer={teilnehmer}
-        submitLabel="Speichern"
-        onSuccess={onSuccess}
-      />,
+  it("should_showErfassenBusyText_when_actionRunning", async () => {
+    action.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          laufendeActionBeenden = () => resolve({ ok: true });
+        }),
     );
+    const dialog = renderErfassen();
+    felderFuellen();
 
-    const result = await wrappedAction()(undefined, new FormData());
+    await klicke("Erfassen");
 
-    expect(result.ok).toBe(true);
-    expect(onSuccess).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Erfassen …" })).toBeDisabled();
+    expect(dialog.meldeLauf).toHaveBeenCalledWith(true);
+  });
+});
+
+describe("AuslageFormular – Bearbeiten (spec-406 AK2a.2/AK2a.3)", () => {
+  it("should_offerSpeichern_when_initialGiven", () => {
+    renderErfassen({ initial });
+
+    expect(screen.getByRole("button", { name: "Speichern" })).toHaveAttribute("type", "submit");
+    expect(screen.queryByRole("button", { name: "Erfassen" })).not.toBeInTheDocument();
   });
 
-  // Reset bei jeder erfolgreichen Neu-Erfassung (nicht nur der ersten): der Wrapper leert die
-  // Felder per form.reset() über eine Ref – so bleibt der Reset bei aufeinanderfolgenden
-  // Erfassungen zuverlässig, ohne key-basierten Remount (der beim 2. ok nicht mehr griff).
-  it("should_clearFields_when_createSucceeds", async () => {
-    render(<AuslageForm action={noopAction} teilnehmer={teilnehmer} submitLabel="Erfassen" />);
-    const betrag = screen.getByLabelText(/Betrag/i);
-    fireEvent.change(betrag, { target: { value: "9,99" } });
-    expect(betrag).toHaveValue("9,99");
+  it("should_closeAndReportGespeichert_when_editSucceeds", async () => {
+    const dialog = renderErfassen({ initial });
 
-    await wrappedAction()(undefined, new FormData());
+    await klicke("Speichern");
 
-    expect(betrag).toHaveValue("");
+    expect(action.mock.calls[0][1].get("zweck")).toBe("Servietten");
+    expect(dialog.schliessenNachErfolg).toHaveBeenCalledTimes(1);
+    expect(meldeErfolgMock).toHaveBeenCalledWith("Gespeichert");
   });
 
-  it("should_notResetFields_when_editSucceeds", async () => {
-    render(
-      <AuslageForm
-        action={noopAction}
-        teilnehmer={teilnehmer}
-        submitLabel="Speichern"
-        initial={{
-          teilnehmerId: "t-2",
-          kategorie: "essen",
-          betrag: "12,50",
-          zweck: "Grillfleisch",
-        }}
-      />,
+  it("should_keepEditedInputsAndShowAlert_when_editRejects", async () => {
+    action.mockResolvedValue({ error: "Auslage nicht gefunden." });
+    renderErfassen({ initial });
+    fireEvent.change(screen.getByLabelText("Notiz (optional)"), { target: { value: "Becher" } });
+
+    await klicke("Speichern");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Auslage nicht gefunden.");
+    expect(screen.getByLabelText("Notiz (optional)")).toHaveValue("Becher");
+    expect(meldeErfolgMock).not.toHaveBeenCalled();
+  });
+
+  it("should_showSpeichernBusyText_when_editRunning", async () => {
+    action.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          laufendeActionBeenden = () => resolve({ ok: true });
+        }),
     );
-    const betrag = screen.getByLabelText(/Betrag/i);
-    fireEvent.change(betrag, { target: { value: "9,99" } });
+    renderErfassen({ initial });
 
-    await wrappedAction()(undefined, new FormData());
+    await klicke("Speichern");
 
-    // Im Korrektur-Modus schließt onSuccess das Formular – kein Feld-Reset.
-    expect(betrag).toHaveValue("9,99");
+    expect(screen.getByRole("button", { name: "Speichern …" })).toBeDisabled();
+  });
+});
+
+describe("AuslageFormular – ohne Teilnehmer (spec-406 AK1.7)", () => {
+  it("should_showHintInsteadOfForm_when_noTeilnehmer", () => {
+    renderErfassen({ teilnehmer: [] });
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Zuerst Teilnehmer zur Veranstaltung hinzufügen, dann sind Auslagen erfassbar.",
+    );
+    expect(screen.queryByLabelText("Teilnehmer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Erfassen" })).not.toBeInTheDocument();
   });
 
-  it("should_notCallOnSuccess_when_wrappedActionReturnsError", async () => {
-    const onSuccess = vi.fn();
-    const action = vi.fn(async () => ({ error: "abgelehnt" }) as AuslageFormState);
-    render(
-      <AuslageForm
-        action={action}
-        teilnehmer={teilnehmer}
-        submitLabel="Speichern"
-        onSuccess={onSuccess}
-      />,
-    );
+  it("should_closeDialog_when_abbrechenClickedWithoutTeilnehmer", () => {
+    const dialog = renderErfassen({ teilnehmer: [] });
 
-    await wrappedAction()(undefined, new FormData());
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
 
-    expect(onSuccess).not.toHaveBeenCalled();
+    expect(dialog.schliessen).toHaveBeenCalledTimes(1);
   });
 });

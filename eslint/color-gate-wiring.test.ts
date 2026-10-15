@@ -84,12 +84,25 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
     expect(messages.length).toBeGreaterThan(0);
   });
 
-  // Gegenrichtung mit ähnlichem Nachbarpfad: die Auslagen-Unterseite ist noch nicht umgestellt
-  // und bleibt bis dahin außerhalb des Gates.
+  // spec-406 AK7.1: die ganze Auslagen-Umstellung steht im Gate.
+  it.each([
+    "app/veranstaltung/[id]/auslagen/page.tsx",
+    "app/veranstaltung/AuslageForm.tsx",
+    "app/veranstaltung/AuslageErfassen.tsx",
+    "app/veranstaltung/AuslagenSummary.tsx",
+  ])("should_reportRawColorClass_when_fileIsPartOfAuslagenUmstellung_%s", async (filePath) => {
+    const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, filePath);
+
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
+  // Gegenrichtung mit ähnlichem Nachbarpfad: die Verzehr-Unterseite ist noch nicht umgestellt
+  // (#370 hat nur die route-neutrale Erfassung unter `app/_verzehr/` gelistet). Seit #406 ist die
+  // Auslagen-Unterseite gelistet und taugt nicht mehr als Gegenbeispiel (Lesson #371).
   it("should_notReport_when_fileIsSiblingSubpageOfListedDynamicSegmentFile", async () => {
     const messages = await rawColorMessages(
       CODE_WITH_RAW_COLOR,
-      "app/veranstaltung/[id]/auslagen/page.tsx",
+      "app/veranstaltung/[id]/verzehr/page.tsx",
     );
 
     expect(messages).toEqual([]);
@@ -107,14 +120,11 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
   );
 
   // Diskriminierungs-Kontrolle mit einem ÄHNLICHEN Nachbarpfad, nicht einem entfernten
-  // (Lesson aus #172/#297): `AuslageForm.tsx` liegt direkt neben der gelisteten `AuslageRow.tsx`
-  // und ist noch nicht umgestellt (kleinfunde.md). Seit #405 ist `TeilnehmerRow.tsx` gelistet und
-  // taugt nicht mehr als Gegenbeispiel (Lesson #371).
+  // (Lesson aus #172/#297): `labels.ts` liegt direkt neben den gelisteten Auslagen-Dateien und
+  // ist nicht gelistet. Seit #405 taugt `TeilnehmerRow.tsx`, seit #406 `AuslageForm.tsx` nicht mehr
+  // als Gegenbeispiel – beide sind gelistet (Lesson #371).
   it("should_notReport_when_fileIsNotOnTheList", async () => {
-    const messages = await rawColorMessages(
-      CODE_WITH_RAW_COLOR,
-      "app/veranstaltung/AuslageForm.tsx",
-    );
+    const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, "app/veranstaltung/labels.ts");
 
     expect(messages).toEqual([]);
   });

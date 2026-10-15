@@ -142,8 +142,8 @@ Löschsperren vorab, **D4** Dialog-Umstellungen.
 - **Bestätigungs-Steuerung als Hook** (Nachtrag Review #372): `useBestaetigung(ersatzFokusId?)`
   (`app/components/useBestaetigung.ts`) bündelt Offen-Zustand, Fokus-Rückgabe, `key` je Öffnen und
   das Ersatz-Fokusziel nach einem Erfolg, der den Auslöser aushängt. Auslage löschen, Katalog
-  deaktivieren und Veranstaltung löschen nutzen ihn; `ZeilenMenue` und `AbschlussAktion` ziehen
-  nach (`docs/factory/kleinfunde.md`).
+  deaktivieren und Veranstaltung löschen nutzen ihn, seit #406 auch `ZeilenMenue`; `AbschlussAktion`
+  zieht nach (`docs/factory/kleinfunde.md`).
 - Alle Texte nach `docs/ux/glossar.md`; die Abweichungen mit Ziel #372 stehen dort in der
   Abweichungsliste und sind im selben PR zu streichen.
 
