@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -84,6 +84,10 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   Eingriff in die Action erzeugen. Gitignorte Wegwerf-Dateien (`scripts/e2e406.tmp.sh`,
   `playwright-406.tmp.config.ts`, `e2e406-*.tmp.log`) konnten mangels `rm`-Freigabe nicht
   gelöscht werden – bitte manuell entfernen.
+- Iteration 3 (2026-10-16): **APPROVED** – 0 kritisch, 0 wichtig, 3 Nitpicks (redundantes
+  `disabled={pending}` am Erstatten-Eintrag, Wegwerf-Dateien noch im Baum, Fokus nach Ablehnung
+  als Teil der offenen A11y-Runde). Beide Findings aus Iteration 2 behoben. Vitest 158/158,
+  Lint grün; Typecheck in der Review-Session nicht gelaufen (pre-push prüft ihn).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
