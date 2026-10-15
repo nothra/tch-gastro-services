@@ -10,17 +10,25 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+Auslagen-Seite an die UI-Grundlage angleichen: Liste zuerst, „+ Neu“-Dialog, ListenZeile mit Badge,
+⋯-Menü, Löschen mit Rückfrage (bleibt erhalten), Bausteine/Tokens/Glossar. Spec: `docs/specs/spec-406-auslagen-ui-grundlage-angleichen.md`.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [ ] AK1 Seitenaufbau: Übersicht über Liste, „+ Neu“ → Dialog „Auslage erfassen“, Leerzustand
+- [ ] AK2 Zeile als `ListenZeile` mit Badge offen/erstattet; Tipp → „Auslage bearbeiten“
+- [ ] AK3 ⋯-Menü: Als erstattet markieren / Erstattung zurücknehmen, Bearbeiten, Löschen
+- [ ] AK4 Löschen mit `ConfirmDialog` (bleibt erhalten), Toast „Auslage gelöscht“
+- [ ] AK5 Bausteine `Field`/`SelectField`/`Notice`/`Button`/`PageHeader` statt Eigenbau
+- [ ] AK6 Texte nach Glossar (Toast, Busy, Platzhalter, Kein-Zugriff, „Betrag (€)“)
+- [ ] AK7 Dateien im Farb-Gate (`eslint/ui-token-files.mjs`)
+- [ ] Fehlerszenarien F1–F5 (u. a. F2: abgeschlossene Veranstaltung = nur lesen)
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
 ## Offene Fragen
-<!-- Fragen, die noch geklärt werden müssen -->
+- Q4–Q7 (Zeilenmenü-Muster, Betrag-Slot, Badge-Art, ADR) → `/architecture` (siehe Spec)
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
