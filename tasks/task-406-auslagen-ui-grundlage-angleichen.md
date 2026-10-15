@@ -67,6 +67,10 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   (`AuslageRow.tsx:143`), Kleinfund-Anker `AbschlussAktion.tsx:57-87`. Bewusst offen (Hinweise ohne
   Spec-Bedarf): Menü-Label-Eindeutigkeit, `STATUS_BADGE` in `labels.ts`, Busy-Text beim Erstatten
   (vorbestehend), `role="menu"`-A11y-Runde.
+- Iteration 2 (2026-10-16): **NEEDS_REWORK** – 0 kritisch, 2 wichtig, 5 Nitpicks; alle Findings aus
+  Iteration 1 behoben. Offen: „Bearbeiten"/„Löschen" schließen das Menü während laufender
+  Erstattung (Ablehnung verpufft, AK3.4) – Sperre auf die Einträge ausweiten; Opt-in-E2E
+  `e2e/auslagen.spec.ts` nie gelaufen (Lesson #403). Details in `tasks/review-406.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
