@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createRef, type ReactNode } from "react";
-import { ListenZeile } from "./ListenZeile";
+import { ListenZeile, VERBLASST_CLASS } from "./ListenZeile";
 
 // Transparenter next/link-Mock: spiegelt den prefetch-Prop als data-prefetch, damit das
 // Durchreichen testbar ist (das echte <Link> rendert prefetch nicht ins DOM).
@@ -337,5 +337,57 @@ describe("ListenZeile als Dialog-Auslöser (ADR-060 D1, spec-405 AK1)", () => {
     const anhang = screen.getByText("Dialog-Inhalt");
     expect(ausloeser()).not.toContainElement(anhang);
     expect(karte()).toContainElement(anhang);
+  });
+});
+
+describe("ListenZeile mit Kennzeichen (ADR-061 D2, spec-406 AK2)", () => {
+  function kennzeichen() {
+    return screen.getByTestId("kennzeichen");
+  }
+  const KENNZEICHEN = <span data-testid="kennzeichen">12,50 €</span>;
+
+  it("should_renderKennzeichenInsideTippZielAfterText_when_buttonMode", () => {
+    renderZeile(
+      <ListenZeile
+        onOeffnen={() => {}}
+        titel="Anna"
+        kennzeichen={KENNZEICHEN}
+        aktion={<button type="button">⋯</button>}
+      />,
+    );
+
+    const tippZiel = screen.getByRole("button", { name: /Anna/ });
+    expect(tippZiel).toContainElement(kennzeichen());
+    expect(tippZiel).toHaveAccessibleName(/12,50 €/);
+  });
+
+  it("should_renderKennzeichenInsideLinkBeforeArrow_when_linkMode", () => {
+    renderZeile(<ListenZeile href="/ziel" titel="Anna" kennzeichen={KENNZEICHEN} />);
+
+    const link = within(karte()).getByRole("link");
+    const kinder = Array.from(link.children);
+    const kennzeichenIndex = kinder.findIndex((kind) => kind.contains(kennzeichen()));
+    const pfeilIndex = kinder.findIndex((kind) => kind.querySelector("svg"));
+    // Textblock (0) → Kennzeichen (1) → Pfeil (2).
+    expect(kennzeichenIndex).toBe(1);
+    expect(pfeilIndex).toBe(kennzeichenIndex + 1);
+  });
+
+  it("should_keepKennzeichenUndimmedAndUnshrinkable_when_zustandSet", () => {
+    // Das Kennzeichen ist Status, kein Verblassen (ADR-061 D2) – auch neben `zustand` voll lesbar.
+    renderZeile(
+      <ListenZeile href="/ziel" titel="Anna" zustand="deaktiviert" kennzeichen={KENNZEICHEN} />,
+    );
+
+    const huelle = kennzeichen().parentElement!;
+    expect(huelle).toHaveClass("shrink-0");
+    expect(huelle).not.toHaveClass(VERBLASST_CLASS);
+  });
+
+  it("should_renderNoKennzeichenWrapper_when_kennzeichenEmpty", () => {
+    renderZeile(<ListenZeile href="/ziel" titel="Anna" kennzeichen={false} pfeil={false} />);
+
+    // Nur der Textblock steht im Link.
+    expect(within(karte()).getByRole("link").children).toHaveLength(1);
   });
 });

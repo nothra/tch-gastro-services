@@ -38,6 +38,11 @@ interface GemeinsameProps {
   untertitel?: ReactNode;
   /** Gesetzt → Zeile verblasst und trägt diesen Text als Badge, z. B. „abgeschlossen". */
   zustand?: string;
+  /**
+   * Status-Inhalt im Tipp-Ziel rechts vom Text, z. B. Betrag + `Badge` (ADR-061 D2). Verblasst
+   * nie: er kennzeichnet einen Status der aktiven Zeile, kein „inaktiv" wie `zustand`.
+   */
+  kennzeichen?: ReactNode;
   /** Pfeil rechts im Tipp-Ziel; die Arbeitsschritt-Kacheln verzichten wegen der Breite darauf. */
   pfeil?: boolean;
   /** Zeilenaktion rechts neben dem Tipp-Ziel; ersetzt den Pfeil. */
@@ -80,6 +85,7 @@ export function ListenZeile({
   titel,
   untertitel,
   zustand,
+  kennzeichen,
   pfeil = true,
   aktion,
   anhang,
@@ -109,6 +115,9 @@ export function ListenZeile({
           </span>
         )}
       </span>
+      {hatInhalt(kennzeichen) && (
+        <span className="flex shrink-0 items-center gap-2">{kennzeichen}</span>
+      )}
       {verblasst && (
         <Badge tone="neutral" className="shrink-0">
           {zustand}

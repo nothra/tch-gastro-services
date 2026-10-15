@@ -1,7 +1,7 @@
 # Task 406: auslagen-ui-grundlage-angleichen
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
