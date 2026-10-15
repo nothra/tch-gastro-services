@@ -330,6 +330,61 @@ describe("AuslageRow – Zeilenmenü (spec-406 AK3)", () => {
     expect(screen.getByRole("menuitem", { name: "Als erstattet markieren" })).toBeDisabled();
   });
 
+  // FS2: Während der Action hängt das Formular im Menü – Außenklick, Escape und ⋯ schließen
+  // nicht, damit eine Ablehnung als Notice sichtbar wird (Sperre im Baustein, Lesson #369).
+  function erstattenOffenHalten() {
+    setStatusMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          laufendeActionBeenden = () =>
+            resolve({ error: "Veranstaltung ist nicht mehr offen." });
+        }),
+    );
+  }
+
+  async function erstattenAbsenden() {
+    const menue = menueOeffnen();
+    const eintrag = within(menue).getByRole("menuitem", { name: "Als erstattet markieren" });
+    // `onSubmit` meldet den Start als dringliches Ereignis vor der Transition (Lesson #369).
+    await act(async () => {
+      fireEvent.submit(eintrag.closest("form") as HTMLFormElement);
+    });
+  }
+
+  async function ablehnen() {
+    await act(async () => laufendeActionBeenden?.());
+    laufendeActionBeenden = undefined;
+  }
+
+  it.each([
+    ["Außenklick", () => fireEvent.pointerDown(document.body)],
+    ["Escape", () => fireEvent.keyDown(document.body, { key: "Escape" })],
+    ["⋯-Tipp", () => fireEvent.click(menueKnopf())],
+  ])("should_showRejectionInMenu_when_%sDuringRunningErstatten", async (_name, schliessVersuch) => {
+    erstattenOffenHalten();
+    renderRow();
+    await erstattenAbsenden();
+
+    schliessVersuch();
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    await ablehnen();
+
+    expect(within(screen.getByRole("menu")).getByRole("alert")).toHaveTextContent(
+      "Veranstaltung ist nicht mehr offen.",
+    );
+  });
+
+  it("should_closeMenuAgain_when_outsideClickedAfterRejection", async () => {
+    erstattenOffenHalten();
+    renderRow();
+    await erstattenAbsenden();
+    await ablehnen();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
   it("should_openBearbeitenDialogReturningFocusToRow_when_bearbeitenChosen", () => {
     // AK3.5: „Bearbeiten" öffnet den Dialog aus AK2a, Fokus-Rückgabe auf die Zeile.
     renderRow();
@@ -498,7 +553,8 @@ describe("AuslageRow – nur lesen (spec-406 F2, ADR-061 D4)", () => {
   });
 
   it("should_shareListenZeileCardTokens_when_notEditable", () => {
-    // Drift-Anker (ADR-061 Konsequenzen): dieselbe Kartenoptik wie `ListenZeile`.
+    // ADR-061 Konsequenzen: die Kartenoptik kommt als `KARTEN_CLASS` aus `ListenZeile` – hier
+    // gegen feste Token-Literale geprüft.
     renderRow({ editable: false });
 
     expect(screen.getByRole("listitem")).toHaveClass(

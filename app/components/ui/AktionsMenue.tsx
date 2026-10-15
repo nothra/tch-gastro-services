@@ -13,13 +13,19 @@ import { joinClasses } from "./joinClasses";
 
 // Route-neutraler Baustein (ADR-052 D1, ADR-061 D1): das ⋯-Menü einer Listenzeile. Er trägt den
 // Verhaltensvertrag aller Zeilenmenüs an einer Stelle (Lesson #369) – Öffnen/Schließen, Escape,
-// Außenklick, Fokus auf den ersten Eintrag und zurück zum Auslöser – und kennt weder Server
-// Actions noch Bestätigungsdialoge. Die Einträge liefert der Konsument als Render-Funktion, weil
-// ein Eintrag auch ein Formular samt `Notice` sein kann (ADR-061 D3).
+// Außenklick, Sperre während eines Laufs, Fokus auf den ersten Eintrag und zurück zum Auslöser –
+// und kennt weder Server Actions noch Bestätigungsdialoge. Die Einträge liefert der Konsument als
+// Render-Funktion, weil ein Eintrag auch ein Formular samt `Notice` sein kann (ADR-061 D3).
 
 export interface MenueSteuerung {
   /** Schließt das Menü und gibt den Fokus an den Auslöser zurück. */
   schliessen: () => void;
+  /**
+   * Meldet Start und Ende einer Action im Popup (`onLaeuftChange`). Solange sie läuft, schließen
+   * Außenklick, Escape und Auslöser nicht – sonst hinge das Formular aus und eine Ablehnung
+   * verpuffte stumm (spec-406 AK3.4). `schliessen` selbst bleibt frei: der Erfolg ruft es.
+   */
+  meldeLauf: (laeuft: boolean) => void;
 }
 
 interface AktionsMenueProps {
@@ -37,25 +43,43 @@ interface AktionsMenueProps {
 /** ⋯-Auslöser mit Popup-Menü; die Einträge sind `MenueEintrag`e. */
 export function AktionsMenue({ label, ausloeserRef, children }: AktionsMenueProps) {
   const [offen, setOffen] = useState(false);
+  const [laeuft, setLaeuft] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const eigenerAusloeserRef = useRef<HTMLButtonElement>(null);
   const triggerRef = ausloeserRef ?? eigenerAusloeserRef;
 
-  // Fokus auf den ersten Eintrag; Außenklick schließt – ein Listener am Dokument ist ein externes
-  // System. Der erste Eintrag wird im Popup gesucht, damit der Konsument keine Ref verdrahten muss.
+  // Fokus auf den ersten Eintrag – nur beim Öffnen. Der erste Eintrag wird im Popup gesucht, damit
+  // der Konsument keine Ref verdrahten muss.
   useEffect(() => {
-    if (!offen) return;
-    popupRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    if (offen) popupRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+  }, [offen]);
+
+  // Außenklick und Escape am Dokument – externe Systeme. Escape lauscht am Dokument, weil ein
+  // während des Laufs deaktivierter Eintrag den Fokus aus dem Popup verliert.
+  useEffect(() => {
+    if (!offen || laeuft) return;
     function schliessenBeiAussenklick(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) setOffen(false);
     }
+    function schliessenBeiEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOffen(false);
+      triggerRef.current?.focus();
+    }
     document.addEventListener("pointerdown", schliessenBeiAussenklick);
-    return () => document.removeEventListener("pointerdown", schliessenBeiAussenklick);
-  }, [offen]);
+    document.addEventListener("keydown", schliessenBeiEscape);
+    return () => {
+      document.removeEventListener("pointerdown", schliessenBeiAussenklick);
+      document.removeEventListener("keydown", schliessenBeiEscape);
+    };
+  }, [offen, laeuft, triggerRef]);
 
+  // Schließt auch einen laufenden Zustand: nach einem Erfolg meldet die Action ihr Ende erst
+  // nach `schliessen`, das nächste Öffnen soll trotzdem ungesperrt beginnen.
   function schliessen() {
     setOffen(false);
+    setLaeuft(false);
     triggerRef.current?.focus();
   }
 
@@ -69,7 +93,9 @@ export function AktionsMenue({ label, ausloeserRef, children }: AktionsMenueProp
         aria-haspopup="menu"
         aria-expanded={offen}
         aria-label={label}
-        onClick={() => setOffen((bisher) => !bisher)}
+        onClick={() => {
+          if (!laeuft) setOffen((bisher) => !bisher);
+        }}
       >
         <span aria-hidden="true">⋯</span>
       </Button>
@@ -79,12 +105,9 @@ export function AktionsMenue({ label, ausloeserRef, children }: AktionsMenueProp
           ref={popupRef}
           role="menu"
           aria-label={label}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") schliessen();
-          }}
           className="absolute right-0 z-10 mt-1 flex min-w-48 flex-col gap-1 rounded-md border border-line-subtle bg-surface p-1 shadow-md"
         >
-          <MenueEintraege eintraege={children} steuerung={{ schliessen }} />
+          <MenueEintraege eintraege={children} steuerung={{ schliessen, meldeLauf: setLaeuft }} />
         </div>
       )}
     </div>

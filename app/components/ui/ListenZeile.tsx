@@ -21,6 +21,10 @@ import { joinClasses } from "./joinClasses";
 // Exportiert, damit der Kontrastnachweis in tokens.test.ts mit derselben Opazität rechnet.
 export const VERBLASST_CLASS = "opacity-60";
 
+// Kartenoptik ohne Bedien-Zustände (Hover/Fokus). Exportiert für Nur-lesen-Karten, die keinen
+// Tipp-Ziel-Modus haben (ADR-061 D4) – eine Konstante statt Kopie, damit die Optik nicht driftet.
+export const KARTEN_CLASS = "rounded-lg border border-line-subtle bg-surface text-foreground";
+
 const TIPP_ZIEL_CLASS =
   "flex min-h-11 min-w-0 flex-1 items-center gap-3 self-stretch rounded-lg p-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
@@ -139,7 +143,8 @@ export function ListenZeile({
   return (
     <li
       className={joinClasses(
-        "flex items-center gap-2 rounded-lg border border-line-subtle bg-surface text-foreground hover:border-accent hover:bg-accent-subtle focus-within:border-accent focus-within:bg-accent-subtle",
+        "flex items-center gap-2 hover:border-accent hover:bg-accent-subtle focus-within:border-accent focus-within:bg-accent-subtle",
+        KARTEN_CLASS,
         className,
       )}
     >

@@ -9,7 +9,8 @@ import { AktionsMenue, MenueEintrag } from "@/app/components/ui/AktionsMenue";
 import { Badge, type BadgeTone } from "@/app/components/ui/Badge";
 import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 import { Dialog } from "@/app/components/ui/Dialog";
-import { ListenZeile } from "@/app/components/ui/ListenZeile";
+import { KARTEN_CLASS, ListenZeile } from "@/app/components/ui/ListenZeile";
+import { joinClasses } from "@/app/components/ui/joinClasses";
 import { Notice } from "@/app/components/ui/Notice";
 import { useBestaetigung } from "@/app/components/useBestaetigung";
 import { useSchliessendeAction } from "@/app/components/useSchliessendeAction";
@@ -63,11 +64,11 @@ function AuslageKennzeichen({ auslage }: { auslage: AuslageRowData }) {
 }
 
 // Nur-lesen-Karte der abgeschlossenen Veranstaltung (F2, ADR-061 D4): `ListenZeile` hat keinen
-// Modus ohne Tipp-Ziel, deshalb dieselben Karten-Tokens ohne Button und Menü. Die Kartenoptik ist
-// im Test an die von `ListenZeile` gebunden (Drift-Anker).
+// Modus ohne Tipp-Ziel, deshalb ihre Kartenoptik (`KARTEN_CLASS`) ohne Button und Menü. Abstand
+// und Innenrand entsprechen dem Tipp-Ziel der `ListenZeile` (`gap-3 p-3`), nicht ihrem `<li>`.
 function AuslageAnzeige({ auslage }: { auslage: AuslageRowData }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-line-subtle bg-surface p-3 text-foreground">
+    <li className={joinClasses("flex items-center gap-3 p-3", KARTEN_CLASS)}>
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="font-semibold break-words">{auslage.anzeigename}</span>
         <span className="text-sm break-words text-muted">{untertitel(auslage)}</span>
@@ -115,12 +116,13 @@ function AuslageBedienZeile({ auslage, veranstaltungId, teilnehmer }: AuslageBed
       kennzeichen={<AuslageKennzeichen auslage={auslage} />}
       aktion={
         <AktionsMenue label={`Aktionen für ${auslage.anzeigename}`} ausloeserRef={menueRef}>
-          {({ schliessen }) => (
+          {({ schliessen, meldeLauf }) => (
             <>
               <ErstattungUmschalten
                 auslage={auslage}
                 veranstaltungId={veranstaltungId}
                 onErfolg={schliessen}
+                onLaeuftChange={meldeLauf}
               />
               <MenueEintrag
                 onClick={() => {
@@ -189,20 +191,23 @@ interface AuslageAktionProps {
 }
 
 // Reversibel, deshalb ohne Bestätigung (spec-372, spec-406 AK3.3). Ein Formular im Menü-Popup:
-// Erfolg schließt das Menü, eine Ablehnung steht als Notice darunter (ADR-061 D3, FS2).
+// Erfolg schließt das Menü, eine Ablehnung steht als Notice darunter (ADR-061 D3, FS2). Den Lauf
+// meldet es dem Menü, das währenddessen nicht schließt – sonst verpuffte die Ablehnung.
 function ErstattungUmschalten({
   auslage,
   veranstaltungId,
   onErfolg,
-}: AuslageAktionProps & { onErfolg: () => void }) {
+  onLaeuftChange,
+}: AuslageAktionProps & { onErfolg: () => void; onLaeuftChange: (laeuft: boolean) => void }) {
   const erstattet = auslage.status === "erstattet";
-  const [state, formAction, pending] = useSchliessendeAction(setAuslageStatusAction, {
+  const [state, formAction, pending, meldeStart] = useSchliessendeAction(setAuslageStatusAction, {
     onErfolg,
+    onLaeuftChange,
     erfolgsMeldung: erstattet ? "Erstattung zurückgenommen" : "Auslage erstattet",
   });
 
   return (
-    <form action={formAction} className="flex flex-col gap-1">
+    <form action={formAction} onSubmit={meldeStart} className="flex flex-col gap-1">
       <HiddenIds veranstaltungId={veranstaltungId} auslageId={auslage.id} />
       <input type="hidden" name="status" value={erstattet ? "offen" : "erstattet"} />
       <MenueEintrag type="submit" disabled={pending}>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { createRef } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { AktionsMenue, MenueEintrag } from "./AktionsMenue";
 
 // Verhaltensvertrag aus `ZeilenMenue` übernommen (ADR-061 D1): Auslöser, Popup, Escape,
@@ -126,6 +126,98 @@ describe("AktionsMenue (ADR-061 D1)", () => {
     renderMenue({ ausloeserRef });
 
     expect(ausloeserRef.current).toBe(ausloeser());
+  });
+});
+
+// Ein Eintrag, der einen Lauf meldet – wie das Erstatten-Formular über `meldeLauf` (Lesson #369:
+// der Sperr-Vertrag gehört in den Baustein, nicht in den Konsumenten).
+function renderMitLauf() {
+  let laufMelden: ((laeuft: boolean) => void) | undefined;
+  render(
+    <>
+      <AktionsMenue label="Aktionen für Anna">
+        {({ meldeLauf }) => {
+          laufMelden = meldeLauf;
+          return <MenueEintrag onClick={() => meldeLauf(true)}>Als erstattet markieren</MenueEintrag>;
+        }}
+      </AktionsMenue>
+      <p>Außerhalb</p>
+    </>,
+  );
+  fireEvent.click(ausloeser());
+  fireEvent.click(screen.getByRole("menuitem", { name: "Als erstattet markieren" }));
+  return { laufBeenden: () => act(() => laufMelden?.(false)) };
+}
+
+describe("AktionsMenue – Sperre während eines Laufs (spec-406 AK3.4, FS2)", () => {
+  it("should_keepMenuOpen_when_pointerDownOutsideWhileRunning", () => {
+    renderMitLauf();
+
+    fireEvent.pointerDown(screen.getByText("Außerhalb"));
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("should_keepMenuOpen_when_escapePressedWhileRunning", () => {
+    renderMitLauf();
+
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("should_keepMenuOpen_when_triggerClickedWhileRunning", () => {
+    renderMitLauf();
+
+    fireEvent.click(ausloeser());
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(ausloeser()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("should_closeAgain_when_runEnded", () => {
+    const { laufBeenden } = renderMitLauf();
+
+    laufBeenden();
+    fireEvent.pointerDown(screen.getByText("Außerhalb"));
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("should_closeOnEscapeWithFocusOutsideMenu_when_runEnded", () => {
+    // Ein während des Laufs deaktivierter Eintrag verliert den Fokus – Escape greift trotzdem.
+    const { laufBeenden } = renderMitLauf();
+    laufBeenden();
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    fireEvent.keyDown(document.body, { key: "Escape" });
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(ausloeser()).toHaveFocus();
+  });
+
+  it("should_startUnlocked_when_reopenedAfterSchliessenDuringRun", () => {
+    let steuerung: { schliessen: () => void; meldeLauf: (laeuft: boolean) => void } | undefined;
+    render(
+      <>
+        <AktionsMenue label="Aktionen für Anna">
+          {(s) => {
+            steuerung = s;
+            return <MenueEintrag>Eintrag</MenueEintrag>;
+          }}
+        </AktionsMenue>
+        <p>Außerhalb</p>
+      </>,
+    );
+    fireEvent.click(ausloeser());
+    act(() => steuerung?.meldeLauf(true));
+    // Erfolg: der Konsument schließt, bevor die Action ihr Ende meldet.
+    act(() => steuerung?.schliessen());
+
+    fireEvent.click(ausloeser());
+    fireEvent.pointerDown(screen.getByText("Außerhalb"));
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 });
 

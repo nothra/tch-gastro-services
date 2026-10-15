@@ -22,8 +22,12 @@ const CODE_WITH_TOKENS = `export default function Page() {
 describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
   const eslint = new ESLint();
 
+  // Ein Parse-Fehler (`fatal`, `ruleId: null`) fiele durch den Regel-Filter und machte jede
+  // „meldet nichts"-Assertion grün aus dem falschen Grund (Lesson #214) – deshalb hier für alle
+  // Fälle ausgeschlossen.
   async function rawColorMessages(code: string, filePath: string) {
     const [result] = await eslint.lintText(code, { filePath });
+    expect(result.messages.filter((message) => message.fatal)).toEqual([]);
     return result.messages.filter((message) => message.ruleId === RULE_ID);
   }
 
@@ -120,11 +124,14 @@ describe("Farb-Gate im Lint-Check (AK6.1, AK6.2)", () => {
   );
 
   // Diskriminierungs-Kontrolle mit einem ÄHNLICHEN Nachbarpfad, nicht einem entfernten
-  // (Lesson aus #172/#297): `labels.ts` liegt direkt neben den gelisteten Auslagen-Dateien und
-  // ist nicht gelistet. Seit #405 taugt `TeilnehmerRow.tsx`, seit #406 `AuslageForm.tsx` nicht mehr
-  // als Gegenbeispiel – beide sind gelistet (Lesson #371).
+  // (Lesson aus #172/#297): eine `.tsx` direkt neben den gelisteten Auslagen-Dateien, die es nicht
+  // gibt – sie kann nicht später ins Gate wandern (Lesson #371). Eine `.ts` taugt nicht: JSX ist
+  // dort ein Parse-Fehler, kein Regelbefund.
   it("should_notReport_when_fileIsNotOnTheList", async () => {
-    const messages = await rawColorMessages(CODE_WITH_RAW_COLOR, "app/veranstaltung/labels.ts");
+    const messages = await rawColorMessages(
+      CODE_WITH_RAW_COLOR,
+      "app/veranstaltung/AuslageNeu.tsx",
+    );
 
     expect(messages).toEqual([]);
   });
