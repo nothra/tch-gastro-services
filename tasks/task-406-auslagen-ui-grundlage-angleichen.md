@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -95,6 +95,12 @@ ADR-061 (`docs/adr/061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md
   keine Duplikation, Kommentare erklären das WHY. Bewusst belassen (Review-Nitpicks, ohne
   Mehrwert bzw. mit Verhaltensrisiko): `disabled={pending}` am Erstatten-Eintrag, `STATUS_BADGE`
   in `AuslageRow`. Vitest (ui, veranstaltung, eslint) 1115/1115 grün.
+
+## Security-Notizen
+- /security-review (2026-10-16): **PASSED** – 0 kritisch, 0 wichtig. Server-Grenze (Actions,
+  `db/`, `lib/`, `proxy.ts`, Dependencies) unverändert; Rollen- und Status-Gates sowie die
+  IDOR-Bindung der Auslagen-Actions bleiben bestehen. Einziger offener Hinweis: gitignorte
+  Wegwerf-Dateien vor dem Worktree-Abbau löschen. Details in `tasks/security-406.md`.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
