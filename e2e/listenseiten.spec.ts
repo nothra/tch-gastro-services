@@ -104,12 +104,19 @@ test.describe("Listenseiten – Liste zuerst, Anlegen per Dialog (#373)", () => 
     const aktuelleId = page.url().split("/").pop() as string;
     await expect(auswahl).toHaveValue(aktuelleId);
 
-    // AK1.1: „+ Artikel" im Kopf, kein Anlege-Formular beim Laden.
+    // AK1.1: kein Anlege-Formular beim Laden; seit spec-407 AK1/AK3 Katalog-Knöpfe unter der
+    // Auswahl, „+ Neu" im umrandeten Artikelbereich statt „+ Artikel" im Seitenkopf.
     await expect(page.getByLabel("Bezeichnung")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Katalog bearbeiten", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Katalog anlegen", exact: true })).toBeVisible();
+    const artikelBereich = page.getByRole("region", { name: /^Artikel \d+$/ });
+    await expect(artikelBereich.getByRole("button", { name: "+ Neu", exact: true })).toBeVisible();
 
-    // AK4.1: Gruppen-Überschriften in CATEGORY_LABEL-Reihenfolge.
+    // AK4.1: Gruppen-Überschriften in CATEGORY_LABEL-Reihenfolge (seit spec-407 als h3 im Bereich).
     const gruppen = await page
-      .locator('main section[aria-labelledby^="kategorie-"] h2')
+      .locator('main section[aria-labelledby^="kategorie-"] h3')
       .allInnerTexts();
     const reihenfolge = ["Getränk", "Kaffee", "Essen"];
     const namen = gruppen.map((text) => text.replace(/ \(\d+\)$/, ""));
@@ -144,7 +151,7 @@ test.describe("Listenseiten – Liste zuerst, Anlegen per Dialog (#373)", () => 
     await expect(bearbeiten).toBeHidden();
     await expect(zeilen.first()).toBeFocused();
 
-    // AK1.2: „+ Artikel" öffnet den Anlege-Dialog mit den bisherigen Feldern.
+    // AK1.2: „+ Neu" öffnet den Anlege-Dialog mit den bisherigen Feldern (spec-407 AK3.2).
     const anlegen = await oeffneArtikelAnlegen(page);
     await expect(anlegen.getByLabel("Preis (EUR)")).toBeVisible();
     await page.keyboard.press("Escape");

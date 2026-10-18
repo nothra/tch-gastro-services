@@ -95,7 +95,7 @@ export function useDialogFormular<State extends { ok?: boolean }>(
 }
 
 interface FormularDialogProps {
-  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Umbenennen". */
+  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Katalog anlegen". */
   ausloeser: string;
   ausloeserVariant: "primary" | "secondary";
   ausloeserId?: string;
@@ -141,7 +141,7 @@ interface AnlegeDialogProps {
   titel: string;
   /**
    * Zweite, ruhigere Instanz im Leerzustand (AK6.1). Nach einem Erfolg verschwindet sie mit dem
-   * Leerzustand; der Fokus geht dann auf den Auslöser im Seitenkopf.
+   * Leerzustand; der Fokus geht dann auf den Auslöser im Seiten- bzw. Bereichskopf.
    */
   imLeerzustand?: boolean;
   children: (steuerung: DialogSteuerung) => ReactNode;

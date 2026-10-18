@@ -93,8 +93,10 @@ Primärer Nutzer: Rolle `verwalter`, überwiegend am Smartphone.
 - [ ] **AK2.8** GIVEN „Katalog anlegen“ WHEN der Knopf gedrückt wird THEN öffnet der
   **Standard-Dialog** (`FormularDialog`, gleiches Verhalten wie `AnlegeDialog`, ADR-062 D3) mit dem Titel „Katalog anlegen“ (bisher: „Neuen
   Katalog anlegen“), dem Feld „Katalogname“, „Abbrechen“ und „Anlegen“; Busy-Text
-  „Anlegen …“; Erfolg: Toast „Katalog angelegt“ und Wechsel auf die Seite des neuen Katalogs
-  (bisheriges Verhalten).
+  „Anlegen …“; Erfolg: Toast „Katalog angelegt“, die Seite bleibt beim geöffneten Katalog und der
+  neue Katalog steht in der Auswahl (bisheriges Verhalten; *präzisiert in /implement:*
+  `createCatalogAction` leitet nicht weiter – ein automatischer Wechsel wäre eine
+  Action-Änderung und liegt außerhalb des Scopes).
 - [ ] **AK2.9** GIVEN „Katalog anlegen“ THEN ist der Knopf ein Neben-Knopf (AK1.2) und trägt
   **nicht** die Auslöser-Id `anlegen-seitenkopf` des Primär-Knopfs „+ Neu“ (die Id ist je Seite eindeutig, AK3.2). (Q2)
 - [ ] **AK2.10** GIVEN die Katalog-Seite THEN gibt es keinen eigenen Dialog-Nachbau (der im Issue

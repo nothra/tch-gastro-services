@@ -1,7 +1,7 @@
 # Task 407: katalog-seite-knoepfe-artikelbereich
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,13 +20,14 @@ Spec: [`docs/specs/spec-407-katalog-seite-knoepfe-artikelbereich.md`](../docs/sp
 
 ## Akzeptanzkriterien
 Vollwortlaut (GIVEN/WHEN/THEN) in der Spec.
-- [ ] **AK1** Seitenaufbau: Titel, Auswahl, darunter „Katalog bearbeiten“ + „Katalog anlegen“ (Neben-Knöpfe); kein Kopf-Primärknopf; genau ein Primär-Knopf auf der Seite (AK1.1–AK1.5)
-- [ ] **AK2** Dialog „Katalog bearbeiten“ (Umbenennen/Duplizieren/(De-)Aktivieren), „Katalog anlegen“ als `FormularDialog`-Neben-Knopf, Bestätigungsschritt im selben Dialog (AK2.1–AK2.10)
-- [ ] **AK3** Umrandeter Artikelbereich „Artikel <n>“ mit „+ Neu“ (Primär), Leerzustand im Bereich (AK3.1–AK3.5)
-- [ ] **AK4** Artikel als `ListenZeile` (Preis, Pfeil), Kategorie-Zwischenüberschriften, deaktivierte verblasst + Badge an der Sortierstelle, Fokus-Rückgabe (AK4.1–AK4.7)
-- [ ] **AK5** Texte: „Aktivieren“, „(deaktiviert)“, „Katalog anlegen“, Busy „Anlegen …“, Glossar-Tabelle nachziehen (AK5.1–AK5.4)
-- [ ] **AK6** Farb-Gate bleibt grün; Doku/Anleitung/Screenshots auf verschobene Einstiege geprüft (AK6.1–AK6.2)
-- [ ] Fehlerszenarien F1–F6 abgedeckt
+- [x] **AK1** Seitenaufbau: Titel, Auswahl, darunter „Katalog bearbeiten“ + „Katalog anlegen“ (Neben-Knöpfe); kein Kopf-Primärknopf; genau ein Primär-Knopf auf der Seite (AK1.1–AK1.5)
+- [x] **AK2** Dialog „Katalog bearbeiten“ (Umbenennen/Duplizieren/(De-)Aktivieren), „Katalog anlegen“ als `FormularDialog`-Neben-Knopf, Bestätigungsschritt im selben Dialog (AK2.1–AK2.10)
+- [x] **AK3** Umrandeter Artikelbereich „Artikel <n>“ mit „+ Neu“ (Primär), Leerzustand im Bereich (AK3.1–AK3.5)
+- [x] **AK4** Artikel als `ListenZeile` (Preis, Pfeil), Kategorie-Zwischenüberschriften, deaktivierte verblasst + Badge an der Sortierstelle, Fokus-Rückgabe (AK4.1–AK4.7)
+- [x] **AK5** Texte: „Aktivieren“, „(deaktiviert)“, „Katalog anlegen“, Busy „Anlegen …“, Glossar-Tabelle nachziehen (AK5.1–AK5.4)
+- [x] **AK6** Farb-Gate bleibt grün; Doku/Anleitung/Screenshots auf verschobene Einstiege geprüft (AK6.1–AK6.2)
+- [x] Fehlerszenarien F1–F6 abgedeckt
+- [ ] Oberflächentest gegen lokalen Dev-Server (`listenseiten`, `bestaetigen-rueckmelden` + Sichtprüfung 375 px) – siehe Notizen
 
 ## Technische Notizen
 Entscheidung: [ADR-062](../docs/adr/062-katalog-bearbeiten-dialog-bestaetigungsschritt.md) (Accepted).
@@ -58,6 +59,23 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 - [x] Q4 Leerzustand zusätzlich mit „Artikel anlegen“?
 - [x] Q5 Zähler an Kategorie-Zwischenüberschriften behalten?
 - [x] Q6 Zeileninhalt: Größe als Untertitel?
+
+## Implementierungs-Notizen (/implement, 2026-10-18)
+- Schritt 0: kein ADR-Trigger offen – ADR-062 (Accepted) deckt Dialog-Schritt und `FormularDialog`-Wahl.
+- `CatalogRow` liegt in `app/verwaltung/katalog/` (nicht `[id]/`); nur auf `ListenZeile` umgestellt,
+  Bearbeiten-Dialog unverändert. Fokus nach Zustandswechsel: Zeile bleibt derselbe Knoten (Test AK4.6).
+- `KatalogBearbeiten`: Bereiche als `<form aria-label>` (benannt für Screenreader und Tests);
+  Bereichsknöpfe alle Neben-Knöpfe, „Deaktivieren" in der Bestätigung `danger`; Fokus je Richtung per
+  `autoFocus` des jeweils neu gemounteten Schritts (wie spec-404). Mutationsbeleg (Lesson #369): Sperre
+  an „Deaktivieren"/„Schließen" entfernt, `autoFocus` hin/zurück entfernt bzw. immer gesetzt,
+  Schritt-Reset beim Öffnen entfernt – jede Mutation macht den zugehörigen Test rot.
+- Artikelbereich-Kopfzeile ist ein `<header>` der Section: der geteilte E2E-Helfer
+  `oeffneAnlegeDialog` (`main header`) trifft so „+ Neu" ohne Sonderweg.
+- Glossar: „Schließen" als Abgrenzung zu „Abbrechen" ergänzt (ADR-062 D2), Abweichungszeile
+  `ArtikelAnlegen.tsx` gestrichen. Anleitung beschreibt die Katalogseite nicht, kein Screenshot betroffen.
+- Spec-Präzisierung AK2.8: „Wechsel auf die Seite des neuen Katalogs" war nie Ist-Verhalten
+  (`createCatalogAction` leitet nicht weiter); Wortlaut korrigiert statt Action zu ändern (Scope).
+- Coverage `app/verwaltung/katalog/**/*.tsx`: 100 % Statements/Branches/Functions/Lines.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

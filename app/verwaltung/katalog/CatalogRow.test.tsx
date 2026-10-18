@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useEffect, useState } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { CatalogItem } from "@/db/schema";
 
 // Externe Grenze: Server Actions aus derselben Feature-Schicht.
@@ -64,40 +64,72 @@ beforeEach(() => {
   setActiveMock.mockResolvedValue({ ok: true });
 });
 
-describe("CatalogRow – kompakte Zeile (spec-373 AK4.2/AK4.4)", () => {
-  it("should_showNameSizeAndPriceWithoutOwnButtons_when_rendered", () => {
+describe("CatalogRow – Zeile als ListenZeile (spec-407 AK4.2/AK4.4/AK4.5)", () => {
+  it("should_renderCardWithDialogButtonNotLink_when_rendered", () => {
+    // AK4.2: ListenZeile im Auslöser-Betrieb – die ganze Karte ist ein Button, kein Link.
     renderRow();
 
-    expect(zeile()).toHaveTextContent("Pils · 0,5 l");
-    expect(screen.getByText("2,50 €")).toHaveClass("tabular-nums");
-    // Die Zeile selbst ist der einzige Bedienpunkt – kein Bearbeiten/Deaktivieren daneben.
+    const karte = screen.getByRole("listitem");
+    expect(karte).toHaveClass("bg-surface", "rounded-lg");
+    expect(within(karte).queryByRole("link")).not.toBeInTheDocument();
+    expect(zeile()).toHaveAttribute("type", "button");
+    expect(zeile()).toHaveAttribute("aria-haspopup", "dialog");
+    expect(zeile()).toHaveClass("min-h-11");
+    expect(zeile().querySelector("svg")).not.toBeNull();
+  });
+
+  it("should_beOnlyControlInRow_when_rendered", () => {
+    renderRow();
+
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
-  it("should_meetTouchSize_when_rendered", () => {
+  it("should_showNameAsTitleSizeAsSubtitleAndPriceAsKennzeichen_when_rendered", () => {
+    // AK4.2 (Q6): Größe als Untertitel, Preis mit Ziffern gleicher Breite.
     renderRow();
 
-    expect(zeile()).toHaveClass("min-h-11");
+    expect(within(zeile()).getByText("Pils")).toHaveClass("font-semibold");
+    expect(within(zeile()).getByText("0,5 l")).toHaveClass("text-muted");
+    expect(within(zeile()).getByText("2,50 €")).toHaveClass("tabular-nums");
   });
 
   it("should_sayOhneGroesse_when_itemHasNoSize", () => {
     renderRow({ ...activeItem, size: "" });
 
-    expect(zeile()).toHaveTextContent("Pils · ohne Größe");
+    expect(within(zeile()).getByText("ohne Größe")).toBeInTheDocument();
   });
 
-  it("should_notDimOrBadge_when_itemIsActive", () => {
+  it("should_neitherDimNorBadge_when_itemIsActive", () => {
     renderRow();
 
     expect(screen.queryByText("deaktiviert")).not.toBeInTheDocument();
-    expect(zeile()).not.toHaveClass("opacity-60");
+    expect(screen.getByRole("listitem").querySelector(".opacity-60")).toBeNull();
   });
 
-  it("should_dimAndShowBadge_when_itemIsInactive", () => {
+  it("should_dimTextAndShowBadge_when_itemIsInactive", () => {
+    // AK4.4: Zustand als Text (Badge), nicht nur als Abblendung.
     renderRow({ ...activeItem, active: false });
 
-    expect(zeile()).toHaveTextContent("deaktiviert");
-    expect(zeile()).toHaveClass("opacity-60");
+    expect(zeile()).toHaveAccessibleName(/deaktiviert/);
+    expect(screen.getByText("Pils").parentElement).toHaveClass("opacity-60");
+  });
+
+  it("should_notDimPrice_when_itemIsInactive", () => {
+    // ADR-061 D2: das Kennzeichen verblasst nie, nur Textblock und Pfeil.
+    renderRow({ ...activeItem, active: false });
+
+    expect(screen.getByText("2,50 €").closest(".opacity-60")).toBeNull();
+  });
+
+  it("should_carryNoOwnRowStylesOrRawColors_when_rendered", () => {
+    // AK4.5: Optik kommt aus ListenZeile – keine eigenen Zeilen-Klassen der alten Zeile.
+    renderRow({ ...activeItem, active: false });
+
+    const klassen = screen.getByRole("listitem").innerHTML;
+    expect(klassen).not.toMatch(/divide-|-outline-offset-2|px-3 py-2/);
+    expect(klassen).not.toMatch(
+      /\b(?:bg|text|border)-(?:red|green|blue|gray|slate|zinc|neutral|stone|amber|yellow|white|black)\b/,
+    );
   });
 });
 
@@ -283,6 +315,27 @@ describe("CatalogRow – Fokus nach Kategoriewechsel (Review #373 W1)", () => {
 
     const essen = screen.getByRole("list", { name: "Essen" });
     expect(essen).toContainElement(zeile());
+    expect(zeile()).toHaveFocus();
+  });
+});
+
+describe("CatalogRow – Fokus nach Zustandswechsel (spec-407 AK4.6)", () => {
+  it("should_focusRow_when_deaktivierenSucceedsAndRowRerendersInactive", async () => {
+    const { rerender } = render(
+      <ul>
+        <CatalogRow item={activeItem} catalogId="cat-1" />
+      </ul>,
+    );
+    oeffnen();
+
+    await klicke("Deaktivieren");
+    rerender(
+      <ul>
+        <CatalogRow item={{ ...activeItem, active: false }} catalogId="cat-1" />
+      </ul>,
+    );
+
+    expect(zeile()).toHaveAccessibleName(/deaktiviert/);
     expect(zeile()).toHaveFocus();
   });
 });

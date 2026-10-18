@@ -17,7 +17,8 @@ interface ArtikelAnlegenProps {
   imLeerzustand?: boolean;
 }
 
-// „+ Artikel" der Katalogseite (spec-373 AK1): das bisherige Anlege-Formular im Dialog.
+// „+ Neu" im Artikelbereich der Katalogseite (spec-407 AK3.2, vorher „+ Artikel" im Seitenkopf,
+// spec-373 AK1): das bisherige Anlege-Formular im Dialog.
 export function ArtikelAnlegen({ catalogId, ausloeser, imLeerzustand }: ArtikelAnlegenProps) {
   return (
     <AnlegeDialog ausloeser={ausloeser} titel="Artikel anlegen" imLeerzustand={imLeerzustand}>
@@ -45,7 +46,7 @@ function ArtikelFormular({
         steuerung={steuerung}
         pending={pending}
         label="Anlegen"
-        laufLabel="Speichern …"
+        laufLabel="Anlegen …"
       />
     </form>
   );
