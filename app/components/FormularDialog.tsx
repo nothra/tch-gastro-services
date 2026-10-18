@@ -20,7 +20,7 @@ import {
 // per `action` abgeschicktes Formular nach JEDER beendeten Action zurück – auch nach einer
 // Ablehnung, und dann wären die Eingaben weg (AK1.4).
 
-/** Es gibt je Seite genau einen Anlege-Auslöser im Seitenkopf; er trägt diese Id. */
+/** Es gibt je Seite genau einen Primär-Anlege-Auslöser (Seiten- bzw. Bereichskopf); er trägt diese Id. */
 const SEITENKOPF_AUSLOESER_ID = "anlegen-seitenkopf";
 
 export interface DialogSteuerung {
