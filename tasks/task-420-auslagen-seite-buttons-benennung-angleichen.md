@@ -44,6 +44,11 @@ Auslagen-Seite: Leerzustand ohne eigenen Auslöser („+ Neu“ im Kopf ist einz
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Iteration 1 (`tasks/review-420.md`, NEEDS_REWORK) – Rework:
+- [x] W1 Bearbeiten ohne Teilnehmer zeigte „Erfassen“: Beschriftung über `primaerBeschriftung(bearbeiten)` für beide Zweige (doppelte Literale entfallen), Test `should_showDisabledSpeichern_when_bearbeitenOhneTeilnehmer` (RED → GREEN). Fall als Fehlerszenario in spec-420 nachgetragen; Nicht-Bearbeitbarkeit bleibt Issue #423.
+- [x] N1 spec-406 AK1.7/AK1.8 mit Verweis auf spec-420 AK3 bzw. AK1.1 versehen.
+- [x] N2 AK3.4-Test vergleicht den `className` der Fußzeile mit dem Fall mit Teilnehmern statt `justify-end`.
+- [ ] N3 Q4 fachlich durch Ralf bestätigen – bleibt offen bis zur Rückmeldung.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

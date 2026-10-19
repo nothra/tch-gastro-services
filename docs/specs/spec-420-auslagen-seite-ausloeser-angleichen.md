@@ -99,6 +99,9 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
   Kopf öffnet den Dialog mit deaktiviertem „Erfassen“ (AK1.1 + AK3.2 zusammen).
 - [ ] Veranstaltung wird im geöffneten „keine Teilnehmer“-Dialog von woanders geändert: kein
   neues Verhalten gefordert (Dialog bleibt, bis geschlossen).
+- [ ] „Auslage bearbeiten“, nachdem alle Teilnehmerzeilen entfernt wurden: dieselbe Fußzeile wie
+  AK3.1/AK3.2, der deaktivierte Primärbutton heißt aber „Speichern“, nicht „Erfassen“ (aus der
+  Review). Dass die Auslage dann gar nicht bearbeitbar ist, war schon vorher so → Issue #423.
 
 ## Entschiedene Fragen (mit Ralf, 2026-10-19)
 

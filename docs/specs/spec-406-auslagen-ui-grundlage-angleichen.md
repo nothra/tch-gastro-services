@@ -73,9 +73,13 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone, an der Theke
 - [ ] **AK1.7** GIVEN die Veranstaltung hat keine Teilnehmerzeile WHEN „+ Neu“ gedrückt wird THEN
   zeigt der Dialog statt des Formulars den bisherigen Hinweis, dass zuerst Teilnehmer
   hinzugefügt werden müssen (Wortlaut der bisherigen Meldung, nur als `Notice`/Glossar-Text).
+  _Ergänzt durch spec-420 AK3: Unter dem Hinweis stehen „Abbrechen“ und ein deaktiviertes
+  „Erfassen“ (Fußzeile `DialogAktionen`)._
 - [ ] **AK1.8** GIVEN keine Auslage vorhanden WHEN die Seite lädt THEN erscheint der Leerzustand
   „Noch keine Auslagen erfasst.“ (Baustein `Leerzustand`) mit der Aktion „Auslage erfassen“, die
   denselben Dialog öffnet (Muster `imLeerzustand`, spec-373).
+  _Abgelöst durch spec-420 AK1.1: Der Leerzustand hat keinen eigenen Button mehr, „+ Neu“ im Kopf
+  ist der einzige Auslöser._
 
 ### Zeile (AK2)
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { DialogSteuerung } from "@/app/components/FormularDialog";
 import type { AuslageFormState } from "./actions";
 
@@ -262,14 +262,28 @@ describe("AuslageFormular – ohne Teilnehmer (spec-406 AK1.7, spec-420 AK3)", (
     expect(action).not.toHaveBeenCalled();
   });
 
+  it("should_showDisabledSpeichern_when_bearbeitenOhneTeilnehmer", () => {
+    // Bearbeiten-Dialog, nachdem alle Zeilen entfernt wurden: Primär-Label bleibt „Speichern".
+    renderFormular({ teilnehmer: [], initial });
+
+    expect(screen.getByRole("button", { name: "Speichern" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Erfassen" })).not.toBeInTheDocument();
+  });
+
   it("should_orderAbbrechenBeforeErfassenInOneRow_when_noTeilnehmer", () => {
-    // spec-420 AK3.4: Anordnung exakt wie `DialogAktionen` (Abbrechen links, Primär rechts).
+    // spec-420 AK3.4: Anordnung exakt wie `DialogAktionen` (Abbrechen links, Primär rechts) –
+    // dieselbe Fußzeile wie im Fall mit Teilnehmern.
+    renderFormular();
+    const erwarteteKlassen = screen.getByRole("button", { name: "Abbrechen" }).parentElement
+      ?.className;
+    cleanup();
+
     renderFormular({ teilnehmer: [] });
 
     const knoepfe = screen.getAllByRole("button");
     expect(knoepfe.map((knopf) => knopf.textContent)).toEqual(["Abbrechen", "Erfassen"]);
     expect(knoepfe[0].parentElement).toBe(knoepfe[1].parentElement);
-    expect(knoepfe[0].parentElement).toHaveClass("justify-end");
+    expect(knoepfe[0].parentElement?.className).toBe(erwarteteKlassen);
   });
 
   it("should_enableErfassen_when_teilnehmerVorhanden", () => {
