@@ -1,8 +1,9 @@
 # Spec: Factory in eigenes Repo auslagern (Epic)
 
-> **Epic-Spec.** #424 ist das Dach. Umgesetzt wird in drei Teil-Tasks (T1–T3), die je ein eigenes
+> **Epic-Spec.** #424 ist das Dach. Umgesetzt wird in vier Teil-Tasks (T1a, T1b, T2, T3 – T1 geteilt
+> laut [ADR-063](../adr/063-factory-eigenes-repo-vendored-manifest.md) D11), die je ein eigenes
 > Issue, eine eigene Detail-Spec und einen eigenen PR bekommen und **nacheinander** laufen
-> (T1 → T2 → T3). Diese Spec legt das gemeinsame Ziel, den Schnitt und die Akzeptanzkriterien
+> (T1a → T1b → T2 → T3). Diese Spec legt das gemeinsame Ziel, den Schnitt und die Akzeptanzkriterien
 > auf Epic-Ebene fest; die Detail-Specs dürfen verfeinern, aber nicht widersprechen.
 
 ## Kontext
@@ -22,7 +23,7 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
 | Frage | Entscheidung |
 |---|---|
 | Ziel | Factory wird ein **wiederverwendbares Werkzeug** für beliebige Projekte; TCH ist erster Konsument |
-| Ort des Factory-Repos | Neues **privates GitHub-Repo unter `nothra`** (nicht dm-GitLab) |
+| Ort des Factory-Repos | Neues **öffentliches** GitHub-Repo **`nothra/dev-factory`** (nicht dm-GitLab). Ursprünglich „privat"; in `/architecture` korrigiert, weil TCH bereits öffentlich ist und ein privates Free-Repo keinen serverseitigen `main`-Schutz erlaubt (ADR-063) |
 | Einbindung in Projekte | Factory-Dateien liegen **als festgelegte Version committet** im Projekt-Repo (keine Laufzeit-Abhängigkeit vom Factory-Repo) |
 | Schnitt | Epic + 3 Teil-Tasks |
 | Historie | Die bisherige Git-Historie der Factory-Dateien **wird mitgenommen** |
@@ -75,7 +76,7 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
 ### T1 · Werkzeugkasten packen
 
 - [ ] **AK1.1** GIVEN das Epic ist umgesetzt WHEN man das Factory-Repo öffnet THEN existiert es als
-  privates Repo unter `nothra` und enthält Pipeline-Skripte, Skills, Agent-Personas, Gates/Hooks,
+  öffentliches Repo `nothra/dev-factory` und enthält Pipeline-Skripte, Skills, Agent-Personas, Gates/Hooks,
   generische Guidelines und Factory-Doku.
 - [ ] **AK1.2** GIVEN eine aus TCH übernommene Factory-Datei WHEN man im Factory-Repo deren Historie
   ansieht (`git log --follow`) THEN sind die Commits aus der TCH-Zeit sichtbar.
@@ -212,17 +213,21 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
 
 > Für `/architecture` (ADR-Trigger: neues Repo, neue Verteilungsmechanik, Änderungs-Gate) bzw. die
 > Detail-Specs der Teil-Tasks.
+>
+> **Stand nach `/architecture` (2026-10-19):** Q1–Q5 und Q8 sind in
+> [ADR-063](../adr/063-factory-eigenes-repo-vendored-manifest.md) beantwortet (Q1 → D1/D2,
+> Q2 → D5, Q3 → D6, Q4 → D3, Q5 → D8, Q8 → D7).
 
-- [ ] **Q1** Wie gelangen die übernommenen Dateien technisch ins Projekt-Repo, und wie kommt die
+- [x] **Q1** Wie gelangen die übernommenen Dateien technisch ins Projekt-Repo, und wie kommt die
   Factory-Version an ein privates Projekt-Repo heran (Cross-Repo-Berechtigung für den
   automatischen Update-PR)? → `/architecture`
-- [ ] **Q2** Wie wird die Historie übertragen, ohne App-Code/PII mitzunehmen (AK1.4)? → `/architecture`
-- [ ] **Q3** Versionsschema (z. B. SemVer) und Startversion – Bezug zur heutigen Angabe
+- [x] **Q2** Wie wird die Historie übertragen, ohne App-Code/PII mitzunehmen (AK1.4)? → `/architecture`
+- [x] **Q3** Versionsschema (z. B. SemVer) und Startversion – Bezug zur heutigen Angabe
   „v0.5.0" in `CLAUDE.md`? → `/architecture`
-- [ ] **Q4** `CLAUDE.md` mischt heute Factory-Regeln und TCH-Einträge (z. B. Routen-Doku-Regel):
+- [x] **Q4** `CLAUDE.md` mischt heute Factory-Regeln und TCH-Einträge (z. B. Routen-Doku-Regel):
   wie wird sie in einen übernommenen und einen projekteigenen Teil getrennt? Gleiches für
   `.claude/settings.json`, `factory-ci.yml`, `.gitignore`. → `/architecture`
-- [ ] **Q5** Wie werden ADRs im Factory-Repo nummeriert (neu ab 001 mit Altnummer-Verweis oder
+- [x] **Q5** Wie werden ADRs im Factory-Repo nummeriert (neu ab 001 mit Altnummer-Verweis oder
   Nummern behalten)? Zusammenhang mit #321 (doppelte ADR-Nummern). → `/architecture` (T3)
 - [x] **Q6** Soll das alte `factory-pipeline`-Label in TCH nach T3 bestehen bleiben oder entfallen?
   **Entschieden (2026-10-19, präzisiert):** `factory-pipeline` **wandert ins Factory-Repo** und
@@ -232,7 +237,7 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   in TCH geht damit verloren (die übertragenen Issues sind im Factory-Repo auffindbar).
   Folgefrage für `/architecture`: Projekteigene Labels (wie `build-pipeline`) müssen neben der
   übernommenen Label-Tabelle (`git-workflow.md`) definierbar sein, ohne diese zu ändern (→ Q4).
-- [ ] **Q8** Wie erhält ein Skill im Projekt-Repo (lokal und im Stage-3-/CI-Lauf) die Berechtigung,
+- [x] **Q8** Wie erhält ein Skill im Projekt-Repo (lokal und im Stage-3-/CI-Lauf) die Berechtigung,
   im Factory-Repo Issues anzulegen, und wie wird der Issue-Seam (ADR-018) dafür erweitert? Welche
   Form haben Kleinfunde im Factory-Repo (AK2.10)? → `/architecture`
 - [x] **Q7** Bekannter Hinweis: dm-internes Template-Material liegt damit auf einem privaten
