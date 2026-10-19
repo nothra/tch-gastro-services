@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -51,6 +51,9 @@ Iteration 1 (`tasks/review-420.md`, NEEDS_REWORK) – Rework:
 - [x] N3 Q4 fachlich durch Ralf bestätigt (2026-10-19): unverändert.
 
 Iteration 2 (`tasks/review-420.md`): APPROVED – keine Findings; W1/N1–N3 als erledigt geprüft.
+
+## Refactoring-Notizen
+/refactor (2026-10-19): Diff geprüft (Naming, Funktionslänge, Duplikate, Kommentare) – kein Änderungsbedarf; `primaerBeschriftung` und der Wegfall von `imLeerzustand` sind bereits der Clean-Code-Stand. Tests (782) und Lint grün, kein Code geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
