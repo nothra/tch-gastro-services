@@ -77,7 +77,7 @@ bestehende `ConfirmDialog` (spec-372, ADR-058 D4) mit dem Menü-Auslöser als Fo
 
 - `auslagen/page.tsx` (Server Component): `PageHeader` mit `action` = Anlege-Dialog
   (`AnlegeDialog`, ADR-053/spec-373-Muster), danach `AuslagenSummary`, danach die Liste bzw. der
-  `Leerzustand`. Nur lesbar bei abgeschlossener Veranstaltung: kein Anlege-Auslöser, Zeilen im
+  `Leerzustand` (ohne eigenen Auslöser – „+ Neu" im Kopf bleibt der einzige, spec-420). Nur lesbar bei abgeschlossener Veranstaltung: kein Anlege-Auslöser, Zeilen im
   **Link-/Button-losen** Modus (siehe unten).
 - `AuslageRow` (Client): `ListenZeile` im Auslöser-Betrieb (`onOeffnen`, ADR-060 D1) mit
   `kennzeichen` (Betrag + Badge), `aktion` = `AktionsMenue`, `anhang` = Bearbeiten-`Dialog`.

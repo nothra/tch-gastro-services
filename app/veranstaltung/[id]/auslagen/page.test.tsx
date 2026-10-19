@@ -21,21 +21,8 @@ vi.mock("next/link", () => ({
 
 // Client-Komponenten (eigene Tests) durch Stubs ersetzen, die die relevanten Props spiegeln.
 vi.mock("../../AuslageErfassen", () => ({
-  AuslageErfassen: ({
-    ausloeser,
-    teilnehmer,
-    imLeerzustand,
-  }: {
-    ausloeser: string;
-    teilnehmer: unknown[];
-    imLeerzustand?: boolean;
-  }) => (
-    <button
-      type="button"
-      data-testid="auslage-erfassen"
-      data-teilnehmer={teilnehmer.length}
-      data-leerzustand={String(Boolean(imLeerzustand))}
-    >
+  AuslageErfassen: ({ ausloeser, teilnehmer }: { ausloeser: string; teilnehmer: unknown[] }) => (
+    <button type="button" data-testid="auslage-erfassen" data-teilnehmer={teilnehmer.length}>
       {ausloeser}
     </button>
   ),
@@ -175,7 +162,8 @@ describe("AuslagenPage", () => {
     const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
     const neu = within(kopf).getByRole("button", { name: "+ Neu" });
     expect(neu).toHaveAttribute("data-teilnehmer", "1");
-    expect(neu).toHaveAttribute("data-leerzustand", "false");
+    // spec-420 AK1.2: „+ Neu" ist auch mit Auslagen der einzige Auslöser.
+    expect(screen.getAllByTestId("auslage-erfassen")).toEqual([neu]);
   });
 
   it("should_offerNoNeuAndMarkRowsReadonly_when_abgeschlossen", async () => {
@@ -191,8 +179,8 @@ describe("AuslagenPage", () => {
     expect(screen.getByTestId("auslage-row")).toHaveAttribute("data-editable", "false");
   });
 
-  it("should_showLeerzustandWithErfassenAction_when_noAuslagenAndOpen", async () => {
-    // spec-406 AK1.8: Leerzustand mit „Auslage erfassen", derselbe Dialog (imLeerzustand).
+  it("should_showLeerzustandWithoutOwnButton_when_noAuslagenAndOpen", async () => {
+    // spec-420 AK1.1: genau ein Auslöser – „+ Neu" im Kopf; die Leerzustand-Karte ohne Button.
     authMock.mockResolvedValue(session(["veranstalter"]));
     getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
     listZeilenMock.mockResolvedValue([aZeile]);
@@ -200,12 +188,29 @@ describe("AuslagenPage", () => {
 
     render(await AuslagenPage({ params: params("v-1") }));
 
-    expect(screen.getByText("Noch keine Auslagen erfasst.")).toHaveClass("text-muted");
-    expect(screen.getByRole("button", { name: "Auslage erfassen" })).toHaveAttribute(
-      "data-leerzustand",
-      "true",
-    );
+    const leerText = screen.getByText("Noch keine Auslagen erfasst.");
+    expect(leerText).toHaveClass("text-muted");
+    const liste = screen.getByRole("heading", { name: "Auslagen (0)" }).closest("section")!;
+    expect(within(liste).queryByRole("button")).not.toBeInTheDocument();
+    const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+    expect(screen.getAllByRole("button")).toEqual([
+      within(kopf).getByRole("button", { name: "+ Neu" }),
+    ]);
+    expect(screen.queryByRole("button", { name: "Auslage erfassen" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("auslage-row")).not.toBeInTheDocument();
+  });
+
+  it("should_passEmptyTeilnehmerToNeu_when_noZeilenAndNoAuslagen", async () => {
+    // spec-420 Fehlerszenario: ohne Teilnehmer und ohne Auslagen öffnet „+ Neu" den Dialog
+    // mit deaktiviertem „Erfassen" (Verhalten in AuslageErfassen.test).
+    authMock.mockResolvedValue(session(["veranstalter"]));
+    getVeranstaltungMock.mockResolvedValue(aVeranstaltung);
+    listZeilenMock.mockResolvedValue([]);
+    listAuslagenMock.mockResolvedValue([]);
+
+    render(await AuslagenPage({ params: params("v-1") }));
+
+    expect(screen.getByTestId("auslage-erfassen")).toHaveAttribute("data-teilnehmer", "0");
   });
 
   it("should_showLeerzustandWithoutAction_when_noAuslagenAndAbgeschlossen", async () => {

@@ -209,6 +209,40 @@ describe("AnlegeDialog + useDialogFormular (spec-373 AK1.1–AK1.5)", () => {
   });
 });
 
+describe("DialogAktionen – deaktiviert (spec-420 AK3.2/AK3.4)", () => {
+  function steuerung(): DialogSteuerung {
+    return {
+      schliessen: vi.fn(),
+      schliessenNachErfolg: vi.fn(),
+      meldeLauf: vi.fn(),
+      gesperrt: false,
+    };
+  }
+
+  it("should_disablePrimaryButKeepAbbrechen_when_deaktiviert", () => {
+    render(
+      <DialogAktionen
+        steuerung={steuerung()}
+        pending={false}
+        label="Anlegen"
+        laufLabel="Anlegen …"
+        deaktiviert
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Anlegen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Abbrechen" })).toBeEnabled();
+  });
+
+  it("should_enablePrimary_when_notDeaktiviert", () => {
+    render(
+      <DialogAktionen steuerung={steuerung()} pending={false} label="Anlegen" laufLabel="…" />,
+    );
+
+    expect(screen.getByRole("button", { name: "Anlegen" })).toBeEnabled();
+  });
+});
+
 describe("FormularDialog (spec-372 AK5)", () => {
   function renderFormularDialog() {
     render(

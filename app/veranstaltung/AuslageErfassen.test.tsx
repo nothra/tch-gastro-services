@@ -21,11 +21,11 @@ function dialog() {
   return document.querySelector("dialog")!;
 }
 
-function ausloeser(name = "+ Neu") {
-  return screen.getByRole("button", { name });
+function ausloeser() {
+  return screen.getByRole("button", { name: "+ Neu" });
 }
 
-describe("AuslageErfassen (spec-406 AK1.2–AK1.8)", () => {
+describe("AuslageErfassen (spec-406 AK1.2–AK1.7)", () => {
   it("should_showOnlyPrimaryTrigger_when_rendered", () => {
     render(<AuslageErfassen action={action} teilnehmer={teilnehmer} ausloeser="+ Neu" />);
 
@@ -84,21 +84,38 @@ describe("AuslageErfassen (spec-406 AK1.2–AK1.8)", () => {
 
     expect(within(dialog()).getByRole("status")).toHaveTextContent(/Zuerst Teilnehmer/);
   });
+});
 
-  it("should_useQuieterTriggerOpeningSameDialog_when_imLeerzustand", () => {
-    // AK1.8: Muster `imLeerzustand` (spec-373).
-    render(
-      <AuslageErfassen
-        action={action}
-        teilnehmer={teilnehmer}
-        ausloeser="Auslage erfassen"
-        imLeerzustand
-      />,
-    );
+describe("AuslageErfassen – ohne Teilnehmer (spec-420 AK3.1–AK3.3)", () => {
+  function oeffnenOhneTeilnehmer() {
+    render(<AuslageErfassen action={action} teilnehmer={[]} ausloeser="+ Neu" />);
+    fireEvent.click(ausloeser());
+    return screen.getByRole("dialog", { name: "Auslage erfassen" });
+  }
 
-    fireEvent.click(ausloeser("Auslage erfassen"));
+  it("should_showAbbrechenAndDisabledErfassen_when_opened", () => {
+    const offen = oeffnenOhneTeilnehmer();
 
-    expect(ausloeser("Auslage erfassen")).not.toHaveClass("bg-accent");
-    expect(screen.getByRole("dialog", { name: "Auslage erfassen" })).toBeInTheDocument();
+    expect(within(offen).getByRole("button", { name: "Abbrechen" })).toBeEnabled();
+    expect(within(offen).getByRole("button", { name: "Erfassen" })).toBeDisabled();
+  });
+
+  it("should_closeAndFocusNeu_when_abbrechenClicked", () => {
+    const offen = oeffnenOhneTeilnehmer();
+
+    fireEvent.click(within(offen).getByRole("button", { name: "Abbrechen" }));
+
+    expect(dialog()).not.toHaveAttribute("open");
+    expect(action).not.toHaveBeenCalled();
+    expect(ausloeser()).toHaveFocus();
+  });
+
+  it("should_closeAndFocusNeu_when_escapePressed", () => {
+    oeffnenOhneTeilnehmer();
+
+    fireEvent(dialog(), new Event("cancel", { cancelable: true }));
+
+    expect(dialog()).not.toHaveAttribute("open");
+    expect(ausloeser()).toHaveFocus();
   });
 });

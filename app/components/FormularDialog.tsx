@@ -175,14 +175,22 @@ interface DialogAktionenProps {
   pending: boolean;
   label: string;
   laufLabel: string;
+  /** Absenden fachlich nicht möglich (z. B. Auslage ohne Teilnehmer, spec-420 AK3.2). */
+  deaktiviert?: boolean;
 }
 
 /** Fußzeile der Dialog-Formulare: „Abbrechen" und Absenden, beide während der Action gesperrt. */
-export function DialogAktionen({ steuerung, pending, label, laufLabel }: DialogAktionenProps) {
+export function DialogAktionen({
+  steuerung,
+  pending,
+  label,
+  laufLabel,
+  deaktiviert = false,
+}: DialogAktionenProps) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
       <AbbrechenKnopf steuerung={steuerung} />
-      <Button type="submit" disabled={pending || steuerung.gesperrt}>
+      <Button type="submit" disabled={deaktiviert || pending || steuerung.gesperrt}>
         {pending ? laufLabel : label}
       </Button>
     </div>

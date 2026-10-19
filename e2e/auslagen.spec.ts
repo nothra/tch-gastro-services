@@ -5,6 +5,7 @@ import {
   auslageMenueKnopf,
   erfasseAuslage,
   fuelleAuslage,
+  neuImKopf,
   oeffneAuslageErfassen,
   waehleAuslageAktion,
 } from "./helpers/auslagen";
@@ -51,15 +52,33 @@ test("spec-406: Auslagen erfassen, bearbeiten, erstatten und löschen", async ({
   // Zeitstempel: der Teilnehmer überlebt die Veranstaltung (spec-404 AK4.3).
   const gast = `${PREFIX}Teilnehmer${Date.now()}`;
   const detailPfad = await legeVeranstaltungAn(page, `${PREFIX}Auslagen`, "2026-10-15");
+  await page.goto(`${detailPfad}/auslagen`);
+
+  // ── spec-420 AK1.1: Übersicht vor der Liste, kein Formular, Leerzustand ohne eigenen Button ─
+  await expect(page.getByRole("heading", { name: "Übersicht" })).toBeVisible();
+  await expect(page.getByText("Noch keine Auslagen erfasst.")).toBeVisible();
+  await expect(page.locator("main").getByRole("button")).toHaveCount(1);
+  await expect(neuImKopf(page)).toBeVisible();
+  await expect(page.locator("main").getByRole("combobox")).toHaveCount(0);
+
+  // ── spec-420 AK3: ohne Teilnehmer Hinweis, „Abbrechen" + deaktiviertes „Erfassen" ───────
+  const ohneTeilnehmer = await oeffneAuslageErfassen(page);
+  await expect(ohneTeilnehmer.getByText(/^Zuerst Teilnehmer/)).toBeVisible();
+  await expect(ohneTeilnehmer.getByRole("combobox")).toHaveCount(0);
+  await expect(
+    ohneTeilnehmer.getByRole("button", { name: "Erfassen", exact: true }),
+  ).toBeDisabled();
+  await ohneTeilnehmer.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await expect(ohneTeilnehmer).toBeHidden();
+  await expect(neuImKopf(page)).toBeFocused();
+  await oeffneAuslageErfassen(page);
+  await page.keyboard.press("Escape");
+  await expect(ohneTeilnehmer).toBeHidden();
+  await expect(neuImKopf(page)).toBeFocused();
+
   await page.goto(detailPfad);
   await teilnehmerAnlegenUndHinzufuegen(page, gast);
   await page.goto(`${detailPfad}/auslagen`);
-
-  // ── AK1.1/AK1.8: Übersicht vor der Liste, kein Formular, Leerzustand mit Aktion ──────────
-  await expect(page.getByRole("heading", { name: "Übersicht" })).toBeVisible();
-  await expect(page.getByText("Noch keine Auslagen erfasst.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Auslage erfassen", exact: true })).toBeVisible();
-  await expect(page.locator("main").getByRole("combobox")).toHaveCount(0);
 
   // ── AK1.5: Ablehnung lässt den Dialog offen, die Eingaben bleiben stehen ────────────────
   const erfassen = await oeffneAuslageErfassen(page);
@@ -72,9 +91,7 @@ test("spec-406: Auslagen erfassen, bearbeiten, erstatten und löschen", async ({
   // ── AK1.6: Escape schließt ohne Speichern, Fokus zurück auf „+ Neu" ─────────────────────
   await page.keyboard.press("Escape");
   await expect(erfassen).toBeHidden();
-  await expect(
-    page.locator("main header").getByRole("button", { name: "+ Neu", exact: true }),
-  ).toBeFocused();
+  await expect(neuImKopf(page)).toBeFocused();
 
   // ── AK1.4: Erfassen schließt den Dialog, Toast, Zeile mit Badge „offen" ─────────────────
   await erfasseAuslage(page, {

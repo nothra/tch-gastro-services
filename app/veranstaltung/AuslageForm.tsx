@@ -2,7 +2,6 @@
 
 import type { AuslageKategorie } from "@/db/schema";
 import {
-  AbbrechenKnopf,
   DialogAktionen,
   useDialogFormular,
   type DialogSteuerung,
@@ -47,13 +46,19 @@ export function AuslageFormular({ action, teilnehmer, initial, steuerung }: Ausl
     erfolgsMeldung: bearbeiten ? "Gespeichert" : "Auslage erfasst",
   });
 
+  // Ohne Teilnehmer bleibt die Fußzeile dieselbe wie sonst, nur „Erfassen" ist gesperrt (spec-420
+  // Q3) – so sieht der Dialog aus wie alle anderen.
   if (teilnehmer.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         <Notice kind="warnung">{KEINE_TEILNEHMER}</Notice>
-        <div className="flex justify-end">
-          <AbbrechenKnopf steuerung={steuerung} />
-        </div>
+        <DialogAktionen
+          steuerung={steuerung}
+          pending={false}
+          label="Erfassen"
+          laufLabel="Erfassen …"
+          deaktiviert
+        />
       </div>
     );
   }
