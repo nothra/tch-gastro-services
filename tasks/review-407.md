@@ -1,43 +1,61 @@
 # Review: Task 407
 
-**Iteration 3** (2026-10-18) – **Circuit Breaker ausgelöst, Eskalation an Ralf.**
-Diff-Basis: `git diff origin/main...HEAD` (unverändert `4a374f7`) plus Working Tree. Gegenüber
-Iteration 2 hat sich **nichts** geändert: Es gibt keinen neuen Commit, der Working-Tree-Diff ist
-identisch (`ArtikelAnlegen.test.tsx`, `CatalogRow.test.tsx`, `docs/ux/glossar.md`, Task-Datei) und
-`test-results/` stammt weiter aus dem Lauf um 21:38 (`listenseiten` rot). Dies ist der dritte Review
-auf denselben Code. Laut Skill wird nicht weiter iteriert.
+**Iteration 4** (2026-10-19) – nach der Eskalation (Circuit Breaker in Iteration 3) und Ralfs
+Entscheidung zu K1, Option (a). Diff-Basis: `git diff origin/main...HEAD` (HEAD `41daebb`), Working
+Tree sauber. Schwerpunkt: der Rework seit `4a374f7` (`66a7ebe`, `41daebb`). Der übrige Code ist
+gegenüber Iteration 1–3 unverändert, die Befunde dazu gelten weiter.
 
-**Ungelöster Konflikt:** K1 lässt sich nicht durch `/implement` lösen, weil zwei gültige Specs sich
-widersprechen: spec-407 Q6 (Größe als Untertitel, zweizeilige `ListenZeile`) und spec-373 AK4.6
-(Dichte: 24 Artikel ≤ 2 Bildschirmhöhen bei 375 px). Ohne eine Entscheidung von Ralf würde jeder
-weitere Rework-Lauf entweder die eine Spec verletzen oder die Testgrenze still anheben. Beides ist
-unzulässig (Lesson #388).
-
-Die Findings aus Iteration 2 werden unverändert übernommen.
+Geprüft:
+- **Rework:** `CatalogRow.tsx` setzt den Titel einzeilig auf „Name · Größe“ (bzw. nur den Namen) und
+  hat keinen Untertitel mehr. spec-407 AK4.2, AK4.7 und Q6 sind im selben Commit nachgezogen
+  (Lesson #388: Scope-Änderung steht in der Spec). Der Test deckt beide Zweige ab (mit Größe /
+  ohne Größe samt Abwesenheit von „·“ und „ohne Größe“).
+- **Gestrichene Farbklassen-Assertion:** Der neue Kommentar sagt, dass das Farb-Gate rohe Farben
+  abweist. Das stimmt: `eslint/ui-token-files.mjs:18` enthält `app/verwaltung/katalog/`
+  (Lesson #319).
+- **Folgestellen** (Lesson #391/#370): `grep "ohne Größe|untertitel"` findet im Katalog-Pfad und in
+  den E2E-Specs keinen Rest. Der Treffer in `e2e/anleitung-veranstalter.spec.ts:209` gilt der
+  Verzehr-Erfassung, nicht der Katalogseite, und ist deshalb nicht betroffen.
+- **Unit-Tests** `app/verwaltung/katalog` + `app/components`: 38 Dateien, 492 Tests grün
+  (2026-10-19 03:14).
+- **E2E:** In der Task-Datei ist für HEAD `66a7ebe` ein Lauf von `listenseiten` und
+  `bestaetigen-rueckmelden` gegen einen eigenen Dev-Server belegt (7/7 grün, mit Dichte-Grenze aus
+  spec-373 AK4.6), dazu die 375-px-Sichtprüfung. `41daebb` ändert nur die Task-Datei. Damit sind
+  K1 und W1 aus Iteration 2/3 erledigt, und W2 ist erledigt, weil der Rework committet ist.
 
 ## Kritische Findings (müssen behoben werden)
 
-- [ ] [e2e/listenseiten.spec.ts:141, app/verwaltung/katalog/CatalogRow.tsx; spec-373 AK4.6 vs. spec-407 AK4.2/Q6] **Die neue Artikelzeile reißt die Dichte-Vorgabe aus spec-373 AK4.6, der E2E-Lauf ist rot.** Gemessen bei 375 px: 20 Artikel belegen 1796 px, erlaubt sind 1624 px; bei 24 Artikeln wären es hochgerechnet ≈ 2155 px. Ursache ist die zweizeilige `ListenZeile` (Größe als Untertitel, Q6). spec-407 hebt spec-373 AK4.6 nicht auf. **Entscheidung Ralf nötig:** (a) einzeilig „Name · Größe" ohne Untertitel (keine Baustein-API-Änderung), danach neu messen; **oder** (b) spec-407 um einen Q-Eintrag und ein AK „ersetzt spec-373 AK4.6" mit neuem Richtwert ergänzen und die E2E-Grenze samt Kommentar nachziehen. **Unverändert seit Iteration 2.**
+_Keine._
 
 ## Wichtige Findings (sollten behoben werden)
 
-- [ ] [e2e/bestaetigen-rueckmelden.spec.ts:122-203] **Es fehlt weiter der Nachweis, dass diese Spec gelaufen ist** (Fokus nach Erfolg, „(deaktiviert)" im `<select>`, Fokus auf „Abbrechen" beim Schrittwechsel im echten Browser). **Fix:** nach K1 beide Opt-in-Specs (`E2E_372=1`, `E2E_LISTENSEITEN_373=1`) gegen den eigenen Dev-Server im Worktree laufen lassen und das Ergebnis samt Datum und 375-px-Sichtprüfung in die Task-Datei schreiben (Lessons #368/#374/#403/#406). **Unverändert.**
-- [ ] [Working Tree] **Der Rework ist weiter nicht committet** (Nitpick-Fixes aus Iteration 1, Review-Einträge in der Task-Datei, `tasks/review-407.md`). Lesson #391/#251. **Fix:** zusammen mit dem K1/W1-Rework committen. **Unverändert.**
+_Keine._
 
 ## Nitpicks (optional)
 
-- [ ] [e2e/katalog-407.tmp.spec.ts, test-results/407-*.png] Die Wegwerf-Sichtprüfung und ihre Screenshots liegen noch im Worktree. Nach dem letzten Lauf löschen (Lesson build-tooling #372). **Unverändert.**
-- [ ] [app/components/ui/ListenZeile (geteilt)] Bei 375 px bricht „Cola/Fanta/Spezi/Limo" mitten im Wort um. Das fällt bei Option (a) voraussichtlich weg; sonst ist es Baustein-Verhalten außerhalb des Scopes. **Unverändert.**
+- [ ] [tasks/task-407-…md, Abschnitt „Review-Iteration 3 – Entscheidung K1“] Dort steht
+  „Wegwerf-Spec und Screenshots gelöscht“. Im Worktree liegen aber weiter (gitignoret, nicht im
+  Diff) `e2e/katalog-407.tmp.spec.ts` (03:10), `playwright-407.tmp.config.ts`,
+  `scripts/{e2e,mutation,vitest}407.tmp.sh` und `test-results/407-*.png`. **Fix:** Die Dateien vor
+  `/security-review` löschen (Lesson build-tooling #372) oder die Notiz korrigieren.
+- [ ] [app/components/ui/ListenZeile (geteilt)] „Cola/Fanta/Spezi/Limo“ bricht bei 375 px mitten
+  im Wort um. Das ist Verhalten des Bausteins und liegt außerhalb des Scopes. Wie beim Fund aus
+  Iteration 1–3 gilt: kein Defekt mit funktionalem Auslöser, Anzeige bleibt lesbar, kein Issue.
 
 ## Positives
 
-- Unverändert gültig aus Iteration 1/2: ADR-062 ist umgesetzt (Bestätigung als Schritt im selben
-  Dialog, Fokus je Richtung). Die Sperre greift für alle Interaktionsflächen (`it.each`), jeder
-  Bereich sendet nur seine eigenen Felder, `CatalogControls` ist vollständig entfernt,
-  `docs/routes.md` bleibt zu Recht unverändert, die Coverage im Katalog-Pfad liegt bei 100 %.
-- Der rote E2E-Lauf ist ein echter Fund (Dichte-Messung greift), keine Lokator-Panne.
+- Die Entscheidung des Menschen ist sauber umgesetzt: Spec (AK4.2, AK4.7, Q6 mit Begründung und
+  Messwert), Code und Test stehen im selben Commit, und die E2E-Dichte-Messung belegt die Grenze aus
+  spec-373 AK4.6 im echten Browser.
+- Die Änderung ist minimal (eine Zeile in `CatalogRow.tsx`), die `ListenZeile`-API bleibt
+  unverändert, wie spec/ADR-062 es verlangen.
+- Der Kommentar zur Farbklassen-Assertion verweist auf den echten Enforcer, statt eine Behauptung
+  zu duplizieren.
+- Aus Iteration 1–3 gilt weiter: ADR-062 ist umgesetzt, die Sperre greift für alle Flächen,
+  `CatalogControls` ist vollständig entfernt, `docs/routes.md` bleibt zu Recht unverändert, die
+  Coverage im Katalog-Pfad liegt bei 100 %.
 
 Keine Out-of-Scope-Funde, die ein Issue oder einen `kleinfunde.md`-Eintrag brauchen.
 
 ## Empfehlung
-NEEDS_REWORK
+APPROVED

@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -89,6 +89,9 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 - Iteration 3 (2026-10-18): **NEEDS_REWORK – Circuit Breaker, Eskalation an Ralf.** Code seit
   Iteration 2 unverändert (kein Commit, kein neuer E2E-Lauf); Findings 1:1 übernommen. Weiter nur mit
   Ralfs Entscheidung zu K1 (a: einzeilig „Name · Größe“ / b: spec-373 AK4.6 in spec-407 ablösen).
+- Iteration 4 (2026-10-19, nach Eskalation, HEAD `41daebb`): **APPROVED** – 0 kritisch, 0 wichtig,
+  2 Nitpicks (Wegwerf-Dateien liegen noch im Worktree trotz Notiz „gelöscht“; Wortumbruch im
+  Baustein `ListenZeile`, out of scope). K1/W1/W2 aus Iteration 2/3 erledigt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
