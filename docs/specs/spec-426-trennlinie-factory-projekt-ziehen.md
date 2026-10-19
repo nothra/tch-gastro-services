@@ -4,7 +4,16 @@
 > [spec-424](spec-424-factory-in-eigenes-repo-auslagern.md) für **AK1.5**, die **Datei-Anteile von
 > AK3.2/AK3.3** und **AKE.1**; widerspricht ihr nicht. Technische Grundlage:
 > [ADR-063](../adr/063-factory-eigenes-repo-vendored-manifest.md) D3 (Besitz), D8 (ADRs),
-> D11 (Schnitt). Issue: #426.
+> D11 (Schnitt).
+>
+> **Umsetzung in drei PRs** (Entscheidung 2026-10-19, Q1) – jede Teil-Task hat ihr eigenes Issue,
+> diese Spec gilt für alle drei:
+>
+> | Teil-Task | Issue | AK-Gruppen |
+> |---|---|---|
+> | T1a-1 · Dokumente sortieren | #426 | A, B, C, L + X1–X3 |
+> | T1a-2 · Mischdateien & Gates | #431 | D, E, F, G, H, I + X1–X3 |
+> | T1a-3 · Projekt-Orte & Texte | #432 | J, K + X1–X3 |
 
 ## Kontext
 
@@ -287,14 +296,16 @@ in 178 Dateien (157 davon Specs/Tasks).
 > `/architecture`, werden aber als Nachtrag in ADR-063 festgehalten (AK-B6). Die Empfehlung gilt,
 > solange der Entwickler nicht widerspricht.
 
-- [ ] **Q1 · Weiter teilen?** Umfang: 54 AK, grob 60–80 Dateien von Hand plus ~160 Link-Reparaturen
+- [x] **Q1 · Weiter teilen?** Umfang: 54 AK, grob 60–80 Dateien von Hand plus ~160 Link-Reparaturen
   per Skript. Das liegt deutlich über der Turn-Limit-Schwelle (> 25 AK / > 40 Dateien, Lesson #369).
-  **Empfehlung:** in drei nacheinander laufende PRs teilen, die je eine eigene Task/Issue bekommen und
-  auf diese Spec verweisen:
-  - **T1a-1 · Dokumente sortieren:** A, B, C, L, AK-B6 (Tabelle zuerst, dann ADRs, Lessons, Kleinfunde).
-  - **T1a-2 · Mischdateien & Gates:** D, E, F, G, H, I.
-  - **T1a-3 · Projekt-Orte & Texte:** J, K.
-  Jede Teil-PR erfüllt AK-X1–X3 für sich und hält die Zuordnungstabelle (AK-A2) aktuell.
+  **Entschieden (2026-10-19, Entwickler):** in drei nacheinander laufende PRs geteilt, je eigene
+  Task/Issue, alle auf diese Spec verweisend:
+  - **T1a-1 · Dokumente sortieren (#426):** A, B, C, L (Tabelle zuerst, dann ADRs, Lessons, Kleinfunde).
+  - **T1a-2 · Mischdateien & Gates (#431):** D, E, F, G, H, I.
+  - **T1a-3 · Projekt-Orte & Texte (#432):** J, K.
+  Jede Teil-PR erfüllt AK-X1–X3 für sich und hält die Zuordnungstabelle (AK-A2) aktuell. Reihenfolge
+  strikt T1a-1 → T1a-2 → T1a-3 → T1b; AK-B6 (ADR-063 Accepted + Nachtrag Q2–Q6) liegt in T1a-1,
+  damit die Detailentscheidungen vor T1a-2 feststehen.
 - [ ] **Q2 · Zusammensetzen vor T2:** `factory-sync.sh` kommt erst in T2. **Empfehlung:** T1a legt
   `scripts/factory-sync.sh` mit **nur** dem Modus `--compose` an (ADR-063 D3 nennt genau diesen
   Aufruf); T2 ergänzt die übrigen Modi.

@@ -10,10 +10,14 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-Teil-Task **T1a** des Epics #424 (Factory → `nothra/dev-factory`): Im TCH-Repo die Trennlinie
-zwischen Factory- und Projekt-Dateien ziehen, **verhaltensneutral** – Zuordnungstabelle
-`docs/factory/OWNERSHIP.md`, keine Mischdateien mehr, TCH-Spezifika an projekteigene Orte,
-Factory-ADRs nach `docs/factory/adr/`.
+Teil-Task **T1a-1 · Dokumente sortieren** des Epics #424 (Factory → `nothra/dev-factory`): erster
+von drei PRs, die im TCH-Repo **verhaltensneutral** die Trennlinie zwischen Factory- und
+Projekt-Dateien ziehen. Dieser PR: Zuordnungstabelle `docs/factory/OWNERSHIP.md` (+ Test),
+Factory-ADRs nach `docs/factory/adr/`, Lessons und Kleinfunde trennen, ADR-063 auf Accepted.
+
+Nachfolger (je eigene Task, Start erst nach Merge des Vorgängers): **T1a-2 #431** (Mischdateien &
+Gates, AK-Gruppen D–I), **T1a-3 #432** (Projekt-Orte & Texte, AK-Gruppen J–K). Ihre Task-Dateien
+legt jeweils `start-work.sh` an.
 
 - Spec: [`docs/specs/spec-426-trennlinie-factory-projekt-ziehen.md`](../docs/specs/spec-426-trennlinie-factory-projekt-ziehen.md)
 - Epic-Spec: [`docs/specs/spec-424-factory-in-eigenes-repo-auslagern.md`](../docs/specs/spec-424-factory-in-eigenes-repo-auslagern.md)
@@ -45,55 +49,6 @@ Factory-ADRs nach `docs/factory/adr/`.
 - [ ] AK-C4 Kern-Kurzregeln verlinken neuen Ort
 - [ ] AK-C5 `/codify`-Anleitung nennt beide Orte + Zuordnungsregel
 
-### D · `CLAUDE.md` / `FACTORY.md`
-- [ ] AK-D1 Generischer Teil in `docs/factory/FACTORY.md`
-- [ ] AK-D2 `CLAUDE.md` nur Imports + TCH-Regeln
-- [ ] AK-D3 Jede alte Inhaltszeile in genau einer der beiden Dateien (belegt)
-- [ ] AK-D4 `import-context-limit-check.sh` zählt verschachtelte Imports, Negativtest
-- [ ] AK-D5 Gleicher Dauerkontext wie vorher (Liste vorher/nachher hier dokumentiert)
-
-### E · Zusammengesetzte Dateien
-- [ ] AK-E1 `settings.factory.json` + `settings.project.json`, `settings.json` inhaltsgleich zu vorher
-- [ ] AK-E2 `gitignore.factory` + `.gitignore.project`, ignorierte Pfade unverändert (Probenliste)
-- [ ] AK-E3 Zusammensetzen deterministisch, Test rot bei Abweichung
-- [ ] AK-E4 Doku: Projekt-Fragment ändern → zusammensetzen → beide committen
-
-### F · CI-Workflows
-- [ ] AK-F1 `factory-ci.yml` nur Factory-Jobs, kein pnpm
-- [ ] AK-F2 Projekteigenes `ci.yml` mit `lint`/`test`, Namen/Trigger/Inhalt unverändert
-- [ ] AK-F3 Required-Check-Namen in `protect-main` vorher = nachher, alle gemeldet
-- [ ] AK-F4 Deploy-/Poll-Workflows zugeordnet, rufen neue Pfade
-
-### G · Erweiterungspunkte Git-Gates
-- [ ] AK-G1 `pre-commit.d`/`pre-push.d` lexikalisch, fail-closed mit Skriptnamen
-- [ ] AK-G2 Fehlendes/leeres Verzeichnis → kein Fehler
-- [ ] AK-G3 Nicht ausführbare Datei → Gate rot mit Hinweis
-- [ ] AK-G4 `routes-doc-check.sh` in `pre-push.d`, Drift blockiert weiter (Verhaltenstest)
-
-### H · Gate-Kommandos aus Konfiguration
-- [ ] AK-H1 `commands.*` in `factory.config.yml` mit heutigen TCH-Werten
-- [ ] AK-H2 Kein pnpm-Default in `factory.defaults.yml`
-- [ ] AK-H3 Gates lesen Config; Env-Override hat Vorrang; leerer Format-Wert = übersprungen
-- [ ] AK-H4 Fehlendes Pflicht-Kommando → Abbruch mit Schlüsselname
-- [ ] AK-H5 `config-validation-check.sh` validiert `commands.*` (Positiv/Negativ)
-- [ ] AK-H6 `start-work.sh`: Install + Seed-Hinweis aus Config (Q4)
-
-### I · Labels aus Konfiguration
-- [ ] AK-I1 `labels.kinds`/`labels.aspects` in Defaults, `labels.aspects_extra` (inkl. `factory-pipeline`) in Config
-- [ ] AK-I2 `git-workflow.md` beschreibt Schema, Drift-Guard prüft neue Quelle
-- [ ] AK-I3 `start-work.sh --labels`/Seam verhalten sich wie vorher (Q5)
-
-### J · TCH-Skripte und Tests
-- [ ] AK-J1 `neon-reset-int.sh`, `deploy-freeze*.sh` per `git mv` nach `scripts/project/`, Aufrufer angepasst
-- [ ] AK-J2 Deren Self-Tests in `scripts/project/tests/`, `run-tests.sh` ohne Verweis
-- [ ] AK-J3 Projekt-Suite läuft in CI in bestehendem Required Check
-- [ ] AK-J4 Testfall-Zählung vorher = Factory nachher + Projekt nachher (+ neue separat)
-
-### K · Factory-Texte generisch
-- [ ] AK-K1 Genannte Skill-/Agent-/Guideline-Texte + `OPERATING.md` ohne pnpm/Neon/Vercel/db:seed/Drizzle
-- [ ] AK-K2 TCH-Abschnitte aus `OPERATING.md` in `docs/project/`
-- [ ] AK-K3 Restliste der AK1.3-Begriffe auf der Factory-Seite hier dokumentiert (Eingabe für T1b)
-
 ### L · Kleinfunde
 - [ ] AK-L1 Kleinfunde nach betroffener Datei geteilt, Skills nennen beide Orte (Q6)
 
@@ -103,17 +58,20 @@ Factory-ADRs nach `docs/factory/adr/`.
 - [ ] AK-X3 Stage-2-Probelauf (`start-work.sh`, `pre-push.sh`) verhält sich wie vorher
 
 ### Fehlerszenarien
-- [ ] F-1 … F-7 abgedeckt (siehe Spec)
+- [ ] F-1, F-2, F-3 abgedeckt (siehe Spec; F-4 … F-7 gehören zu #431/#432)
 
 ## Technische Notizen
 - `/architecture` **nicht nötig**: ADR-063 D3/D8/D11 deckt die Grundsatzfragen; Q2–Q6 der Spec sind
   Detailentscheidungen innerhalb von D3 und werden als Nachtrag in ADR-063 festgehalten (AK-B6).
-- Größe: 54 AK, ~60–80 Dateien von Hand + ~160 Link-Reparaturen per Skript → über der
-  Turn-Limit-Schwelle (Lesson #369). Teilungsvorschlag T1a-1/-2/-3 in Spec Q1 – Entscheidung offen.
+- Größe: T1a gesamt 54 AK → geteilt (Spec Q1, entschieden 2026-10-19). Dieser PR: 21 AK; Hand-
+  Änderungen an ~15 Dateien, ~30 `git mv` (ADRs/Lessons) und ~160 Link-Reparaturen **per Skript**
+  (Lesson #196: skriptbasiert + Rekonstruktions-Assertion).
+- Reihenfolge im PR: Zuordnungstabelle + Test zuerst (ADR-063 Implementierungs-Hinweise), dann
+  verschieben – die Tabelle muss nach jedem Schritt grün bleiben.
 
 ## Offene Fragen
-- Q1 Weiter teilen? (Spec Q1) – **mit Ralf zu klären vor `/implement`**
-- Q2–Q6 mit Empfehlung in der Spec
+- Q1 entschieden: geteilt in #426 / #431 / #432
+- Q2–Q6 mit Empfehlung in der Spec; Nachtrag in ADR-063 ist Teil dieses PRs (AK-B6)
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
