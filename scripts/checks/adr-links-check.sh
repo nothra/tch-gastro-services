@@ -4,7 +4,7 @@
 # Seit die Factory-ADRs unter docs/factory/adr/ liegen und die App-ADRs unter docs/adr/ (ADR-063
 # D8, Spec #426 AK-B3), kann ein Verweis beim Umzug ins Leere zeigen. Geprüft werden in jeder
 # getrackten Textdatei (Specs, Tasks, Lessons, Skripte inklusive):
-#   1. Markdown-Links `](<pfad>/adr/<datei>.md)` – relativ zur Datei, die den Link enthält
+#   1. Markdown-Links auf eine ADR-Datei im ADR-Verzeichnis – relativ zur Datei, die den Link enthält
 #   2. Wurzel-relative Pfadangaben `docs/adr/NNN-….md` bzw. `docs/factory/adr/NNN-….md`
 # Verzeichnis-Links (`../adr/`) sind kein Dateiverweis und werden nicht geprüft.
 #
@@ -31,7 +31,7 @@ report_dead() {
 }
 
 # Binärdateien (PDF, PNG) schließt `git grep -I` aus; die Links stehen in Textdateien.
-MD_LINKS="$(git -C "$FACTORY_DIR" grep -nIoE '\]\([^)#[:space:]]*adr/[^)#[:space:]]+\.md(#[^)[:space:]]*)?\)' 2>/dev/null)"
+MD_LINKS="$(git -C "$FACTORY_DIR" grep -nIoE '\]\([^)#[:space:]]*adr/[^)#[:space:]]+\.md(#[^)[:space:]]*)?\)' -- . ':!tasks/patch-*.diff' 2>/dev/null)"
 while IFS= read -r hit; do
   [ -n "$hit" ] || continue
   file="${hit%%:*}"; rest="${hit#*:}"; line="${rest%%:*}"; match="${rest#*:}"
@@ -45,7 +45,7 @@ while IFS= read -r hit; do
   [ -e "$resolved" ] || report_dead "$file" "$line" "$target"
 done <<< "$MD_LINKS"
 
-ROOT_PATHS="$(git -C "$FACTORY_DIR" grep -nIoE 'docs/(factory/)?adr/[0-9]{3}-[A-Za-z][A-Za-z0-9._-]*\.md' 2>/dev/null)"
+ROOT_PATHS="$(git -C "$FACTORY_DIR" grep -nIoE 'docs/(factory/)?adr/[0-9]{3}-[A-Za-z][A-Za-z0-9._-]*\.md' -- . ':!tasks/patch-*.diff' 2>/dev/null)"
 while IFS= read -r hit; do
   [ -n "$hit" ] || continue
   file="${hit%%:*}"; rest="${hit#*:}"; line="${rest%%:*}"; target="${rest#*:}"

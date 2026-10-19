@@ -101,7 +101,7 @@ Diese Dokumente sind für jede Änderung maßgeblich:
 
 - [`CLAUDE.md`](CLAUDE.md) – die nicht verhandelbaren Prinzipien (Tests zuerst, Clean Code, grüne
   Gates, Scope einhalten, Git-Workflow) und die projektspezifischen Stolpersteine.
-- [`docs/adr/`](docs/adr/) – Architekturentscheidungen. Neue Entscheidungen mit spürbarer
+- [`docs/adr/`](docs/adr/) – Architekturentscheidungen der App (die der Factory: [`docs/factory/adr/`](docs/factory/adr/)). Neue Entscheidungen mit spürbarer
   Bindewirkung werden als ADR dokumentiert (`/architecture`).
 - [`docs/factory/guidelines/`](docs/factory/guidelines/) – Clean Code, TDD, Testing-Standards,
   Architektur-Prinzipien und der [Git-Workflow](docs/factory/guidelines/git-workflow.md).

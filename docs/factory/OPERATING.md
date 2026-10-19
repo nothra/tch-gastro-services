@@ -15,7 +15,7 @@
 > **Verhältnis zu anderen Dokumenten:**
 > - **Was** die Factory ist und **warum** (Prinzipien, Pipeline-Übersicht): [`CLAUDE.md`](../../CLAUDE.md)
 > - **Betriebsumgebung** (Stages, Deploy-Gate, Vercel/Neon): [`README.md`](../../README.md)
-> - **Entscheidungen** (mit Alternativen): [`docs/adr/`](../adr/)
+> - **Entscheidungen** (mit Alternativen): [`docs/adr/`](../adr/) (App) und [`docs/factory/adr/`](adr/) (Factory)
 > - **Dieses Dokument** ist das prozedurale Bindeglied: die Reihenfolge der Handgriffe.
 
 ---

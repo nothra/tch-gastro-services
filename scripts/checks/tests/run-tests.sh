@@ -2319,7 +2319,7 @@ assert_contains_286 "$(flat_286 "$GITWF")" '`FACTORY_WT_SKIP_ENV=1` = die (gitig
 # deshalb ehrlich nur Quoting und Fixed-String-Treffer, nicht die Umbruch-Toleranz.
 ALT_DOC="$TMP_SW/alt-wortlaut.md"
 
-lesson_flat_236="$(flat_286 "$FACTORY_ROOT/docs/factory/lessons/factory-workflow.md")"
+lesson_flat_236="$(flat_286 "$FACTORY_ROOT/docs/project/lessons/factory-workflow.md")"
 assert_contains_286 "$lesson_flat_236" 'seit #236 automatisch' \
   "#236 AK9(a): Lesson beschreibt den Kopier-Schritt als automatisiert"
 # Abwesenheits-Anker MIT Issue-Nummer: „als eigener Task ausgelagert" allein ist die etablierte
@@ -7759,7 +7759,8 @@ assert_absent "$IC_CLAUDE_MUT_319" "$IC_TRIGGER_AP_319" \
 
 # 20. Die drei aus testing-standards.md verschobenen Abschnitte liegen in der Lesson und sind
 #     im Index referenziert – verlustfreie Migration statt Streichung (spec-319 AC5/AC8).
-TESTING_LESSON_319="$(flat_286 "$FACTORY_ROOT/docs/factory/lessons/testing.md")"
+# Seit #426 verteilen sich die drei Abschnitte auf die Factory- und die Projekt-Lesson testing.md
+TESTING_LESSON_319="$(flat_286 "$FACTORY_ROOT/docs/factory/lessons/testing.md") $(flat_286 "$FACTORY_ROOT/docs/project/lessons/testing.md")"
 PC_FLAT_319="$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")"
 for phrase in "Exhaustiveness-Guards" "Mock-Default mit leerem Array" "Coverage-Ausgabe nur in ignorierte Pfade"; do
   assert_contains_286 "$TESTING_LESSON_319" "$phrase" \
@@ -7778,7 +7779,7 @@ ic_body_bytes_319() {  # $1 = Titel-Präfix des ### -Abschnitts
     index($0, "### ") == 1 && index($0, anchor) > 0 { found = 1; next }
     found && index($0, "### ") == 1 { exit }
     found { print }
-  ' "$FACTORY_ROOT/docs/factory/lessons/testing.md" | wc -c | tr -d ' '
+  ' "$FACTORY_ROOT/docs/factory/lessons/testing.md" "$FACTORY_ROOT/docs/project/lessons/testing.md" | wc -c | tr -d ' '
 }
 assert_true "$([ "$(ic_body_bytes_319 'Exhaustiveness-Guards')" -ge 1190 ]; echo $?)" \
   "#319: der Exhaustiveness-Abschnitt ist vollständig migriert (≥ 1190 Bytes Rumpf)"
@@ -7993,7 +7994,7 @@ rm -rf "$TMP_LNK_319"
 ic_dead_links_found_319=""
 for f in CLAUDE.md CONTRIBUTING.md docs/factory/PROJECT-CONTEXT.md docs/factory/OPERATING.md \
          docs/factory/kleinfunde.md docs/factory/lessons/testing.md \
-         docs/factory/lessons/code-style.md docs/factory/lessons/frontend-react.md \
+         docs/factory/lessons/code-style.md docs/project/lessons/frontend-react.md \
          docs/factory/guidelines/tdd-principles.md docs/factory/guidelines/testing-standards.md \
          docs/factory/guidelines/token-efficiency.md \
          docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md \
