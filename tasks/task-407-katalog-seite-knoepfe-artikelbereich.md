@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -92,6 +92,11 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 - Iteration 4 (2026-10-19, nach Eskalation, HEAD `41daebb`): **APPROVED** – 0 kritisch, 0 wichtig,
   2 Nitpicks (Wegwerf-Dateien liegen noch im Worktree trotz Notiz „gelöscht“; Wortumbruch im
   Baustein `ListenZeile`, out of scope). K1/W1/W2 aus Iteration 2/3 erledigt.
+
+## Test-Notizen (/test, 2026-10-19)
+- Coverage `app/verwaltung/katalog/**` (ohne Tests): 100 % Statements (191/191), Branches (124/124),
+  Functions (50/50), Lines (157/157). Gesamtsuite: 1760 passed, 112 skipped (DB-Tests ohne dotenv,
+  Änderung berührt keine Data-Layer). Keine Testlücken, kein Produktionscode geändert.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
