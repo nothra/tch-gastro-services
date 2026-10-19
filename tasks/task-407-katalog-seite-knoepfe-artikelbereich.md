@@ -27,7 +27,7 @@ Vollwortlaut (GIVEN/WHEN/THEN) in der Spec.
 - [x] **AK5** Texte: „Aktivieren“, „(deaktiviert)“, „Katalog anlegen“, Busy „Anlegen …“, Glossar-Tabelle nachziehen (AK5.1–AK5.4)
 - [x] **AK6** Farb-Gate bleibt grün; Doku/Anleitung/Screenshots auf verschobene Einstiege geprüft (AK6.1–AK6.2)
 - [x] Fehlerszenarien F1–F6 abgedeckt
-- [ ] Oberflächentest gegen lokalen Dev-Server (`listenseiten`, `bestaetigen-rueckmelden` + Sichtprüfung 375 px) – siehe Notizen
+- [x] Oberflächentest gegen lokalen Dev-Server (`listenseiten`, `bestaetigen-rueckmelden` + Sichtprüfung 375 px) – siehe Notizen
 
 ## Technische Notizen
 Entscheidung: [ADR-062](../docs/adr/062-katalog-bearbeiten-dialog-bestaetigungsschritt.md) (Accepted).
@@ -104,3 +104,11 @@ angepasst). `CatalogRow` + Test umgestellt. E2E gegen eigenen Dev-Server aus dem
 (`E2E_372=1 E2E_LISTENSEITEN_373=1`, `listenseiten` + `bestaetigen-rueckmelden`): 7/7 grün, inkl. Dichte-Grenze
 spec-373 AK4.6. Keine manuelle 375-px-Sichtprüfung/Screenshot in dieser Runde (Dichte-Messung im E2E belegt die Grenze).
 Wegwerf-Spec und Screenshots gelöscht.
+
+**Nachtest 2026-10-19 (HEAD `66a7ebe`):** `listenseiten` + `bestaetigen-rueckmelden` erneut gegen eigenen
+Dev-Server (Port 3407, `localhost`) – 7/7 grün. Sichtprüfung 375 px per Wegwerf-Screenshot (Seite oben,
+ganze Seite, Dialog „Katalog bearbeiten“): Neben-Knöpfe unter der Auswahl, umrandeter Bereich „Artikel 20“
+mit „+ Neu“ als einzigem Primär-Knopf, einzeilige Zeilen „Name · Größe“ mit Preis + Pfeil, Kategorie-
+Überschriften Getränk/Kaffee/Essen, Dialog mit Umbenennen/Duplizieren/Deaktivieren + „Schließen“, kein
+horizontaler Überlauf. Bekannt (Review-Nitpick, Baustein `ListenZeile`, außerhalb Scope): der Name
+„Cola/Fanta/Spezi/Limo“ ohne Trennstelle bricht bei 375 px mitten im Wort um.
