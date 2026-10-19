@@ -54,7 +54,8 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   leeres Projekt lässt sich aus dem Factory-Repo aufsetzen (Nachweis); Factory-Funde, die bei der
   Projekt-Arbeit entstehen (Issues, Kleinfunde, generische Learnings), landen direkt im Factory-Repo.
 - T3 · **Umziehen:** offene `factory-pipeline`-Issues, Factory-ADRs und Factory-Lessons wandern ins
-  Factory-Repo; TCH-Doku und Prozess verweisen für Factory-Arbeit auf das Factory-Repo.
+  Factory-Repo; TCH-Doku und Prozess verweisen für Factory-Arbeit auf das Factory-Repo; das Label
+  `factory-pipeline` wird aus TCH entfernt.
 
 **Nicht inbegriffen:**
 - Umzug auf dm-GitLab bzw. Rückführung in `ctech_tv/dm-factory-template` (eigener späterer Schritt).
@@ -159,6 +160,13 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   stattfindet und wie sie nach TCH gelangt.
 - [ ] **AK3.5** GIVEN T3 ist abgeschlossen WHEN man in TCH einen neuen Factory-PR versucht (Änderung
   an übernommenen Dateien) THEN greift AK2.5.
+- [ ] **AK3.6** GIVEN T3 ist abgeschlossen WHEN man die Labels des TCH-Repos ansieht THEN existiert das
+  Label `factory-pipeline` dort nicht mehr; in TCH verbleibende Issues zu TCH-eigenen Abläufen
+  (z. B. Deploy-Gate) tragen nur noch Art- und übrige Aspekt-Labels.
+- [ ] **AK3.7** GIVEN T3 ist abgeschlossen WHEN in TCH ein Skript, Skill oder eine Doku ein Aspekt-Label
+  anbietet oder setzt (u. a. `start-work.sh --labels`, Issue-Seam, Label-Tabelle) THEN wird
+  `factory-pipeline` dort nicht mehr angeboten bzw. gesetzt, und kein Gate/Test in TCH erwartet es.
+  (Entfernen erst **nach** dem Issue-Umzug aus AK3.1, damit die Filterung bis dahin funktioniert.)
 
 ### Epic-weit
 
@@ -205,8 +213,10 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   `.claude/settings.json`, `factory-ci.yml`, `.gitignore`. → `/architecture`
 - [ ] **Q5** Wie werden ADRs im Factory-Repo nummeriert (neu ab 001 mit Altnummer-Verweis oder
   Nummern behalten)? Zusammenhang mit #321 (doppelte ADR-Nummern). → `/architecture` (T3)
-- [ ] **Q6** Soll das alte `factory-pipeline`-Label in TCH nach T3 bestehen bleiben (für
-  TCH-spezifische Pipeline-Teile wie Deploy-Gate) oder entfallen? → Detail-Spec T3
+- [x] **Q6** Soll das alte `factory-pipeline`-Label in TCH nach T3 bestehen bleiben oder entfallen?
+  **Entschieden (2026-10-19): entfällt** → AK3.6/AK3.7. Bekannte Konsequenz: Beim Löschen eines
+  GitHub-Labels verschwindet es auch von geschlossenen Issues/PRs; die historische Filterung nach
+  Factory-Arbeit in TCH geht damit verloren (die übertragenen Issues sind im Factory-Repo auffindbar).
 - [ ] **Q8** Wie erhält ein Skill im Projekt-Repo (lokal und im Stage-3-/CI-Lauf) die Berechtigung,
   im Factory-Repo Issues anzulegen, und wie wird der Issue-Seam (ADR-018) dafür erweitert? Welche
   Form haben Kleinfunde im Factory-Repo (AK2.10)? → `/architecture`
