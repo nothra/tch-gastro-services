@@ -30,7 +30,7 @@ Dieser Epic-PR liefert **nur** Spec + ADR (Phase 1); die Umsetzung läuft in den
 - [ ] Teil-Issues T1–T3 sind angelegt und in der Spec verlinkt
 - [ ] T1 gemergt (AK1.1–AK1.8)
 - [ ] T2 gemergt (AK2.1–AK2.13)
-- [ ] T3 gemergt (AK3.1–AK3.7)
+- [ ] T3 gemergt (AK3.1–AK3.10)
 - [ ] Epic-weite AK erfüllt (AKE.1, AKE.2)
 
 ## Technische Notizen
