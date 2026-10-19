@@ -34,8 +34,7 @@ export function CatalogRow({ item, catalogId }: CatalogRowProps) {
       onOeffnen={oeffnen}
       id={zeilenId}
       ausloeserRef={ausloeserRef}
-      titel={item.name}
-      untertitel={item.size || "ohne Größe"}
+      titel={item.size ? `${item.name} · ${item.size}` : item.name}
       // Ziffern gleicher Breite, damit Preise untereinander bündig stehen (AK4.2).
       kennzeichen={<span className="tabular-nums">{formatCents(item.priceCents)}</span>}
       zustand={item.active ? undefined : "deaktiviert"}

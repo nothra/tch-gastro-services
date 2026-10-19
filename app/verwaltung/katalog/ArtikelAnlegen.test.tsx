@@ -13,8 +13,8 @@ const createMock = vi.mocked(createCatalogItemAction);
 const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function renderUndOeffnen() {
-  render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Artikel" />);
-  fireEvent.click(screen.getByRole("button", { name: "+ Artikel" }));
+  render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Neu" />);
+  fireEvent.click(screen.getByRole("button", { name: "+ Neu" }));
   return screen.getByRole("dialog", { name: "Artikel anlegen" });
 }
 
@@ -47,7 +47,7 @@ afterEach(async () => {
 
 describe("ArtikelAnlegen (spec-373 AK1, AK6.2)", () => {
   it("should_showOnlyTrigger_when_rendered", () => {
-    render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Artikel" />);
+    render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Neu" />);
 
     expect(screen.queryByLabelText("Bezeichnung")).not.toBeInTheDocument();
   });

@@ -129,7 +129,8 @@ Primärer Nutzer: Rolle `verwalter`, überwiegend am Smartphone.
   Die Zwischenüberschrift zeigt weiterhin die Anzahl der Gruppe (z. B. „Getränke (12)“). (Q5)
 - [ ] **AK4.2** GIVEN ein Artikel WHEN die Zeile rendert THEN ist sie eine `ListenZeile` im
   Dialog-Auslöser-Modus (Button, **kein** Link, `aria-haspopup="dialog"`) mit dem Artikelnamen
-  als Titel, der Größe als Untertitel („ohne Größe“, wenn keine gesetzt ist), dem Preis
+  als **einzeiligem** Titel „Name · Größe“ (ohne Untertitel; nur der Name, wenn keine Größe
+  gesetzt ist), dem Preis
   (`formatCents`, Ziffern gleicher Breite) als Kennzeichen und dem Pfeil rechts; die **ganze
   Zeile** ist Tipp-Ziel (≥ 44 px). (Q6)
 - [ ] **AK4.3** GIVEN die Artikelzeile WHEN sie angetippt oder per `Enter`/`Leertaste` bedient
@@ -144,7 +145,7 @@ Primärer Nutzer: Rolle `verwalter`, überwiegend am Smartphone.
   Deaktivieren/Aktivieren den Zustand und die Zeile wird dadurch neu gemountet WHEN der Dialog
   schließt THEN landet der Fokus auf der umgezogenen Zeile bzw. einem Ersatzziel, nicht auf
   `<body>` (Lesson #371/#373).
-- [ ] **AK4.7** GIVEN lange Artikelnamen WHEN die Zeile rendert THEN brechen Titel und Untertitel
+- [ ] **AK4.7** GIVEN lange Artikelnamen WHEN die Zeile rendert THEN bricht der Titel
   um, ohne Preis oder Pfeil aus dem Bild zu schieben.
 
 ### Texte (AK5)
@@ -218,6 +219,7 @@ Alle sechs Defaults von Ralf bestätigt (2026-10-18); Q1/Q2 in ADR-062 entschied
   Verzicht darauf (nur Text, „+ Neu“ genügt) wäre ebenfalls AK1.4-konform.
 - [x] **Q5 Zähler an den Zwischenüberschriften:** bleibt „Getränke (12)“? Das Issue nennt nur
   „kleine Zwischenüberschriften“. *Default:* Zähler bleibt (bestehendes Verhalten, spec-373 AK4.1).
-- [x] **Q6 Inhalt der Zeile:** Untertitel = Größe (bzw. „ohne Größe“) behält die heutige
-  Information (`Name · Größe`) bei; das Issue nennt „Preis und Pfeil“. *Default:* Größe als
-  Untertitel. Alternative: „Name · Größe“ in einer Zeile ohne Untertitel.
+- [x] **Q6 Inhalt der Zeile:** `Name · Größe` bleibt als Information erhalten; das Issue nennt
+  „Preis und Pfeil“. *Entschieden (Ralf, Review-Iteration 3):* einzeilig „Name · Größe“ ohne
+  Untertitel – die zweizeilige Variante riss die Dichte-Vorgabe aus spec-373 AK4.6 (20 Artikel
+  bei 375 px: 1796 px statt ≤ 1624 px).

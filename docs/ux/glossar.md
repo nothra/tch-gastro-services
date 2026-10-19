@@ -155,8 +155,9 @@ Auslagen- und `ZeilenMenue`-Zeilen (auch unter „Bereits konform") gegen den St
 
 Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
 Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
-Die Auslagen-Zeilen hat #406 erledigt, die Zeile `ArtikelAnlegen.tsx` (Busy „Anlegen …") samt
-„(inaktiv)" → „(deaktiviert)" in der Katalog-Auswahl #407. Alles Übrige sammelt **#401**.
+Die Auslagen-Zeilen hat #406 erledigt, die Zeile `ArtikelAnlegen.tsx` (Busy „Anlegen …") #407;
+dort ist außerdem „(inaktiv)" → „(deaktiviert)" in der Katalog-Auswahl korrigiert. Alles Übrige
+sammelt **#401**.
 
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|

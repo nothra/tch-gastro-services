@@ -84,19 +84,20 @@ describe("CatalogRow – Zeile als ListenZeile (spec-407 AK4.2/AK4.4/AK4.5)", ()
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
-  it("should_showNameAsTitleSizeAsSubtitleAndPriceAsKennzeichen_when_rendered", () => {
-    // AK4.2 (Q6): Größe als Untertitel, Preis mit Ziffern gleicher Breite.
+  it("should_showNameAndSizeInOneTitleLineAndPriceAsKennzeichen_when_rendered", () => {
+    // AK4.2 (Q6): „Name · Größe“ einzeilig ohne Untertitel, Preis mit Ziffern gleicher Breite.
     renderRow();
 
-    expect(within(zeile()).getByText("Pils")).toHaveClass("font-semibold");
-    expect(within(zeile()).getByText("0,5 l")).toHaveClass("text-muted");
+    expect(within(zeile()).getByText("Pils · 0,5 l")).toHaveClass("font-semibold");
+    expect(within(zeile()).queryByText("0,5 l")).not.toBeInTheDocument();
     expect(within(zeile()).getByText("2,50 €")).toHaveClass("tabular-nums");
   });
 
-  it("should_sayOhneGroesse_when_itemHasNoSize", () => {
+  it("should_showOnlyName_when_itemHasNoSize", () => {
     renderRow({ ...activeItem, size: "" });
 
-    expect(within(zeile()).getByText("ohne Größe")).toBeInTheDocument();
+    expect(within(zeile()).getByText("Pils")).toHaveClass("font-semibold");
+    expect(within(zeile()).queryByText(/ohne Größe|·/)).not.toBeInTheDocument();
   });
 
   it("should_neitherDimNorBadge_when_itemIsActive", () => {
@@ -111,7 +112,7 @@ describe("CatalogRow – Zeile als ListenZeile (spec-407 AK4.2/AK4.4/AK4.5)", ()
     renderRow({ ...activeItem, active: false });
 
     expect(zeile()).toHaveAccessibleName(/deaktiviert/);
-    expect(screen.getByText("Pils").parentElement).toHaveClass("opacity-60");
+    expect(screen.getByText("Pils · 0,5 l").parentElement).toHaveClass("opacity-60");
   });
 
   it("should_notDimPrice_when_itemIsInactive", () => {
@@ -121,15 +122,14 @@ describe("CatalogRow – Zeile als ListenZeile (spec-407 AK4.2/AK4.4/AK4.5)", ()
     expect(screen.getByText("2,50 €").closest(".opacity-60")).toBeNull();
   });
 
-  it("should_carryNoOwnRowStylesOrRawColors_when_rendered", () => {
-    // AK4.5: Optik kommt aus ListenZeile – keine eigenen Zeilen-Klassen der alten Zeile.
+  it("should_carryNoOwnRowStyles_when_rendered", () => {
+    // AK4.5: Optik kommt aus ListenZeile – keine eigenen Zeilen-Klassen der alten Zeile. Rohe
+    // Farbklassen weist fail-closed das Farb-Gate ab (`pnpm lint`, Pfad in
+    // `eslint/ui-token-files.mjs`), nicht dieser Test (Lesson #368).
     renderRow({ ...activeItem, active: false });
 
     const klassen = screen.getByRole("listitem").innerHTML;
     expect(klassen).not.toMatch(/divide-|-outline-offset-2|px-3 py-2/);
-    expect(klassen).not.toMatch(
-      /\b(?:bg|text|border)-(?:red|green|blue|gray|slate|zinc|neutral|stone|amber|yellow|white|black)\b/,
-    );
   });
 });
 

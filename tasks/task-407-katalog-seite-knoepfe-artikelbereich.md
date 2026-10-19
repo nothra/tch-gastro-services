@@ -36,8 +36,8 @@ Kein Baustein ändert seine API.
   `KatalogBearbeiten.tsx` (ein `Dialog`, drei Formulare + Bestätigungsschritt), `ArtikelBereich.tsx`
   (Server: `Card`, Kopfzeile „Artikel <n>" + `ArtikelAnlegen` „+ Neu", h3 je Kategorie, Leerzustand).
 - **Dateien ändern:** `page.tsx` (nur komponieren, `PageHeader` ohne Aktion), `CatalogRow.tsx`
-  (`ListenZeile onOeffnen` + `anhang`, Muster `TeilnehmerRow`; Preis = `kennzeichen`, Untertitel = Größe /
-  „ohne Größe"), `CatalogSwitcher.tsx` („(deaktiviert)"), `ArtikelAnlegen.tsx` (Busy „Anlegen …"),
+  (`ListenZeile onOeffnen` + `anhang`, Muster `TeilnehmerRow`; Preis = `kennzeichen`, Titel = „Name · Größe“
+  einzeilig, nur Name ohne Größe), `CatalogSwitcher.tsx` („(deaktiviert)"), `ArtikelAnlegen.tsx` (Busy „Anlegen …"),
   `FormularDialog.tsx` (nur Kommentar „Seitenkopf" → „Bereichskopf").
 - **Datei löschen:** `CatalogControls.tsx` + `CatalogControls.test.tsx` (Verweise greppen, Lesson #187).
 - **KatalogBearbeiten:** Schritt-Zustand im Eltern (beim Öffnen zurück auf „Bearbeiten"); Fokus je
@@ -58,7 +58,7 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 - [x] Q3 Anzahl-Format „Artikel 24“ vs. „Artikel (24)“
 - [x] Q4 Leerzustand zusätzlich mit „Artikel anlegen“?
 - [x] Q5 Zähler an Kategorie-Zwischenüberschriften behalten?
-- [x] Q6 Zeileninhalt: Größe als Untertitel?
+- [x] Q6 Zeileninhalt: einzeilig „Name · Größe“ (Ralf, Review-Iteration 3)
 
 ## Implementierungs-Notizen (/implement, 2026-10-18)
 - Schritt 0: kein ADR-Trigger offen – ADR-062 (Accepted) deckt Dialog-Schritt und `FormularDialog`-Wahl.
@@ -79,6 +79,16 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+- Iteration 1 (2026-10-18): **NEEDS_REWORK** – 0 kritisch, 1 wichtig, 4 Nitpicks; Details in
+  [`review-407.md`](review-407.md). W1: geänderte Opt-in-E2E-Specs (`bestaetigen-rueckmelden`,
+  `listenseiten`) nicht gelaufen (Lesson #403/#406). Keine Out-of-Scope-Funde.
+- Iteration 2 (2026-10-18): **NEEDS_REWORK** – 1 kritisch, 2 wichtig, 2 Nitpicks. K1: `listenseiten`
+  rot – die zweizeilige `ListenZeile` (Q6) reißt die Dichte-Vorgabe aus spec-373 AK4.6 (20 Artikel =
+  1796 px > 1624 px). Entscheidung Ralf nötig: einzeilig „Name · Größe“ oder spec-373 AK4.6 bewusst
+  ablösen. W1: Lauf von `bestaetigen-rueckmelden` nicht belegt; W2: Rework nicht committet.
+- Iteration 3 (2026-10-18): **NEEDS_REWORK – Circuit Breaker, Eskalation an Ralf.** Code seit
+  Iteration 2 unverändert (kein Commit, kein neuer E2E-Lauf); Findings 1:1 übernommen. Weiter nur mit
+  Ralfs Entscheidung zu K1 (a: einzeilig „Name · Größe“ / b: spec-373 AK4.6 in spec-407 ablösen).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
@@ -86,3 +96,11 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 ---
 Branch: `feature/407-katalog-seite-knoepfe-artikelbereich`
 Erstellt: 2026-10-18 18:10
+
+## Review-Iteration 3 – Entscheidung K1 (2026-10-19)
+
+Ralf entschied Option (a): Artikelzeile einzeilig „Name · Größe“ ohne Untertitel (spec-407 Q6/AK4.2/AK4.7
+angepasst). `CatalogRow` + Test umgestellt. E2E gegen eigenen Dev-Server aus dem Worktree
+(`E2E_372=1 E2E_LISTENSEITEN_373=1`, `listenseiten` + `bestaetigen-rueckmelden`): 7/7 grün, inkl. Dichte-Grenze
+spec-373 AK4.6. Keine manuelle 375-px-Sichtprüfung/Screenshot in dieser Runde (Dichte-Messung im E2E belegt die Grenze).
+Wegwerf-Spec und Screenshots gelöscht.
