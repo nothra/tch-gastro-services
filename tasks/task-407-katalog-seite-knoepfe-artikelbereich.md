@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Katalog-Seite `/verwaltung/katalog/[id]` neu ordnen: „Katalog bearbeiten“ (Umbenennen, Duplizieren,
@@ -114,7 +114,9 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
   `requireRole("verwalter")` und Seiten-Gate unverändert, keine neuen Dependencies.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+- 2026-10-19: Ein neues Learning (Dichte-Grenzen bestehender Specs vor einem neuen Zeilenlayout prüfen, plus
+  „gelöscht“-Notiz belegen) in `lessons/factory-workflow.md` + Index. Rest durch bestehende Lessons gedeckt.
+  Details: [`codify-407.md`](codify-407.md).
 
 ---
 Branch: `feature/407-katalog-seite-knoepfe-artikelbereich`
@@ -135,3 +137,6 @@ mit „+ Neu“ als einzigem Primär-Knopf, einzeilige Zeilen „Name · Größe
 Überschriften Getränk/Kaffee/Essen, Dialog mit Umbenennen/Duplizieren/Deaktivieren + „Schließen“, kein
 horizontaler Überlauf. Bekannt (Review-Nitpick, Baustein `ListenZeile`, außerhalb Scope): der Name
 „Cola/Fanta/Spezi/Limo“ ohne Trennstelle bricht bei 375 px mitten im Wort um.
+
+PR-Shepherd 2026-10-19: Merge freigegeben – alle Gates grün (keine Review-Kommentare, Branch auf aktuellem main, CI grün).
+Hinweis: gitignorierte Wegwerf-Dateien (`*407*.tmp.*`, `test-results/407-*.png`) liegen noch im Worktree; `rm` war nicht freigegeben – nicht im PR, beim Worktree-Aufräumen von Hand löschen.
