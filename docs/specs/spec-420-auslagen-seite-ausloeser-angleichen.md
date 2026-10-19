@@ -117,6 +117,5 @@ Primärer Nutzer: Rolle `veranstalter`, überwiegend am Smartphone.
 
 ## Offene Fragen
 
-- [ ] **Q4 Leerzustand-Text:** Annahme: „Noch keine Auslagen erfasst.“ bleibt unverändert, ohne
-  zusätzlichen Hinweis auf „+ Neu“. Falls ein Hinweis gewünscht ist, wäre er nur bei offener
-  Veranstaltung sinnvoll – bitte in der Review bestätigen oder ändern.
+- [x] **Q4 Leerzustand-Text:** Entschieden (Ralf, 2026-10-19): „Noch keine Auslagen erfasst.“
+  bleibt unverändert, ohne zusätzlichen Hinweis auf „+ Neu“.

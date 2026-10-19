@@ -2,8 +2,8 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Review bestanden
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -40,7 +40,7 @@ Auslagen-Seite: Leerzustand ohne eigenen Auslöser („+ Neu“ im Kopf ist einz
 - **Oberflächentest:** `E2E_406=1` `e2e/auslagen.spec.ts` lokal gegen einen eigenen Dev-Server (Port 3420, Lesson #368) grün (1 passed, 2026-10-19). Die Spec prüft jetzt zuerst den Fall ohne Teilnehmer: Leerzustand mit genau einem Button in `main`, Dialog mit Hinweis, keine Auswahlfelder, „Erfassen“ deaktiviert, Abbrechen und Escape geben den Fokus an „+ Neu“ zurück. Danach folgt der bisherige Ablauf (erste Auslage aus dem Leerzustand = AK1.4).
 
 ## Offene Fragen
-- [ ] Q4 Leerzustand-Text unverändert („Noch keine Auslagen erfasst.“) oder Hinweis auf „+ Neu“? (Annahme: unverändert)
+- [x] Q4 Leerzustand-Text unverändert („Noch keine Auslagen erfasst.“) oder Hinweis auf „+ Neu“? Entschieden: unverändert (Ralf, 2026-10-19)
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
@@ -48,7 +48,9 @@ Iteration 1 (`tasks/review-420.md`, NEEDS_REWORK) – Rework:
 - [x] W1 Bearbeiten ohne Teilnehmer zeigte „Erfassen“: Beschriftung über `primaerBeschriftung(bearbeiten)` für beide Zweige (doppelte Literale entfallen), Test `should_showDisabledSpeichern_when_bearbeitenOhneTeilnehmer` (RED → GREEN). Fall als Fehlerszenario in spec-420 nachgetragen; Nicht-Bearbeitbarkeit bleibt Issue #423.
 - [x] N1 spec-406 AK1.7/AK1.8 mit Verweis auf spec-420 AK3 bzw. AK1.1 versehen.
 - [x] N2 AK3.4-Test vergleicht den `className` der Fußzeile mit dem Fall mit Teilnehmern statt `justify-end`.
-- [ ] N3 Q4 fachlich durch Ralf bestätigen – bleibt offen bis zur Rückmeldung.
+- [x] N3 Q4 fachlich durch Ralf bestätigt (2026-10-19): unverändert.
+
+Iteration 2 (`tasks/review-420.md`): APPROVED – keine Findings; W1/N1–N3 als erledigt geprüft.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
