@@ -8613,6 +8613,107 @@ assert_contains_286 "$operating_flat_334" 'Jeder Task-PR trägt darum eine Telem
   "#334 Doku: OPERATING.md warnt vor der neuen Datei in jedem Diff"
 assert_absent "$operating_flat_334" '`source config/otel.env.example` aktiviert' \
   "#334 Doku: OPERATING.md nennt otel.env.example nicht mehr als Aktivierungsweg"
+# ── #426 T1a-1 · Zuordnungstabelle docs/factory/OWNERSHIP.md (AK-A1…A6, F-1) ─────────────────
+# Jede getrackte Datei gehört genau einer Seite (factory | project). ownership-check.sh ist der
+# einzige Parser des Zeilenformats; T1b leitet die filter-repo-Allowlist daraus ab (--list).
+OWN_CHECK_426="$CHECKS_DIR/ownership-check.sh"
+OWN_TABLE_426="$FACTORY_ROOT/docs/factory/OWNERSHIP.md"
+
+# Fixture-Tabelle + Dateiliste in einem Wegwerf-Verzeichnis; $1 = Tabellen-Zeilen, $2 = Dateien
+own_run_426() {
+  local dir; dir="$(mktemp -d)"
+  printf '| Seite | Muster | Begründung |\n|---|---|---|\n%b' "$1" > "$dir/OWNERSHIP.md"
+  printf '%b' "$2" > "$dir/files.txt"
+  OWNERSHIP_FILE="$dir/OWNERSHIP.md" OWNERSHIP_FILE_LIST="$dir/files.txt" \
+    bash "$OWN_CHECK_426" "${@:3}" 2>&1
+  local rc=$?
+  rm -rf "$dir"
+  return $rc
+}
+
+# AK-A1/A5: ein Treffer je Datei, Glob-Semantik (`*` je Segment, `**` beliebig tief)
+out_426="$(own_run_426 '| factory | `scripts/lib/**` | Lib |\n| project | `app/**` | App |\n| project | `*.md` | Wurzel |\n' \
+  'scripts/lib/a/b.sh\napp/x/page.tsx\nREADME.md\n')"
+assert_exit 0 $? "#426 AK-A5: vollständige, eindeutige Tabelle → Exit 0"
+assert_contains_286 "$out_426" 'factory: 1, project: 2' \
+  "#426 AK-A5: Ausgabe nennt die Verteilung je Seite"
+
+# AK-A2 / F-1 (fehlt): Datei ohne Zuordnung → rot und Datei benannt
+out_426="$(own_run_426 '| project | `app/**` | App |\n' 'app/a.ts\nscripts/neu.sh\n')"
+assert_exit 1 $? "#426 AK-A2: Datei ohne Zuordnung → Exit 1"
+assert_contains_286 "$out_426" 'scripts/neu.sh: keiner Seite zugeordnet' \
+  "#426 AK-A2: die fehlende Datei wird namentlich genannt"
+assert_absent "$out_426" 'app/a.ts:' "#426 AK-A2: zugeordnete Datei wird nicht gemeldet"
+
+# AK-A2 / F-1 (doppelt): zwei Seiten treffen dieselbe Datei → rot, beide Muster genannt
+out_426="$(own_run_426 '| factory | `scripts/**` | alles |\n| project | `scripts/neon-reset-int.sh` | TCH |\n' 'scripts/neon-reset-int.sh\n')"
+assert_exit 1 $? "#426 AK-A2: Datei mit Zuordnung zu beiden Seiten → Exit 1"
+assert_contains_286 "$out_426" 'scripts/neon-reset-int.sh: mehreren Seiten zugeordnet' \
+  "#426 AK-A2: die doppelte Datei wird namentlich genannt"
+assert_contains_286 "$out_426" 'factory: scripts/**, project: scripts/neon-reset-int.sh' \
+  "#426 AK-A2: beide konkurrierenden Muster stehen in der Meldung"
+
+# Zwei Muster derselben Seite sind keine Doppelzuordnung
+out_426="$(own_run_426 '| factory | `scripts/**` | a |\n| factory | `scripts/lib/*.sh` | b |\n' 'scripts/lib/x.sh\n')"
+assert_exit 0 $? "#426 AK-A2: zwei Muster DERSELBEN Seite zählen nicht als doppelt"
+
+# Glob-Grenzen: `*` überschreitet kein `/`; Regex-Sonderzeichen sind wörtlich (`.` ≠ beliebig)
+own_run_426 '| project | `docs/*.md` | flach |\n' 'docs/a/b.md\n' > /dev/null
+assert_exit 1 $? "#426 Glob: '*' reicht nicht über ein Pfadsegment hinaus"
+own_run_426 '| project | `a.md` | exakt |\n' 'aXmd\n' > /dev/null
+assert_exit 1 $? "#426 Glob: '.' im Muster ist ein wörtlicher Punkt"
+
+# Fail-closed: leere Tabelle, fehlende Tabelle, leere Dateiliste
+own_run_426 '' 'a.md\n' > /dev/null
+assert_exit 2 $? "#426 fail-closed: Tabelle ohne Zeilen → Exit 2 (nicht still grün)"
+OWNERSHIP_FILE=/nicht/vorhanden/OWNERSHIP.md OWNERSHIP_FILE_LIST=/dev/null bash "$OWN_CHECK_426" > /dev/null 2>&1
+assert_exit 2 $? "#426 fail-closed: nicht lesbare Tabelle → Exit 2"
+own_run_426 '| project | `**` | alles |\n' '' > /dev/null
+assert_exit 2 $? "#426 fail-closed: leere Dateiliste → Exit 2"
+
+# AK-A5: --list liefert die Allowlist einer Seite (Eingabe für T1b)
+out_426="$(own_run_426 '| factory | `scripts/**` | f |\n| project | `app/**` | p |\n' 'scripts/a.sh\napp/b.ts\nscripts/c.sh\n' --list factory)"
+assert_exit 0 $? "#426 AK-A5: --list factory läuft"
+assert_true "$([ "$out_426" = "$(printf 'scripts/a.sh\nscripts/c.sh')" ]; echo $?)" \
+  "#426 AK-A5: --list factory nennt genau die factory-Dateien"
+own_run_426 '| factory | `a/**` | f |\n' 'a/x\n' --list beide > /dev/null
+assert_exit 2 $? "#426 AK-A5: --list mit unbekannter Seite → Exit 2"
+
+# AK-A1/A3/A4 gegen die ECHTE Tabelle und `git ls-files` (kein Fixture)
+own_real_out="$(bash "$OWN_CHECK_426" 2>&1)"
+own_real_rc=$?
+assert_exit 0 "$own_real_rc" "#426 AK-A1/A6: jede getrackte Datei hat genau eine Seite (echte Tabelle + git ls-files)"
+[ "$own_real_rc" -eq 0 ] || echo "$own_real_out" | head -20 | sed 's/^/      /'
+
+# Ausgabe erst einsammeln, dann greppen: `grep -q` am Pipe-Ende beendet früh, und `pipefail` macht
+# aus dem SIGPIPE des Schreibers ein falsches Rot (Exit 141).
+own_side_426() { local l; l="$(bash "$OWN_CHECK_426" --list "$1" 2>/dev/null)"; printf '%s\n' "$l" | grep -qxF -- "$2"; }
+for f_426 in scripts/neon-reset-int.sh scripts/deploy-freeze.sh scripts/deploy-freeze-notify.sh \
+    .github/workflows/deploy-gate.yml .github/workflows/deploy-freeze-release.yml \
+    scripts/checks/routes-doc-check.sh docs/project/lessons/frontend-react.md \
+    docs/project/lessons/db-drizzle.md docs/project/lessons/next-auth.md; do
+  own_side_426 project "$f_426"
+  assert_exit 0 $? "#426 AK-A3: $f_426 ist 'project' zugeordnet"
+done
+for f_426 in CLAUDE.md factory.config.yml docs/factory/PROJECT-CONTEXT.md .gitignore \
+    .claude/settings.json docs/specs/spec-426-trennlinie-factory-projekt-ziehen.md \
+    tasks/task-426-trennlinie-factory-projekt-ziehen.md docs/adr/014-tech-stack-selection.md \
+    app/layout.tsx; do
+  own_side_426 project "$f_426"
+  assert_exit 0 $? "#426 AK-A4: $f_426 ist 'project' zugeordnet"
+done
+# Gegenprobe: ein Factory-Kern ist NICHT 'project' (sonst wäre jede Zeile trivial 'project')
+own_side_426 factory scripts/run-pipeline.sh
+assert_exit 0 $? "#426 AK-A4 (Kontrolle): scripts/run-pipeline.sh ist 'factory' zugeordnet"
+own_side_426 project scripts/run-pipeline.sh
+assert_exit 1 $? "#426 AK-A4 (Kontrolle): scripts/run-pipeline.sh ist NICHT 'project' zugeordnet"
+
+# AK-A6: das Gate hängt im lokalen pre-push (Zeile des echten Aufrufs) UND in der Suite, die
+# CI als factory-self-test fährt – ein bestehender Required Check, kein neuer Check-Name.
+assert_true "$(grep -q 'ownership-check.sh' "$CHECKS_DIR/pre-push.sh"; echo $?)" \
+  "#426 AK-A6: pre-push.sh ruft ownership-check.sh auf (lokales Gate)"
+assert_true "$(grep -q 'bash scripts/checks/tests/run-tests.sh' "$FACTORY_ROOT/.github/workflows/factory-ci.yml"; echo $?)" \
+  "#426 AK-A6: factory-self-test (CI) führt diese Suite aus – damit auch den Check oben"
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
