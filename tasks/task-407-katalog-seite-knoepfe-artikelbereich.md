@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -107,6 +107,11 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
   und Label-Herkunft – ein gemeinsamer Baustein wäre neue Abstraktion, kein Clean-Code-Gewinn.
 - Wegwerf-Dateien (gitignoriert, `*407*.tmp.*`) liegen noch im Worktree; `rm` war in dieser Session nicht
   freigegeben – vor dem Merge von Hand löschen.
+
+## Security-Notizen (/security-review, 2026-10-19)
+- **PASSED** – 0 kritisch, 0 wichtig, 1 Hinweis (gitignorierte Wegwerf-Dateien vor dem Merge löschen).
+  Details in [`security-407.md`](security-407.md). Nur UI: dieselben Actions mit denselben Feldern,
+  `requireRole("verwalter")` und Seiten-Gate unverändert, keine neuen Dependencies.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
