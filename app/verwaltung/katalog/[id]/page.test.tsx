@@ -5,29 +5,24 @@ import type { Catalog, CatalogItem } from "@/db/schema";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/db/catalog", () => ({ listCatalogs: vi.fn(), listCatalog: vi.fn() }));
-
-// Eingebettete Komponenten sind hier durch Stubs ersetzt – sie haben eigene Tests
-// (CatalogSwitcher, CatalogControls, ArtikelAnlegen, CatalogRow). Für die Detailseite zählen RBAC,
-// die Datenzusammenstellung (welcher Katalog wird an wen durchgereicht) und die Gruppierung.
+// Externe Grenzen der eingebetteten Client-Komponenten: Server Actions und Toast-Kapsel. Die
+// Komponenten selbst bleiben echt – die Seite verantwortet Reihenfolge und „genau ein
+// Primär-Knopf" (spec-407 AK1), das lässt sich nur am echten Zusammenbau prüfen.
+vi.mock("../actions", () => ({
+  createCatalogAction: vi.fn(),
+  renameCatalogAction: vi.fn(),
+  setCatalogActiveAction: vi.fn(),
+  duplicateCatalogAction: vi.fn(),
+  createCatalogItemAction: vi.fn(),
+  updateCatalogItemAction: vi.fn(),
+  setCatalogItemActiveAction: vi.fn(),
+}));
+vi.mock("@/app/components/ui/meldung", () => ({ meldeErfolg: vi.fn() }));
+// Die Auswahl braucht den App-Router; sie hat eigene Tests (CatalogSwitcher.test.tsx).
 vi.mock("./CatalogSwitcher", () => ({
   CatalogSwitcher: ({ currentId }: { currentId: string }) => (
     <div data-testid="catalog-switcher">{currentId}</div>
   ),
-}));
-vi.mock("./CatalogControls", () => ({
-  CatalogControls: ({ currentCatalog }: { currentCatalog?: Catalog }) => (
-    <div data-testid="catalog-controls">{currentCatalog ? currentCatalog.id : "none"}</div>
-  ),
-}));
-vi.mock("../ArtikelAnlegen", () => ({
-  ArtikelAnlegen: ({ catalogId, ausloeser }: { catalogId: string; ausloeser: string }) => (
-    <button type="button" data-catalog-id={catalogId}>
-      {ausloeser}
-    </button>
-  ),
-}));
-vi.mock("../CatalogRow", () => ({
-  CatalogRow: ({ item }: { item: CatalogItem }) => <li>{item.name}</li>,
 }));
 
 import { auth } from "@/auth";
@@ -73,15 +68,27 @@ function artikel(id: string, name: string, category: CatalogItem["category"]): C
   };
 }
 
-function plusArtikel() {
-  return screen.getByRole("button", { name: "+ Artikel" });
+async function renderAlsVerwalter(id: string, items: CatalogItem[] = []) {
+  authMock.mockResolvedValue(session(["verwalter"]));
+  listCatalogsMock.mockResolvedValue([catalogA, catalogB]);
+  listCatalogMock.mockResolvedValue(items);
+  render(await CatalogDetailPage({ params: params(id) }));
+}
+
+function knopf(name: string) {
+  return screen.getByRole("button", { name });
+}
+
+/** `a` steht im Dokument vor `b`. */
+function stehtVor(a: Element, b: Element) {
+  return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 }
 
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
-describe("CatalogDetailPage", () => {
+describe("CatalogDetailPage – Zugriff (F2)", () => {
   it("should_denyAccess_when_userIsNotVerwalter", async () => {
     authMock.mockResolvedValue(session(["veranstalter"]));
 
@@ -99,107 +106,89 @@ describe("CatalogDetailPage", () => {
 
     expect(screen.getByText(/Kein Zugriff/)).toBeInTheDocument();
   });
+});
 
-  it("should_renderSwitcherManagerAndAnlegen_when_catalogIdKnown", async () => {
-    authMock.mockResolvedValue(session(["verwalter"]));
-    listCatalogsMock.mockResolvedValue([catalogA, catalogB]);
-    listCatalogMock.mockResolvedValue([]);
+describe("CatalogDetailPage – Seitenaufbau (spec-407 AK1)", () => {
+  it("should_orderTitleSwitcherCatalogButtonsAndArticleRegion_when_rendered", async () => {
+    // AK1.1: Titel, Auswahl, direkt darunter die Katalog-Knöpfe, danach der Artikelbereich.
+    await renderAlsVerwalter("cat-1", [artikel("bier", "Bier", "getraenk")]);
 
-    render(await CatalogDetailPage({ params: params("cat-1") }));
-
-    // #345 AK6: der Umschalter bekommt die gewählte Id, Management-Controls und Anlegen
-    // bekommen denselben Katalog als Parent-Key-Bindung (nicht irgendeinen anderen).
-    expect(screen.getByTestId("catalog-switcher")).toHaveTextContent("cat-1");
-    expect(screen.getByTestId("catalog-controls")).toHaveTextContent("cat-1");
-    expect(plusArtikel()).toHaveAttribute("data-catalog-id", "cat-1");
-    expect(listCatalogMock).toHaveBeenCalledWith("cat-1");
+    const reihenfolge = [
+      screen.getByRole("heading", { level: 1, name: "Katalog" }),
+      screen.getByTestId("catalog-switcher"),
+      knopf("Katalog bearbeiten"),
+      knopf("Katalog anlegen"),
+      screen.getByRole("region", { name: "Artikel 1" }),
+    ];
+    for (let i = 1; i < reihenfolge.length; i++) {
+      expect(stehtVor(reihenfolge[i - 1], reihenfolge[i])).toBe(true);
+    }
   });
 
-  it("should_putPlusArtikelIntoHeaderWithoutForm_when_verwalter", async () => {
-    // spec-373 AK1.1: „+ Artikel" im Seitenkopf, kein Anlege-Formular beim Laden.
-    authMock.mockResolvedValue(session(["verwalter"]));
-    listCatalogsMock.mockResolvedValue([catalogA]);
-    listCatalogMock.mockResolvedValue([artikel("bier", "Bier", "getraenk")]);
+  it("should_placeCatalogButtonsSideBySideDirectlyAfterSwitcher_when_rendered", async () => {
+    // AK1.1 „direkt darunter" + AK1.2 „nebeneinander (umbrechend)": ein gemeinsamer Container
+    // unmittelbar nach der Auswahl.
+    await renderAlsVerwalter("cat-1");
 
-    render(await CatalogDetailPage({ params: params("cat-1") }));
+    const knopfzeile = knopf("Katalog bearbeiten").parentElement!;
+    expect(knopfzeile).toContainElement(knopf("Katalog anlegen"));
+    expect(knopfzeile).toHaveClass("flex", "flex-wrap");
+    expect(screen.getByTestId("catalog-switcher").nextElementSibling).toBe(knopfzeile);
+  });
+
+  it("should_haveNoActionInPageHeader_when_rendered", async () => {
+    // AK1.3: kein „+ Artikel" mehr neben dem Titel.
+    await renderAlsVerwalter("cat-1");
 
     const kopf = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
-    expect(within(kopf).getByRole("button", { name: "+ Artikel" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Bezeichnung")).not.toBeInTheDocument();
+    expect(within(kopf).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Artikel" })).not.toBeInTheDocument();
   });
 
-  it("should_groupItemsByCategoryInLabelOrderWithoutEmptyGroups_when_itemsPresent", async () => {
-    // spec-373 AK4.1: Reihenfolge wie CATEGORY_LABEL (Getränk, Kaffee, Essen), leere fehlen.
-    authMock.mockResolvedValue(session(["verwalter"]));
-    listCatalogsMock.mockResolvedValue([catalogA]);
-    listCatalogMock.mockResolvedValue([
+  it.each([
+    ["mit Artikeln", [artikel("bier", "Bier", "getraenk")]],
+    ["ohne Artikel", []],
+  ])("should_haveExactlyOnePrimaryButtonNeuInArticleRegion_when_%s", async (_fall, items) => {
+    // AK1.4: genau ein Primär-Knopf auf der Seite – „+ Neu" im Artikelbereich.
+    await renderAlsVerwalter("cat-1", items);
+
+    const primaer = screen
+      .getAllByRole("button")
+      .filter((element) => element.classList.contains("bg-accent"));
+    expect(primaer).toEqual([knopf("+ Neu")]);
+    expect(screen.getByRole("region", { name: /^Artikel/ })).toContainElement(knopf("+ Neu"));
+  });
+
+  it("should_offerAnlegenButNotBearbeiten_when_catalogIdUnknown", async () => {
+    // AK1.5: keine 404 – ohne auflösbaren Katalog gibt es nur „Katalog anlegen".
+    await renderAlsVerwalter("does-not-exist");
+
+    expect(knopf("Katalog anlegen")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Katalog bearbeiten" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("catalog-switcher")).toHaveTextContent("does-not-exist");
+  });
+});
+
+describe("CatalogDetailPage – Datenzusammenstellung (#345 AK6)", () => {
+  it("should_loadItemsOfRequestedCatalog_when_rendered", async () => {
+    await renderAlsVerwalter("cat-2");
+
+    expect(listCatalogMock).toHaveBeenCalledWith("cat-2");
+    expect(screen.getByTestId("catalog-switcher")).toHaveTextContent("cat-2");
+    expect(screen.getByText("Noch keine Artikel in diesem Katalog.")).toBeInTheDocument();
+  });
+
+  it("should_groupItemsInsideArticleRegion_when_itemsPresent", async () => {
+    await renderAlsVerwalter("cat-1", [
       artikel("wurst", "Bratwurst", "essen"),
       artikel("bier", "Bier", "getraenk"),
-      artikel("cola", "Cola", "getraenk"),
     ]);
 
-    render(await CatalogDetailPage({ params: params("cat-1") }));
-
-    const gruppen = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    expect(gruppen).toEqual(["Getränk (2)", "Essen (1)"]);
-    const getraenke = screen.getByRole("region", { name: "Getränk (2)" });
-    // Die Sortierung aus listCatalog bleibt innerhalb der Gruppe erhalten (AK4.4).
+    const bereich = screen.getByRole("region", { name: "Artikel 2" });
     expect(
-      within(getraenke)
-        .getAllByRole("listitem")
-        .map((li) => li.textContent),
-    ).toEqual(["Bier", "Cola"]);
-  });
-
-  it("should_keepInactiveItemAtItsPositionInGroup_when_itemInactive", async () => {
-    // spec-373 AK4.4: inaktive Artikel bleiben an ihrer Sortierstelle (Optik: CatalogRow).
-    authMock.mockResolvedValue(session(["verwalter"]));
-    listCatalogsMock.mockResolvedValue([catalogA]);
-    listCatalogMock.mockResolvedValue([
-      artikel("bier", "Bier", "getraenk"),
-      { ...artikel("alt", "Altbier", "getraenk"), active: false },
-      artikel("cola", "Cola", "getraenk"),
-    ]);
-
-    render(await CatalogDetailPage({ params: params("cat-1") }));
-
-    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-      "Bier",
-      "Altbier",
-      "Cola",
-    ]);
-  });
-
-  it("should_showEmptyStateWithAnlegenForThisCatalog_when_noItemsInCatalog", async () => {
-    // spec-373 AK6.1/AK6.2
-    authMock.mockResolvedValue(session(["verwalter"]));
-    listCatalogsMock.mockResolvedValue([catalogA, catalogB]);
-    listCatalogMock.mockResolvedValue([]);
-
-    render(await CatalogDetailPage({ params: params("cat-2") }));
-
-    expect(screen.getByText("Noch keine Artikel in diesem Katalog.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Artikel anlegen" })).toHaveAttribute(
-      "data-catalog-id",
-      "cat-2",
-    );
-    expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
-  });
-
-  // Kein 404: eine unbekannte Katalog-ID wird von dieser Seite bewusst nicht abgewiesen – kein
-  // AK/FS aus spec-345 verlangt das für die Verwaltungsseite selbst (anders als z. B.
-  // veranstaltung/[id], das bei fehlender Veranstaltung `notFound()` wirft). `CatalogControls`
-  // bekommt dann kein `currentCatalog` und zeigt nur „+ Katalog anlegen" (siehe
-  // CatalogControls.test.tsx: should_showOnlyCreateButton_when_noCurrentCatalog).
-  it("should_passUndefinedCurrentCatalog_when_catalogIdUnknown", async () => {
-    authMock.mockResolvedValue(session(["verwalter"]));
-    listCatalogsMock.mockResolvedValue([catalogA]);
-    listCatalogMock.mockResolvedValue([]);
-
-    render(await CatalogDetailPage({ params: params("does-not-exist") }));
-
-    expect(screen.getByTestId("catalog-controls")).toHaveTextContent("none");
-    expect(screen.getByTestId("catalog-switcher")).toHaveTextContent("does-not-exist");
-    expect(plusArtikel()).toHaveAttribute("data-catalog-id", "does-not-exist");
+      within(bereich)
+        .getAllByRole("heading", { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(["Getränk (1)", "Essen (1)"]);
   });
 });

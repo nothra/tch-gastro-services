@@ -122,12 +122,14 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
   test("AK3/AK4/AK5: Katalog-Dialoge auf der Dialog-Grundlage, Deaktivieren fragt nach", async ({
     page,
   }) => {
+    // Seit spec-407: „Katalog anlegen" als Neben-Knopf, Umbenennen/Duplizieren/(De-)Aktivieren in
+    // EINEM Dialog „Katalog bearbeiten", die Rückfrage als Schritt darin (ADR-062 D1).
     const name = `${PREFIX}Katalog${Date.now()}`;
     await page.goto("/verwaltung/katalog");
 
     // ── AK5: Anlegen-Dialog – verknüpfte Beschriftung, Escape schließt, Fokus zurück ────────
-    const anlegen = page.getByRole("button", { name: "+ Katalog anlegen" });
-    const anlegeDialog = page.getByRole("dialog", { name: "Neuen Katalog anlegen" });
+    const anlegen = page.getByRole("button", { name: "Katalog anlegen", exact: true });
+    const anlegeDialog = page.getByRole("dialog", { name: "Katalog anlegen" });
     await anlegen.click();
     await expect(anlegeDialog.getByLabel("Katalogname")).toBeFocused();
     await page.keyboard.press("Escape");
@@ -146,43 +148,56 @@ test.describe("Bestätigen und Rückmelden (#372)", () => {
     await page.getByLabel("Katalog", { exact: true }).selectOption({ label: name });
     await page.waitForURL((url) => url.href !== vorher);
 
-    // ── AK5: Umbenennen-Dialog mit verknüpftem Feld, Escape schließt ────────────────────────
-    const umbenennen = page.getByRole("button", { name: "Umbenennen", exact: true });
-    await umbenennen.click();
-    const umbenennDialog = page.getByRole("dialog", { name: "Katalog umbenennen" });
-    await expect(umbenennDialog.getByLabel("Neuer Name")).toHaveValue(name);
+    // ── Bearbeiten-Dialog: Umbenennen-Feld vorbelegt, Escape schließt, Fokus zurück ─────────
+    const bearbeiten = page.getByRole("button", { name: "Katalog bearbeiten", exact: true });
+    const bearbeitenDialog = page.getByRole("dialog", { name: "Katalog bearbeiten" });
+    await bearbeiten.click();
+    await expect(bearbeitenDialog.getByLabel("Neuer Name")).toHaveValue(name);
     await page.keyboard.press("Escape");
-    await expect(umbenennDialog).toBeHidden();
-    await expect(umbenennen).toBeFocused();
+    await expect(bearbeitenDialog).toBeHidden();
+    await expect(bearbeiten).toBeFocused();
 
-    // ── AK3: Deaktivieren fragt nach, nennt Namen und Folge; Abbrechen ändert nichts ────────
-    const schalter = page.getByRole("button", { name: "Deaktivieren", exact: true });
+    // ── AK3: Deaktivieren fragt nach, nennt Namen und Folge; Abbrechen führt zurück ─────────
     const bestaetigung = page.getByRole("dialog", { name: "Katalog deaktivieren?" });
+    await bearbeiten.click();
+    const schalter = bearbeitenDialog.getByRole("button", { name: "Deaktivieren", exact: true });
     await schalter.click();
     await expect(bestaetigung).toContainText(
       `„${name}“ ist danach für neue Veranstaltungen nicht mehr wählbar.`,
     );
-    await bestaetigung.getByRole("button", { name: "Abbrechen" }).click();
-    await expect(bestaetigung).toBeHidden();
+    await expect(
+      bestaetigung.getByRole("button", { name: "Abbrechen", exact: true }),
+    ).toBeFocused();
+    await bestaetigung.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await expect(bearbeitenDialog).toBeVisible();
     await expect(schalter).toBeFocused();
 
     await schalter.click();
-    await bestaetigung.getByRole("button", { name: "Deaktivieren" }).click();
+    await bestaetigung.getByRole("button", { name: "Deaktivieren", exact: true }).click();
     await expect(bestaetigung).toBeHidden();
     await expect(toast(page, "Katalog deaktiviert")).toBeVisible();
+    await expect(bearbeiten).toBeFocused();
+    // spec-407 AK5.1/F6: die Seite bleibt auf dem Katalog, die Auswahl kennzeichnet ihn.
+    await expect(page.getByLabel("Katalog", { exact: true })).toContainText(
+      `${name} (deaktiviert)`,
+    );
     // Das Aufräumen unten meldet dasselbe noch einmal – innerhalb der Standzeit stünden sonst zwei
     // gleiche Toasts (Review-372 W5).
     await schliesseToast(page, "Katalog deaktiviert");
 
-    // ── AK4: Aktivieren wirkt sofort, ohne Dialog ───────────────────────────────────────────
-    await page.getByRole("button", { name: "Aktivieren", exact: true }).click();
+    // ── AK4: Aktivieren wirkt sofort, ohne Rückfrage ────────────────────────────────────────
+    await bearbeiten.click();
+    await expect(
+      bearbeitenDialog.getByRole("button", { name: "Duplizieren", exact: true }),
+    ).toHaveCount(0);
+    await bearbeitenDialog.getByRole("button", { name: "Aktivieren", exact: true }).click();
     await expect(toast(page, "Katalog aktiviert")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Deaktivieren", exact: true })).toBeVisible();
 
     // Aufräumen: deaktiviert zurücklassen (Löschen gibt es nicht).
-    await page.getByRole("button", { name: "Deaktivieren", exact: true }).click();
-    await bestaetigung.getByRole("button", { name: "Deaktivieren" }).click();
+    await bearbeiten.click();
+    await bearbeitenDialog.getByRole("button", { name: "Deaktivieren", exact: true }).click();
+    await bestaetigung.getByRole("button", { name: "Deaktivieren", exact: true }).click();
     await expect(toast(page, "Katalog deaktiviert")).toBeVisible();
   });
 });

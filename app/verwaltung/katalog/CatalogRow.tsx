@@ -8,10 +8,9 @@ import {
   useFormularDialog,
   type DialogSteuerung,
 } from "@/app/components/FormularDialog";
-import { Badge } from "@/app/components/ui/Badge";
 import { Button } from "@/app/components/ui/Button";
 import { Dialog } from "@/app/components/ui/Dialog";
-import { joinClasses } from "@/app/components/ui/joinClasses";
+import { ListenZeile } from "@/app/components/ui/ListenZeile";
 import { Notice } from "@/app/components/ui/Notice";
 import { setCatalogItemActiveAction, updateCatalogItemAction } from "./actions";
 import { CatalogFields } from "./CatalogFields";
@@ -21,9 +20,9 @@ interface CatalogRowProps {
   catalogId: string;
 }
 
-// Eine Katalog-Zeile (spec-373 AK4.2–AK4.5): kompakt und als Ganzes antippbar; Bearbeiten und
-// Deaktivieren/Aktivieren liegen im Dialog statt als Buttons in jeder Zeile. Die catalogId wird
-// in versteckten Feldern mitgesendet (#345).
+// Eine Katalog-Zeile im Artikel-Muster (spec-407 AK4, ADR-062 D4): `ListenZeile` als Ganzes
+// antippbar, Bearbeiten und Deaktivieren/Aktivieren liegen im Dialog (spec-373 AK4.2–AK4.5). Die
+// catalogId wird in versteckten Feldern mitgesendet (#345).
 export function CatalogRow({ item, catalogId }: CatalogRowProps) {
   // Wechselt „Speichern" die Kategorie, wird die Zeile in ihrer neuen Gruppe neu gemountet; die
   // Id ist dieselbe, der Fokus landet so auf der umgezogenen Zeile (Lesson #371).
@@ -31,32 +30,21 @@ export function CatalogRow({ item, catalogId }: CatalogRowProps) {
   const { ausloeserRef, oeffnen, steuerung, dialogProps } = useFormularDialog(zeilenId);
 
   return (
-    <li>
-      <button
-        ref={ausloeserRef}
-        id={zeilenId}
-        type="button"
-        onClick={oeffnen}
-        className={joinClasses(
-          "flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-foreground hover:bg-accent-subtle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-          item.active ? undefined : "opacity-60",
-        )}
-      >
-        <span className="min-w-0 break-words">
-          {item.name}
-          {item.size ? ` · ${item.size}` : " · ohne Größe"}
-        </span>
-        <span className="flex shrink-0 items-center gap-2">
-          {!item.active && <Badge tone="neutral">deaktiviert</Badge>}
-          {/* Ziffern gleicher Breite, damit Preise untereinander bündig stehen (AK4.2). */}
-          <span className="tabular-nums">{formatCents(item.priceCents)}</span>
-        </span>
-      </button>
-      <Dialog {...dialogProps} title="Artikel bearbeiten">
-        <ArtikelBearbeiten item={item} catalogId={catalogId} steuerung={steuerung} />
-        <ArtikelAktivUmschalten item={item} catalogId={catalogId} steuerung={steuerung} />
-      </Dialog>
-    </li>
+    <ListenZeile
+      onOeffnen={oeffnen}
+      id={zeilenId}
+      ausloeserRef={ausloeserRef}
+      titel={item.size ? `${item.name} · ${item.size}` : item.name}
+      // Ziffern gleicher Breite, damit Preise untereinander bündig stehen (AK4.2).
+      kennzeichen={<span className="tabular-nums">{formatCents(item.priceCents)}</span>}
+      zustand={item.active ? undefined : "deaktiviert"}
+      anhang={
+        <Dialog {...dialogProps} title="Artikel bearbeiten">
+          <ArtikelBearbeiten item={item} catalogId={catalogId} steuerung={steuerung} />
+          <ArtikelAktivUmschalten item={item} catalogId={catalogId} steuerung={steuerung} />
+        </Dialog>
+      }
+    />
   );
 }
 

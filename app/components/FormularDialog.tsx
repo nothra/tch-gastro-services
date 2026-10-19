@@ -20,7 +20,7 @@ import {
 // per `action` abgeschicktes Formular nach JEDER beendeten Action zurück – auch nach einer
 // Ablehnung, und dann wären die Eingaben weg (AK1.4).
 
-/** Es gibt je Seite genau einen Anlege-Auslöser im Seitenkopf; er trägt diese Id. */
+/** Es gibt je Seite genau einen Primär-Anlege-Auslöser (Seiten- bzw. Bereichskopf); er trägt diese Id. */
 const SEITENKOPF_AUSLOESER_ID = "anlegen-seitenkopf";
 
 export interface DialogSteuerung {
@@ -95,7 +95,7 @@ export function useDialogFormular<State extends { ok?: boolean }>(
 }
 
 interface FormularDialogProps {
-  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Umbenennen". */
+  /** Beschriftung des Auslösers, z. B. „+ Neu" im Seitenkopf oder „Katalog anlegen". */
   ausloeser: string;
   ausloeserVariant: "primary" | "secondary";
   ausloeserId?: string;
@@ -141,7 +141,7 @@ interface AnlegeDialogProps {
   titel: string;
   /**
    * Zweite, ruhigere Instanz im Leerzustand (AK6.1). Nach einem Erfolg verschwindet sie mit dem
-   * Leerzustand; der Fokus geht dann auf den Auslöser im Seitenkopf.
+   * Leerzustand; der Fokus geht dann auf den Auslöser im Seiten- bzw. Bereichskopf.
    */
   imLeerzustand?: boolean;
   children: (steuerung: DialogSteuerung) => ReactNode;

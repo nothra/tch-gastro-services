@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
 // Externe Grenze: Server Action aus derselben Feature-Schicht.
@@ -13,8 +13,8 @@ const createMock = vi.mocked(createCatalogItemAction);
 const meldeErfolgMock = vi.mocked(meldeErfolg);
 
 function renderUndOeffnen() {
-  render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Artikel" />);
-  fireEvent.click(screen.getByRole("button", { name: "+ Artikel" }));
+  render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Neu" />);
+  fireEvent.click(screen.getByRole("button", { name: "+ Neu" }));
   return screen.getByRole("dialog", { name: "Artikel anlegen" });
 }
 
@@ -30,14 +30,24 @@ async function anlegen() {
   });
 }
 
+// Offen gehaltene Action für den Lauf-Test. Aufgelöst wird in `afterEach` innerhalb von `act` –
+// auch wenn eine Assertion vorher scheitert; sonst hielte das Promise den Action-Scope für spätere
+// Tests offen (Lesson #370).
+let laufendeActionBeenden: (() => void) | undefined;
+
 beforeEach(() => {
   vi.resetAllMocks();
+  laufendeActionBeenden = undefined;
   createMock.mockResolvedValue({ ok: true });
+});
+
+afterEach(async () => {
+  await act(async () => laufendeActionBeenden?.());
 });
 
 describe("ArtikelAnlegen (spec-373 AK1, AK6.2)", () => {
   it("should_showOnlyTrigger_when_rendered", () => {
-    render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Artikel" />);
+    render(<ArtikelAnlegen catalogId="cat-2" ausloeser="+ Neu" />);
 
     expect(screen.queryByLabelText("Bezeichnung")).not.toBeInTheDocument();
   });
@@ -72,6 +82,22 @@ describe("ArtikelAnlegen (spec-373 AK1, AK6.2)", () => {
     await anlegen();
 
     expect(meldeErfolgMock).toHaveBeenCalledWith("Artikel angelegt");
+  });
+
+  it("should_showAnlegenBusyLabel_when_anlegenRunning", async () => {
+    // spec-407 AK5.3: der Busy-Text folgt dem Verb des Buttons (Glossar), nicht „Speichern …".
+    createMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          laufendeActionBeenden = () => resolve({ ok: true });
+        }),
+    );
+    renderUndOeffnen();
+    ausfuellen();
+
+    await anlegen();
+
+    expect(screen.getByRole("button", { name: "Anlegen …" })).toBeDisabled();
   });
 
   it("should_keepDialogWithErrorAndInput_when_duplicateRejected", async () => {

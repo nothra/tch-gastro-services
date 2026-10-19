@@ -56,14 +56,15 @@ describe("CatalogSwitcher (spec-373 AK5)", () => {
     expect(auswahl()).toHaveValue("cat-2");
   });
 
-  // #345 AK4: ein deaktivierter Katalog bleibt wählbar und ist nur gekennzeichnet.
+  // #345 AK4: ein deaktivierter Katalog bleibt wählbar und ist nur gekennzeichnet – Wortlaut
+  // „(deaktiviert)" laut Glossar (spec-407 AK5.1).
   it("should_markInactiveCatalogButKeepItSelectable_when_catalogIsInactive", () => {
     const catalogs = [makeCatalog(), makeCatalog({ id: "cat-2", name: "Alt", active: false })];
 
     render(<CatalogSwitcher currentId="cat-1" allCatalogs={catalogs} />);
 
-    expect(optionen()).toEqual(["Montagsrunde", "Alt (inaktiv)"]);
-    expect(screen.getByRole("option", { name: "Alt (inaktiv)" })).not.toBeDisabled();
+    expect(optionen()).toEqual(["Montagsrunde", "Alt (deaktiviert)"]);
+    expect(screen.getByRole("option", { name: "Alt (deaktiviert)" })).not.toBeDisabled();
   });
 
   it("should_navigateToSelectedCatalog_when_otherCatalogChosen", () => {

@@ -34,6 +34,11 @@ dabei zugleich hinzugefügt („Teilnehmer angelegt und hinzugefügt").
 „Abschließen", „Öffnen" (Veranstaltung wieder öffnen), „Umbenennen", „Duplizieren",
 „Katalog wechseln", „Teilen", „Anmelden", „Abmelden", „Abbrechen".
 
+**Abgrenzung abbrechen ↔ schließen:** „Abbrechen" verwirft einen Dialog, der erst mit seinem
+Absenden-Button wirkt. Ein Dialog, dessen Bereiche je für sich sofort wirken (z. B. „Katalog
+bearbeiten" mit Umbenennen, Duplizieren, Deaktivieren), hat nichts zu verwerfen und endet mit
+**„Schließen"** (ADR-062 D2).
+
 **Abgrenzung ausblenden ↔ deaktivieren:** „Anzeigen" / „Ausblenden" ist ausschließlich der
 Zustandshinweis eines aufklappbaren Bereichs (Baustein `Aufklapper`, #403) – er ändert nur die
 Ansicht, kein Objekt. Wird ein Objekt selbst unsichtbar oder unwählbar, heißt es weiterhin
@@ -150,7 +155,9 @@ Auslagen- und `ZeilenMenue`-Zeilen (auch unter „Bereits konform") gegen den St
 
 Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
 Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
-Die Auslagen-Zeilen hat #406 erledigt. Alles Übrige sammelt **#401**.
+Die Auslagen-Zeilen hat #406 erledigt, die Zeile `ArtikelAnlegen.tsx` (Busy „Anlegen …") #407;
+dort ist außerdem „(inaktiv)" → „(deaktiviert)" in der Katalog-Auswahl korrigiert. Alles Übrige
+sammelt **#401**.
 
 | Datei | Ist | Soll | Ziel |
 |---|---|---|---|
@@ -162,7 +169,6 @@ Die Auslagen-Zeilen hat #406 erledigt. Alles Übrige sammelt **#401**.
 | `app/verwaltung/teilnehmer/TeilnehmerAnlegen.tsx:42` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/verwaltung/teilnehmer/schema.ts:20` | „Anzeigename ist erforderlich." (Feld heißt seit #404 „Name") | „Name ist erforderlich." | #401 |
 | `app/verwaltung/teilnehmer/schema.ts:21` | „Anzeigename ist zu lang." (Feld heißt seit #404 „Name") | „Name ist zu lang." | #401 |
-| `app/verwaltung/katalog/ArtikelAnlegen.tsx:48` | Busy „Speichern …" (Button „Anlegen") | „Anlegen …" | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:67` | Busy „Speichern …" (Button „Kassieren") | „Kassieren …" | #401 |
 | `app/veranstaltung/KassiereZeileForm.tsx:53` | „Erhalten (EUR)" | „Erhalten (€)" | #401 |
 | `app/verwaltung/katalog/CatalogFields.tsx:45` | „Preis (EUR)" | „Preis (€)" | #401 |

@@ -1,15 +1,16 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-// Anlege-Wege der Listenseiten (spec-373): „+ Neu"/„+ Artikel" im Seitenkopf öffnet einen Dialog,
-// Erfolg schließt ihn. Gemeinsam für alle Specs, die Testdaten über die Oberfläche anlegen.
+// Anlege-Wege der Listenseiten (spec-373): „+ Neu" im Seiten- bzw. Bereichskopf öffnet einen
+// Dialog, Erfolg schließt ihn. Gemeinsam für alle Specs, die Testdaten über die Oberfläche anlegen.
 
-/** Öffnet den Anlege-Dialog über die Seitenkopf-Aktion und liefert ihn. */
+/** Öffnet den Anlege-Dialog über die Aktion im Seiten- bzw. Bereichskopf und liefert ihn. */
 export async function oeffneAnlegeDialog(
   page: Page,
   ausloeser: string,
   titel: string,
 ): Promise<Locator> {
-  // Der Seitenkopf (`PageHeader`) liegt in `main` – der App-Header darüber ist ein anderes `header`.
+  // Seitenkopf (`PageHeader`) und Bereichskopf (Artikelbereich der Katalogseite, spec-407) liegen
+  // in `main` – der App-Header darüber ist ein anderes `header`.
   await page.locator("main header").getByRole("button", { name: ausloeser, exact: true }).click();
   const dialog = page.getByRole("dialog", { name: titel });
   await expect(dialog).toBeVisible();
@@ -31,7 +32,7 @@ export function oeffneTeilnehmerAnlegen(page: Page): Promise<Locator> {
 }
 
 export function oeffneArtikelAnlegen(page: Page): Promise<Locator> {
-  return oeffneAnlegeDialog(page, "+ Artikel", "Artikel anlegen");
+  return oeffneAnlegeDialog(page, "+ Neu", "Artikel anlegen");
 }
 
 export async function fuelleVeranstaltung(dialog: Locator, bezeichnung: string, datum: string) {

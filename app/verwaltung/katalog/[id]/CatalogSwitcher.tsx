@@ -11,7 +11,8 @@ interface CatalogSwitcherProps {
 
 // Katalogwahl als Auswahlliste (spec-373 AK5, vorher Radiobutton-Gruppe aus #345): alle Kataloge
 // (aktiv + inaktiv), die Wahl führt zu `/verwaltung/katalog/[id]` und lädt dessen Artikel.
-// Inaktive Kataloge sind gekennzeichnet, bleiben aber auswählbar und editierbar (#345 AK4).
+// Deaktivierte Kataloge sind gekennzeichnet, bleiben aber auswählbar und editierbar (#345 AK4;
+// Wortlaut „(deaktiviert)" laut Glossar, spec-407 AK5.1).
 export function CatalogSwitcher({ currentId, allCatalogs }: CatalogSwitcherProps) {
   const router = useRouter();
 
@@ -23,7 +24,7 @@ export function CatalogSwitcher({ currentId, allCatalogs }: CatalogSwitcherProps
     >
       {allCatalogs.map((cat) => (
         <option key={cat.id} value={cat.id}>
-          {cat.active ? cat.name : `${cat.name} (inaktiv)`}
+          {cat.active ? cat.name : `${cat.name} (deaktiviert)`}
         </option>
       ))}
     </SelectField>
