@@ -429,3 +429,14 @@ aber nur auf den Auslöser des Befunds angewandt.
 **Regel:** Betrifft ein Befund „während der Aktion X ist Y erlaubt/gesperrt", die Sperre im Baustein für **alle**
 Interaktionsflächen gleichen Typs lösen (hier Kontext → jeder `MenueEintrag`), nicht pro Eintrag im Konsumenten. Test
 als `it.each` über alle Einträge, je Richtung (gesperrt/freigegeben nach Laufende).
+
+### Neuer Sonderzweig in einer Komponente mit mehreren Betriebsarten: Texte für alle Betriebsarten ableiten (aus #420, Review-Iteration 1 W1)
+
+**Smell:** Der „keine Teilnehmer"-Zweig von `AuslageForm` bekam ein deaktiviertes „Erfassen" als hart kodiertes Literal. Das
+Formular dient aber auch dem Bearbeiten – dort stand dann ebenfalls „Erfassen" statt „Speichern". Die Spec nannte nur den
+Anlege-Fall; erst `/review` fand die zweite Betriebsart.
+
+**Regel:** Führt ein Task einen Sonderzweig (leer, gesperrt, Fehler) in eine Komponente mit mehreren Betriebsarten ein, die
+betriebsartabhängigen Texte aus **einer** Hilfsfunktion für beide Zweige holen (hier `primaerBeschriftung(bearbeiten)`), keine
+Literale im Sonderzweig. Vor dem Schreiben die Betriebsarten per Prop-Grep (`bearbeiten`, `initial…`) aufzählen und je
+Betriebsart einen Test für den Sonderzweig anlegen.

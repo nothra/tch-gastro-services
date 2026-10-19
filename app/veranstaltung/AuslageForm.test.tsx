@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { DialogSteuerung } from "@/app/components/FormularDialog";
 import type { AuslageFormState } from "./actions";
 
@@ -238,15 +238,59 @@ describe("AuslageFormular – Bearbeiten (spec-406 AK2a.2/AK2a.3)", () => {
   });
 });
 
-describe("AuslageFormular – ohne Teilnehmer (spec-406 AK1.7)", () => {
-  it("should_showHintInsteadOfForm_when_noTeilnehmer", () => {
+describe("AuslageFormular – ohne Teilnehmer (spec-406 AK1.7, spec-420 AK3)", () => {
+  it("should_showHintWithoutFields_when_noTeilnehmer", () => {
+    // spec-420 AK3.1/AK3.2: Warnhinweis bleibt, keine Formularfelder.
     renderFormular({ teilnehmer: [] });
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "Zuerst Teilnehmer zur Veranstaltung hinzufügen, dann sind Auslagen erfassbar.",
     );
     expect(screen.queryByLabelText("Teilnehmer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("should_showDisabledErfassen_when_noTeilnehmer", async () => {
+    // spec-420 AK3.1/AK3.2: „Erfassen" sichtbar, aber nicht auslösbar.
+    renderFormular({ teilnehmer: [] });
+
+    const erfassen = screen.getByRole("button", { name: "Erfassen" });
+    await klicke("Erfassen");
+
+    expect(erfassen).toBeDisabled();
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("should_showDisabledSpeichern_when_bearbeitenOhneTeilnehmer", () => {
+    // Bearbeiten-Dialog, nachdem alle Zeilen entfernt wurden: Primär-Label bleibt „Speichern".
+    renderFormular({ teilnehmer: [], initial });
+
+    expect(screen.getByRole("button", { name: "Speichern" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Erfassen" })).not.toBeInTheDocument();
+  });
+
+  it("should_orderAbbrechenBeforeErfassenInOneRow_when_noTeilnehmer", () => {
+    // spec-420 AK3.4: Anordnung exakt wie `DialogAktionen` (Abbrechen links, Primär rechts) –
+    // dieselbe Fußzeile wie im Fall mit Teilnehmern.
+    renderFormular();
+    const erwarteteKlassen = screen.getByRole("button", { name: "Abbrechen" }).parentElement
+      ?.className;
+    cleanup();
+
+    renderFormular({ teilnehmer: [] });
+
+    const knoepfe = screen.getAllByRole("button");
+    expect(knoepfe.map((knopf) => knopf.textContent)).toEqual(["Abbrechen", "Erfassen"]);
+    expect(knoepfe[0].parentElement).toBe(knoepfe[1].parentElement);
+    expect(knoepfe[0].parentElement?.className).toBe(erwarteteKlassen);
+  });
+
+  it("should_enableErfassen_when_teilnehmerVorhanden", () => {
+    // spec-420 AK3.5: Gegenprobe zu AK3.2.
+    renderFormular();
+
+    expect(screen.getByRole("button", { name: "Erfassen" })).toBeEnabled();
   });
 
   it("should_closeDialog_when_abbrechenClickedWithoutTeilnehmer", () => {

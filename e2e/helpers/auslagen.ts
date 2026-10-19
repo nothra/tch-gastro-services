@@ -1,9 +1,11 @@
 import type { Locator, Page } from "@playwright/test";
 import { oeffneAnlegeDialog, schickeAnlegeDialogAb } from "./listenseiten";
 
-// Bedienwege der Auslagen-Seite (spec-406): Erfassen per „+ Neu"-Dialog, Erstatten/Bearbeiten/
-// Löschen über das ⋯-Menü der Zeile. Namen exakt, weil `name` sonst ein Teilstring-Treffer ist
-// (Lesson #372/#388).
+// Bedienwege der Auslagen-Seite (spec-406): Erfassen per „+ Neu"-Dialog – der einzige Auslöser,
+// auch im Leerzustand (spec-420) –, Erstatten/Bearbeiten/Löschen über das ⋯-Menü der Zeile.
+// Namen exakt, weil `name` sonst ein Teilstring-Treffer ist (Lesson #372/#388).
+
+const NEU = "+ Neu";
 
 interface AuslageEingabe {
   teilnehmer: string;
@@ -12,8 +14,13 @@ interface AuslageEingabe {
   notiz?: string;
 }
 
+/** „+ Neu" im Seitenkopf der Auslagen-Seite. */
+export function neuImKopf(page: Page): Locator {
+  return page.locator("main header").getByRole("button", { name: NEU, exact: true });
+}
+
 export function oeffneAuslageErfassen(page: Page): Promise<Locator> {
-  return oeffneAnlegeDialog(page, "+ Neu", "Auslage erfassen");
+  return oeffneAnlegeDialog(page, NEU, "Auslage erfassen");
 }
 
 /** Füllt die Felder eines geöffneten Dialogs „Auslage erfassen"/„Auslage bearbeiten". */

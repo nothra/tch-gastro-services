@@ -39,6 +39,25 @@ Absenden-Button wirkt. Ein Dialog, dessen Bereiche je für sich sofort wirken (z
 bearbeiten" mit Umbenennen, Duplizieren, Deaktivieren), hat nichts zu verwerfen und endet mit
 **„Schließen"** (ADR-062 D2).
 
+**Auslöser und Anlege-Dialog** (spec-420): Der Auslöser im Seiten- bzw. Bereichskopf heißt
+immer **„+ Neu"**, gleich welcher Aktionstyp dahinter steht. Dialogtitel, Primärbutton,
+Busy-Text und Erfolgsmeldung folgen dagegen dem Verb des Aktionstyps aus der Tabelle oben:
+**anlegen** für neue Objekte (Teilnehmer, Artikel, Katalog, Veranstaltung, Theke), **erfassen**
+für Beträge und Mengen (Auslage, Verzehr). Geprüft (Stand #420):
+
+| Dialog | Auslöser | Titel | Primär / Busy | Erfolg | Befund |
+|---|---|---|---|---|---|
+| Auslage (`AuslageErfassen.tsx`, `AuslageForm.tsx`) | „+ Neu" | „Auslage erfassen" | „Erfassen" / „Erfassen …" | „Auslage erfasst" | konform |
+| Teilnehmer (`TeilnehmerAnlegen.tsx`) | „+ Neu" | „Teilnehmer anlegen" | „Anlegen" / „Speichern …" | „Teilnehmer angelegt" | konform bis auf den Busy-Text – steht schon in der Abweichungsliste (#401) |
+| Artikel (`ArtikelAnlegen.tsx`) | „+ Neu" (Bereichskopf) | „Artikel anlegen" | „Anlegen" / „Anlegen …" | „Artikel angelegt" | konform |
+
+**Leerzustand:** Eine Seite, deren Auslöser nur im Kopf steht (Auslagen), hat im Leerzustand
+**keinen** eigenen Button – „+ Neu" bleibt der einzige Auslöser. Teilnehmer- und Artikelliste
+behalten im Leerzustand ihren zweiten Auslöser „Teilnehmer anlegen" bzw. „Artikel anlegen"
+(Ist-Zustand, kein Änderungsauftrag). Ist das Absenden fachlich nicht möglich (Auslage ohne
+Teilnehmer), zeigt der Dialog den Hinweis und dieselbe Fußzeile wie sonst – „Abbrechen" und den
+**deaktivierten** Primärbutton, nicht „Schließen".
+
 **Abgrenzung ausblenden ↔ deaktivieren:** „Anzeigen" / „Ausblenden" ist ausschließlich der
 Zustandshinweis eines aufklappbaren Bereichs (Baustein `Aufklapper`, #403) – er ändert nur die
 Ansicht, kein Objekt. Wird ein Objekt selbst unsichtbar oder unwählbar, heißt es weiterhin
@@ -151,7 +170,8 @@ umgeschrieben werden. Neue Texte mit direkter Ansprache nutzen den Imperativ in 
 
 Ist-Texte in `app/`, die vom Glossar abweichen, mit Ziel-Issue. Arbeitsvorlage – eine Zeile wird
 beim Umsetzen gestrichen. Zeilenangaben gegen den Stand von #372 (Review-Rework) geprüft; die
-Auslagen- und `ZeilenMenue`-Zeilen (auch unter „Bereits konform") gegen den Stand von #406.
+Auslagen- und `ZeilenMenue`-Zeilen (auch unter „Bereits konform") gegen den Stand von #406, die
+Auslagen-Zeilen erneut gegen #420.
 
 Die Zeilen mit Ziel #372 sind mit #372 umgesetzt und gestrichen; dabei sind auch die
 Katalog-Dialoge (Busy-Texte) und „Theke eingerichtet." (jetzt Toast „Theke angelegt") mit erledigt.
@@ -192,7 +212,7 @@ Grep auf den Ist-Text).
 | `app/veranstaltung/TeilnehmerHinzufuegenDialog.tsx:36` | „Teilnehmer hinzufügen" | zuordnen = hinzufügen |
 | `app/veranstaltung/[id]/ArbeitsschrittKacheln.tsx:12` | „Verzehr erfassen" | Mengen eintragen = erfassen |
 | `app/verwaltung/teilnehmer/TeilnehmerRow.tsx:83`, `app/verwaltung/katalog/CatalogRow.tsx:93` | „Aktivieren" | umschalten = (de)aktivieren |
-| `app/veranstaltung/AuslageForm.tsx:24` | „Bitte wählen …" | Platzhalter mit Leerzeichen |
+| `app/veranstaltung/AuslageForm.tsx:23` | „Bitte wählen …" | Platzhalter mit Leerzeichen |
 | `app/veranstaltung/[id]/kassieren/page.tsx:236` | „← Verzehr erfassen" | Zurück-Link, Pfeil vor dem Ziel |
 | `app/_verzehr/VerzehrEinzelansicht.tsx:156` | „Nächste Person →" | Weiter-Aktion, Pfeil nach dem Ziel |
 | `app/theke/[token]/IdentityGate.tsx:235` | „Wer bist du?" | Anrede Du |

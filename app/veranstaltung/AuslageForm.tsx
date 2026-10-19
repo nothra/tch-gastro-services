@@ -2,7 +2,6 @@
 
 import type { AuslageKategorie } from "@/db/schema";
 import {
-  AbbrechenKnopf,
   DialogAktionen,
   useDialogFormular,
   type DialogSteuerung,
@@ -46,14 +45,16 @@ export function AuslageFormular({ action, teilnehmer, initial, steuerung }: Ausl
   const { state, pending, absenden } = useDialogFormular(action, steuerung, {
     erfolgsMeldung: bearbeiten ? "Gespeichert" : "Auslage erfasst",
   });
+  const beschriftung = primaerBeschriftung(bearbeiten);
 
+  // Ohne Teilnehmer bleibt die Fußzeile dieselbe wie sonst, nur der Primär-Knopf ist gesperrt
+  // (spec-420 Q3) – so sieht der Dialog aus wie alle anderen. Das gilt auch beim Bearbeiten, wenn
+  // alle Zeilen entfernt wurden.
   if (teilnehmer.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         <Notice kind="warnung">{KEINE_TEILNEHMER}</Notice>
-        <div className="flex justify-end">
-          <AbbrechenKnopf steuerung={steuerung} />
-        </div>
+        <DialogAktionen steuerung={steuerung} pending={false} {...beschriftung} deaktiviert />
       </div>
     );
   }
@@ -62,14 +63,15 @@ export function AuslageFormular({ action, teilnehmer, initial, steuerung }: Ausl
     <form onSubmit={absenden} className="flex flex-col gap-3">
       <AuslageFelder teilnehmer={teilnehmer} initial={initial} />
       <Notice kind="fehler">{state?.error}</Notice>
-      <DialogAktionen
-        steuerung={steuerung}
-        pending={pending}
-        label={bearbeiten ? "Speichern" : "Erfassen"}
-        laufLabel={bearbeiten ? "Speichern …" : "Erfassen …"}
-      />
+      <DialogAktionen steuerung={steuerung} pending={pending} {...beschriftung} />
     </form>
   );
+}
+
+function primaerBeschriftung(bearbeiten: boolean) {
+  return bearbeiten
+    ? { label: "Speichern", laufLabel: "Speichern …" }
+    : { label: "Erfassen", laufLabel: "Erfassen …" };
 }
 
 interface AuslageFelderProps {

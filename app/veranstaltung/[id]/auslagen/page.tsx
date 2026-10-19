@@ -45,22 +45,17 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
   // (analog adjustVerzehrAction) – der Client liefert sie nicht.
   const createAction = createAuslageAction.bind(null, id);
 
-  const erfassen = (ausloeser: string, imLeerzustand?: boolean) => (
-    <AuslageErfassen
-      action={createAction}
-      teilnehmer={teilnehmer}
-      ausloeser={ausloeser}
-      imLeerzustand={imLeerzustand}
-    />
-  );
-
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
       <PageHeader
         title={`Auslagen · ${veranstaltung.bezeichnung}`}
         back={{ href: `/veranstaltung/${id}`, label: "Zur Veranstaltung" }}
         meta={`${formatDatum(veranstaltung.datum)} · ${KASSE_LABEL[veranstaltung.kasse as Kasse]} · ${STATUS_LABEL[veranstaltung.status]}`}
-        action={offen ? erfassen("+ Neu") : undefined}
+        action={
+          offen ? (
+            <AuslageErfassen action={createAction} teilnehmer={teilnehmer} ausloeser="+ Neu" />
+          ) : undefined
+        }
       />
 
       <AuslagenSummary summen={summen} />
@@ -70,11 +65,9 @@ export default async function AuslagenPage({ params }: { params: Promise<{ id: s
         <h2 id={AUSLAGEN_LISTE_ID} tabIndex={-1} className="font-semibold">
           Auslagen ({auslagen.length})
         </h2>
+        {/* Leerzustand ohne eigenen Button: „+ Neu" im Kopf ist der einzige Auslöser (spec-420 Q2). */}
         {auslagen.length === 0 ? (
-          <Leerzustand
-            text="Noch keine Auslagen erfasst."
-            aktion={offen ? erfassen("Auslage erfassen", true) : null}
-          />
+          <Leerzustand text="Noch keine Auslagen erfasst." aktion={null} />
         ) : (
           <ul className="flex flex-col gap-2">
             {auslagen.map((auslage) => (

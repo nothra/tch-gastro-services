@@ -228,6 +228,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Ersatz-Fokusziel in zugeklapptem `<details>` ist nicht fokussierbar (Fokus → `<body>`, jsdom blind) – im Hook auf den `<summary>` ausweichen, beide Richtungen + Playwright-Gegenprobe (aus #405, /implement-Selbstfund)
 - Komponente mit Ref-Prop: Props vorab destrukturieren, sonst meldet `react-hooks/refs` jeden `props.x`-Zugriff; Union mit `never`-Gegenstücken + `@ts-expect-error`-Test (aus #405, /implement-Selbstfund)
 - Rezidiv #369: Lauf-Sperre eines Menü-/Dialog-Bausteins im Fix nur für den auffälligen Eintrag gelöst – Geschwister-Einträge (Bearbeiten/Löschen) schlossen weiter; Sperre für alle Interaktionsflächen im Baustein, Test `it.each` (aus #406, Review-Iteration 2)
+- Sonderzweig (leer/gesperrt) in einer Komponente mit Erfassen-/Bearbeiten-Betriebsart: betriebsartabhängige Texte aus einer Hilfsfunktion für beide Zweige, nicht als Literal – „Erfassen“ stand auch beim Bearbeiten (aus #420, Review-Iteration 1 W1)
 
 **[`lessons/next-auth.md`](lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
 

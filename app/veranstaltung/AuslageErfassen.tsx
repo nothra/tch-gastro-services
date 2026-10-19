@@ -10,19 +10,13 @@ interface AuslageErfassenProps {
   action: FormAction<AuslageFormState>;
   teilnehmer: readonly AuslageFormTeilnehmer[];
   ausloeser: string;
-  imLeerzustand?: boolean;
 }
 
 // „+ Neu" der Auslagen-Seite (spec-406 AK1): das Erfassen-Formular im Anlege-Dialog statt
-// dauerhaft über der Liste.
-export function AuslageErfassen({
-  action,
-  teilnehmer,
-  ausloeser,
-  imLeerzustand,
-}: AuslageErfassenProps) {
+// dauerhaft über der Liste. Einziger Auslöser – der Leerzustand hat keinen eigenen (spec-420 Q2).
+export function AuslageErfassen({ action, teilnehmer, ausloeser }: AuslageErfassenProps) {
   return (
-    <AnlegeDialog ausloeser={ausloeser} titel="Auslage erfassen" imLeerzustand={imLeerzustand}>
+    <AnlegeDialog ausloeser={ausloeser} titel="Auslage erfassen">
       {(steuerung) => (
         <AuslageFormular action={action} teilnehmer={teilnehmer} steuerung={steuerung} />
       )}
