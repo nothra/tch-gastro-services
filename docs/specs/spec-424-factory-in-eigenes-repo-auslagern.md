@@ -51,7 +51,8 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   entwickelt sich mit der eigenen Pipeline (Gates, Self-Tests, CI).
 - T2 · **Werkzeug abholen:** Projekt-Repo bindet eine Factory-Version ein; neue Version →
   automatischer Update-PR; Gate gegen lokale Änderungen an übernommenen Dateien; ein neues,
-  leeres Projekt lässt sich aus dem Factory-Repo aufsetzen (Nachweis).
+  leeres Projekt lässt sich aus dem Factory-Repo aufsetzen (Nachweis); Factory-Funde, die bei der
+  Projekt-Arbeit entstehen (Issues, Kleinfunde, generische Learnings), landen direkt im Factory-Repo.
 - T3 · **Umziehen:** offene `factory-pipeline`-Issues, Factory-ADRs und Factory-Lessons wandern ins
   Factory-Repo; TCH-Doku und Prozess verweisen für Factory-Arbeit auf das Factory-Repo.
 
@@ -123,6 +124,25 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
 - [ ] **AK2.8** GIVEN das Factory-Repo ist nicht erreichbar WHEN im Projekt-Repo gearbeitet, getestet
   oder die Pipeline gefahren wird THEN funktioniert alles wie gewohnt (nur Updates sind blockiert).
 
+#### Factory-Funde aus Projekt-Arbeit (Entscheidung 2026-10-19: „direkt ins Factory-Repo")
+
+- [ ] **AK2.9** GIVEN ein Skill (`/review`, `/security-review`, `/test`, `/refactor`, `/codify`)
+  findet im Projekt-Repo einen Out-of-Scope-Fund, der übernommene Factory-Dateien betrifft, oberhalb
+  der Issue-Schwelle (ADR-043) WHEN er ihn ablegt THEN entsteht das Issue im **Factory-Repo** (nicht
+  im Projekt-Repo), mit Herkunftsprojekt und Verweis auf Task/PR; die Task-Datei im Projekt-Repo
+  verweist auf das Factory-Issue.
+- [ ] **AK2.10** GIVEN ein solcher Fund liegt **unterhalb** der Issue-Schwelle (heute Fall für
+  `kleinfunde.md`) WHEN er abgelegt wird THEN landet er ebenfalls im Factory-Repo und nie in einer
+  übernommenen Datei des Projekt-Repos (die Form legt `/architecture` fest).
+- [ ] **AK2.11** GIVEN `/codify` extrahiert im Projekt-Repo ein Learning WHEN es die Factory selbst
+  betrifft (Pipeline, Skills, Gates, generische Guidelines) THEN wird es im Factory-Repo vorgeschlagen;
+  ein projektspezifisches Learning bleibt in den projekteigenen Lessons.
+- [ ] **AK2.12** GIVEN ein Fund WHEN ein Skill entscheidet „Factory oder Projekt" THEN folgt er einer
+  dokumentierten Zuordnungsregel; im Zweifel geht der Fund ins Factory-Repo (fail-safe wie #315).
+- [ ] **AK2.13** GIVEN ein Fund wird ins Factory-Repo übertragen WHEN das Issue entsteht THEN enthält es
+  keine Secrets, keine personenbezogenen Daten und keine Inhalte aus Projekt-Env-Dateien; es
+  beschreibt den Factory-Defekt, nicht die Projekt-Fachlichkeit.
+
 ### T3 · Umziehen
 
 - [ ] **AK3.1** GIVEN die offenen TCH-Issues mit Label `factory-pipeline` WHEN T3 abgeschlossen ist
@@ -164,6 +184,10 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   Verweisprüfung schlägt fehl (AK3.2/3.3).
 - [ ] **F7** Eine übernommene Datei wird im Projekt-Repo gelöscht → wird wie eine lokale Änderung
   behandelt (AK2.5).
+- [ ] **F8** Factory-Issue lässt sich nicht anlegen (Repo nicht erreichbar, keine Berechtigung, z. B.
+  im Stage-3-Lauf) → der Fund geht nicht verloren: er steht mit klarer Warnung in der Task-Datei des
+  Projekt-Repos und wird beim nächsten erfolgreichen Versuch bzw. manuell übertragen; der Lauf bricht
+  daran nicht ab.
 
 ## Offene Fragen
 
@@ -183,5 +207,8 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
   Nummern behalten)? Zusammenhang mit #321 (doppelte ADR-Nummern). → `/architecture` (T3)
 - [ ] **Q6** Soll das alte `factory-pipeline`-Label in TCH nach T3 bestehen bleiben (für
   TCH-spezifische Pipeline-Teile wie Deploy-Gate) oder entfallen? → Detail-Spec T3
+- [ ] **Q8** Wie erhält ein Skill im Projekt-Repo (lokal und im Stage-3-/CI-Lauf) die Berechtigung,
+  im Factory-Repo Issues anzulegen, und wie wird der Issue-Seam (ADR-018) dafür erweitert? Welche
+  Form haben Kleinfunde im Factory-Repo (AK2.10)? → `/architecture`
 - [x] **Q7** Bekannter Hinweis: dm-internes Template-Material liegt damit auf einem privaten
   GitHub-Account. **Entschieden (2026-10-19):** für dieses Epic akzeptiert; ein Umzug ist out of scope.
