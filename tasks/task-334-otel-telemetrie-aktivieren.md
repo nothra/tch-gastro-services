@@ -68,7 +68,7 @@ Spec: [`docs/specs/spec-334-otel-metriken-je-lauf-persistieren.md`](../docs/spec
 
 ### Implementierungs-Hinweise (aus ADR-049)
 
-Architektur-Entscheidung: [ADR-049](../docs/adr/049-telemetrie-persistenz-je-pipeline-lauf.md).
+Architektur-Entscheidung: [ADR-049](../docs/factory/adr/049-telemetrie-persistenz-je-pipeline-lauf.md).
 **Status dort auf `Accepted` flippen, sobald die Umsetzung beginnt** (Lesson aus #197).
 
 **Zu bauen** (Stand nach der E3/E4-Revision vom 2026-09-11):
@@ -159,7 +159,7 @@ sind gelöscht.
 <!-- Fragen, die noch geklärt werden müssen -->
 
 Alle vier waren ADR-Trigger und sind in
-[ADR-049](../docs/adr/049-telemetrie-persistenz-je-pipeline-lauf.md) entschieden:
+[ADR-049](../docs/factory/adr/049-telemetrie-persistenz-je-pipeline-lauf.md) entschieden:
 
 - [x] ADR-006 Option B? → **Nein** (ADR-049 §E1). Beide Ablehnungsgründe greifen nicht: es wird
       nichts nachgebaut (nur CLI-Ist-Werte übernommen), und OTEL ist laut ADR-006 selbst

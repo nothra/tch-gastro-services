@@ -185,7 +185,7 @@ _Mit dem Entwickler geklärt (2026-07-23):_
 - _`.gitignore`-Nebenbefund: in #212 mitgenommen._
 
 _Durch `/architecture` (2026-07-23) entschieden – siehe
-[ADR-040](../adr/040-pipeline-endzustands-verifikation.md):_
+[ADR-040](../factory/adr/040-pipeline-endzustands-verifikation.md):_
 - [x] BLOCKED-Abschluss wird **über `raise-interrupt.sh`** (Typ `INCOMPLETE_OUTCOME`)
   geloggt, damit `/daily-metrics` die Autonomie-Rate korrekt zählt (ADR-006). Der Stopp
   läuft damit über denselben Mechanismus wie ADR-004.

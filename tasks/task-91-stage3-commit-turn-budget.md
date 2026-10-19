@@ -20,7 +20,7 @@ Zwei Stage-3-Infra-Lücken (beobachtet beim #66-Live-Lauf nach #88) schließen:
    für `review`/`security-review`.
 
 > Kanonische Quellen: [`docs/specs/spec-91-stage3-commit-turn-budget.md`](../docs/specs/spec-91-stage3-commit-turn-budget.md)
-> · ADR [`docs/adr/019-stage3-commit-seam-report-guard.md`](../docs/adr/019-stage3-commit-seam-report-guard.md).
+> · ADR [`docs/factory/adr/019-stage3-commit-seam-report-guard.md`](../docs/factory/adr/019-stage3-commit-seam-report-guard.md).
 
 ## Akzeptanzkriterien
 

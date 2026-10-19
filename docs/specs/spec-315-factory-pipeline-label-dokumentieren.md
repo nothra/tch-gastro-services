@@ -57,7 +57,7 @@ Label-Konvention ist selbst kanonische Quelle in `git-workflow.md`; ADR-018 §3
   (ADR-018 §3); es entsteht keine zweite kanonische Label-Liste im Code.
 - **Kein Label anlegen oder löschen.** Nur Rename des vorhandenen Labels.
 - **Kein nachträgliches Labeln** von #316, #285, #166 oder weiteren Bestands-Issues.
-- **Keine Änderung an `docs/adr/018-central-issue-seam.md:30` und
+- **Keine Änderung an `docs/factory/adr/018-central-issue-seam.md:30` und
   `docs/specs/spec-82-issue-seam.md:18,39`.** Diese nennen die Aspekt-Trias als
   **historische Problembeschreibung** des Zustands vor dem Seam („werden nirgends
   angeboten") – ein historisches Narrativ wird nicht auf den heutigen Stand umgeschrieben.

@@ -104,7 +104,7 @@ Spec: [`docs/specs/spec-286-kleinfunde-sammeldatei.md`](../docs/specs/spec-286-k
 
 ## Technische Notizen
 
-ADR: [`docs/adr/043-schwelle-fuer-autonome-issue-anlage.md`](../docs/adr/043-schwelle-fuer-autonome-issue-anlage.md)
+ADR: [`docs/factory/adr/043-schwelle-fuer-autonome-issue-anlage.md`](../docs/factory/adr/043-schwelle-fuer-autonome-issue-anlage.md)
 (Status `Proposed` → beim Implementieren auf `Accepted` flippen, Lesson `factory-workflow.md`
 aus #197).
 

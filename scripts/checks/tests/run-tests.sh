@@ -1245,7 +1245,7 @@ assert_true "$?" "#82: git-workflow.md verweist auf den zentralen Seam (create-i
 GITWF="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
 # (0) Verweis-Ziel existiert: sonst zeigen die ADR-029-Verweise ins Leere, ohne dass
 # die grep-Guards (die nur git-workflow.md prüfen) das bemerken (dangling reference).
-assert_true "$([[ -f "$FACTORY_ROOT/docs/adr/029-branch-protection-main-ruleset.md" ]]; echo $?)" \
+assert_true "$([[ -f "$FACTORY_ROOT/docs/factory/adr/029-branch-protection-main-ruleset.md" ]]; echo $?)" \
   "#155: ADR-029-Datei vorhanden (Verweis-Ziel nicht dangling)"
 # (a) Direktive: der Verweis auf ADR-029 ist vorhanden.
 grep -q 'ADR-029' "$GITWF"
@@ -5545,7 +5545,7 @@ assert_true "$(! { [ -n "$mut_order_class_286" ] && [ -n "$mut_order_call_286" ]
 rm -f "$mut_order_286"
 
 # ADR-018 §5 nennt die Schwelle und verweist auf ADR-043, statt die Tabelle zu kopieren.
-ADR018="$FACTORY_ROOT/docs/adr/018-central-issue-seam.md"
+ADR018="$FACTORY_ROOT/docs/factory/adr/018-central-issue-seam.md"
 grep -qF 'ADR-043' "$ADR018"
 assert_true "$?" "#286: ADR-018 verweist auf ADR-043 (Einschränkung von §5)"
 assert_true "$(! grep -qE '\| Fund-Art \|' "$ADR018"; echo $?)" \
@@ -5554,7 +5554,7 @@ assert_true "$(! grep -qE '\| Fund-Art \|' "$ADR018"; echo $?)" \
 # ADR-043 ist beim Implementieren von Proposed auf Accepted geflippt (Lesson factory-workflow.md).
 # Erste nicht-leere Zeile nach der '## Status'-Überschrift, statt 'head -n -1' (GNU-Extension,
 # auf BSD/macOS-head nicht verfügbar – clean-code.md "Portabilität in Gate-/Shell-Skripten").
-ADR043="$FACTORY_ROOT/docs/adr/043-schwelle-fuer-autonome-issue-anlage.md"
+ADR043="$FACTORY_ROOT/docs/factory/adr/043-schwelle-fuer-autonome-issue-anlage.md"
 adr043_status_line="$(awk '/^## Status/{found=1; next} found && NF {print; exit}' "$ADR043")"
 assert_true "$([[ "$adr043_status_line" = "Accepted" ]]; echo $?)" "#286: ADR-043 Status ist auf 'Accepted' geflippt"
 
@@ -6442,7 +6442,7 @@ fi
 echo ""
 echo "#310 AK12: ADR-019 §4 und die Lesson-Absätze beschreiben die Frische-Bedingung:"
 
-ADR019_310="$FACTORY_ROOT/docs/adr/019-stage3-commit-seam-report-guard.md"
+ADR019_310="$FACTORY_ROOT/docs/factory/adr/019-stage3-commit-seam-report-guard.md"
 adr019_flat_310=$(flat_286 "$ADR019_310")
 assert_contains_286 "$adr019_flat_310" "seit dem Beginn dieses Skill-Aufrufs verändert" \
   "#310 AK12: ADR-019 §4 nennt die Frische-Bedingung des Guards"
@@ -7839,7 +7839,7 @@ assert_contains_286 "$CLAUDE_FLAT_319" "umgehbar" \
 # er prüft ausschließlich `--help`/`-h` (commit-msg-check.sh:11-12, :78). Ebenso darf
 # branch-name-check.sh nicht als fail-closed-Gate auftreten: er ist ein PreToolUse-Hook auf den
 # Bash-Tool-Input und greift nur bei `checkout -b`/`switch -c` aus Claude Code.
-ADR047_FLAT_319="$(flat_286 "$FACTORY_ROOT/docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md")"
+ADR047_FLAT_319="$(flat_286 "$FACTORY_ROOT/docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md")"
 assert_absent "$ADR047_FLAT_319" "\`commit-msg\`-Hook, \`issue-sync\`-Gate" \
   "#319 K2: ADR-047 führt den commit-msg-Hook nicht als Format-Erzwinger"
 assert_contains_286 "$ADR047_FLAT_319" "PreToolUse" \
@@ -7996,8 +7996,8 @@ for f in CLAUDE.md CONTRIBUTING.md docs/factory/PROJECT-CONTEXT.md docs/factory/
          docs/factory/lessons/code-style.md docs/factory/lessons/frontend-react.md \
          docs/factory/guidelines/tdd-principles.md docs/factory/guidelines/testing-standards.md \
          docs/factory/guidelines/token-efficiency.md \
-         docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md \
-         docs/adr/037-lessons-auslagern-aus-import-kontext.md \
+         docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md \
+         docs/factory/adr/037-lessons-auslagern-aus-import-kontext.md \
          docs/specs/spec-319-adr-import-kontext-guidelines.md \
          tasks/task-319-adr-import-kontext-guidelines.md tasks/review-319.md; do
   ic_dead_links_found_319="$ic_dead_links_found_319$(ic_dead_links_319 "$FACTORY_ROOT/$f")"
@@ -8714,6 +8714,252 @@ assert_true "$(grep -q 'ownership-check.sh' "$CHECKS_DIR/pre-push.sh"; echo $?)"
   "#426 AK-A6: pre-push.sh ruft ownership-check.sh auf (lokales Gate)"
 assert_true "$(grep -q 'bash scripts/checks/tests/run-tests.sh' "$FACTORY_ROOT/.github/workflows/factory-ci.yml"; echo $?)" \
   "#426 AK-A6: factory-self-test (CI) führt diese Suite aus – damit auch den Check oben"
+# ── #426 T1a-1 · ADRs trennen (AK-B1…B6, F-2) ────────────────────────────────────────────────
+ADR_LINKS_426="$CHECKS_DIR/adr-links-check.sh"
+# Der Verzeichnisname steht nur hier und wird zur Laufzeit eingesetzt: ein Fixture-Literal wie
+# `<verzeichnis>/009-x.md` in DIESER Datei würde vom Link-Check selbst als toter Link gefunden
+# (Content-Scan-Guard, dessen Phrase in der gescannten Datei steht – Lesson #319).
+ADR_DIR_426="adr"
+
+# Fixture-Repo mit je einer ADR pro Verzeichnis
+adr_fixture_426() { # $1 = Verzeichnis
+  mkdir -p "$1/docs/$ADR_DIR_426" "$1/docs/factory/$ADR_DIR_426" "$1/docs/specs" "$1/scripts"
+  : > "$1/docs/$ADR_DIR_426/014-app.md"; : > "$1/docs/factory/$ADR_DIR_426/009-fac.md"
+  git -C "$1" init -q
+}
+
+TMP_ADR_426="$(mktemp -d)"; adr_fixture_426 "$TMP_ADR_426"
+printf '[ok](../%s/014-app.md) und [ok2](../factory/%s/009-fac.md#abschnitt)\n' "$ADR_DIR_426" "$ADR_DIR_426" \
+  > "$TMP_ADR_426/docs/specs/s.md"
+git -C "$TMP_ADR_426" add -A
+FACTORY_DIR="$TMP_ADR_426" bash "$ADR_LINKS_426" > /dev/null 2>&1
+assert_exit 0 $? "#426 AK-B3: lebende ADR-Links (relativ, mit Anker) → Exit 0"
+
+# F-2: Link zeigt nach dem Umzug ins Leere → Quelle:Zeile und Ziel genannt
+printf 'Zeile eins\n[alt](../%s/009-fac.md) – dort liegt sie seit dem Umzug nicht mehr\n' "$ADR_DIR_426" \
+  > "$TMP_ADR_426/docs/specs/s.md"
+git -C "$TMP_ADR_426" add -A
+out_426="$(FACTORY_DIR="$TMP_ADR_426" bash "$ADR_LINKS_426" 2>&1)"
+assert_exit 1 $? "#426 F-2: toter Markdown-ADR-Link → Exit 1"
+assert_contains_286 "$out_426" "docs/specs/s.md:2: toter ADR-Link → ../$ADR_DIR_426/009-fac.md" \
+  "#426 F-2: Quelle (Datei:Zeile) und Ziel werden genannt"
+
+# wurzel-relative Pfadangabe in einem Skript (kein Markdown-Link)
+printf '#!/bin/sh\ncat docs/%s/009-fac.md\n' "$ADR_DIR_426" > "$TMP_ADR_426/scripts/x.sh"
+printf 'nichts\n' > "$TMP_ADR_426/docs/specs/s.md"
+git -C "$TMP_ADR_426" add -A
+out_426="$(FACTORY_DIR="$TMP_ADR_426" bash "$ADR_LINKS_426" 2>&1)"
+assert_exit 1 $? "#426 F-2: toter wurzel-relativer ADR-Pfad im Skript → Exit 1"
+assert_contains_286 "$out_426" "scripts/x.sh:2: toter ADR-Link → docs/$ADR_DIR_426/009-fac.md" \
+  "#426 F-2: auch der Skript-Verweis wird mit Datei:Zeile genannt"
+rm -rf "$TMP_ADR_426"
+
+FACTORY_DIR="$TMP_ADR_426/nicht-vorhanden" bash "$ADR_LINKS_426" > /dev/null 2>&1
+assert_exit 2 $? "#426 fail-closed: kein git-Repo → Exit 2 (nicht still grün)"
+
+# AK-B3 gegen den echten Baum (inkl. Specs, Tasks, Lessons, Skripte)
+out_426="$(bash "$ADR_LINKS_426" 2>&1)"
+adr_links_rc_426=$?
+assert_exit 0 "$adr_links_rc_426" "#426 AK-B3: im ganzen Repo zeigt kein ADR-Link ins Leere"
+[ "$adr_links_rc_426" -eq 0 ] || echo "$out_426" | grep '^✗' | head -20 | sed 's/^/      /'
+
+# AK-B1/B2: Zuordnung der ADR-Dateien (Anhang 1 der Spec, final in ADR-063 Nachtrag Q3)
+FACTORY_ADR_NUMS_426="001 002 003 004 005 006 007 008 009 010 011 012 013 018 019 029 030 037 038 040 041 042 043 045 047 049 051 063"
+adr_nums_426() { # $1 = Verzeichnis → Nummern der ADR-Dateien, eindeutig sortiert
+  local f; for f in "$1"/[0-9][0-9][0-9]-*.md; do [ -e "$f" ] && basename "$f" | cut -c1-3; done | sort -u
+}
+assert_true "$([ "$(adr_nums_426 "$FACTORY_ROOT/docs/factory/adr" | tr '\n' ' ')" = "$FACTORY_ADR_NUMS_426 " ]; echo $?)" \
+  "#426 AK-B1: docs/factory/adr/ enthält genau die Factory-ADRs (Nummern unverändert)"
+leaked_426=""
+for n_426 in $FACTORY_ADR_NUMS_426; do
+  ls "$FACTORY_ROOT/docs/adr/$n_426"-*.md > /dev/null 2>&1 && leaked_426="$leaked_426 $n_426"
+done
+assert_true "$([ -z "$leaked_426" ]; echo $?)" \
+  "#426 AK-B2: keine Factory-ADR liegt noch in docs/adr/ (Reste:${leaked_426:- keine})"
+assert_true "$([ "$(adr_nums_426 "$FACTORY_ROOT/docs/adr" | wc -l | tr -d ' ')" -gt 0 ]; echo $?)" \
+  "#426 AK-B2: die App-ADRs bleiben in docs/adr/"
+# `git mv` statt Kopie: die Historie vor dem Umzug ist über --follow erreichbar. Ein flacher
+# Klon (CI) hat nur einen Commit – dort bleibt der Beleg lokal, der Rest oben gilt überall.
+if [ "$(git -C "$FACTORY_ROOT" rev-parse --is-shallow-repository 2>/dev/null)" = "false" ]; then
+  follow_n_426="$(git -C "$FACTORY_ROOT" log --follow --oneline -- docs/factory/adr/018-central-issue-seam.md | wc -l | tr -d ' ')"
+  assert_true "$([ "$follow_n_426" -ge 2 ]; echo $?)" \
+    "#426 AK-B1: git log --follow zeigt die Historie vor dem Umzug (ADR-018: $follow_n_426 Commits)"
+else
+  echo "  • #426 AK-B1: --follow-Beleg übersprungen (flacher Klon)"
+fi
+
+# AK-B4: jedes ADR-README listet GENAU die ADRs seines Verzeichnisses
+adr_readme_matches_426() { # $1 = Verzeichnis
+  local listed on_disk
+  listed="$(grep -oE '\]\([0-9]{3}-[^)]*\.md\)' "$1/README.md" | sed -E 's/^\]\(//; s/\)$//' | sort)"
+  on_disk="$(cd "$1" && ls [0-9][0-9][0-9]-*.md | sort)"
+  [ "$listed" = "$on_disk" ]
+}
+adr_readme_matches_426 "$FACTORY_ROOT/docs/factory/adr"
+assert_exit 0 $? "#426 AK-B4: docs/factory/adr/README.md listet genau die Factory-ADRs"
+adr_readme_matches_426 "$FACTORY_ROOT/docs/adr"
+assert_exit 0 $? "#426 AK-B4: docs/adr/README.md listet genau die App-ADRs"
+TMP_RM_426="$(mktemp -d)"; : > "$TMP_RM_426/001-a.md"; : > "$TMP_RM_426/002-b.md"
+printf '[a](001-a.md)\n' > "$TMP_RM_426/README.md"
+adr_readme_matches_426 "$TMP_RM_426"
+assert_exit 1 $? "#426 AK-B4 (Kontrolle): eine nicht gelistete ADR macht den Vergleich rot"
+printf '[a](001-a.md) [b](002-b.md) [c](003-c.md)\n' > "$TMP_RM_426/README.md"
+adr_readme_matches_426 "$TMP_RM_426"
+assert_exit 1 $? "#426 AK-B4 (Kontrolle): ein gelisteter Geisterverweis macht den Vergleich rot"
+rm -rf "$TMP_RM_426"
+assert_true "$(grep -q 'docs/factory/adr/' "$FACTORY_ROOT/docs/adr/README.md"; echo $?)" \
+  "#426 AK-B4: das Projekt-README weist auf docs/factory/adr/ hin"
+
+# AK-B5: aktive Projekt-Dateien nennen Factory-ADRs als `Factory-ADR-NNN`
+bare_factory_adr_426() { # $1 = Datei, $2 = Nummernliste (Leerzeichen) → Treffer `ADR-NNN` ohne Präfix
+  local alt; alt="$(printf '%s' "$2" | tr ' ' '|')"
+  grep -noE "(^|[^A-Za-z-])ADR-($alt)([^0-9]|$)" "$1"
+}
+TMP_B5_426="$(mktemp -d)"
+printf 'siehe ADR-018 und Factory-ADR-043 sowie ADR-014\n' > "$TMP_B5_426/probe.md"
+out_426="$(bare_factory_adr_426 "$TMP_B5_426/probe.md" "$FACTORY_ADR_NUMS_426")"
+assert_contains_286 "$out_426" 'ADR-018' "#426 AK-B5 (Kontrolle): ein bloßes ADR-018 wird als Factory-Verweis erkannt"
+assert_absent "$out_426" 'ADR-043' "#426 AK-B5 (Kontrolle): Factory-ADR-043 ist korrekt präfixiert, kein Treffer"
+assert_absent "$out_426" 'ADR-014' "#426 AK-B5 (Kontrolle): eine App-ADR (014) ist kein Treffer"
+rm -rf "$TMP_B5_426"
+bare_426=""
+for f_426 in CLAUDE.md docs/factory/PROJECT-CONTEXT.md README.md CONTRIBUTING.md docs/adr/*.md; do
+  hits_426="$(bare_factory_adr_426 "$FACTORY_ROOT/$f_426" "$FACTORY_ADR_NUMS_426" | head -3)"
+  [ -z "$hits_426" ] || bare_426="$bare_426
+$f_426: $hits_426"
+done
+assert_true "$([ -z "$bare_426" ]; echo $?)" \
+  "#426 AK-B5: aktive Projekt-Dateien schreiben Factory-ADR-NNN statt ADR-NNN für Factory-ADRs"
+[ -z "$bare_426" ] || echo "$bare_426" | head -12 | sed 's/^/      /'
+
+# AK-B6: ADR-063 ist Accepted und trägt den Nachtrag mit den Detailentscheidungen Q1–Q6
+ADR063_426="$FACTORY_ROOT/docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md"
+adr063_flat_426="$(flat_286 "$ADR063_426")"
+assert_contains_286 "$adr063_flat_426" '## Status Accepted' "#426 AK-B6: ADR-063 steht auf Accepted"
+assert_absent "$adr063_flat_426" '## Status Proposed' "#426 AK-B6: ADR-063 steht nicht mehr auf Proposed"
+for q_426 in Q1 Q2 Q3 Q4 Q5 Q6; do
+  assert_contains_286 "$adr063_flat_426" "**$q_426 ·" "#426 AK-B6: der Nachtrag in ADR-063 entscheidet $q_426"
+done
+
+# ── #426 T1a-1 · Lessons trennen (AK-C1…C5, F-3) und Kleinfunde teilen (AK-L1) ──────────────
+LESSONS_TSV_426="$CHECKS_DIR/tests/fixtures/lessons-split-426.tsv"
+SKILLS_DIR_426="${SKILLS_DIR_426:-$FACTORY_ROOT/.claude/commands}"   # nur zur Vorab-Prüfung eines Patches
+
+# lessons_split_check_426 <tsv> <factory-dir> <projekt-dir> → Meldungen je Abweichung, Exit 1 bei mindestens einer
+# Je TSV-Zeile (Seite, Lesson, Überschrift): die Überschrift steht GENAU EINMAL in der Lesson der
+# erwarteten Seite und NICHT in der gleichnamigen Lesson der anderen Seite (nichts verloren, nichts
+# verdoppelt, nichts auf der falschen Seite).
+lessons_split_check_426() {
+  local tsv="$1" fac="$2" prj="$3" bad=0 side lesson heading dir other here there
+  while IFS="$(printf '\t')" read -r side lesson heading; do
+    case "$side" in ''|'#'*) continue ;; esac
+    if [ "$side" = factory ]; then dir="$fac"; other="$prj"; else dir="$prj"; other="$fac"; fi
+    here="$(grep -cxF -- "### $heading" "$dir/$lesson" 2>/dev/null)"
+    there="$(grep -cxF -- "### $heading" "$other/$lesson" 2>/dev/null)"
+    if [ "${here:-0}" -ne 1 ] || [ "${there:-0}" -ne 0 ]; then
+      echo "✗ ${lesson}: „${heading}“ (erwartet: ${side}) – dort ${here:-0}×, auf der anderen Seite ${there:-0}×"
+      bad=1
+    fi
+  done < "$tsv"
+  return $bad
+}
+
+# AK-C1: die App-Lessons liegen unter docs/project/lessons/ (git mv), nicht mehr bei der Factory
+for l_426 in frontend-react db-drizzle next-auth; do
+  assert_true "$([ -f "$FACTORY_ROOT/docs/project/lessons/$l_426.md" ] && [ ! -e "$FACTORY_ROOT/docs/factory/lessons/$l_426.md" ]; echo $?)" \
+    "#426 AK-C1: $l_426.md liegt unter docs/project/lessons/ und nicht mehr unter docs/factory/lessons/"
+done
+
+# AK-C2 / F-3: Kontrollen für die Prüfung selbst (Fixture), dann der echte Bestand
+TMP_LS_426="$(mktemp -d)"; mkdir -p "$TMP_LS_426/f" "$TMP_LS_426/p"
+printf '### Eins\n\ntext\n\n### Zwei\n' > "$TMP_LS_426/f/t.md"; printf '### Drei\n' > "$TMP_LS_426/p/t.md"
+printf 'factory\tt.md\tEins\nfactory\tt.md\tZwei\nproject\tt.md\tDrei\n' > "$TMP_LS_426/t.tsv"
+lessons_split_check_426 "$TMP_LS_426/t.tsv" "$TMP_LS_426/f" "$TMP_LS_426/p" > /dev/null
+assert_exit 0 $? "#426 AK-C2 (Kontrolle): vollständig getrennter Fixture-Bestand → grün"
+printf '### Eins\n' > "$TMP_LS_426/f/t.md"
+out_426="$(lessons_split_check_426 "$TMP_LS_426/t.tsv" "$TMP_LS_426/f" "$TMP_LS_426/p")"
+assert_exit 1 $? "#426 F-3: ein verlorener Eintrag macht die Prüfung rot"
+assert_contains_286 "$out_426" 'Zwei' "#426 F-3: der verlorene Eintrag wird namentlich genannt"
+printf '### Eins\n\n### Zwei\n' > "$TMP_LS_426/f/t.md"; printf '### Drei\n\n### Zwei\n' > "$TMP_LS_426/p/t.md"
+out_426="$(lessons_split_check_426 "$TMP_LS_426/t.tsv" "$TMP_LS_426/f" "$TMP_LS_426/p")"
+assert_exit 1 $? "#426 F-3: ein verdoppelter Eintrag (auf beiden Seiten) macht die Prüfung rot"
+printf '### Eins\n\n### Zwei\n\n### Zwei\n' > "$TMP_LS_426/f/t.md"; printf '### Drei\n' > "$TMP_LS_426/p/t.md"
+lessons_split_check_426 "$TMP_LS_426/t.tsv" "$TMP_LS_426/f" "$TMP_LS_426/p" > /dev/null
+assert_exit 1 $? "#426 F-3: ein doppelt vorhandener Eintrag auf derselben Seite macht die Prüfung rot"
+printf '### Eins\n\n### Zwei\n\n### Drei\n' > "$TMP_LS_426/f/t.md"; printf '' > "$TMP_LS_426/p/t.md"
+lessons_split_check_426 "$TMP_LS_426/t.tsv" "$TMP_LS_426/f" "$TMP_LS_426/p" > /dev/null
+assert_exit 1 $? "#426 F-3: ein Eintrag auf der falschen Seite macht die Prüfung rot"
+rm -rf "$TMP_LS_426"
+
+out_426="$(lessons_split_check_426 "$LESSONS_TSV_426" "$FACTORY_ROOT/docs/factory/lessons" "$FACTORY_ROOT/docs/project/lessons")"
+lessons_rc_426=$?
+assert_exit 0 "$lessons_rc_426" "#426 AK-C2: jeder Lesson-Eintrag steht genau einmal, auf seiner Seite (Rekonstruktion gegen den Stand der Trennung)"
+[ "$lessons_rc_426" -eq 0 ] || echo "$out_426" | head -10 | sed 's/^/      /'
+assert_true "$([ "$(grep -vc '^#' "$LESSONS_TSV_426")" -eq 175 ]; echo $?)" \
+  "#426 AK-C2: die Rekonstruktions-Liste deckt alle 175 Einträge der sieben Ausgangs-Lessons ab"
+
+# AK-C3: Index in PROJECT-CONTEXT.md – getrennte Gruppen, gültige Links, „Laden bei" je Gruppe
+CTX_426="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
+ctx_flat_426="$(flat_286 "$CTX_426")"
+assert_contains_286 "$ctx_flat_426" '#### Factory-Lessons (`docs/factory/lessons/`)' "#426 AK-C3: der Index hat eine Gruppe „Factory-Lessons“"
+assert_contains_286 "$ctx_flat_426" '#### Projekt-Lessons (`docs/project/lessons/`)' "#426 AK-C3: der Index hat eine Gruppe „Projekt-Lessons“"
+ctx_dead_426=""; ctx_noload_426=""
+while IFS= read -r hdr_426; do
+  tgt_426="$(printf '%s' "$hdr_426" | sed -E 's/^\*\*\[`[^`]*`\]\(([^)]*)\).*/\1/')"
+  [ -f "$FACTORY_ROOT/docs/factory/$tgt_426" ] || ctx_dead_426="$ctx_dead_426 $tgt_426"
+  printf '%s' "$hdr_426" | grep -qF -- '**Laden bei:**' || ctx_noload_426="$ctx_noload_426 $tgt_426"
+done <<< "$(grep -E '^\*\*\[`[^`]*lessons/[a-z-]+\.md`\]' "$CTX_426")"
+assert_true "$([ -z "$ctx_dead_426" ]; echo $?)" "#426 AK-C3: jeder Gruppen-Link des Index zeigt auf eine existierende Datei (tot:${ctx_dead_426:- keine})"
+assert_true "$([ -z "$ctx_noload_426" ]; echo $?)" "#426 AK-C3: jede Index-Gruppe behält ihren „Laden bei“-Trigger (ohne:${ctx_noload_426:- keine})"
+for f_426 in "$FACTORY_ROOT"/docs/factory/lessons/*.md; do
+  assert_true "$(grep -qF -- "](lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
+    "#426 AK-C3: Factory-Lesson $(basename "$f_426") steht im Index"
+done
+for f_426 in "$FACTORY_ROOT"/docs/project/lessons/*.md; do
+  assert_true "$(grep -qF -- "](../project/lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
+    "#426 AK-C3: Projekt-Lesson $(basename "$f_426") steht im Index"
+done
+
+# AK-C4: die Kern-Kurzregeln verlinken den NEUEN Ort der Lesson
+core_426="$(awk '/^### Kern-Kurzregeln/{f=1;next} /^### Index der/{f=0} f' "$CTX_426")"
+assert_contains_286 "$core_426" '(../project/lessons/db-drizzle.md)' "#426 AK-C4: die Kern-Kurzregeln verlinken docs/project/lessons/db-drizzle.md"
+assert_absent "$core_426" '](lessons/db-drizzle.md)' "#426 AK-C4: kein Kern-Kurzregel-Link zeigt mehr auf den alten Ort"
+core_dead_426=""
+for t_426 in $(printf '%s' "$core_426" | grep -oE '\]\([^)]*\.md\)' | sed -E 's/^\]\(//; s/\)$//'); do
+  [ -f "$FACTORY_ROOT/docs/factory/$t_426" ] || core_dead_426="$core_dead_426 $t_426"
+done
+assert_true "$([ -z "$core_dead_426" ]; echo $?)" "#426 AK-C4: jeder Kern-Kurzregel-Link zeigt auf eine existierende Datei (tot:${core_dead_426:- keine})"
+
+# AK-C5: /codify nennt beide Orte und die Zuordnungsregel (Live-Datei; Patch-Lieferung, siehe Task)
+codify_flat_426="$(flat_286 "$SKILLS_DIR_426/codify.md")"
+assert_contains_286 "$codify_flat_426" 'docs/factory/lessons/<thema>.md' "#426 AK-C5: /codify nennt den Factory-Ort der Lessons"
+assert_contains_286 "$codify_flat_426" 'docs/project/lessons/<thema>.md' "#426 AK-C5: /codify nennt den Projekt-Ort der Lessons"
+assert_contains_286 "$codify_flat_426" 'Zuordnungsregel' "#426 AK-C5: /codify beschreibt die Zuordnungsregel Factory vs. Projekt"
+assert_contains_286 "$codify_flat_426" 'docs/factory/OWNERSHIP.md' "#426 AK-C5: die Zuordnungsregel verweist auf die Zuordnungstabelle"
+
+# AK-L1: Kleinfunde nach betroffener Datei geteilt; die Skills nennen beide Orte
+kf_side_426() { # $1 = Kleinfunde-Datei, $2 = erwartete Seite → Anzahl Einträge, deren erste Wo-Datei NICHT auf dieser Seite liegt
+  local f bad=0 list; list="$(bash "$OWN_CHECK_426" --list "$2" 2>/dev/null)"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    printf '%s\n' "$list" | grep -qxF -- "$f" || { echo "✗ $1: Wo-Datei $f liegt nicht auf Seite $2"; bad=$((bad + 1)); }
+  done <<< "$(grep -oE '^- \*\*Wo:\*\* \[`[^`:]+' "$1" | sed -E 's/^- \*\*Wo:\*\* \[`//')"
+  return $((bad > 0))
+}
+out_426="$(kf_side_426 "$FACTORY_ROOT/docs/factory/kleinfunde.md" factory)"
+assert_exit 0 $? "#426 AK-L1: jeder Eintrag in docs/factory/kleinfunde.md betrifft eine Factory-Datei"
+[ -z "$out_426" ] || echo "$out_426" | head -5 | sed 's/^/      /'
+out_426="$(kf_side_426 "$FACTORY_ROOT/docs/project/kleinfunde.md" project)"
+assert_exit 0 $? "#426 AK-L1: jeder Eintrag in docs/project/kleinfunde.md betrifft eine Projekt-Datei"
+[ -z "$out_426" ] || echo "$out_426" | head -5 | sed 's/^/      /'
+assert_true "$([ "$(grep -c '^### ' "$FACTORY_ROOT/docs/project/kleinfunde.md")" -ge 1 ]; echo $?)" "#426 AK-L1: die Projekt-Kleinfunde sind nicht leer"
+for sk_426 in review security-review codify; do
+  sk_flat_426="$(flat_286 "$SKILLS_DIR_426/$sk_426.md")"
+  assert_contains_286 "$sk_flat_426" 'docs/factory/kleinfunde.md' "#426 AK-L1: /$sk_426 nennt den Factory-Ort der Kleinfunde"
+  assert_contains_286 "$sk_flat_426" 'docs/project/kleinfunde.md' "#426 AK-L1: /$sk_426 nennt den Projekt-Ort der Kleinfunde"
+  assert_contains_286 "$sk_flat_426" 'docs/factory/OWNERSHIP.md' "#426 AK-L1: /$sk_426 nennt die Zuordnungsregel (betroffene Datei laut Tabelle)"
+done
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"

@@ -6,10 +6,10 @@ Bausteine). Pipeline-Verlauf: `/implement` 2× Turn-Limit, Rework 1× Turn-Limit
 `/security-review` (PASSED).
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` + Index – **`setState` am Anfang einer Form-Action wird erst
+- `docs/project/lessons/frontend-react.md` + Index – **`setState` am Anfang einer Form-Action wird erst
   mit ihrem Ende sichtbar**: „läuft gerade" aus `onSubmit` melden, Ende im `finally`; Test nur mit nie
   auflösendem Promise aussagekräftig. Wegen: erster Wurf der Dialog-Sperre blieb rot (/implement-Selbstfund).
-- `docs/factory/lessons/frontend-react.md` + Index – **Verhaltensvertrag eines geteilten Bausteins in den
+- `docs/project/lessons/frontend-react.md` + Index – **Verhaltensvertrag eines geteilten Bausteins in den
   Baustein legen**, alle Konsumenten prüfen. Wegen: Escape-vs-`pending` in Iteration 1 nur am `ConfirmDialog`
   gefixt, der schwerere Geschwister-Defekt blieb eine Review-Iteration länger stehen.
 - `docs/factory/lessons/testing.md` + Index – **Nicht diskriminierendes Test-Double** (jsdom-`SVGElement` hat

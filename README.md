@@ -150,7 +150,7 @@ auf PRD-Build warten → `/api/health`-Check (DB-Read).**
   (legt/aktualisiert `production`), (3) **dann** in Vercel **Production Branch = `production`** setzen.
 - E2E **oder** Prod-Migration rot → **kein** Promote → Production bleibt auf dem letzten Stand.
 - Nach dem Promote verifiziert das Gate das **tatsächlich deployte** Prod via `/api/health`
-  (DB-Read auf die `roles`-Spalte) – CI-grün ↔ Prod-grün (ADR-007).
+  (DB-Read auf die `roles`-Spalte) – CI-grün ↔ Prod-grün (Factory-ADR-007).
 
 #### Deploy-Freeze bei rotem Gate (ADR-032)
 

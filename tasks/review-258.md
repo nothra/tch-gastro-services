@@ -80,7 +80,7 @@ unbekanntes Argument, `--help`, fremde Plattform (OS **und** Architektur getrenn
 
 ## Out-of-Scope-Findings (eigene Issues)
 
-- **#283** (aus Runde 1, weiterhin offen) — `docs/adr/009-factory-configuration.md:68-69,187`
+- **#283** (aus Runde 1, weiterhin offen) — `docs/factory/adr/009-factory-configuration.md:68-69,187`
   beschreibt im Präsens ein `factory-selftest`-Image + `ci/factory-selftest.Dockerfile`
   (`git ls-files ci/` ist leer), und ADR-009:76 verlangt yq in den README-Voraussetzungen, wo es
   nicht steht. Vorbestehende Drift, nicht von diesem PR verursacht. Der Plattform-Guard verweist

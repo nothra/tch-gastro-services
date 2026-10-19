@@ -58,6 +58,7 @@ Parser und liest nichts anderes:
 | factory | `docs/factory/adr/**` | Factory-ADRs (ADR-063 D8, Nummern unverändert) |
 | factory | `factory.defaults.yml` | Konfigurations-Defaults (ADR-009) |
 | factory | `factory.config.yml.example` | Vorlage der Projekt-Konfiguration |
+| factory | `scripts/checks/adr-links-check.sh` | Gate: kein toter ADR-Link (Spec #426 AK-B3) |
 | factory | `scripts/checks/branch-name-check.sh` | Hook: Branch-Namen |
 | factory | `scripts/checks/check.sh` | Hook-Einstieg (PreToolUse) |
 | factory | `scripts/checks/commit-msg-check.sh` | Hook: Commit-Message-Flag-Guard |

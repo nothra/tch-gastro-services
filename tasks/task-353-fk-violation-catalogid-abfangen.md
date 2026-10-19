@@ -50,7 +50,7 @@ Reproduktionstest: `app/verwaltung/katalog/actions.test.ts` →
 
 Hinweis für `/codify`: Muster „serverseitig-fix → client-gelesenes Feld öffnet neue
 DB-Fehlerklassen, die der bestehende Error-Translation-Wrapper nicht abdeckt" ist bereits als
-Lesson dokumentiert (`docs/factory/lessons/db-drizzle.md`, aus #345 Security-Review-Hinweis,
+Lesson dokumentiert (`docs/project/lessons/db-drizzle.md`, aus #345 Security-Review-Hinweis,
 Issue #353) – dieser Fix ist die Umsetzung, kein neues Learning.
 
 ## Offene Fragen
@@ -70,7 +70,7 @@ Runde 1 ([tasks/review-353.md](review-353.md), NEEDS_REWORK):
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
 
 Siehe [tasks/codify-353.md](codify-353.md). Neue Lesson in
-[`docs/factory/lessons/db-drizzle.md`](../docs/factory/lessons/db-drizzle.md) („Zweiter
+[`docs/project/lessons/db-drizzle.md`](../docs/project/lessons/db-drizzle.md) („Zweiter
 Fehler-Übersetzungs-Wrapper um einen einzelnen DB-Call: Catch-Scope exakt auf den riskanten
 Aufruf begrenzen") + Index-Zeile in `PROJECT-CONTEXT.md`, wegen Review-Runde-1-Finding dieser
 Task. Root-Cause-Muster selbst war bereits dokumentiert (aus #345) – dieser Task ist dessen

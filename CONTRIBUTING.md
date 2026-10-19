@@ -27,7 +27,7 @@ pnpm dev                            # http://localhost:3000
 ```
 
 `bash scripts/install-hooks.sh` ist die kanonische Quelle der lokalen Hooks
-([ADR-042](docs/adr/042-hook-installation-single-source.md)): `pre-commit`, `pre-push` und der
+([Factory-ADR-042](docs/factory/adr/042-hook-installation-single-source.md)): `pre-commit`, `pre-push` und der
 `commit-msg`-Hook (Flag-Guard gegen `--help`/`-h` als Commit-Message). Das Skript ist idempotent
 und auch nachträglich ausführbar; ohne diesen Schritt hat ein frischer Clone **keine** lokalen
 Gates.
@@ -66,7 +66,7 @@ Wir arbeiten **Issue-first** und über die Factory-Pipeline. Die verbindlichen D
    (**Rebase statt Merge** – lineare History).
 
 5. **Grüne CI-Gates & geschützte `main`:** `main` ist server-seitig durch das Ruleset
-   `protect-main` geschützt ([ADR-029](docs/adr/029-branch-protection-main-ruleset.md)) – kein
+   `protect-main` geschützt ([Factory-ADR-029](docs/factory/adr/029-branch-protection-main-ruleset.md)) – kein
    Direkt-/Force-Push, PR-Pflicht, Squash-Merge, grüne required Checks (Lint, Tests, Issue-Sync,
    Self-Test u. a.). Typecheck und Format laufen u. a. als lokale pre-push-Gates (vollständige Check-Liste: die Hook-Tabelle in `docs/factory/guidelines/git-workflow.md`)
    ([`scripts/checks/pre-push.sh`](scripts/checks/pre-push.sh)). Erst wenn alle Checkboxen der Task-Datei abgehakt und die Gates grün sind,

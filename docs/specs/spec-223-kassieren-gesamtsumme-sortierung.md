@@ -11,7 +11,7 @@ Kassiervorgänge in der Liste suchen muss. Beides erschwert die Bar-Abrechnung.
 Ziel: Der zu kassierende Betrag wird optisch so hervorgehoben wie „Gesamt" auf der
 Verzehr-erfassen-Seite, und noch nicht kassierte Teilnehmer stehen oben.
 
-Quelle: Issue #223. Verwandt: [ADR-033](../adr/033-kassieren-abschluss.md) (abgeleiteter
+Quelle: Issue #223. Verwandt: [ADR-033](../adr/033-kassieren-abschluss-datenmodell.md) (abgeleiteter
 Zeilenstatus), `spec-55-kassieren-abschluss.md`, `spec-209-verzehr-gesamt-summe-anzeigen.md`.
 
 ## Scope

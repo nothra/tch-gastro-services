@@ -1,8 +1,8 @@
 ## Codify-Report: Task 374
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` – Nativer Popover: `aria-expanded` ist kein DOM-Attribut, jsdom kennt die API nicht; Öffnen/Escape/Expanded per Playwright über den AX-Baum – wegen: Implement-Befund, Unit-Tests hätten nichts belegt.
-- `docs/factory/lessons/frontend-react.md` – Refactor, der Klassen aus gegateten Dateien in eine neue Datei zieht, trägt die Zieldatei ins Farb-Gate ein und greppt Handkopien – wegen: Review-Runde-2-Finding (`headerStyles.ts` fehlte in `UI_TOKEN_FILES`, `PublicHeader` hielt eine Kopie der Fokus-Klassen).
+- `docs/project/lessons/frontend-react.md` – Nativer Popover: `aria-expanded` ist kein DOM-Attribut, jsdom kennt die API nicht; Öffnen/Escape/Expanded per Playwright über den AX-Baum – wegen: Implement-Befund, Unit-Tests hätten nichts belegt.
+- `docs/project/lessons/frontend-react.md` – Refactor, der Klassen aus gegateten Dateien in eine neue Datei zieht, trägt die Zieldatei ins Farb-Gate ein und greppt Handkopien – wegen: Review-Runde-2-Finding (`headerStyles.ts` fehlte in `UI_TOKEN_FILES`, `PublicHeader` hielt eine Kopie der Fokus-Klassen).
 - `docs/factory/lessons/testing.md` – E2E gegen `localhost`, nicht `127.0.0.1` (`allowedDevOrigins` blockt HMR, keine Hydration) – wegen: /implement-Selbstfund, sah wie eine Regression aus.
 - `docs/factory/lessons/build-tooling.md` – Nachtrag zu #67/#324: drittes Vorkommnis, `playwright.capture.tmp.config.ts` war nicht gitignoret.
 - `docs/factory/PROJECT-CONTEXT.md` – vier Index-Zeilen bzw. Ergänzungen mit „Laden bei"-Trigger für die obigen Einträge.

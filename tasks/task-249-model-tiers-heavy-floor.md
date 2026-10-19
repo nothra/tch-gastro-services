@@ -57,7 +57,7 @@ Einordnung wie bei Task 241, s. `tasks/task-241-config-validation-mindest-tier-s
 Referenz bleibt ADR-009 §6 / ADR-010 – kein ADR-Nachtrag nötig.
 
 **ADR-010-Drift-Frage (aus der Spec) entschieden:** Kein Nachtrag an
-`docs/adr/010-config-validation-gate.md` nötig. Geprüft: der ADR-Text behauptet an keiner Stelle,
+`docs/factory/adr/010-config-validation-gate.md` nötig. Geprüft: der ADR-Text behauptet an keiner Stelle,
 dass `model_tiers.heavy` (oder ein anderer bestehender Blatt-Pfad) frei override-bar bleiben *muss*
 – §„Konsequenzen" beschreibt nur, dass *neue* Pfade (`model_tiers.medium`, neue Skill-Keys) über
 Regel 2 abgelehnt werden. Diese Aussage bleibt nach dem Fix unverändert wahr; die neue Regel 6
@@ -126,7 +126,7 @@ manuell an drei Fixtures gegengeprüft):
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-- [x] ADR-010-Drift: `docs/adr/010-config-validation-gate.md` §„Konsequenzen" ggf. nachziehen –
+- [x] ADR-010-Drift: `docs/factory/adr/010-config-validation-gate.md` §„Konsequenzen" ggf. nachziehen –
       **entschieden (2026-08-01, /architecture): kein Nachtrag nötig**, s. Technische Notizen oben.
 
 ## Review-Findings

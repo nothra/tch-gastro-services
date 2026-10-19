@@ -41,7 +41,7 @@ Produktion einfror). Der menschenlesbare **Grund** wird atomar zum Setzen in die
 Benachrichtigung + Step-Summary geschrieben (siehe Punkt 4). Existenz des Refs = „eingefroren".
 Der Marker lebt auf dem Remote (ephemere Runner teilen ihn so lauf­übergreifend) und ist mit dem
 vorhandenen `contents: write`-`GITHUB_TOKEN` + `fetch-depth: 0` setz-, les- und löschbar. `main`
-bleibt vom Ruleset `protect-main` (ADR-029) geschützt; `refs/factory/*` liegt außerhalb dessen
+bleibt vom Ruleset `protect-main` (Factory-ADR-029) geschützt; `refs/factory/*` liegt außerhalb dessen
 Geltungsbereichs.
 
 **2 – Freeze-Logik in ein testbares Skript `scripts/deploy-freeze.sh` extrahieren** (Subkommandos
@@ -101,7 +101,7 @@ grüner Folgelauf) → release → check(not-frozen)`, plus Nachweis, dass `froz
 - Git-nativ; mit vorhandenem `contents: write`-Token setz-/les-/löschbar, kein neuer PAT/Scope.
 - Persistent auf `origin`, lauf­übergreifend geteilt trotz ephemerer Runner.
 - **Lokal unit-testbar** gegen ein Bare-Repo (kein GitHub-API-Mock) – trägt AC6 direkt; spiegelt das
-  bewährte Sentinel-Muster (`INTERRUPT-*.md`, ADR-004) auf Remote-Ebene.
+  bewährte Sentinel-Muster (`INTERRUPT-*.md`, Factory-ADR-004) auf Remote-Ebene.
 - Fail-closed trivial: `ls-remote`-Fehler → als eingefroren behandeln.
 
 **Cons:**
@@ -160,6 +160,6 @@ Position stärkt die ADR-017-Kopplung (nie Schema ohne Code).
 - `refs/factory/deploy-freeze`-Push mit `GITHUB_TOKEN` ist beim Implementieren einmal live zu
   bestätigen; fällt das gegen Erwarten aus, ist Option B (PAT + Variable) der Rückfall.
 - Zusammenspiel: `concurrency: deploy-gate` (seriell, `cancel-in-progress:false`) stellt sicher, dass
-  „Setzen" vor dem „Check" des nächsten Laufs greift (kein Race). ADR-007 (`post-merge-verify`) und
+  „Setzen" vor dem „Check" des nächsten Laufs greift (kein Race). Factory-ADR-007 (`post-merge-verify`) und
   ADR-017 (PRD-Auto-Migration) bleiben inhaltlich unverändert; der Freeze schiebt sich nur als
   fail-closed Vorbedingung vor Migration+Promote.

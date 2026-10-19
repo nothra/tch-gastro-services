@@ -1,7 +1,7 @@
 ## Codify-Report: Task 371
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` + Index-Zeile in `PROJECT-CONTEXT.md` – Statuswechsel, der den
+- `docs/project/lessons/frontend-react.md` + Index-Zeile in `PROJECT-CONTEXT.md` – Statuswechsel, der den
   Seitenzweig tauscht, remountet den Auslöser; Fokus-Rückgabe im Erfolgsfall gesondert festlegen und
   testen – wegen: Review-Nitpick 1 (Fokus landet vermutlich auf `<body>`, nicht per Test belegt).
 - `docs/factory/lessons/testing.md` + Index-Zeile (mit „Laden bei") – Negativ-Fixture auf einem realen

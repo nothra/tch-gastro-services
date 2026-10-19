@@ -41,7 +41,7 @@ Dieser Epic-PR liefert **nur** Spec + ADR (Phase 1); die Umsetzung läuft in den
 - [ ] Epic-weite AK erfüllt (AKE.1, AKE.2)
 
 ## Technische Notizen
-Architektur: [ADR-063](../docs/adr/063-factory-eigenes-repo-vendored-manifest.md) (Status Proposed, flippt mit T1a auf Accepted).
+Architektur: [ADR-063](../docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md) (Status Proposed, flippt mit T1a auf Accepted).
 - Verteilung: committete Kopie an heutigen Pfaden + Manifest `factory.lock`; `scripts/factory-sync.sh` atomar (D1)
 - Update: Pull-Workflow `factory-update.yml`, ein fester Branch/PR, PAT `FACTORY_SYNC_TOKEN` (D2)
 - Keine Mischdateien: `CLAUDE.md` → Import von `docs/factory/FACTORY.md`; `settings.json`/`.gitignore` zusammengesetzt aus Fragmenten; Projekt-Checks in `scripts/project/checks/*.d/`; Gate-Kommandos + Labels in `factory.config.yml` (D3)

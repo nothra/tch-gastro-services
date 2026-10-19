@@ -153,7 +153,7 @@ in Commit `f5c5ca6` behoben und verifiziert. Ein Nitpick (Empty-State-Text-Dupli
 
 ## Codify-Notizen
 Zwei neue Regeln extrahiert (Details + Volltext: `tasks/codify-187.md`,
-`docs/factory/lessons/frontend-react.md`, `docs/factory/lessons/testing.md`):
+`docs/project/lessons/frontend-react.md`, `docs/factory/lessons/testing.md`):
 - Verschieben eines route-neutralen Moduls: alte Datei löschen ist Teil des Moves, nicht optional.
 - Callback-Prop nur durch Codelesen belegt ist keine Testabdeckung – Coverage-Report gegen jedes
   Review-Positiv gegenprüfen.

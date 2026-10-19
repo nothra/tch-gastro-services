@@ -11,7 +11,7 @@
   Verkabelung erfüllt, braucht einen Testfall, der den Callback tatsächlich auslöst und seine
   Wirkung prüft; Coverage-Report vor `/test`-Abschluss gezielt gegen jedes Review-Positiv
   gegenprüfen. Index-Zeile in `PROJECT-CONTEXT.md` ergänzt.
-- `docs/factory/lessons/frontend-react.md` – **Verschieben eines route-neutralen Moduls: alte
+- `docs/project/lessons/frontend-react.md` – **Verschieben eines route-neutralen Moduls: alte
   Datei löschen ist Teil des Moves, nicht optional** (aus #187, Review-Eskalation Runde 1–4): der
   Auftrag „`FokusListe` nach `app/_verzehr/` verschieben" legte die neue Datei korrekt an, ließ aber
   die alte `app/theke/[token]/FokusListe.tsx` (+ Test + Byte-Duplikat-`raf-stub.ts`, erneut #194)
@@ -19,7 +19,7 @@
   „X nach Y verschieben"-Auftrag `git status`/`git diff --stat` gegenprüfen – die alte Datei muss als
   `D` erscheinen; wo möglich `git mv` statt Neu-Schreiben+separatem Löschen nutzen. Index-Zeile in
   `PROJECT-CONTEXT.md` ergänzt.
-- `docs/factory/lessons/frontend-react.md` – Nachtrag zur bestehenden #188-Regel („Fremd-Layout-
+- `docs/project/lessons/frontend-react.md` – Nachtrag zur bestehenden #188-Regel („Fremd-Layout-
   Offset vom Konsumenten via `className` steuern"): dieselbe Kopplungsart tauchte erneut auf (Rand-
   Bleed der Chip-Leiste, `-mx-6 … px-6`, setzt Eltern-`p-6` voraus). Als Nitpick eingestuft (keine
   Regression, beide Konsumenten nutzen `p-6`), aber noch nicht behoben – Folge-Issue

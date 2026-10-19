@@ -1,7 +1,7 @@
 ## Codify-Report: Task 404
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` – „Schrittwechsel im selben Dialog: Fokus explizit setzen, `autoFocus` greift nur beim Mount" – wegen: Review-Iteration 1 W1 (kein Fokus-Ziel nach Schrittwechsel) und Iteration 2 (Leer-Zweig, erneutes Öffnen ungetestet). Index-Zeile in `PROJECT-CONTEXT.md` (Gruppe `frontend-react.md`).
+- `docs/project/lessons/frontend-react.md` – „Schrittwechsel im selben Dialog: Fokus explizit setzen, `autoFocus` greift nur beim Mount" – wegen: Review-Iteration 1 W1 (kein Fokus-Ziel nach Schrittwechsel) und Iteration 2 (Leer-Zweig, erneutes Öffnen ungetestet). Index-Zeile in `PROJECT-CONTEXT.md` (Gruppe `frontend-react.md`).
 - `docs/factory/lessons/factory-workflow.md` – „Rezidiv #375/#345: Anker und Fix-Empfehlungen im selben PR prüfen" – wegen: Review-Iteration 2, beide Wichtig-Funde waren vom eigenen Rework erzeugte Doku-Drift (Glossar-Anker `:29` → `:36`; Kleinfund empfahl `db.transaction()` gegen Lesson #345). Index-Zeile mit „Laden bei"-Trigger in `PROJECT-CONTEXT.md`.
 
 ### Keine Änderungen nötig

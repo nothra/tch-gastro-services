@@ -69,7 +69,7 @@ bieten, der über das bereits etablierte Muster hinausgeht.
 - Eine Allowlist erlaubter Modell-IDs für `heavy` (im Requirements-Gespräch verworfene Alternative,
   s. Kontext).
 - Eine neue ADR. Die Änderung erweitert das in ADR-010 etablierte Policy-Konstante-Muster (analog
-  Task 241) um einen weiteren, nicht override-baren Pfad. Ob `docs/adr/010-config-validation-gate.md`
+  Task 241) um einen weiteren, nicht override-baren Pfad. Ob `docs/factory/adr/010-config-validation-gate.md`
   §„Konsequenzen" (die den Team-Override-Mechanismus für `model_tiers`-Pfade beschreibt) im selben
   PR nachgezogen werden muss, entscheidet `/architecture`.
 - Laufzeit-Enforcement außerhalb des Gates (`run-pipeline.sh` ruft das Gate bereits fail-closed vor
@@ -139,7 +139,7 @@ bieten, der über das bereits etablierte Muster hinausgeht.
 
 ## Offene Fragen
 
-- [ ] **ADR-010-Drift:** `docs/adr/010-config-validation-gate.md` §„Konsequenzen" beschreibt den
+- [ ] **ADR-010-Drift:** `docs/factory/adr/010-config-validation-gate.md` §„Konsequenzen" beschreibt den
       Team-Override-Mechanismus für `model_tiers`-Pfade, ohne `heavy` als Sonderfall zu nennen.
       `/architecture` entscheidet, ob ein ADR-Nachtrag nötig ist oder ein Kommentar-Update im Gate-
       Skript/den Defaults genügt (kein neuer ADR laut Scope-Entscheidung oben).

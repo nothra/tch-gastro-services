@@ -122,7 +122,7 @@
   nur als `pre-push`-Gate dokumentiert, hat faktisch aber ein zweites, server-seitiges Bein –
   eine einzelne Assertion in `run-tests.sh` (Test 1), die über den required Check
   `factory-self-test` läuft. *Verifiziert:* das ist genau das Muster, das
-  [ADR-041](../docs/adr/041-config-validation-ci-required-check.md) für `config-validation-check.sh`
+  [ADR-041](../docs/factory/adr/041-config-validation-ci-required-check.md) für `config-validation-check.sh`
   als fragil verworfen hat („eine einzelne Testzeile …, die *zufällig* das reale
   `factory.config.yml` gegen das Gate laufen lässt"); ADR-047 erwähnt ADR-041 nicht. Zweite
   Hälfte: `CLAUDE.md:198` sagt „blockiert einen Push fail-closed" – für einen umgehbaren Hook

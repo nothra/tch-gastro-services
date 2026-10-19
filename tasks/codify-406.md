@@ -1,7 +1,7 @@
 ## Codify-Report: Task 406
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` + Index-Zeile (`PROJECT-CONTEXT.md`) – Rezidiv #369: Lauf-Sperre im
+- `docs/project/lessons/frontend-react.md` + Index-Zeile (`PROJECT-CONTEXT.md`) – Rezidiv #369: Lauf-Sperre im
   `AktionsMenue` zuerst nur für den Erstatten-Eintrag, „Bearbeiten"/„Löschen" übersehen (Review-Iteration 2).
   Regel: Sperre für alle Interaktionsflächen im Baustein, Test `it.each`.
 - `docs/factory/lessons/testing.md` + Ergänzung der bestehenden Index-Zeile (#403) – Rezidiv: Opt-in-E2E-Spec lief erst

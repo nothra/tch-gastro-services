@@ -2,25 +2,25 @@
 
 ## Kontext
 
-[ADR-006](../adr/006-measurement-architecture.md) trennt zwei Messebenen: **Prozess**
+[ADR-006](../factory/adr/006-measurement-architecture.md) trennt zwei Messebenen: **Prozess**
 (Git/GitHub) und **Telemetrie** (Token/Kosten/Modell-Nutzung via OTEL). Die Prozess-Ebene
-läuft seit #314 automatisch je Pipeline-Lauf ([ADR-045](../adr/045-prozess-messung-je-pipeline-lauf.md)).
+läuft seit #314 automatisch je Pipeline-Lauf ([ADR-045](../factory/adr/045-prozess-messung-je-pipeline-lauf.md)).
 Die Telemetrie-Ebene existiert dagegen nur als **Beispiel-Datei** (`config/otel.env.example`,
 Default aus) – es entstehen keine persistierten Token-/Kosten-Daten.
 
 Damit fehlt die Grundlage für eine Klasse von Entscheidungen, die die Factory laufend trifft:
-**welches Modell für welchen Schritt.** [ADR-038](../adr/038-modell-tiers-groessenabhaengig.md)
-vergibt Tiers größenabhängig (`tier_by_size`), [ADR-009](../adr/009-factory-configuration.md)
+**welches Modell für welchen Schritt.** [ADR-038](../factory/adr/038-groessenabhaengige-modell-tier-wahl.md)
+vergibt Tiers größenabhängig (`tier_by_size`), [ADR-009](../factory/adr/009-factory-configuration.md)
 nennt als späteren Kalibrierungs-Input ausdrücklich „OTEL-Historie (ADR-006) → Pro-Skill-
 Verteilung → kalibrierte Defaults". Diese Historie gibt es nicht. Auch
-[ADR-047](../adr/047-import-kontext-guidelines-nach-erzwungenheit.md) musste ohne Kostenzahlen
+[ADR-047](../factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md) musste ohne Kostenzahlen
 entscheiden, weil OTEL per Default aus ist.
 
 `spec-314` hat diese Arbeit bewusst vertagt und die Bedingungen benannt: die „Ernte" liegt
 „genau auf der Grenze, die ADR-006 zieht (Option B: ‚Token/Kosten aus Logs oder API-Antworten
 selbst parsen' – abgelehnt). Das braucht eine eigene ADR und eine eigene Issue." Diese Issue
 ist #334; die ADR ist
-[ADR-049](../adr/049-telemetrie-persistenz-je-pipeline-lauf.md), in dieser Task entstanden.
+[ADR-049](../factory/adr/049-telemetrie-persistenz-je-pipeline-lauf.md), in dieser Task entstanden.
 
 ### Vorab gemessene Faktenlage (Task 334, Haiku-Proben, ~0,45 USD)
 
@@ -145,7 +145,7 @@ installierte `claude`-CLI 2.1.267 mit `OTEL_METRICS_EXPORTER=console` erhoben:
 ## Offene Fragen – entschieden in ADR-049
 
 Alle vier Fragen sind in
-[ADR-049](../adr/049-telemetrie-persistenz-je-pipeline-lauf.md) beantwortet; die Formulierungen
+[ADR-049](../factory/adr/049-telemetrie-persistenz-je-pipeline-lauf.md) beantwortet; die Formulierungen
 bleiben als Entscheidungsgrundlage stehen. Kurzfassung:
 
 - **Option B?** Nein (§E1) – kein Nachbau, nur CLI-Ist-Werte; verbindliche Grenze „nie selbst

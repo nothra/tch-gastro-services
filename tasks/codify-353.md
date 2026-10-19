@@ -1,7 +1,7 @@
 ## Codify-Report: Task 353
 
 ### Neue Regeln hinzugefügt
-- [`docs/factory/lessons/db-drizzle.md`](../docs/factory/lessons/db-drizzle.md) – „Zweiter
+- [`docs/project/lessons/db-drizzle.md`](../docs/project/lessons/db-drizzle.md) – „Zweiter
   Fehler-Übersetzungs-Wrapper um einen einzelnen DB-Call: Catch-Scope exakt auf den riskanten
   Aufruf begrenzen" – wegen: Review-Runde-1-Finding (Wichtig) dieser Task. Der erste Entwurf des
   FK-Violation-Fixes wickelte den `try/catch` um die gesamte restliche Funktion

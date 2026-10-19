@@ -32,8 +32,8 @@ _Keine._
   `ceil.yml`-Fixture (Wert `9999`, deckt weiterhin den „weit über jeder plausiblen Ceiling"-Fall
   ab) – beide Grenzfälle bleiben separat und aussagekräftig, keine Dopplung.
 - **Runde 3 (Architektur):** Die ADR-Erweiterung folgt exakt dem im Projekt bereits etablierten
-  Amendment-Muster (ADR-036 D1 ↔ ADR-046): [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md)
-  ist eine eigenständige neue ADR, [ADR-010](../docs/adr/010-config-validation-gate.md) bekam
+  Amendment-Muster (ADR-036 D1 ↔ ADR-046): [ADR-051](../docs/factory/adr/051-turn-limit-ceiling-implement-80.md)
+  ist eine eigenständige neue ADR, [ADR-010](../docs/factory/adr/010-config-validation-gate.md) bekam
   nur eine kurze Blockquote-Notiz an der richtigen Stelle („Heimat der Obergrenze"), kein
   Rewrite, keine Status-Änderung. ADR-009 §6 wurde korrekt **nicht** angefasst, weil es nur den
   Mechanismus, keinen Zahlenwert beschreibt – bewusst begründet in den

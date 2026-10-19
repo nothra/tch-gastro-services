@@ -90,7 +90,7 @@ Zwei Fundstellen hat die Issue **nicht** genannt: `OPERATING.md:191-192` (dort z
 falsche „genau eins"-Klammer über beide Achsen) und die zwei Inline-Aufzählungen in
 `git-workflow.md` selbst.
 
-Bewusst **nicht** angefasst: `docs/adr/018-central-issue-seam.md:30` und
+Bewusst **nicht** angefasst: `docs/factory/adr/018-central-issue-seam.md:30` und
 `docs/specs/spec-82-issue-seam.md:18,39` – historische Problembeschreibung des Zustands vor
 dem Seam, kein Present-Tense-Mechanik-Text.
 

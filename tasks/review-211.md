@@ -8,7 +8,7 @@ liegende WICHTIG-Findings führen zu einer Rework-Runde.
 - keine
 
 ## Wichtige Findings (sollten behoben werden)
-- [x] `docs/adr/019-stage3-commit-seam-report-guard.md:65-66` – ADR-Drift: §4 beschreibt die
+- [x] `docs/factory/adr/019-stage3-commit-seam-report-guard.md:65-66` – ADR-Drift: §4 beschreibt die
   Verdict-Erkennung noch als `grep -oE "APPROVED|NEEDS_REWORK" / "PASSED|NEEDS_FIXES"`
   („letztes Vorkommen"). Genau diese Mechanik ersetzt dieser PR durch die Anker-basierte
   awk-Logik. Die Entscheidung („ein Ort", Report-Guard) bleibt gültig, aber die beschriebene

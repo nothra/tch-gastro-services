@@ -17,7 +17,7 @@ Bei der Live-Prüfung von #48 fiel eine Lücke im Deploy-Gate (`deploy-gate.yml`
   bewusst **manueller** Schritt. Folge: Der Prod-**Code** kann ein Schema erwarten (`roles`),
   das die Prod-**DB** noch nicht hat → Login bricht. Genau so nach dem #48-Merge geschehen:
   Code live auf Prod, DB-Migration `0002` offen.
-- Zusätzlich verifizierte `post-merge-verify` (ADR-007) faktisch nichts: keine
+- Zusätzlich verifizierte `post-merge-verify` (Factory-ADR-007) faktisch nichts: keine
   `FACTORY_HEALTHCHECK_URL` gesetzt (→ übersprungen), und `/api/version` berührt die DB nicht,
   würde einen Schema-Mismatch also selbst bei Konfiguration nicht erkennen. Der Job läuft zudem
   beim `main`-Push **parallel** zum Gate – zu einem Zeitpunkt, an dem Prod noch gar nicht
@@ -74,7 +74,7 @@ anonymisiert, migriert und per E2E getestet. Damit ist die Migration vor dem Pro
 empirisch abgesichert – die Voraussetzung, unter der die manuelle Kontrolle entfallen kann.
 Fail-closed an zwei Stellen (Pflicht-Secrets, „kein Promote bei Migrationsfehler") folgt dem
 Projektgrundsatz „Gates statt Vertrauen". Der DB-berührende Healthcheck schließt die konkrete
-#48-Klasse (Schema-Drift) und macht CI-grün ↔ Prod-grün endlich deckungsgleich (ADR-007).
+#48-Klasse (Schema-Drift) und macht CI-grün ↔ Prod-grün endlich deckungsgleich (Factory-ADR-007).
 
 ## Consequences
 

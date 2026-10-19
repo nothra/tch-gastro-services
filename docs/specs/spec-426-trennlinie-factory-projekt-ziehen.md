@@ -3,7 +3,7 @@
 > **Detail-Spec zu Teil-Task T1a** des Epics #424. Verfeinert
 > [spec-424](spec-424-factory-in-eigenes-repo-auslagern.md) für **AK1.5**, die **Datei-Anteile von
 > AK3.2/AK3.3** und **AKE.1**; widerspricht ihr nicht. Technische Grundlage:
-> [ADR-063](../adr/063-factory-eigenes-repo-vendored-manifest.md) D3 (Besitz), D8 (ADRs),
+> [ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md) D3 (Besitz), D8 (ADRs),
 > D11 (Schnitt).
 >
 > **Umsetzung in drei PRs** (Entscheidung 2026-10-19, Q1) – jede Teil-Task hat ihr eigenes Issue,

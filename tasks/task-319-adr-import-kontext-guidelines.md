@@ -34,7 +34,7 @@ Umsetzung (in diesem Task):
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
-**Entscheidung: [ADR-047](../docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md)** –
+**Entscheidung: [ADR-047](../docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md)** –
 Schnitt nach *Erzwungenheit*: eine Guideline darf den Dauerkontext verlassen, wenn ein
 Gate/Hook/Ruleset sie fail-closed erzwingt; wo sie nur durch Gelesenwerden wirkt, bleibt sie.
 
@@ -543,7 +543,7 @@ gegenüber dem Nutzen einer korrekten Präfix-Klassifizierung. Entscheidung des 
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
-Alle drei durch [ADR-047](../docs/adr/047-import-kontext-guidelines-nach-erzwungenheit.md)
+Alle drei durch [ADR-047](../docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md)
 beantwortet – keine offene Frage mehr:
 - [x] Granularität rollen-spezifischer Zuschnitte → entfällt, Kandidat 2 wurde verworfen (§Begründung, §Alternativen Option C2)
 - [x] Grenze „geltende Regel" vs. „Vorfall-Narrativ" → §2 (Regel bleibt, Didaktik/Prosa darf weichen); Beleg über das Regel-Inventar unten

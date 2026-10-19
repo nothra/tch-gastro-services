@@ -26,7 +26,7 @@ Kein Fehler-Muster erkennbar, das eine neue projektspezifische Lesson, eine Guid
 Ergänzung oder einen neuen Check rechtfertigen würde. Der Task bestätigt im Gegenteil
 bereits bestehende Regeln als wirksam:
 
-- [`lessons/db-drizzle.md`](../docs/factory/lessons/db-drizzle.md) / `clean-code.md` – „keine
+- [`lessons/db-drizzle.md`](../docs/project/lessons/db-drizzle.md) / `clean-code.md` – „keine
   toten Fallbacks": Kein `?? fallback` auf `kassierRows[index]` eingeführt, obwohl ein
   Sortier-Refactoring oft dazu verleitet, defensiv zu programmieren.
 - [`lessons/testing.md`](../docs/factory/lessons/testing.md) – Tests prüfen gegen Literale/

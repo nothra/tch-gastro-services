@@ -183,7 +183,7 @@ behoben:
   Out-of-Scope-Issue **#281**. Die Verhaltensänderung selbst (effektiven Hookpfad statt reiner
   Gesetzt-Prüfung vergleichen) ist eine Spec-Entscheidung gegen ADR-042 §Consequences und
   bleibt außerhalb dieses PRs.
-- **W2** – `docs/adr/042-hook-installation-single-source.md` nannte die beiden
+- **W2** – `docs/factory/adr/042-hook-installation-single-source.md` nannte die beiden
   Escape-Hatch-/Leerstring-Consequence-Bullets weiter ohne Issue-Nummer, obwohl der in
   demselben PR committete Security-Report (`c0f999a`) bereits **#278** (Opt-out) und **#279**
   (Leerstring-Blindspot) referenziert – zwei Artefakte desselben PRs widersprachen sich über

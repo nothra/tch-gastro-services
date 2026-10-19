@@ -41,7 +41,7 @@ Vollständige Spec: [`docs/specs/spec-207-create-issue-idempotenz-guard.md`](../
 > beschriebene `.claude/**`-Patch angewendet ist (siehe Blocker).
 
 ## Technische Notizen
-Entscheidung: [ADR-040](../docs/adr/040-idempotenter-issue-seam-fuer-pipeline-retries.md) (erweitert ADR-018).
+Entscheidung: [ADR-040](../docs/factory/adr/040-idempotenter-issue-seam-fuer-pipeline-retries.md) (erweitert ADR-018).
 
 - **Neue Funktion** `create_issue_idempotent <title> <body> <art> [aspekt-csv]` in
   `scripts/lib/create-issue.sh` – gleiche Signatur wie `create_issue`. Sucht ein **offenes**

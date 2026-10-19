@@ -87,7 +87,7 @@ Findings).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
-Neue Lesson `docs/factory/lessons/frontend-react.md` („`.map`-Key aus Anzeigefeldern statt
+Neue Lesson `docs/project/lessons/frontend-react.md` („`.map`-Key aus Anzeigefeldern statt
 stabilem Identifier ist eine latente Kollisionsquelle", aus #206) + Index-Zeile in
 `docs/factory/PROJECT-CONTEXT.md`. Details: [codify-206](../tasks/codify-206.md). Security-Review
 und übrige Nitpicks lieferten kein neues, wiederkehrendes Muster.

@@ -21,7 +21,7 @@ legt jeweils `start-work.sh` an.
 
 - Spec: [`docs/specs/spec-426-trennlinie-factory-projekt-ziehen.md`](../docs/specs/spec-426-trennlinie-factory-projekt-ziehen.md)
 - Epic-Spec: [`docs/specs/spec-424-factory-in-eigenes-repo-auslagern.md`](../docs/specs/spec-424-factory-in-eigenes-repo-auslagern.md)
-- Architektur: [ADR-063](../docs/adr/063-factory-eigenes-repo-vendored-manifest.md) D3, D8, D11
+- Architektur: [ADR-063](../docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md) D3, D8, D11
 
 ## Akzeptanzkriterien
 <!-- Volltext GIVEN/WHEN/THEN je AK in der Spec -->
