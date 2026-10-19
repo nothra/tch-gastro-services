@@ -5,6 +5,13 @@
 > Issue, eine eigene Detail-Spec und einen eigenen PR bekommen und **nacheinander** laufen
 > (T1a → T1b → T2 → T3). Diese Spec legt das gemeinsame Ziel, den Schnitt und die Akzeptanzkriterien
 > auf Epic-Ebene fest; die Detail-Specs dürfen verfeinern, aber nicht widersprechen.
+>
+> | Teil-Task | Issue | AK |
+> |---|---|---|
+> | T1a · Trennlinie ziehen (TCH) | #426 | AK1.5, Datei-Anteile AK3.2/AK3.3, AKE.1 |
+> | T1b · Herauslösen nach `nothra/dev-factory` | #427 | AK1.1–AK1.4, AK1.6–AK1.8, F5 |
+> | T2 · Werkzeug abholen | #428 | AK2.1–AK2.13, F1–F4, F7, F8 |
+> | T3 · Umziehen | #429 | AK3.1–AK3.10, F6 |
 
 ## Kontext
 
