@@ -1,7 +1,7 @@
 # Task 424: factory-in-eigenes-repo-auslagern
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -23,9 +23,15 @@ Umsetzung in vier Teil-Tasks, nacheinander, je eigenes Issue/Spec/PR (Schnitt la
 
 Dieser Epic-PR liefert **nur** Spec + ADR (Phase 1); die Umsetzung läuft in den Teil-Tasks.
 
+> **Merge-Notiz (2026-10-19, Entscheidung des Entwicklers):** PR #425 wird nach Phase 1 gemergt.
+> Sein `Closes #424` schließt das Epic dabei automatisch; #424 wird direkt danach **wieder geöffnet**
+> und erst mit dem Merge von T3 (#429) geschlossen. Die übrigen offenen Checkboxen (Status-Schritte
+> ab „Review bestanden", T1a–T3, AKE) sind bewusst offen – sie werden in den Teil-Tasks erledigt,
+> diese Datei bleibt auf `main` als Epic-Übersicht stehen.
+
 ## Akzeptanzkriterien
 <!-- Epic-Ebene; Detail-AK in der Spec (AK1.x–AK3.x, AKE.x, F1–F7) -->
-- [ ] Spec mit Akzeptanzkriterien für T1–T3 liegt vor und ist mit dem Entwickler abgestimmt
+- [x] Spec mit Akzeptanzkriterien für T1–T3 liegt vor und ist mit dem Entwickler abgestimmt
 - [x] ADR zu Verteilungsmechanik, Historienübertrag, Versionsschema und Dateitrennung (Spec Q1–Q5, Q8) liegt vor → ADR-063
 - [x] Teil-Issues T1a, T1b, T2, T3 sind angelegt und in der Spec verlinkt (#426, #427, #428, #429)
 - [ ] T1a (#426) gemergt (AK1.5, Datei-Anteile AK3.2/3.3)
