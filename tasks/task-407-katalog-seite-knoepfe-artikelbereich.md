@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -97,6 +97,16 @@ Siehe Spec → „Offene Fragen“ (Q1–Q6, alle von Ralf mit Default bestätig
 - Coverage `app/verwaltung/katalog/**` (ohne Tests): 100 % Statements (191/191), Branches (124/124),
   Functions (50/50), Lines (157/157). Gesamtsuite: 1760 passed, 112 skipped (DB-Tests ohne dotenv,
   Änderung berührt keine Data-Layer). Keine Testlücken, kein Produktionscode geändert.
+
+## Refactor-Notizen (/refactor, 2026-10-19)
+- Einziger Eingriff: `BEREICH_CLASS` in `KatalogBearbeiten.tsx` zu den Modul-Konstanten oben gezogen
+  (stand zwischen den Komponenten, obwohl `BearbeitenSchritt` sie schon davor nutzt). Kein neues
+  Verhalten; `app/verwaltung/katalog`: 159 Tests grün.
+- Geprüft, bewusst belassen: `BereichFormular` (Dialog „Katalog bearbeiten“) und
+  `ArtikelAktivUmschalten` (`CatalogRow`) ähneln sich, unterscheiden sich aber in Trenner, Hidden-Feldern
+  und Label-Herkunft – ein gemeinsamer Baustein wäre neue Abstraktion, kein Clean-Code-Gewinn.
+- Wegwerf-Dateien (gitignoriert, `*407*.tmp.*`) liegen noch im Worktree; `rm` war in dieser Session nicht
+  freigegeben – vor dem Merge von Hand löschen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

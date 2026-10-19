@@ -32,6 +32,8 @@ type Schritt = { art: "bearbeiten"; zurueckVonBestaetigung: boolean } | { art: "
 
 const BEARBEITEN_BEIM_OEFFNEN: Schritt = { art: "bearbeiten", zurueckVonBestaetigung: false };
 
+const BEREICH_CLASS = "flex flex-col gap-3 py-4 first:pt-0 last:pb-0";
+
 const SCHRITT_TITEL: Record<Schritt["art"], string> = {
   bearbeiten: "Katalog bearbeiten",
   bestaetigen: "Katalog deaktivieren?",
@@ -161,8 +163,6 @@ function BearbeitenSchritt({
     </>
   );
 }
-
-const BEREICH_CLASS = "flex flex-col gap-3 py-4 first:pt-0 last:pb-0";
 
 interface BereichFormularProps {
   action: FormAction<CatalogFormState>;
