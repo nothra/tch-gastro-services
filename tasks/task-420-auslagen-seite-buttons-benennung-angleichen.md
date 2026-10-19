@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Auslagen-Seite: Leerzustand ohne eigenen Auslöser („+ Neu“ im Kopf ist einziger Auslöser), Dialog ohne Teilnehmer mit „Abbrechen“ + deaktiviertem „Erfassen“, Glossar-Regel zur Benennung. Spec: `docs/specs/spec-420-auslagen-seite-ausloeser-angleichen.md`. Dialogtexte „erfassen“ bleiben (Q1).
@@ -56,7 +56,10 @@ Iteration 2 (`tasks/review-420.md`): APPROVED – keine Findings; W1/N1–N3 als
 /refactor (2026-10-19): Diff geprüft (Naming, Funktionslänge, Duplikate, Kommentare) – kein Änderungsbedarf; `primaerBeschriftung` und der Wegfall von `imLeerzustand` sind bereits der Clean-Code-Stand. Tests (782) und Lint grün, kein Code geändert.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+/codify (2026-10-19): 1 Lesson (frontend-react: Sonderzweig + Betriebsarten), Report `tasks/codify-420.md`.
+
+## PR-Shepherd
+PR-Shepherd 2026-10-19: Merge freigegeben – alle Gates grün (PR #422, keine offenen Review-Kommentare, Branch auf aktuellem main, CI grün).
 
 ---
 Branch: `fix/420-auslagen-seite-buttons-benennung-angleichen`
