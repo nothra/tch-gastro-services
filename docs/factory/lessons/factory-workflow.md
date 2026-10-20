@@ -1664,3 +1664,13 @@ Lesson #345 (`runAtomic`, Neon-HTTP kennt keine Transaktionen), obwohl die Lesso
 selben Commit nach (Grep auf `<Dateiname>:` über `docs/`). (2) Eine Fix-Empfehlung in `kleinfunde.md`/Issue vor dem
 Eintragen gegen die Lessons der berührten Schicht lesen (hier `db-drizzle.md`) – die Empfehlung ist Code-Vorgabe für
 später und trägt dieselbe Prüfpflicht wie Code.
+
+### Repo-weiter Referenz-Scanner (Link-/Pfad-Check) nimmt Patch-Artefakte aus (aus #426, /implement-Selbstfund)
+
+`tasks/patch-<id>.diff` (Patch-Workflow für `.claude/**`) enthält den **künftigen** Stand, also Links und Pfade,
+deren Ziele erst nach `git apply` existieren – oder alte Pfade im Minus-Teil. Ein Check über alle getrackten
+Dateien (`git grep` auf ADR-Links) meldet sie als tot, solange der Patch im Branch liegt.
+
+**Regel:** Repo-weite Scanner schließen `tasks/patch-*.diff` per Pathspec aus (`-- . ':!tasks/patch-*.diff'`);
+die Wirkung des Patches prüft ein Test gegen die **angewendete** Live-Datei (Lesson #212). Gilt für jeden
+neuen Scanner über `git ls-files`/`git grep`, nicht nur für Link-Checks.

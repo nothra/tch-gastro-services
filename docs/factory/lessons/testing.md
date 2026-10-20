@@ -671,3 +671,14 @@ fehlende Beweis nicht die Existenz eines Branches ist, sondern die **Weiterleitu
 bereits validierten Werts an eine andere Komponente. **Laden bei:** `/implement`, `/test` bei
 Änderungen an `MAX_TURNS_CEILING`, `model_tiers`, `tier_by_size` oder anderen Gate-geprüften
 Config-Werten mit eigenem Konsumenten außerhalb des Gates selbst.
+
+### Test, der die Git-Historie liest (`git log --follow`), braucht in CI einen Shallow-Clone-Skip (aus #426, /implement-Selbstfund)
+
+`actions/checkout` klont per Default flach (`fetch-depth: 1`). Ein Test, der die Historie vor einem `git mv`
+belegen soll (`git log --follow`, `git blame`, Alt-Pfad-Lookup), findet dort nur den einen Commit und wird
+**in CI rot, lokal grün** – der Fehler ist reine Umgebung, kein Verhalten.
+
+**Regel:** Historie-Assertions hinter `[ "$(git rev-parse --is-shallow-repository)" = "false" ]` legen und den
+Skip **sichtbar** ausgeben (eigene Zeile, kein stilles Weglassen); das Verhalten selbst bleibt über einen
+nicht historienabhängigen Test (Datei liegt am Neu-Ort, am Alt-Ort fehlt sie) abgedeckt. Den Skip nicht durch
+`fetch-depth: 0` im Workflow ersetzen – das verlängert jeden Lauf für einen einzigen Test.

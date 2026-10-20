@@ -242,3 +242,13 @@ anlegen, oder das Muster so ankern, dass der Funktionsrumpf ausgenommen ist, ode
 Ersetzung gezielt gegenprüfen: „enthält der neue Helfer noch das Original?" (`sed -n
 '/^name() {/,/^}/p'`). Die reine Zählung der ersetzten Stellen genügt **nicht** – sie zählt den
 Selbsttreffer als Erfolg.
+
+### BSD-`awk`: Zeichenklasse mit `\\`, `[`/`]` und Sonderzeichen scheitert still – `index()` statt Bracket-Ausdruck (aus #426, /implement-Selbstfund)
+
+Ein Glob→Regex-Übersetzer, der Sonderzeichen mit `c ~ /[\\.+?(){}\[\]^$|]/` erkennt, verhält sich in macOS-awk
+(BSD) anders als in gawk/mawk: die Klasse wird falsch geparst, einzelne Zeichen werden nicht escaped, das Gate
+liefert Fehlzuordnungen – erst die Suite, nicht der Parser, meldet es.
+
+**Regel:** Zeichen-Mitgliedschaft in portablen Gate-Skripten mit `index("<Zeichenliste>", c) > 0` prüfen, nicht mit
+einem Bracket-Ausdruck, der `\\` oder `]` enthält (siehe `ownership-check.sh`, `glob_to_ere`). Ergänzt die
+Portabilitätsregeln in `clean-code.md` (POSIX-Regex, kein PCRE).
