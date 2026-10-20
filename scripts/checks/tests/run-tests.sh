@@ -8912,12 +8912,13 @@ while IFS= read -r hdr_426; do
 done <<< "$(grep -E '^\*\*\[`[^`]*lessons/[a-z-]+\.md`\]' "$CTX_426")"
 assert_true "$([ -z "$ctx_dead_426" ]; echo $?)" "#426 AK-C3: jeder Gruppen-Link des Index zeigt auf eine existierende Datei (tot:${ctx_dead_426:- keine})"
 assert_true "$([ -z "$ctx_noload_426" ]; echo $?)" "#426 AK-C3: jede Index-Gruppe behält ihren „Laden bei“-Trigger (ohne:${ctx_noload_426:- keine})"
+# Datei-grep statt assert_contains_286: PROJECT-CONTEXT.md (> 64 KB, Pipe-Puffer) macht das Pipe-`grep -q` unter pipefail rot (bash-gotchas #3).
 for f_426 in "$FACTORY_ROOT"/docs/factory/lessons/*.md; do
-  assert_contains_286 "$(cat "$CTX_426")" "](lessons/$(basename "$f_426"))" \
+  assert_true "$(grep -qF -- "](lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
     "#426 AK-C3: Factory-Lesson $(basename "$f_426") steht im Index"
 done
 for f_426 in "$FACTORY_ROOT"/docs/project/lessons/*.md; do
-  assert_contains_286 "$(cat "$CTX_426")" "](../project/lessons/$(basename "$f_426"))" \
+  assert_true "$(grep -qF -- "](../project/lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
     "#426 AK-C3: Projekt-Lesson $(basename "$f_426") steht im Index"
 done
 

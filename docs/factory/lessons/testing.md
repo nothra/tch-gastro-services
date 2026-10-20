@@ -682,3 +682,14 @@ belegen soll (`git log --follow`, `git blame`, Alt-Pfad-Lookup), findet dort nur
 Skip **sichtbar** ausgeben (eigene Zeile, kein stilles Weglassen); das Verhalten selbst bleibt über einen
 nicht historienabhängigen Test (Datei liegt am Neu-Ort, am Alt-Ort fehlt sie) abgedeckt. Den Skip nicht durch
 `fetch-depth: 0` im Workflow ersetzen – das verlängert jeden Lauf für einen einzigen Test.
+
+### `assert_contains_286` mit großer Datei als Haystack ist in CI rot, lokal grün (aus #426, CI-Befund nach `/refactor`)
+
+Der Helfer reicht den Haystack per `printf | grep -q` weiter. Ist er größer als der Pipe-Puffer (hier
+`PROJECT-CONTEXT.md`, 64 KB), beendet `grep -q` früh, `printf` bekommt SIGPIPE und `pipefail` macht den Treffer zum
+Falsch-Rot (bash-gotchas #3) – auf dem Entwickler-Mac blieb es grün, nur der CI-Runner meldete „Broken pipe". Das
+`/refactor` hatte eine Datei-`grep`-Prüfung auf den Helfer umgestellt, ohne die Haystack-Größe zu prüfen.
+
+**Regel:** Beim Umstellen einer Datei-Prüfung auf `assert_contains_286`/`assert_absent` die Dateigröße prüfen
+(`wc -c`); ab ~32 KB bleibt es beim direkten `grep -qF -- … <datei>` (kein Pipe-Ende). Ein lokal grüner Lauf ist
+dafür kein Beleg – nach einem Test-Refactor die CI-Läufe abwarten, bevor „identisch grün" behauptet wird.
