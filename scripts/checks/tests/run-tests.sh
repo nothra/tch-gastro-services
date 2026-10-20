@@ -8711,9 +8711,9 @@ assert_exit 1 $? "#426 AK-A4 (Kontrolle): scripts/run-pipeline.sh ist NICHT 'pro
 
 # AK-A6: das Gate hängt im lokalen pre-push (Zeile des echten Aufrufs) UND in der Suite, die
 # CI als factory-self-test fährt – ein bestehender Required Check, kein neuer Check-Name.
-assert_true "$(grep -q 'ownership-check.sh' "$CHECKS_DIR/pre-push.sh"; echo $?)" \
+assert_contains_286 "$(cat "$CHECKS_DIR/pre-push.sh")" 'ownership-check.sh' \
   "#426 AK-A6: pre-push.sh ruft ownership-check.sh auf (lokales Gate)"
-assert_true "$(grep -q 'bash scripts/checks/tests/run-tests.sh' "$FACTORY_ROOT/.github/workflows/factory-ci.yml"; echo $?)" \
+assert_contains_286 "$(cat "$FACTORY_ROOT/.github/workflows/factory-ci.yml")" 'bash scripts/checks/tests/run-tests.sh' \
   "#426 AK-A6: factory-self-test (CI) führt diese Suite aus – damit auch den Check oben"
 # ── #426 T1a-1 · ADRs trennen (AK-B1…B6, F-2) ────────────────────────────────────────────────
 ADR_LINKS_426="$CHECKS_DIR/adr-links-check.sh"
@@ -8808,7 +8808,7 @@ printf '[a](001-a.md) [b](002-b.md) [c](003-c.md)\n' > "$TMP_RM_426/README.md"
 adr_readme_matches_426 "$TMP_RM_426"
 assert_exit 1 $? "#426 AK-B4 (Kontrolle): ein gelisteter Geisterverweis macht den Vergleich rot"
 rm -rf "$TMP_RM_426"
-assert_true "$(grep -q 'docs/factory/adr/' "$FACTORY_ROOT/docs/adr/README.md"; echo $?)" \
+assert_contains_286 "$(cat "$FACTORY_ROOT/docs/adr/README.md")" 'docs/factory/adr/' \
   "#426 AK-B4: das Projekt-README weist auf docs/factory/adr/ hin"
 
 # AK-B5: aktive Projekt-Dateien nennen Factory-ADRs als `Factory-ADR-NNN`
@@ -8913,11 +8913,11 @@ done <<< "$(grep -E '^\*\*\[`[^`]*lessons/[a-z-]+\.md`\]' "$CTX_426")"
 assert_true "$([ -z "$ctx_dead_426" ]; echo $?)" "#426 AK-C3: jeder Gruppen-Link des Index zeigt auf eine existierende Datei (tot:${ctx_dead_426:- keine})"
 assert_true "$([ -z "$ctx_noload_426" ]; echo $?)" "#426 AK-C3: jede Index-Gruppe behält ihren „Laden bei“-Trigger (ohne:${ctx_noload_426:- keine})"
 for f_426 in "$FACTORY_ROOT"/docs/factory/lessons/*.md; do
-  assert_true "$(grep -qF -- "](lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
+  assert_contains_286 "$(cat "$CTX_426")" "](lessons/$(basename "$f_426"))" \
     "#426 AK-C3: Factory-Lesson $(basename "$f_426") steht im Index"
 done
 for f_426 in "$FACTORY_ROOT"/docs/project/lessons/*.md; do
-  assert_true "$(grep -qF -- "](../project/lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
+  assert_contains_286 "$(cat "$CTX_426")" "](../project/lessons/$(basename "$f_426"))" \
     "#426 AK-C3: Projekt-Lesson $(basename "$f_426") steht im Index"
 done
 

@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -96,3 +96,8 @@ legt jeweils `start-work.sh` an.
 ---
 Branch: `refactor/426-trennlinie-factory-projekt-ziehen`
 Erstellt: 2026-10-19 08:34
+
+### /refactor
+
+- Fünf Inline-`assert_true "$(grep -q … ; echo $?)"`-Prüfungen in den #426-Testblöcken (pre-push-Wiring, `factory-ci.yml`, `docs/adr/README.md`, Lessons-Index ×2) rufen jetzt den vorhandenen Helfer `assert_contains_286` auf (Lesson #267/#310). Kein neues Verhalten; Suite vorher/nachher 1681 grün, 0 rot.
+- Bewusst nicht angefasst: Review-Nitpick `|` im Dateinamen (`ownership-check.sh`) – würde das Prüfverhalten ändern, kein Ist-Defekt (0 Dateien mit `|`).
