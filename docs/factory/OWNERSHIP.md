@@ -49,6 +49,7 @@ Parser und liest nichts anderes:
 | factory | `.github/workflows/factory-ci.yml` | Factory-Jobs; die TCH-Jobs `lint`/`test` wandern in #431 in `ci.yml` |
 | factory | `.github/workflows/factory-poll.yml` | Async-Start der Pipeline (ADR-008) |
 | factory | `config/otel.env.example` | Vorlage für die Telemetrie-Erhebung |
+| factory | `docs/factory/FACTORY.md` | Generischer Teil der Agenten-Regeln (aus `CLAUDE.md`, #431) |
 | factory | `docs/factory/OPERATING.md` | Betriebshandbuch der Pipeline; TCH-Abschnitte wandern in #432 nach `docs/project/` |
 | factory | `docs/factory/OWNERSHIP.md` | diese Tabelle |
 | factory | `docs/factory/kleinfunde.md` | Kleinfunde zu Factory-Dateien (Q6) |
@@ -99,7 +100,7 @@ Parser und liest nichts anderes:
 | project | `.issue-npm-pin.md` | verwaister Issue-Entwurf, kein Pipeline-Bestandteil |
 | project | `.prettierignore` | App-Formatierung |
 | project | `.prettierrc.json` | App-Formatierung |
-| project | `CLAUDE.md` | Projekt-Regeln; wird in #431 dünn und importiert `FACTORY.md` |
+| project | `CLAUDE.md` | Projekt-Regeln (TCH); importiert `FACTORY.md` und `PROJECT-CONTEXT.md` |
 | project | `LICENSE` | Lizenz des Projekts |
 | project | `app/**` | App-Code |
 | project | `db/**` | Schema, Migrationen, Data-Layer |

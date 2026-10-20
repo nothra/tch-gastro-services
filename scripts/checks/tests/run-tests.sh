@@ -1296,8 +1296,8 @@ echo "Codify (Bash-Gotchas-Guideline):"
 
 GOTCHAS="$FACTORY_ROOT/docs/factory/guidelines/bash-gotchas.md"
 assert_true "$([[ -f "$GOTCHAS" ]]; echo $?)" "bash-gotchas.md vorhanden"
-grep -q 'bash-gotchas.md' "$FACTORY_ROOT/CLAUDE.md"
-assert_true "$?" "bash-gotchas.md ist in CLAUDE.md referenziert"
+grep -q 'bash-gotchas.md' "$FACTORY_ROOT/docs/factory/FACTORY.md"
+assert_true "$?" "bash-gotchas.md ist in FACTORY.md referenziert"
 
 # Anti-Regression: die codifizierten Gotchas selbst nicht in den Skripten verwenden.
 # (Kommentarzeilen ausgenommen – die dürfen das Muster zu Doku-Zwecken nennen.)
@@ -5017,7 +5017,7 @@ echo "#262 Doku nennt den kanonischen Installationsweg (Lesson #211/#176):"
 # CLAUDE.md + git-workflow.md (Agenten-Regeln), OPERATING.md (Betrieb), CONTRIBUTING.md
 # (Einstieg für Menschen). Gesucht wird der Hook als Hook ('`commit-msg`-Hook') – 'commit-msg'
 # allein wäre Teilstring von 'commit-msg-check.sh' und damit nicht diskriminierend.
-CLAUDE_MD="$FACTORY_ROOT/CLAUDE.md"
+CLAUDE_MD="$FACTORY_ROOT/docs/factory/FACTORY.md"
 OPERATING_MD="$FACTORY_ROOT/docs/factory/OPERATING.md"
 CONTRIBUTING_MD="$FACTORY_ROOT/CONTRIBUTING.md"
 for doc_file in "$CLAUDE_MD" "$GITWF" "$OPERATING_MD" "$CONTRIBUTING_MD"; do
@@ -5370,7 +5370,7 @@ echo "#258 Doku nennt den kanonischen yq-Bereitstellungsweg (Lesson #211/#176):"
 # in den Agenten-Kontext geladen. Ohne Regel in GELADENER Doku entsteht der nächste kopierte
 # wget-Block genauso wie der, der zu #258 geführt hat. Vorbild ist install-hooks.sh: dieselbe
 # Regel steht dort in CLAUDE.md UND OPERATING.md (ADR-042).
-for yq_doc in "$FACTORY_ROOT/CLAUDE.md" "$FACTORY_ROOT/docs/factory/OPERATING.md"; do
+for yq_doc in "$FACTORY_ROOT/docs/factory/FACTORY.md" "$FACTORY_ROOT/docs/factory/OPERATING.md"; do
   [ -r "$yq_doc" ]
   assert_true "$?" "#258: $(basename "$yq_doc") ist lesbar (Vorbedingung des Doku-Checks)"
   grep -qF 'scripts/install-yq.sh' "$yq_doc"
@@ -5875,7 +5875,7 @@ echo ""
 echo "#267/#322 Session-Empfehlung vs. Worktree-Pflicht (git-workflow.md/CLAUDE.md/OPERATING.md/start-work.sh):"
 
 GW_267="$CHECKS_DIR/../../docs/factory/guidelines/git-workflow.md"
-CLAUDE_MD_267="$CHECKS_DIR/../../CLAUDE.md"
+CLAUDE_MD_267="$CHECKS_DIR/../../docs/factory/FACTORY.md"
 OPERATING_MD_267="$CHECKS_DIR/../../docs/factory/OPERATING.md"
 OLD_PHRASE_267="Jede neue Task in einer neuen Claude-Session starten"
 
@@ -5920,13 +5920,13 @@ assert_contains_286 "$gw_flat_267" "Parallele Sessions: eigener Worktree (nicht 
 # auf git-workflow.md als kanonische Quelle.
 claude_flat_267=$(flat_286 "$CLAUDE_MD_267")
 assert_contains_286 "$claude_flat_267" "Empfehlung (keine Pflicht): Für den \`/implement\`-Schritt einer Task eine neue Claude-Session öffnen" \
-  "AK3: CLAUDE.md bindet die Guardrail-Empfehlung explizit an den /implement-Schritt"
+  "AK3: FACTORY.md bindet die Guardrail-Empfehlung explizit an den /implement-Schritt"
 assert_contains_286 "$claude_flat_267" "Kanonische Quelle für Regelfall und Grenze:" \
-  "AK3: CLAUDE.md verweist auf eine kanonische Quelle für Regelfall/Grenze"
+  "AK3: FACTORY.md verweist auf eine kanonische Quelle für Regelfall/Grenze"
 assert_contains_286 "$claude_flat_267" "guidelines/git-workflow.md" \
   "AK3: der Verweis zeigt auf git-workflow.md"
 assert_absent "$claude_flat_267" "$OLD_PHRASE_267" \
-  "AK3: die alte, generische (nicht an /implement gebundene) Formulierung steht nicht mehr in CLAUDE.md"
+  "AK3: die alte, generische (nicht an /implement gebundene) Formulierung steht nicht mehr in FACTORY.md"
 assert_absent "Jede neue Task in einer neuen Claude-Session starten. start-work.sh erinnert daran." \
   "Kanonische Quelle" \
   "AK3 (Mutation): die alte Guardrail-Zeile ohne Quellverweis erfüllt den Guard nicht"
@@ -7126,9 +7126,9 @@ echo "#314 AK12: Doku beschreibt die Messung als Bestandteil jedes Pipeline-Lauf
 
 claude_md_flat_314=$(flat_286 "$CLAUDE_MD")
 assert_contains_286 "$claude_md_flat_314" 'läuft automatisch als Abschluss-Schritt' \
-  "#314 AK12: CLAUDE.md beschreibt die Messung als automatischen Pipeline-Bestandteil"
+  "#314 AK12: FACTORY.md beschreibt die Messung als automatischen Pipeline-Bestandteil"
 assert_contains_286 "$claude_md_flat_314" 'FACTORY_METRICS_ISSUE' \
-  "#314 AK12: CLAUDE.md nennt FACTORY_METRICS_ISSUE als Veröffentlichungs-Ziel"
+  "#314 AK12: FACTORY.md nennt FACTORY_METRICS_ISSUE als Veröffentlichungs-Ziel"
 
 DAILY_METRICS_MD="$FACTORY_ROOT/.claude/commands/daily-metrics.md"
 daily_metrics_flat_314=$(flat_286 "$DAILY_METRICS_MD")
@@ -7563,7 +7563,7 @@ assert_contains_286 "$ic_out" 'docs/fehlt.md' "#319: benennt die nicht lesbare D
 #    unbrauchbar, wenn genau diese Datei fehlt. Muster wie routes-doc-check.sh.
 rm -f "$TMP_IC/CLAUDE.md"
 ic_out="$(ic_319)"; ic_rc=$?
-assert_exit 1 "$ic_rc" "#319: fehlende CLAUDE.md → exit 1 (fail-closed)"
+assert_exit 1 "$ic_rc" "#319: fehlende FACTORY.md → exit 1 (fail-closed)"
 assert_contains_286 "$ic_out" "Einstiegsdatei" "#319: eigene Meldung für die fehlende Einstiegsdatei"
 # Nicht erreichbare Projektwurzel ist ein dritter, unterscheidbarer Fall (analog routes-doc-check).
 ic_out="$(FACTORY_DIR="$TMP_IC/gibt-es-nicht" bash "$IMPORT_CHECK" 2>&1)"; ic_rc=$?
@@ -7585,7 +7585,7 @@ wait "$ic_pid" 2>/dev/null; ic_rc=$?
 kill "$ic_dog" 2>/dev/null; wait "$ic_dog" 2>/dev/null
 assert_exit 0 "$ic_rc" "#319: zyklischer @import terminiert (kein Hänger)"
 assert_contains_286 "$(cat "$IC_CYCLE_OUT_319")" "52 von" \
-  "#319: der Zyklus zählt CLAUDE.md nur einmal (52 Zeilen, nicht 73)"
+  "#319: der Zyklus zählt FACTORY.md nur einmal (52 Zeilen, nicht 73)"
 rm -f "$IC_CYCLE_OUT_319"
 
 # 10. K1 (Review-Iteration 1+2): ein `@pfad` MITTEN IN PROSA wird von Claude Code geladen –
@@ -7704,20 +7704,20 @@ rm -rf "$TMP_PP319"
 #     (ADR-047 §3): ohne ihn wird eine ausgelagerte Datei zur toten Datei. Deckt die zwei neu
 #     ausgelagerten Dateien und die zwei schon vorher nur referenzierten ab – eine Schreibweise
 #     statt zweier (der ältere bash-gotchas-Guard oben prüft nur die Präsenz der Referenz).
-CLAUDE_FLAT_319="$(flat_286 "$FACTORY_ROOT/CLAUDE.md")"
+CLAUDE_FLAT_319="$(flat_286 "$FACTORY_ROOT/docs/factory/FACTORY.md")"
 for g in git-workflow architecture-principles bash-gotchas token-efficiency; do
   assert_true "$([[ -f "$FACTORY_ROOT/docs/factory/guidelines/$g.md" ]]; echo $?)" \
     "#319: guidelines/$g.md vorhanden"
   assert_contains_286 "$CLAUDE_FLAT_319" "guidelines/$g.md" \
-    "#319: $g.md ist in CLAUDE.md referenziert (nicht verwaist)"
+    "#319: $g.md ist in FACTORY.md referenziert (nicht verwaist)"
   # Gegenrichtung: nicht importiert – sonst ist die Umstellung nicht vollzogen
-  grep -qE "^@docs/factory/guidelines/$g\.md$" "$FACTORY_ROOT/CLAUDE.md"
+  grep -qE "^@docs/factory/guidelines/$g\.md$" "$FACTORY_ROOT/docs/factory/FACTORY.md"
   assert_true "$([ $? -ne 0 ]; echo $?)" "#319: $g.md ist nicht per @import geladen"
 done
 
 # 18. Die geladen bleibenden Guidelines MÜSSEN @importiert bleiben (ADR-047 §2).
 for g in clean-code tdd-principles testing-standards; do
-  grep -qE "^@docs/factory/guidelines/$g\.md$" "$FACTORY_ROOT/CLAUDE.md"
+  grep -qE "^@docs/factory/guidelines/$g\.md$" "$FACTORY_ROOT/docs/factory/FACTORY.md"
   assert_true "$?" "#319: $g.md bleibt per @import geladen"
 done
 
@@ -7732,7 +7732,7 @@ done
 # Eine reine Umformulierung der Beschreibung macht diese Tests rot, OBWOHL der Trigger noch da
 # ist – dann hier den Anker mitziehen, nicht den Trigger suchen.
 IC_NOQUOTE_319="$(mktemp)"
-sed 's/^[[:space:]]*>[[:space:]]*//' "$FACTORY_ROOT/CLAUDE.md" > "$IC_NOQUOTE_319"
+sed 's/^[[:space:]]*>[[:space:]]*//' "$FACTORY_ROOT/docs/factory/FACTORY.md" > "$IC_NOQUOTE_319"
 CLAUDE_TRIGGERS_319="$(flat_286 "$IC_NOQUOTE_319")"
 rm -f "$IC_NOQUOTE_319"
 IC_TRIGGER_GW_319='guidelines/git-workflow.md) – Branches, PR/Issue, Labels, Commits, Worktrees, Hook-Installation, Branch-Aufräumen · **Laden bei:**'
@@ -7749,7 +7749,7 @@ assert_contains_286 "$CLAUDE_TRIGGERS_319" "$IC_TRIGGER_AP_319" \
 IC_MUT_FILE_319="$(mktemp)"
 awk -v needle='API-Design · **Laden bei:**' -v repl='API-Design (ohne Trigger)' '
   { i = index($0, needle); if (i > 0) $0 = substr($0, 1, i - 1) repl substr($0, i + length(needle)); print }
-' "$FACTORY_ROOT/CLAUDE.md" | sed 's/^[[:space:]]*>[[:space:]]*//' > "$IC_MUT_FILE_319"
+' "$FACTORY_ROOT/docs/factory/FACTORY.md" | sed 's/^[[:space:]]*>[[:space:]]*//' > "$IC_MUT_FILE_319"
 IC_CLAUDE_MUT_319="$(flat_286 "$IC_MUT_FILE_319")"
 rm -f "$IC_MUT_FILE_319"
 assert_contains_286 "$IC_CLAUDE_MUT_319" "$IC_TRIGGER_GW_319" \
@@ -7816,16 +7816,16 @@ assert_contains_286 "$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")" \
 #     und ADR-043 („Ein Ort je Regel") entscheiden das, und der #315-Registry-Guard kennt
 #     CLAUDE.md nicht – eine Kopie hier wäre die einzige unbewachte (Review-Runde 3, K3).
 assert_absent "$CLAUDE_FLAT_319" "Fund-Art" \
-  "#319 K3: CLAUDE.md kopiert die Schwellen-Tabelle nicht"
+  "#319 K3: FACTORY.md kopiert die Schwellen-Tabelle nicht"
 assert_absent "$CLAUDE_FLAT_319" "Im Zweifel Issue" \
-  "#319 K3: CLAUDE.md kopiert die Schwellen-Regel nicht als Prosa"
+  "#319 K3: FACTORY.md kopiert die Schwellen-Regel nicht als Prosa"
 assert_absent "$CLAUDE_FLAT_319" "beliebig viele Aspekt-Labels" \
-  "#319 K3: CLAUDE.md kopiert die Label-Konvention nicht"
+  "#319 K3: FACTORY.md kopiert die Label-Konvention nicht"
 # Stattdessen ein Verweis auf die kanonische Quelle – sonst wäre die Regel im Dauerkontext
 # unauffindbar (das wäre der umgekehrte Fehler). Anker trägt die Semantik der Regel, nicht nur
 # das Fragment „kanonisch in": das wäre durch jede beliebige Umformulierung erfüllbar.
 assert_contains_286 "$CLAUDE_FLAT_319" "nie aus dem Gedächtnis" \
-  "#319 K3: CLAUDE.md verpflichtet zum Nachlesen der kanonischen Quelle"
+  "#319 K3: FACTORY.md verpflichtet zum Nachlesen der kanonischen Quelle"
 assert_contains_286 "$CLAUDE_FLAT_319" "„GitHub-Labels\"" \
   "#319 K3: der Verweis nennt den Abschnitt der kanonischen Quelle"
 
@@ -8587,13 +8587,13 @@ assert_absent 'hier steht der Parameter nicht' '--no-telemetry' \
 
 claude_md_flat_334=$(flat_286 "$CLAUDE_MD")
 assert_contains_286 "$claude_md_flat_334" 'läuft seit #334 automatisch je Pipeline-Lauf' \
-  "#334 Doku: CLAUDE.md beschreibt die Telemetrie als automatischen Pipeline-Bestandteil"
+  "#334 Doku: FACTORY.md beschreibt die Telemetrie als automatischen Pipeline-Bestandteil"
 assert_contains_286 "$claude_md_flat_334" '--no-telemetry' \
-  "#334 Doku: CLAUDE.md nennt den Abschalt-Parameter"
+  "#334 Doku: FACTORY.md nennt den Abschalt-Parameter"
 assert_contains_286 "$claude_md_flat_334" 'tasks/telemetry-<task-id>-<zeitstempel>.csv' \
-  "#334 Doku: CLAUDE.md nennt den Ablageort"
+  "#334 Doku: FACTORY.md nennt den Ablageort"
 assert_absent "$claude_md_flat_334" 'OTEL-Metriken (Token/Kosten/Nutzung pro Skill & Agent). Default aus' \
-  "#334 Doku: die überholte 'Default aus'-Formulierung steht nicht mehr in CLAUDE.md"
+  "#334 Doku: die überholte 'Default aus'-Formulierung steht nicht mehr in FACTORY.md"
 
 # Geprüft wird der Endzustand der COMMITTETEN Live-Datei, nicht tasks/patch-334.diff: das
 # Patch-Artefakt ist transient, die Zusicherung hängt an der Datei, die Agenten wirklich
@@ -8962,6 +8962,80 @@ for sk_426 in review security-review codify; do
   assert_contains_286 "$sk_flat_426" 'docs/project/kleinfunde.md' "#426 AK-L1: /$sk_426 nennt den Projekt-Ort der Kleinfunde"
   assert_contains_286 "$sk_flat_426" 'docs/factory/OWNERSHIP.md' "#426 AK-L1: /$sk_426 nennt die Zuordnungsregel (betroffene Datei laut Tabelle)"
 done
+
+# ─── #431 T1a-2 · Gruppe D: CLAUDE.md und FACTORY.md (AK-D1…D5) ─────────────────────────────
+echo ""
+echo "#431 AK-D: generischer Teil in FACTORY.md, CLAUDE.md dünn:"
+FACTORY_MD_431="$FACTORY_ROOT/docs/factory/FACTORY.md"
+CLAUDE_MD_431="$FACTORY_ROOT/CLAUDE.md"
+BASELINE_COMMIT_431="bcba043"  # main vor T1a-2 – Referenz für AK-D3 (Rekonstruktion der alten CLAUDE.md)
+
+# AK-D1/AK-D2: Datei-Anteile
+assert_true "$([[ -f "$FACTORY_MD_431" ]]; echo $?)" "#431 AK-D1: docs/factory/FACTORY.md existiert"
+for sec_431 in '## Kernprinzip' '## Nicht verhandelbare Prinzipien' '## Pipeline-Übersicht' '## Coding Guidelines' \
+               '### Kern-Kurzregeln Git-Workflow (immer geladen)' '## Agent-Rollen' '## Work Tracking' \
+               '## Guardrails' '## Self-Improvement Loop'; do
+  grep -qxF -- "$sec_431" "$FACTORY_MD_431"
+  assert_exit 0 "$?" "#431 AK-D1: FACTORY.md enthält den generischen Abschnitt '$sec_431'"
+done
+grep -qE '^# dm Development Factory · v[0-9]+\.[0-9]+\.[0-9]+$' "$FACTORY_MD_431"
+assert_exit 0 "$?" "#431 AK-D1: FACTORY.md trägt die Versionsangabe"
+imports_431="$(grep -E '^@' "$CLAUDE_MD_431" | sort | tr '\n' ' ')"
+assert_true "$([ "$imports_431" = "@docs/factory/FACTORY.md @docs/factory/PROJECT-CONTEXT.md " ]; echo $?)" \
+  "#431 AK-D2: CLAUDE.md importiert genau FACTORY.md und PROJECT-CONTEXT.md (Ist: $imports_431)"
+claude_flat_431="$(flat_286 "$CLAUDE_MD_431")"
+assert_contains_286 "$claude_flat_431" 'Routen-Doku bei jeder Routen-Änderung aktualisieren' "#431 AK-D2: CLAUDE.md trägt die TCH-Regel Routen-Doku (#145)"
+for gen_431 in '## Kernprinzip' '## Guardrails' '## Pipeline-Übersicht' '## Agent-Rollen'; do
+  assert_absent "$claude_flat_431" "$gen_431" "#431 AK-D2: CLAUDE.md enthält den generischen Abschnitt '$gen_431' nicht mehr"
+done
+assert_true "$([ "$(awk 'END{print NR}' "$CLAUDE_MD_431")" -le 60 ]; echo $?)" "#431 AK-D2: CLAUDE.md bleibt dünn (≤ 60 Zeilen)"
+
+# AK-D3: Rekonstruktion – jede nicht-leere Zeile der alten CLAUDE.md steht in genau einer der beiden
+# Dateien (außer den bewusst entfernten Import-/Überschriftszeilen). Historienlesender Test:
+# im flachen CI-Klon fehlt der Commit → sichtbarer Skip, kein Falsch-Rot (Lesson #426).
+if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:CLAUDE.md" 2>/dev/null; then
+  old_431="$(mktemp)"; git -C "$FACTORY_ROOT" show "$BASELINE_COMMIT_431:CLAUDE.md" > "$old_431"
+  missing_431=""; dup_431=""
+  while IFS= read -r line_431; do
+    [ -n "${line_431//[[:space:]]/}" ] || continue
+    case "$line_431" in '# dm Development Factory'*|'## Projekt-Kontext'|'@docs/factory/PROJECT-CONTEXT.md'|'---') continue ;; esac
+    in_fac_431=0; in_cl_431=0
+    grep -qxF -- "$line_431" "$FACTORY_MD_431" && in_fac_431=1
+    grep -qxF -- "$line_431" "$CLAUDE_MD_431" && in_cl_431=1
+    [ $((in_fac_431 + in_cl_431)) -ge 1 ] || missing_431="$missing_431|$line_431"
+    [ $((in_fac_431 + in_cl_431)) -le 1 ] || dup_431="$dup_431|$line_431"
+  done < "$old_431"
+  rm -f "$old_431"
+  assert_true "$([ -z "$missing_431" ]; echo $?)" "#431 AK-D3: jede Zeile der alten CLAUDE.md ist wiederzufinden (fehlt:${missing_431:- nichts})"
+  assert_true "$([ -z "$dup_431" ]; echo $?)" "#431 AK-D3: keine Zeile steht in beiden Dateien (doppelt:${dup_431:- nichts})"
+else
+  echo "  ⏭  #431 AK-D3: Baseline-Commit $BASELINE_COMMIT_431 nicht verfügbar (flacher Klon) – übersprungen"
+fi
+
+# AK-D4: verschachtelte Imports (CLAUDE.md → FACTORY.md → Guideline) zählen vollständig.
+# Fixture nutzt die ECHTEN Dateien; nur eine nur über FACTORY.md eingebundene Guideline wird aufgebläht.
+TMP_D4_431="$(mktemp -d)"
+mkdir -p "$TMP_D4_431/docs/factory/guidelines"
+cp "$CLAUDE_MD_431" "$TMP_D4_431/CLAUDE.md"
+cp "$FACTORY_MD_431" "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md" "$TMP_D4_431/docs/factory/"
+cp "$FACTORY_ROOT"/docs/factory/guidelines/{clean-code,tdd-principles,testing-standards}.md "$TMP_D4_431/docs/factory/guidelines/"
+FACTORY_DIR="$TMP_D4_431" bash "$IMPORT_CHECK" >/dev/null 2>&1
+assert_exit 0 "$?" "#431 AK-D4 (Kontrolle): die kopierte echte Import-Kette ist unter der Grenze"
+seq 1 "$IC_LIMIT_319" >> "$TMP_D4_431/docs/factory/guidelines/tdd-principles.md"
+d4_out_431="$(FACTORY_DIR="$TMP_D4_431" bash "$IMPORT_CHECK" 2>&1)"; d4_rc_431=$?
+assert_exit 1 "$d4_rc_431" "#431 AK-D4: Import nur über FACTORY.md reißt die Grenze → exit 1"
+assert_contains_286 "$d4_out_431" 'tdd-principles.md' "#431 AK-D4: die Beitragsliste nennt die nur über FACTORY.md eingebundene Datei"
+rm -rf "$TMP_D4_431"
+
+# AK-D5: dieselben Dateien im Dauerkontext wie vor der Änderung (Baseline in der Task-Datei).
+ctx_431="$(FACTORY_DIR="$FACTORY_ROOT" bash "$IMPORT_CHECK" 2>&1)"
+assert_exit 0 "$?" "#431 AK-D5: Dauerkontext liegt unter dem Deckel ($ctx_431)"
+for g_431 in clean-code tdd-principles testing-standards; do
+  grep -qxF "@docs/factory/guidelines/$g_431.md" "$FACTORY_MD_431"
+  assert_exit 0 "$?" "#431 AK-D5: $g_431.md bleibt im Dauerkontext (Import in FACTORY.md)"
+done
+grep -qxF '@docs/factory/PROJECT-CONTEXT.md' "$CLAUDE_MD_431"
+assert_exit 0 "$?" "#431 AK-D5: PROJECT-CONTEXT.md bleibt im Dauerkontext (Import in CLAUDE.md)"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

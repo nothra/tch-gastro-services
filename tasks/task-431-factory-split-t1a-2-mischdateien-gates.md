@@ -1,7 +1,7 @@
 # Task 431: factory-split-t1a-2-mischdateien-gates
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -22,11 +22,11 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 
 ## Akzeptanzkriterien
 ### D · `CLAUDE.md` und `FACTORY.md`
-- [ ] AK-D1 Generischer Teil der heutigen `CLAUDE.md` steht in `docs/factory/FACTORY.md`
-- [ ] AK-D2 Neue `CLAUDE.md` enthält nur `@docs/factory/FACTORY.md`, `@docs/factory/PROJECT-CONTEXT.md` + TCH-Regeln (mind. Routen-Doku #145)
-- [ ] AK-D3 Jede inhaltliche Zeile der alten `CLAUDE.md` in genau einer der beiden Dateien wiederzufinden (Test oder dokumentierte Rekonstruktion)
-- [ ] AK-D4 `import-context-limit-check.sh` zählt verschachtelte Imports vollständig, bleibt unter der Grenze; Negativtest: Import nur über `FACTORY.md` reißt die Grenze → rot
-- [ ] AK-D5 Dieselben Dateien im Dauerkontext wie vorher (Liste vorher/nachher hier in der Task-Datei)
+- [x] AK-D1 Generischer Teil der heutigen `CLAUDE.md` steht in `docs/factory/FACTORY.md`
+- [x] AK-D2 Neue `CLAUDE.md` enthält nur `@docs/factory/FACTORY.md`, `@docs/factory/PROJECT-CONTEXT.md` + TCH-Regeln (mind. Routen-Doku #145)
+- [x] AK-D3 Jede inhaltliche Zeile der alten `CLAUDE.md` in genau einer der beiden Dateien wiederzufinden (Test oder dokumentierte Rekonstruktion)
+- [x] AK-D4 `import-context-limit-check.sh` zählt verschachtelte Imports vollständig, bleibt unter der Grenze; Negativtest: Import nur über `FACTORY.md` reißt die Grenze → rot
+- [x] AK-D5 Dieselben Dateien im Dauerkontext wie vorher (Liste vorher/nachher hier in der Task-Datei)
 ### E · Zusammengesetzte Dateien
 - [ ] AK-E1 `.claude/settings.factory.json` + `.claude/settings.project.json` existieren; `.claude/settings.json` inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)
 - [ ] AK-E2 `docs/factory/gitignore.factory` + `.gitignore.project` existieren; ignorierte Pfade unverändert (feste Probenliste vorher/nachher)
@@ -89,6 +89,14 @@ in der Reihenfolge aus `CLAUDE.md` (Lesson #351). Jede Etappe endet mit sauberem
 
 ## Offene Fragen
 _Keine._ Q2–Q6 im ADR-063-Nachtrag entschieden; Q7 (CI-Quelle) und Q8 (Schnitt) am 2026-10-20, siehe spec-426.
+
+## Etappe 1 (D) – Notizen
+**AK-D5 Dauerkontext vorher/nachher** (Zeilen, `import-context-limit-check.sh`):
+- vorher (`bcba043`, 969): `CLAUDE.md` 245 · `PROJECT-CONTEXT.md` 444 · `clean-code.md` 131 · `tdd-principles.md` 54 · `testing-standards.md` 95
+- nachher (984): `CLAUDE.md` 23 → `FACTORY.md` 238 → `clean-code`/`tdd-principles`/`testing-standards` (unverändert); `CLAUDE.md` → `PROJECT-CONTEXT.md` 444. Gleiche fünf Inhalte, +15 Zeilen Kopf/Trenner.
+- Rekonstruktion AK-D3: Test in `run-tests.sh` vergleicht `git show bcba043:CLAUDE.md` zeilenweise gegen `FACTORY.md` + `CLAUDE.md` (Skip im flachen Klon).
+- Bestehende Tests, die generische Inhalte aus `CLAUDE.md` lasen, zeigen auf `FACTORY.md`.
+- `run-tests.sh` nach Etappe 1: 1709 grün, 0 rot.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
