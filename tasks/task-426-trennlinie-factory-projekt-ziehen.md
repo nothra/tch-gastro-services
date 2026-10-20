@@ -47,7 +47,7 @@ legt jeweils `start-work.sh` an.
 - [x] AK-C2 Gemischte Lessons eintragsweise geteilt, Rekonstruktions-Test (nichts verloren/doppelt)
 - [x] AK-C3 Index in `PROJECT-CONTEXT.md` getrennt gruppiert, Links gültig, „Laden bei" erhalten
 - [x] AK-C4 Kern-Kurzregeln verlinken neuen Ort
-- [~] AK-C5 `/codify`-Anleitung nennt beide Orte + Zuordnungsregel
+- [x] AK-C5 `/codify`-Anleitung nennt beide Orte + Zuordnungsregel
 
 ### L · Kleinfunde
 - [x] AK-L1 Kleinfunde nach betroffener Datei geteilt, Skills nennen beide Orte (Q6)
