@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Teil-Task **T1a-1 · Dokumente sortieren** des Epics #424 (Factory → `nothra/dev-factory`): erster
@@ -54,7 +54,7 @@ legt jeweils `start-work.sh` an.
 
 ### Epic-weit (AKE.1)
 - [x] AK-X1 Self-Tests + App-Gates vorher und nachher grün (Ergebnisse hier)
-- [~] AK-X2 Required Checks grün, Namen unverändert
+- [x] AK-X2 Required Checks grün, Namen unverändert
 - [~] AK-X3 Stage-2-Probelauf (`start-work.sh`, `pre-push.sh`) verhält sich wie vorher
 
 ### Fehlerszenarien
@@ -101,3 +101,10 @@ Erstellt: 2026-10-19 08:34
 
 - Fünf Inline-`assert_true "$(grep -q … ; echo $?)"`-Prüfungen in den #426-Testblöcken (pre-push-Wiring, `factory-ci.yml`, `docs/adr/README.md`, Lessons-Index ×2) rufen jetzt den vorhandenen Helfer `assert_contains_286` auf (Lesson #267/#310). Kein neues Verhalten; Suite vorher/nachher 1681 grün, 0 rot.
 - Bewusst nicht angefasst: Review-Nitpick `|` im Dateinamen (`ownership-check.sh`) – würde das Prüfverhalten ändern, kein Ist-Defekt (0 Dateien mit `|`).
+
+### /pr-shepherd
+
+- CI auf PR #430: erster Lauf rot (`factory-self-test`, 5× AK-C3) – Ursache: mein `/refactor` hatte die Index-Prüfung auf `assert_contains_286` umgestellt, Haystack `PROJECT-CONTEXT.md` (64 KB) sprengt den Pipe-Puffer → `grep -q`/SIGPIPE/`pipefail` (nur auf dem Runner sichtbar). Fix `fix: lessons-index-tests ohne pipe-grep …`, Lesson in `docs/factory/lessons/testing.md`. Zweiter Lauf: alle Checks grün, Check-Namen unverändert (AK-X2).
+- AK-X3 bleibt offen bis nach dem Merge: Echtlauf `start-work.sh` (legt Branch/Draft-PR an) – als Nachtest in der nächsten Task (#431) belegen.
+
+PR-Shepherd 2026-10-20: Merge freigegeben – alle Gates grün.
