@@ -683,13 +683,15 @@ Skip **sichtbar** ausgeben (eigene Zeile, kein stilles Weglassen); das Verhalten
 nicht historienabhängigen Test (Datei liegt am Neu-Ort, am Alt-Ort fehlt sie) abgedeckt. Den Skip nicht durch
 `fetch-depth: 0` im Workflow ersetzen – das verlängert jeden Lauf für einen einzigen Test.
 
-### `assert_contains_286` mit großer Datei als Haystack ist in CI rot, lokal grün (aus #426, CI-Befund nach `/refactor`)
+### `assert_contains_286` (Pipe-`grep -q`) auf Datei-Haystacks ist ein Race – in CI rot, lokal grün (aus #426, CI-Befund nach `/refactor`)
 
-Der Helfer reicht den Haystack per `printf | grep -q` weiter. Ist er größer als der Pipe-Puffer (hier
-`PROJECT-CONTEXT.md`, 64 KB), beendet `grep -q` früh, `printf` bekommt SIGPIPE und `pipefail` macht den Treffer zum
-Falsch-Rot (bash-gotchas #3) – auf dem Entwickler-Mac blieb es grün, nur der CI-Runner meldete „Broken pipe". Das
-`/refactor` hatte eine Datei-`grep`-Prüfung auf den Helfer umgestellt, ohne die Haystack-Größe zu prüfen.
+Der Helfer reicht den Haystack per `printf | grep -q` weiter. `grep -q` beendet sich beim ersten Treffer, `printf`
+schreibt noch weiter, bekommt SIGPIPE, und `pipefail` macht den Treffer zum Falsch-Rot (bash-gotchas #3). Das ist
+**kein** fester Schwellenwert, sondern ein Race ab wenigen KB (Schreiben in Stücken): `PROJECT-CONTEXT.md` (64 KB)
+und eine 38-KB-`--list project`-Ausgabe schlugen auf dem CI-Runner fehl, der Entwickler-Mac blieb grün. Ein
+`/refactor` hatte Datei-`grep`-Prüfungen auf den Helfer umgestellt und „identisch grün" aus dem lokalen Lauf
+behauptet; erst der zweite CI-Lauf zeigte die Rezidiv-Stelle in `own_side_426`.
 
-**Regel:** Beim Umstellen einer Datei-Prüfung auf `assert_contains_286`/`assert_absent` die Dateigröße prüfen
-(`wc -c`); ab ~32 KB bleibt es beim direkten `grep -qF -- … <datei>` (kein Pipe-Ende). Ein lokal grüner Lauf ist
-dafür kein Beleg – nach einem Test-Refactor die CI-Läufe abwarten, bevor „identisch grün" behauptet wird.
+**Regel:** Gegen eine **Datei** immer direkt `grep -qF -- … <datei>`; gegen eine **Variable** per Here-String
+(`grep -q … <<< "$var"`), nie `printf | grep -q`. Den Helfer nur für kurze Literale (Zeilen/Absätze) nutzen. Nach
+einem Test-Refactor die CI-Läufe abwarten, bevor „identisch grün" behauptet wird.

@@ -239,7 +239,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Locale-abhängige Zahlenformatierung/-parsing in Shell-Test-Utilities: `awk`-Ausdrücke, die Dezimalzahlen parsen/formatieren (`s+=$N`, `%.Nf`), brauchen ein lokales `LC_ALL=C`-Präfix am Aufruf – Rezidiv derselben Fehlerklasse wie #96 (bash-`printf`), diesmal in `awk` (aus #341, Bug-Fix-Selbstfund)
 - Ein Config-/Gate-Wert, der als „gültig" akzeptiert wird, ist damit noch nicht als „angewendet" belegt – Gate-Grenzfall-Tests (80 akzeptiert/81 abgelehnt) beweisen nur die Gate-Entscheidung, nicht dass der separate Konsument (`run-pipeline.sh`) den Wert auch tatsächlich nutzt; End-to-End-Assertion mit den realen Repo-Dateien gegen den realen Konsumenten ergänzen (aus #348, /test-Selbstfund)
 - Test, der die Git-Historie liest (`git log --follow`): in CI flacher Klon → Test dort rot, lokal grün – hinter `--is-shallow-repository`-Skip legen, Skip sichtbar ausgeben, Verhalten zusätzlich historienfrei belegen (aus #426, /implement-Selbstfund)
-- `assert_contains_286` mit Haystack > ~32 KB (z. B. `PROJECT-CONTEXT.md`): Pipe-`grep -q` + `pipefail` → in CI Falsch-Rot, lokal grün – bei großen Dateien direkt `grep -qF -- … <datei>`, Dateigröße vor dem Umstellen prüfen (aus #426, CI-Befund nach `/refactor`)
+- `assert_contains_286`/`printf | grep -q` auf Datei-/Listen-Haystacks (ab wenigen KB): SIGPIPE-Race + `pipefail` → in CI Falsch-Rot, lokal grün – Datei direkt `grep -qF -- … <datei>`, Variable per Here-String; nach Test-Refactor CI abwarten (aus #426, CI-Befund nach `/refactor`)
 
 **[`lessons/build-tooling.md`](lessons/build-tooling.md)** – Wegwerf-/Debug-Artefakte und `.gitignore` · **Laden bei:** `/implement`, `/review` bei Wegwerf-Dateien und Ignore-Mustern
 

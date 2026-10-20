@@ -8686,9 +8686,10 @@ own_real_rc=$?
 assert_exit 0 "$own_real_rc" "#426 AK-A1/A6: jede getrackte Datei hat genau eine Seite (echte Tabelle + git ls-files)"
 [ "$own_real_rc" -eq 0 ] || echo "$own_real_out" | head -20 | sed 's/^/      /'
 
-# Ausgabe erst einsammeln, dann greppen: `grep -q` am Pipe-Ende beendet früh, und `pipefail` macht
-# aus dem SIGPIPE des Schreibers ein falsches Rot (Exit 141).
-own_side_426() { local l; l="$(bash "$OWN_CHECK_426" --list "$1" 2>/dev/null)"; printf '%s\n' "$l" | grep -qxF -- "$2"; }
+# Ausgabe erst einsammeln, dann per Here-String greppen (nie `printf | grep -q`): bei einer Liste über dem
+# Pipe-Puffer (~64 KB, die Projekt-Liste wächst mit jeder Datei) beendet `grep -q` früh, und `pipefail` macht
+# aus dem SIGPIPE des Schreibers ein falsches Rot (Exit 141) – nur auf dem CI-Runner sichtbar (bash-gotchas #3).
+own_side_426() { local l; l="$(bash "$OWN_CHECK_426" --list "$1" 2>/dev/null)"; grep -qxF -- "$2" <<< "$l"; }
 for f_426 in scripts/neon-reset-int.sh scripts/deploy-freeze.sh scripts/deploy-freeze-notify.sh \
     .github/workflows/deploy-gate.yml .github/workflows/deploy-freeze-release.yml \
     scripts/checks/routes-doc-check.sh docs/project/lessons/frontend-react.md \
@@ -8711,9 +8712,9 @@ assert_exit 1 $? "#426 AK-A4 (Kontrolle): scripts/run-pipeline.sh ist NICHT 'pro
 
 # AK-A6: das Gate hängt im lokalen pre-push (Zeile des echten Aufrufs) UND in der Suite, die
 # CI als factory-self-test fährt – ein bestehender Required Check, kein neuer Check-Name.
-assert_contains_286 "$(cat "$CHECKS_DIR/pre-push.sh")" 'ownership-check.sh' \
+assert_true "$(grep -q 'ownership-check.sh' "$CHECKS_DIR/pre-push.sh"; echo $?)" \
   "#426 AK-A6: pre-push.sh ruft ownership-check.sh auf (lokales Gate)"
-assert_contains_286 "$(cat "$FACTORY_ROOT/.github/workflows/factory-ci.yml")" 'bash scripts/checks/tests/run-tests.sh' \
+assert_true "$(grep -q 'bash scripts/checks/tests/run-tests.sh' "$FACTORY_ROOT/.github/workflows/factory-ci.yml"; echo $?)" \
   "#426 AK-A6: factory-self-test (CI) führt diese Suite aus – damit auch den Check oben"
 # ── #426 T1a-1 · ADRs trennen (AK-B1…B6, F-2) ────────────────────────────────────────────────
 ADR_LINKS_426="$CHECKS_DIR/adr-links-check.sh"
@@ -8808,7 +8809,7 @@ printf '[a](001-a.md) [b](002-b.md) [c](003-c.md)\n' > "$TMP_RM_426/README.md"
 adr_readme_matches_426 "$TMP_RM_426"
 assert_exit 1 $? "#426 AK-B4 (Kontrolle): ein gelisteter Geisterverweis macht den Vergleich rot"
 rm -rf "$TMP_RM_426"
-assert_contains_286 "$(cat "$FACTORY_ROOT/docs/adr/README.md")" 'docs/factory/adr/' \
+assert_true "$(grep -q 'docs/factory/adr/' "$FACTORY_ROOT/docs/adr/README.md"; echo $?)" \
   "#426 AK-B4: das Projekt-README weist auf docs/factory/adr/ hin"
 
 # AK-B5: aktive Projekt-Dateien nennen Factory-ADRs als `Factory-ADR-NNN`
@@ -8912,7 +8913,7 @@ while IFS= read -r hdr_426; do
 done <<< "$(grep -E '^\*\*\[`[^`]*lessons/[a-z-]+\.md`\]' "$CTX_426")"
 assert_true "$([ -z "$ctx_dead_426" ]; echo $?)" "#426 AK-C3: jeder Gruppen-Link des Index zeigt auf eine existierende Datei (tot:${ctx_dead_426:- keine})"
 assert_true "$([ -z "$ctx_noload_426" ]; echo $?)" "#426 AK-C3: jede Index-Gruppe behält ihren „Laden bei“-Trigger (ohne:${ctx_noload_426:- keine})"
-# Datei-grep statt assert_contains_286: PROJECT-CONTEXT.md (> 64 KB, Pipe-Puffer) macht das Pipe-`grep -q` unter pipefail rot (bash-gotchas #3).
+# Datei-grep statt assert_contains_286: dessen `printf | grep -q` ist bei Haystacks ab wenigen KB ein Race (SIGPIPE + pipefail, nur in CI sichtbar; bash-gotchas #3).
 for f_426 in "$FACTORY_ROOT"/docs/factory/lessons/*.md; do
   assert_true "$(grep -qF -- "](lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
     "#426 AK-C3: Factory-Lesson $(basename "$f_426") steht im Index"
@@ -8944,7 +8945,7 @@ kf_side_426() { # $1 = Kleinfunde-Datei, $2 = erwartete Seite → Anzahl Einträ
   local f bad=0 list; list="$(bash "$OWN_CHECK_426" --list "$2" 2>/dev/null)"
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    printf '%s\n' "$list" | grep -qxF -- "$f" || { echo "✗ $1: Wo-Datei $f liegt nicht auf Seite $2"; bad=$((bad + 1)); }
+    grep -qxF -- "$f" <<< "$list" || { echo "✗ $1: Wo-Datei $f liegt nicht auf Seite $2"; bad=$((bad + 1)); }
   done <<< "$(grep -oE '^- \*\*Wo:\*\* \[`[^`:]+' "$1" | sed -E 's/^- \*\*Wo:\*\* \[`//')"
   return $((bad > 0))
 }

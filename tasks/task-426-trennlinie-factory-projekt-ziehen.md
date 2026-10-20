@@ -99,12 +99,12 @@ Erstellt: 2026-10-19 08:34
 
 ### /refactor
 
-- Fünf Inline-`assert_true "$(grep -q … ; echo $?)"`-Prüfungen in den #426-Testblöcken (pre-push-Wiring, `factory-ci.yml`, `docs/adr/README.md`, Lessons-Index ×2) rufen jetzt den vorhandenen Helfer `assert_contains_286` auf (Lesson #267/#310). Kein neues Verhalten; Suite vorher/nachher 1681 grün, 0 rot.
+- Fünf Inline-`assert_true "$(grep -q … ; echo $?)"`-Prüfungen waren auf `assert_contains_286` umgestellt worden – **zurückgenommen** (siehe `/pr-shepherd`): dessen `printf | grep -q` ist auf Datei-Haystacks ein CI-only-Race. Netto-Änderung des `/refactor`: keine.
 - Bewusst nicht angefasst: Review-Nitpick `|` im Dateinamen (`ownership-check.sh`) – würde das Prüfverhalten ändern, kein Ist-Defekt (0 Dateien mit `|`).
 
 ### /pr-shepherd
 
-- CI auf PR #430: erster Lauf rot (`factory-self-test`, 5× AK-C3) – Ursache: mein `/refactor` hatte die Index-Prüfung auf `assert_contains_286` umgestellt, Haystack `PROJECT-CONTEXT.md` (64 KB) sprengt den Pipe-Puffer → `grep -q`/SIGPIPE/`pipefail` (nur auf dem Runner sichtbar). Fix `fix: lessons-index-tests ohne pipe-grep …`, Lesson in `docs/factory/lessons/testing.md`. Zweiter Lauf: alle Checks grün, Check-Namen unverändert (AK-X2).
+- CI auf PR #430: erster Lauf rot (`factory-self-test`, 5× AK-C3) – Ursache: mein `/refactor` hatte die Index-Prüfung auf `assert_contains_286` umgestellt, Haystack `PROJECT-CONTEXT.md` (64 KB) sprengt den Pipe-Puffer → `grep -q`/SIGPIPE/`pipefail` (nur auf dem Runner sichtbar). Fix `fix: lessons-index-tests ohne pipe-grep …`, Lesson in `docs/factory/lessons/testing.md`. Zweiter Lauf: alle Checks grün, Check-Namen unverändert (AK-X2). Dritter Lauf (Notiz-Commit) rot: dasselbe Race in `own_side_426`/`kf_side_426` (`printf | grep -q` auf `--list`-Ausgabe) → Here-String; die drei kleinen Datei-Prüfungen ebenfalls zurück auf Datei-`grep`; Lesson korrigiert (kein fester Schwellenwert, Race ab wenigen KB).
 - AK-X3 bleibt offen bis nach dem Merge: Echtlauf `start-work.sh` (legt Branch/Draft-PR an) – als Nachtest in der nächsten Task (#431) belegen.
 
 PR-Shepherd 2026-10-20: Merge freigegeben – alle Gates grün.
