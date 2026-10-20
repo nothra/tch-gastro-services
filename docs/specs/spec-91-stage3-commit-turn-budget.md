@@ -140,7 +140,7 @@ mehr an einem Turn-Limit, das erst **nach** dem fertigen Report reißt.
       ADR-010.
 
 ## Offene Fragen
-- [x] **Architektur-Entscheidung als ADR festhalten?** → **ENTSCHIEDEN: `docs/adr/019-stage3-commit-seam-report-guard.md`** (Accepted, 2026-07-12).
+- [x] **Architektur-Entscheidung als ADR festhalten?** → **ENTSCHIEDEN: `docs/factory/adr/019-stage3-commit-seam-report-guard.md`** (Accepted, 2026-07-12).
       Hält Wrapper-Seam, read-only-git/`gh`-Freigabe, Report-Guard und Budget-Puffer mit
       Alternativen fest.
 - [ ] **`gh`-Verb-Liste vollständig?** Die freigegebenen `gh pr …`/`gh run …`-Verben stammen aus

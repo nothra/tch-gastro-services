@@ -33,7 +33,7 @@ Entscheidungen (aus /requirements):
 
 ## Technische Notizen
 
-**ADR:** `docs/adr/037-lessons-auslagern-aus-import-kontext.md` (Accepted)
+**ADR:** `docs/factory/adr/037-lessons-auslagern-aus-import-kontext.md` (Accepted)
 
 **Lessons-Split (7 Dateien unter `docs/factory/lessons/`, NICHT @import):**
 `frontend-react.md`, `next-auth.md`, `db-drizzle.md`, `testing.md`, `build-tooling.md`,

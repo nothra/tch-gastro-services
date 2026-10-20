@@ -101,7 +101,7 @@ einwandfrei – ein Fehlalarm der Pipeline-eigenen Verifikation, der jeden künf
       THEN ist der Endzustand verifiziert (exit 0) – reproduziert das in Issue #298
       beschriebene Szenario auf I/O-Ebene, nicht nur auf der reinen
       Entscheidungsfunktion.
-- [ ] GIVEN ADR-040 (`docs/adr/040-pipeline-endzustands-verifikation.md`), WHEN der
+- [ ] GIVEN ADR-040 (`docs/factory/adr/040-pipeline-endzustands-verifikation.md`), WHEN der
       Fix umgesetzt ist, THEN beschreibt Punkt 1 der Entscheidung den
       MERGED-Kurzschluss (keine unbedingte „keine ungepushten Commits"-Aussage mehr
       für den `pr_shepherd=true`-Fall).

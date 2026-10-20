@@ -13,7 +13,7 @@
   dasselbe produktive Modul-Objekt und stellten die Fake-Uhr nur relativ vor. Erst
   `--sequence.shuffle` mit gepinntem Seed deckte einen roten Test auf (Review-Runde 3); Fix in
   `/test` (`resetModules` + absolutes Einfrieren pro Test). Index-Zeile ergänzt.
-- [`docs/factory/lessons/next-auth.md`](../docs/factory/lessons/next-auth.md) – Ein früher
+- [`docs/project/lessons/next-auth.md`](../docs/project/lessons/next-auth.md) – Ein früher
   Gate-/Drossel-Zweig vor einer Route, die auch Server Actions bedient, muss deren
   Antwortprotokoll einhalten: die generische 429-HTML-Antwort war für `useActionState`-POSTs
   außerhalb des erwarteten Protokolls und riss mangels `error.tsx` die ganze Seite in den globalen

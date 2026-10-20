@@ -33,7 +33,7 @@ sofort als Erfolg zählen (nur der Working-Tree-Check bleibt davor). Details sie
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
 **ADR-Entscheidung:** Kein neuer Design-Fork, kein neues ADR-Dokument. Bestehendes
-ADR-040 (`docs/adr/040-pipeline-endzustands-verifikation.md`) um einen datierten
+ADR-040 (`docs/factory/adr/040-pipeline-endzustands-verifikation.md`) um einen datierten
 „Nachtrag"-Abschnitt ergänzt (Muster aus ADR-019 §Nachträge) – bereits umgesetzt.
 
 **Konkrete Änderung in `scripts/lib/verify-final-state.sh` → `evaluate_final_state()`:**

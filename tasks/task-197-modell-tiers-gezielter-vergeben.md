@@ -43,7 +43,7 @@ Volle Spezifikation: `docs/specs/spec-197-modell-tiers-gezielter-vergeben.md`.
 - [x] F4 – yq/Config fehlt → unverändertes Bestandsverhalten
 
 ## Technische Notizen
-Architektur entschieden in **ADR-038** (`docs/adr/038-groessenabhaengige-modell-tier-wahl.md`).
+Architektur entschieden in **ADR-038** (`docs/factory/adr/038-groessenabhaengige-modell-tier-wahl.md`).
 
 Kern: additives, optionales Feld `tier_by_size` je Skill; das statische `tier` bleibt als
 **Fail-Safe-Fallback** (= `heavy`). Kein Sentinel → `config-validation` Regel 4a (`tier ∈

@@ -20,7 +20,7 @@ DB nicht).
 
 Diese Task automatisiert die Prod-DB-Migration im Gate (abgesichert durch das INT-Gate + E2E),
 legt ein Prod-Login-Seed-Skript an und schärft den Healthcheck. Entscheidung: siehe
-[ADR-017](../adr/017-prod-migration-im-deploy-gate.md).
+[ADR-017](../docs/adr/017-prod-migration-im-deploy-gate.md).
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
@@ -40,7 +40,7 @@ legt ein Prod-Login-Seed-Skript an und schärft den Healthcheck. Entscheidung: s
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
-Ableitung aus [ADR-017](../adr/017-prod-migration-im-deploy-gate.md). Anzufassen:
+Ableitung aus [ADR-017](../docs/adr/017-prod-migration-im-deploy-gate.md). Anzufassen:
 - **`.github/workflows/deploy-gate.yml`** – Reihenfolge: … E2E@INT grün → **PRD migrieren+seeden**
   → Promote `main`→`production` → **auf PRD-Deploy warten + `/api/health`-Check**. `PRD_DATABASE_URL`,
   `PRD_ADMIN_EMAIL`, `PRD_ADMIN_PASSWORD` in den Pflicht-Secrets-Check.
@@ -51,7 +51,7 @@ Ableitung aus [ADR-017](../adr/017-prod-migration-im-deploy-gate.md). Anzufassen
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 - [x] ADR-würdig (Persistenz/irreversibel) → **entschieden vom Menschen** (automatisieren, durch
-      INT-Gate+E2E ausreichend abgesichert) → dokumentiert in [ADR-017](../adr/017-prod-migration-im-deploy-gate.md).
+      INT-Gate+E2E ausreichend abgesichert) → dokumentiert in [ADR-017](../docs/adr/017-prod-migration-im-deploy-gate.md).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

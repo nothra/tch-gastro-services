@@ -27,7 +27,7 @@ Push in dem Fall nach. Details siehe [spec-239](../docs/specs/spec-239-factory-c
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
-Kein neues ADR – Ergänzung zu [ADR-019](../docs/adr/019-stage3-commit-seam-report-guard.md)
+Kein neues ADR – Ergänzung zu [ADR-019](../docs/factory/adr/019-stage3-commit-seam-report-guard.md)
 (Abschnitt „Nachtrag #239"), da keine neuen Alternativen abzuwägen sind: die Push-Mechanik
 existiert bereits im Skript, nur der leere Zweig erreicht sie zusätzlich.
 

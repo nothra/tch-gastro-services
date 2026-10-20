@@ -60,7 +60,7 @@ Doku-/Kommentar-Nachzug. Maßnahme 2 (Pin + verifizierter Seam für die claude-C
   `grep -q 'schedule:' "$POLL_YML"` mit dem Text „factory-poll nur als Scheduled Workflow"
   schreibt den alten Zustand fest und wird nach dieser Änderung rot. Sie wird durch einen
   Regressionsguard in der Gegenrichtung ersetzt (siehe AK4/AK5).
-- `docs/adr/008-async-trigger-mechanism.md`: Update-Notiz im Kopf – Option A bleibt die
+- `docs/factory/adr/008-async-trigger-mechanism.md`: Update-Notiz im Kopf – Option A bleibt die
   Entscheidung, aber der Trigger ist bis zum Scharfschalten auf `workflow_dispatch` reduziert.
   Die ADR beschreibt die geänderte Mechanik namentlich, gehört also in denselben PR
   (Lesson `factory-workflow.md`, aus #211).
@@ -126,7 +126,7 @@ Doku-/Kommentar-Nachzug. Maßnahme 2 (Pin + verifizierter Seam für die claude-C
       WHEN `factory-poll.yml` nicht lesbar ist (umbenannt/gelöscht)
       THEN schlägt der Guard fehl (fail-closed), statt still zu bestehen (Lesson #214).
 
-- [ ] **AK7** · GIVEN `docs/adr/008-async-trigger-mechanism.md`
+- [ ] **AK7** · GIVEN `docs/factory/adr/008-async-trigger-mechanism.md`
       WHEN der Kopf der ADR gelesen wird
       THEN nennt eine Update-Notiz mit Datum, dass der Schedule stillgelegt ist und der
       Trigger bis zum Scharfschalten nur `workflow_dispatch` ist; der Status der ADR bleibt
@@ -180,8 +180,8 @@ sind am 2026-08-12 mit dem Nutzer geklärt.
 ## Referenzen
 
 - Issue #284 · Vorgänger #258, PR #277 · Abräum-Kontext #286
-- [ADR-008](../adr/008-async-trigger-mechanism.md) – Async-Trigger (Option A, Scheduled-Poll)
-- [ADR-043](../adr/043-schwelle-fuer-autonome-issue-anlage.md) – Schwelle Issue vs. Sammeldatei
+- [ADR-008](../factory/adr/008-async-trigger-mechanism.md) – Async-Trigger (Option A, Scheduled-Poll)
+- [ADR-043](../factory/adr/043-schwelle-fuer-autonome-issue-anlage.md) – Schwelle Issue vs. Sammeldatei
 - [spec-258](spec-258-yq-checksum-verifikation.md) – schließt andere Downloads explizit aus
 - `docs/factory/lessons/factory-workflow.md` – ADR-Nachzug im selben PR (#211);
   Reihenfolge-/Präsenz-Guards ankern an der echten Struktur, nicht an Prosa (#114)

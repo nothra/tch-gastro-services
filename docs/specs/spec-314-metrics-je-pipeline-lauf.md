@@ -2,7 +2,7 @@
 
 > Issue: [#314](https://github.com/nothra/tch-gastro-services/issues/314) ·
 > Mess-Ebene: **Prozess** (ADR-006) · Branch-Typ: `chore` ·
-> Architektur: [ADR-045](../adr/045-prozess-messung-je-pipeline-lauf.md)
+> Architektur: [ADR-045](../factory/adr/045-prozess-messung-je-pipeline-lauf.md)
 
 ## Kontext
 

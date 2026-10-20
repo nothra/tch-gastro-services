@@ -18,7 +18,7 @@ Positiv-/Negativ-Fixtures + End-to-End-Aufrufe belegt, siehe unten).
 
 | AC | Beschreibung | Test | Positiv/Negativ | Status |
 |----|--------------|------|------------------|--------|
-| AC1 | ADR begründet neue Ceiling mit Eskalationshistorie (#49/#53/#324), nicht nur #324 | [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md) „Kontext"-Tabelle | Doku/Review (kein automatisierter Test möglich – Design/Intent, ADR-009 §G) | ✅ |
+| AC1 | ADR begründet neue Ceiling mit Eskalationshistorie (#49/#53/#324), nicht nur #324 | [ADR-051](../docs/factory/adr/051-turn-limit-ceiling-implement-80.md) „Kontext"-Tabelle | Doku/Review (kein automatisierter Test möglich – Design/Intent, ADR-009 §G) | ✅ |
 | AC2 | `MAX_TURNS_CEILING=80` im Gate-Skript, Kommentar aktualisiert | `config-validation-check.sh:36` + Gate-Verhalten (AC4/AC5) | Positiv (Wert), Verhalten indirekt über AC4/AC5 | ✅ |
 | AC3 | `skills.implement.max_turns: 80` in `factory.config.yml`, `@reason` aktualisiert | `factory.config.yml:56` + „#348: realer Repo-Override löst implement end-to-end zu max 80 turns auf" (neu, `run-tests.sh`) | Positiv, End-to-End | ✅ |
 | AC4 | Gate akzeptiert `max_turns: 80` | „Gate #348: max_turns = 80 (neue Ceiling) → exit 0" (neu) | Positiv (Grenzfall) | ✅ |

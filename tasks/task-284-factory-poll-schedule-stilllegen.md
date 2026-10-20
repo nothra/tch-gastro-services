@@ -39,7 +39,7 @@ Spec: [`docs/specs/spec-284-factory-poll-schedule-stilllegen.md`](../docs/specs/
 - [x] **AK4** GIVEN `scripts/checks/tests/run-tests.sh` WHEN sie gegen den neuen Zustand läuft THEN ist die Assertion „factory-poll nur als Scheduled Workflow" entfernt und die Suite grün.
 - [x] **AK5** GIVEN der neue Regressionsguard WHEN wieder ein `schedule:`+`cron`-Trigger eingetragen wird THEN wird er rot; WHEN nur eine Kommentarzeile mit dem Wort `schedule` eingefügt wird THEN bleibt er grün (Anker = YAML-Struktur, nicht Prosa – Lesson #114).
 - [x] **AK6** GIVEN derselbe Guard WHEN `factory-poll.yml` nicht lesbar ist THEN schlägt er fehl (fail-closed, Lesson #214).
-- [x] **AK7** GIVEN `docs/adr/008-async-trigger-mechanism.md` WHEN der Kopf gelesen wird THEN nennt eine datierte Update-Notiz die Stilllegung; Status bleibt Accepted, Option A bleibt die Entscheidung.
+- [x] **AK7** GIVEN `docs/factory/adr/008-async-trigger-mechanism.md` WHEN der Kopf gelesen wird THEN nennt eine datierte Update-Notiz die Stilllegung; Status bleibt Accepted, Option A bleibt die Entscheidung.
 - [x] **AK8** GIVEN `docs/factory/OPERATING.md` §0.4 WHEN die Scharfschalt-Checkliste gelesen wird THEN enthält sie „`schedule` wieder eintragen" und „claude-CLI gepinnt/verifiziert installieren" (Verweis auf das Folge-Issue).
 - [x] **AK9** GIVEN `CLAUDE.md` und OPERATING.md §1.3 WHEN der Async-Start beschrieben wird THEN behauptet keine Stelle mehr einen laufenden Schedule („nur in Scheduled Pipelines").
 - [x] **AK10** GIVEN GitHub WHEN der PR fertig ist THEN existiert das Folge-Issue für M2 (`enhancement` + `security`, ohne `factory::run`), referenziert in OPERATING.md §0.4.
@@ -58,7 +58,7 @@ Spec: [`docs/specs/spec-284-factory-poll-schedule-stilllegen.md`](../docs/specs/
 Betroffene Dateien (erwartet):
 - `.github/workflows/factory-poll.yml` (`on.schedule` raus; Header `:1-17` und Kommentar `:50-52`)
 - `scripts/checks/tests/run-tests.sh` (Assertion `:454` ersetzen)
-- `docs/adr/008-async-trigger-mechanism.md`, `docs/factory/OPERATING.md`, `CLAUDE.md`
+- `docs/factory/adr/008-async-trigger-mechanism.md`, `docs/factory/OPERATING.md`, `CLAUDE.md`
 
 Kein ADR-Trigger: Die Entscheidung (Option A, Scheduled-Poll) wird nicht revidiert, nur ihr
 Aktivierungszustand beschrieben – ADR-008 wird ergänzt, keine neue ADR nötig.

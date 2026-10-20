@@ -53,7 +53,7 @@ _Keine._
   Grundlage ist die `git config`-Doku zu `core.hooksPath` (Wert „absolut oder relativ …
   relativ zum Ausführungsverzeichnis der Hooks") + der in diesem PR selbst dokumentierte
   Befund, dass `git rev-parse --git-path hooks` den effektiven Pfad liefert.
-- [ ] `docs/adr/042-hook-installation-single-source.md:161-162,167-169` — **Runde-2/3/4-Nitpick,
+- [ ] `docs/factory/adr/042-hook-installation-single-source.md:161-162,167-169` — **Runde-2/3/4-Nitpick,
   jetzt ein Widerspruch *innerhalb* des PRs:** beide Consequence-Bullets deferieren weiter ohne
   Nummer („bei Bedarf als eigenständiges Issue anzulegen" bzw. „außerhalb des Scopes von #268
   liegt"), während der in **diesem** PR neu committete Security-Report

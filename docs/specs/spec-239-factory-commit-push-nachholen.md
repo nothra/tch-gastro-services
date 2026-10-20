@@ -2,7 +2,7 @@
 
 ## Kontext
 
-`scripts/factory-commit.sh` ist laut [ADR-019](../adr/019-stage3-commit-seam-report-guard.md)
+`scripts/factory-commit.sh` ist laut [ADR-019](../factory/adr/019-stage3-commit-seam-report-guard.md)
 die mandatierte Commit/Push-Seam für Stage-3-Agenten. Ihr Skript-Header verspricht: „`git push`
 scheitert → der non-zero Exit wird weitergereicht (kein stiller ‚committed, aber nicht
 gepusht‘-Zustand)". Der „nichts zu committen"-Zweig (aktuell Zeile 63–66) prüft das aber nicht:
@@ -17,7 +17,7 @@ und beendet sich mit Exit 0, **ohne** den Push nachzuholen. Der Commit bleibt lo
 Das ist für Stage 3 blockierend: ein Sub-Agent hat **keinen** anderen Weg, den Push
 nachzuholen – rohes `git push` matcht keine Allow-Regel in `.claude/settings.json` (ADR-019 §1
 gibt bewusst keine git-Schreib-Permission frei), und die Endzustands-Verifikation
-([ADR-040](../adr/040-pipeline-endzustands-verifikation.md)) wertet ungepushte Commits als
+([ADR-040](../factory/adr/040-pipeline-endzustands-verifikation.md)) wertet ungepushte Commits als
 Fehlschlag. Ein transienter Gate-Fehlschlag (flaky Test, kurzes rotes Netz) eskaliert so zu
 einem Pipeline-Abbruch, der einen Menschen braucht.
 

@@ -1,14 +1,14 @@
 # Spec: Factory in eigenes Repo auslagern (Epic)
 
 > **Epic-Spec.** #424 ist das Dach. Umgesetzt wird in vier Teil-Tasks (T1a, T1b, T2, T3 – T1 geteilt
-> laut [ADR-063](../adr/063-factory-eigenes-repo-vendored-manifest.md) D11), die je ein eigenes
+> laut [ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md) D11), die je ein eigenes
 > Issue, eine eigene Detail-Spec und einen eigenen PR bekommen und **nacheinander** laufen
 > (T1a → T1b → T2 → T3). Diese Spec legt das gemeinsame Ziel, den Schnitt und die Akzeptanzkriterien
 > auf Epic-Ebene fest; die Detail-Specs dürfen verfeinern, aber nicht widersprechen.
 >
 > | Teil-Task | Issue | AK |
 > |---|---|---|
-> | T1a · Trennlinie ziehen (TCH) | #426 | AK1.5, Datei-Anteile AK3.2/AK3.3, AKE.1 |
+> | T1a · Trennlinie ziehen (TCH) – in drei PRs: T1a-1 #426, T1a-2 #431, T1a-3 #432 ([spec-426](spec-426-trennlinie-factory-projekt-ziehen.md) Q1) | #426 | AK1.5, Datei-Anteile AK3.2/AK3.3, AKE.1 |
 > | T1b · Herauslösen nach `nothra/dev-factory` | #427 | AK1.1–AK1.4, AK1.6–AK1.8, F5 |
 > | T2 · Werkzeug abholen | #428 | AK2.1–AK2.13, F1–F4, F7, F8 |
 > | T3 · Umziehen | #429 | AK3.1–AK3.10, F6 |
@@ -222,7 +222,7 @@ Produkt teilen sich Historie, Issue-Nummernraum, ADR-Nummernfolge und Lessons. F
 > Detail-Specs der Teil-Tasks.
 >
 > **Stand nach `/architecture` (2026-10-19):** Q1–Q5 und Q8 sind in
-> [ADR-063](../adr/063-factory-eigenes-repo-vendored-manifest.md) beantwortet (Q1 → D1/D2,
+> [ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md) beantwortet (Q1 → D1/D2,
 > Q2 → D5, Q3 → D6, Q4 → D3, Q5 → D8, Q8 → D7).
 
 - [x] **Q1** Wie gelangen die übernommenen Dateien technisch ins Projekt-Repo, und wie kommt die

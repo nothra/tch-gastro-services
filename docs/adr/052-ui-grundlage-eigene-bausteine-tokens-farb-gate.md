@@ -30,8 +30,8 @@ Ausgangslage im Code:
   `StageBanner`).
 - Die Bausteine, die wirklich gebraucht werden, sind einfache Präsentations-Primitive. Komplexe
   interaktive Widgets (Dialog mit Fokus-Trap, #134) existieren bereits als eigene Lösung.
-- ESLint läuft im `pre-commit`-Hook **und** als required CI-Check `lint` (ADR-029). Die
-  Push-Gate-Skripte (`pre-push.sh`) haben in CI kein eigenes Pendant. ADR-041 hat entschieden,
+- ESLint läuft im `pre-commit`-Hook **und** als required CI-Check `lint` (Factory-ADR-029). Die
+  Push-Gate-Skripte (`pre-push.sh`) haben in CI kein eigenes Pendant. Factory-ADR-041 hat entschieden,
   dass ein Gate CI-seitig als eigener benannter Check verankert gehört, nicht als zufällige
   Testzeile.
 
@@ -153,8 +153,8 @@ Dateien.
   `pnpm lint` ist rot. Ein Tippfehler in der Liste kann die Prüfung so nicht still leerlaufen
   lassen (ESLint selbst ignoriert ein `files`-Muster ohne Treffer kommentarlos).
 - **Verankerung:** Über `pnpm lint` greift die Regel im `pre-commit`-Hook und im **required
-  CI-Check `lint`** (ADR-029). Es gibt keinen neuen Check in `pre-push.sh` und keinen neuen
-  CI-Job. Damit entsteht auch nicht die von ADR-041 verworfene „Gate nur als Testzeile"-
+  CI-Check `lint`** (Factory-ADR-029). Es gibt keinen neuen Check in `pre-push.sh` und keinen neuen
+  CI-Job. Damit entsteht auch nicht die von Factory-ADR-041 verworfene „Gate nur als Testzeile"-
   Konstruktion: Die Tests belegen die Regel, verankert ist sie im Lint-Check.
 - **Erweiterung durch #369–#374 (AK6.6):** Pfad in `eslint/ui-token-files.mjs` eintragen,
   sonst nichts. Dokumentiert als Kopfkommentar der Datei.
@@ -179,7 +179,7 @@ Durch AK2.5–AK2.11 und Tests abgedeckt.
 ### D3 – Option A: Shell-Check `scripts/checks/raw-color-check.sh` in `pre-push.sh`
 **Vorteile:** gleiches Muster wie `routes-doc-check.sh`.
 **Nachteile:** `pre-push.sh` hat in CI kein Pendant. Server-seitig bräuchte es einen eigenen
-CI-Job + Ruleset-Änderung (ADR-041/ADR-029), sonst wäre es nur mit `--no-verify` umgehbares
+CI-Job + Ruleset-Änderung (Factory-ADR-041/Factory-ADR-029), sonst wäre es nur mit `--no-verify` umgehbares
 lokales Feedback. Regex-Erkennung von Klassen in JSX per `grep` ist fehleranfällig
 (Template-Strings, mehrzeilige Klassen, POSIX-Einschränkungen).
 
@@ -227,8 +227,8 @@ Ruleset-Änderung bräuchte.
 
 - **ADR-014:** UI-Zeile wird durch diese ADR ersetzt (siehe Status-Hinweis). ADR-014 erhält
   einen Verweis.
-- **ADR-029 / ADR-041:** Das Gate nutzt den bestehenden required Check `lint`, keine
+- **Factory-ADR-029 / Factory-ADR-041:** Das Gate nutzt den bestehenden required Check `lint`, keine
   Ruleset-Änderung.
 - **ADR-039 / ADR-025:** Route-Neutralität der Bausteine in `app/components/ui/`.
-- **ADR-047:** Keine neue Guideline im `@import`-Dauerkontext. Die Regel ist fail-closed
+- **Factory-ADR-047:** Keine neue Guideline im `@import`-Dauerkontext. Die Regel ist fail-closed
   erzwungen und braucht deshalb keinen Prosa-Kontext.

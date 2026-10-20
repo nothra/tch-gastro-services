@@ -1,9 +1,9 @@
 ## Codify-Report: Task 373
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` – `<form action>` setzt Eingaben auch nach einer Ablehnung zurück; Dialoge mit
+- `docs/project/lessons/frontend-react.md` – `<form action>` setzt Eingaben auch nach einer Ablehnung zurück; Dialoge mit
   „Fehler bleibt im Dialog" brauchen `onSubmit` + `startTransition` – wegen: AK1.4, Designentscheidung von `FormularDialog`.
-- `docs/factory/lessons/frontend-react.md` – Rezidiv der #371-Lesson: Dialog, dessen Erfolg den Auslöser unmountet, von
+- `docs/project/lessons/frontend-react.md` – Rezidiv der #371-Lesson: Dialog, dessen Erfolg den Auslöser unmountet, von
   Anfang an mit Fokus-Ersatzziel und Erfolgsfall-Test bauen; neuer Hook neben ähnlichem vorher abgleichen und
   route-neutral ablegen – wegen: Review-Iteration 1 W1 (Fokusverlust) und W2 (duplizierter Hook mit falscher Begründung).
 - `docs/factory/lessons/factory-workflow.md` – Rezidiv der #391-Lesson: die menschliche Vor-Merge-Checkbox listet jedes

@@ -18,7 +18,7 @@ braucht:
 | `guidelines/architecture-principles.md` | 79 |
 | **Summe** | **844** (≈ 61 % des @import-Kontexts von 1.376 Zeilen) |
 
-[ADR-037](../adr/037-lessons-auslagern-aus-import-kontext.md) hat 2026 die 45 `/codify`-Learnings
+[ADR-037](../factory/adr/037-lessons-auslagern-aus-import-kontext.md) hat 2026 die 45 `/codify`-Learnings
 aus dem @import-Pfad nach `docs/factory/lessons/` ausgelagert, aber unter „Konsequenzen"
 ausdrücklich festgehalten: **„Guidelines-Dateien und ihre `@import`-Einbindung bleiben
 unverändert."** Der Punkt ist damit nicht erledigt, sondern bewusst offen gelassen – Issue #319

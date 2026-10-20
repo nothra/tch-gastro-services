@@ -17,7 +17,7 @@ Login & RBAC für die zwei Rollen **`verwalter`** (Stammdaten & Preise) und **`a
 dem Auth.js-Gerüst aus #16 auf; das dortige Einzel-Rollen-Modell wird auf Mehrfach-Rollen
 umgestellt. Rollenrechte werden **serverseitig** durchgesetzt (Middleware + Server Actions),
 nicht nur im UI. Abmelden inbegriffen. Kein Self-Signup, kein Passwort-Reset (Scope).
-Entscheidungen: siehe [ADR-016](../adr/016-rbac-rollen-login.md).
+Entscheidungen: siehe [ADR-016](../docs/adr/016-rbac-rollen-login.md).
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
@@ -51,7 +51,7 @@ Entscheidungen: siehe [ADR-016](../adr/016-rbac-rollen-login.md).
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
-Ableitung aus [ADR-016](../adr/016-rbac-rollen-login.md). Anzufassende Dateien:
+Ableitung aus [ADR-016](../docs/adr/016-rbac-rollen-login.md). Anzufassende Dateien:
 
 - **`db/schema.ts`** – Enum-Array-Modell (ADR-016, Frage 1):
   - `pgEnum("user_role", ["verwalter","abrechner"])` (Werte ersetzen).
@@ -87,7 +87,7 @@ Erst danach Schema/JWT-Propagation und der geschützte-Action-Integrationspfad.
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
 
-- [x] Mechanik der initialen Konto-Anlage → **entschieden in [ADR-016](../adr/016-rbac-rollen-login.md)
+- [x] Mechanik der initialen Konto-Anlage → **entschieden in [ADR-016](../docs/adr/016-rbac-rollen-login.md)
       (Frage 3): Seed-Skript (`db/seed.ts`); keine Nutzerverwaltungs-UI im Scope von #48.**
 
 ## Implementierungs-Notizen (nicht-offensichtliche Entscheidungen)

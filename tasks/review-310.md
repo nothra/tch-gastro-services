@@ -74,7 +74,7 @@ _Keine._ Der Nachlauf-Commit ist an allen drei Prüfachsen sauber:
       Refactor-Schritt:** `run-tests.sh:6114-6132` ankert auf genau diesem Literal (`IC_CALL_310`)
       und vergleicht Vorkommens-**Zahlen** – eine Extraktion muss den Mutations-Guard im selben
       Commit mitziehen, sonst wird er lautlos wirkungslos (#114-Klasse).
-- [ ] `docs/adr/019-stage3-commit-seam-report-guard.md:82-84` und `:92-94` – die Interrupt-
+- [ ] `docs/factory/adr/019-stage3-commit-seam-report-guard.md:82-84` und `:92-94` – die Interrupt-
       Ausnahme steht in §4 **zweimal** („Ein im Versuch signalisierter Interrupt stoppt … der
       Stale-Zweig ruft `interrupt-check.sh` ebenso auf" und zwei Absätze später „Nach dem
       als-Erfolg-gewerteten Abbruch – und ebenso im Stale-Zweig – läuft `interrupt-check.sh`").

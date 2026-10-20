@@ -2,7 +2,7 @@
 
 ### Neue Regeln hinzugefügt
 
-- **[`docs/factory/lessons/db-drizzle.md`]** Neue Mehrfach-Write-Data-Layer-Funktion muss
+- **[`docs/project/lessons/db-drizzle.md`]** Neue Mehrfach-Write-Data-Layer-Funktion muss
   `runAtomic` (`db/atomic.ts`) statt `db.transaction()` direkt nutzen – wegen: `duplicateCatalog`
   rief `db.transaction()` direkt auf, was lokal/CI (node-postgres) grün blieb, aber in INT/PRD
   (Neon-HTTP-Treiber, unterstützt keine interaktive `.transaction()`) bei jedem Aufruf
@@ -10,7 +10,7 @@
   Runde 1 und nicht der Logik-Fokus in Runde 2. Index-Zeile in `PROJECT-CONTEXT.md` ergänzt
   (Trigger: `/implement`, `/review` (Architektur-Fokus) – bei neuer Mehrfach-Write-Funktion in
   `db/`).
-- **[`docs/factory/lessons/db-drizzle.md`]** Ein Feld, das von „serverseitig fix" auf „aus
+- **[`docs/project/lessons/db-drizzle.md`]** Ein Feld, das von „serverseitig fix" auf „aus
   `FormData` gelesen" wechselt und weiterhin als FK-Bezug dient, öffnet neue DB-Fehlerklassen, die
   der bestehende Error-Translation-Wrapper nicht kennt – wegen: `catalogId` wurde mit #345 erstmals
   aus einem Client-Hidden-Field gelesen; `runWithUniqueCheck` fängt nur `23505`

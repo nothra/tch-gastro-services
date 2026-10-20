@@ -7,7 +7,7 @@ reine Task-Änderung). Drei Personas: Logik/Korrektheit, Code-Qualität, Archite
 - [ ] _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [x] `docs/adr/038-groessenabhaengige-modell-tier-wahl.md:4` – ADR-Status war `Proposed`.
+- [x] `docs/factory/adr/038-groessenabhaengige-modell-tier-wahl.md:4` – ADR-Status war `Proposed`.
       **BEHOBEN (Runde 2):** auf `Accepted (2026-07-22)` gesetzt.
 - [x] `scripts/lib/tier-select.sh:55` – Binärdatei-Zweig war ungetestet.
       **BEHOBEN (Runde 2):** neuer Test „#197 O4: Binärdatei wird bei der Diff-Größe übersprungen"

@@ -30,7 +30,7 @@ in [`docs/specs/spec-262-flag-guard-commit-message.md`](../docs/specs/spec-262-f
 - [x] GIVEN eine leere Commit-Message WHEN committet wird THEN bestehende Leer-Prüfung bleibt unverändert wirksam.
 
 ## Technische Notizen
-ADR-042 (`docs/adr/042-hook-installation-single-source.md`): `scripts/install-hooks.sh`
+ADR-042 (`docs/factory/adr/042-hook-installation-single-source.md`): `scripts/install-hooks.sh`
 ist die einzige Quelle für Hook-Inhalt (`pre-commit`/`pre-push`/`commit-msg`), idempotent,
 beliebig oft ausführbar. `scripts/init-factory.sh` ruft für Schritt 5 nur noch
 `bash scripts/install-hooks.sh` auf (keine eigenen Heredocs mehr). Für dieses Repo:

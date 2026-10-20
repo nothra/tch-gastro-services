@@ -45,7 +45,7 @@ Kosten/Tokens pro Skill ernten. Der Aufruf in `run-pipeline.sh:290` nutzt kein
 
 ## Technische Notizen
 
-**ADR: [ADR-045 – Prozess-Messung je Pipeline-Lauf](../docs/adr/045-prozess-messung-je-pipeline-lauf.md)**
+**ADR: [ADR-045 – Prozess-Messung je Pipeline-Lauf](../docs/factory/adr/045-prozess-messung-je-pipeline-lauf.md)**
 (Status `Proposed` → beim Implementieren auf `Accepted` flippen).
 
 Entschiedene Architektur (Kurzfassung, Begründung + Alternativen A–E in der ADR):

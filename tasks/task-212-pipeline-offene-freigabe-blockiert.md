@@ -51,7 +51,7 @@ Verwandt: #211 (gleiche Symptomfamilie „Erfolg trotz Draft-PR"), ADR-004 (Inte
 ## Technische Notizen
 <!-- Von /architecture befüllt: ADR-040 -->
 
-**Architektur:** [ADR-040](../docs/adr/040-pipeline-endzustands-verifikation.md) –
+**Architektur:** [ADR-040](../docs/factory/adr/040-pipeline-endzustands-verifikation.md) –
 Deterministische Endzustands-Verifikation als agenten-signal-unabhängiger Backstop.
 Ergänzt ADR-004 (stoppt *auf Signal*) → 040 stoppt *auf beobachteten Zustand ohne Signal*.
 Defense in depth: Pipeline-Verifikation (deterministisch) + pr-shepherd-Interrupt (Best-Effort).

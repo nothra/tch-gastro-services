@@ -67,7 +67,7 @@ den Poll-Pfad nicht stillegen (F2). `bash scripts/install-yq.sh` und die YAML-Va
       Nebenbei: `poll_trigger_guard` hat einen `[ -n "$on_block" ]`-Guard, die zwei
       Geschwister-Funktionen nicht – verhaltensgleich (`grep` auf Leerstring scheitert), aber der
       Leser muss sich das erst herleiten.
-- [ ] `docs/adr/008-async-trigger-mechanism.md:9-14` – Die Update-Notiz vom 2026-07-08 sagt im
+- [ ] `docs/factory/adr/008-async-trigger-mechanism.md:9-14` – Die Update-Notiz vom 2026-07-08 sagt im
       Präsens weiter „die Umsetzung nutzt jetzt einen GitHub Actions **Scheduled Workflow**".
       Korrigiert wird das erst von der neuen Notiz direkt darunter. Chronologisch gestapelte,
       datierte Notizen sind vertretbar (die ADR erklärt Text weiter unten ausdrücklich als
@@ -145,7 +145,7 @@ den Poll-Pfad nicht stillegen (F2). `bash scripts/install-yq.sh` und die YAML-Va
 - [x] `scripts/factory-poll.sh:4` – „Läuft in einem GitHub Actions **Scheduled Workflow**": der
       wortgleiche Satz in `factory-poll.yml:3` war korrigiert, die Kopie im Skript-Header nicht.
       Lesson `code-style.md` (Fix auf kopierte Geschwister-Stellen ausweiten) + Lesson #176.
-- [x] `docs/adr/012-github-platform-migration.md:34` – Migrations-Tabelle nannte
+- [x] `docs/factory/adr/012-github-platform-migration.md:34` – Migrations-Tabelle nannte
       „`factory-poll.yml` (`schedule` + `concurrency`)" als heutigen Stand. Lesson #211: ADR-
       Beschreibung derselben Mechanik im selben PR mitpflegen.
 - [x] `.github/workflows/factory-poll.yml:57-58` – Falsche Kausalkette im neuen WHY-Kommentar

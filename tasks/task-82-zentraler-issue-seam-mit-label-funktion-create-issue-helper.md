@@ -20,7 +20,7 @@ uneinheitlich: Das Art-Label wird erst seit #80 in `start-work.sh` gesetzt; **As
 Ziel: **ein einziger Seam** für die Issue-Anlage, durch den *jeder* Erzeugungszeitpunkt läuft
 und der Label-Vergabe (Art-Label + optionale Aspekt-Labels) einheitlich anbietet.
 
-Spec: `docs/specs/spec-82-issue-seam.md` · ADR: `docs/adr/018-central-issue-seam.md`
+Spec: `docs/specs/spec-82-issue-seam.md` · ADR: `docs/factory/adr/018-central-issue-seam.md`
 
 ## Akzeptanzkriterien
 - [x] GIVEN eine neue Bibliotheksfunktion `scripts/lib/create-issue.sh`

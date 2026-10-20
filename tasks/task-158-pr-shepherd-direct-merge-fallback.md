@@ -56,7 +56,7 @@ Encoding) – hard-denied (#88), erneut als `tasks/patch-158.diff` geliefert (pr
 entfernt (#145). Fixes an editierbaren Dateien (`run-tests.sh`, Spec) waren bereits committet.
 
 ## Technische Notizen
-**ADR:** [ADR-030](../docs/adr/030-pr-shepherd-direct-merge-fallback.md) – Accepted.
+**ADR:** [ADR-030](../docs/factory/adr/030-pr-shepherd-direct-merge-fallback.md) – Accepted.
 
 Entscheidung (Schritt 6, `.claude/commands/pr-shepherd.md`):
 - `MERGE_STATE=$(gh pr view --json mergeStateStatus -q .mergeStateStatus)` **vor** dem Merge lesen.

@@ -6,7 +6,7 @@ vier Review-Runden + Circuit Breaker + manuelle Rework-Runde), `tasks/review-352
 
 ### Neue Regeln hinzugefügt
 
-- **`docs/factory/lessons/frontend-react.md`** – Reset-Handler, der einen gültigen Submit
+- **`docs/project/lessons/frontend-react.md`** – Reset-Handler, der einen gültigen Submit
   begleiten soll, gehört an `onSubmit` des `<form>`, nicht an `onClick` des Buttons: `onClick`
   feuert unabhängig von der nativen Pflichtfeld-Validierung, `onSubmit` nur bei bestandener
   Constraint-Validierung. Wegen: Review-Runde 3 fand genau diesen Fehler in

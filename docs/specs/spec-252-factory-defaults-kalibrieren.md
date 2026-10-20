@@ -178,7 +178,7 @@ neuen Werte (`claude-opus-5`, `claude-sonnet-5`, `max 30 turns` für review/secu
 
 ## Offene Fragen
 
-- [ ] **ADR-019-Drift:** `docs/adr/019-stage3-commit-seam-report-guard.md` §5 („Budget-Puffer")
+- [ ] **ADR-019-Drift:** `docs/factory/adr/019-stage3-commit-seam-report-guard.md` §5 („Budget-Puffer")
       beschreibt explizit die Werte „`max_turns` von `8` auf **14** für `review` und
       `security-review`". Nach AK3/AK4 ist „14" als aktueller Wert nicht mehr zutreffend (ADR
       bleibt als historisches Protokoll der damaligen Entscheidung gültig, wird aber ohne
@@ -187,7 +187,7 @@ neuen Werte (`claude-opus-5`, `claude-sonnet-5`, `max 30 turns` für review/secu
       historischer Schnappschuss stehen bleibt (analog zur in spec-249 bereits an `/architecture`
       delegierten ADR-Drift-Frage zu ADR-010).
 - [ ] **ADR-038-Beispielblock:** Der Config-Schema-Codeblock in
-      `docs/adr/038-groessenabhaengige-modell-tier-wahl.md` zeigt `max_turns: 14` bei `review` und
+      `docs/factory/adr/038-groessenabhaengige-modell-tier-wahl.md` zeigt `max_turns: 14` bei `review` und
       `security-review` als Beispielwert. Gleiche Frage wie oben – `/architecture` entscheidet,
       ob dieser Beispielblock mit aktualisiert wird oder als historischer Schnappschuss stehen
       bleibt.

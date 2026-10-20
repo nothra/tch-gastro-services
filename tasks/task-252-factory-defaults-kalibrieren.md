@@ -51,7 +51,7 @@ ADR-Drift-Fragen sind entschieden (s. Offene Fragen unten); Umsetzung für `/imp
 - `scripts/checks/tests/run-tests.sh`: Dry-Run-Assertions an den in der Spec gelisteten Zeilen
   (u. a. 1128, 1134, 1152, 1154, 2991, 2993, 2995, 3005, 3015, 3024 im Ist-Stand) auf die neuen
   Modell-IDs bzw. „max 30 turns" (review/security-review) anpassen.
-- `docs/adr/019-stage3-commit-seam-report-guard.md`: Nachtrag-Abschnitt ist bereits in diesem
+- `docs/factory/adr/019-stage3-commit-seam-report-guard.md`: Nachtrag-Abschnitt ist bereits in diesem
   /architecture-Schritt ergänzt (kein weiterer Implementierungs-Schritt nötig).
 
 ## Offene Fragen

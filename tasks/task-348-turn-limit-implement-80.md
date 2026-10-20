@@ -22,7 +22,7 @@ Abbruch trotz fast fertigem Diff). Läuft über `/architecture` (ADR-Amendment),
 <!-- Von /requirements befüllt oder manuell eingeben -->
 - [x] ADR-009 §6 / ADR-010 (bzw. neue Amendment-ADR) begründet die neue Ceiling 80 mit der
       Eskalationshistorie (#49, #53, #324) – nicht nur dem Einzel-Incident #324
-      → [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md)
+      → [ADR-051](../docs/factory/adr/051-turn-limit-ceiling-implement-80.md)
 - [x] `MAX_TURNS_CEILING=80` in `scripts/checks/config-validation-check.sh`, Kommentar auf die
       neue ADR aktualisiert
 - [x] `skills.implement.max_turns: 80` in `factory.config.yml`, `@reason`-Kommentar auf #324
@@ -38,7 +38,7 @@ Abbruch trotz fast fertigem Diff). Läuft über `/architecture` (ADR-Amendment),
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
-**ADR:** [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md) – erweitert ADR-009 §6 /
+**ADR:** [ADR-051](../docs/factory/adr/051-turn-limit-ceiling-implement-80.md) – erweitert ADR-009 §6 /
 ADR-010 (Mechanismus unverändert, nur der Zahlenwert 50→80). ADR-010 hat eine kurze
 Blockquote-Notiz am Absatz „Heimat der Obergrenze" erhalten (Muster: ADR-036 D1 ↔ ADR-046).
 ADR-009 §6 bleibt **unverändert** – beschreibt nur den Mechanismus, keinen Zahlenwert, daher

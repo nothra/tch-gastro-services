@@ -1,8 +1,8 @@
 ## Codify-Report: Task 372
 
 ### Neue Regeln hinzugefügt
-- `docs/factory/lessons/frontend-react.md` – **Overlay außerhalb eines modalen `<dialog>` ist verdeckt und inert** (Portal in den offenen Dialog; Nachweis per Klick + Screenshot, nicht `toBeVisible()`) – wegen: Toast lag unter dem offenen „Einstellungen"-Dialog, E2E war trotzdem grün.
-- `docs/factory/lessons/frontend-react.md` – **Rezidiv #373: Erfolgs-Fokus-Vertrag in zwei Hooks kopiert** (ganzen Vertrag extrahieren, Helfer als eigenes Modul) – wegen: Review-Iteration 1/2 fand die Dopplung trotz vorhandener Lesson.
+- `docs/project/lessons/frontend-react.md` – **Overlay außerhalb eines modalen `<dialog>` ist verdeckt und inert** (Portal in den offenen Dialog; Nachweis per Klick + Screenshot, nicht `toBeVisible()`) – wegen: Toast lag unter dem offenen „Einstellungen"-Dialog, E2E war trotzdem grün.
+- `docs/project/lessons/frontend-react.md` – **Rezidiv #373: Erfolgs-Fokus-Vertrag in zwei Hooks kopiert** (ganzen Vertrag extrahieren, Helfer als eigenes Modul) – wegen: Review-Iteration 1/2 fand die Dopplung trotz vorhandener Lesson.
 - `docs/factory/lessons/testing.md` – **`getByRole(name)` ist Teilstring-Treffer** (`exact: true` nach neuem Element im Dialog) – wegen: „Meldung schließen" brach drei Specs auf „Schließen".
 - `docs/factory/lessons/build-tooling.md`-Index-Zeile (Wegwerf-Artefakte) in `PROJECT-CONTEXT.md` um das vierte Vorkommnis ergänzt (`playwright-372.tmp.config.ts`, `scripts/advisory372.tmp.sh`).
 - Alle drei neuen Lessons mit Index-Zeile in `docs/factory/PROJECT-CONTEXT.md` (die Playwright-Lesson mit „Laden bei"-Trigger).

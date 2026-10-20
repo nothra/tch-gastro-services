@@ -13,7 +13,7 @@
   `pnpm audit`-Check eine **neue, echte** ungedeckte Linie zeigen, nicht nur ein einmaliges
   Anzeige-Artefakt — wegen: `/security-review` fand hier eine dritte, bisher ungedeckte
   `brace-expansion@5.x`-Linie (Issue #339 angelegt).
-- [`docs/factory/lessons/next-auth.md`] Ein `/_next/image`-Rauchtest gegen ein beliebiges
+- [`docs/project/lessons/next-auth.md`] Ein `/_next/image`-Rauchtest gegen ein beliebiges
   `public/`-Asset kann am eigenen Auth-Proxy-Matcher scheitern (interner Self-Fetch der
   Bildoptimierung läuft durch denselben Proxy und wird für nicht ausgenommene Pfade auf
   `/login` umgeleitet), nicht an der Optimierung selbst — wegen: eigener Rauchtest während der

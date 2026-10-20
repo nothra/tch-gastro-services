@@ -32,7 +32,7 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 - Entscheidung aus /requirements: neuer eigener Job (nicht nur ein Step in `factory-self-test`).
-- **ADR-041 erstellt:** [docs/adr/041-config-validation-ci-required-check.md](../docs/adr/041-config-validation-ci-required-check.md)
+- **ADR-041 erstellt:** [docs/factory/adr/041-config-validation-ci-required-check.md](../docs/factory/adr/041-config-validation-ci-required-check.md)
   – ADR-Trigger griff, weil ADR-029 für Ruleset-Änderungen explizit "einen neuen ADR"
   vorschreibt (nicht nur eine stille Ruleset-Änderung).
 - **ADR-029 nachgezogen:** `required_status_checks`-JSON + Querverweis auf ADR-041
@@ -64,9 +64,9 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
 - **Review-Runde 2 (NEEDS_REWORK) behoben** – siehe [tasks/review-255.md](review-255.md):
   reine Doku-Drift, die nach dem Runde-1-Rework entstanden war (ADR-Prosa/Lesson blieben
   hinter dem bereits aktualisierten JSON/Code zurück):
-  - `docs/adr/029-branch-protection-main-ruleset.md`: Decision-Prosa um `config-validation`
+  - `docs/factory/adr/029-branch-protection-main-ruleset.md`: Decision-Prosa um `config-validation`
     ergänzt (war nur im JSON-Sollzustand weiter unten aktuell).
-  - `docs/adr/041-config-validation-ci-required-check.md`: Trade-off-Text korrigiert –
+  - `docs/factory/adr/041-config-validation-ci-required-check.md`: Trade-off-Text korrigiert –
     behauptete "ausschließlich in CI abgedeckt", obwohl der Runde-1-Rework die
     Nicht-Regression bereits als AK2-Behavior-Test wieder in `run-tests.sh` eingebaut hatte
     (jetzt als "doppelte Absicherung" beschrieben, CI-Required-Check + Selbsttest).
@@ -80,7 +80,7 @@ Details: [docs/specs/spec-255-config-validation-check-ci-verdrahten.md](../docs/
     bestand nur zufällig, weil Regel 6 ohnehin auf jeden `heavy`-Wert greift. Ersetzt
     durch echten Merge: `yq -i eval '.model_tiers.heavy = "claude-sonnet-5"' ...`
     (verifiziert: `light` bleibt jetzt erhalten, Gate schlägt weiterhin korrekt fehl).
-  - `docs/adr/041-config-validation-ci-required-check.md`: Trade-off-Bullet gekürzt –
+  - `docs/factory/adr/041-config-validation-ci-required-check.md`: Trade-off-Bullet gekürzt –
     erzählte die Rework-Historie inline statt nur den aktuellen Trade-off zu nennen.
   - Uneinheitliche "Nachtrag ADR-041"-Klammer-Schreibweise (Komma vs. Schrägstrich) in
     ADR-029/Lesson-Datei vereinheitlicht.

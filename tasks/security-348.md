@@ -23,7 +23,7 @@ _Keine._
 - [ ] **[Kosten-Exposition] Erhöhter, aber dokumentiert begründeter Kosten-Rahmen.** Ein
       `/implement`-Lauf kann jetzt bis zu 80 statt 50 Turns verbrauchen (+60 %). Das ist der
       **Zweck** dieser Task, nicht ein Nebeneffekt – begründet in
-      [ADR-051](../docs/adr/051-turn-limit-ceiling-implement-80.md) mit der wiederkehrenden
+      [ADR-051](../docs/factory/adr/051-turn-limit-ceiling-implement-80.md) mit der wiederkehrenden
       Eskalationshistorie (#49/#53/#324) und explizit als reversible Entscheidung markiert.
       Sichtbarkeit über die bestehende Telemetrie (ADR-049), kein neues Messverfahren nötig.
       Kein Handlungsbedarf.

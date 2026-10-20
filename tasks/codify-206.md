@@ -1,7 +1,7 @@
 ## Codify-Report: Task 206
 
 ### Neue Regeln hinzugefügt
-- [`docs/factory/lessons/frontend-react.md`](../docs/factory/lessons/frontend-react.md)
+- [`docs/project/lessons/frontend-react.md`](../docs/project/lessons/frontend-react.md)
   „`.map`-Key aus Anzeigefeldern statt stabilem Identifier ist eine latente Kollisionsquelle" –
   wegen: einziger Rework-Grund aus Review-Runde 2 (`VerzehrAufschluesselung.tsx:34`, von zwei
   unabhängigen Personas gefunden). `key={`${category}-${name}-${size}`}` auf einem abgeleiteten

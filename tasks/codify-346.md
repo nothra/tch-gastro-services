@@ -2,7 +2,7 @@
 
 ### Neue Regeln hinzugefügt
 
-- [`docs/factory/lessons/db-drizzle.md`](../docs/factory/lessons/db-drizzle.md) – neue Lesson:
+- [`docs/project/lessons/db-drizzle.md`](../docs/project/lessons/db-drizzle.md) – neue Lesson:
   „Wegwerf-E2E-Verifikation gegen den lokalen Dev-Server pollutiert dieselbe geteilte Dev-DB,
   gegen die DB-Integrationstests laufen" – wegen: die manuelle Playwright-Verifikation aus
   `/implement` legte reale, nicht `__test__`-präfixierte Kataloge/Artikel/eine Veranstaltung in

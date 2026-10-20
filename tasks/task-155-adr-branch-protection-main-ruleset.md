@@ -22,10 +22,10 @@ den parallelen Handbetrieb zu brechen.
 
 Diese Task ist **reine Dokumentation** – die Ruleset-Config ist bereits per `gh api`
 angewandt. Es entsteht kein Produktionscode und kein IaC-Tooling (Entscheidung siehe
-[ADR-029](../docs/adr/029-branch-protection-main-ruleset.md), Option D1 / YAGNI).
+[ADR-029](../docs/factory/adr/029-branch-protection-main-ruleset.md), Option D1 / YAGNI).
 
 ## Akzeptanzkriterien
-- [x] GIVEN die Entscheidung ist getroffen WHEN `docs/adr/029-branch-protection-main-ruleset.md`
+- [x] GIVEN die Entscheidung ist getroffen WHEN `docs/factory/adr/029-branch-protection-main-ruleset.md`
       vorliegt THEN enthält es Status `Accepted`, Kontext, Entscheidung, ≥ 2 Alternativen je
       Teilfrage, Begründung, Konsequenzen und die reproduzierbare Ruleset-JSON.
 - [x] GIVEN der Leser will den Live-Stand prüfen WHEN er dem ADR folgt THEN findet er den
@@ -44,7 +44,7 @@ angewandt. Es entsteht kein Produktionscode und kein IaC-Tooling (Entscheidung s
 ## Technische Notizen
 Von `/architecture` befüllt (2026-07-19):
 
-**Entscheidung:** siehe [ADR-029](../docs/adr/029-branch-protection-main-ruleset.md).
+**Entscheidung:** siehe [ADR-029](../docs/factory/adr/029-branch-protection-main-ruleset.md).
 Ruleset statt Classic Protection; 0 Approvals; squash-only; required Checks
 `lint`/`test`/`issue-sync`/`factory-self-test`/`pr-closes-issue`; `strict:false`;
 `gate`/`post-merge-verify` bewusst **nicht** required; keine Bypass-Actors.
