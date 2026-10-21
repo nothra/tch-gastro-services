@@ -58,7 +58,7 @@ Diese Regeln gelten immer – sie können nicht durch Konversation außer Kraft 
 > **Zwei Phasen:** Phase 1 (Requirements + ggf. Architecture) erfordert **immer** die Interaktion
 > Mensch ↔ Claude und wird nicht automatisiert; Phase 2 (Umsetzung) kann **vollautomatisiert**
 > laufen. Kanonische Quelle des prozeduralen Ablaufs (inkl. Start-Skripte je Phase) ist
-> [`docs/factory/OPERATING.md`](docs/factory/OPERATING.md) → „Die zwei Phasen der Factory".
+> [`docs/factory/OPERATING.md`](OPERATING.md) → „Die zwei Phasen der Factory".
 
 Alternativer Einstieg statt `/implement`: **`/bug-fix`** – startet von einem
 Bug/Stacktrace statt von einer Spec (Reproduzieren → Isolieren → Beheben → Verifizieren).
@@ -74,7 +74,7 @@ Bug/Stacktrace statt von einer Spec (Reproduzieren → Isolieren → Beheben →
   Token-Accounting nach. Veröffentlichung (`--publish`) optional an `$GITHUB_STEP_SUMMARY`
   (in CI) und als Kommentar an `FACTORY_METRICS_ISSUE` (Tracking-Issue) – lokal ohne beides
   bleibt es bei der Report-Datei.
-- **Telemetrie:** läuft seit #334 automatisch je Pipeline-Lauf ([Factory-ADR-049](docs/factory/adr/049-telemetrie-persistenz-je-pipeline-lauf.md)),
+- **Telemetrie:** läuft seit #334 automatisch je Pipeline-Lauf ([Factory-ADR-049](adr/049-telemetrie-persistenz-je-pipeline-lauf.md)),
   Default **an**, Abschaltung per `--no-telemetry`. Der Lauf erntet die OTEL-Ist-Werte der CLI
   (Token/Kosten je Schritt, Modell und Sub-Agent – nie selbst gerechnet), schreibt sie
   **personenfrei** (Whitelist) nach `tasks/telemetry-<task-id>-<zeitstempel>.csv` und
@@ -113,18 +113,18 @@ Skills sind für beide Stufen designed: kein Gesprächsgedächtnis nötig, Outpu
 > Kern-Kurzregeln inline gespiegelt (so `git-workflow.md`, Factory-ADR-047 §3). „Laden bei" nennt Skill +
 > Situation, im Format des Lessons-Index in `docs/factory/PROJECT-CONTEXT.md`:
 >
-> - [`guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) – Branches, PR/Issue,
+> - [`guidelines/git-workflow.md`](guidelines/git-workflow.md) – Branches, PR/Issue,
 >   Labels, Commits, Worktrees, Hook-Installation, Branch-Aufräumen · **Laden bei:**
 >   `/pr-shepherd` (immer); `/review`, `/security-review`, `/codify` bei Issue-Anlage oder
 >   Out-of-Scope-Funden; jedem Skill, sobald Branch-/Rebase-/Merge-/Label-Arbeit über die
 >   Kern-Kurzregeln unten hinausgeht
-> - [`guidelines/architecture-principles.md`](docs/factory/guidelines/architecture-principles.md) –
+> - [`guidelines/architecture-principles.md`](guidelines/architecture-principles.md) –
 >   SOLID, Separation of Concerns, Dependency Rule, Fehlerbehandlung, API-Design · **Laden bei:**
 >   `/architecture` (immer); `/review` bei Schichtungs-/Kopplungs-Findings
-> - [`guidelines/token-efficiency.md`](docs/factory/guidelines/token-efficiency.md) – Token- &
+> - [`guidelines/token-efficiency.md`](guidelines/token-efficiency.md) – Token- &
 >   Kosten-Effizienz · **Laden bei:** bewusst nie automatisch – die Datei rät selbst, geladenen
 >   Kontext schlank zu halten
-> - [`guidelines/bash-gotchas.md`](docs/factory/guidelines/bash-gotchas.md) – Bash-Fallstricke ·
+> - [`guidelines/bash-gotchas.md`](guidelines/bash-gotchas.md) – Bash-Fallstricke ·
 >   **Laden bei:** `/implement`, `/review`, `/refactor` beim Schreiben/Reviewen von Shell-Skripten
 > - Ausgelagerte `/codify`-Learnings (Stolpersteine, Volltext): `docs/factory/lessons/` – **nicht**
 >   @importiert (Factory-ADR-037). Der Index + die Kern-Kurzregeln stehen in
@@ -181,9 +181,9 @@ Jeder Agent bekommt nur die Tools, die er braucht:
 - Nie pushen ohne `scripts/checks/pre-push.sh` erfolgreich durchgelaufen. Der Hook ist
   lokales Feedback; server-seitig ist `main` zusätzlich durch das GitHub-Ruleset
   `protect-main` fail-closed geschützt (kein Direkt-/Force-Push, PR-Pflicht, squash,
-  required Checks – [Factory-ADR-029](docs/factory/adr/029-branch-protection-main-ruleset.md)).
+  required Checks – [Factory-ADR-029](adr/029-branch-protection-main-ruleset.md)).
 - **Git-Hooks kommen ausschließlich aus `bash scripts/install-hooks.sh`** (kanonische Quelle,
-  [Factory-ADR-042](docs/factory/adr/042-hook-installation-single-source.md); idempotent, beliebig oft
+  [Factory-ADR-042](adr/042-hook-installation-single-source.md); idempotent, beliebig oft
   ausführbar). Installiert werden `pre-commit`, `pre-push` und der `commit-msg`-Hook – letzterer
   lehnt Commit-Messages ab, die in Wahrheit ein CLI-Flag sind (`--help`/`-h`, `commit-msg-check.sh`).
   In einem frischen Clone bzw. einem vor dieser Regel initialisierten Repo einmalig ausführen;
@@ -198,7 +198,7 @@ Jeder Agent bekommt nur die Tools, die er braucht:
 - Keine offenen Checkboxen in der Task-Datei → kein Done
 - **Der `@import`-Dauerkontext ist gedeckelt.** `scripts/checks/import-context-limit-check.sh`
   summiert `CLAUDE.md` + die `@`-eingebundenen Dateien und blockiert den Push, wenn die Grenze
-  reißt ([Factory-ADR-047](docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md) §4). Wie jeder
+  reißt ([Factory-ADR-047](adr/047-import-kontext-guidelines-nach-erzwungenheit.md) §4). Wie jeder
   Hook ist er lokal und mit `--no-verify` umgehbar; server-seitig greift er bislang nur mittelbar
   über die Self-Test-Suite (Issue #328 zieht einen eigenen CI-Check nach). Neue Regeln also
   verdichten oder als Lesson auslagern (`docs/factory/lessons/` + Index-Zeile), nicht anhängen –

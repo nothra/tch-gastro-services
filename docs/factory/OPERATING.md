@@ -513,6 +513,22 @@ Fehlschlag → `POST_MERGE_FAIL`-Interrupt + roter Job (fail-closed).
 - **Gates lokal vor dem Push:** `scripts/checks/pre-commit.sh` und `pre-push.sh` laufen bei
   installierten Hooks sowieso, aber Lint/Tests/Format vorab spart CI-Runden.
 
+### 5.5 Zusammengesetzte Dateien: `.claude/settings.json` und `.gitignore`
+
+Beide Dateien mischen Factory- und Projekt-Anteil und werden deshalb **nicht von Hand**
+bearbeitet, sondern aus Fragmenten zusammengesetzt (Factory-ADR-063 D3):
+
+| Ergebnis (committet) | Factory-Fragment | Projekt-Fragment |
+|---|---|---|
+| `.claude/settings.json` | `.claude/settings.factory.json` | `.claude/settings.project.json` |
+| `.gitignore` | `docs/factory/gitignore.factory` | `.gitignore.project` |
+
+**Projekt-Permission oder Ignore-Eintrag ergänzen:** Projekt-Fragment ändern →
+`bash scripts/factory-sync.sh --compose` → Fragment **und** Ergebnis beide committen. Ein Eintrag im
+Ergebnis ohne Fragment geht beim nächsten Zusammensetzen verloren; `--compose --check` (und die
+Self-Test-Suite) schlagen bei jeder Abweichung fehl. `.claude/**` ist für Agenten gesperrt – dort
+läuft die Änderung über den Patch-Workflow.
+
 ---
 
 ## Anhang: Branch-Protection richtig einordnen

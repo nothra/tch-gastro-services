@@ -28,10 +28,10 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-D4 `import-context-limit-check.sh` zählt verschachtelte Imports vollständig, bleibt unter der Grenze; Negativtest: Import nur über `FACTORY.md` reißt die Grenze → rot
 - [x] AK-D5 Dieselben Dateien im Dauerkontext wie vorher (Liste vorher/nachher hier in der Task-Datei)
 ### E · Zusammengesetzte Dateien
-- [ ] AK-E1 `.claude/settings.factory.json` + `.claude/settings.project.json` existieren; `.claude/settings.json` inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)
-- [ ] AK-E2 `docs/factory/gitignore.factory` + `.gitignore.project` existieren; ignorierte Pfade unverändert (feste Probenliste vorher/nachher)
-- [ ] AK-E3 Zusammensetz-Kommando (`scripts/factory-sync.sh --compose`, Q2) erzeugt byte-identisch die committete Datei, deterministisch; Test rot bei Abweichung
-- [ ] AK-E4 Doku: Projekt-Permission ergänzen = Projekt-Fragment ändern, neu zusammensetzen, beide committen
+- [~] AK-E1 `.claude/settings.factory.json` + `.claude/settings.project.json` existieren; `.claude/settings.json` inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)
+- [x] AK-E2 `docs/factory/gitignore.factory` + `.gitignore.project` existieren; ignorierte Pfade unverändert (feste Probenliste vorher/nachher)
+- [x] AK-E3 Zusammensetz-Kommando (`scripts/factory-sync.sh --compose`, Q2) erzeugt byte-identisch die committete Datei, deterministisch; Test rot bei Abweichung
+- [x] AK-E4 Doku: Projekt-Permission ergänzen = Projekt-Fragment ändern, neu zusammensetzen, beide committen
 ### F · CI-Workflows
 - [ ] AK-F1 `factory-ci.yml` enthält nur `pr-closes-issue`, `issue-sync`, `config-validation`, `factory-self-test`, `post-merge-verify`, keinen `pnpm`-Aufruf
 - [ ] AK-F2 Neues projekteigenes `ci.yml` führt `lint` + `test` mit unverändertem Job-Namen, Trigger und Inhalt aus (Repo-Variablen bleiben, Q7)
@@ -97,6 +97,13 @@ _Keine._ Q2–Q6 im ADR-063-Nachtrag entschieden; Q7 (CI-Quelle) und Q8 (Schnitt
 - Rekonstruktion AK-D3: Test in `run-tests.sh` vergleicht `git show bcba043:CLAUDE.md` zeilenweise gegen `FACTORY.md` + `CLAUDE.md` (Skip im flachen Klon).
 - Bestehende Tests, die generische Inhalte aus `CLAUDE.md` lasen, zeigen auf `FACTORY.md`.
 - `run-tests.sh` nach Etappe 1: 1709 grün, 0 rot.
+
+## Etappe 2 (E) – Notizen
+Blocker [2026-10-21]: `.claude/settings.json`, `.claude/settings.factory.json` und `.claude/settings.project.json` liegen unter dem gesperrten `Edit(.claude/**)` – Mensch muss `git apply tasks/patch-431-e.diff` ausführen (AK-E1 `[~]`). Bis dahin sind die E-Tests in `run-tests.sh` rot (14 Assertions: Fragmente fehlen). Danach: Patch-Datei entfernen, `[~]` → `[x]`, Blocker als erledigt markieren (Lesson #91).
+- Nachweis „grün nach Apply": Kopie des Baums + Patch → `run-tests.sh` 1751 grün; die 4 Roten dort sind Umgebung der Kopie (kein `pnpm`, keine Git-Historie), nicht E.
+- Baseline-Gleichheit gegen `bcba043` per `jq`: Hooks + sortierte Allow/Deny-Menge gleich; Factory ∪ Projekt == alte Regelmenge, disjunkt.
+- `.gitignore` byte-identisch zu vorher (`gitignore.factory` = Zeilen 1–31, `.gitignore.project` = Rest).
+- Fund aus Etappe D: Links in `FACTORY.md` waren wurzelrelativ (tote ADR-Links, AK-B3) – jetzt relativ zu `docs/factory/`; AK-D3-Test normalisiert genau diese Präfix-Änderung.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

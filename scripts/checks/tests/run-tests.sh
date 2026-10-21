@@ -9000,7 +9000,9 @@ if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:CLAUDE.md" 2>/dev/nu
     [ -n "${line_431//[[:space:]]/}" ] || continue
     case "$line_431" in '# dm Development Factory'*|'## Projekt-Kontext'|'@docs/factory/PROJECT-CONTEXT.md'|'---') continue ;; esac
     in_fac_431=0; in_cl_431=0
-    grep -qxF -- "$line_431" "$FACTORY_MD_431" && in_fac_431=1
+    # Einzige gewollte Textänderung: Links in FACTORY.md sind relativ zu docs/factory/ (AK-B3).
+    fac_line_431="${line_431//\](docs\/factory\//](}"
+    grep -qxF -- "$fac_line_431" "$FACTORY_MD_431" && in_fac_431=1
     grep -qxF -- "$line_431" "$CLAUDE_MD_431" && in_cl_431=1
     [ $((in_fac_431 + in_cl_431)) -ge 1 ] || missing_431="$missing_431|$line_431"
     [ $((in_fac_431 + in_cl_431)) -le 1 ] || dup_431="$dup_431|$line_431"
@@ -9036,6 +9038,115 @@ for g_431 in clean-code tdd-principles testing-standards; do
 done
 grep -qxF '@docs/factory/PROJECT-CONTEXT.md' "$CLAUDE_MD_431"
 assert_exit 0 "$?" "#431 AK-D5: PROJECT-CONTEXT.md bleibt im Dauerkontext (Import in CLAUDE.md)"
+
+# ─── #431 T1a-2 · Gruppe E: zusammengesetzte Dateien (AK-E1…E4, F-4) ────────────────────────
+echo ""
+echo "#431 AK-E: Fragmente + factory-sync.sh --compose:"
+SYNC_431="$FACTORY_ROOT/scripts/factory-sync.sh"
+assert_true "$([[ -f "$SYNC_431" ]]; echo $?)" "#431 AK-E3: scripts/factory-sync.sh existiert"
+for f_431 in .claude/settings.factory.json .claude/settings.project.json docs/factory/gitignore.factory .gitignore.project; do
+  assert_true "$([[ -f "$FACTORY_ROOT/$f_431" ]]; echo $?)" "#431 AK-E1/E2: Fragment $f_431 existiert"
+done
+for f_431 in .claude/settings.factory.json .claude/settings.project.json; do
+  jq -e . "$FACTORY_ROOT/$f_431" >/dev/null 2>&1
+  assert_exit 0 "$?" "#431 AK-E1: $f_431 ist gültiges JSON"
+done
+
+# compose_431 <wurzel> [args…] – führt den echten Compose-Modus gegen eine Fixture-Wurzel aus.
+compose_431() { local r="$1"; shift; FACTORY_DIR="$r" bash "$SYNC_431" --compose "$@" 2>&1; }
+# Fixture: nur die vier Fragmente + die committeten Ziele aus dem echten Repo.
+fixture_431() {
+  local d; d="$(mktemp -d)"; mkdir -p "$d/.claude" "$d/docs/factory"
+  cp "$FACTORY_ROOT/.claude/settings.factory.json" "$FACTORY_ROOT/.claude/settings.project.json" "$FACTORY_ROOT/.claude/settings.json" "$d/.claude/" 2>/dev/null
+  cp "$FACTORY_ROOT/docs/factory/gitignore.factory" "$d/docs/factory/" 2>/dev/null
+  cp "$FACTORY_ROOT/.gitignore.project" "$FACTORY_ROOT/.gitignore" "$d/" 2>/dev/null
+  printf '%s' "$d"
+}
+FX_431="$(fixture_431)"
+
+# AK-E3: Zusammensetzung == committete Datei, deterministisch.
+compose_431 "$FX_431" --check >/dev/null
+assert_exit 0 "$?" "#431 AK-E3: committete settings.json/.gitignore == Zusammensetzung der Fragmente (--check)"
+rm -f "$FX_431/.claude/settings.json" "$FX_431/.gitignore"
+compose_431 "$FX_431" >/dev/null
+assert_exit 0 "$?" "#431 AK-E3: --compose erzeugt beide Dateien"
+cmp -s "$FX_431/.claude/settings.json" "$FACTORY_ROOT/.claude/settings.json"
+assert_exit 0 "$?" "#431 AK-E3: settings.json byte-identisch zur committeten Datei"
+cmp -s "$FX_431/.gitignore" "$FACTORY_ROOT/.gitignore"
+assert_exit 0 "$?" "#431 AK-E3: .gitignore byte-identisch zur committeten Datei"
+first_431="$(cat "$FX_431/.claude/settings.json" "$FX_431/.gitignore" | cksum)"
+compose_431 "$FX_431" >/dev/null
+assert_true "$([ "$first_431" = "$(cat "$FX_431/.claude/settings.json" "$FX_431/.gitignore" | cksum)" ]; echo $?)" "#431 AK-E3: zweimal zusammengesetzt = gleiches Ergebnis"
+
+# F-4: Abweichung je Seite → rot, mit Dateiname (Mutation: committete Datei bzw. Fragment ändern).
+printf '\n# drift\n' >> "$FX_431/.gitignore"
+out_431="$(compose_431 "$FX_431" --check)"; rc_431=$?
+assert_exit 1 "$rc_431" "#431 F-4: abweichende .gitignore → --check rot"
+assert_contains_286 "$out_431" '.gitignore' "#431 F-4: Meldung nennt die abweichende Datei"
+compose_431 "$FX_431" >/dev/null
+jq '.permissions.allow += ["Bash(echo drift:*)"]' "$FX_431/.claude/settings.json" > "$FX_431/x" && mv "$FX_431/x" "$FX_431/.claude/settings.json"
+out_431="$(compose_431 "$FX_431" --check)"; rc_431=$?
+assert_exit 1 "$rc_431" "#431 F-4: abweichende settings.json → --check rot"
+assert_contains_286 "$out_431" 'settings.json' "#431 F-4: Meldung nennt settings.json"
+compose_431 "$FX_431" >/dev/null
+jq '.permissions.allow += ["Bash(echo frag:*)"]' "$FX_431/.claude/settings.project.json" > "$FX_431/x" && mv "$FX_431/x" "$FX_431/.claude/settings.project.json"
+compose_431 "$FX_431" --check >/dev/null
+assert_exit 1 "$?" "#431 F-4: geändertes Projekt-Fragment ohne neues Zusammensetzen → --check rot"
+compose_431 "$FX_431" >/dev/null
+jq -e '.permissions.allow | index("Bash(echo frag:*)")' "$FX_431/.claude/settings.json" >/dev/null
+assert_exit 0 "$?" "#431 AK-E4: Projekt-Permission im Fragment erscheint nach --compose in settings.json"
+# fail-closed: fehlendes Fragment
+rm -f "$FX_431/.claude/settings.project.json"
+compose_431 "$FX_431" >/dev/null
+assert_exit 1 "$?" "#431 AK-E3: fehlendes Fragment → --compose bricht ab (fail-closed)"
+FACTORY_DIR="$FX_431" bash "$SYNC_431" >/dev/null 2>&1
+assert_exit 1 "$?" "#431 AK-E3: ohne Modus → exit 1 (nur --compose existiert)"
+rm -rf "$FX_431"
+
+# AK-E1: inhaltsgleich zum Stand vor T1a (Hooks + Reihenfolge, Allow/Deny-Menge). Historienlesend → Skip im flachen Klon.
+if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:.claude/settings.json" 2>/dev/null; then
+  old_set_431="$(mktemp)"; git -C "$FACTORY_ROOT" show "$BASELINE_COMMIT_431:.claude/settings.json" > "$old_set_431"
+  norm_431='{hooks: .hooks, allow: (.permissions.allow|sort), deny: (.permissions.deny|sort), ask: ((.permissions.ask // [])|sort)}'
+  assert_true "$([ "$(jq -cS "$norm_431" "$old_set_431")" = "$(jq -cS "$norm_431" "$FACTORY_ROOT/.claude/settings.json")" ]; echo $?)" \
+    "#431 AK-E1: settings.json inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)"
+  # Zerlegung ist verlustfrei und disjunkt: Factory ∪ Projekt == alt, Schnitt leer.
+  union_431="$(jq -cS -s '{allow: ([.[].permissions.allow // []] | add | sort), deny: ([.[].permissions.deny // []] | add | sort)}' \
+    "$FACTORY_ROOT/.claude/settings.factory.json" "$FACTORY_ROOT/.claude/settings.project.json")"
+  assert_true "$([ "$union_431" = "$(jq -cS '{allow: (.permissions.allow|sort), deny: (.permissions.deny|sort)}' "$old_set_431")" ]; echo $?)" \
+    "#431 AK-E1: Factory- + Projekt-Fragment ergeben genau die alte Regelmenge (keine Regel doppelt, keine verloren)"
+  rm -f "$old_set_431"
+else
+  echo "  ⏭  #431 AK-E1: Baseline-Commit $BASELINE_COMMIT_431 nicht verfügbar (flacher Klon) – übersprungen"
+fi
+# Projekt-Fragment trägt die App-Regeln, Factory-Fragment keine App-Pfade.
+jq -e '.permissions.allow | index("Edit(app/**)")' "$FACTORY_ROOT/.claude/settings.project.json" >/dev/null 2>&1
+assert_exit 0 "$?" "#431 AK-E1: Edit(app/**) steht im Projekt-Fragment"
+jq -e '.permissions.allow | index("Edit(app/**)")' "$FACTORY_ROOT/.claude/settings.factory.json" >/dev/null 2>&1
+assert_exit 1 "$?" "#431 AK-E1: Edit(app/**) steht nicht im Factory-Fragment"
+
+# AK-E2: ignorierte Pfade unverändert – feste Probenliste gegen die committete .gitignore (Temp-Repo, --no-index).
+TMP_GI_431="$(mktemp -d)"; git -C "$TMP_GI_431" init -q; cp "$FACTORY_ROOT/.gitignore" "$TMP_GI_431/"
+ign_431="node_modules/x .next/x coverage/x .coverage-tmp431/x .env.local .DS_Store logs/a.log tasks/metrics-1.md tasks/pipeline-stuck-1.md foo.tmp.sh foo.tmp.config.ts .verify-x/a test-results/a playwright-report/a .vercel/a tsconfig.tsbuildinfo next-env.d.ts cert.pem"
+keep_431=".env.example app/page.tsx tasks/interrupt-log.jsonl docs/routes.md package.json"
+for pr_431 in $ign_431; do
+  git -C "$TMP_GI_431" check-ignore -q --no-index -- "$pr_431"
+  assert_exit 0 "$?" "#431 AK-E2: $pr_431 bleibt ignoriert"
+done
+for pr_431 in $keep_431; do
+  git -C "$TMP_GI_431" check-ignore -q --no-index -- "$pr_431"
+  assert_exit 1 "$?" "#431 AK-E2: $pr_431 bleibt nicht ignoriert"
+done
+rm -rf "$TMP_GI_431"
+if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:.gitignore" 2>/dev/null; then
+  git -C "$FACTORY_ROOT" show "$BASELINE_COMMIT_431:.gitignore" | cmp -s - "$FACTORY_ROOT/.gitignore"
+  assert_exit 0 "$?" "#431 AK-E2: .gitignore byte-identisch zu vorher (ignorierte Menge unverändert)"
+fi
+
+# AK-E4: Doku nennt den Änderungsweg.
+own_doc_431="$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")"
+assert_contains_286 "$own_doc_431" 'Projekt-Fragment ändern' "#431 AK-E4: OPERATING.md: Projekt-Fragment ändern"
+assert_contains_286 "$own_doc_431" 'factory-sync.sh --compose' "#431 AK-E4: OPERATING.md nennt das Zusammensetz-Kommando"
+assert_contains_286 "$own_doc_431" 'beide committen' "#431 AK-E4: OPERATING.md: Fragment und Ergebnis beide committen"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

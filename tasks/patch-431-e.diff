@@ -1,0 +1,195 @@
+diff --git a/.claude/settings.factory.json b/.claude/settings.factory.json
+new file mode 100644
+index 0000000..7161d85
+--- /dev/null
++++ b/.claude/settings.factory.json
+@@ -0,0 +1,68 @@
++{
++  "hooks": {
++    "PreToolUse": [
++      {
++        "matcher": "Bash",
++        "hooks": [
++          {
++            "type": "command",
++            "command": "bash scripts/checks/check.sh pre-tool"
++          }
++        ]
++      }
++    ],
++    "PostToolUse": [
++      {
++        "matcher": "Bash",
++        "hooks": [
++          {
++            "type": "command",
++            "command": "bash scripts/checks/check.sh post-tool"
++          }
++        ]
++      }
++    ],
++    "Stop": [
++      {
++        "hooks": [
++          {
++            "type": "command",
++            "command": "bash scripts/checks/completion-check.sh"
++          }
++        ]
++      }
++    ]
++  },
++  "permissions": {
++    "allow": [
++      "Bash(bash scripts/*)",
++      "Bash(bash scripts/checks/*)",
++      "Bash(git status:*)",
++      "Bash(git diff:*)",
++      "Bash(git log:*)",
++      "Bash(git branch:*)",
++      "Bash(git rev-parse:*)",
++      "Bash(gh pr view:*)",
++      "Bash(gh pr checks:*)",
++      "Bash(gh pr update-branch:*)",
++      "Bash(gh pr merge:*)",
++      "Bash(gh pr ready:*)",
++      "Bash(gh run list:*)",
++      "Bash(gh run rerun:*)",
++      "Edit(scripts/**)",
++      "Edit(docs/**)",
++      "Edit(tasks/**)",
++      "Edit(config/**)",
++      "Edit(.github/workflows/**)",
++      "Edit(*.json)",
++      "Edit(*.md)",
++      "Edit(/*.yml)",
++      "Edit(/*.yaml)"
++    ],
++    "deny": [
++      "Edit(.claude/**)",
++      "Edit(.env*)",
++      "Read(.env*)"
++    ]
++  }
++}
+diff --git a/.claude/settings.json b/.claude/settings.json
+index fd5dd26..9193019 100644
+--- a/.claude/settings.json
++++ b/.claude/settings.json
+@@ -1,23 +1,23 @@
+ {
+   "hooks": {
+-    "PreToolUse": [
++    "PostToolUse": [
+       {
+         "matcher": "Bash",
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "bash scripts/checks/check.sh pre-tool"
++            "command": "bash scripts/checks/check.sh post-tool"
+           }
+         ]
+       }
+     ],
+-    "PostToolUse": [
++    "PreToolUse": [
+       {
+         "matcher": "Bash",
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "bash scripts/checks/check.sh post-tool"
++            "command": "bash scripts/checks/check.sh pre-tool"
+           }
+         ]
+       }
+@@ -37,42 +37,42 @@
+     "allow": [
+       "Bash(bash scripts/*)",
+       "Bash(bash scripts/checks/*)",
+-      "Bash(git status:*)",
+-      "Bash(git diff:*)",
+-      "Bash(git log:*)",
+-      "Bash(git branch:*)",
+-      "Bash(git rev-parse:*)",
+-      "Bash(gh pr view:*)",
+       "Bash(gh pr checks:*)",
+-      "Bash(gh pr update-branch:*)",
+       "Bash(gh pr merge:*)",
+       "Bash(gh pr ready:*)",
++      "Bash(gh pr update-branch:*)",
++      "Bash(gh pr view:*)",
+       "Bash(gh run list:*)",
+       "Bash(gh run rerun:*)",
++      "Bash(git branch:*)",
++      "Bash(git diff:*)",
++      "Bash(git log:*)",
++      "Bash(git rev-parse:*)",
++      "Bash(git status:*)",
++      "Edit(*.json)",
++      "Edit(*.md)",
++      "Edit(*.mjs)",
++      "Edit(*.ts)",
++      "Edit(*.tsx)",
++      "Edit(.github/workflows/**)",
++      "Edit(/*.yaml)",
++      "Edit(/*.yml)",
+       "Edit(app/**)",
+-      "Edit(lib/**)",
++      "Edit(config/**)",
+       "Edit(db/**)",
++      "Edit(docs/**)",
+       "Edit(e2e/**)",
+-      "Edit(types/**)",
++      "Edit(lib/**)",
++      "Edit(public/**)",
+       "Edit(scripts/**)",
+-      "Edit(docs/**)",
+       "Edit(tasks/**)",
+-      "Edit(config/**)",
+-      "Edit(public/**)",
+-      "Edit(.github/workflows/**)",
+-      "Edit(*.ts)",
+-      "Edit(*.tsx)",
+-      "Edit(*.mjs)",
+-      "Edit(*.json)",
+-      "Edit(*.md)",
+-      "Edit(/*.yml)",
+-      "Edit(/*.yaml)"
++      "Edit(types/**)"
+     ],
+     "deny": [
+       "Edit(.claude/**)",
+       "Edit(.env*)",
+-      "Read(.env*)",
+-      "Edit(pnpm-lock.yaml)"
++      "Edit(pnpm-lock.yaml)",
++      "Read(.env*)"
+     ]
+   }
+ }
+diff --git a/.claude/settings.project.json b/.claude/settings.project.json
+new file mode 100644
+index 0000000..85cc9e9
+--- /dev/null
++++ b/.claude/settings.project.json
+@@ -0,0 +1,18 @@
++{
++  "permissions": {
++    "allow": [
++      "Edit(app/**)",
++      "Edit(lib/**)",
++      "Edit(db/**)",
++      "Edit(e2e/**)",
++      "Edit(types/**)",
++      "Edit(public/**)",
++      "Edit(*.ts)",
++      "Edit(*.tsx)",
++      "Edit(*.mjs)"
++    ],
++    "deny": [
++      "Edit(pnpm-lock.yaml)"
++    ]
++  }
++}

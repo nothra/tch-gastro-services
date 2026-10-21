@@ -1,0 +1,41 @@
+# ─── Next.js / Node-App (TCH Gastro Services) ────────────────────────────────
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing / coverage
+/coverage
+.coverage-tmp*/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+pnpm-debug.log*
+
+# env files (Secrets: DATABASE_URL, AUTH_SECRET etc. – nie committen)
+.env*
+# ... außer der Beispiel-Vorlage (ohne echte Werte):
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Playwright (E2E)
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
+# misc
+*.pem

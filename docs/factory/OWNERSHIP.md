@@ -74,6 +74,9 @@ Parser und liest nichts anderes:
 | factory | `scripts/checks/pre-commit.sh` | Git-Hook (enthält bis #431 noch TCH-Anteile) |
 | factory | `scripts/checks/pre-push.sh` | Git-Hook (enthält bis #431 noch TCH-Anteile) |
 | factory | `scripts/checks/tests/**` | Self-Test-Suite (TCH-Tests wandern in #432 nach `scripts/project/tests/`) |
+| factory | `scripts/factory-sync.sh` | Setzt `settings.json`/`.gitignore` aus Fragmenten zusammen (`--compose`, ADR-063 Q2) |
+| factory | `.claude/settings.factory.json` | Factory-Anteil der Settings (Hooks, generische Permissions) |
+| factory | `docs/factory/gitignore.factory` | Factory-Anteil der `.gitignore` |
 | factory | `scripts/factory-commit.sh` | Commit/Push-Seam (ADR-019) |
 | factory | `scripts/factory-poll.sh` | Poll-Skript (ADR-008) |
 | factory | `scripts/init-factory.sh` | Initialisierung |
@@ -92,11 +95,13 @@ Parser und liest nichts anderes:
 | Seite | Muster | Begründung |
 |---|---|---|
 | project | `.claude/launch.json` | Dev-Server-Konfiguration der App |
-| project | `.claude/settings.json` | Permissions/Hooks; wird in #431 aus Fragmenten zusammengesetzt, das Ergebnis ist projekteigen |
+| project | `.claude/settings.json` | Ergebnis von `factory-sync.sh --compose` aus Factory- + Projekt-Fragment; nicht von Hand ändern |
+| project | `.claude/settings.project.json` | Projekt-Fragment der Settings (App-Pfade, Lockfile-Deny) |
 | project | `.env.example` | App-Umgebungsvariablen |
 | project | `.github/workflows/deploy-gate.yml` | Vercel-Deploy-Gate (ADR-015/017) |
 | project | `.github/workflows/deploy-freeze-release.yml` | Deploy-Freeze (ADR-032) |
-| project | `.gitignore` | wird in #431 aus Fragmenten zusammengesetzt, das Ergebnis ist projekteigen |
+| project | `.gitignore` | Ergebnis von `factory-sync.sh --compose`; nicht von Hand ändern |
+| project | `.gitignore.project` | Projekt-Fragment der `.gitignore` (Node/Next/Playwright) |
 | project | `.issue-npm-pin.md` | verwaister Issue-Entwurf, kein Pipeline-Bestandteil |
 | project | `.prettierignore` | App-Formatierung |
 | project | `.prettierrc.json` | App-Formatierung |
