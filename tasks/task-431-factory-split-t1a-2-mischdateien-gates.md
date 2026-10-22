@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -132,6 +132,9 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 
 ## Test-Notizen (/test)
 Coverage App 93,35 % Statements (Schwelle 80 %), Bericht `tasks/coverage-431.md`. Suite 1894 grün, 0 rot. Ergänzt: Pipeline-Exit-Codes, defektes `yq` fail-closed, fehlgeschlagener Install-Schritt.
+
+## Refactoring-Notizen (/refactor)
+Kein neues Verhalten, Suite vorher/nachher identisch 1894 grün, 0 rot. Geändert: die zwei fast gleichen start-work-Fixtures der Gruppe H (Wegwerf-Repo, gh-Stub, Config) sind in die Helfer `mk_start_work_fixture_431` / `run_start_work_431` gezogen; Kopfkommentar von `gate-config.sh` nennt die erwarteten Farbvariablen. Bewusst nicht angefasst: die drei ähnlichen Gate-Blöcke in `pre-push.sh` (unterschiedliche Ausgabe-/Fehlersemantik, Extraktion würde Verhalten berühren).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

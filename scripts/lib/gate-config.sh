@@ -11,7 +11,8 @@
 #   run_project_checks <verzeichnis> Projekt-Erweiterungspunkt: führt die ausführbaren Skripte des
 #                                    Verzeichnisses lexikalisch aus (scripts/project/checks/*.d/).
 #
-# Erwartet FACTORY_DIR (Projektwurzel) vom Aufrufer. Fail-closed: kein pnpm-Fallback (ADR-063, #431).
+# Erwartet vom Aufrufer FACTORY_DIR (Projektwurzel) und – für run_project_checks – die Farbvariablen
+# RED/GREEN/YELLOW/NC. Fail-closed: kein pnpm-Fallback (ADR-063, #431).
 
 # Effektive Config je Aufruf neu lesen (billig; die Gates laufen selten) – kein Cache, der veralten kann.
 factory_cfg() {

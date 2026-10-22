@@ -9369,6 +9369,26 @@ assert_exit 1 "$RC_431" "#431 AK-G4: Routen-Doku-Drift blockiert den Push weiter
 assert_contains_286 "$GATE_OUT_431" 'routes-doc-check.sh' "#431 AK-G4: die Meldung nennt den Projekt-Check"
 rm -rf "$TMP_G4_431"
 
+# mk_start_work_fixture_431 <tmp-dir> <factory.config.yml-Inhalt> – Wegwerf-Repo mit Defaults + Config + .env.local und
+# gh-Stub (<tmp>/bin/gh); gibt den Repo-Pfad aus. Für die start-work-Tests der Gruppe H (Install-Schritt, Hinweis).
+mk_start_work_fixture_431() {
+  local tmp="$1" repo="$1/repo"
+  mkdir -p "$tmp/bin" "$repo"
+  printf '#!/bin/sh\ncase "$1 $2" in "issue create") echo "https://github.com/acme/demo/issues/901";; *) exit 0;; esac\n' > "$tmp/bin/gh"
+  chmod +x "$tmp/bin/gh"
+  git -C "$repo" init -q -b main; git -C "$repo" config user.email t@t; git -C "$repo" config user.name t
+  cp "$FACTORY_ROOT/factory.defaults.yml" "$repo/"
+  printf '%s\n' "$2" > "$repo/factory.config.yml"
+  printf 'X=1\n' > "$repo/.env.local"
+  git -C "$repo" add factory.defaults.yml factory.config.yml; git -C "$repo" commit -q -m init
+  printf '%s' "$repo"
+}
+# run_start_work_431 <tmp-dir> <repo> <worktree-unterordner> <task-id> <beschreibung> – stdout+stderr; Exit-Code des Skripts.
+run_start_work_431() {
+  ( cd "$2" && PATH="$1/bin:$PATH" FACTORY_DIR="$2" FACTORY_REPO=acme/demo \
+      FACTORY_WORKTREE_BASE="$1/$3" bash "$SW" "$4" "$5" 2>&1 )
+}
+
 # ─── #431 T1a-2 · Gruppe H: Gate-Kommandos aus der Konfiguration (AK-H1…H6, F-6) ─────────────
 echo ""
 echo "#431 AK-H: commands.* in factory.config.yml:"
@@ -9462,23 +9482,14 @@ fi
 # AK-H6: start-work: Install-Schritt + Seed-Hinweis aus der Config; ohne Eintrag entfällt der Schritt still.
 if [ "$HAS_YQ" = 1 ]; then
   TMP_H6="$(mktemp -d)"
-  mkdir -p "$TMP_H6/bin"
-  printf '#!/bin/sh\ncase "$1 $2" in "issue create") echo "https://github.com/acme/demo/issues/901";; *) exit 0;; esac\n' > "$TMP_H6/bin/gh"; chmod +x "$TMP_H6/bin/gh"
-  REPO_H6="$TMP_H6/repo"; mkdir -p "$REPO_H6"
-  git -C "$REPO_H6" init -q -b main; git -C "$REPO_H6" config user.email t@t; git -C "$REPO_H6" config user.name t
-  cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_H6/"
-  printf 'commands:\n  install: "touch install-ran.marker"\nstart_work:\n  hint: "Eigener Hinweis aus der Config"\n' > "$REPO_H6/factory.config.yml"
-  printf 'X=1\n' > "$REPO_H6/.env.local"
-  git -C "$REPO_H6" add factory.defaults.yml factory.config.yml; git -C "$REPO_H6" commit -q -m init
-  OUT_H6="$( cd "$REPO_H6" && PATH="$TMP_H6/bin:$PATH" FACTORY_DIR="$REPO_H6" FACTORY_REPO=acme/demo \
-      FACTORY_WORKTREE_BASE="$TMP_H6/wt" bash "$SW" 931 hint-test 2>&1 )"
+  REPO_H6="$(mk_start_work_fixture_431 "$TMP_H6" $'commands:\n  install: "touch install-ran.marker"\nstart_work:\n  hint: "Eigener Hinweis aus der Config"')"
+  OUT_H6="$(run_start_work_431 "$TMP_H6" "$REPO_H6" wt 931 hint-test)"
   assert_true "$([ -f "$TMP_H6/wt/feature-931-hint-test/install-ran.marker" ]; echo $?)" "#431 AK-H6: start-work führt commands.install im Worktree aus"
   assert_contains_286 "$OUT_H6" 'Eigener Hinweis aus der Config' "#431 AK-H6: start-work gibt start_work.hint nach dem Kopieren der .env.local aus"
   assert_absent "$OUT_H6" 'db:seed' "#431 AK-H6: kein hartkodierter db:seed-Hinweis mehr im Skript"
   # Ohne Eintrag: kein Install-Schritt, kein Hinweis, kein Fehler.
   printf 'schemaVersion: 1\n' > "$REPO_H6/factory.config.yml"
-  OUT_H6="$( cd "$REPO_H6" && PATH="$TMP_H6/bin:$PATH" FACTORY_DIR="$REPO_H6" FACTORY_REPO=acme/demo \
-      FACTORY_WORKTREE_BASE="$TMP_H6/wt2" bash "$SW" 932 ohne-eintrag 2>&1 )"; rc_431=$?
+  OUT_H6="$(run_start_work_431 "$TMP_H6" "$REPO_H6" wt2 932 ohne-eintrag)"; rc_431=$?
   assert_exit 0 "$rc_431" "#431 AK-H6: ohne commands.install/start_work.hint läuft start-work fehlerfrei"
   assert_true "$([ ! -f "$TMP_H6/wt2/feature-932-ohne-eintrag/install-ran.marker" ]; echo $?)" "#431 AK-H6: ohne commands.install entfällt der Install-Schritt"
   assert_absent "$OUT_H6" 'im Worktree (FACTORY_WT_SKIP_INSTALL' "#431 AK-H6: ohne commands.install keine Install-Meldung (still)"
@@ -9580,15 +9591,8 @@ rm -rf "$TMP_T431"
 
 if [ "$HAS_YQ" = 1 ]; then
   TMP_T2_431="$(mktemp -d)"
-  mkdir -p "$TMP_T2_431/bin"
-  printf '#!/bin/sh\ncase "$1 $2" in "issue create") echo "https://github.com/acme/demo/issues/901";; *) exit 0;; esac\n' > "$TMP_T2_431/bin/gh"; chmod +x "$TMP_T2_431/bin/gh"
-  REPO_T2_431="$TMP_T2_431/repo"; mkdir -p "$REPO_T2_431"
-  git -C "$REPO_T2_431" init -q -b main; git -C "$REPO_T2_431" config user.email t@t; git -C "$REPO_T2_431" config user.name t
-  cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_T2_431/"
-  printf 'commands:\n  install: "false"\n' > "$REPO_T2_431/factory.config.yml"
-  git -C "$REPO_T2_431" add -A; git -C "$REPO_T2_431" commit -q -m init
-  out_t431="$( cd "$REPO_T2_431" && PATH="$TMP_T2_431/bin:$PATH" FACTORY_DIR="$REPO_T2_431" FACTORY_REPO=acme/demo \
-      FACTORY_WORKTREE_BASE="$TMP_T2_431/wt" bash "$SW" 933 install-fehlt 2>&1 )"; rc_t431=$?
+  REPO_T2_431="$(mk_start_work_fixture_431 "$TMP_T2_431" $'commands:\n  install: "false"')"
+  out_t431="$(run_start_work_431 "$TMP_T2_431" "$REPO_T2_431" wt 933 install-fehlt)"; rc_t431=$?
   assert_exit 0 "$rc_t431" "#431 /test AK-H6: fehlgeschlagenes commands.install bricht start-work nicht ab (exit 0)"
   assert_contains_286 "$out_t431" 'false fehlgeschlagen' "#431 /test AK-H6: der fehlgeschlagene Install-Schritt erzeugt eine Warnung mit dem Kommando"
   assert_true "$([ -d "$TMP_T2_431/wt/feature-933-install-fehlt" ]; echo $?)" "#431 /test AK-H6: der Worktree besteht trotz fehlgeschlagenem Install"
