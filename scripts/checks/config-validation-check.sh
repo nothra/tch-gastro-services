@@ -25,6 +25,8 @@
 #      und review müssen tier == MIN_TIER_REQUIRED behalten; security-review darf zudem
 #      kein tier_by_size tragen (Task 241, s.u.).
 #   6. model_tiers.heavy ist nicht override-bar (Task 249).
+#   7. commands.* und start_work.hint müssen Strings sein (#431) – ein Skalar anderen Typs
+#      (Zahl, Bool, null) wäre ein Gate-Kommando, das nie so gemeint war.
 #
 # MAX_TURNS_CEILING, MIN_TIER_REQUIRED und die zugehörigen Skill-Listen sind
 # Gate-Policy (ADR-009 §6 / ADR-010), bewusst NICHT in der merge-baren Config — sonst
@@ -203,5 +205,14 @@ if override_present; then
   grep -qxF -- "$LOCKED_MODEL_TIER_PATH" <<< "$override_paths" \
     && fail "'$LOCKED_MODEL_TIER_PATH' ist nicht override-bar (Gate-Policy, Task 249). Modell-ID-Pflege für 'heavy' läuft ausschließlich über factory.defaults.yml (Template-Update)."
 fi
+
+# 7. Gate-Kommandos (#431): jeder Wert unter commands.* sowie start_work.hint ist ein String.
+#    Listen/Maps fängt Regel 2 bereits als unbekannten Blatt-Pfad ab; hier die Skalare falschen Typs.
+while IFS= read -r entry; do
+  [ -z "$entry" ] && continue
+  name="${entry%%=*}"; tag="${entry#*=}"
+  [ "$tag" = "!!str" ] \
+    || fail "$name ist kein String (Typ: $tag) – Gate-Kommandos sind Zeichenketten (#431)."
+done < <(printf '%s' "$effective" | yq eval '((.commands // {}) | to_entries | .[] | "commands." + .key + "=" + (.value | tag)), (select(has("start_work")) | "start_work.hint=" + (.start_work.hint | tag))' -)
 
 exit 0

@@ -71,8 +71,8 @@ Parser und liest nichts anderes:
 | factory | `scripts/checks/interrupt-check.sh` | Hook: Interrupt-Sentinel |
 | factory | `scripts/checks/ownership-check.sh` | Gate: diese Tabelle |
 | factory | `scripts/checks/pr-closes-keyword-check.sh` | Gate: `Closes #<id>` im PR-Body |
-| factory | `scripts/checks/pre-commit.sh` | Git-Hook (enthält bis #431 noch TCH-Anteile) |
-| factory | `scripts/checks/pre-push.sh` | Git-Hook (enthält bis #431 noch TCH-Anteile) |
+| factory | `scripts/checks/pre-commit.sh` | Git-Hook; Projekt-Checks über `scripts/project/checks/pre-commit.d/` |
+| factory | `scripts/checks/pre-push.sh` | Git-Hook; Projekt-Checks über `scripts/project/checks/pre-push.d/` |
 | factory | `scripts/checks/tests/**` | Self-Test-Suite (TCH-Tests wandern in #432 nach `scripts/project/tests/`) |
 | factory | `scripts/factory-sync.sh` | Setzt `settings.json`/`.gitignore` aus Fragmenten zusammen (`--compose`, ADR-063 Q2) |
 | factory | `.claude/settings.factory.json` | Factory-Anteil der Settings (Hooks, generische Permissions) |
@@ -125,7 +125,7 @@ Parser und liest nichts anderes:
 | project | `pnpm-lock.yaml` | Abhängigkeiten der App |
 | project | `pnpm-workspace.yaml` | pnpm-Einstellungen der App |
 | project | `public/**` | statische App-Assets |
-| project | `scripts/checks/routes-doc-check.sh` | Routen-Doku-Drift der App (#145) |
+| project | `scripts/project/**` | Projekt-Erweiterungspunkte der Git-Gates (`checks/pre-commit.d/`, `checks/pre-push.d/`), u. a. Routen-Doku-Drift der App (#145) |
 | project | `scripts/deploy-freeze-notify.sh` | Deploy-Freeze der App |
 | project | `scripts/deploy-freeze.sh` | Deploy-Freeze der App |
 | project | `scripts/neon-reset-int.sh` | Neon-INT-Datenbank der App |

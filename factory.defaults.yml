@@ -91,3 +91,27 @@ skills:
 default:
   tier: light
   max_turns: 10
+
+# Gate-Kommandos des Projekts (ADR-063 D3, #431): Lint/Test/Typecheck/Format/Coverage und der
+# Install-Schritt von start-work.sh. Bewusst OHNE Default-Werte – die Factory kennt keinen
+# Paketmanager; das Projekt trägt seine Kommandos in factory.config.yml ein. Die leeren Werte
+# machen die Schlüssel nur zur erlaubten Oberfläche (config-validation Regel 2). Env-Override:
+# FACTORY_<LINT|TEST|TYPECHECK|FORMAT|COVERAGE>_COMMAND hat Vorrang.
+# @reason: Ein pnpm-Default in der Factory wäre eine Projektannahme, die jedem anderen Stack
+#   stillschweigend ein falsches Gate unterschöbe – fehlt ein Pflicht-Kommando, bricht das Gate
+#   stattdessen mit dem Schlüsselnamen ab.
+# @tradeoff: Ein frisch adoptiertes Projekt hat rote Gates, bis es commands.* einträgt; dafür
+#   läuft nie ein Gate gegen das falsche Werkzeug. Leerer Format-Wert = Format-Gate übersprungen.
+commands:
+  lint: ""
+  test: ""
+  typecheck: ""
+  format: ""
+  coverage: ""
+  install: ""
+
+# Hinweis, den start-work.sh nach dem Kopieren der .env.local ausgibt (Q4, #431). Leer = kein Hinweis.
+# @reason: Projektspezifische Nacharbeit (z. B. DB-Seed) gehört nicht in das generische Skript.
+# @tradeoff: keiner – ohne Eintrag entfällt der Hinweis still.
+start_work:
+  hint: ""

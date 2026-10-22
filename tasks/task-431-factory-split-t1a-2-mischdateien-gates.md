@@ -38,17 +38,17 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-F3 Required-Check-Namen in `protect-main` vorher = nachher, alle auf diesem PR gemeldet (heute: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation`)
 - [x] AK-F4 `deploy-gate.yml`, `deploy-freeze-release.yml` (`project`), `factory-poll.yml` (`factory`) in `OWNERSHIP.md` zugeordnet, Skriptpfade stimmen
 ### G · Erweiterungspunkte in den Git-Gates
-- [ ] AK-G1 `pre-commit.sh`/`pre-push.sh` rufen ausführbare Skripte aus `scripts/project/checks/pre-commit.d/` bzw. `pre-push.d/` lexikalisch auf; Fehlschlag → Gate rot mit Skriptname
-- [ ] AK-G2 Verzeichnis fehlt oder leer → Gate läuft ohne Fehler weiter
-- [ ] AK-G3 Nicht ausführbare Datei im Verzeichnis → Gate rot mit Hinweis auf fehlendes Ausführbar-Bit
-- [ ] AK-G4 `routes-doc-check.sh` liegt in `scripts/project/checks/pre-push.d/`, `pre-push.sh` nennt ihn nicht mehr; Routen-Doku-Drift blockiert weiter den Push (Verhaltenstest)
+- [x] AK-G1 `pre-commit.sh`/`pre-push.sh` rufen ausführbare Skripte aus `scripts/project/checks/pre-commit.d/` bzw. `pre-push.d/` lexikalisch auf; Fehlschlag → Gate rot mit Skriptname
+- [x] AK-G2 Verzeichnis fehlt oder leer → Gate läuft ohne Fehler weiter
+- [x] AK-G3 Nicht ausführbare Datei im Verzeichnis → Gate rot mit Hinweis auf fehlendes Ausführbar-Bit
+- [x] AK-G4 `routes-doc-check.sh` liegt in `scripts/project/checks/pre-push.d/`, `pre-push.sh` nennt ihn nicht mehr; Routen-Doku-Drift blockiert weiter den Push (Verhaltenstest)
 ### H · Gate-Kommandos aus der Konfiguration
-- [ ] AK-H1 `factory.config.yml` enthält `commands.lint|test|typecheck|format|coverage` mit den heutigen TCH-Werten
-- [ ] AK-H2 `factory.defaults.yml` enthält keinen pnpm-Default für `commands.*`
-- [ ] AK-H3 `pre-commit.sh`, `pre-push.sh`, `run-pipeline.sh` lesen aus der Konfiguration; Env-Overrides (`FACTORY_*_COMMAND`) haben Vorrang; „leerer Format-Wert = übersprungen" bleibt
-- [ ] AK-H4 Pflicht-Kommando fehlt in Konfiguration und Env → Gate bricht mit Nennung des Schlüssels ab (kein stiller pnpm-Fallback)
-- [ ] AK-H5 `config-validation-check.sh` lehnt ungültigen Typ in `commands.*` ab (Positiv- und Negativtest)
-- [ ] AK-H6 `start-work.sh`: Install-Schritt + Seed-Hinweis aus `commands.install` / `start_work.hint` (Q4); ohne Eintrag entfällt der Schritt still
+- [x] AK-H1 `factory.config.yml` enthält `commands.lint|test|typecheck|format|coverage` mit den heutigen TCH-Werten
+- [x] AK-H2 `factory.defaults.yml` enthält keinen pnpm-Default für `commands.*`
+- [x] AK-H3 `pre-commit.sh`, `pre-push.sh`, `run-pipeline.sh` lesen aus der Konfiguration; Env-Overrides (`FACTORY_*_COMMAND`) haben Vorrang; „leerer Format-Wert = übersprungen" bleibt
+- [x] AK-H4 Pflicht-Kommando fehlt in Konfiguration und Env → Gate bricht mit Nennung des Schlüssels ab (kein stiller pnpm-Fallback)
+- [x] AK-H5 `config-validation-check.sh` lehnt ungültigen Typ in `commands.*` ab (Positiv- und Negativtest)
+- [x] AK-H6 `start-work.sh`: Install-Schritt + Seed-Hinweis aus `commands.install` / `start_work.hint` (Q4); ohne Eintrag entfällt der Schritt still
 ### I · Labels aus der Konfiguration
 - [ ] AK-I1 `factory.defaults.yml` → `labels.kinds`, `labels.aspects`; `factory.config.yml` → `labels.aspects_extra` mit mind. `factory-pipeline`
 - [ ] AK-I2 `git-workflow.md` beschreibt Schema + generische Labels, verweist für projekteigene auf `PROJECT-CONTEXT.md`; Label-Drift-Guard prüft gegen die neue Quelle
@@ -61,8 +61,8 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 
 ## Fehlerszenarien
 - [ ] F-4 Committete `.claude/settings.json`/`.gitignore` weicht von der Zusammensetzung ab → Test rot
-- [ ] F-5 Projekt-Check in `pre-push.d/` scheitert oder ist nicht ausführbar → Push blockiert, Skriptname in der Meldung
-- [ ] F-6 Pflicht-Gate-Kommando nicht konfiguriert → Gate bricht mit Schlüsselnamen ab
+- [x] F-5 Projekt-Check in `pre-push.d/` scheitert oder ist nicht ausführbar → Push blockiert, Skriptname in der Meldung
+- [x] F-6 Pflicht-Gate-Kommando nicht konfiguriert → Gate bricht mit Schlüsselnamen ab
 - [ ] F-7 Required Check verschwindet durch die Workflow-Teilung → erst fertig, wenn alle gemeldet und grün
 
 ## Technische Notizen
@@ -111,6 +111,14 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 - Required Checks in `protect-main` (per `gh api` gelesen): `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation` – alle Namen werden weiter von einem Job gemeldet (Test AK-F3). F-7/AK-F3 „auf diesem PR gemeldet" ist erst nach dem Push in CI belegbar.
 - `deploy-gate.yml`/`deploy-freeze-release.yml` (project) und `factory-poll.yml` (factory) standen schon in `OWNERSHIP.md`; neu: `ci.yml` (project). Test prüft zusätzlich, dass alle in Workflows genannten `scripts/*.sh` existieren.
 - `run-tests.sh` nach Etappe 3: 1781 grün, 0 rot.
+
+## Etappe 4 (G + H) – Notizen
+- Neue Lib `scripts/lib/gate-config.sh` (gesourct von `pre-commit.sh`, `pre-push.sh`, `run-pipeline.sh`, `start-work.sh`): `gate_command <key> required|optional` (Env `FACTORY_<KEY>_COMMAND` vor `commands.<key>`; Pflicht-Kommando fehlt → Meldung mit `commands.<key>`), `factory_cfg`, `run_project_checks`. Wegwerf-Repos der Tests müssen die Lib mitkopieren (`cp_pipeline_libs`, `mk_gate_root_431`).
+- `factory.defaults.yml` trägt `commands.*`/`start_work.hint` nur als **leere Strings** (Oberfläche für Regel 2 der Config-Validierung, kein pnpm-Default); Werte in `factory.config.yml`. Neue Validierungsregel 7: `commands.*`/`start_work.hint` müssen Strings sein.
+- Optional/Pflicht: lint, test, typecheck (Git-Gates) und lint, test, coverage (Pipeline) sind Pflicht; format ist optional (leer = übersprungen). `run-pipeline.sh` löst die Kommandos jetzt **vor** `/implement` auf (fail-fast statt erst nach dem Agentenschritt).
+- `routes-doc-check.sh` nach `scripts/project/checks/pre-push.d/` verschoben (Default-Wurzel vier Ebenen), `OWNERSHIP.md`: `scripts/project/**` = project. Verweise in `CLAUDE.md`, `PROJECT-CONTEXT.md`, `docs/routes.md` nachgezogen (gleiche Zeilenzahl); AK-D3-Test normalisiert diese Pfadänderung.
+- Test-Suite exportiert zu Beginn `FACTORY_{LINT,TEST,COVERAGE}_COMMAND=true` für die Pipeline-Läufe in Wegwerf-Repos und hebt das vor den G/H-Gruppen wieder auf.
+- Doku: `OPERATING.md` §5.6.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

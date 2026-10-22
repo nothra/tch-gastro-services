@@ -166,6 +166,13 @@ echo "Interrupt-Mechanismus (Stage-3, ADR-004):"
 
 SCRIPTS_DIR="$(cd "$CHECKS_DIR/.." && pwd)"
 
+# Gate-Kommandos für die Pipeline-Läufe in Wegwerf-Repos (#431): run-pipeline.sh hat keinen pnpm-
+# Default mehr und bricht vor dem ersten Agenten-Schritt ab, wenn lint/test/coverage weder in der
+# Config noch per Env stehen. Die Wegwerf-Repos tragen keine factory.config.yml mit commands.* –
+# ein Test, der ein Gate prüft, setzt sein Kommando explizit (das schlägt diese Vorgabe). Vor den
+# #431-Gruppen G/H wird sie wieder entfernt, damit deren Fehlend-Tests nichts erben.
+export FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true
+
 # cp_pipeline_libs <repo-root> – legt ALLE von run-pipeline.sh gesourcten scripts/lib/-Dateien
 # in eine Temp-Repo-Kopie. Einziger Ort, an dem eine neu gesourcte Lib nachzutragen ist: fehlt
 # sie, bricht run-pipeline.sh unter `set -euo pipefail` schon am `source` ab und der Test wird
@@ -178,6 +185,7 @@ cp_pipeline_libs() {
      "$SCRIPTS_DIR/lib/tier-select.sh" \
      "$SCRIPTS_DIR/lib/verify-final-state.sh" \
      "$SCRIPTS_DIR/lib/telemetry-harvest.sh" \
+     "$SCRIPTS_DIR/lib/gate-config.sh" \
      "$1/scripts/lib/"
 }
 
@@ -1921,6 +1929,16 @@ git -C "$REPO_SW" init -q -b main >/dev/null 2>&1
 git -C "$REPO_SW" config user.email t@t
 git -C "$REPO_SW" config user.name t
 git -C "$REPO_SW" commit -q --allow-empty -m init
+# Config der Fixture (#431): start-work liest commands.install / start_work.hint aus dem Quellbaum.
+cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_SW/"
+cat > "$REPO_SW/factory.config.yml" <<'SWCFG'
+start_work:
+  hint: |
+    Vor dem ersten 'pnpm test:e2e': pnpm db:seed
+    (.env.local wurde kopiert – die geteilte lokale DB kennt die SEED_ADMIN_*-Daten evtl. noch nicht)
+SWCFG
+git -C "$REPO_SW" add factory.defaults.yml factory.config.yml
+git -C "$REPO_SW" commit -q -m "chore: config der Fixture"
 MAIN_HEAD_BEFORE=$(git -C "$REPO_SW" rev-parse HEAD)
 
 # start-work im Worktree-Default (offline: kein Remote → fetch best-effort, Basis lokaler main).
@@ -2289,9 +2307,9 @@ assert_absent "$OUT_IP" 'pnpm db:seed' "#236 AK8: In-Place-Modus gibt keinen db:
 # ab → Positionsvergleich der beiden echten Aufrufzeilen (Lesson „Reihenfolge-/Präsenz-Guards":
 # Anker ist die exakte Kommandozeile, nie ein Fragment), fail-closed bei fehlendem Anker.
 sw_cp_line=$(grep -nF 'cp -p "$FACTORY_DIR/.env.local" "$WORKDIR/.env.local"' "$SW" | head -1 | cut -d: -f1)
-sw_inst_line=$(grep -nF 'pnpm install --frozen-lockfile' "$SW" | head -1 | cut -d: -f1)
+sw_inst_line=$(grep -nF 'eval "$INSTALL_COMMAND"' "$SW" | head -1 | cut -d: -f1)
 { [ -n "$sw_cp_line" ] && [ -n "$sw_inst_line" ] && [ "$sw_cp_line" -lt "$sw_inst_line" ]; }
-assert_true "$?" "#236: der .env.local-Kopierschritt steht vor dem 'pnpm install' im Worktree"
+assert_true "$?" "#236: der .env.local-Kopierschritt steht vor dem Install-Schritt im Worktree"
 
 # AK9: Doku-Drift im selben PR nachgezogen. Die Mehrwort-Prosa-Anker laufen über flat_286()
 # (Definition am Dateikopf): ein Doku-Reflow bräche einen zeilengebundenen `grep -qF`-Anker
@@ -3253,15 +3271,15 @@ echo "Task 101: Pipeline-Quality-Gates (echte Befehle statt Platzhalter):"
 assert_true "$(! grep -q '_PLACEHOLDER' "$PIPELINE"; echo $?)" \
   "#101: run-pipeline.sh enthält keinen *_PLACEHOLDER-Gate-Befehl mehr (Regressions-Guard)"
 
-# (Struktur) Echte Befehle mit Env-Override – konsistent mit pre-commit/pre-push.
-{ grep -q 'FACTORY_LINT_COMMAND' "$PIPELINE" && grep -q 'FACTORY_TEST_COMMAND' "$PIPELINE" \
-  && grep -q 'FACTORY_COVERAGE_COMMAND' "$PIPELINE"; }
-assert_true "$?" "#101: run-pipeline.sh nutzt FACTORY_{LINT,TEST,COVERAGE}_COMMAND (Env-Override wie Hook-Gates)"
+# (Struktur) Echte Befehle über gate_command (Env-Override vor commands.* der Config) –
+# konsistent mit pre-commit/pre-push (#431, AK-H3).
+{ grep -qF 'gate_command lint required' "$PIPELINE" && grep -qF 'gate_command test required' "$PIPELINE" \
+  && grep -qF 'gate_command coverage required' "$PIPELINE"; }
+assert_true "$?" "#101/#431: run-pipeline.sh liest lint/test/coverage über gate_command (Env-Override wie Hook-Gates)"
 
-# (Struktur) pnpm-Defaults aus PROJECT-CONTEXT.md, wenn kein Override gesetzt ist.
-{ grep -q 'pnpm lint' "$PIPELINE" && grep -q 'pnpm test' "$PIPELINE" \
-  && grep -q 'pnpm test:coverage' "$PIPELINE"; }
-assert_true "$?" "#101: run-pipeline.sh hat pnpm-Defaults (pnpm lint / pnpm test / pnpm test:coverage)"
+# (Struktur) Kein pnpm-Default mehr im Orchestrator (#431 AK-H3): die Kommandos stehen in factory.config.yml.
+grep -q 'pnpm' "$PIPELINE"
+assert_exit 1 "$?" "#431 AK-H3: run-pipeline.sh enthält keinen hartkodierten pnpm-Aufruf mehr"
 
 # (Verhalten, yq-gated) Non-dry-run: ein rotes Lint-Gate stoppt die Pipeline fail-closed.
 # Mock `claude` (exit 0) lässt Phase 1 (implement) durchlaufen; FACTORY_LINT_COMMAND schreibt
@@ -3348,8 +3366,8 @@ echo "#149 pre-push.sh Format-Gate (prettier --check):"
 # wenn nur ein Kommentar stehen bliebe (#114 „Kommando ≠ Prosa-Erwähnung"). Der `${…-…}`-Ausdruck
 # taucht ausschließlich in der Zuweisung auf und belegt zugleich den fail-closed-Default
 # (`pnpm format:check` bei unset) und die Single-Dash-Semantik (leerer Wert = echter Opt-out).
-grep -qF '${FACTORY_FORMAT_COMMAND-pnpm format:check}' "$CHECKS_DIR/pre-push.sh"
-assert_true "$?" "#149: pre-push.sh verdrahtet das Format-Gate mit fail-closed-Default (\${FACTORY_FORMAT_COMMAND-pnpm format:check})"
+grep -qF 'gate_command format optional' "$CHECKS_DIR/pre-push.sh"
+assert_true "$?" "#149: pre-push.sh verdrahtet das Format-Gate über gate_command (Env FACTORY_FORMAT_COMMAND vor commands.format, #431)"
 
 # (Verhalten) In einem Temp-Repo auf einem Feature-Branch die teuren Gates via Override
 # neutralisieren (true), sodass allein das Format-Gate das Ergebnis bestimmt. Beweist,
@@ -3374,7 +3392,7 @@ rm -rf "$TMP_G149"
 echo ""
 echo "#145 routes-doc-check.sh (Routen-Doku-Drift, fail-closed):"
 
-ROUTES_CHECK="$CHECKS_DIR/routes-doc-check.sh"
+ROUTES_CHECK="$SCRIPTS_DIR/project/checks/pre-push.d/routes-doc-check.sh"
 assert_true "$([[ -f "$ROUTES_CHECK" ]]; echo $?)" "routes-doc-check.sh vorhanden"
 
 # Fixture: app/-Baum + docs/routes.md; FACTORY_DIR steuert die Projektwurzel des Checks.
@@ -3435,8 +3453,8 @@ assert_exit 1 "$?" "fehlende docs/routes.md → exit 1 (fail-closed)"
 rm -rf "$TMP_RT"
 
 # Struktur: der Drift-Check ist im Push-Gate (pre-push.sh) verdrahtet.
-grep -q 'routes-doc-check.sh' "$CHECKS_DIR/pre-push.sh"
-assert_true "$?" "#145: pre-push.sh verdrahtet den Routen-Doku-Drift-Check"
+[ -x "$ROUTES_CHECK" ] && grep -q 'run_project_checks "$FACTORY_DIR/scripts/project/checks/pre-push.d"' "$CHECKS_DIR/pre-push.sh"
+assert_true "$?" "#145/#431: Routen-Doku-Drift-Check liegt ausführbar in pre-push.d und läuft über den Erweiterungspunkt"
 
 # ─── #173: Deploy-Freeze bei rotem Gate (ADR-032) ────────────────────────────
 echo ""
@@ -7673,6 +7691,8 @@ rm -f "$IC_MUT_319"
 #     run_prepush_149 (:3313).
 TMP_PP319="$(mktemp -d)"
 mkdir -p "$TMP_PP319/scripts/checks"
+mkdir -p "$TMP_PP319/scripts/lib"
+cp "$SCRIPTS_DIR/lib/gate-config.sh" "$TMP_PP319/scripts/lib/"
 cp "$CHECKS_DIR/pre-push.sh" "$CHECKS_DIR/import-context-limit-check.sh" "$TMP_PP319/scripts/checks/"
 mk_feature_repo "$TMP_PP319" feature/319-deckel-e2e
 run_prepush_319() {  # $1 = Zeilen in CLAUDE.md, $2 = Gate-Skript (Default: das kopierte Original)
@@ -8693,7 +8713,7 @@ assert_exit 0 "$own_real_rc" "#426 AK-A1/A6: jede getrackte Datei hat genau eine
 own_side_426() { local l; l="$(bash "$OWN_CHECK_426" --list "$1" 2>/dev/null)"; grep -qxF -- "$2" <<< "$l"; }
 for f_426 in scripts/neon-reset-int.sh scripts/deploy-freeze.sh scripts/deploy-freeze-notify.sh \
     .github/workflows/deploy-gate.yml .github/workflows/deploy-freeze-release.yml \
-    scripts/checks/routes-doc-check.sh docs/project/lessons/frontend-react.md \
+    scripts/project/checks/pre-push.d/routes-doc-check.sh docs/project/lessons/frontend-react.md \
     docs/project/lessons/db-drizzle.md docs/project/lessons/next-auth.md; do
   own_side_426 project "$f_426"
   assert_exit 0 $? "#426 AK-A3: $f_426 ist 'project' zugeordnet"
@@ -9001,10 +9021,12 @@ if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:CLAUDE.md" 2>/dev/nu
     [ -n "${line_431//[[:space:]]/}" ] || continue
     case "$line_431" in '# dm Development Factory'*|'## Projekt-Kontext'|'@docs/factory/PROJECT-CONTEXT.md'|'---') continue ;; esac
     in_fac_431=0; in_cl_431=0
-    # Einzige gewollte Textänderung: Links in FACTORY.md sind relativ zu docs/factory/ (AK-B3).
+    # Erste gewollte Textänderung: Links in FACTORY.md sind relativ zu docs/factory/ (AK-B3).
     fac_line_431="${line_431//\](docs\/factory\//](}"
     grep -qxF -- "$fac_line_431" "$FACTORY_MD_431" && in_fac_431=1
-    grep -qxF -- "$line_431" "$CLAUDE_MD_431" && in_cl_431=1
+    # Zweite gewollte Textänderung (Etappe G): routes-doc-check.sh zog in den Erweiterungspunkt pre-push.d um.
+    cl_line_431="${line_431//scripts\/checks\/routes-doc-check.sh/scripts/project/checks/pre-push.d/routes-doc-check.sh}"
+    grep -qxF -- "$cl_line_431" "$CLAUDE_MD_431" && in_cl_431=1
     [ $((in_fac_431 + in_cl_431)) -ge 1 ] || missing_431="$missing_431|$line_431"
     [ $((in_fac_431 + in_cl_431)) -le 1 ] || dup_431="$dup_431|$line_431"
   done < "$old_431"
@@ -9197,6 +9219,206 @@ for wfp_431 in "$FACTORY_ROOT"/.github/workflows/*.yml; do
   done
 done
 assert_true "$([ -z "$miss_431" ]; echo $?)" "#431 AK-F4: alle in Workflows genannten Skriptpfade existieren (fehlt:${miss_431:- nichts})"
+
+# ─── #431 T1a-2 · Gruppe G: Erweiterungspunkte in den Git-Gates (AK-G1…G4, F-5) ─────────────
+echo ""
+echo "#431 AK-G: pre-commit.d / pre-push.d:"
+unset FACTORY_LINT_COMMAND FACTORY_TEST_COMMAND FACTORY_COVERAGE_COMMAND
+GATE_LIB_431="$SCRIPTS_DIR/lib/gate-config.sh"
+
+# mk_gate_root_431 <dir> – Wegwerf-Projektwurzel mit Kopie der Gates + Lib + Defaults auf einem Feature-Branch.
+mk_gate_root_431() {
+  mkdir -p "$1/scripts/checks" "$1/scripts/lib"
+  cp "$CHECKS_DIR/pre-commit.sh" "$CHECKS_DIR/pre-push.sh" "$1/scripts/checks/"
+  cp "$GATE_LIB_431" "$1/scripts/lib/"
+  cp "$FACTORY_ROOT/factory.defaults.yml" "$1/"
+  mk_feature_repo "$1" feature/431-gate-test
+}
+# run_gate_431 <root> <pre-commit|pre-push> [env…] – Gate mit neutralisierten Kommandos; stdout+stderr, Exit-Code via $RC_431.
+run_gate_431() {
+  local root="$1" gate="$2"; shift 2
+  GATE_OUT_431="$( cd "$root" && env FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true \
+      FACTORY_TYPECHECK_COMMAND=true FACTORY_FORMAT_COMMAND=true "$@" \
+      bash "scripts/checks/$gate.sh" 2>&1 )"
+  RC_431=$?
+}
+
+TMP_G431="$(mktemp -d)"
+mk_gate_root_431 "$TMP_G431"
+for gate_431 in pre-push pre-commit; do
+  d_431="$TMP_G431/scripts/project/checks/$gate_431.d"
+  # AK-G2: Verzeichnis fehlt → Gate läuft ohne Fehler weiter; leer → ebenso.
+  run_gate_431 "$TMP_G431" "$gate_431"
+  assert_exit 0 "$RC_431" "#431 AK-G2: $gate_431 ohne Projekt-Verzeichnis → exit 0"
+  mkdir -p "$d_431"
+  run_gate_431 "$TMP_G431" "$gate_431"
+  assert_exit 0 "$RC_431" "#431 AK-G2: $gate_431 mit leerem $gate_431.d → exit 0"
+  : > "$d_431/.gitkeep"
+  run_gate_431 "$TMP_G431" "$gate_431"
+  assert_exit 0 "$RC_431" "#431 AK-G2: $gate_431: .gitkeep zählt nicht als Projekt-Check"
+
+  # AK-G1: lexikalische Reihenfolge, Fehlschlag → rot mit Skriptname.
+  printf '#!/usr/bin/env bash\necho b >> "%s/order.log"\n' "$TMP_G431" > "$d_431/20-zweiter.sh"
+  printf '#!/usr/bin/env bash\necho a >> "%s/order.log"\n' "$TMP_G431" > "$d_431/10-erster.sh"
+  chmod +x "$d_431/20-zweiter.sh" "$d_431/10-erster.sh"
+  rm -f "$TMP_G431/order.log"
+  run_gate_431 "$TMP_G431" "$gate_431"
+  assert_exit 0 "$RC_431" "#431 AK-G1: $gate_431 führt grüne Projekt-Checks aus → exit 0"
+  assert_true "$([ "$(tr -d '\n' < "$TMP_G431/order.log")" = "ab" ]; echo $?)" "#431 AK-G1: $gate_431: Projekt-Checks laufen lexikalisch (10-erster vor 20-zweiter)"
+  printf '#!/usr/bin/env bash\necho kaputt-meldung\nexit 3\n' > "$d_431/15-rot.sh"; chmod +x "$d_431/15-rot.sh"
+  run_gate_431 "$TMP_G431" "$gate_431"
+  assert_exit 1 "$RC_431" "#431 AK-G1/F-5: $gate_431 mit fehlschlagendem Projekt-Check → exit 1"
+  assert_contains_286 "$GATE_OUT_431" '15-rot.sh' "#431 AK-G1/F-5: $gate_431 nennt das fehlgeschlagene Skript"
+  assert_contains_286 "$GATE_OUT_431" 'kaputt-meldung' "#431 AK-G1: $gate_431 zeigt die Ausgabe des fehlgeschlagenen Checks"
+  rm -f "$d_431/15-rot.sh"
+
+  # AK-G3: nicht ausführbar → rot mit Hinweis auf das Ausführbar-Bit.
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$d_431/30-nicht-ausfuehrbar.sh"
+  run_gate_431 "$TMP_G431" "$gate_431"
+  assert_exit 1 "$RC_431" "#431 AK-G3/F-5: $gate_431 mit nicht ausführbarer Datei → exit 1"
+  assert_contains_286 "$GATE_OUT_431" '30-nicht-ausfuehrbar.sh' "#431 AK-G3: $gate_431 nennt die nicht ausführbare Datei"
+  assert_contains_286 "$GATE_OUT_431" 'Ausführbar-Bit' "#431 AK-G3: $gate_431 weist auf das fehlende Ausführbar-Bit hin"
+  rm -f "$d_431/30-nicht-ausfuehrbar.sh"
+done
+rm -rf "$TMP_G431"
+
+# AK-G4: routes-doc-check liegt im Erweiterungspunkt, pre-push.sh nennt ihn nicht mehr; Drift blockiert weiter.
+ROUTES_431="scripts/project/checks/pre-push.d/routes-doc-check.sh"
+assert_true "$([ -x "$FACTORY_ROOT/$ROUTES_431" ]; echo $?)" "#431 AK-G4: routes-doc-check.sh liegt ausführbar in pre-push.d"
+assert_true "$([ ! -e "$CHECKS_DIR/routes-doc-check.sh" ]; echo $?)" "#431 AK-G4: scripts/checks/routes-doc-check.sh ist weg"
+grep -q 'routes-doc-check' "$CHECKS_DIR/pre-push.sh"
+assert_exit 1 "$?" "#431 AK-G4: pre-push.sh nennt routes-doc-check nicht mehr"
+TMP_G4_431="$(mktemp -d)"
+mk_gate_root_431 "$TMP_G4_431"
+mkdir -p "$TMP_G4_431/scripts/project/checks/pre-push.d" "$TMP_G4_431/app/login" "$TMP_G4_431/docs"
+cp "$FACTORY_ROOT/$ROUTES_431" "$TMP_G4_431/scripts/project/checks/pre-push.d/"
+: > "$TMP_G4_431/app/page.tsx"; : > "$TMP_G4_431/app/login/page.tsx"
+printf '| Pfad | Typ | Funktion | Zugriff |\n|---|---|---|---|\n| `/` | Seite | Home | angemeldet |\n| `/login` | Seite | Login | öffentlich |\n' > "$TMP_G4_431/docs/routes.md"
+run_gate_431 "$TMP_G4_431" pre-push
+assert_exit 0 "$RC_431" "#431 AK-G4: Routen-Doku synchron → pre-push exit 0"
+mkdir -p "$TMP_G4_431/app/neu"; : > "$TMP_G4_431/app/neu/page.tsx"
+run_gate_431 "$TMP_G4_431" pre-push
+assert_exit 1 "$RC_431" "#431 AK-G4: Routen-Doku-Drift blockiert den Push weiter (Verhaltenstest)"
+assert_contains_286 "$GATE_OUT_431" 'routes-doc-check.sh' "#431 AK-G4: die Meldung nennt den Projekt-Check"
+rm -rf "$TMP_G4_431"
+
+# ─── #431 T1a-2 · Gruppe H: Gate-Kommandos aus der Konfiguration (AK-H1…H6, F-6) ─────────────
+echo ""
+echo "#431 AK-H: commands.* in factory.config.yml:"
+if [ "$HAS_YQ" = 1 ]; then
+  for k_431 in lint test typecheck format coverage; do
+    v_431="$(yq ".commands.$k_431" "$FACTORY_ROOT/factory.config.yml")"
+    assert_true "$([ -n "$v_431" ] && [ "$v_431" != null ]; echo $?)" "#431 AK-H1: factory.config.yml trägt commands.$k_431 (Ist: $v_431)"
+    d_431="$(yq ".commands.$k_431 // \"\"" "$FACTORY_ROOT/factory.defaults.yml")"
+    assert_true "$([ -z "$d_431" ]; echo $?)" "#431 AK-H2: factory.defaults.yml hat keinen Default für commands.$k_431 (Ist: '$d_431')"
+  done
+  assert_true "$([ "$(yq '.commands.lint' "$FACTORY_ROOT/factory.config.yml")" = "pnpm lint" ] && [ "$(yq '.commands.test' "$FACTORY_ROOT/factory.config.yml")" = "pnpm test" ] && [ "$(yq '.commands.typecheck' "$FACTORY_ROOT/factory.config.yml")" = "pnpm typecheck" ] && [ "$(yq '.commands.format' "$FACTORY_ROOT/factory.config.yml")" = "pnpm format:check" ] && [ "$(yq '.commands.coverage' "$FACTORY_ROOT/factory.config.yml")" = "pnpm test:coverage" ]; echo $?)" \
+    "#431 AK-H1: commands.* tragen die heutigen TCH-Werte"
+  assert_true "$(! yq '.commands' "$FACTORY_ROOT/factory.defaults.yml" | grep -q pnpm; echo $?)" "#431 AK-H2: kein pnpm im commands-Block der Defaults"
+
+  # AK-H3: die Gates lesen aus der Konfiguration; Env hat Vorrang.
+  TMP_H3="$(mktemp -d)"
+  mk_gate_root_431 "$TMP_H3"
+  cat > "$TMP_H3/factory.config.yml" <<CFG
+commands:
+  lint: "touch '$TMP_H3/cfg-lint'"
+  test: "touch '$TMP_H3/cfg-test'"
+  typecheck: "touch '$TMP_H3/cfg-typecheck'"
+  format: "touch '$TMP_H3/cfg-format'"
+CFG
+  ( cd "$TMP_H3" && env -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_TYPECHECK_COMMAND -u FACTORY_FORMAT_COMMAND \
+      bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
+  assert_exit 0 "$?" "#431 AK-H3: pre-push läuft allein mit commands.* aus der Config"
+  for k_431 in test typecheck format; do
+    assert_true "$([ -f "$TMP_H3/cfg-$k_431" ]; echo $?)" "#431 AK-H3: pre-push führt commands.$k_431 aus der Config aus"
+  done
+  ( cd "$TMP_H3" && env -u FACTORY_LINT_COMMAND bash scripts/checks/pre-commit.sh >/dev/null 2>&1 )
+  assert_exit 0 "$?" "#431 AK-H3: pre-commit läuft allein mit commands.lint aus der Config"
+  assert_true "$([ -f "$TMP_H3/cfg-lint" ]; echo $?)" "#431 AK-H3: pre-commit führt commands.lint aus der Config aus"
+  rm -f "$TMP_H3"/cfg-*
+  ( cd "$TMP_H3" && env -u FACTORY_LINT_COMMAND -u FACTORY_TYPECHECK_COMMAND -u FACTORY_FORMAT_COMMAND \
+      FACTORY_TEST_COMMAND="touch '$TMP_H3/env-test'" bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
+  assert_true "$([ -f "$TMP_H3/env-test" ] && [ ! -f "$TMP_H3/cfg-test" ]; echo $?)" "#431 AK-H3: FACTORY_TEST_COMMAND hat Vorrang vor commands.test"
+  # Leerer Format-Wert = übersprungen: per Env (Opt-out, schlägt die Config) und per leerer Config.
+  rm -f "$TMP_H3"/cfg-* "$TMP_H3"/env-*
+  ( cd "$TMP_H3" && env -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_TYPECHECK_COMMAND \
+      FACTORY_FORMAT_COMMAND="" bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
+  assert_true "$([ ! -f "$TMP_H3/cfg-format" ]; echo $?)" "#431 AK-H3: leerer FACTORY_FORMAT_COMMAND überspringt das Format-Gate trotz commands.format"
+  sed -i.bak 's|^  format: .*|  format: ""|' "$TMP_H3/factory.config.yml"; rm -f "$TMP_H3/factory.config.yml.bak"
+  ( cd "$TMP_H3" && env -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_TYPECHECK_COMMAND -u FACTORY_FORMAT_COMMAND \
+      bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
+  assert_exit 0 "$?" "#431 AK-H3: leeres commands.format überspringt das Format-Gate (kein Fehler)"
+  rm -rf "$TMP_H3"
+
+  # AK-H4/F-6: Pflicht-Kommando fehlt in Config und Env → Gate bricht mit Schlüsselnamen ab (kein pnpm-Fallback).
+  TMP_H4="$(mktemp -d)"
+  mk_gate_root_431 "$TMP_H4"
+  for k_431 in test typecheck; do
+    args_431=(FACTORY_FORMAT_COMMAND=true)
+    [ "$k_431" != test ] && args_431+=(FACTORY_TEST_COMMAND=true)
+    [ "$k_431" != typecheck ] && args_431+=(FACTORY_TYPECHECK_COMMAND=true)
+    out_431="$( cd "$TMP_H4" && env -u FACTORY_TEST_COMMAND -u FACTORY_TYPECHECK_COMMAND -u FACTORY_FORMAT_COMMAND \
+        "${args_431[@]}" bash scripts/checks/pre-push.sh 2>&1 )"; rc_431=$?
+    assert_exit 1 "$rc_431" "#431 AK-H4/F-6: pre-push ohne $k_431-Kommando → exit 1"
+    assert_contains_286 "$out_431" "commands.$k_431" "#431 AK-H4/F-6: die Meldung nennt den Schlüssel commands.$k_431"
+    assert_absent "$out_431" 'pnpm' "#431 AK-H4: kein stiller pnpm-Fallback für $k_431"
+  done
+  out_431="$( cd "$TMP_H4" && env -u FACTORY_LINT_COMMAND bash scripts/checks/pre-commit.sh 2>&1 )"; rc_431=$?
+  assert_exit 1 "$rc_431" "#431 AK-H4/F-6: pre-commit ohne Lint-Kommando → exit 1"
+  assert_contains_286 "$out_431" 'commands.lint' "#431 AK-H4/F-6: die Meldung nennt den Schlüssel commands.lint"
+  rm -rf "$TMP_H4"
+
+  # AK-H5: config-validation lehnt ungültigen Typ in commands.* ab (Positiv- und Negativtest).
+  TMP_H5="$(mktemp -d)"
+  CVC_431="$CHECKS_DIR/config-validation-check.sh"
+  printf 'commands:\n  lint: "pnpm lint"\n  install: ""\nstart_work:\n  hint: "x"\n' > "$TMP_H5/ok.yml"
+  bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/ok.yml" >/dev/null 2>&1
+  assert_exit 0 "$?" "#431 AK-H5: commands.* als Strings → gültig (Positivtest)"
+  bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$FACTORY_ROOT/factory.config.yml" >/dev/null 2>&1
+  assert_exit 0 "$?" "#431 AK-H5: die echte factory.config.yml ist gültig"
+  for bad_431 in "lint: 5" "lint: true" "lint:" "lint: [a, b]" "lint: {a: b}" "neu: x"; do
+    printf 'commands:\n  %s\n' "$bad_431" > "$TMP_H5/bad.yml"
+    out_431="$(bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/bad.yml" 2>&1)"; rc_431=$?
+    assert_true "$([ "$rc_431" -ne 0 ]; echo $?)" "#431 AK-H5: ungültiges commands.* '$bad_431' → abgelehnt (exit $rc_431)"
+  done
+  printf 'commands:\n  lint: 5\n' > "$TMP_H5/bad.yml"
+  out_431="$(bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/bad.yml" 2>&1)"
+  assert_contains_286 "$out_431" 'commands.lint' "#431 AK-H5: die Ablehnung nennt den Schlüssel commands.lint"
+  printf 'start_work:\n  hint: 5\n' > "$TMP_H5/bad.yml"
+  bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/bad.yml" >/dev/null 2>&1
+  assert_true "$([ "$?" -ne 0 ]; echo $?)" "#431 AK-H5: start_work.hint als Zahl → abgelehnt"
+  rm -rf "$TMP_H5"
+else
+  skip_yq "#431 AK-H1…H5: commands.* (Config, Gates, Validierung)"
+fi
+
+# AK-H6: start-work: Install-Schritt + Seed-Hinweis aus der Config; ohne Eintrag entfällt der Schritt still.
+if [ "$HAS_YQ" = 1 ]; then
+  TMP_H6="$(mktemp -d)"
+  mkdir -p "$TMP_H6/bin"
+  printf '#!/bin/sh\ncase "$1 $2" in "issue create") echo "https://github.com/acme/demo/issues/901";; *) exit 0;; esac\n' > "$TMP_H6/bin/gh"; chmod +x "$TMP_H6/bin/gh"
+  REPO_H6="$TMP_H6/repo"; mkdir -p "$REPO_H6"
+  git -C "$REPO_H6" init -q -b main; git -C "$REPO_H6" config user.email t@t; git -C "$REPO_H6" config user.name t
+  cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_H6/"
+  printf 'commands:\n  install: "touch install-ran.marker"\nstart_work:\n  hint: "Eigener Hinweis aus der Config"\n' > "$REPO_H6/factory.config.yml"
+  printf 'X=1\n' > "$REPO_H6/.env.local"
+  git -C "$REPO_H6" add factory.defaults.yml factory.config.yml; git -C "$REPO_H6" commit -q -m init
+  OUT_H6="$( cd "$REPO_H6" && PATH="$TMP_H6/bin:$PATH" FACTORY_DIR="$REPO_H6" FACTORY_REPO=acme/demo \
+      FACTORY_WORKTREE_BASE="$TMP_H6/wt" bash "$SW" 931 hint-test 2>&1 )"
+  assert_true "$([ -f "$TMP_H6/wt/feature-931-hint-test/install-ran.marker" ]; echo $?)" "#431 AK-H6: start-work führt commands.install im Worktree aus"
+  assert_contains_286 "$OUT_H6" 'Eigener Hinweis aus der Config' "#431 AK-H6: start-work gibt start_work.hint nach dem Kopieren der .env.local aus"
+  assert_absent "$OUT_H6" 'db:seed' "#431 AK-H6: kein hartkodierter db:seed-Hinweis mehr im Skript"
+  # Ohne Eintrag: kein Install-Schritt, kein Hinweis, kein Fehler.
+  printf 'schemaVersion: 1\n' > "$REPO_H6/factory.config.yml"
+  OUT_H6="$( cd "$REPO_H6" && PATH="$TMP_H6/bin:$PATH" FACTORY_DIR="$REPO_H6" FACTORY_REPO=acme/demo \
+      FACTORY_WORKTREE_BASE="$TMP_H6/wt2" bash "$SW" 932 ohne-eintrag 2>&1 )"; rc_431=$?
+  assert_exit 0 "$rc_431" "#431 AK-H6: ohne commands.install/start_work.hint läuft start-work fehlerfrei"
+  assert_true "$([ ! -f "$TMP_H6/wt2/feature-932-ohne-eintrag/install-ran.marker" ]; echo $?)" "#431 AK-H6: ohne commands.install entfällt der Install-Schritt"
+  assert_absent "$OUT_H6" 'im Worktree (FACTORY_WT_SKIP_INSTALL' "#431 AK-H6: ohne commands.install keine Install-Meldung (still)"
+  rm -rf "$TMP_H6"
+else
+  skip_yq "#431 AK-H6: start-work liest Install-Schritt und Hinweis aus der Config"
+fi
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

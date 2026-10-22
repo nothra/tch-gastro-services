@@ -6,13 +6,14 @@
 # → Exit 1 mit Benennung der abweichenden Route(n). Übereinstimmung → Exit 0.
 #
 # Portabel: nur POSIX-`grep -E`/`sed -E` (kein \s/\d/\w, kein PCRE-Lookahead) – läuft
-# lokal (macOS/BSD) und in CI (GNU/Alpine). Verdrahtet in scripts/checks/pre-push.sh.
+# lokal (macOS/BSD) und in CI (GNU/Alpine). Läuft als Projekt-Check über den Erweiterungspunkt
+# scripts/project/checks/pre-push.d/ (pre-push.sh ruft ihn nicht mehr namentlich auf, #431).
 #
-# Projektwurzel: FACTORY_DIR (Tests/Override) sonst zwei Ebenen über scripts/checks/.
+# Projektwurzel: FACTORY_DIR (Tests/Override) sonst vier Ebenen über scripts/project/checks/pre-push.d/.
 
 set -uo pipefail
 
-ROOT="${FACTORY_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+ROOT="${FACTORY_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}"
 DOC="docs/routes.md"
 
 GREEN='\033[0;32m'
