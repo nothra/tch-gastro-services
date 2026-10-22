@@ -3342,15 +3342,17 @@ if [ "$HAS_YQ" = 1 ]; then
     ( cd "$TMP_H431" && PATH="$TMP_H431/bin:$PATH" \
         env -u PR_SHEPHERD -u FACTORY_STAGE \
             -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_COVERAGE_COMMAND "$@" \
-        bash "$TMP_H431/scripts/run-pipeline.sh" 431 2>&1 || true )
+        bash "$TMP_H431/scripts/run-pipeline.sh" 431 2>&1 )
   }
 
   # (b) weder Config noch Env: Abbruch mit Schlüsselname, ohne dass /implement je startet.
-  out_h431="$(run_pipe_h431)"
+  out_h431="$(run_pipe_h431)"; rc_h431=$?
+  assert_exit 1 "$rc_h431" "#431 AK-H4/F-6: Pipeline ohne Lint-Kommando bricht mit exit 1 ab"
   assert_contains_286 "$out_h431" 'commands.lint' "#431 AK-H4/F-6: Pipeline ohne Lint-Kommando nennt den Schlüssel commands.lint"
   assert_true "$([ ! -f "$CLAUDE_CALLED_H431" ]; echo $?)" "#431 AK-H4/F-6: der Abbruch erfolgt vor dem ersten Agenten-Schritt (claude nie aufgerufen)"
   # Je Pflicht-Kommando ein eigener Fall: nur das fehlende wird genannt, die gesetzten nicht.
-  out_h431="$(run_pipe_h431 FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true)"
+  out_h431="$(run_pipe_h431 FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true)"; rc_h431=$?
+  assert_exit 1 "$rc_h431" "#431 AK-H4/F-6: Pipeline ohne Coverage-Kommando bricht mit exit 1 ab"
   assert_contains_286 "$out_h431" 'commands.coverage' "#431 AK-H4/F-6: fehlendes Coverage-Kommando wird mit commands.coverage genannt"
   assert_absent "$out_h431" 'commands.lint' "#431 AK-H4: das gesetzte Lint-Kommando wird nicht als fehlend gemeldet"
   assert_true "$([ ! -f "$CLAUDE_CALLED_H431" ]; echo $?)" "#431 AK-H4/F-6: auch bei fehlendem Coverage-Kommando startet kein Agent"
@@ -3363,7 +3365,8 @@ commands:
   test: "true"
   coverage: "true"
 CFG
-  out_h431="$(run_pipe_h431)"
+  out_h431="$(run_pipe_h431)"; rc_h431=$?
+  assert_exit 1 "$rc_h431" "#431 AK-H3: rotes commands.lint aus der Config beendet den Lauf mit exit 1"
   assert_contains_286 "$out_h431" 'Gate fehlgeschlagen: Lint' "#431 AK-H3: rotes commands.lint aus der Config stoppt die Pipeline am Lint-Gate"
   assert_true "$([ -f "$MARKER_H431" ]; echo $?)" "#431 AK-H3: das Lint-Gate führt das Kommando aus der Config tatsächlich aus (Marker)"
   # Env-Override hat Vorrang vor der Config.
@@ -9548,6 +9551,51 @@ fi
 # die fail-open-Verhaltenstests ('Seam: fehlendes Aspekt-Label → Issue trotzdem angelegt') laufen oben unverändert.
 grep -qE 'factory_cfg[[:space:]]+labels|labels\.(kinds|aspects)' "$SW" "$SCRIPTS_DIR/lib/create-issue.sh"
 assert_exit 1 "$?" "#431 AK-I3: start-work.sh und Issue-Seam validieren nicht gegen labels.* (nur die Datenquelle wandert)"
+
+
+# ─── #431 /test-Ergänzungen: Fail-closed bei unlesbarer Config, Fail-open beim Install-Schritt ───
+echo ""
+echo "#431 /test: yq defekt → Gate fail-closed; fehlgeschlagener Install-Schritt → Warnung:"
+unset FACTORY_LINT_COMMAND FACTORY_TEST_COMMAND FACTORY_COVERAGE_COMMAND
+TMP_T431="$(mktemp -d)"
+mk_gate_root_431 "$TMP_T431"
+printf 'commands:\n  test: "true"\n  typecheck: "true"\n  format: "true"\n  lint: "true"\n' > "$TMP_T431/factory.config.yml"
+mkdir -p "$TMP_T431/bin"
+printf '#!/bin/sh\nexit 1\n' > "$TMP_T431/bin/yq"; chmod +x "$TMP_T431/bin/yq"
+# Kontrolle: mit funktionierendem yq läuft dasselbe Setup grün (sonst wäre das Rot unten nicht yq-bedingt).
+( cd "$TMP_T431" && env -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_TYPECHECK_COMMAND -u FACTORY_FORMAT_COMMAND \
+    bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
+assert_exit 0 "$?" "#431 /test (Kontrolle): Config mit allen Kommandos und funktionierendem yq → pre-push exit 0"
+out_t431="$( cd "$TMP_T431" && PATH="$TMP_T431/bin:$PATH" \
+    env -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_TYPECHECK_COMMAND -u FACTORY_FORMAT_COMMAND \
+    bash scripts/checks/pre-push.sh 2>&1 )"; rc_t431=$?
+assert_exit 1 "$rc_t431" "#431 /test: defektes yq (Config nicht lesbar) → pre-push blockiert fail-closed"
+out_t431="$( cd "$TMP_T431" && PATH="$TMP_T431/bin:$PATH" env -u FACTORY_LINT_COMMAND bash scripts/checks/pre-commit.sh 2>&1 )"; rc_t431=$?
+assert_exit 1 "$rc_t431" "#431 /test: defektes yq → pre-commit blockiert fail-closed"
+# Env-Override braucht die Config nicht: mit allen Env-Kommandos läuft das Gate trotz defektem yq (Opt-out-Weg bleibt).
+( cd "$TMP_T431" && PATH="$TMP_T431/bin:$PATH" FACTORY_TEST_COMMAND=true FACTORY_TYPECHECK_COMMAND=true FACTORY_FORMAT_COMMAND=true \
+    bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
+assert_exit 0 "$?" "#431 /test: gesetzte Env-Kommandos brauchen die Config nicht – defektes yq blockiert dann nicht"
+rm -rf "$TMP_T431"
+
+if [ "$HAS_YQ" = 1 ]; then
+  TMP_T2_431="$(mktemp -d)"
+  mkdir -p "$TMP_T2_431/bin"
+  printf '#!/bin/sh\ncase "$1 $2" in "issue create") echo "https://github.com/acme/demo/issues/901";; *) exit 0;; esac\n' > "$TMP_T2_431/bin/gh"; chmod +x "$TMP_T2_431/bin/gh"
+  REPO_T2_431="$TMP_T2_431/repo"; mkdir -p "$REPO_T2_431"
+  git -C "$REPO_T2_431" init -q -b main; git -C "$REPO_T2_431" config user.email t@t; git -C "$REPO_T2_431" config user.name t
+  cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_T2_431/"
+  printf 'commands:\n  install: "false"\n' > "$REPO_T2_431/factory.config.yml"
+  git -C "$REPO_T2_431" add -A; git -C "$REPO_T2_431" commit -q -m init
+  out_t431="$( cd "$REPO_T2_431" && PATH="$TMP_T2_431/bin:$PATH" FACTORY_DIR="$REPO_T2_431" FACTORY_REPO=acme/demo \
+      FACTORY_WORKTREE_BASE="$TMP_T2_431/wt" bash "$SW" 933 install-fehlt 2>&1 )"; rc_t431=$?
+  assert_exit 0 "$rc_t431" "#431 /test AK-H6: fehlgeschlagenes commands.install bricht start-work nicht ab (exit 0)"
+  assert_contains_286 "$out_t431" 'false fehlgeschlagen' "#431 /test AK-H6: der fehlgeschlagene Install-Schritt erzeugt eine Warnung mit dem Kommando"
+  assert_true "$([ -d "$TMP_T2_431/wt/feature-933-install-fehlt" ]; echo $?)" "#431 /test AK-H6: der Worktree besteht trotz fehlgeschlagenem Install"
+  rm -rf "$TMP_T2_431"
+else
+  skip_yq "#431 /test AK-H6: fehlgeschlagener Install-Schritt"
+fi
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""

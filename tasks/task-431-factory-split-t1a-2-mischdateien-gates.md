@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -129,6 +129,9 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 ## Review-Findings
 **Iteration 1 (`tasks/review-431.md`):** 0 kritisch, 1 wichtig (fehlender Verhaltenstest für `run-pipeline.sh` – Config-Kommando angewendet, Abbruch vor `/implement` bei fehlendem Pflicht-Kommando), 2 Nitpicks. Wichtig-Finding behoben (Suite 1884 grün, 0 rot); Nitpicks bewusst offen (yq-Meldung im Gate, globaler Env-Export der Suite).
 **Iteration 2:** APPROVED – 0 kritisch, 0 wichtig, 3 Nitpicks (die zwei offenen plus: Exit-Code im Pipeline-Testblock nicht mitassertiert).
+
+## Test-Notizen (/test)
+Coverage App 93,35 % Statements (Schwelle 80 %), Bericht `tasks/coverage-431.md`. Suite 1894 grün, 0 rot. Ergänzt: Pipeline-Exit-Codes, defektes `yq` fail-closed, fehlgeschlagener Install-Schritt.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
