@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -140,7 +140,7 @@ PASSED (`tasks/security-431.md`): 0 kritisch, 0 wichtig, Hinweise zu Vertrauensg
 Kein neues Verhalten, Suite vorher/nachher identisch 1894 grün, 0 rot. Geändert: die zwei fast gleichen start-work-Fixtures der Gruppe H (Wegwerf-Repo, gh-Stub, Config) sind in die Helfer `mk_start_work_fixture_431` / `run_start_work_431` gezogen; Kopfkommentar von `gate-config.sh` nennt die erwarteten Farbvariablen. Bewusst nicht angefasst: die drei ähnlichen Gate-Blöcke in `pre-push.sh` (unterschiedliche Ausgabe-/Fehlersemantik, Extraktion würde Verhalten berühren).
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Report: `tasks/codify-431.md`. Drei Lessons (testing.md ×2, factory-workflow.md ×1) samt Index-Zeilen in `PROJECT-CONTEXT.md`: Rezidiv #348 (je Konsument ein Verhaltenstest), laufende Suite nicht editieren, Libs skript-relativ sourcen / Fixtures vor Default-Entfernung zählen.
 
 ---
 Branch: `feature/431-factory-split-t1a-2-mischdateien-gates`
