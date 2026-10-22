@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(app/**)",
+      "Edit(lib/**)",
+      "Edit(db/**)",
+      "Edit(e2e/**)",
+      "Edit(types/**)",
+      "Edit(public/**)",
+      "Edit(*.ts)",
+      "Edit(*.tsx)",
+      "Edit(*.mjs)"
+    ],
+    "deny": [
+      "Edit(pnpm-lock.yaml)"
+    ]
+  }
+}

@@ -295,6 +295,10 @@ in 178 Dateien (157 davon Specs/Tasks).
 > Q2–Q6 sind Detailentscheidungen **innerhalb** von ADR-063 D3/D8; sie brauchen kein neues
 > `/architecture`, werden aber als Nachtrag in ADR-063 festgehalten (AK-B6). Die Empfehlung gilt,
 > solange der Entwickler nicht widerspricht.
+>
+> **Stand 2026-10-20:** Q2–Q6 sind wie empfohlen entschieden und stehen im
+> [Nachtrag von ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md) (aus T1a-1).
+> Q7 und Q8 kamen beim `/requirements`-Lauf für T1a-2 (#431) dazu.
 
 - [x] **Q1 · Weiter teilen?** Umfang: 54 AK, grob 60–80 Dateien von Hand plus ~160 Link-Reparaturen
   per Skript. Das liegt deutlich über der Turn-Limit-Schwelle (> 25 AK / > 40 Dateien, Lesson #369).
@@ -306,21 +310,33 @@ in 178 Dateien (157 davon Specs/Tasks).
   Jede Teil-PR erfüllt AK-X1–X3 für sich und hält die Zuordnungstabelle (AK-A2) aktuell. Reihenfolge
   strikt T1a-1 → T1a-2 → T1a-3 → T1b; AK-B6 (ADR-063 Accepted + Nachtrag Q2–Q6) liegt in T1a-1,
   damit die Detailentscheidungen vor T1a-2 feststehen.
-- [ ] **Q2 · Zusammensetzen vor T2:** `factory-sync.sh` kommt erst in T2. **Empfehlung:** T1a legt
+- [x] **Q2 · Zusammensetzen vor T2:** `factory-sync.sh` kommt erst in T2. **Empfehlung:** T1a legt
   `scripts/factory-sync.sh` mit **nur** dem Modus `--compose` an (ADR-063 D3 nennt genau diesen
   Aufruf); T2 ergänzt die übrigen Modi.
-- [ ] **Q3 · ADR-Zuordnung:** Vorschlag in Anhang 1. Grenzfälle: ADR-029 (Ruleset, generisches
+- [x] **Q3 · ADR-Zuordnung:** Vorschlag in Anhang 1. Grenzfälle: ADR-029 (Ruleset, generisches
   Factory-Prinzip mit TCH-Check-Namen) → Factory; ADR-063 selbst → Factory (regelt die Verteilung);
   ADR-015/017/032-deploy-freeze (Deploy) → Projekt.
-- [ ] **Q4 · Worktree-Vorbereitung in `start-work.sh`:** `pnpm install` und der `db:seed`-Hinweis sind
+- [x] **Q4 · Worktree-Vorbereitung in `start-work.sh`:** `pnpm install` und der `db:seed`-Hinweis sind
   TCH-spezifisch. **Empfehlung:** optionale Schlüssel `commands.install` und
   `start_work.hint` in `factory.config.yml` (gleiches Muster wie `commands.*`).
-- [ ] **Q5 · Label-Validierung:** ADR-063 D3 sagt, `start-work.sh` und Seam „validieren gegen die
+- [x] **Q5 · Label-Validierung:** ADR-063 D3 sagt, `start-work.sh` und Seam „validieren gegen die
   Vereinigung". Heute gibt es keine Ablehnung, nur fail-open-Degradation (fehlendes Label fällt weg).
   **Empfehlung:** in T1a nur die Datenquelle verlegen, Verhalten unverändert lassen (AKE.1); eine
   harte Ablehnung erst in T3 zusammen mit dem Label-Wechsel.
-- [ ] **Q6 · Kleinfunde:** **Empfehlung:** aufteilen nach betroffener Datei (AK-L1); ab T2 gehen
+- [x] **Q6 · Kleinfunde:** **Empfehlung:** aufteilen nach betroffener Datei (AK-L1); ab T2 gehen
   Factory-Kleinfunde ohnehin als Issue ins Factory-Repo (ADR-063 D7).
+
+- [x] **Q7 · Quelle der CI-Kommandos (T1a-2, #431):** Die Jobs `lint`/`test` lesen ihr Kommando heute
+  aus den Repository-Variablen `FACTORY_LINT_COMMAND`/`FACTORY_TEST_COMMAND`. **Entschieden
+  (2026-10-20, Entwickler):** Das projekteigene `ci.yml` behält die Repository-Variablen (AK-F2,
+  Inhalt unverändert). Sie wirken dort wie der Env-Override, der nach AK-H3 Vorrang vor
+  `commands.*` hat. Der Kommentar „gleiche Variable wie in `pre-commit.sh`/`pre-push.sh`, kein
+  Doppel-Pflegen" wird an den neuen Stand angepasst (lokal: `commands.*`, Override per Env).
+  Eine Umstellung von CI auf `commands.*` ist nicht Teil von T1a.
+- [x] **Q8 · Größe von T1a-2 (#431):** D–I umfassen 26 AK plus AK-X1–X3, das liegt über der
+  Turn-Limit-Schwelle (Lesson #369). **Entschieden (2026-10-20, Entwickler):** **ein** PR, aber
+  Phase 2 **manuell in Etappen** (Stage 2, je Etappe eine frische Session) statt `run-pipeline.sh`.
+  Die fehlende OTEL-Telemetrie wird in der Task-Datei vermerkt (Lesson #346).
 
 ## Anhang 1 · Vorschlag ADR-Zuordnung (final in `OWNERSHIP.md`)
 

@@ -2,7 +2,7 @@
 
 > **Kanonische Quelle bleibt der Code** (`app/**/page.tsx`, `app/api/**/route.ts`). Diese Datei
 > ist die kuratierte Übersicht – sie wird bei **jeder** route-verändernden Änderung mitgepflegt
-> (CLAUDE.md-Guardrail). Ein automatischer Drift-Check (`scripts/checks/routes-doc-check.sh`)
+> (CLAUDE.md-Guardrail). Ein automatischer Drift-Check (`scripts/project/checks/pre-push.d/routes-doc-check.sh`)
 > erzwingt die Übereinstimmung fail-closed im Push-Gate.
 >
 > **Pfad-Konventionen:** Route Groups `(name)` erzeugen **kein** URL-Segment (werden im Pfad

@@ -54,3 +54,25 @@ skills:
   pr-shepherd: { max_turns: 20 }
   codify: { max_turns: 30 }
   test: { max_turns: 40 }
+
+# ── Knöpfe: commands.* und start_work.hint (ADR-063 D3, #431) ────────────────
+# Die Gate-Kommandos der TCH-App (vorher als pnpm-Defaults in pre-commit.sh/pre-push.sh/
+# run-pipeline.sh/start-work.sh hartkodiert). Env-Overrides FACTORY_*_COMMAND haben Vorrang.
+# CI liest lint/test weiter aus den Repo-Variablen (ci.yml, Q7) – beide Werte müssen übereinstimmen.
+commands:
+  lint: "pnpm lint"
+  test: "pnpm test"
+  typecheck: "pnpm typecheck"
+  format: "pnpm format:check"
+  coverage: "pnpm test:coverage"
+  install: "pnpm install --frozen-lockfile"
+start_work:
+  hint: |
+    Vor dem ersten 'pnpm test:e2e': pnpm db:seed
+    (.env.local wurde kopiert – die geteilte lokale DB kennt die SEED_ADMIN_*-Daten evtl. noch nicht)
+
+# ── Knopf: labels.aspects_extra (ADR-063 D3, #431) ───────────────────────────
+# TCH-eigene Aspekt-Labels zusätzlich zu den generischen aus factory.defaults.yml. Bedeutung und
+# Zuordnungsregel: PROJECT-CONTEXT.md → „Projekt-Labels". `factory-pipeline` wandert in T3 (Epic #424).
+labels:
+  aspects_extra: [factory-pipeline]

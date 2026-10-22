@@ -145,7 +145,7 @@ pnpm format
 **Routen-Übersicht:** Alle Seiten und API-Route-Handler mit Pfad, Funktion und Zugriff
 (Rolle/öffentlich) stehen kuratiert in [`docs/routes.md`](../routes.md). Kanonische Quelle bleibt
 der Code (`app/**/page.tsx`, `app/api/**/route.ts`); die Übereinstimmung sichert der Drift-Check
-`scripts/checks/routes-doc-check.sh` fail-closed im Push-Gate.
+`scripts/project/checks/pre-push.d/routes-doc-check.sh` fail-closed im Push-Gate.
 
 Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl).
 
@@ -165,6 +165,40 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - **Rollen als Enum-Array** (`roles user_role[]`, ADR-016); Prüfung über den Guard `lib/authz.ts` (`requireRole`/`requireAnyRole`, fail-closed), nie über clientseitig ausgeblendete UI.
 - **Neue UI nutzt die Bausteine aus `app/components/ui/` und Token-Klassen** (`bg-surface`, `text-muted` …), keine rohen Tailwind-Farben und kein `dark:` (ADR-052). Umgestellte Pfade in `eslint/ui-token-files.mjs` eintragen – ab da lehnt `pnpm lint` rohe Farbklassen dort ab.
 - **UI-Texte (Labels, Buttons, Meldungen, Platzhalter) folgen dem Wording-Glossar [`docs/ux/glossar.md`](../ux/glossar.md)** – Verb je Aktionstyp, Meldungsmuster, Anrede Du, „€", „…"; bei UI-Text-Arbeit in `/implement` und `/review` lesen.
+
+---
+
+## Projekt-Labels
+
+> Projekteigene Aspekt-Labels (`labels.aspects_extra` in `factory.config.yml`) zusätzlich zu den
+> generischen aus `docs/factory/guidelines/git-workflow.md` → „GitHub-Labels". Die Label-Menge steht
+> in der Konfiguration, hier stehen Bedeutung und Zuordnungsregel.
+
+| Label | Aspekt |
+|-------|--------|
+| `factory-pipeline` | Arbeit am **Factory-Harness** (Pipeline, Skills, Gates, Factory-Doku) statt an der TCH-Applikation |
+
+> **`factory-pipeline` trennt Werkzeug von Produkt** (aus #315): Das Label beantwortet – anders
+> als die übrigen Aspekt-Labels – nicht „welche Dimension zusätzlich", sondern „welches
+> Subsystem". Es entscheidet sich an den berührten Pfaden (Anker jeweils ab der Repo-Wurzel
+> gelesen):
+>
+> - **Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.
+> - **TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.
+>
+> **Im Zweifel Label setzen.** Berührt ein Issue beide Seiten, oder liegen die berührten Pfade
+> außerhalb beider Anker-Listen, wird das Label gesetzt. Von keiner der beiden Listen gedeckt
+> sind u. a.:
+> Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`,
+> `docs/specs/` (Ablagekonvention statt Subsystem-Grenze – enthält sowohl Produkt- als auch
+> Factory-Harness-Specs, siehe z. B.
+> `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`).
+> Die Regel ist einseitig fail-safe – genau wie „im Zweifel Issue" im Abschnitt „Schwelle:
+> Issue oder Sammeldatei": ein zu viel gesetztes Label kostet einen Filterklick, ein fehlendes
+> macht Factory-Arbeit im Backlog unsichtbar. Genau darin liegt der Nutzen – ohne das Label ist
+> der offene Backlog nicht danach filterbar, was das Produkt und was das Werkzeug betrifft.
+
+---
 
 ---
 
@@ -238,6 +272,8 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Claude-Stub-Nebenwirkung in einem Mehr-Lauf-E2E-Szenario an Skill- UND Task-Marker binden, nicht nur den Skill-Marker – sonst schreibt der erste Lauf vorsorglich eine Datei für den zweiten, der dortige Report-Frische-Guard schlägt fehl, und der Test besteht nur zufällig über einen Fallback-Pfad statt den behaupteten (aus #334, /test-Selbstfund)
 - Locale-abhängige Zahlenformatierung/-parsing in Shell-Test-Utilities: `awk`-Ausdrücke, die Dezimalzahlen parsen/formatieren (`s+=$N`, `%.Nf`), brauchen ein lokales `LC_ALL=C`-Präfix am Aufruf – Rezidiv derselben Fehlerklasse wie #96 (bash-`printf`), diesmal in `awk` (aus #341, Bug-Fix-Selbstfund)
 - Ein Config-/Gate-Wert, der als „gültig" akzeptiert wird, ist damit noch nicht als „angewendet" belegt – Gate-Grenzfall-Tests (80 akzeptiert/81 abgelehnt) beweisen nur die Gate-Entscheidung, nicht dass der separate Konsument (`run-pipeline.sh`) den Wert auch tatsächlich nutzt; End-to-End-Assertion mit den realen Repo-Dateien gegen den realen Konsumenten ergänzen (aus #348, /test-Selbstfund)
+- Rezidiv #348: Quelle auf mehrere Konsumenten umgestellt (Hooks + Pipeline) – nur die Hooks bekamen Verhaltenstests, die Pipeline blieb beim Grep; je Konsument ein eigener Test (aus #431, Review-Iteration 1)
+- Laufende `run-tests.sh` (Hintergrund-Lauf) nicht editieren – Bash liest Skripte inkrementell; neue Tests in Scratch-Datei vorbereiten (aus #431, /implement-Selbstfund)
 - Test, der die Git-Historie liest (`git log --follow`): in CI flacher Klon → Test dort rot, lokal grün – hinter `--is-shallow-repository`-Skip legen, Skip sichtbar ausgeben, Verhalten zusätzlich historienfrei belegen (aus #426, /implement-Selbstfund)
 - `assert_contains_286`/`printf | grep -q` auf Datei-/Listen-Haystacks (ab wenigen KB): SIGPIPE-Race + `pipefail` → in CI Falsch-Rot, lokal grün – Datei direkt `grep -qF -- … <datei>`, Variable per Here-String; nach Test-Refactor CI abwarten (aus #426, CI-Befund nach `/refactor`)
 
@@ -319,6 +355,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Normative Regel (Glossar/Guideline) mit Ist→Soll-Abweichungsliste: nach jeder Änderung am Regelwortlaut, auch im Rework, das Kernmuster per Grep über den ganzen Baum laufen lassen – Beispiele ersetzen den Grep nicht; Review-Fundstellen vor dem Eintragen belegen (aus #375, Review-Iteration 1/2) → `/implement`, `/review` – bei Doku mit Abweichungsliste gegen den Code
 - Als „separat geflaggt"/„Hinweis-Ebene" markierter Out-of-Scope-Fund bleibt Session-Notiz statt sofort kanonisch (Issue/`kleinfunde.md`) verankert zu werden – Klassifizierung und Anlage gehören in denselben Schritt, nicht als Orchestrator-Nacharbeit (aus #345, Orchestrator-Selbstfund) → `/review`, `/security-review`, `/test`, `/refactor`, `/codify` – sobald ein eigener Report das Wort „separat geflaggt"/„Hinweis-Ebene"/„außerhalb des Scopes" für einen Fund verwendet
 - Repo-weiter Referenz-Scanner (`git grep`/`git ls-files`) nimmt `tasks/patch-*.diff` per Pathspec aus – der Patch trägt den künftigen Stand, seine Ziele existieren erst nach `git apply` (aus #426, /implement-Selbstfund) → `/implement`, `/review` – bei neuem Check über alle getrackten Dateien
+- Libs relativ zum Skript sourcen statt zu `FACTORY_DIR` (Tests überschreiben es → ~60 Falsch-Rot am `source`); vor dem Entfernen eines impliziten Defaults alle Fixtures zählen; `env -u`-Reihenfolge des #264-Guards (aus #431, /implement-Selbstfund) → `/implement`, `/refactor` – bei neuer gesourcter Lib in einem Skript mit überschreibbarem `FACTORY_DIR` bzw. beim Entfernen eines Defaults, den Test-Wegwerf-Repos implizit nutzen
 
 #### Projekt-Lessons (`docs/project/lessons/`)
 
