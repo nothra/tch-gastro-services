@@ -9,7 +9,7 @@ Standalone-Repro gegengeprüft (`[5]`, `[true]`, `kinds: 5`, `[[a]]`, `commands:
 _Keine._
 
 ## Wichtige Findings (sollten behoben werden)
-- [ ] `scripts/checks/tests/run-tests.sh` (Gruppe H, AK-H3/H4/F-6): `run-pipeline.sh` ist nur
+- [x] `scripts/checks/tests/run-tests.sh` (Gruppe H, AK-H3/H4/F-6) – behoben im Rework (Iteration 1): neuer Testblock zu run-pipeline.sh mit Config-/Env-Vorrang und Abbruch vor /implement: `run-pipeline.sh` ist nur
   **strukturell** abgesichert (`gate_command lint required` per Grep, kein `pnpm`). Es fehlt der
   Verhaltenstest für beide Richtungen: (a) ohne `FACTORY_*_COMMAND` und mit `commands.lint|test|coverage`
   in der Config führt die Pipeline das Config-Kommando aus (Marker; Lesson #348 „gültig ≠ angewendet"),
@@ -18,11 +18,11 @@ _Keine._
   beide Tests, für die dritte in AK-H3 genannte Stelle nicht.
 
 ## Nitpicks (optional)
-- [ ] `scripts/lib/gate-config.sh:28` / `pre-push.sh`: fehlt `yq` im PATH (Hook aus einer GUI-Umgebung),
+- [ ] (bewusst offen, Nitpick) `scripts/lib/gate-config.sh:28` / `pre-push.sh`: fehlt `yq` im PATH (Hook aus einer GUI-Umgebung),
   meldet `factory_cfg` die Ursache auf stderr, das Gate danach aber „Kommando nicht konfiguriert
   (commands.test)". Beides steht in der Ausgabe, die zweite Zeile ist irreführend. Optional: bei
   `yq`-Fehler die Gate-Zeile auf „Config nicht lesbar" umstellen.
-- [ ] `scripts/checks/tests/run-tests.sh` (Kopf, `export FACTORY_{LINT,TEST,COVERAGE}_COMMAND=true`):
+- [ ] (bewusst offen, Nitpick) `scripts/checks/tests/run-tests.sh` (Kopf, `export FACTORY_{LINT,TEST,COVERAGE}_COMMAND=true`):
   der globale Export gilt für alle Tests zwischen Kopf und Gruppe G. Er ist dokumentiert und per
   `unset` begrenzt, kann aber künftig einen Test grün machen, der „ohne Env" meint. Optional:
   stattdessen in `_mk_pipe_repo`/`cp_pipeline_libs`-Umfeld eine Fixture-`factory.config.yml` ergänzen.
