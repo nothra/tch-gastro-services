@@ -115,3 +115,18 @@ commands:
 # @tradeoff: keiner – ohne Eintrag entfällt der Hinweis still.
 start_work:
   hint: ""
+
+# GitHub-Labels (ADR-063 D3, #431): `kinds` = Art-Labels (genau eines je Issue), `aspects` = generische
+# Aspekt-Labels (null bis mehrere). Projekteigene Aspekte trägt das Projekt in factory.config.yml unter
+# `labels.aspects_extra` (leere Liste hier = erlaubte Oberfläche); Bedeutung und Zuordnungsregel stehen
+# in PROJECT-CONTEXT.md. Schema und generische Labels beschreibt docs/factory/guidelines/git-workflow.md.
+# Der Issue-Seam validiert Labels bewusst nicht (ADR-018 §3, fail-open) – die Listen sind die Quelle der
+# Doku und ihres Drift-Guards, nicht ein Filter.
+# @reason: Eine Quelle für die Label-Menge statt Aufzählungen, die einzeln driften; die Factory kennt
+#   nur die generischen Labels, projekteigene gehören dem Projekt.
+# @tradeoff: Ein neues Label braucht einen Eintrag hier bzw. in aspects_extra UND die Beschreibung in der
+#   Doku – der Drift-Guard in der Self-Test-Suite meldet, wenn eines von beiden fehlt.
+labels:
+  kinds: [bug, enhancement, documentation]
+  aspects: [security, tech-debt, test]
+  aspects_extra: []

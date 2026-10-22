@@ -50,9 +50,9 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-H5 `config-validation-check.sh` lehnt ungültigen Typ in `commands.*` ab (Positiv- und Negativtest)
 - [x] AK-H6 `start-work.sh`: Install-Schritt + Seed-Hinweis aus `commands.install` / `start_work.hint` (Q4); ohne Eintrag entfällt der Schritt still
 ### I · Labels aus der Konfiguration
-- [ ] AK-I1 `factory.defaults.yml` → `labels.kinds`, `labels.aspects`; `factory.config.yml` → `labels.aspects_extra` mit mind. `factory-pipeline`
-- [ ] AK-I2 `git-workflow.md` beschreibt Schema + generische Labels, verweist für projekteigene auf `PROJECT-CONTEXT.md`; Label-Drift-Guard prüft gegen die neue Quelle
-- [ ] AK-I3 `start-work.sh --labels` bzw. Issue-Seam verhalten sich wie vorher (fail-open, Q5)
+- [x] AK-I1 `factory.defaults.yml` → `labels.kinds`, `labels.aspects`; `factory.config.yml` → `labels.aspects_extra` mit mind. `factory-pipeline`
+- [x] AK-I2 `git-workflow.md` beschreibt Schema + generische Labels, verweist für projekteigene auf `PROJECT-CONTEXT.md`; Label-Drift-Guard prüft gegen die neue Quelle
+- [x] AK-I3 `start-work.sh --labels` bzw. Issue-Seam verhalten sich wie vorher (fail-open, Q5)
 ### Epic-weit (für diesen PR)
 - [ ] AK-X1 `run-tests.sh`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check` vorher (`main` @ `bcba043`) und nachher grün; Ergebnisse hier eingetragen
 - [ ] AK-X2 Alle Required Checks grün, Namen unverändert
@@ -119,6 +119,12 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 - `routes-doc-check.sh` nach `scripts/project/checks/pre-push.d/` verschoben (Default-Wurzel vier Ebenen), `OWNERSHIP.md`: `scripts/project/**` = project. Verweise in `CLAUDE.md`, `PROJECT-CONTEXT.md`, `docs/routes.md` nachgezogen (gleiche Zeilenzahl); AK-D3-Test normalisiert diese Pfadänderung.
 - Test-Suite exportiert zu Beginn `FACTORY_{LINT,TEST,COVERAGE}_COMMAND=true` für die Pipeline-Läufe in Wegwerf-Repos und hebt das vor den G/H-Gruppen wieder auf.
 - Doku: `OPERATING.md` §5.6.
+
+## Etappe 5 (I) – Notizen
+- `factory.defaults.yml`: `labels.kinds`, `labels.aspects` (generisch), `labels.aspects_extra: []`; `factory.config.yml`: `aspects_extra: [factory-pipeline]`. Nur die **Datenquelle** wandert (Q5) – `start-work.sh` und der Seam bleiben unverändert (fail-open); `.claude/**`-Skill-Dokus nennen `factory-pipeline` weiter (T1a-3/T3, kein Patch nötig).
+- Config-Validierung: `leaf_paths` normalisiert Listen-Indizes zu `*`, eine leere Default-Liste erlaubt Override-Elemente; neue Regel 8 (Labels = Listen nichtleerer Strings ohne Komma/Leerraum, weil der Seam CSV nutzt).
+- Doku: `git-workflow.md` hält Schema + generische Labels, verweist auf `PROJECT-CONTEXT.md` → „Projekt-Labels" (dort die `factory-pipeline`-Zeile und die #315-Zuordnungsregel mit TCH-Pfad-Ankern). `@import`-Kontext dadurch 1016/1100 Zeilen. Der #315-Guard liest die Fundstelle 1 jetzt aus `PROJECT-CONTEXT.md`; neuer Drift-Guard `label_drift_431` prüft Config ↔ Doku (3 Mutationen).
+- `run-tests.sh` nach Etappe 5: 1875 grün, 0 rot.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

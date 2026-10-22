@@ -70,3 +70,9 @@ start_work:
   hint: |
     Vor dem ersten 'pnpm test:e2e': pnpm db:seed
     (.env.local wurde kopiert – die geteilte lokale DB kennt die SEED_ADMIN_*-Daten evtl. noch nicht)
+
+# ── Knopf: labels.aspects_extra (ADR-063 D3, #431) ───────────────────────────
+# TCH-eigene Aspekt-Labels zusätzlich zu den generischen aus factory.defaults.yml. Bedeutung und
+# Zuordnungsregel: PROJECT-CONTEXT.md → „Projekt-Labels". `factory-pipeline` wandert in T3 (Epic #424).
+labels:
+  aspects_extra: [factory-pipeline]

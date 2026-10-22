@@ -7193,7 +7193,7 @@ OLD_LABEL_315="factory$(printf '\137')pipeline"
 #             nur die Negation ihrer eigenen Definition und belegte nichts
 #             (testing-standards.md → „nicht gegen das Objekt-under-Test selbst", Lesson #286).
 LABEL_DOC_FILES_315=(
-  "docs/factory/guidelines/git-workflow.md"
+  "docs/factory/PROJECT-CONTEXT.md"
   "CONTRIBUTING.md"
   "docs/factory/OPERATING.md"
   "scripts/start-work.sh"
@@ -7251,38 +7251,43 @@ done
 # ── AK2/AK3/AK4: die kanonische Quelle trägt Abgrenzungskriterium, Pfad-Anker (beide Seiten),
 # die Zweifelsregel für den Mischfall und beide abgeleiteten Aufzählungen derselben Datei.
 # Die Tabellenzeile selbst deckt bereits die Schleife oben ab (Fundstelle 1).
+# Seit #431 (AK-I2) steht die Beschreibung des TCH-eigenen Aspekt-Labels samt Pfad-Ankern in
+# PROJECT-CONTEXT.md → „Projekt-Labels"; git-workflow.md hält nur Schema + generische Labels.
+pcx_flat_315=$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")
 gwf_flat_315=$(flat_286 "$GITWF")
-assert_contains_286 "$gwf_flat_315" 'statt an der TCH-Applikation' \
+assert_contains_286 "$pcx_flat_315" 'statt an der TCH-Applikation' \
   "#315 AK2: die Tabellenzeile nennt das Abgrenzungskriterium Harness vs. Applikation"
 # Je Seite EINE Phrase auf EINER Zeile: der Begleittext steht im Blockquote, und `> `-Präfixe
 # überleben flat_286 nicht (der Helper toleriert nur Leerzeichen-Einrückung).
-assert_contains_286 "$gwf_flat_315" \
+assert_contains_286 "$pcx_flat_315" \
   '**Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.' \
   "#315 AK3: die Factory-Seite der Grenze ist mit Pfad-Ankern benannt"
-assert_contains_286 "$gwf_flat_315" \
+assert_contains_286 "$pcx_flat_315" \
   '**TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.' \
   "#315 AK3: die Applikations-Seite der Grenze ist mit Pfad-Ankern benannt"
 # Ohne Auflösung des Mischfalls wäre die Zuordnung genau dort zirkulär, wo sie gebraucht wird
 # („entscheidet die Seite, auf der die Änderung landet" – wenn sie auf beiden landet, sagt der
 # Satz nichts). AK3 verlangt aber eine Zuordnung ohne Rückfrage.
-assert_contains_286 "$gwf_flat_315" \
+assert_contains_286 "$pcx_flat_315" \
   '**Im Zweifel Label setzen.**' \
   "#315 AK3: der Mischfall ist einseitig fail-safe aufgelöst"
-assert_contains_286 "$gwf_flat_315" \
+assert_contains_286 "$pcx_flat_315" \
   'Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`' \
   "#315 AK3: die Zweifelsregel benennt die ungedeckten Pfade (Repo-Wurzel, ADR, tasks, e2e)"
 # Eigene Assertion für `docs/specs/` (Runde-5-Review-Finding W1): die vorige Assertion prüft
 # nur bis `e2e/`, während `docs/specs/` erst auf der nächsten Blockquote-Zeile steht – ein
 # Rückfall auf den Zustand vor dem W1-Fix (Runde 4) bliebe sonst unbemerkt grün.
-assert_contains_286 "$gwf_flat_315" \
+assert_contains_286 "$pcx_flat_315" \
   '`docs/specs/` (Ablagekonvention statt Subsystem-Grenze' \
   "#315 AK3: die Zweifelsregel nennt auch docs/specs/ als ungedeckten Pfad"
+# Seit #431 nennen die Faustregel- und der start-work.sh-Absatz die projekteigenen Aspekte über die
+# Konfigurationsschlüssel statt einer Aufzählung (AK-I2); die Menge selbst prüft der Drift-Guard unten.
 assert_contains_286 "$gwf_flat_315" \
-  '`bug` + `tech-debt` + `factory-pipeline` für einen Pipeline-Defekt' \
-  "#315 AK4: der Faustregel-Absatz nennt factory-pipeline mit"
+  'ein projekteigenes Aspekt-Label für einen Defekt im Projekt-Werkzeug' \
+  "#315/#431 AK4: der Faustregel-Absatz verweist auf projekteigene Aspekt-Labels"
 assert_contains_286 "$gwf_flat_315" \
-  '(`security`/`tech-debt`/`test`/`factory-pipeline`) gibt' \
-  "#315 AK4: der start-work.sh-Absatz nennt factory-pipeline mit"
+  '(`labels.aspects` + `labels.aspects_extra`, z. B. `security`/`tech-debt`/`test`) gibt' \
+  "#315/#431 AK4: der start-work.sh-Absatz verweist auf die Label-Konfiguration"
 
 # ── AK5: CONTRIBUTING.md nennt die Beitragsart – und behält den Verweis auf die kanonische
 # Quelle (keine zweite kanonische Liste).
@@ -7299,14 +7304,14 @@ assert_contains_286 "$contrib_flat_315" \
 # belegt, dass der Ausdruck überhaupt findet, die Abwesenheits-Assertion, dass er es nur an
 # der kanonischen Stelle tut.
 anchors_315='`scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`'
-assert_contains_286 "$gwf_flat_315" "$anchors_315" \
+assert_contains_286 "$pcx_flat_315" "$anchors_315" \
   "#315 AK5 (Kontrolle): die Anker-Liste ist über genau diesen Ausdruck auffindbar"
 assert_absent "$contrib_flat_315" "$anchors_315" \
   "#315 AK5: CONTRIBUTING.md verweist auf die Pfad-Anker, statt sie zu kopieren"
 # Symmetrisch für die App-Seite (Lesson #197: Guard symmetrisch auf alle Inputs) – eine
 # wörtliche Kopie der App-Anker nach CONTRIBUTING.md wäre sonst unbemerkt geblieben.
 app_anchors_315='`app/`, `db/`, `lib/`'
-assert_contains_286 "$gwf_flat_315" "$app_anchors_315" \
+assert_contains_286 "$pcx_flat_315" "$app_anchors_315" \
   "#315 AK5 (Kontrolle): die App-Anker-Liste ist über genau diesen Ausdruck auffindbar"
 assert_absent "$contrib_flat_315" "$app_anchors_315" \
   "#315 AK5: CONTRIBUTING.md verweist auch bei den App-Ankern, statt sie zu kopieren"
@@ -9419,6 +9424,71 @@ if [ "$HAS_YQ" = 1 ]; then
 else
   skip_yq "#431 AK-H6: start-work liest Install-Schritt und Hinweis aus der Config"
 fi
+
+# ─── #431 T1a-2 · Gruppe I: Labels aus der Konfiguration (AK-I1…I3) ─────────────────────────
+echo ""
+echo "#431 AK-I: labels.* in factory.defaults.yml / factory.config.yml:"
+if [ "$HAS_YQ" = 1 ]; then
+  DEF_431="$FACTORY_ROOT/factory.defaults.yml"; CFG_431="$FACTORY_ROOT/factory.config.yml"
+  assert_true "$([ "$(yq -o=json -I=0 '.labels.kinds' "$DEF_431")" = '["bug","enhancement","documentation"]' ]; echo $?)" "#431 AK-I1: defaults tragen labels.kinds (bug, enhancement, documentation)"
+  assert_true "$([ "$(yq -o=json -I=0 '.labels.aspects' "$DEF_431")" = '["security","tech-debt","test"]' ]; echo $?)" "#431 AK-I1: defaults tragen labels.aspects (security, tech-debt, test)"
+  assert_true "$([ "$(yq -o=json -I=0 '.labels.aspects_extra' "$DEF_431")" = '[]' ]; echo $?)" "#431 AK-I1: defaults tragen labels.aspects_extra als leere Liste (keine projekteigenen Labels)"
+  assert_true "$([ "$(yq '.labels.aspects_extra | contains(["factory-pipeline"])' "$CFG_431")" = true ]; echo $?)" "#431 AK-I1: factory.config.yml trägt labels.aspects_extra mit factory-pipeline"
+
+  # Validierung (Regel 2 für Listen + Regel 8).
+  TMP_I1="$(mktemp -d)"; CVC_I_431="$CHECKS_DIR/config-validation-check.sh"
+  printf 'labels:\n  aspects_extra: [eins, zwei]\n' > "$TMP_I1/ok.yml"
+  bash "$CVC_I_431" "$DEF_431" "$TMP_I1/ok.yml" >/dev/null 2>&1
+  assert_exit 0 "$?" "#431 AK-I1: labels.aspects_extra mit gültigen Strings → gültig (Positivtest)"
+  bash "$CVC_I_431" "$DEF_431" "$CFG_431" >/dev/null 2>&1
+  assert_exit 0 "$?" "#431 AK-I1: die echte factory.config.yml ist gültig"
+  for bad_431 in "aspects_extra: [mit leerraum]" "aspects_extra: ['a,b']" "aspects_extra: [5]" "aspects_extra: ['']" "aspects_extra: nur-ein-string" "aspects_extra: {a: b}" "unbekannt: [x]"; do
+    printf 'labels:\n  %s\n' "$bad_431" > "$TMP_I1/bad.yml"
+    bash "$CVC_I_431" "$DEF_431" "$TMP_I1/bad.yml" >/dev/null 2>&1
+    assert_true "$([ "$?" -ne 0 ]; echo $?)" "#431 AK-I1: ungültiges labels.* '$bad_431' → abgelehnt"
+  done
+  rm -rf "$TMP_I1"
+
+  # AK-I2: Drift-Guard gegen die neue Quelle. Generische Labels stehen als Tabellenzeile in git-workflow.md,
+  # projekteigene als Tabellenzeile in PROJECT-CONTEXT.md – und nicht umgekehrt.
+  # label_drift_431 <defaults> <config> <git-workflow.md> <PROJECT-CONTEXT.md> → Liste der Abweichungen (leer = ok).
+  label_drift_431() {
+    local eff g l out="" gw pc
+    eff="$(yq eval-all '. as $i ireduce ({}; . * $i)' "$1" "$2")"
+    gw="$(flat_286 "$3")"; pc="$(flat_286 "$4")"
+    for g in $(printf '%s' "$eff" | yq '.labels.kinds[], .labels.aspects[]' -); do
+      grep -qF -- "| \`$g\` |" <<< "$gw" || out="$out generisch-fehlt-in-git-workflow:$g"
+    done
+    for l in $(printf '%s' "$eff" | yq '.labels.aspects_extra[]' -); do
+      grep -qF -- "| \`$l\` |" <<< "$pc" || out="$out projekt-fehlt-in-PROJECT-CONTEXT:$l"
+      grep -qF -- "| \`$l\` |" <<< "$gw" && out="$out projekt-steht-in-git-workflow:$l"
+    done
+    printf '%s' "$out"
+  }
+  GW_431="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"; PCX_431="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
+  drift_431="$(label_drift_431 "$DEF_431" "$CFG_431" "$GW_431" "$PCX_431")"
+  assert_true "$([ -z "$drift_431" ]; echo $?)" "#431 AK-I2: Label-Doku und Konfiguration stimmen überein (Abweichung:${drift_431:- keine})"
+  # Mutationen: je Seite eine eigene Assertion mit demselben Ausdruck.
+  TMP_I2="$(mktemp -d)"
+  printf 'labels:\n  aspects_extra: [factory-pipeline, zzz-neu]\n' > "$TMP_I2/cfg.yml"
+  assert_contains_286 "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg.yml" "$GW_431" "$PCX_431")" 'projekt-fehlt-in-PROJECT-CONTEXT:zzz-neu' "#431 AK-I2 (Mutation): ein Config-Label ohne Beschreibung in PROJECT-CONTEXT.md macht den Guard rot"
+  grep -vF -- '| `security` |' "$GW_431" > "$TMP_I2/gw.md"
+  assert_contains_286 "$(label_drift_431 "$DEF_431" "$CFG_431" "$TMP_I2/gw.md" "$PCX_431")" 'generisch-fehlt-in-git-workflow:security' "#431 AK-I2 (Mutation): ein generisches Label ohne Tabellenzeile in git-workflow.md macht den Guard rot"
+  { cat "$GW_431"; printf '| `factory-pipeline` | doppelt |\n'; } > "$TMP_I2/gw2.md"
+  assert_contains_286 "$(label_drift_431 "$DEF_431" "$CFG_431" "$TMP_I2/gw2.md" "$PCX_431")" 'projekt-steht-in-git-workflow:factory-pipeline' "#431 AK-I2 (Mutation): ein projekteigenes Label in der generischen Tabelle macht den Guard rot"
+  rm -rf "$TMP_I2"
+  gw_flat_431="$(flat_286 "$GW_431")"
+  assert_contains_286 "$gw_flat_431" 'PROJECT-CONTEXT.md' "#431 AK-I2: git-workflow.md verweist für projekteigene Labels auf PROJECT-CONTEXT.md"
+  assert_contains_286 "$gw_flat_431" '`labels.aspects_extra`' "#431 AK-I2: git-workflow.md nennt labels.aspects_extra als Quelle der projekteigenen Labels"
+  assert_absent "$gw_flat_431" '| `factory-pipeline` |' "#431 AK-I2: git-workflow.md trägt keine Zeile für das projekteigene Label mehr"
+else
+  skip_yq "#431 AK-I1/I2: labels.* (Config, Validierung, Drift-Guard)"
+fi
+
+# AK-I3: Verhalten unverändert (Q5) – weder start-work.sh noch der Seam lesen die Label-Listen oder lehnen ab;
+# die fail-open-Verhaltenstests ('Seam: fehlendes Aspekt-Label → Issue trotzdem angelegt') laufen oben unverändert.
+grep -qE 'factory_cfg[[:space:]]+labels|labels\.(kinds|aspects)' "$SW" "$SCRIPTS_DIR/lib/create-issue.sh"
+assert_exit 1 "$?" "#431 AK-I3: start-work.sh und Issue-Seam validieren nicht gegen labels.* (nur die Datenquelle wandert)"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
