@@ -3317,6 +3317,65 @@ else
   skip_yq "#101: Verhaltens-Test rotes Lint-Gate (non-dry-run)"
 fi
 
+# ─── #431 AK-H3/H4/F-6: run-pipeline.sh liest die Gate-Kommandos aus der Config (Verhalten) ───
+# Der Struktur-Grep oben belegt nur die Verdrahtung. Hier beide Richtungen am echten Konsumenten
+# (Lesson #348: „Wert gültig" ≠ „Wert angewendet"): (a) ohne Env gewinnt commands.* aus der Config,
+# (b) fehlt ein Pflicht-Kommando in Config UND Env, bricht der Lauf VOR dem ersten Agenten-Schritt ab.
+echo ""
+echo "#431 AK-H3/H4: run-pipeline.sh – Gate-Kommandos aus factory.config.yml, fail-closed:"
+if [ "$HAS_YQ" = 1 ]; then
+  TMP_H431="$(mktemp -d)"
+  mkdir -p "$TMP_H431/scripts/checks" "$TMP_H431/scripts/lib" "$TMP_H431/tasks" \
+           "$TMP_H431/docs/factory" "$TMP_H431/.claude/commands" "$TMP_H431/bin"
+  cp "$PIPELINE" "$TMP_H431/scripts/"
+  cp "$CHECKS_DIR/config-validation-check.sh" "$CHECKS_DIR/interrupt-check.sh" "$TMP_H431/scripts/checks/"
+  cp_pipeline_libs "$TMP_H431"
+  cp "$DEFAULTS_YML" "$TMP_H431/"
+  echo "# ctx" > "$TMP_H431/docs/factory/PROJECT-CONTEXT.md"
+  echo "# implement mock" > "$TMP_H431/.claude/commands/implement.md"
+  echo "# Task 431: gate" > "$TMP_H431/tasks/task-431-gate.md"
+  CLAUDE_CALLED_H431="$TMP_H431/claude-called.marker"
+  printf '#!/bin/sh\ntouch "%s"\nexit 0\n' "$CLAUDE_CALLED_H431" > "$TMP_H431/bin/claude"; chmod +x "$TMP_H431/bin/claude"
+  git -C "$TMP_H431" init -q
+  # run_pipe_h431 <env-Zuweisungen…> – alle drei Gate-Variablen vorab entfernen (die Suite exportiert sie global).
+  run_pipe_h431() {
+    ( cd "$TMP_H431" && PATH="$TMP_H431/bin:$PATH" \
+        env -u PR_SHEPHERD -u FACTORY_STAGE \
+            -u FACTORY_LINT_COMMAND -u FACTORY_TEST_COMMAND -u FACTORY_COVERAGE_COMMAND "$@" \
+        bash "$TMP_H431/scripts/run-pipeline.sh" 431 2>&1 || true )
+  }
+
+  # (b) weder Config noch Env: Abbruch mit Schlüsselname, ohne dass /implement je startet.
+  out_h431="$(run_pipe_h431)"
+  assert_contains_286 "$out_h431" 'commands.lint' "#431 AK-H4/F-6: Pipeline ohne Lint-Kommando nennt den Schlüssel commands.lint"
+  assert_true "$([ ! -f "$CLAUDE_CALLED_H431" ]; echo $?)" "#431 AK-H4/F-6: der Abbruch erfolgt vor dem ersten Agenten-Schritt (claude nie aufgerufen)"
+  # Je Pflicht-Kommando ein eigener Fall: nur das fehlende wird genannt, die gesetzten nicht.
+  out_h431="$(run_pipe_h431 FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true)"
+  assert_contains_286 "$out_h431" 'commands.coverage' "#431 AK-H4/F-6: fehlendes Coverage-Kommando wird mit commands.coverage genannt"
+  assert_absent "$out_h431" 'commands.lint' "#431 AK-H4: das gesetzte Lint-Kommando wird nicht als fehlend gemeldet"
+  assert_true "$([ ! -f "$CLAUDE_CALLED_H431" ]; echo $?)" "#431 AK-H4/F-6: auch bei fehlendem Coverage-Kommando startet kein Agent"
+
+  # (a) Config-Kommandos werden angewendet: rotes Lint aus der Config stoppt den Lauf, Marker beweist die Ausführung.
+  MARKER_H431="$TMP_H431/cfg-lint-ran.marker"
+  cat > "$TMP_H431/factory.config.yml" <<CFG
+commands:
+  lint: "touch '$MARKER_H431'; false"
+  test: "true"
+  coverage: "true"
+CFG
+  out_h431="$(run_pipe_h431)"
+  assert_contains_286 "$out_h431" 'Gate fehlgeschlagen: Lint' "#431 AK-H3: rotes commands.lint aus der Config stoppt die Pipeline am Lint-Gate"
+  assert_true "$([ -f "$MARKER_H431" ]; echo $?)" "#431 AK-H3: das Lint-Gate führt das Kommando aus der Config tatsächlich aus (Marker)"
+  # Env-Override hat Vorrang vor der Config.
+  rm -f "$MARKER_H431"
+  out_h431="$(run_pipe_h431 FACTORY_LINT_COMMAND=false)"
+  assert_contains_286 "$out_h431" 'Gate fehlgeschlagen: Lint' "#431 AK-H3: der Lauf scheitert mit dem Env-Kommando (false)"
+  assert_true "$([ ! -f "$MARKER_H431" ]; echo $?)" "#431 AK-H3: FACTORY_LINT_COMMAND hat Vorrang – das Config-Kommando läuft nicht"
+  rm -rf "$TMP_H431"
+else
+  skip_yq "#431 AK-H3/H4: run-pipeline.sh liest Gate-Kommandos aus der Config"
+fi
+
 # ─── #112: pr-closes-keyword-check.sh (CI-Gate für Closing-Keyword) ──────────
 # Verhalten: PR-Body mit Closing-Keyword+#<nr> → exit 0, sonst fail-closed exit 1.
 # Positiv- UND Negativfälle, damit ein stilles Nicht-Greifen des Musters auffällt
