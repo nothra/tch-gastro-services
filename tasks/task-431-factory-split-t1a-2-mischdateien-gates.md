@@ -28,7 +28,7 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-D4 `import-context-limit-check.sh` zählt verschachtelte Imports vollständig, bleibt unter der Grenze; Negativtest: Import nur über `FACTORY.md` reißt die Grenze → rot
 - [x] AK-D5 Dieselben Dateien im Dauerkontext wie vorher (Liste vorher/nachher hier in der Task-Datei)
 ### E · Zusammengesetzte Dateien
-- [~] AK-E1 `.claude/settings.factory.json` + `.claude/settings.project.json` existieren; `.claude/settings.json` inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)
+- [x] AK-E1 `.claude/settings.factory.json` + `.claude/settings.project.json` existieren; `.claude/settings.json` inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)
 - [x] AK-E2 `docs/factory/gitignore.factory` + `.gitignore.project` existieren; ignorierte Pfade unverändert (feste Probenliste vorher/nachher)
 - [x] AK-E3 Zusammensetz-Kommando (`scripts/factory-sync.sh --compose`, Q2) erzeugt byte-identisch die committete Datei, deterministisch; Test rot bei Abweichung
 - [x] AK-E4 Doku: Projekt-Permission ergänzen = Projekt-Fragment ändern, neu zusammensetzen, beide committen
@@ -99,7 +99,8 @@ _Keine._ Q2–Q6 im ADR-063-Nachtrag entschieden; Q7 (CI-Quelle) und Q8 (Schnitt
 - `run-tests.sh` nach Etappe 1: 1709 grün, 0 rot.
 
 ## Etappe 2 (E) – Notizen
-Blocker [2026-10-21]: `.claude/settings.json`, `.claude/settings.factory.json` und `.claude/settings.project.json` liegen unter dem gesperrten `Edit(.claude/**)` – Mensch muss `git apply tasks/patch-431-e.diff` ausführen (AK-E1 `[~]`). Bis dahin sind die E-Tests in `run-tests.sh` rot (14 Assertions: Fragmente fehlen). Danach: Patch-Datei entfernen, `[~]` → `[x]`, Blocker als erledigt markieren (Lesson #91).
+Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.diff` entfernt: `.claude/settings.json`, `.claude/settings.factory.json` und `.claude/settings.project.json` liegen unter dem gesperrten `Edit(.claude/**)` – Mensch muss `git apply tasks/patch-431-e.diff` ausführen (AK-E1 `[~]`). Bis dahin sind die E-Tests in `run-tests.sh` rot (14 Assertions: Fragmente fehlen). Danach: Patch-Datei entfernen, `[~]` → `[x]`, Blocker als erledigt markieren (Lesson #91).
+- Nach dem Apply: `run-tests.sh` 1760 grün, 0 rot (inkl. Baseline-Tests gegen `bcba043`).
 - Nachweis „grün nach Apply": Kopie des Baums + Patch → `run-tests.sh` 1751 grün; die 4 Roten dort sind Umgebung der Kopie (kein `pnpm`, keine Git-Historie), nicht E.
 - Baseline-Gleichheit gegen `bcba043` per `jq`: Hooks + sortierte Allow/Deny-Menge gleich; Factory ∪ Projekt == alte Regelmenge, disjunkt.
 - `.gitignore` byte-identisch zu vorher (`gitignore.factory` = Zeilen 1–31, `.gitignore.project` = Rest).
