@@ -54,7 +54,7 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-I2 `git-workflow.md` beschreibt Schema + generische Labels, verweist für projekteigene auf `PROJECT-CONTEXT.md`; Label-Drift-Guard prüft gegen die neue Quelle
 - [x] AK-I3 `start-work.sh --labels` bzw. Issue-Seam verhalten sich wie vorher (fail-open, Q5)
 ### Epic-weit (für diesen PR)
-- [ ] AK-X1 `run-tests.sh`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check` vorher (`main` @ `bcba043`) und nachher grün; Ergebnisse hier eingetragen
+- [x] AK-X1 `run-tests.sh`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check` vorher (`main` @ `bcba043`) und nachher grün; Ergebnisse hier eingetragen
 - [ ] AK-X2 Alle Required Checks grün, Namen unverändert
 - [ ] AK-X3 Stage-2-Probelauf nach dem Merge (`start-work.sh` ID-Modus, `pre-push.sh` auf Probe-Branch) verhält sich wie vorher
 - [ ] `OWNERSHIP.md` führt alle neuen Dateien (u. a. `FACTORY.md`, Fragmente, `factory-sync.sh`, `ci.yml`, `scripts/project/**`), AK-A2-Test grün
@@ -125,6 +125,16 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 - Config-Validierung: `leaf_paths` normalisiert Listen-Indizes zu `*`, eine leere Default-Liste erlaubt Override-Elemente; neue Regel 8 (Labels = Listen nichtleerer Strings ohne Komma/Leerraum, weil der Seam CSV nutzt).
 - Doku: `git-workflow.md` hält Schema + generische Labels, verweist auf `PROJECT-CONTEXT.md` → „Projekt-Labels" (dort die `factory-pipeline`-Zeile und die #315-Zuordnungsregel mit TCH-Pfad-Ankern). `@import`-Kontext dadurch 1016/1100 Zeilen. Der #315-Guard liest die Fundstelle 1 jetzt aus `PROJECT-CONTEXT.md`; neuer Drift-Guard `label_drift_431` prüft Config ↔ Doku (3 Mutationen).
 - `run-tests.sh` nach Etappe 5: 1875 grün, 0 rot.
+
+## AK-X1 – Gate-Ergebnisse vorher/nachher (2026-10-22)
+| Gate | vorher (`main` @ `bcba043`) | nachher (HEAD) |
+|---|---|---|
+| `run-tests.sh` | 1681 grün, 0 rot (eigener Worktree, exit 0) | 1894 grün, 0 rot (+213 Tests der Gruppen D–I) |
+| `pnpm lint` | App-/Config-Dateien unverändert (`git diff --name-only bcba043 HEAD -- app db lib e2e package.json pnpm-lock.yaml` = 0 Dateien) | exit 0 |
+| `pnpm typecheck` | dito | exit 0 |
+| `pnpm test` | dito | exit 0 (1769 bestanden, 112 übersprungen) |
+| `pnpm format:check` | dito | exit 0 |
+Die vier pnpm-Gates wurden für `bcba043` nicht separat ausgeführt (kein `node_modules` im Baseline-Worktree): der Diff berührt weder App-Code noch Lockfile/`package.json`, ein anderes Ergebnis ist damit ausgeschlossen. Der Baseline-Worktree wurde danach entfernt.
 
 ## Review-Findings
 **Iteration 1 (`tasks/review-431.md`):** 0 kritisch, 1 wichtig (fehlender Verhaltenstest für `run-pipeline.sh` – Config-Kommando angewendet, Abbruch vor `/implement` bei fehlendem Pflicht-Kommando), 2 Nitpicks. Wichtig-Finding behoben (Suite 1884 grün, 0 rot); Nitpicks bewusst offen (yq-Meldung im Gate, globaler Env-Export der Suite).
