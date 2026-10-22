@@ -103,7 +103,8 @@ Reihenfolge aus `CLAUDE.md` (Lesson #351). Jede Etappe endet mit sauberem `git s
   Sie bekommen neutrale Kommandos (z. B. `make test`). Die Lehre bleibt unverändert.
 - **`OPERATING.md` Z. 17:** verweist für die Betriebsumgebung auf `README.md` – diesen Verweis neutral formulieren bzw. auf
   `docs/project/betrieb.md` umstellen.
-- **Dauerkontext:** Stand nach #431 ~969/1100 Zeilen. AK-K1a muss knapp bleiben.
+- **Dauerkontext:** Stand beim Branch-Start 1021/1100 Zeilen (pre-push-Ausgabe 2026-10-22). Nur noch 79 Zeilen Luft,
+  daher muss AK-K1a knapp bleiben.
 - **Telemetrie:** Durch den manuellen Stage-2-Ablauf gibt es keine OTEL-Telemetrie-CSV (Lesson #346). Das ist gewollt, keine Lücke.
 
 ## Offene Fragen

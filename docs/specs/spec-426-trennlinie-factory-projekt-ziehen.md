@@ -364,7 +364,7 @@ in 178 Dateien (157 davon Specs/Tasks).
     (`db:up`, `db:seed`, E2E) stehen ebenfalls dort.
   - `PROJECT-CONTEXT.md` bekommt nur einen **kurzen** Abschnitt „Lokale Umgebung &
     Oberflächentests" (Richtwert ≤ 10 Zeilen) mit dem Verweis. Er schont den gedeckelten
-    `@import`-Dauerkontext (Factory-ADR-047).
+    `@import`-Dauerkontext (Factory-ADR-047; Stand 1021/1100 Zeilen).
 - [x] **Q12 · Ablauf von T1a-3 (#432):** J + K umfassen 7 AK plus AK-X1–X3. Das liegt unter der
   Turn-Limit-Schwelle, aber `run-tests.sh` (~9 400 Zeilen) ist groß, und `implement.md` braucht
   den `.claude/**`-Patch-Weg. **Entschieden (2026-10-22, Entwickler):** wie Q8 – ein PR, Phase 2
