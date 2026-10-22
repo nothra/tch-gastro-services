@@ -238,7 +238,8 @@ in 178 Dateien (157 davon Specs/Tasks).
   (Workflows, Doku, Skripte) nutzen den neuen Pfad.
 - [ ] **AK-J2** GIVEN die Self-Tests dieser Skripte und von `routes-doc-check.sh` WHEN T1a
   abgeschlossen ist THEN liegen sie in einer projekteigenen Suite unter `scripts/project/tests/`, und
-  `run-tests.sh` enthält keinen Verweis mehr auf diese Skripte.
+  `run-tests.sh` enthält keinen Verweis mehr auf diese Skripte (Umfang inkl. Workflow-Tests und
+  Fixture-Namen: Q9; gemeinsame Helfer-Lib: Q10).
 - [ ] **AK-J3** GIVEN die projekteigene Suite WHEN ein PR läuft THEN läuft sie in CI innerhalb eines
   bestehenden Required Checks und macht ihn bei Fehlschlag rot.
 - [ ] **AK-J4** GIVEN Anzahl der Testfälle WHEN man vor und nach T1a zählt THEN ist
@@ -253,7 +254,7 @@ in 178 Dateien (157 davon Specs/Tasks).
   sie auf `PROJECT-CONTEXT.md` → „Lokale Umgebung & Oberflächentests" bzw. auf projekteigene Doku.
 - [ ] **AK-K2** GIVEN die TCH-spezifischen Abschnitte von `OPERATING.md` (u. a. Deploy-Gate-Secrets,
   Vercel-Production-Branch, destruktive Produktions-Migrationen) WHEN T1a abgeschlossen ist THEN
-  stehen sie in einer projekteigenen Datei unter `docs/project/`, und `OPERATING.md` verweist an
+  stehen sie in einer projekteigenen Datei unter `docs/project/` (`betrieb.md`, Q11), und `OPERATING.md` verweist an
   den Stellen darauf, wo ein Projekt typischerweise Eigenes ergänzt.
 - [ ] **AK-K3** GIVEN alle `factory`-Dateien laut Tabelle WHEN man sie nach den AK1.3-Begriffen
   (`Veranstaltung`, `Montagsrunde`, `Thekenwart`, `TCH`, `tch-gastro`, `Neon`, `Vercel`) durchsucht
@@ -298,7 +299,8 @@ in 178 Dateien (157 davon Specs/Tasks).
 >
 > **Stand 2026-10-20:** Q2–Q6 sind wie empfohlen entschieden und stehen im
 > [Nachtrag von ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md) (aus T1a-1).
-> Q7 und Q8 kamen beim `/requirements`-Lauf für T1a-2 (#431) dazu.
+> Q7 und Q8 kamen beim `/requirements`-Lauf für T1a-2 (#431) dazu, Q9–Q12 beim Lauf für
+> T1a-3 (#432, 2026-10-22).
 
 - [x] **Q1 · Weiter teilen?** Umfang: 54 AK, grob 60–80 Dateien von Hand plus ~160 Link-Reparaturen
   per Skript. Das liegt deutlich über der Turn-Limit-Schwelle (> 25 AK / > 40 Dateien, Lesson #369).
@@ -337,6 +339,37 @@ in 178 Dateien (157 davon Specs/Tasks).
   Turn-Limit-Schwelle (Lesson #369). **Entschieden (2026-10-20, Entwickler):** **ein** PR, aber
   Phase 2 **manuell in Etappen** (Stage 2, je Etappe eine frische Session) statt `run-pipeline.sh`.
   Die fehlende OTEL-Telemetrie wird in der Task-Datei vermerkt (Lesson #346).
+
+- [x] **Q9 · Umfang der Projekt-Suite (T1a-3, #432):** AK-J2 nennt nur die Self-Tests der Skripte.
+  `run-tests.sh` prüft aber auch die Projekt-Workflows `deploy-gate.yml` und
+  `deploy-freeze-release.yml` (#66, #173, „Deploy-Gate-Verdrahtung"). Außerdem verwenden mehrere
+  Factory-Mechanik-Tests (#426 Zuordnung, #431 Gates/Workflows) TCH-Pfade als Beispieldaten.
+  **Entschieden (2026-10-22, Entwickler):** Jeder Test, der eine **Projekt-Datei** laut
+  `OWNERSHIP.md` prüft, zieht in die Projekt-Suite – also die Skript-Tests und die Workflow-Tests.
+  Factory-Mechanik-Tests, die TCH-Pfade nur als **Fixture-Daten** nutzen, bekommen neutrale Namen.
+  Ihr Anteil, der echte TCH-Dateien prüft, zieht mit um. Maßstab für AK-J2: Ein Grep nach den
+  TCH-Skript- und TCH-Workflow-Namen in `run-tests.sh` liefert danach keinen Treffer.
+  Grund: In T1b läuft `run-tests.sh` in `nothra/dev-factory`, wo es diese Dateien nicht gibt.
+- [x] **Q10 · Gemeinsame Test-Helfer (T1a-3, #432):** **Entschieden (2026-10-22, Entwickler):** Die
+  Prüf-Helfer (`assert_exit`, `assert_true`, `assert_contains_286`, `assert_absent` u. Ä.) ziehen
+  in eine Factory-Lib unter `scripts/checks/tests/lib/`. `run-tests.sh` und die Projekt-Suite
+  sourcen beide diese Lib, es gibt keine Kopie. Die Lib ist eine Factory-Datei und kommt ab T2 mit
+  Factory-Updates. Die Projekt-Suite läuft im Required Check `test` des projekteigenen `ci.yml`
+  (AK-J3), nicht in `factory-ci.yml`, denn diese Datei gehört der Factory.
+- [x] **Q11 · Ort der TCH-Betriebsdoku (T1a-3, #432):** **Entschieden (2026-10-22, Entwickler):**
+  - Die TCH-Abschnitte aus `OPERATING.md` (AK-K2) ziehen nach `docs/project/betrieb.md`. Dazu
+    gehören Deploy-Gate-Secrets, der Vercel-Production-Branch, destruktive Produktions-Migrationen
+    und die TCH-Zeilen der Werkzeug-Tabelle.
+  - Die lokalen Setup- und Oberflächentest-Details aus `implement.md`/`coding-agent.md`
+    (`db:up`, `db:seed`, E2E) stehen ebenfalls dort.
+  - `PROJECT-CONTEXT.md` bekommt nur einen **kurzen** Abschnitt „Lokale Umgebung &
+    Oberflächentests" (Richtwert ≤ 10 Zeilen) mit dem Verweis. Er schont den gedeckelten
+    `@import`-Dauerkontext (Factory-ADR-047).
+- [x] **Q12 · Ablauf von T1a-3 (#432):** J + K umfassen 7 AK plus AK-X1–X3. Das liegt unter der
+  Turn-Limit-Schwelle, aber `run-tests.sh` (~9 400 Zeilen) ist groß, und `implement.md` braucht
+  den `.claude/**`-Patch-Weg. **Entschieden (2026-10-22, Entwickler):** wie Q8 – ein PR, Phase 2
+  manuell in zwei Etappen (Etappe 1 = J, Etappe 2 = K), je eine frische Session. Für diese Task
+  gibt es keine OTEL-Telemetrie (Lesson #346).
 
 ## Anhang 1 · Vorschlag ADR-Zuordnung (final in `OWNERSHIP.md`)
 
