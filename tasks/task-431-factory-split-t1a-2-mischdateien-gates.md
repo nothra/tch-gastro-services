@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Teil-Task **T1a-2** von Epic #424 (Factory in eigenes Repo auslagern): die Mischdateien auflösen
@@ -55,7 +55,7 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-I3 `start-work.sh --labels` bzw. Issue-Seam verhalten sich wie vorher (fail-open, Q5)
 ### Epic-weit (für diesen PR)
 - [x] AK-X1 `run-tests.sh`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check` vorher (`main` @ `bcba043`) und nachher grün; Ergebnisse hier eingetragen
-- [ ] AK-X2 Alle Required Checks grün, Namen unverändert
+- [x] AK-X2 Alle Required Checks grün, Namen unverändert
 - [ ] AK-X3 Stage-2-Probelauf nach dem Merge (`start-work.sh` ID-Modus, `pre-push.sh` auf Probe-Branch) verhält sich wie vorher
 - [ ] `OWNERSHIP.md` führt alle neuen Dateien (u. a. `FACTORY.md`, Fragmente, `factory-sync.sh`, `ci.yml`, `scripts/project/**`), AK-A2-Test grün
 
@@ -63,7 +63,7 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [ ] F-4 Committete `.claude/settings.json`/`.gitignore` weicht von der Zusammensetzung ab → Test rot
 - [x] F-5 Projekt-Check in `pre-push.d/` scheitert oder ist nicht ausführbar → Push blockiert, Skriptname in der Meldung
 - [x] F-6 Pflicht-Gate-Kommando nicht konfiguriert → Gate bricht mit Schlüsselnamen ab
-- [ ] F-7 Required Check verschwindet durch die Workflow-Teilung → erst fertig, wenn alle gemeldet und grün
+- [x] F-7 Required Check verschwindet durch die Workflow-Teilung → erst fertig, wenn alle gemeldet und grün
 
 ## Technische Notizen
 **Ablauf (Q8, 2026-10-20):** ein PR, Phase 2 **manuell in Etappen** – je Etappe eine frische
@@ -135,6 +135,11 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 | `pnpm test` | dito | exit 0 (1769 bestanden, 112 übersprungen) |
 | `pnpm format:check` | dito | exit 0 |
 Die vier pnpm-Gates wurden für `bcba043` nicht separat ausgeführt (kein `node_modules` im Baseline-Worktree): der Diff berührt weder App-Code noch Lockfile/`package.json`, ein anderes Ergebnis ist damit ausgeschlossen. Der Baseline-Worktree wurde danach entfernt.
+
+## PR-Shepherd (2026-10-22)
+PR #433, Branch auf aktuellem `main`. Alle Required Checks auf diesem PR gemeldet und grün: `lint`, `test` (aus `ci.yml`), `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation` (aus `factory-ci.yml`); dazu CodeQL und Vercel grün, `post-merge-verify` erwartungsgemäß übersprungen (nur `main`-Push). Damit AK-F3, AK-X2, F-7 belegt.
+**Offen (bewusst):** AK-X3 – Stage-2-Probelauf nach dem Merge (`start-work.sh` ID-Modus, `pre-push.sh` auf Probe-Branch); erst nach dem Merge ausführbar.
+PR-Shepherd 2026-10-22: Merge freigegeben – alle Gates grün.
 
 ## Review-Findings
 **Iteration 1 (`tasks/review-431.md`):** 0 kritisch, 1 wichtig (fehlender Verhaltenstest für `run-pipeline.sh` – Config-Kommando angewendet, Abbruch vor `/implement` bei fehlendem Pflicht-Kommando), 2 Nitpicks. Wichtig-Finding behoben (Suite 1884 grün, 0 rot); Nitpicks bewusst offen (yq-Meldung im Gate, globaler Env-Export der Suite).
