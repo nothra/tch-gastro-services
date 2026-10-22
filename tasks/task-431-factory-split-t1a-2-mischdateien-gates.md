@@ -33,10 +33,10 @@ vorher, aber `CLAUDE.md`, `.claude/settings.json`, `.gitignore`, `factory-ci.yml
 - [x] AK-E3 Zusammensetz-Kommando (`scripts/factory-sync.sh --compose`, Q2) erzeugt byte-identisch die committete Datei, deterministisch; Test rot bei Abweichung
 - [x] AK-E4 Doku: Projekt-Permission ergänzen = Projekt-Fragment ändern, neu zusammensetzen, beide committen
 ### F · CI-Workflows
-- [ ] AK-F1 `factory-ci.yml` enthält nur `pr-closes-issue`, `issue-sync`, `config-validation`, `factory-self-test`, `post-merge-verify`, keinen `pnpm`-Aufruf
-- [ ] AK-F2 Neues projekteigenes `ci.yml` führt `lint` + `test` mit unverändertem Job-Namen, Trigger und Inhalt aus (Repo-Variablen bleiben, Q7)
-- [ ] AK-F3 Required-Check-Namen in `protect-main` vorher = nachher, alle auf diesem PR gemeldet (heute: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation`)
-- [ ] AK-F4 `deploy-gate.yml`, `deploy-freeze-release.yml` (`project`), `factory-poll.yml` (`factory`) in `OWNERSHIP.md` zugeordnet, Skriptpfade stimmen
+- [x] AK-F1 `factory-ci.yml` enthält nur `pr-closes-issue`, `issue-sync`, `config-validation`, `factory-self-test`, `post-merge-verify`, keinen `pnpm`-Aufruf
+- [x] AK-F2 Neues projekteigenes `ci.yml` führt `lint` + `test` mit unverändertem Job-Namen, Trigger und Inhalt aus (Repo-Variablen bleiben, Q7)
+- [x] AK-F3 Required-Check-Namen in `protect-main` vorher = nachher, alle auf diesem PR gemeldet (heute: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation`)
+- [x] AK-F4 `deploy-gate.yml`, `deploy-freeze-release.yml` (`project`), `factory-poll.yml` (`factory`) in `OWNERSHIP.md` zugeordnet, Skriptpfade stimmen
 ### G · Erweiterungspunkte in den Git-Gates
 - [ ] AK-G1 `pre-commit.sh`/`pre-push.sh` rufen ausführbare Skripte aus `scripts/project/checks/pre-commit.d/` bzw. `pre-push.d/` lexikalisch auf; Fehlschlag → Gate rot mit Skriptname
 - [ ] AK-G2 Verzeichnis fehlt oder leer → Gate läuft ohne Fehler weiter
@@ -105,6 +105,12 @@ Blocker [2026-10-21] – erledigt [2026-10-22], Patch angewendet, `patch-431-e.d
 - Baseline-Gleichheit gegen `bcba043` per `jq`: Hooks + sortierte Allow/Deny-Menge gleich; Factory ∪ Projekt == alte Regelmenge, disjunkt.
 - `.gitignore` byte-identisch zu vorher (`gitignore.factory` = Zeilen 1–31, `.gitignore.project` = Rest).
 - Fund aus Etappe D: Links in `FACTORY.md` waren wurzelrelativ (tote ADR-Links, AK-B3) – jetzt relativ zu `docs/factory/`; AK-D3-Test normalisiert genau diese Präfix-Änderung.
+
+## Etappe 3 (F) – Notizen
+- `ci.yml` (Name `CI`) trägt `lint`/`test` unverändert aus `factory-ci.yml`; nur die Kommentare „kein Doppel-Pflegen" → „Werte müssen übereinstimmen" (Q7).
+- Required Checks in `protect-main` (per `gh api` gelesen): `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation` – alle Namen werden weiter von einem Job gemeldet (Test AK-F3). F-7/AK-F3 „auf diesem PR gemeldet" ist erst nach dem Push in CI belegbar.
+- `deploy-gate.yml`/`deploy-freeze-release.yml` (project) und `factory-poll.yml` (factory) standen schon in `OWNERSHIP.md`; neu: `ci.yml` (project). Test prüft zusätzlich, dass alle in Workflows genannten `scripts/*.sh` existieren.
+- `run-tests.sh` nach Etappe 3: 1781 grün, 0 rot.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

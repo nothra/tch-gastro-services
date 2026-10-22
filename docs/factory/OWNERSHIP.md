@@ -46,7 +46,7 @@ Parser und liest nichts anderes:
 | Seite | Muster | Begründung |
 |---|---|---|
 | factory | `.claude/commands/**` | Skills der Pipeline |
-| factory | `.github/workflows/factory-ci.yml` | Factory-Jobs; die TCH-Jobs `lint`/`test` wandern in #431 in `ci.yml` |
+| factory | `.github/workflows/factory-ci.yml` | Factory-Jobs (`pr-closes-issue`, `issue-sync`, `config-validation`, `factory-self-test`, `post-merge-verify`); kein `pnpm` |
 | factory | `.github/workflows/factory-poll.yml` | Async-Start der Pipeline (ADR-008) |
 | factory | `config/otel.env.example` | Vorlage für die Telemetrie-Erhebung |
 | factory | `docs/factory/FACTORY.md` | Generischer Teil der Agenten-Regeln (aus `CLAUDE.md`, #431) |
@@ -98,6 +98,7 @@ Parser und liest nichts anderes:
 | project | `.claude/settings.json` | Ergebnis von `factory-sync.sh --compose` aus Factory- + Projekt-Fragment; nicht von Hand ändern |
 | project | `.claude/settings.project.json` | Projekt-Fragment der Settings (App-Pfade, Lockfile-Deny) |
 | project | `.env.example` | App-Umgebungsvariablen |
+| project | `.github/workflows/ci.yml` | Projekt-CI: `lint` + `test` der App (aus `factory-ci.yml`, #431) |
 | project | `.github/workflows/deploy-gate.yml` | Vercel-Deploy-Gate (ADR-015/017) |
 | project | `.github/workflows/deploy-freeze-release.yml` | Deploy-Freeze (ADR-032) |
 | project | `.gitignore` | Ergebnis von `factory-sync.sh --compose`; nicht von Hand ändern |

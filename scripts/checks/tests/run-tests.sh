@@ -295,7 +295,8 @@ grep -q 'gh pr update-branch' "$SHEPHERD"
 assert_true "$?" "pr-shepherd nutzt server-seitiges 'gh pr update-branch'"
 
 # CI-Gates fail-closed: FACTORY_*_COMMAND-Variable, exit 1 wenn unkonfiguriert
-{ grep -q 'FACTORY_LINT_COMMAND' "$CI_FILE" && grep -q 'FACTORY_TEST_COMMAND' "$CI_FILE" && grep -q 'exit 1' "$CI_FILE"; }
+PROJECT_CI_FILE="$FACTORY_ROOT/.github/workflows/ci.yml"
+{ grep -q 'FACTORY_LINT_COMMAND' "$PROJECT_CI_FILE" && grep -q 'FACTORY_TEST_COMMAND' "$PROJECT_CI_FILE" && grep -q 'exit 1' "$PROJECT_CI_FILE"; }
 assert_true "$?" "CI lint/test sind echte Gates (FACTORY_*_COMMAND, fail-closed)"
 
 # ─── Stufe-2: OTEL-ready Bauchladen (#17) ────────────────────────────────────
@@ -9147,6 +9148,55 @@ own_doc_431="$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")"
 assert_contains_286 "$own_doc_431" 'Projekt-Fragment ändern' "#431 AK-E4: OPERATING.md: Projekt-Fragment ändern"
 assert_contains_286 "$own_doc_431" 'factory-sync.sh --compose' "#431 AK-E4: OPERATING.md nennt das Zusammensetz-Kommando"
 assert_contains_286 "$own_doc_431" 'beide committen' "#431 AK-E4: OPERATING.md: Fragment und Ergebnis beide committen"
+
+# ─── #431 T1a-2 · Gruppe F: CI-Workflows (AK-F1…F4, F-7) ─────────────────────────────────────
+echo ""
+echo "#431 AK-F: factory-ci.yml nur Factory, ci.yml projekteigen:"
+FCI_431="$FACTORY_ROOT/.github/workflows/factory-ci.yml"
+PCI_431="$FACTORY_ROOT/.github/workflows/ci.yml"
+jobs_of_431() { awk '/^jobs:/{j=1;next} j && /^  [A-Za-z0-9_-]+:[[:space:]]*$/{sub(/^  /,"");sub(/:.*/,"");print}' "$1" | sort | tr '\n' ' '; }
+
+assert_true "$([[ -f "$PCI_431" ]]; echo $?)" "#431 AK-F2: .github/workflows/ci.yml existiert"
+assert_true "$([ "$(jobs_of_431 "$FCI_431")" = "config-validation factory-self-test issue-sync post-merge-verify pr-closes-issue " ]; echo $?)" \
+  "#431 AK-F1: factory-ci.yml enthält genau die fünf Factory-Jobs (Ist: $(jobs_of_431 "$FCI_431"))"
+grep -q 'pnpm' "$FCI_431"
+assert_exit 1 "$?" "#431 AK-F1: factory-ci.yml enthält keinen pnpm-Aufruf"
+assert_true "$([ "$(jobs_of_431 "$PCI_431")" = "lint test " ]; echo $?)" \
+  "#431 AK-F2: ci.yml enthält genau lint + test (Ist: $(jobs_of_431 "$PCI_431"))"
+{ grep -q '^  push:' "$PCI_431" && grep -q 'branches: \[main\]' "$PCI_431" && grep -q '^  pull_request:' "$PCI_431"; }
+assert_exit 0 "$?" "#431 AK-F2: ci.yml hat denselben Trigger wie vorher (push main + pull_request)"
+for cmd_431 in LINT TEST; do
+  grep -q "FACTORY_${cmd_431}_COMMAND: \${{ vars.FACTORY_${cmd_431}_COMMAND }}" "$PCI_431"
+  assert_exit 0 "$?" "#431 AK-F2: ci.yml liest FACTORY_${cmd_431}_COMMAND aus der Repo-Variable (Q7)"
+done
+grep -q 'eval "\$FACTORY_LINT_COMMAND"' "$PCI_431" && grep -q 'eval "\$FACTORY_TEST_COMMAND"' "$PCI_431"
+assert_exit 0 "$?" "#431 AK-F2: ci.yml führt beide Kommandos fail-closed aus"
+if command -v yq >/dev/null 2>&1; then
+  yq '.' "$PCI_431" >/dev/null 2>&1
+  assert_exit 0 "$?" "#431 AK-F2: ci.yml ist valides YAML"
+else
+  skip_yq "#431 AK-F2: ci.yml ist valides YAML"
+fi
+
+# AK-F3/F-7: Required-Check-Namen (protect-main) = Menge der Job-Namen beider Factory-/Projekt-CI.
+all_jobs_431="$(jobs_of_431 "$FCI_431") $(jobs_of_431 "$PCI_431")"
+for chk_431 in lint test issue-sync factory-self-test pr-closes-issue config-validation; do
+  assert_contains_286 "$all_jobs_431" "$chk_431 " "#431 AK-F3: Required Check '$chk_431' wird von einem Workflow gemeldet"
+done
+
+# AK-F4: Workflows in OWNERSHIP.md zugeordnet, Skriptpfade existieren.
+own_f_431="$FACTORY_ROOT/docs/factory/OWNERSHIP.md"
+for wf_431 in "project|.github/workflows/ci.yml" "project|.github/workflows/deploy-gate.yml" "project|.github/workflows/deploy-freeze-release.yml" "factory|.github/workflows/factory-poll.yml" "factory|.github/workflows/factory-ci.yml"; do
+  grep -qF "| ${wf_431%%|*} | \`${wf_431#*|}\`" "$own_f_431"
+  assert_exit 0 "$?" "#431 AK-F4: ${wf_431#*|} ist als ${wf_431%%|*} in OWNERSHIP.md geführt"
+done
+miss_431=""
+for wfp_431 in "$FACTORY_ROOT"/.github/workflows/*.yml; do
+  for sp_431 in $(grep -oE 'scripts/[A-Za-z0-9_./-]+\.sh' "$wfp_431" | sort -u); do
+    [[ -f "$FACTORY_ROOT/$sp_431" ]] || miss_431="$miss_431 $(basename "$wfp_431"):$sp_431"
+  done
+done
+assert_true "$([ -z "$miss_431" ]; echo $?)" "#431 AK-F4: alle in Workflows genannten Skriptpfade existieren (fehlt:${miss_431:- nichts})"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
