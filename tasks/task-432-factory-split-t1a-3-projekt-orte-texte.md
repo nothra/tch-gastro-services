@@ -176,3 +176,5 @@ Erstellt: 2026-10-22 22:39
 - `docs/project/betrieb.md`: der neu entstandene Block „Kurzreferenz der Kommandos" ist entfernt, weil er nur Kommandos aus dem Text darüber und aus `PROJECT-CONTEXT.md` wiederholte (Review-Nitpick 2). Er war nicht Teil von `OPERATING.md` auf `main`, also geht kein Originalinhalt verloren.
 - Folge: der AK-K2-Anker `pnpm db:seed` traf nur diesen Block. Er ist jetzt `` `db:seed` `` und entspricht damit dem Wortlaut der übernommenen Setup-Zeile.
 - Kein neues Verhalten. Beide Suiten danach unverändert grün: Factory 1835, Projekt 90, 0 rot.
+
+PR-Shepherd 2026-10-23: Merge freigegeben (Auto-Merge, squash) – keine Review-Kommentare, Branch aktuell auf main; CI lief beim Freigeben noch (Required Checks entscheiden server-seitig). AK-X2/X3 nach dem Merge belegen.
