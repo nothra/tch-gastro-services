@@ -1,0 +1,12 @@
+# factory-extract.gitleaksignore – begründete gitleaks-Falsch-Positive im herausgelösten Repo
+#
+# Gelesen von `factory-extract.sh scan` (#427, AK B1) und an `gitleaks --gitleaks-ignore-path`
+# übergeben. Eine Zeile = ein gitleaks-Fingerprint `<commit>:<datei>:<regel>:<zeile>`; der Commit
+# ist der Hash im herausgelösten Repo (filter-repo schreibt deterministisch, er bleibt bei gleichem
+# TCH-Stand gleich). Jede Zeile braucht einen Grund im Kommentar darüber – ein echtes Secret gehört
+# nie hierher (dann ist der Fund echt, FS1).
+
+# Absichtlich geplantete Fixture `api_key = "…"` im Regressionstest des Credential-Checks von
+# pre-commit.sh (Block „Pre-Commit portable Regex"); der Wert ist kein Schlüssel, der Test prüft
+# gerade, dass pre-commit.sh ihn als hardkodiertes Credential erkennt. Probelauf 2026-10-23.
+5fbdaf21e652941fcb5c321ffc99ace581f53af1:scripts/checks/tests/run-tests.sh:generic-api-key:280

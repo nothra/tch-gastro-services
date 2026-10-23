@@ -13,7 +13,8 @@
 # Exit: 0 = ok, 1 = eine Prüfung schlägt an, 2 = Aufruf-/Umgebungsfehler (fail-closed).
 #
 # Umgebung: FACTORY_DIR (TCH-Arbeitsklon, Default: Wurzel dieses Repos), FILTER_REPO_CMD
-# (Default git-filter-repo), GITLEAKS_CMD (Default gitleaks), FACTORY_EXTRACT_ALLOW (Erlaubt-Liste).
+# (Default git-filter-repo), GITLEAKS_CMD (Default gitleaks), FACTORY_EXTRACT_ALLOW (Erlaubt-Liste
+# E-Mail), FACTORY_EXTRACT_GITLEAKSIGNORE (begründete gitleaks-Falsch-Positive, Fingerprints).
 # `run` legt seine Metadaten in <ziel>/.git/factory-extract/ ab (paths, files, source-commit);
 # `verify` und `scan` lesen sie dort und dazu die commit-map, die filter-repo hinterlässt.
 
@@ -23,6 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FACTORY_DIR="${FACTORY_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 RULES_FILE="$SCRIPT_DIR/factory-extract.rules"
 ALLOW_FILE="${FACTORY_EXTRACT_ALLOW:-$SCRIPT_DIR/factory-extract.allow}"
+GITLEAKS_IGNORE="${FACTORY_EXTRACT_GITLEAKSIGNORE:-$SCRIPT_DIR/factory-extract.gitleaksignore}"
 FILTER_REPO_CMD="${FILTER_REPO_CMD:-git-filter-repo}"
 GITLEAKS_CMD="${GITLEAKS_CMD:-gitleaks}"
 # Bereiche, die nie Factory waren – auch nicht als Altpfad (A2, FS2).
@@ -286,11 +288,14 @@ report_row() {
 }
 
 cmd_scan() {
-  local target="$1" leaks_out leaks_rc=0 b2_out b2_rc=0 a2_out a2_rc=0 filter_repo_version
+  local target="$1" leaks_out leaks_rc=0 ignored b2_out b2_rc=0 a2_out a2_rc=0 filter_repo_version
   require_tool "$GITLEAKS_CMD" "Installation z. B. per 'brew install gitleaks'"
   [ -r "$ALLOW_FILE" ] || die 2 "Erlaubt-Liste nicht lesbar: $ALLOW_FILE"
+  [ -r "$GITLEAKS_IGNORE" ] || die 2 "Falsch-Positiv-Liste nicht lesbar: $GITLEAKS_IGNORE"
   load_meta "$target"
-  leaks_out="$("$GITLEAKS_CMD" git --no-banner --redact --log-opts=--all "$target" 2>&1)" || leaks_rc=$?
+  ignored="$(grep -cv '^[[:space:]]*\(#.*\)\{0,1\}$' "$GITLEAKS_IGNORE" || true)"
+  leaks_out="$("$GITLEAKS_CMD" git --no-banner --redact --log-opts=--all \
+    --gitleaks-ignore-path "$GITLEAKS_IGNORE" "$target" 2>&1)" || leaks_rc=$?
   b2_out="$(scan_emails "$target")" || b2_rc=$?
   a2_out="$(check_a2 "$target")" || a2_rc=$?
   [ "$b2_rc" -le 1 ] && [ "$a2_rc" -le 1 ] || exit 2
@@ -313,7 +318,7 @@ cmd_scan() {
   echo "|---|---|---|"
   report_row A2 "$a2_rc" "$a2_out"
   if [ "$leaks_rc" -eq 0 ]; then
-    report_row B1 0 "gitleaks über alle Commits: kein Fund"
+    report_row B1 0 "gitleaks über alle Commits: kein Fund ($ignored Falsch-Positive ausgenommen, begründet in $(basename "$GITLEAKS_IGNORE"))"
   else
     report_row B1 1 "gitleaks Exit $leaks_rc – Fund oder Fehler, Ausgabe unten"
   fi

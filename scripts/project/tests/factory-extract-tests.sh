@@ -281,17 +281,19 @@ assert_exit 2 "$FX_RC" "#427 verify: Metadaten von run fehlen → Exit 2 (fail-c
 echo ""
 echo "#427 factory-extract.sh scan (B1/B2/B3, mit gitleaks-Stub):"
 
-# gitleaks-Stub: Exit-Code aus FX_LEAKS_RC, Version fest.
+# gitleaks-Stub: Exit-Code aus FX_LEAKS_RC, Version fest, Argumente je Zeile nach FX_LEAKS_LOG.
 cat > "$FX_STUB_DIR/gitleaks" <<'STUBEOF'
 #!/usr/bin/env bash
 [ "$1" = version ] && { echo "8.99.0-stub"; exit 0; }
+printf 'arg=%s\n' "$@" > "$FX_LEAKS_LOG"
 echo "stub-scan $*"
 exit "${FX_LEAKS_RC:-0}"
 STUBEOF
 chmod +x "$FX_STUB_DIR/gitleaks"
+FX_LEAKS_LOG="$FX_TMP/gitleaks.log"
 # fx_scan <quelle> <ziel> [leaks-rc] – Bericht (stdout+stderr) in FX_OUT, Exit-Code in FX_RC.
 fx_scan() {
-  FX_OUT="$(FACTORY_DIR="$1" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_RC="${3:-0}" \
+  FX_OUT="$(FACTORY_DIR="$1" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_RC="${3:-0}" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
     bash "$FX_SCRIPT" scan "$2" 2>&1)"
   FX_RC=$?
 }
@@ -308,6 +310,20 @@ assert_contains_286 "$FX_OUT" "| Commits | 3 |" "#427 B3: Bericht nennt die Anza
 assert_contains_286 "$FX_OUT" "| B1" "#427 B3: Bericht hat eine Zeile B1"
 assert_contains_286 "$FX_OUT" "| B2" "#427 B3: Bericht hat eine Zeile B2"
 assert_contains_286 "$FX_OUT" "| A2" "#427 B3: Bericht hat eine Zeile A2"
+fx_leaks_args="$(cat "$FX_LEAKS_LOG" 2>/dev/null)"
+assert_contains_286 "$fx_leaks_args" "arg=--log-opts=--all" "#427 B1: gitleaks läuft über alle Commits"
+assert_contains_286 "$fx_leaks_args" "arg=--gitleaks-ignore-path" "#427 B1: gitleaks bekommt die Falsch-Positiv-Liste"
+assert_contains_286 "$fx_leaks_args" "arg=$SCRIPTS_DIR/project/factory-extract.gitleaksignore" \
+  "#427 B1: Falsch-Positiv-Liste ist factory-extract.gitleaksignore"
+
+# Die Zahl der ausgenommenen Falsch-Positive steht im Bericht (Kommentar- und Leerzeilen zählen nicht).
+printf '# Grund A\nabc:datei:regel:1\n\n# Grund B\ndef:datei:regel:2\n' > "$FX_TMP/ignore"
+FX_OUT="$(FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
+  FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore" bash "$FX_SCRIPT" scan "$FX_TMP/s-ziel" 2>&1)"
+assert_contains_286 "$FX_OUT" "2 Falsch-Positive ausgenommen" "#427 B1/B3: Bericht nennt die Zahl der ausgenommenen Falsch-Positive"
+FX_OUT="$(FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
+  FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/gibt-es-nicht" bash "$FX_SCRIPT" scan "$FX_TMP/s-ziel" 2>&1)"
+assert_exit 2 "$?" "#427 B1: Falsch-Positiv-Liste nicht lesbar → Exit 2 (fail-closed)"
 
 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel" 1
 assert_exit 1 "$FX_RC" "#427 B1: gitleaks meldet Fund → Exit 1"

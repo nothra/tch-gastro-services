@@ -1,7 +1,7 @@
 # Task 427: factory-split-t1b-historie-nach-dev-factory
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -20,11 +20,11 @@ Spec: [`docs/specs/spec-427-factory-nach-dev-factory-herausloesen.md`](../docs/s
 
 ## Akzeptanzkriterien
 <!-- Volltext in der Spec; T1b-1-Anteil laut Teilungstabelle. Übrige AK → T1b-2 (#436) -->
-- [ ] A1 `factory-extract.sh paths` = `ownership-check.sh --list factory` + Altpfade, erzeugt, zweiter Lauf identisch
-- [ ] A4 Umschreibregel (`factory-extract.rules`) getestet; im Probelauf kein unqualifiziertes `#<nr>` in Messages
+- [x] A1 `factory-extract.sh paths` = `ownership-check.sh --list factory` + Altpfade, erzeugt, zweiter Lauf identisch
+- [x] A4 Umschreibregel (`factory-extract.rules`) getestet; im Probelauf kein unqualifiziertes `#<nr>` in Messages
 - [ ] B3 Probelauf-Bericht (Werkzeug-Versionen, TCH-Commit, Commits/Dateien, A2/B1/B2-Ergebnis) in dieser Task-Datei und im PR-Body #435
-- [ ] X1 Diff ändert keine Factory-Datei außer dem ADR-063-Nachtrag; `run-tests.sh` + App-Gates grün
-- [ ] X2 `run` arbeitet auf frischem Klon; Arbeitsklon und `origin` unberührt
+- [x] X1 Diff ändert keine Factory-Datei außer dem ADR-063-Nachtrag; `run-tests.sh` + App-Gates grün
+- [x] X2 `run` arbeitet auf frischem Klon; Arbeitsklon und `origin` unberührt
 
 ## Technische Notizen
 Entscheidungen: ADR-063 → „Nachtrag 2026-10-23 · Detailentscheidungen aus T1b".
@@ -52,6 +52,57 @@ Entscheidungen: ADR-063 → „Nachtrag 2026-10-23 · Detailentscheidungen aus T
   Input #319, Mutationsbeleg), `factory-workflow.md` (Wegwerf-Dateien sofort löschen, `-c
   user.email` bei Commits), `docs/factory/guidelines/bash-gotchas.md`.
 - `docs/routes.md` unberührt (keine Route). Label `factory-pipeline` passt (Pfade `scripts/`).
+
+## Probelauf-Bericht (B3, 2026-10-23)
+
+Ablauf: `factory-extract.sh run` → `verify` → `scan` gegen ein Ziel im Session-Scratchpad (außerhalb
+des Repos), danach gelöscht. Nichts gepusht, kein `gh repo create`. Der Lauf ging vom gemergten
+TCH-`main` aus (lokales `main` == `origin/main` geprüft) – also **ohne** den ADR-063-Nachtrag dieses
+Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben dieselben.
+
+| Kennzahl | Wert |
+|---|---|
+| TCH-Commit (Quelle) | `b5d0cd91903d1132977ada3ac2949683c38c1d66` |
+| Commits (nach dem Herauslösen) | 123 (von 184 in TCH; 61 ohne Factory-Pfad entfallen) |
+| Dateien im Ziel (HEAD) | 113 = 111 Factory-Dateien + `CLAUDE.md`, `.claude/settings.json` (erwartet, s. u.) |
+| Pfade in der Liste (A1) | 142 = 111 Factory-Dateien + 31 Altpfade |
+| git | 2.54.0 (Apple Git-157) |
+| git-filter-repo | a40bce548d2c (Homebrew) |
+| gitleaks | 8.30.1 (Homebrew) |
+| python3 | 3.9.6 |
+
+| Prüfung | Ergebnis | Details |
+|---|---|---|
+| A2 | ✓ | 142 Pfade in der Historie, alle in der Liste, keiner unter `app/`, `db/`, `lib/`, `tasks/`, `e2e/`, `scripts/project/`, `docs/specs/`, `docs/project/` |
+| A3 | ✓ | alle 111 Factory-Dateien: `--follow` reicht im Ziel über dieselben Namen wie in TCH; 31 mit Altpfad. Stichprobe: ADR-019 8 Commits bis 2026-07-13 (← `docs/adr/019-…`), `FACTORY.md` 18 Commits bis 2026-07-08 (← `CLAUDE.md`), `.claude/settings.factory.json` 7 Commits bis 2026-07-08 (← `.claude/settings.json`) |
+| A4 | ✓ | keine Message mit unqualifiziertem `#<nr>`; 122 von 123 Messages tragen `nothra/tch-gastro-services#<nr>` (der Initial-Commit hat keinen Verweis) |
+| A5 | ✓ | 123 Commits mit unverändertem Autor, Autor-Datum und Commit-Datum (gegen die commit-map von filter-repo) |
+| B1 | ✓ | gitleaks über alle Commits: kein Fund nach Ausnahme **eines** Falsch-Positivs (s. u.) |
+| B2 | ✓ | 8 Adressen in allen Blobs, alle in der Erlaubt-Liste (s. u.) |
+| X2 | ✓ | Arbeitsklon danach unverändert (`git status` leer, `origin` unverändert); das Ziel hat keinen Remote mehr (filter-repo entfernt `origin`) |
+
+**Befunde aus dem ersten Scan und wie sie aufgelöst sind:**
+- **B1 – ein gitleaks-Fund, Falsch-Positiv:** `generic-api-key` in `scripts/checks/tests/run-tests.sh:280`
+  (Initial-Commit `5fbdaf2`): die absichtlich geplantete Fixture `api_key = "…"` des
+  Credential-Check-Regressionstests von `pre-commit.sh`. Ausgenommen per Fingerprint in
+  `scripts/project/factory-extract.gitleaksignore` (mit Begründung), damit `scan` reproduzierbar mit
+  Exit 0 endet statt dauerhaft rot zu sein.
+- **B2 – sechs Adressen außerhalb der ersten Erlaubt-Liste, alle Test-Fixtures:**
+  `anon@example.invalid` (`otel-console-sample.txt`, `run-tests.sh`), `opfer@`/`opfer2@`/`opfer3@`/
+  `opfer4@angreifer.example` und `test@test.com` (`run-tests.sh`). `.invalid`/`.example` sind
+  reservierte Test-TLDs (RFC 2606); `test@test.com` ist eine Fixture-Identität. Erlaubt-Liste
+  `scripts/project/factory-extract.allow` entsprechend ergänzt (je mit Begründung). Keine Adresse
+  einer realen Person in Datei-Inhalten.
+
+**Hinweise für T1b-2 (#436):**
+- `CLAUDE.md` und `.claude/settings.json` kommen als Altpfade mit ihrer TCH-Fassung ins Ziel (ADR-063
+  Nachtrag) – erwartet, kein A2-Verstoß; der Bootstrap-PR ersetzt sie.
+- `.gitignore` ist **kein** `--follow`-Altpfad von `docs/factory/gitignore.factory` (Git erkennt die
+  Aufteilung in #431 nicht als Umbenennung) und kommt daher nicht mit. Der ADR-Nachtrag nennt sie als
+  mögliche Altpfad-Datei; das ändert am Vorgehen nichts.
+- Der Fingerprint in `factory-extract.gitleaksignore` hängt am Commit-Hash im Ziel. filter-repo
+  schreibt deterministisch; solange der Initial-Commit gleich bleibt, passt er. Meldet `scan` den
+  Fund in T1b-2 erneut, ist nur der Fingerprint nachzuziehen.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

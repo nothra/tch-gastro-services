@@ -13,5 +13,10 @@ noreply@anthropic.com
 *@example.net
 *@example.de
 *@*.example.com
-# Git-Identität der Test-Fixtures (mk_feature_repo, fx_git)
+# Reservierte Test-TLDs (RFC 2606): Fixtures in run-tests.sh und otel-console-sample.txt
+# (anon@example.invalid, opfer@angreifer.example – Probelauf 2026-10-23)
+*@*.invalid
+*@*.example
+# Git-Identitäten der Test-Fixtures (mk_feature_repo, fx_git, run-tests.sh)
 t@t.com
+test@test.com
