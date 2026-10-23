@@ -114,12 +114,14 @@ Ruleset und der nicht rückholbare Bootstrap-Push brauchen eine Freigabe des Ent
 ### B · Vorab-Scan und Freigabe (AK1.4, F5)
 
 - [ ] **B1** GIVEN die umgeschriebene Historie, noch nicht gepusht WHEN `gitleaks` über **alle**
-  Commits läuft THEN gibt es keinen Fund – oder jeder Fund ist im Scan-Bericht einzeln als
-  Falsch-Positiv mit Begründung belegt.
-- [ ] **B2** GIVEN die umgeschriebene Historie WHEN man **alle** Blob-Inhalte nach E-Mail-Mustern
-  durchsucht THEN treffen nur Adressen aus einer im Scan-Bericht aufgeführten Erlaubt-Liste
-  (z. B. `noreply@anthropic.com`, `*@example.*`, Test-Identitäten wie `t@t.com`); Adressen
-  realer Personen kommen in Datei-Inhalten nicht vor (Autoren-Metadaten zählen nicht, A5).
+  Commits und über alle Commit-/Tag-Messages läuft THEN gibt es keinen Fund – oder jeder Fund ist
+  im Scan-Bericht einzeln als Falsch-Positiv mit Begründung belegt.
+- [ ] **B2** GIVEN die umgeschriebene Historie WHEN man **alle** Blob-Inhalte und alle
+  Commit-/Tag-Messages nach E-Mail-Mustern durchsucht THEN treffen nur Adressen aus einer im
+  Scan-Bericht aufgeführten Erlaubt-Liste (z. B. `noreply@anthropic.com`, `*@example.com`,
+  Test-Identitäten wie `t@t.com`); Adressen realer Personen kommen in Datei-Inhalten und
+  Messages nicht vor – `Co-authored-by`-Trailer mit persönlicher Adresse entfernt `run`
+  (Entscheidung 2026-10-23, Security-Review). Autor-/Committer-Metadaten zählen nicht (A5).
 - [ ] **B3** GIVEN der Scan WHEN er abgeschlossen ist THEN liegt ein Scan-Bericht in der
   Task-Datei und im PR-Body des TCH-PRs der jeweiligen Teil-Task (T1b-1: Probelauf, PR #435;
   T1b-2: echter Lauf vor dem Push): Werkzeug-Versionen, Ziel-Commit von TCH, Anzahl

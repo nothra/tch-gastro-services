@@ -1,0 +1,10 @@
+# factory-extract.gitleaks.toml – gepinnte gitleaks-Konfiguration für `factory-extract.sh scan`
+#
+# (#427, Security-Review W1) `scan` übergibt diese Datei per `--config`, scannt einen Klon ohne
+# Arbeitsbaum und blendet GITLEAKS_CONFIG aus – so kann weder eine `.gitleaks.toml`/
+# `.gitleaksignore` im herausgelösten Repo noch die Umgebung den Secret-Scan still abschalten.
+# Regelsatz: die Standardregeln der im Bericht genannten gitleaks-Version, ohne Ausnahmen.
+# Begründete Falsch-Positive stehen ausschließlich in factory-extract.gitleaksignore.
+
+[extend]
+useDefault = true

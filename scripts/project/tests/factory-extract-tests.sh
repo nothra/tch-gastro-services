@@ -8,6 +8,7 @@
 
 FX_SCRIPT="$SCRIPTS_DIR/project/factory-extract.sh"
 FX_RULES="$SCRIPTS_DIR/project/factory-extract.rules"
+FX_TRAILERS="$SCRIPTS_DIR/project/factory-extract.trailers"
 FX_TMP="$(mktemp -d)"
 NULL_COMMIT_427=0000000000000000000000000000000000000000
 # Das Fixture-Repo im Kleinen: drei Factory-Dateien (eine mit Umlaut im Namen, gegen gequotete
@@ -201,8 +202,36 @@ fx_z_real="$(cd "$FX_Z" 2>/dev/null && pwd -P)"
 assert_contains_286 "$fx_log" "pwd=$fx_z_real" "#427 X2: filter-repo läuft im frischen Klon, nicht im Arbeitsklon"
 assert_contains_286 "$fx_log" "arg=--paths-from-file" "#427 run: filter-repo bekommt eine Pfadliste"
 assert_contains_286 "$fx_log" "arg=$fx_z_real/.git/factory-extract/paths" "#427 run: die Pfadliste ist die Metadaten-Datei des Klons"
-assert_contains_286 "$fx_log" "arg=--replace-message" "#427 run: filter-repo bekommt die Message-Regel"
-assert_contains_286 "$fx_log" "arg=$FX_RULES" "#427 run: Message-Regel ist factory-extract.rules"
+assert_contains_286 "$fx_log" "arg=--replace-message" "#427 run: filter-repo bekommt die Message-Regeln"
+assert_contains_286 "$fx_log" "arg=$fx_z_real/.git/factory-extract/message-rules" "#427 run: Message-Regeln liegen in den Metadaten des Klons"
+assert_true "$([ "$(cat "$FX_Z/.git/factory-extract/message-rules" 2>/dev/null)" = "$(cat "$FX_RULES" "$FX_TRAILERS")" ]; echo $?)" \
+  "#427 run: Message-Regeln = Umschreibregel + Trailer-Regel (genau diese beiden Dateien)"
+
+# Trailer-Regel (Entscheidung 2026-10-23): Co-authored-by-Zeilen mit persönlicher Adresse fallen
+# beim Herauslösen weg, noreply-Trailer bleiben. Angewendet wie filter-repo: re.sub je Regel auf die
+# ganze Message (Bytes).
+fx_apply_message_rules() {
+  python3 -I -c '
+import re, sys
+rules = [l[len(b"regex:"):].rsplit(b"==>", 1) for l in open(sys.argv[1], "rb").read().splitlines() if l]
+msg = sys.stdin.buffer.read()
+for pattern, replacement in rules:
+    msg = re.compile(pattern).sub(replacement, msg)
+sys.stdout.buffer.write(msg)' "$1"
+}
+fx_msg_in="$(printf 'feat: x (#12)\n\nCo-authored-by: D0001 <person@firma.de>\nCo-Authored-By: Jemand <jemand@privat.de>\nCo-authored-by: Vercel <1+vercel@users.noreply.github.com>\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n')"
+fx_msg_out="$(printf '%s\n' "$fx_msg_in" | fx_apply_message_rules "$FX_Z/.git/factory-extract/message-rules")"
+assert_absent "$fx_msg_out" "person@firma.de" "#427 Trailer: Co-authored-by mit persönlicher Adresse fällt weg"
+assert_absent "$fx_msg_out" "jemand@privat.de" "#427 Trailer: auch in anderer Schreibweise (Co-Authored-By)"
+assert_contains_286 "$fx_msg_out" "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" "#427 Trailer: noreply-Trailer bleibt"
+assert_contains_286 "$fx_msg_out" "Co-authored-by: Vercel <1+vercel@users.noreply.github.com>" "#427 Trailer: GitHub-noreply-Trailer bleibt"
+assert_contains_286 "$fx_msg_out" "feat: x (nothra/tch-gastro-services#12)" "#427 Trailer: die #<nr>-Regel wirkt in derselben Message weiter"
+
+# Ein Ziel, das mit `-` beginnt, ist ein Pfad, keine git-Option.
+(cd "$FX_TMP" && FACTORY_DIR="$FX_SRC" FILTER_REPO_CMD="$FX_STUB_DIR/git-filter-repo" FX_STUB_LOG="$FX_STUB_LOG" \
+  bash "$FX_SCRIPT" run -strich >/dev/null 2>&1)
+assert_exit 0 "$?" "#427 run: Ziel mit führendem - wird als Pfad geklont"
+assert_true "$([ -d "$FX_TMP/-strich/.git" ]; echo $?)" "#427 run: Ziel -strich ist ein Repo"
 assert_true "$([ "$(cat "$FX_Z/.git/factory-extract/paths" 2>/dev/null)" = "$fx_paths_1" ]; echo $?)" \
   "#427 run: die Metadaten-Pfadliste ist die paths-Ausgabe des geklonten Stands"
 assert_true "$([ "$(cat "$FX_Z/.git/factory-extract/source-commit" 2>/dev/null)" = "$fx_src_head" ]; echo $?)" \
@@ -373,69 +402,104 @@ assert_contains_286 "$FX_OUT" "git fetch" "#427 verify: Abbruchmeldung nennt git
 echo ""
 echo "#427 factory-extract.sh scan (B1/B2/B3, mit gitleaks-Stub):"
 
-# gitleaks-Stub: Exit-Code aus FX_LEAKS_RC, Version fest, Argumente je Zeile nach FX_LEAKS_LOG.
+# gitleaks-Stub: protokolliert je Aufruf Unterbefehl, Argumente, ob GITLEAKS_CONFIG ankommt und – im
+# git-Modus – ob das gescannte Repo einen Arbeitsbaum hat. Exit-Codes aus FX_LEAKS_RC (git) bzw.
+# FX_LEAKS_STDIN_RC (stdin); was stdin bekommt, landet in FX_LEAKS_STDIN.
 cat > "$FX_STUB_DIR/gitleaks" <<'STUBEOF'
 #!/usr/bin/env bash
 [ "$1" = version ] && { echo "8.99.0-stub"; exit 0; }
-printf 'arg=%s\n' "$@" > "$FX_LEAKS_LOG"
+for a in "$@"; do last="$a"; done
+{
+  printf 'call=%s\n' "$1"
+  printf 'arg=%s\n' "$@"
+  printf 'env-config=%s\n' "${GITLEAKS_CONFIG-unset}"
+  [ "$1" = git ] && printf 'bare=%s\n' "$(git -C "$last" rev-parse --is-bare-repository 2>/dev/null)"
+} >> "$FX_LEAKS_LOG"
+if [ "$1" = stdin ]; then cat > "$FX_LEAKS_STDIN"; exit "${FX_LEAKS_STDIN_RC:-0}"; fi
 echo "stub-scan $*"
 exit "${FX_LEAKS_RC:-0}"
 STUBEOF
 chmod +x "$FX_STUB_DIR/gitleaks"
 FX_LEAKS_LOG="$FX_TMP/gitleaks.log"
-# fx_scan <quelle> <ziel> [leaks-rc] – Bericht (stdout+stderr) in FX_OUT, Exit-Code in FX_RC.
-# Weitere Umgebung (Listen-Pfade) als Präfix vor dem Aufruf: `FACTORY_EXTRACT_ALLOW=… fx_scan …`;
-# ein anderes gitleaks über FX_GITLEAKS_CMD.
+FX_LEAKS_STDIN="$FX_TMP/gitleaks.stdin"
+# fx_scan <quelle> <ziel> [leaks-rc] – Bericht (stdout+stderr) in FX_OUT, Exit-Code in FX_RC; das
+# Stub-Protokoll dieses Laufs in FX_LEAKS_LOG. Weitere Umgebung als Präfix vor dem Aufruf:
+# `FACTORY_EXTRACT_ALLOW=… fx_scan …`; ein anderes gitleaks über FX_GITLEAKS_CMD.
 fx_scan() {
+  rm -f "$FX_LEAKS_LOG" "$FX_LEAKS_STDIN"
   FX_OUT="$(FACTORY_DIR="$1" GITLEAKS_CMD="${FX_GITLEAKS_CMD:-$FX_STUB_DIR/gitleaks}" FX_LEAKS_RC="${3:-0}" \
-    FX_LEAKS_LOG="$FX_LEAKS_LOG" bash "$FX_SCRIPT" scan "$2" 2>&1)"
+    FX_LEAKS_LOG="$FX_LEAKS_LOG" FX_LEAKS_STDIN="$FX_LEAKS_STDIN" bash "$FX_SCRIPT" scan "$2" 2>&1)"
   FX_RC=$?
 }
+# fx_report_rows <prüfung> – die Berichtszeilen „| <prüfung> |" aus FX_OUT.
+fx_report_rows() { printf '%s\n' "$FX_OUT" | grep -F -- "| $1 |" || true; }
+FX_FP_A="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:datei:regel:1"
+FX_FP_B="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:datei:regel:2"
+FX_FP_C="cccccccccccccccccccccccccccccccccccccccc:datei:regel:3"
 
 fx_verify_pair "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 fx_allowed_427="noreply@anthropic.com demo@example.com t@t.com"
 echo "Kontakt: ${fx_allowed_427// /, }" > "$FX_TMP/s-ziel/docs/factory/kontakt.md"
 fx_git "$FX_TMP/s-ziel" add -A && fx_git "$FX_TMP/s-ziel" commit -qm "docs: kontakt (nothra/tch-gastro-services#6)"
 printf '%s\n' docs/factory/kontakt.md >> "$FX_TMP/s-ziel/.git/factory-extract/paths"
-fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+GITLEAKS_CONFIG="$FX_TMP/fremde.toml" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 0 "$FX_RC" "#427 scan: kein Fund, nur erlaubte Adressen → Exit 0"
 assert_contains_286 "$FX_OUT" "8.99.0-stub" "#427 B3: Bericht nennt die gitleaks-Version"
 assert_contains_286 "$FX_OUT" "$(git -C "$FX_TMP/s-src" rev-parse HEAD)" "#427 B3: Bericht nennt den Ziel-Commit von TCH"
 # 3 = die zwei Commits aus fx_verify_pair + der Kontakt-Commit.
 assert_contains_286 "$FX_OUT" "| Commits | 3 |" "#427 B3: Bericht nennt die Anzahl Commits"
-assert_contains_286 "$FX_OUT" "| B1" "#427 B3: Bericht hat eine Zeile B1"
-assert_contains_286 "$FX_OUT" "| B2" "#427 B3: Bericht hat eine Zeile B2"
-assert_contains_286 "$FX_OUT" "| A2" "#427 B3: Bericht hat eine Zeile A2"
-fx_leaks_args="$(cat "$FX_LEAKS_LOG" 2>/dev/null)"
-assert_contains_286 "$fx_leaks_args" "arg=--log-opts=--all" "#427 B1: gitleaks läuft über alle Commits"
-assert_contains_286 "$fx_leaks_args" "arg=--gitleaks-ignore-path" "#427 B1: gitleaks bekommt die Falsch-Positiv-Liste"
-assert_contains_286 "$fx_leaks_args" "arg=$SCRIPTS_DIR/project/factory-extract.gitleaksignore" \
+for fx_row in A2 B1 "B1 Messages" B2 "B2 Messages"; do
+  assert_true "$([ -n "$(fx_report_rows "$fx_row")" ]; echo $?)" "#427 B3: Bericht hat eine Zeile $fx_row"
+done
+fx_leaks_log="$(cat "$FX_LEAKS_LOG" 2>/dev/null)"
+assert_contains_286 "$fx_leaks_log" "arg=--log-opts=--all" "#427 B1: gitleaks läuft über alle Commits"
+assert_contains_286 "$fx_leaks_log" "arg=--gitleaks-ignore-path" "#427 B1: gitleaks bekommt die Falsch-Positiv-Liste"
+assert_contains_286 "$fx_leaks_log" "arg=$SCRIPTS_DIR/project/factory-extract.gitleaksignore" \
   "#427 B1: Falsch-Positiv-Liste ist factory-extract.gitleaksignore"
+# W1 (Security-Review): Konfiguration des gescannten Repos oder der Umgebung darf B1 nicht abschalten.
+assert_contains_286 "$fx_leaks_log" "bare=true" "#427 B1: gitleaks scannt einen Klon ohne Arbeitsbaum (keine .gitleaks*-Dateien des Ziels)"
+assert_absent "$fx_leaks_log" "arg=$FX_TMP/s-ziel" "#427 B1: gitleaks scannt nicht das Ziel selbst"
+assert_contains_286 "$fx_leaks_log" "arg=$SCRIPTS_DIR/project/factory-extract.gitleaks.toml" "#427 B1: gitleaks läuft mit der gepinnten Konfiguration"
+assert_absent "$fx_leaks_log" "env-config=$FX_TMP/fremde.toml" "#427 B1: GITLEAKS_CONFIG der Umgebung kommt bei gitleaks nicht an"
+# W2 (Security-Review): Commit- und Tag-Messages gehen durch den Secret-Scan.
+assert_contains_286 "$fx_leaks_log" "call=stdin" "#427 B1 Messages: gitleaks prüft die Messages über stdin"
+assert_contains_286 "$(cat "$FX_LEAKS_STDIN" 2>/dev/null)" "docs: kontakt (nothra/tch-gastro-services#6)" \
+  "#427 B1 Messages: gitleaks bekommt die Commit-Messages"
+# W3 (Security-Review): die geltende Erlaubt-Liste steht im Bericht.
+assert_contains_286 "$FX_OUT" "Erlaubt-Liste (B2, aus $SCRIPTS_DIR/project/factory-extract.allow)" "#427 B2/B3: Bericht nennt die Erlaubt-Liste mit Pfad"
+assert_contains_286 "$FX_OUT" '- `t@t.com`' "#427 B2/B3: Bericht listet die Muster der Erlaubt-Liste"
+assert_contains_286 "$FX_OUT" "Restrisiko" "#427 B2/B3: Bericht nennt das Restrisiko des E-Mail-Musters"
+assert_absent "$FX_OUT" "FACTORY_EXTRACT_ALLOW" "#427 B3: ohne Override nennt der Bericht keine überschriebene Liste"
 
 # Jeder ausgenommene Falsch-Positiv steht einzeln mit seiner Begründung im Bericht (Spec B1); der
 # Kopfkommentar der Datei gehört zu keinem Eintrag (Leerzeile trennt).
-printf '# Kopf der Datei\n\n# Grund A,\n# zweite Zeile\nabc:datei:regel:1\n\n# Grund B\ndef:datei:regel:2\n' > "$FX_TMP/ignore"
+printf '# Kopf der Datei\n\n# Grund A,\n# zweite Zeile\n%s\n\n# Grund B\n%s\n' "$FX_FP_A" "$FX_FP_B" > "$FX_TMP/ignore"
 FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 0 "$FX_RC" "#427 B1: begründete Falsch-Positive → Exit 0"
 assert_contains_286 "$FX_OUT" "2 Falsch-Positive ausgenommen" "#427 B1/B3: Bericht nennt die Zahl der ausgenommenen Falsch-Positive"
-assert_contains_286 "$FX_OUT" '- `abc:datei:regel:1` – Grund A, zweite Zeile' "#427 B1/B3: erster Falsch-Positiv mit mehrzeiliger Begründung"
-assert_contains_286 "$FX_OUT" '- `def:datei:regel:2` – Grund B' "#427 B1/B3: zweiter Falsch-Positiv mit Begründung"
+assert_contains_286 "$FX_OUT" "- \`$FX_FP_A\` – Grund A, zweite Zeile" "#427 B1/B3: erster Falsch-Positiv mit mehrzeiliger Begründung"
+assert_contains_286 "$FX_OUT" "- \`$FX_FP_B\` – Grund B" "#427 B1/B3: zweiter Falsch-Positiv mit Begründung"
 assert_absent "$FX_OUT" "Kopf der Datei" "#427 B1/B3: der Dateikopf ist keine Begründung"
+assert_contains_286 "$FX_OUT" "FACTORY_EXTRACT_GITLEAKSIGNORE" "#427 B3: Bericht nennt die per Umgebung überschriebene Falsch-Positiv-Liste"
 # Eingerückte Kommentare und reine `#`-Zeilen gehören zur Begründung, eine Zeile nur aus Leerzeichen
 # trennt wie eine Leerzeile.
-printf '# Kopf\n  \n  # Grund C\n#\n# weiter\nghi:datei:regel:3\n' > "$FX_TMP/ignore-format"
+printf '# Kopf\n  \n  # Grund C\n#\n# weiter\n%s\n' "$FX_FP_C" > "$FX_TMP/ignore-format"
 FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-format" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 0 "$FX_RC" "#427 B1: eingerückte Begründung und Leerzeichen-Zeile werden gelesen → Exit 0"
-assert_contains_286 "$FX_OUT" '- `ghi:datei:regel:3` – Grund C weiter' \
+assert_contains_286 "$FX_OUT" "- \`$FX_FP_C\` – Grund C weiter" \
   "#427 B1/B3: Begründung ohne Kopf, ohne doppelte Leerzeichen aus reinen #-Zeilen"
 # Ohne Falsch-Positive verspricht der Bericht keine Liste.
 printf '# nur ein Kopf\n' > "$FX_TMP/ignore-leer"
 FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-leer" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_contains_286 "$FX_OUT" "kein Fund (0 Falsch-Positive ausgenommen)" "#427 B3: ohne Falsch-Positive steht die Zahl 0 im Bericht"
 assert_absent "$FX_OUT" "Liste unten" "#427 B3: ohne Falsch-Positive verweist der Bericht auf keine Liste"
-printf '# Kopf\n\nabc:datei:regel:1\n' > "$FX_TMP/ignore-ohne-grund"
+printf '# Kopf\n\n%s\n' "$FX_FP_A" > "$FX_TMP/ignore-ohne-grund"
 FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-ohne-grund" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 2 "$FX_RC" "#427 B1: Falsch-Positiv ohne Begründung → Exit 2 (fail-closed)"
+# Ein Fingerprint ohne Commit gilt bei gitleaks für alle Commits – nicht zulässig.
+printf '# Grund\ndatei:regel:1\n' > "$FX_TMP/ignore-global"
+FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-global" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 2 "$FX_RC" "#427 B1: Fingerprint ohne Commit (gilt global) → Exit 2"
 FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 2 "$FX_RC" "#427 B1: Falsch-Positiv-Liste nicht lesbar → Exit 2 (fail-closed)"
 
@@ -446,6 +510,11 @@ assert_contains_286 "$FX_OUT" "| B1 | ✗" "#427 B1: Fund steht als ✗ im Beric
 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel" 3
 assert_exit 1 "$FX_RC" "#427 B1: gitleaks-Fehler (Exit 3) gilt nicht als sauber → Exit 1"
 
+FX_LEAKS_STDIN_RC=1 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 1 "$FX_RC" "#427 B1 Messages: Secret in einer Message → Exit 1"
+assert_contains_286 "$(fx_report_rows "B1 Messages")" "✗" "#427 B1 Messages: Fund steht als ✗ im Bericht"
+assert_contains_286 "$(fx_report_rows B1)" "✓" "#427 B1 Messages: B1 der Historie bleibt ✓ (getrennte Zeilen)"
+
 FX_GITLEAKS_CMD="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 2 "$FX_RC" "#427 B1: gitleaks fehlt → Exit 2 (fail-closed)"
 
@@ -453,6 +522,27 @@ assert_exit 2 "$FX_RC" "#427 B1: gitleaks fehlt → Exit 2 (fail-closed)"
 printf 't@t.com \nnoreply@anthropic.com\n*@example.com\n' > "$FX_TMP/allow-leerzeichen"
 FACTORY_EXTRACT_ALLOW="$FX_TMP/allow-leerzeichen" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 0 "$FX_RC" "#427 B2: Muster mit Leerzeichen am Zeilenende greift trotzdem → Exit 0"
+assert_contains_286 "$FX_OUT" "FACTORY_EXTRACT_ALLOW" "#427 B3: Bericht nennt die per Umgebung überschriebene Erlaubt-Liste"
+# Muster ohne festen Domain-Teil würden jede Adresse erlauben.
+for fx_pattern in '*' '*@*' '*@example.*'; do
+  printf '%s\n' "$fx_pattern" > "$FX_TMP/allow-breit"
+  FACTORY_EXTRACT_ALLOW="$FX_TMP/allow-breit" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+  assert_exit 2 "$FX_RC" "#427 B2: Muster '$fx_pattern' ohne festen Domain-Teil → Exit 2"
+done
+
+# Adressen in Commit- und Tag-Messages (z. B. Co-authored-by) prüft B2 Messages.
+fx_verify_pair "$FX_TMP/m-src" "$FX_TMP/m-ziel"
+fx_git "$FX_TMP/m-ziel" commit -q --allow-empty \
+  -m "docs: x (nothra/tch-gastro-services#9)" -m "Co-authored-by: Echte Person <echte.person@firma.de>"
+fx_scan "$FX_TMP/m-src" "$FX_TMP/m-ziel"
+assert_exit 1 "$FX_RC" "#427 B2 Messages: persönliche Adresse in einer Commit-Message → Exit 1"
+assert_contains_286 "$(fx_report_rows "B2 Messages")" "echte.person@firma.de" "#427 B2 Messages: die Adresse steht in der Zeile B2 Messages"
+assert_contains_286 "$(fx_report_rows B2)" "✓" "#427 B2 Messages: B2 der Blobs bleibt ✓ (getrennte Zeilen)"
+fx_verify_pair "$FX_TMP/t-src" "$FX_TMP/t-ziel"
+fx_git "$FX_TMP/t-ziel" tag -a v0 -m "Freigabe durch chef@firma.de"
+fx_scan "$FX_TMP/t-src" "$FX_TMP/t-ziel"
+assert_exit 1 "$FX_RC" "#427 B2 Messages: persönliche Adresse in einer Tag-Message → Exit 1"
+assert_contains_286 "$(fx_report_rows "B2 Messages")" "chef@firma.de" "#427 B2 Messages: die Tag-Adresse wird genannt"
 
 # Eine echte Adresse, die nur in einem alten Stand stand, wird trotzdem gefunden (alle Blobs).
 echo "Ansprechpartner: max.muster@firma.de" > "$FX_TMP/s-ziel/docs/factory/alt.md"
@@ -461,10 +551,11 @@ fx_git "$FX_TMP/s-ziel" rm -q docs/factory/alt.md && fx_git "$FX_TMP/s-ziel" com
 printf '%s\n' docs/factory/alt.md >> "$FX_TMP/s-ziel/.git/factory-extract/paths"
 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 1 "$FX_RC" "#427 B2: nicht erlaubte Adresse in einem alten Blob → Exit 1"
-assert_contains_286 "$FX_OUT" "max.muster@firma.de" "#427 B2/FS1: die Adresse wird genannt"
-assert_contains_286 "$FX_OUT" "docs/factory/alt.md" "#427 B2/FS1: die Datei der Adresse wird genannt"
+fx_b2_row="$(fx_report_rows B2)"
+assert_contains_286 "$fx_b2_row" "max.muster@firma.de" "#427 B2/FS1: die Adresse wird genannt"
+assert_contains_286 "$fx_b2_row" "docs/factory/alt.md" "#427 B2/FS1: die Datei der Adresse wird genannt"
 for fx_address in $fx_allowed_427; do
-  assert_absent "$FX_OUT" "$fx_address" "#427 B2: erlaubte Adresse $fx_address ist kein Fund"
+  assert_absent "$fx_b2_row" "$fx_address" "#427 B2: erlaubte Adresse $fx_address ist kein Fund"
 done
 
 FACTORY_EXTRACT_ALLOW="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"

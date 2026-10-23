@@ -34,6 +34,8 @@ Entscheidungen: ADR-063 → „Nachtrag 2026-10-23 · Detailentscheidungen aus T
   `factory-extract.rules` (einzige Umschreibregel, von `run` und `qualify` gelesen);
   `factory-extract.allow` (Erlaubt-Liste E-Mail-Muster); `factory-extract.gitleaksignore`
   (begründete gitleaks-Falsch-Positive, im Probelauf entstanden, ADR-Nachtrag nachgezogen);
+  `factory-extract.trailers` (entfernt `Co-authored-by` mit persönlicher Adresse aus Messages) und
+  `factory-extract.gitleaks.toml` (gepinnte gitleaks-Konfiguration) aus dem Security-Review;
   Tests in `scripts/project/tests/factory-extract-tests.sh`.
 - **Umschreibregel:** `#<ziffern>` (1–5 Ziffern) als ganzes Wort, ohne vorangehendes Wortzeichen,
   `/`, `.`, `-`, `&` und nicht nach `](` → `nothra/tch-gastro-services#<ziffern>`. Gegenbeispiele
@@ -97,6 +99,16 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
   reservierte Test-TLDs (RFC 2606); `test@test.com` ist eine Fixture-Identität. Erlaubt-Liste
   `scripts/project/factory-extract.allow` entsprechend ergänzt (je mit Begründung). Keine Adresse
   einer realen Person in Datei-Inhalten.
+
+**Nachlauf nach dem Security-Review (2026-10-23, gleicher TCH-Commit `b5d0cd9`):** `run` entfernt
+jetzt `Co-authored-by`-Trailer mit persönlicher Adresse (Entscheidung des Entwicklers; vorher 4×
+dm-Adresse mit Personalnummer in der herausgelösten Historie), `scan` prüft zusätzlich alle
+Commit-/Tag-Messages und scannt gitleaks-seitig einen Klon ohne Arbeitsbaum mit gepinnter
+Konfiguration. Ergebnis mit den echten Werkzeugen: A2–A5 ✓ (123 Commits, Autor/Datum unverändert),
+B1 ✓ (derselbe eine Falsch-Positiv – der Initial-Commit trägt keinen Trailer, sein Hash bleibt),
+**B1 Messages ✓**, B2 ✓ (8 Adressen), **B2 Messages ✓** (1 Adresse: `noreply@anthropic.com`); in den
+Messages bleiben nur noreply-Trailer. Gegenprobe W1: eingeschleustes `ghp_…`-Token plus
+`.gitleaks.toml`/`.gitleaksignore` im Ziel und gesetztes `GITLEAKS_CONFIG` → B1 ✗ (wird erkannt).
 
 **Hinweise für T1b-2 (#436):**
 - `CLAUDE.md` und `.claude/settings.json` kommen als Altpfade mit ihrer TCH-Fassung ins Ziel (ADR-063

@@ -345,18 +345,28 @@ D6-Versionsangabe, D9-Lint).
     `git log --follow --name-only --format=`, `LC_ALL=C` sortiert, eindeutig (AK A1).
   - `run <ziel>` – `git clone --no-local` von TCH-`main` nach `<ziel>`, dort
     `git filter-repo --paths-from-file <paths> --replace-message <regeln>`; der Arbeitsklon und
-    sein `origin` bleiben unberührt (AK X2).
+    sein `origin` bleiben unberührt (AK X2). Die Message-Regeln sind die Umschreibregel plus die
+    Trailer-Regel (s. u.).
   - `verify <ziel>` – A2 (alle Pfade aller Commits ⊆ Liste, keiner in einem App-/TCH-Bereich),
     A3 (`--follow` jeder Factory-Datei reicht im Ziel über dieselben Namen wie in TCH),
     A4 (kein unqualifiziertes `#<nr>` in Messages), A5 (Autor/Datum gegen TCH, über die commit-map
     von filter-repo).
-  - `scan <ziel>` – `gitleaks` über alle Commits, E-Mail-Muster über alle Blobs
-    (`git rev-list --all --objects`) gegen die Erlaubt-Liste `scripts/project/factory-extract.allow`;
-    schreibt den Scan-Bericht (Markdown) nach stdout. Falsch-Positive von gitleaks stehen in
-    `scripts/project/factory-extract.gitleaksignore` (je Eintrag ein gitleaks-Fingerprint mit
-    Begründungskommentar darüber, übergeben per `--gitleaks-ignore-path`); ein Eintrag ohne
-    Begründung bricht den Scan ab, und der Bericht listet jeden ausgenommenen Fingerprint mit seiner
-    Begründung (AK B1).
+  - `scan <ziel>` – `gitleaks` über alle Commits **und** über alle Commit-/Tag-Messages
+    (`gitleaks stdin`), E-Mail-Muster über alle Blobs (`git rev-list --all --objects`) **und** alle
+    Commit-/Tag-Messages gegen die Erlaubt-Liste `scripts/project/factory-extract.allow`; schreibt
+    den Scan-Bericht (Markdown) nach stdout, mit getrennten Zeilen für Historie und Messages, der
+    geltenden Erlaubt-Liste samt Pfad, per Umgebung überschriebenen Listen und dem Restrisiko des
+    E-Mail-Musters (ASCII-Adressen; Umlaut-Domains, verschleierte Formen, komprimierte Dateien
+    nicht). Ein Muster der Erlaubt-Liste braucht eine feste Top-Level-Domain (`*`, `*@*`,
+    `*@example.*` brechen ab). Falsch-Positive von gitleaks stehen in
+    `scripts/project/factory-extract.gitleaksignore` (je Eintrag ein gitleaks-Fingerprint
+    `<commit>:<datei>:<regel>:<zeile>` mit Begründungskommentar darüber, übergeben per
+    `--gitleaks-ignore-path`); ein Eintrag ohne Begründung oder ohne Commit-Bezug bricht den Scan
+    ab, und der Bericht listet jeden ausgenommenen Fingerprint mit seiner Begründung (AK B1).
+    gitleaks läuft mit der gepinnten Konfiguration `scripts/project/factory-extract.gitleaks.toml`
+    (Standardregeln, keine Ausnahmen), ohne `GITLEAKS_CONFIG` der Umgebung und gegen einen Klon
+    **ohne Arbeitsbaum** – sonst könnten eine `.gitleaks.toml`/`.gitleaksignore` im herausgelösten
+    Repo oder die Umgebung den Secret-Scan still abschalten (Security-Review #427).
   - `qualify <ziel>` – schreibt TCH-Nummern im **Inhalt** des Arbeitsbaums aus (C3; in T1b-2
     im Bereinigungs-PR aufgerufen): Markdown vollständig, Shell-Skripte **nur in Kommentarzeilen**
     (erstes Nicht-Leerzeichen `#`, nicht `#!`), damit Test-Fixtures wie `"Closes #42"` unverändert
@@ -373,8 +383,15 @@ D6-Versionsangabe, D9-Lint).
   (`owner/repo#n`), Farbcodes mit Buchstaben (`#1e40af`) oder mit sechs Ziffern (`#333333`),
   HTML-Entities wie `&#8212;` und Markdown-Sprunganker wie `](#12-abschnitt)` bleiben; kürzere
   reine Ziffern-Farbcodes (`#000`) trifft die Regel – im Inhalt fängt die Durchsicht im PR-Diff
-  sie ab; in den Commit-Messages gibt es keinen PR-Diff, dort kommen sie heute nicht vor. **Konvention ab jetzt:** Im Factory-Repo steht vor jeder
-  TCH-Nummer der Repo-Slug; unqualifiziertes `#<nr>` meint das Factory-Repo selbst.
+  sie ab; in den Commit-Messages gibt es keinen PR-Diff, dort kommen sie heute nicht vor.
+  **Konvention ab jetzt:** Im Factory-Repo steht vor jeder TCH-Nummer der Repo-Slug;
+  unqualifiziertes `#<nr>` meint das Factory-Repo selbst.
+- **Trailer-Regel (Entscheidung des Entwicklers, Security-Review #427):** `Co-authored-by`-Zeilen
+  in Commit-Messages, deren Adresse keine noreply-Adresse ist (Firmen- oder Privatadresse,
+  Personalnummer), fallen beim Herauslösen ersatzlos weg; noreply-Trailer (Claude, GitHub) bleiben.
+  Die Regel steht in `scripts/project/factory-extract.trailers` und gilt nur für Messages (`run`),
+  nicht für Datei-Inhalte (`qualify`). Commit-Autor und -Committer bleiben unverändert (D5, AK A5);
+  B2 Messages prüft das Ergebnis.
 - **Altpfade, die in TCH noch leben:** `CLAUDE.md` und `.claude/settings.json` sind Altpfade von
   Factory-Dateien (`FACTORY.md`, `settings.factory.json`), existieren in TCH aber weiter als
   Projekt-Dateien. Sie kommen daher mit ihrer TCH-Fassung ins Factory-Repo; der Bootstrap-PR ersetzt

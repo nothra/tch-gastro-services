@@ -28,6 +28,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FACTORY_DIR="${FACTORY_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 RULES_FILE="$SCRIPT_DIR/factory-extract.rules"
+# Nur für Commit-Messages (`run`): Co-authored-by-Trailer mit persönlicher Adresse fallen beim
+# Herauslösen weg, noreply-Trailer bleiben (Entscheidung des Entwicklers 2026-10-23).
+TRAILERS_FILE="$SCRIPT_DIR/factory-extract.trailers"
+GITLEAKS_TOML="$SCRIPT_DIR/factory-extract.gitleaks.toml"
 ALLOW_FILE="${FACTORY_EXTRACT_ALLOW:-$SCRIPT_DIR/factory-extract.allow}"
 GITLEAKS_IGNORE="${FACTORY_EXTRACT_GITLEAKSIGNORE:-$SCRIPT_DIR/factory-extract.gitleaksignore}"
 FILTER_REPO_CMD="${FILTER_REPO_CMD:-git-filter-repo}"
@@ -37,6 +41,13 @@ FORBIDDEN_ERE='^(app|db|lib|tasks|e2e|scripts/project|docs/specs|docs/project)/'
 NULL_COMMIT=0000000000000000000000000000000000000000
 A5_FORMAT='%an <%ae> %aI | %cI'
 EMAIL_ERE='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+# Ein Muster der Erlaubt-Liste braucht eine feste Top-Level-Domain – `*`, `*@*` oder `*@example.*`
+# würden beliebige Adressen durchlassen (Security-Review W3).
+ALLOW_PATTERN_ERE='^[^@]+@[^@]*\.[A-Za-z]{2,}$'
+# Ein Falsch-Positiv gilt nur für genau einen Commit; `<datei>:<regel>:<zeile>` ohne Commit würde
+# gitleaks für alle Commits anwenden (Security-Review H1).
+FINGERPRINT_ERE='^[0-9a-f]{40}:[^:]+:[^:]+:[0-9]+$'
+EMAIL_RESIDUAL_RISK="Das E-Mail-Muster erkennt ASCII-Adressen der Form name@domain.tld; Umlaut-Domains, verschleierte Formen ((at), %40) und komprimierte Dateien prüft es nicht."
 
 # Git gibt Pfade mit Nicht-ASCII-Zeichen sonst oktal-gequotet aus ("\303\234…") – filter-repo und
 # die Vergleiche hier brauchen die echten Namen. Per Umgebung, damit es auch für den aufgerufenen
@@ -249,28 +260,65 @@ is_allowed() {
   return 1
 }
 
+# extract_addresses – stdin → E-Mail-Adressen, kleingeschrieben, sortiert und eindeutig.
+extract_addresses() {
+  { LC_ALL=C grep -aoE "$EMAIL_ERE" || true; } | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C sort -u
+}
+
+# disallowed_addresses <adressen> – die Adressen (eine je Zeile), die kein Muster der Erlaubt-Liste trifft.
+disallowed_addresses() {
+  local allowed address
+  allowed="$(list_entries "$ALLOW_FILE")"
+  while IFS= read -r address; do
+    [ -n "$address" ] || continue
+    is_allowed "$address" "$allowed" || printf '%s\n' "$address"
+  done <<< "$1"
+}
+
+# all_messages <ziel> – alle Commit- und Tag-Messages (Autor-/Committer-Felder gehören nicht dazu).
+all_messages() {
+  git -C "$1" log --all --format=%B && git -C "$1" for-each-ref refs/tags --format='%(contents)'
+}
+
 # scan_emails <ziel> – E-Mail-Muster über alle Blobs aller Commits (B2); Funde mit Datei (FS1).
 scan_emails() {
-  local target="$1" allowed addresses address files total=0 bad=0
-  allowed="$(list_entries "$ALLOW_FILE")"
+  local target="$1" addresses address files
   addresses="$(
     git -C "$target" rev-list --all --objects | awk '{ print $1 }' \
       | git -C "$target" cat-file --batch-check='%(objecttype) %(objectname)' \
       | awk '$1 == "blob" { print $2 }' \
       | git -C "$target" cat-file --batch \
-      | { LC_ALL=C grep -aoE "$EMAIL_ERE" || true; } \
-      | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C sort -u
+      | extract_addresses
   )" || die 2 "Blobs nicht lesbar: $target"
+  report_disallowed "$addresses" blob "$target"
+}
+
+# scan_message_emails <ziel> – E-Mail-Muster über alle Commit- und Tag-Messages (B2 Messages).
+scan_message_emails() {
+  local target="$1" addresses
+  addresses="$(all_messages "$target" | extract_addresses)" || die 2 "Messages nicht lesbar: $target"
+  report_disallowed "$addresses" message "$target"
+}
+
+# report_disallowed <adressen> <blob|message> <ziel> – je nicht erlaubter Adresse eine Zeile mit
+# Fundort (Datei bzw. Message), Exit 1 bei Fund; sonst eine Zusammenfassung.
+report_disallowed() {
+  local addresses="$1" kind="$2" target="$3" disallowed address where
+  disallowed="$(disallowed_addresses "$addresses")"
+  if [ -z "$disallowed" ]; then
+    echo "$(printf '%s' "$addresses" | grep -c . || true) Adressen, alle in der Erlaubt-Liste"
+    return 0
+  fi
   while IFS= read -r address; do
-    [ -n "$address" ] || continue
-    total=$((total + 1))
-    is_allowed "$address" "$allowed" && continue
-    files="$(git -C "$target" log --all -i -S"$address" --format= --name-only | nonempty_sorted | tr '\n' ' ')"
-    echo "$address (${files% })"
-    bad=1
-  done <<< "$addresses"
-  [ "$bad" -eq 0 ] || return 1
-  echo "$total Adressen, alle in der Erlaubt-Liste"
+    if [ "$kind" = blob ]; then
+      where="$(git -C "$target" log --all -i -S"$address" --format= --name-only | nonempty_sorted | tr '\n' ' ')"
+      where="${where% }"
+    else
+      where="Commit-/Tag-Message"
+    fi
+    echo "$address ($where)"
+  done <<< "$disallowed"
+  return 1
 }
 
 # ignored_with_reasons – je Eintrag der Falsch-Positiv-Liste „<fingerprint>\t<begründung>"; die
@@ -287,6 +335,8 @@ ignored_with_reasons() {
       '#'*) line="${line#\#}"; reason="${reason:+$reason }${line# }" ;;
       *)
         [ -n "$reason" ] || die 2 "Falsch-Positiv ohne Begründung: $line ($GITLEAKS_IGNORE)"
+        printf '%s\n' "$line" | grep -Eq "$FINGERPRINT_ERE" \
+          || die 2 "Falsch-Positiv ohne Commit-Bezug (<commit>:<datei>:<regel>:<zeile>): $line ($GITLEAKS_IGNORE)"
         printf '%s\t%s\n' "$line" "$reason"
         reason=""
         ;;
@@ -307,14 +357,15 @@ cmd_run() {
   [ ! -e "$target" ] || die 2 "Ziel existiert bereits: $target (frischen Pfad wählen)"
   source_git="$(git -C "$FACTORY_DIR" rev-parse --path-format=absolute --git-common-dir)" || die 2 "kein Git-Repo: $FACTORY_DIR"
   assert_main_current
-  git clone -q --no-local --single-branch --branch main "$source_git" "$target" || die 2 "Klon fehlgeschlagen: $target"
-  target="$(cd "$target" && pwd -P)"
+  git clone -q --no-local --single-branch --branch main -- "$source_git" "$target" || die 2 "Klon fehlgeschlagen: $target"
+  target="$(cd -- "$target" && pwd -P)"
   meta="$target/.git/factory-extract"
   mkdir -p "$meta"
   git -C "$target" rev-parse HEAD > "$meta/source-commit"
   list_factory_files "$target" > "$meta/files" || die 2 "Factory-Dateien nicht ermittelbar – halbes Ziel $target löschen"
   list_paths "$target" > "$meta/paths" || die 2 "Pfadliste nicht ermittelbar – halbes Ziel $target löschen"
-  (cd "$target" && "$FILTER_REPO_CMD" --paths-from-file "$meta/paths" --replace-message "$RULES_FILE") \
+  cat "$RULES_FILE" "$TRAILERS_FILE" > "$meta/message-rules" || die 2 "Message-Regeln nicht lesbar – halbes Ziel $target löschen"
+  (cd "$target" && "$FILTER_REPO_CMD" --paths-from-file "$meta/paths" --replace-message "$meta/message-rules") \
     || die 2 "filter-repo fehlgeschlagen – halbes Ziel $target löschen"
   echo "factory-extract: herausgelöst nach $target (TCH-Commit $(cat "$meta/source-commit"), $(grep -c . "$meta/paths") Pfade)"
 }
@@ -337,12 +388,27 @@ report_row() {
   echo "| $1 | $mark | $(printf '%s\n' "$3" | grep -v '^$' | tr '\n' ';' | sed 's/;$//; s/;/; /g') |"
 }
 
+# override_note <variablen-wert> <variablen-name> – Hinweis, wenn eine Liste per Umgebung ersetzt ist.
+override_note() { [ -z "$1" ] || printf ' (per %s überschrieben)' "$2"; }
+
+# print_fenced <überschrift> <text> – redigierte Werkzeug-Ausgabe als Codeblock.
+print_fenced() {
+  echo ""
+  echo "$1"
+  echo ""
+  echo '```'
+  printf '%s\n' "$2"
+  echo '```'
+}
+
 # print_scan_report <ziel> – Scan-Bericht (B3) aus den Ergebnissen, die cmd_scan gesammelt hat.
 # Liest die Laufzeit-Ergebnisse SOURCE_COMMIT und META (load_meta); FALSE_POSITIVES
-# (Fingerprint\tBegründung je Zeile); LEAKS_RC/LEAKS_OUT (gitleaks), B2_RC/B2_OUT (E-Mail-Scan),
-# A2_RC/A2_OUT (Pfad-Prüfung) – dazu die Konfiguration GITLEAKS_IGNORE, GITLEAKS_CMD, FILTER_REPO_CMD.
+# (Fingerprint\tBegründung je Zeile); LEAKS_RC/LEAKS_OUT (gitleaks Historie), MSG_LEAKS_RC/
+# MSG_LEAKS_OUT (gitleaks Messages), B2_RC/B2_OUT und B2_MSG_RC/B2_MSG_OUT (E-Mail-Scan),
+# A2_RC/A2_OUT (Pfad-Prüfung) – dazu die Konfiguration ALLOW_FILE, GITLEAKS_IGNORE, GITLEAKS_CMD,
+# FILTER_REPO_CMD und die Overrides FACTORY_EXTRACT_ALLOW/FACTORY_EXTRACT_GITLEAKSIGNORE.
 print_scan_report() {
-  local target="$1" fingerprint reason ignored_count list_hint=""
+  local target="$1" fingerprint reason pattern ignored_count list_hint=""
   echo "## Scan-Bericht factory-extract"
   echo ""
   echo "| Kennzahl | Wert |"
@@ -355,6 +421,8 @@ print_scan_report() {
   echo "| git-filter-repo | $("$FILTER_REPO_CMD" --version 2>/dev/null || echo 'nicht gefunden') |"
   echo "| gitleaks | $("$GITLEAKS_CMD" version 2>&1 | head -1) |"
   echo "| python3 | $(python3 --version 2>&1 | sed 's/^Python //') |"
+  echo "| Erlaubt-Liste | \`$ALLOW_FILE\`$(override_note "${FACTORY_EXTRACT_ALLOW:-}" FACTORY_EXTRACT_ALLOW) |"
+  echo "| Falsch-Positiv-Liste | \`$GITLEAKS_IGNORE\`$(override_note "${FACTORY_EXTRACT_GITLEAKSIGNORE:-}" FACTORY_EXTRACT_GITLEAKSIGNORE) |"
   echo ""
   echo "| Prüfung | Ergebnis | Details |"
   echo "|---|---|---|"
@@ -366,7 +434,21 @@ print_scan_report() {
   else
     report_row B1 1 "gitleaks Exit $LEAKS_RC – Fund oder Fehler, Ausgabe unten"
   fi
+  if [ "$MSG_LEAKS_RC" -eq 0 ]; then
+    report_row "B1 Messages" 0 "gitleaks über alle Commit- und Tag-Messages: kein Fund"
+  else
+    report_row "B1 Messages" 1 "gitleaks Exit $MSG_LEAKS_RC – Fund oder Fehler, Ausgabe unten"
+  fi
   report_row B2 "$B2_RC" "$B2_OUT"
+  report_row "B2 Messages" "$B2_MSG_RC" "$B2_MSG_OUT"
+  echo ""
+  echo "Restrisiko B2: $EMAIL_RESIDUAL_RISK"
+  echo ""
+  echo "Erlaubt-Liste (B2, aus $ALLOW_FILE):"
+  echo ""
+  while IFS= read -r pattern; do
+    echo "- \`$pattern\`"
+  done <<< "$(list_entries "$ALLOW_FILE")"
   if [ -n "$FALSE_POSITIVES" ]; then
     echo ""
     echo "Ausgenommene Falsch-Positive (B1, aus $(basename "$GITLEAKS_IGNORE")):"
@@ -375,14 +457,39 @@ print_scan_report() {
       echo "- \`$fingerprint\` – $reason"
     done <<< "$FALSE_POSITIVES"
   fi
-  if [ "$LEAKS_RC" -ne 0 ]; then
-    echo ""
-    echo "gitleaks-Ausgabe (redigiert):"
-    echo ""
-    echo '```'
-    printf '%s\n' "$LEAKS_OUT"
-    echo '```'
-  fi
+  [ "$LEAKS_RC" -eq 0 ] || print_fenced "gitleaks-Ausgabe Historie (redigiert):" "$LEAKS_OUT"
+  [ "$MSG_LEAKS_RC" -eq 0 ] || print_fenced "gitleaks-Ausgabe Messages (redigiert):" "$MSG_LEAKS_OUT"
+}
+
+# check_allow_patterns – jedes Muster der Erlaubt-Liste hat eine feste Top-Level-Domain.
+check_allow_patterns() {
+  local pattern
+  while IFS= read -r pattern; do
+    [ -n "$pattern" ] || continue
+    printf '%s\n' "$pattern" | grep -Eq "$ALLOW_PATTERN_ERE" \
+      || die 2 "Muster ohne feste Domain in der Erlaubt-Liste: '$pattern' ($ALLOW_FILE)"
+  done <<< "$(list_entries "$ALLOW_FILE")"
+}
+
+# run_gitleaks <git|stdin> <weitere-argumente…> – gitleaks mit der gepinnten Konfiguration; eine
+# GITLEAKS_CONFIG der Umgebung wird ausgeblendet (Security-Review W1).
+run_gitleaks() {
+  local mode="$1"
+  shift
+  env -u GITLEAKS_CONFIG "$GITLEAKS_CMD" "$mode" --no-banner --redact --config "$GITLEAKS_TOML" "$@"
+}
+
+# scan_history_secrets <ziel> – gitleaks über alle Commits, auf einem Klon ohne Arbeitsbaum: so
+# liest gitleaks keine .gitleaks.toml/.gitleaksignore aus dem gescannten Repo (Security-Review W1).
+# Setzt LEAKS_RC und LEAKS_OUT.
+scan_history_secrets() {
+  local target="$1"
+  SCAN_BARE_DIR="$(mktemp -d)"
+  trap 'rm -rf "$SCAN_BARE_DIR"' EXIT
+  git clone -q --bare --no-local -- "$target" "$SCAN_BARE_DIR/repo.git" || die 2 "Klon ohne Arbeitsbaum fehlgeschlagen: $target"
+  LEAKS_RC=0
+  LEAKS_OUT="$(run_gitleaks git --log-opts=--all --gitleaks-ignore-path "$GITLEAKS_IGNORE" \
+    "$SCAN_BARE_DIR/repo.git" 2>&1)" || LEAKS_RC=$?
 }
 
 cmd_scan() {
@@ -390,15 +497,19 @@ cmd_scan() {
   require_tool "$GITLEAKS_CMD" "Installation z. B. per 'brew install gitleaks'"
   [ -r "$ALLOW_FILE" ] || die 2 "Erlaubt-Liste nicht lesbar: $ALLOW_FILE"
   [ -r "$GITLEAKS_IGNORE" ] || die 2 "Falsch-Positiv-Liste nicht lesbar: $GITLEAKS_IGNORE"
+  [ -r "$GITLEAKS_TOML" ] || die 2 "gitleaks-Konfiguration nicht lesbar: $GITLEAKS_TOML"
+  check_allow_patterns
   load_meta "$target"
   FALSE_POSITIVES="$(ignored_with_reasons)" || exit 2
-  LEAKS_RC=0; LEAKS_OUT="$("$GITLEAKS_CMD" git --no-banner --redact --log-opts=--all \
-    --gitleaks-ignore-path "$GITLEAKS_IGNORE" "$target" 2>&1)" || LEAKS_RC=$?
+  scan_history_secrets "$target"
+  MSG_LEAKS_RC=0; MSG_LEAKS_OUT="$(all_messages "$target" | run_gitleaks stdin 2>&1)" || MSG_LEAKS_RC=$?
   B2_RC=0; B2_OUT="$(scan_emails "$target")" || B2_RC=$?
+  B2_MSG_RC=0; B2_MSG_OUT="$(scan_message_emails "$target")" || B2_MSG_RC=$?
   A2_RC=0; A2_OUT="$(check_a2 "$target")" || A2_RC=$?
-  [ "$B2_RC" -le 1 ] && [ "$A2_RC" -le 1 ] || exit 2
+  [ "$B2_RC" -le 1 ] && [ "$B2_MSG_RC" -le 1 ] && [ "$A2_RC" -le 1 ] || exit 2
   print_scan_report "$target"
-  [ "$LEAKS_RC" -eq 0 ] && [ "$B2_RC" -eq 0 ] && [ "$A2_RC" -eq 0 ] || exit 1
+  [ "$LEAKS_RC" -eq 0 ] && [ "$MSG_LEAKS_RC" -eq 0 ] && [ "$B2_RC" -eq 0 ] && [ "$B2_MSG_RC" -eq 0 ] \
+    && [ "$A2_RC" -eq 0 ] || exit 1
 }
 
 cmd_qualify() {
