@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -187,6 +187,10 @@ Keine – Q1–Q6 der Spec im ADR-063-Nachtrag beantwortet.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Report: `tasks/codify-427.md`. Neu: `docs/project/lessons/repo-werkzeuge.md` (Scanner-Gate: Abschalt-Eingänge
+und Datenflächen vorab aufzählen; Umschreibregel gegen den echten Bestand vergleichen) + Index-Gruppe in
+`PROJECT-CONTEXT.md`. Factory-seitige Learnings (Prozess-Substitution, `factory-commit.sh` mit `git add -A`,
+Kleinfunde unter X1, Rezidiv Mutationsbeleg) wegen X1 zurückgestellt → Issue #438.
 
 ---
 Branch: `feature/427-factory-split-t1b-historie-nach-dev-factory`
