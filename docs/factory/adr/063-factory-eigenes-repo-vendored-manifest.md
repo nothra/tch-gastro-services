@@ -364,9 +364,15 @@ D6-Versionsangabe, D9-Lint).
     `--gitleaks-ignore-path`); ein Eintrag ohne Begründung oder ohne Commit-Bezug bricht den Scan
     ab, und der Bericht listet jeden ausgenommenen Fingerprint mit seiner Begründung (AK B1).
     gitleaks läuft mit der gepinnten Konfiguration `scripts/project/factory-extract.gitleaks.toml`
-    (Standardregeln, keine Ausnahmen), ohne `GITLEAKS_CONFIG` der Umgebung und gegen einen Klon
-    **ohne Arbeitsbaum** – sonst könnten eine `.gitleaks.toml`/`.gitleaksignore` im herausgelösten
-    Repo oder die Umgebung den Secret-Scan still abschalten (Security-Review #427).
+    (Standardregeln, keine Ausnahmen), ohne `GITLEAKS_CONFIG` der Umgebung, in einem leeren
+    Arbeitsverzeichnis und gegen einen Spiegel-Klon (`--mirror`, alle Refs) **ohne Arbeitsbaum** –
+    sonst könnten eine `.gitleaks.toml`/`.gitleaksignore` im herausgelösten Repo oder im
+    Aufrufverzeichnis oder die Umgebung den Secret-Scan still abschalten, und Commits außerhalb von
+    Branches/Tags blieben ungeprüft. Jedes Inline-`gitleaks:allow` in Dateien oder Messages macht
+    den Scan rot (es würde Funde ohne Begründung unterdrücken); ein Platzhalter im Domain-Teil der
+    Erlaubt-Liste ist nur unter reservierten Test-Domains zulässig (`*@*.example`, nicht `*@*.de`);
+    ein gitleaks ohne Versionsangabe bricht ab, und per Umgebung ersetzte Werkzeuge nennt der
+    Bericht (Security-Review und Re-Review #427).
   - `qualify <ziel>` – schreibt TCH-Nummern im **Inhalt** des Arbeitsbaums aus (C3; in T1b-2
     im Bereinigungs-PR aufgerufen): Markdown vollständig, Shell-Skripte **nur in Kommentarzeilen**
     (erstes Nicht-Leerzeichen `#`, nicht `#!`), damit Test-Fixtures wie `"Closes #42"` unverändert

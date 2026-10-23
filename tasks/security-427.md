@@ -21,7 +21,7 @@ _Keine._
 
 ## Hinweise
 
-- [x] [Gate-Wirksamkeit] `ignored_with_reasons`: Fingerprint-Format wird nicht geprüft; gitleaks akzeptiert auch den globalen Fingerprint `<datei>:<regel>:<zeile>` (gilt für alle Commits). Lösung: je Eintrag `^[0-9a-f]{40}:[^:]+:[^:]+:[0-9]+$` fail-closed verlangen. Inline-`gitleaks:allow` unterdrückt ebenfalls ohne Begründung (im Probelauf 0×) – Zählzeile im Bericht wäre billig. _Im Scope._ — **Behoben:** Fingerprint ohne Commit-Bezug → Exit 2. `gitleaks:allow`-Zählzeile bewusst nicht umgesetzt (0 Vorkommen, gitleaks läuft mit gepinnter Konfiguration).
+- [x] [Gate-Wirksamkeit] `ignored_with_reasons`: Fingerprint-Format wird nicht geprüft; gitleaks akzeptiert auch den globalen Fingerprint `<datei>:<regel>:<zeile>` (gilt für alle Commits). Lösung: je Eintrag `^[0-9a-f]{40}:[^:]+:[^:]+:[0-9]+$` fail-closed verlangen. Inline-`gitleaks:allow` unterdrückt ebenfalls ohne Begründung (im Probelauf 0×) – Zählzeile im Bericht wäre billig. _Im Scope._ — **Behoben:** Fingerprint ohne Commit-Bezug → Exit 2. Die ursprüngliche Begründung für den Verzicht auf eine `gitleaks:allow`-Prüfung („gepinnte Konfiguration“) war falsch (Re-Review N3) – jetzt umgesetzt als B1 Inline-Ausnahmen.
 - [x] [E-Mail-Regex] IDN-/Umlaut-Domains und obfuskierte Formen (`(at)`, `%40`) entgehen dem Muster; komprimierte Blobs prüft `grep -a` nicht. Im Probelauf 0 solche Formen. Lösung: Zeichenklasse erweitern bzw. als Restrisiko im Bericht nennen. _Im Scope._ — **Behoben als Transparenz:** Restrisiko steht im Bericht; Muster bewusst nicht erweitert.
 - [x] [Option-Injection] `cmd_run`: `git clone … "$source_git" "$target"` ohne `--`; ein Ziel mit führendem `-` wird als Option gelesen. Nur vom Bediener gesetzt, Risiko gering. Lösung: `-- "$source_git" "$target"`. _Im Scope._ — **Behoben:** `git clone … --`, `cd --`; Test mit Ziel `-strich`.
 - [x] [filter-repo `--paths-from-file`] Zeilen mit `regex:`/`glob:`-Präfix oder `==>` deutet filter-repo als Sonderform. A2 fängt jede Überinklusion exakt ab; optional in `list_paths` solche Zeilen fail-closed ablehnen. _Im Scope._ — **Bewusst offen:** A2 fängt jede Überinklusion exakt ab.
@@ -37,5 +37,23 @@ _Keine._
 
 W1–W3 und H1–H3 im selben PR behoben (Tests zuerst rot: 30 rot → 257 grün; sieben Mutationen je mindestens ein Test rot). Probelauf mit echten Werkzeugen wiederholt, siehe Task-Datei „Nachlauf nach dem Security-Review“. Re-Review des Reworks: siehe unten.
 
+## Re-Review (2026-10-23, Commit `4e17806`)
+
+W2, W3, H2, H3 per Repro geschlossen; W1 für den Historien-Scan geschlossen (auch gegen
+`GITLEAKS_CONFIG_TOML` und `.gitleaksignore` im Aufrufverzeichnis). Neue Findings, im selben PR behoben
+(Tests zuerst rot: 13 rot → 270 grün; Mutationen je mindestens ein Test rot; Gegenproben mit echtem
+gitleaks):
+
+- [x] [Fail-open] N1 – `gitleaks stdin` las eine `.gitleaksignore` aus dem Arbeitsverzeichnis des Aufrufers (Fingerprint ohne Commit, z. B. `:github-pat:3`) → B1 Messages still ✓. **Behoben:** jeder gitleaks-Aufruf läuft in einem leeren Temp-Verzeichnis; Gegenprobe mit echtem gitleaks → B1 Messages ✗.
+- [x] [Gate-Lücke, Regression] N2 – `clone --bare` übernahm nur Branches/Tags; Commits nur über `refs/remotes`/`refs/notes` blieben ungescannt. **Behoben:** `clone --mirror`; Test vergleicht die Commit-Zahl; Gegenprobe → B1 ✗.
+- [x] [Begründungspflicht] N3 – Inline-`gitleaks:allow` unterdrückt Funde trotz gepinnter Konfiguration. **Behoben:** Zeile „B1 Inline-Ausnahmen“, jedes Vorkommen in Dateien oder Messages → ✗.
+- [x] [Erlaubt-Liste] N4 – `*@*.de` war zulässig. **Behoben:** Platzhalter in der Domain nur unter reservierten Test-Domains.
+- [x] [Transparenz] N5 – ersetzte `GITLEAKS_CMD`/`FILTER_REPO_CMD` unsichtbar. **Behoben:** Bericht nennt sie; gitleaks ohne Versionsangabe → Exit 2.
+- [x] [Exit-Code] N6 – `mktemp -d` ohne `|| die 2`. **Behoben.**
+
+Probelauf mit echten Werkzeugen (TCH `b5d0cd9`): A2, B1, B1 Messages, B1 Inline-Ausnahmen, B2,
+B2 Messages alle ✓. Offen bleiben nur die als „bewusst offen“ begründeten Hinweise (H4 filter-repo-
+Sonderzeilen – A2 fängt jede Überinklusion; H6 Symlink-TOCTOU – kein realistischer Angreifer).
+
 ## Ergebnis
-NEEDS_FIXES
+PASSED

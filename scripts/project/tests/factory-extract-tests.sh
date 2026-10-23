@@ -407,13 +407,17 @@ echo "#427 factory-extract.sh scan (B1/B2/B3, mit gitleaks-Stub):"
 # FX_LEAKS_STDIN_RC (stdin); was stdin bekommt, landet in FX_LEAKS_STDIN.
 cat > "$FX_STUB_DIR/gitleaks" <<'STUBEOF'
 #!/usr/bin/env bash
-[ "$1" = version ] && { echo "8.99.0-stub"; exit 0; }
+[ "$1" = version ] && { [ -n "${FX_LEAKS_NO_VERSION:-}" ] || echo "8.99.0-stub"; exit 0; }
 for a in "$@"; do last="$a"; done
 {
   printf 'call=%s\n' "$1"
   printf 'arg=%s\n' "$@"
   printf 'env-config=%s\n' "${GITLEAKS_CONFIG-unset}"
-  [ "$1" = git ] && printf 'bare=%s\n' "$(git -C "$last" rev-parse --is-bare-repository 2>/dev/null)"
+  if [ -z "$(ls -A)" ]; then echo "cwd-leer=ja"; else echo "cwd-leer=nein"; fi
+  if [ "$1" = git ]; then
+    printf 'bare=%s\n' "$(git -C "$last" rev-parse --is-bare-repository 2>/dev/null)"
+    printf 'commits=%s\n' "$(git -C "$last" rev-list --all --count 2>/dev/null)"
+  fi
 } >> "$FX_LEAKS_LOG"
 if [ "$1" = stdin ]; then cat > "$FX_LEAKS_STDIN"; exit "${FX_LEAKS_STDIN_RC:-0}"; fi
 echo "stub-scan $*"
@@ -448,9 +452,10 @@ assert_contains_286 "$FX_OUT" "8.99.0-stub" "#427 B3: Bericht nennt die gitleaks
 assert_contains_286 "$FX_OUT" "$(git -C "$FX_TMP/s-src" rev-parse HEAD)" "#427 B3: Bericht nennt den Ziel-Commit von TCH"
 # 3 = die zwei Commits aus fx_verify_pair + der Kontakt-Commit.
 assert_contains_286 "$FX_OUT" "| Commits | 3 |" "#427 B3: Bericht nennt die Anzahl Commits"
-for fx_row in A2 B1 "B1 Messages" B2 "B2 Messages"; do
+for fx_row in A2 B1 "B1 Messages" "B1 Inline-Ausnahmen" B2 "B2 Messages"; do
   assert_true "$([ -n "$(fx_report_rows "$fx_row")" ]; echo $?)" "#427 B3: Bericht hat eine Zeile $fx_row"
 done
+assert_contains_286 "$(fx_report_rows "B1 Inline-Ausnahmen")" "| ✓ |" "#427 B1: ohne Inline-Ausnahme ist die Zeile ✓"
 fx_leaks_log="$(cat "$FX_LEAKS_LOG" 2>/dev/null)"
 assert_contains_286 "$fx_leaks_log" "arg=--log-opts=--all" "#427 B1: gitleaks läuft über alle Commits"
 assert_contains_286 "$fx_leaks_log" "arg=--gitleaks-ignore-path" "#427 B1: gitleaks bekommt die Falsch-Positiv-Liste"
@@ -470,6 +475,44 @@ assert_contains_286 "$FX_OUT" "Erlaubt-Liste (B2, aus $SCRIPTS_DIR/project/facto
 assert_contains_286 "$FX_OUT" '- `t@t.com`' "#427 B2/B3: Bericht listet die Muster der Erlaubt-Liste"
 assert_contains_286 "$FX_OUT" "Restrisiko" "#427 B2/B3: Bericht nennt das Restrisiko des E-Mail-Musters"
 assert_absent "$FX_OUT" "FACTORY_EXTRACT_ALLOW" "#427 B3: ohne Override nennt der Bericht keine überschriebene Liste"
+# N1 (Security-Re-Review): gitleaks liest eine .gitleaksignore aus dem Arbeitsverzeichnis – beide
+# Aufrufe laufen deshalb in einem leeren Verzeichnis, egal von wo `scan` gestartet wird.
+(cd "$FX_TMP/s-ziel" && FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
+  FX_LEAKS_STDIN="$FX_LEAKS_STDIN" bash "$FX_SCRIPT" scan . >/dev/null 2>&1)
+fx_leaks_log="$(cat "$FX_LEAKS_LOG" 2>/dev/null)"
+assert_contains_286 "$fx_leaks_log" "cwd-leer=ja" "#427 B1: gitleaks läuft in einem leeren Arbeitsverzeichnis"
+assert_absent "$fx_leaks_log" "cwd-leer=nein" "#427 B1/B1 Messages: kein gitleaks-Aufruf im Ziel oder Aufruferverzeichnis"
+# N5: überschriebene Werkzeuge stehen im Bericht; ein gitleaks ohne Versionsangabe gilt nicht als gitleaks.
+assert_contains_286 "$FX_OUT" "per GITLEAKS_CMD überschrieben" "#427 B3: Bericht nennt das per Umgebung ersetzte gitleaks"
+FX_LEAKS_NO_VERSION=1 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 2 "$FX_RC" "#427 B1: gitleaks ohne Versionsangabe → Exit 2 (fail-closed)"
+
+# N2 (Security-Re-Review): auch Commits, die nur über andere Refs (remotes, notes) erreichbar sind,
+# gehen durch gitleaks – der Scan-Klon übernimmt alle Refs.
+fx_verify_pair "$FX_TMP/r-src" "$FX_TMP/r-ziel"
+fx_git "$FX_TMP/r-ziel" commit -q --allow-empty -m "docs: nebenref (nothra/tch-gastro-services#10)"
+git -C "$FX_TMP/r-ziel" update-ref refs/remotes/x/leak HEAD
+git -C "$FX_TMP/r-ziel" reset -q --hard HEAD~1
+fx_scan "$FX_TMP/r-src" "$FX_TMP/r-ziel"
+assert_contains_286 "$(cat "$FX_LEAKS_LOG" 2>/dev/null)" "commits=$(git -C "$FX_TMP/r-ziel" rev-list --all --count)" \
+  "#427 B1: gitleaks sieht so viele Commits wie das Ziel über alle Refs"
+
+# N3 (Security-Re-Review): ein Inline-`gitleaks:allow` unterdrückt Funde ohne Begründung – jedes
+# Vorkommen in Blobs oder Messages macht den Scan rot. (Marker zur Laufzeit zusammengesetzt, damit
+# diese Testdatei ihn nicht selbst enthält.)
+fx_inline_marker="gitleaks"":allow"
+fx_verify_pair "$FX_TMP/i-src" "$FX_TMP/i-ziel"
+echo "x = 1 # $fx_inline_marker" > "$FX_TMP/i-ziel/docs/factory/inline.md"
+fx_git "$FX_TMP/i-ziel" add -A && fx_git "$FX_TMP/i-ziel" commit -qm "docs: inline (nothra/tch-gastro-services#11)"
+printf '%s\n' docs/factory/inline.md >> "$FX_TMP/i-ziel/.git/factory-extract/paths"
+fx_scan "$FX_TMP/i-src" "$FX_TMP/i-ziel"
+assert_exit 1 "$FX_RC" "#427 B1: Inline-Ausnahme in einer Datei → Exit 1"
+assert_contains_286 "$(fx_report_rows "B1 Inline-Ausnahmen")" "docs/factory/inline.md" "#427 B1: Bericht nennt die Datei mit der Inline-Ausnahme"
+fx_verify_pair "$FX_TMP/im-src" "$FX_TMP/im-ziel"
+fx_git "$FX_TMP/im-ziel" commit -q --allow-empty -m "docs: x (nothra/tch-gastro-services#12) $fx_inline_marker"
+fx_scan "$FX_TMP/im-src" "$FX_TMP/im-ziel"
+assert_exit 1 "$FX_RC" "#427 B1: Inline-Ausnahme in einer Commit-Message → Exit 1"
+assert_contains_286 "$(fx_report_rows "B1 Inline-Ausnahmen")" "Commit-/Tag-Message" "#427 B1: Bericht nennt die Message als Fundort"
 
 # Jeder ausgenommene Falsch-Positiv steht einzeln mit seiner Begründung im Bericht (Spec B1); der
 # Kopfkommentar der Datei gehört zu keinem Eintrag (Leerzeile trennt).
@@ -524,7 +567,7 @@ FACTORY_EXTRACT_ALLOW="$FX_TMP/allow-leerzeichen" fx_scan "$FX_TMP/s-src" "$FX_T
 assert_exit 0 "$FX_RC" "#427 B2: Muster mit Leerzeichen am Zeilenende greift trotzdem → Exit 0"
 assert_contains_286 "$FX_OUT" "FACTORY_EXTRACT_ALLOW" "#427 B3: Bericht nennt die per Umgebung überschriebene Erlaubt-Liste"
 # Muster ohne festen Domain-Teil würden jede Adresse erlauben.
-for fx_pattern in '*' '*@*' '*@example.*'; do
+for fx_pattern in '*' '*@*' '*@example.*' '*@*.de' '*@*.dm.de'; do
   printf '%s\n' "$fx_pattern" > "$FX_TMP/allow-breit"
   FACTORY_EXTRACT_ALLOW="$FX_TMP/allow-breit" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
   assert_exit 2 "$FX_RC" "#427 B2: Muster '$fx_pattern' ohne festen Domain-Teil → Exit 2"

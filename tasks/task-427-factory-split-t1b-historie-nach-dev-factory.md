@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -109,6 +109,10 @@ B1 ✓ (derselbe eine Falsch-Positiv – der Initial-Commit trägt keinen Traile
 **B1 Messages ✓**, B2 ✓ (8 Adressen), **B2 Messages ✓** (1 Adresse: `noreply@anthropic.com`); in den
 Messages bleiben nur noreply-Trailer. Gegenprobe W1: eingeschleustes `ghp_…`-Token plus
 `.gitleaks.toml`/`.gitleaksignore` im Ziel und gesetztes `GITLEAKS_CONFIG` → B1 ✗ (wird erkannt).
+Nach dem Security-Re-Review (gitleaks im leeren Verzeichnis, Spiegel-Klon, Inline-Ausnahmen):
+sauberer Lauf A2, B1, B1 Messages, **B1 Inline-Ausnahmen**, B2, B2 Messages alle ✓; Gegenproben
+mit echtem gitleaks: Token in einer Message + `.gitleaksignore` im Ziel/Aufrufverzeichnis → B1
+Messages ✗; Token nur über `refs/remotes/…` erreichbar → B1 ✗.
 
 **Hinweise für T1b-2 (#436):**
 - `CLAUDE.md` und `.claude/settings.json` kommen als Altpfade mit ihrer TCH-Fassung ins Ziel (ADR-063
