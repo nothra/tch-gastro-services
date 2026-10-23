@@ -55,11 +55,12 @@ require_tool() { command -v "$1" >/dev/null 2>&1 || die 2 "$1 nicht gefunden –
 # nonempty_sorted – stdin ohne Leerzeilen, LC_ALL=C sortiert und eindeutig.
 nonempty_sorted() { grep -v '^$' | LC_ALL=C sort -u; }
 
-# list_entries <datei> – Einträge einer Listen-Datei, ohne Rand-Leerzeichen; Leerzeilen und
-# `#`-Kommentare (auch eingerückt) fallen weg.
-list_entries() {
-  sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$1" | { grep -v '^\(#.*\)\{0,1\}$' || true; }
-}
+# trim_lines – stdin zeilenweise ohne Rand-Leerzeichen; die gemeinsame Lesart beider Listen-Dateien.
+trim_lines() { sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+
+# list_entries <datei> – Einträge einer Listen-Datei; Leerzeilen und `#`-Kommentare (auch
+# eingerückt) fallen weg.
+list_entries() { trim_lines < "$1" | { grep -v '^\(#.*\)\{0,1\}$' || true; }; }
 
 # Die Umschreibregel läuft in Python `re` auf Bytes – derselben Regex-Engine wie
 # `git filter-repo --replace-message`. Der Parser hier ist bewusst strenger als der von
@@ -275,11 +276,11 @@ scan_emails() {
 # ignored_with_reasons – je Eintrag der Falsch-Positiv-Liste „<fingerprint>\t<begründung>"; die
 # Begründung ist der Kommentarblock direkt darüber (eine Leerzeile beendet ihn). Ein Eintrag ohne
 # Begründung bricht ab: Spec B1 verlangt jeden Falsch-Positiv einzeln begründet. Rand-Leerzeichen
-# zählen nicht – dieselbe Lesart wie list_entries.
+# zählen nicht – dieselbe Lesart wie list_entries (trim_lines).
 ignored_with_reasons() {
-  local raw line reason=""
-  while IFS= read -r raw || [ -n "$raw" ]; do
-    line="$(printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  local lines line reason=""
+  lines="$(trim_lines < "$GITLEAKS_IGNORE")" || die 2 "Falsch-Positiv-Liste nicht lesbar: $GITLEAKS_IGNORE"
+  while IFS= read -r line; do
     case "$line" in
       '') reason="" ;;
       '#') ;;
@@ -290,7 +291,7 @@ ignored_with_reasons() {
         reason=""
         ;;
     esac
-  done < "$GITLEAKS_IGNORE"
+  done <<< "$lines"
 }
 
 cmd_paths() {
@@ -337,10 +338,11 @@ report_row() {
 }
 
 # print_scan_report <ziel> – Scan-Bericht (B3) aus den Ergebnissen, die cmd_scan gesammelt hat.
-# Liest: SOURCE_COMMIT und META (load_meta); FALSE_POSITIVES (Fingerprint\tBegründung je Zeile);
-# LEAKS_RC/LEAKS_OUT (gitleaks), B2_RC/B2_OUT (E-Mail-Scan), A2_RC/A2_OUT (Pfad-Prüfung).
+# Liest die Laufzeit-Ergebnisse SOURCE_COMMIT und META (load_meta); FALSE_POSITIVES
+# (Fingerprint\tBegründung je Zeile); LEAKS_RC/LEAKS_OUT (gitleaks), B2_RC/B2_OUT (E-Mail-Scan),
+# A2_RC/A2_OUT (Pfad-Prüfung) – dazu die Konfiguration GITLEAKS_IGNORE, GITLEAKS_CMD, FILTER_REPO_CMD.
 print_scan_report() {
-  local target="$1" fingerprint reason ignored_count
+  local target="$1" fingerprint reason ignored_count list_hint=""
   echo "## Scan-Bericht factory-extract"
   echo ""
   echo "| Kennzahl | Wert |"
@@ -358,10 +360,9 @@ print_scan_report() {
   echo "|---|---|---|"
   report_row A2 "$A2_RC" "$A2_OUT"
   ignored_count="$(printf '%s' "$FALSE_POSITIVES" | grep -c . || true)"
-  if [ "$LEAKS_RC" -eq 0 ] && [ "$ignored_count" -eq 0 ]; then
-    report_row B1 0 "gitleaks über alle Commits: kein Fund (0 Falsch-Positive ausgenommen)"
-  elif [ "$LEAKS_RC" -eq 0 ]; then
-    report_row B1 0 "gitleaks über alle Commits: kein Fund ($ignored_count Falsch-Positive ausgenommen, Liste unten)"
+  [ "$ignored_count" -eq 0 ] || list_hint=", Liste unten"
+  if [ "$LEAKS_RC" -eq 0 ]; then
+    report_row B1 0 "gitleaks über alle Commits: kein Fund ($ignored_count Falsch-Positive ausgenommen$list_hint)"
   else
     report_row B1 1 "gitleaks Exit $LEAKS_RC – Fund oder Fehler, Ausgabe unten"
   fi

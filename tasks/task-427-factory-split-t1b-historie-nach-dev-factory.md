@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -48,8 +48,8 @@ Entscheidungen: ADR-063 → „Nachtrag 2026-10-23 · Detailentscheidungen aus T
   vorher mit dem Entwickler abstimmen. Ziel-Verzeichnis außerhalb des Repos (Scratchpad o. ä.),
   danach löschen. Nichts pushen, kein `gh repo create`.
 - **Altpfade, die in TCH weiterleben** (`CLAUDE.md`, `.claude/settings.json`; `.gitignore` ist laut
-  Probelauf keiner, s. Hinweise für T1b-2): kommen
-  bewusst mit; im Probelauf-Bericht als erwartet ausweisen, nicht als A2-Verstoß.
+  Probelauf keiner, s. Hinweise für T1b-2): kommen bewusst mit; im Probelauf-Bericht als erwartet
+  ausweisen, nicht als A2-Verstoß.
 - **Bash 3.2 / BSD-kompatibel** (macOS): `LC_ALL=C sort`, `shasum -a 256`, kein `sed -i` ohne
   Suffix-Argument, Zeichenklassen in BSD-`awk` per `index()`.
 - **Lessons:** `docs/factory/lessons/testing.md` (Fixture-Git-Identität, Messung brechen statt
@@ -116,9 +116,10 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
   - YAML-Kommentare (`factory-ci.yml`, `factory-poll.yml`, `factory.defaults.yml`,
     `factory.config.yml.example`, zusammen ~21 `#<nr>`) fasst `qualify` nicht an – von Hand
     qualifizieren;
-  - drei- bis fünfstellige Ziffern-Farbcodes (`#000`) würden umgeschrieben (heute 0 im Bestand);
-  - das Fixture `scripts/checks/tests/fixtures/lessons-split-426.tsv` (173 Zeilen mit Treffern)
-    bleibt Fixture.
+  - drei- bis fünfstellige Ziffern-Farbcodes (`#000`) würden umgeschrieben (heute 0 im Bestand).
+- Für den C3-Rest-Grep (nicht `qualify`, das `*.tsv` gar nicht anfasst): das Fixture
+  `scripts/checks/tests/fixtures/lessons-split-426.tsv` (173 Zeilen mit Treffern) bleibt Fixture
+  und ist als erlaubte Stelle zu dokumentieren.
 - `run` vergleicht `main` mit dem lokal bekannten `origin/main` – vorher `git fetch`, sonst gilt ein
   veralteter Stand als „gemergt". Prüfen, dass der ADR-063-Nachtrag dieser Task auf `main` liegt.
 - Die Umschreibregel wurde im Review-Rework (Anker, Entities, Ziffern-Farbcodes) geändert. Gegen
@@ -146,6 +147,20 @@ Coverage misst das Projekt nur für die App (Vitest); dieser Diff ist reines Bas
 
 Aufruf mit falschen Argumenten → Exit 2. Einziger Produktionscode in `/test`: der vom Entwickler
 mitbestellte Fix des `qualify`-Fail-open aus Review-Iteration 3 (Test zuerst rot: kaputter Index → Exit 0).
+
+## Refactoring (/refactor, 2026-10-23)
+
+Kein neues Verhalten, Projekt-Suite vor und nach identisch grün (223). Aus den offenen Nitpicks
+von Review-Iteration 3:
+- `trim_lines` als gemeinsamer Helfer von `list_entries` und `ignored_with_reasons` – die gleiche
+  Lesart beider Listen-Dateien steht jetzt im Code statt nur im Kommentar; `ignored_with_reasons`
+  trimmt die Datei einmal statt je Zeile einen `sed`-Prozess zu starten.
+- B1-Berichtszeile: ein Zweig mit Suffix „, Liste unten" statt zwei fast gleicher Texte.
+- Kopfkommentar von `print_scan_report` nennt auch die gelesene Konfiguration.
+- Doku: ADR-Nachtrag präzisiert, dass die PR-Diff-Durchsicht nur für den Inhalt greift; T1b-2-
+  Hinweis zum Fixture `lessons-split-426.tsv` als C3-Hinweis statt `qualify`-Grenze.
+Bewusst nicht umgesetzt: mehrfache Leerzeichen/Tab nach `#` in Begründungen zu kürzen – das wäre
+neues Verhalten (sichtbar im Bericht), kein Refactoring.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

@@ -372,7 +372,8 @@ D6-Versionsangabe, D9-Lint).
   vorausgeht → `nothra/tch-gastro-services#<ziffern>`. Bereits qualifizierte Verweise
   (`owner/repo#n`), Farbcodes mit Buchstaben (`#1e40af`) oder mit sechs Ziffern (`#333333`),
   HTML-Entities wie `&#8212;` und Markdown-Sprunganker wie `](#12-abschnitt)` bleiben; kürzere
-  reine Ziffern-Farbcodes (`#000`) trifft die Regel – die Durchsicht im PR-Diff fängt sie ab. **Konvention ab jetzt:** Im Factory-Repo steht vor jeder
+  reine Ziffern-Farbcodes (`#000`) trifft die Regel – im Inhalt fängt die Durchsicht im PR-Diff
+  sie ab; in den Commit-Messages gibt es keinen PR-Diff, dort kommen sie heute nicht vor. **Konvention ab jetzt:** Im Factory-Repo steht vor jeder
   TCH-Nummer der Repo-Slug; unqualifiziertes `#<nr>` meint das Factory-Repo selbst.
 - **Altpfade, die in TCH noch leben:** `CLAUDE.md` und `.claude/settings.json` sind Altpfade von
   Factory-Dateien (`FACTORY.md`, `settings.factory.json`), existieren in TCH aber weiter als

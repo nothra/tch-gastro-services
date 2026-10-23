@@ -26,14 +26,14 @@ _Keine._
 ## Nitpicks (optional)
 
 - [x] [scripts/project/factory-extract.sh `cmd_qualify`] Fail-open seit `bb06494`: Scheitert `git ls-files -z` nach erfolgreichem `rev-parse` (z. B. kaputter Index), wertet die Prozess-Substitution den Exit-Code nicht aus – `qualify` endet mit Exit 0, ohne etwas umzuschreiben (vorher Exit 2). Exotischer Auslöser, kein Datenverlust; Fix: `ls-files -z` in eine Temp-Datei mit `|| die 2`, dann daraus lesen; Test mit kaputtem Index. _(R1 N1)_ — behoben in `/test` (Test mit kaputtem Index zuerst rot).
-- [ ] [scripts/project/factory-extract.sh `ignored_with_reasons`] `#` gefolgt von mehreren Leerzeichen/Tab lässt Leerraum in der Begründung (kosmetisch). _(R1 N2)_
-- [ ] [scripts/project/factory-extract.sh `list_entries` / `ignored_with_reasons`] Trim-Logik (sed) doppelt; kleiner `trim`-Helfer, dann ist „dieselbe Lesart" Code statt Prosa. _(R2 N1)_
+- [x] [scripts/project/factory-extract.sh `ignored_with_reasons`] `#` gefolgt von mehreren Leerzeichen/Tab lässt Leerraum in der Begründung (kosmetisch). _(R1 N2)_ — **bewusst offen:** Kürzen wäre neues Verhalten, nicht `/refactor`.
+- [x] [scripts/project/factory-extract.sh `list_entries` / `ignored_with_reasons`] Trim-Logik (sed) doppelt; kleiner `trim`-Helfer, dann ist „dieselbe Lesart" Code statt Prosa. _(R2 N1)_
 - [x] [scripts/project/tests/factory-extract-tests.sh Idempotenz-Test] Exit-Code des zweiten `qualify`-Laufs nicht geprüft (Lesson #214); `assert_exit 0`. _(R2 N2)_
-- [ ] [scripts/project/factory-extract.sh `print_scan_report`] „Liest:"-Liste ohne die Konfigurations-Globals (`GITLEAKS_IGNORE`, `GITLEAKS_CMD`, `FILTER_REPO_CMD`). _(R2 N3)_
-- [ ] [scripts/project/factory-extract.sh `print_scan_report`] B1-Text in zwei fast gleichen Zweigen; Suffix-Variable. _(R2 N4)_
-- [ ] [docs/factory/adr/063-…md, Nachtrag „Umschreibregel"] „… die Durchsicht im PR-Diff fängt sie ab" gilt nur für `qualify`; in den Commit-Messages (`run`) gibt es keinen PR-Diff (heute 0 Fälle). Halbsatz ergänzen. _(R3)_
-- [ ] [tasks/task-427-…md T1b-2-Hinweise] Das Fixture `lessons-split-426.tsv` ist keine `qualify`-Grenze (`*.tsv` fasst `qualify` nicht an), sondern ein Hinweis für den C3-Rest-Grep. _(R3)_
-- [ ] [tasks/task-427-…md:50-52] Zeilenumbruch nach „kommen" (kosmetisch). _(R3)_
+- [x] [scripts/project/factory-extract.sh `print_scan_report`] „Liest:"-Liste ohne die Konfigurations-Globals (`GITLEAKS_IGNORE`, `GITLEAKS_CMD`, `FILTER_REPO_CMD`). _(R2 N3)_
+- [x] [scripts/project/factory-extract.sh `print_scan_report`] B1-Text in zwei fast gleichen Zweigen; Suffix-Variable. _(R2 N4)_
+- [x] [docs/factory/adr/063-…md, Nachtrag „Umschreibregel"] „… die Durchsicht im PR-Diff fängt sie ab" gilt nur für `qualify`; in den Commit-Messages (`run`) gibt es keinen PR-Diff (heute 0 Fälle). Halbsatz ergänzen. _(R3)_
+- [x] [tasks/task-427-…md T1b-2-Hinweise] Das Fixture `lessons-split-426.tsv` ist keine `qualify`-Grenze (`*.tsv` fasst `qualify` nicht an), sondern ein Hinweis für den C3-Rest-Grep. _(R3)_
+- [x] [tasks/task-427-…md:50-52] Zeilenumbruch nach „kommen" (kosmetisch). _(R3)_
 
 ## Out-of-Scope
 
