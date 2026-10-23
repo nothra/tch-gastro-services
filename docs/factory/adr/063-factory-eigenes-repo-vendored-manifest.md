@@ -325,3 +325,86 @@ Grundsatzentscheidung.
   `| seite | `muster` | begründung |`); `scripts/checks/ownership-check.sh` ist ihr einziger Parser und
   erzeugt über `--list factory` die `git filter-repo`-Allowlist für T1b (D5). Der Check läuft im
   lokalen `pre-push.sh` und in der Self-Test-Suite (Required Check `factory-self-test`).
+
+## Nachtrag 2026-10-23 · Detailentscheidungen aus T1b (Spec #427, Q1–Q6)
+
+Entschieden mit dem Entwickler; sie verfeinern D5/D6/D9/D11. Zwei Punkte **weichen** vom
+ursprünglichen Wortlaut ab und sind als solche markiert (D6-Versionsangabe, D9-Lint).
+
+- **Q6 · Schnitt von T1b:** T1b wird in zwei nacheinander laufende Tasks geteilt.
+  **T1b-1 (#427, nur TCH):** dieser Nachtrag, das Herauslöse-Werkzeug mit Tests und ein Probelauf
+  mit Scan-Bericht – **kein** Push. **T1b-2 (#436, Klammer-Task in TCH, Arbeit im Factory-Repo):**
+  Herauslösen aus dem **gemergten** TCH-`main`, Scan, Freigabe, Bootstrap-Push, Ruleset,
+  Bootstrap- und Bereinigungs-PR, Probe, `v0.6.0`. Grund: Der Nachtrag ist eine Factory-Datei und
+  muss vor dem Herauslösen auf TCH-`main` liegen, die Task-Datei muss vor dem Merge abgeschlossen
+  sein (Guardrail aus #63), und T1b hätte mit 24 AK die Turn-Limit-Schwelle erreicht.
+- **Q2 · Werkzeug:** `scripts/project/factory-extract.sh` – **projekteigen in TCH** (einmaliges
+  Werkzeug, kennt den TCH-Slug, wandert nicht mit). Unterbefehle:
+  - `paths` – Ausgabe von `ownership-check.sh --list factory` plus deren Altpfade aus
+    `git log --follow --name-only --format=`, `LC_ALL=C` sortiert, eindeutig (AK A1).
+  - `run <ziel>` – `git clone --no-local` von TCH-`main` nach `<ziel>`, dort
+    `git filter-repo --paths-from-file <paths> --replace-message <regeln>`; der Arbeitsklon und
+    sein `origin` bleiben unberührt (AK X2).
+  - `verify <ziel>` – A2 (alle Pfade aller Commits ⊆ Liste), A4 (kein unqualifiziertes `#<nr>` in
+    Messages), A3 (`--follow`-Stichprobe), A5 (Autor/Datum gegen TCH).
+  - `scan <ziel>` – `gitleaks` über alle Commits, E-Mail-Muster über alle Blobs
+    (`git rev-list --all --objects`) gegen die Erlaubt-Liste `scripts/project/factory-extract.allow`;
+    schreibt den Scan-Bericht (Markdown) nach stdout.
+  - `qualify <ziel>` – schreibt TCH-Nummern im **Inhalt** des Arbeitsbaums aus (C3; in T1b-2
+    im Bereinigungs-PR aufgerufen): Markdown vollständig, Shell-Skripte **nur in Kommentarzeilen**
+    (erstes Nicht-Leerzeichen `#`, nicht `#!`), damit Test-Fixtures wie `"Closes #42"` unverändert
+    bleiben. Was der Regel entgeht, findet die Durchsicht im PR-Diff.
+
+  `git-filter-repo` und `gitleaks` sind Entwickler-Werkzeuge (lokal, kein CI); fehlt eines, bricht
+  das Skript fail-closed mit Installationshinweis ab; ihre Versionen stehen im Scan-Bericht.
+- **Umschreibregel (A4/C3):** genau eine Regel in `scripts/project/factory-extract.rules`, von
+  `run` (Messages) und `qualify` (Inhalt) gemeinsam gelesen: unqualifiziertes `#<ziffern>` als
+  ganzes Wort, dem kein Wortzeichen, `/`, `.` oder `-` vorausgeht →
+  `nothra/tch-gastro-services#<ziffern>`. Bereits qualifizierte Verweise (`owner/repo#n`) und
+  Farbcodes wie `#1e40af` bleiben. **Konvention ab jetzt:** Im Factory-Repo steht vor jeder
+  TCH-Nummer der Repo-Slug; unqualifiziertes `#<nr>` meint das Factory-Repo selbst.
+- **Altpfade, die in TCH noch leben:** `CLAUDE.md`, `.claude/settings.json` und `.gitignore` sind
+  Altpfade von Factory-Dateien, existieren in TCH aber weiter als Projekt-Dateien. Sie kommen daher
+  mit ihrer TCH-Fassung ins Factory-Repo; der Bootstrap-PR ersetzt sie durch die eigenen Fassungen
+  des Factory-Repos (dessen `CLAUDE.md`, zusammengesetzte `settings.json`/`.gitignore` aus eigenen
+  Projekt-Fragmenten). Ihr alter Inhalt bleibt in der Historie – er ist über TCH ohnehin öffentlich.
+- **Q5 · Reihenfolge im Factory-Repo:** (1) Bootstrap-Push = herausgelöste Historie, Inhalt
+  unverändert, nur Messages umgeschrieben – nichts, was nicht schon über TCH öffentlich ist; erster
+  Push mit `--no-verify`. (2) **Sofort** Ruleset `protect-main` (kein Bypass, PR-Pflicht, Squash,
+  kein Force-Push; Required Checks `pr-closes-issue`, `config-validation`, `factory-self-test`,
+  `lint`). (3) Bootstrap-PR (Factory-Issue #1): eigene Anpassungsstellen, `ci.yml`, Labels.
+  (4) Bereinigungs-PR: `qualify` + Begriffs-Bereinigung. (5) Wegwerf-Probe. (6) Release.
+  Bis (4) gemergt ist, stehen TCH-Begriffe auf `main`; vor dem Release sind sie weg (AK C1).
+- **Q4 · Besitz im Factory-Repo:** dort eine eigene `docs/factory/OWNERSHIP.md` im selben Format.
+  Seite `factory` = ausgeliefert (heute die 111 Dateien der TCH-Liste); Seite `project` = gehört
+  dem Factory-Repo selbst: `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `factory.config.yml`,
+  `docs/factory/PROJECT-CONTEXT.md`, `.claude/settings.project.json`, `.gitignore.project`, die
+  zusammengesetzten `.claude/settings.json`/`.gitignore`, `.github/workflows/ci.yml`,
+  `.github/workflows/release.yml`, `docs/specs/**`, `tasks/**` und ab T2 `templates/**`.
+  Self-Tests, die TCH-Zustände prüfen (Dateizahlen, Fixtures der T1a-Aufteilung), werden auf das
+  Factory-Repo umgestellt, nicht übersprungen.
+- **Q1 · Release-Manifest (Vertrag für T2):** Asset `factory-release.json` je Release:
+  `{"schema":1,"repo":"nothra/dev-factory","version":"vX.Y.Z","commit":"<40 hex>","files":[{"path":"…","sha256":"…"}]}`,
+  `files` = Seite `factory` laut `OWNERSHIP.md` am Tag, nach `path` sortiert (`LC_ALL=C`), Hash per
+  `shasum -a 256` über den Blob am Tag (`git show <tag>:<pfad>`, unabhängig vom Arbeitsbaum).
+  Erzeugt von `scripts/factory-release-manifest.sh <ref>` – **ausgeliefert**, weil T2
+  (`factory-sync.sh`, Integritäts-Gate) dieselbe Hash-Logik braucht.
+- **Q1 · Ablauf einer Version (Abweichung von D6 „Versionsangabe aus dem Tag erzeugt"):** Ein Bot
+  kann nach dem Taggen nicht auf `main` schreiben (Ruleset). Deshalb: **Release-PR** setzt die
+  Versionszeile in `FACTORY.md` und den `CHANGELOG.md`-Abschnitt (Text per `/release-notes`) →
+  Merge → Mensch setzt den Tag auf `main` → Workflow `release.yml` (nur Factory-Repo, `push: tags
+  v*`) prüft fail-closed „Version in `FACTORY.md` == Tag" und „`CHANGELOG.md` hat einen Abschnitt
+  zum Tag", erzeugt das Manifest und legt das GitHub Release an (Notes = CHANGELOG-Abschnitt,
+  Asset = Manifest). Passt etwas nicht, entsteht kein Release; der Tag wird gelöscht und neu gesetzt.
+- **Q3 · Lint im Factory-Repo (Abweichung von D9 „ShellCheck"):** vorerst `commands.lint` =
+  `bash -n` über alle getrackten `*.sh`, CI-Job `lint` in `ci.yml` des Factory-Repos. ShellCheck
+  folgt als Issue im Factory-Repo, wenn der Fundbestand bekannt ist.
+- **Q3 · Bereinigung auch von ADRs und Lessons:** Im Factory-Repo werden ADRs und Lessons sprachlich
+  von TCH gelöst (Wortlaut und Beispiele, keine Entscheidung, keine Regel). Das ist die einzige
+  erlaubte Änderung an angenommenen ADRs; erlaubte Rest-Treffer sind qualifizierte
+  Herkunftsverweise und der Herkunftshinweis in `README.md`/`CHANGELOG.md` (AK C1).
+- **Tests (TDD) für T1b-1** in `scripts/project/tests/`: `paths` gegen ein Fixture-Repo mit
+  Umbenennung; die Umschreibregel gegen Beispiel-Messages und -Zeilen (inkl. Gegenbeispiele:
+  qualifiziert, Farbcode, `#!`, String-Fixture); `verify`/`scan`-Entscheidungslogik gegen
+  präparierte Fixture-Repos mit `gitleaks`-Stub im `PATH` (Messung brechen, nicht nur Input – Lesson
+  aus #319). `git filter-repo` selbst läuft in keinem Test und in keiner CI.

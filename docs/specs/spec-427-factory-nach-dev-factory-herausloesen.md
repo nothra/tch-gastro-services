@@ -7,6 +7,13 @@
 > (Versionen), D9 (Factory nutzt sich selbst). Vorgänger T1a (#426, #431, #432) ist gemergt; die
 > Zuordnungstabelle `docs/factory/OWNERSHIP.md` und ihr Parser `scripts/checks/ownership-check.sh`
 > liegen vor.
+>
+> **Umsetzung in zwei Tasks** (Entscheidung 2026-10-23, Q6) – diese Spec gilt für beide:
+>
+> | Teil-Task | Issue | AK |
+> |---|---|---|
+> | T1b-1 · Werkzeug + Probelauf (nur TCH, kein Push) | #427 | A1, A4 (Regel + Probelauf), B3 (Probelauf-Bericht), X1, X2 |
+> | T1b-2 · Herauslösen, Push, Bereinigung, `v0.6.0` (Arbeit im Factory-Repo) | #436 | A2–A5, B1–B4, C1–C3, D1–D5, E1–E2, F1–F3, X1, X2 |
 
 ## Kontext
 
@@ -185,9 +192,10 @@ Ruleset und der nicht rückholbare Bootstrap-Push brauchen eine Freigabe des Ent
 
 ### X · TCH bleibt unverändert (AKE.1)
 
-- [ ] **X1** GIVEN TCH-PR #435 WHEN man seinen Diff ansieht THEN ändert er keine Factory-Datei
-  (laut `OWNERSHIP.md`), sondern nur projekteigene Dateien (Spec, Task-Datei, ggf. Werkzeug fürs
-  Herauslösen, Q2); `run-tests.sh` und die App-Gates sind vor und nach grün.
+- [ ] **X1** GIVEN die TCH-PRs von T1b-1 und T1b-2 WHEN man ihren Diff ansieht THEN ändern sie
+  keine Factory-Datei (laut `OWNERSHIP.md`) außer dem Nachtrag zu ADR-063 (T1b-1), sondern nur
+  projekteigene Dateien (Spec, Task-Dateien, `scripts/project/factory-extract*` mit Tests);
+  `run-tests.sh` und die App-Gates sind vor und nach grün.
 - [ ] **X2** GIVEN das Herauslösen WHEN es läuft THEN arbeitet es auf einem **frischen Klon** von
   TCH; der Arbeitsklon, sein `origin` und das TCH-Repo auf GitHub werden nicht umgeschrieben.
 
@@ -211,21 +219,28 @@ Ruleset und der nicht rückholbare Bootstrap-Push brauchen eine Freigabe des Ent
 ## Offene Fragen
 
 > Für `/architecture` (Nachtrag zu ADR-063 bzw. Detailentscheidungen innerhalb D5/D6/D9).
+>
+> **Stand nach `/architecture` (2026-10-23):** Q1–Q6 sind im
+> [Nachtrag 2026-10-23 zu ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md)
+> beantwortet. Kurz: Q1 → `factory-release.json` + Release-PR/Tag/`release.yml`; Q2 →
+> `scripts/project/factory-extract.sh` in TCH; Q3 → `bash -n`, Slug-Konvention, Bereinigung auch
+> ADRs/Lessons; Q4 → eigene `OWNERSHIP.md` im Factory-Repo; Q5 → Bereinigung **nach** dem Push per
+> PR; Q6 → Teilung in T1b-1 (#427) und T1b-2 (#436).
 
-- [ ] **Q1** Format des Release-Manifests (Dateiname, Struktur, welche Dateien es führt) und wie
+- [x] **Q1** Format des Release-Manifests (Dateiname, Struktur, welche Dateien es führt) und wie
   die Versionsangabe in `FACTORY.md` aus dem Tag entsteht – das Format ist der Vertrag, den T2
   (`factory-sync.sh`, Integritäts-Gate) liest. → `/architecture`
-- [ ] **Q2** Wo liegt das Werkzeug fürs Herauslösen (Pfadliste, `filter-repo`-Aufruf mit
+- [x] **Q2** Wo liegt das Werkzeug fürs Herauslösen (Pfadliste, `filter-repo`-Aufruf mit
   Message-/Inhalts-Umschreibung, Scans): projekteigen in TCH (`scripts/project/`), als
   Einmal-Anleitung oder im Factory-Repo? Welche Teile brauchen Tests (TDD)? → `/architecture`
-- [ ] **Q3** Nachtrag ADR-063: Lint im Factory-Repo vorerst `bash -n` statt ShellCheck (D9);
+- [x] **Q3** Nachtrag ADR-063: Lint im Factory-Repo vorerst `bash -n` statt ShellCheck (D9);
   Konvention „TCH-Nummern immer mit Repo-Slug"; Bereinigung auch von ADRs/Lessons. → `/architecture`
-- [ ] **Q4** Welche Dateien liefert das Factory-Repo aus (Release-Manifest) und welche gehören dem
+- [x] **Q4** Welche Dateien liefert das Factory-Repo aus (Release-Manifest) und welche gehören dem
   Factory-Repo selbst (`factory.config.yml`, `PROJECT-CONTEXT.md`, `CLAUDE.md`, `tasks/`,
   `docs/specs/`, `templates/`)? Wie sieht `OWNERSHIP.md` dort aus? → `/architecture`
-- [ ] **Q5** Reihenfolge der Bereinigung: als Commits vor dem Bootstrap-Push (dann ist `main` von
+- [x] **Q5** Reihenfolge der Bereinigung: als Commits vor dem Bootstrap-Push (dann ist `main` von
   Anfang an sauber, aber ohne PR-Gates) oder als erster PR im Factory-Repo (CI und Ruleset greifen,
   dafür sind TCH-Begriffe kurz auf `main`)? → `/architecture`
-- [ ] **Q6** Größe: T1b hat 24 AK. Bereinigung (C) und Self-Test-Anpassung (D3) berühren
+- [x] **Q6** Größe: T1b hat 24 AK. Bereinigung (C) und Self-Test-Anpassung (D3) berühren
   voraussichtlich mehr als 40 Dateien – reicht eine Task, oder wird T1b wie T1a geteilt
   (z. B. T1b-1 Herauslösen + Push, T1b-2 Bereinigung + Release)? → `/architecture`
