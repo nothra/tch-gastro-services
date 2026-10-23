@@ -1,0 +1,17 @@
+# factory-extract.allow – E-Mail-Adressen, die in Datei-Inhalten des Factory-Repos stehen dürfen
+#
+# Gelesen von `factory-extract.sh scan` (#427, AK B2). Eine Zeile = ein Muster im Shell-Glob-Stil
+# (`*` = beliebig), verglichen mit der kleingeschriebenen Adresse. Leerzeilen und `#`-Zeilen zählen
+# nicht. Jede Zeile braucht einen Grund im Kommentar darüber – Adressen realer Personen gehören
+# nie hierher (dann ist der Fund echt, FS1).
+
+# Co-Author-Zeile der Commit-Vorlagen
+noreply@anthropic.com
+# Dokumentations- und Test-Domains (RFC 2606)
+*@example.com
+*@example.org
+*@example.net
+*@example.de
+*@*.example.com
+# Git-Identität der Test-Fixtures (mk_feature_repo, fx_git)
+t@t.com

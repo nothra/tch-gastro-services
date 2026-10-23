@@ -1,0 +1,348 @@
+#!/usr/bin/env bash
+# factory-extract.sh – die Factory mit Historie aus TCH herauslösen (#427, ADR-063 D5 + Nachtrag 2026-10-23)
+#
+# Projekteigenes Einmal-Werkzeug: es kennt den TCH-Slug und wandert nicht mit ins Factory-Repo.
+#
+# Verwendung:
+#   bash scripts/project/factory-extract.sh paths            # Pfadliste: --list factory + Altpfade (A1)
+#   bash scripts/project/factory-extract.sh run <ziel>       # frischer Klon von main, dort filter-repo (X2)
+#   bash scripts/project/factory-extract.sh verify <ziel>    # A2–A5 am umgeschriebenen Klon
+#   bash scripts/project/factory-extract.sh scan <ziel>      # gitleaks + E-Mail-Muster, Bericht nach stdout (B1–B3)
+#   bash scripts/project/factory-extract.sh qualify <ziel>   # TCH-Nummern im Arbeitsbaum ausschreiben (C3)
+#
+# Exit: 0 = ok, 1 = eine Prüfung schlägt an, 2 = Aufruf-/Umgebungsfehler (fail-closed).
+#
+# Umgebung: FACTORY_DIR (TCH-Arbeitsklon, Default: Wurzel dieses Repos), FILTER_REPO_CMD
+# (Default git-filter-repo), GITLEAKS_CMD (Default gitleaks), FACTORY_EXTRACT_ALLOW (Erlaubt-Liste).
+# `run` legt seine Metadaten in <ziel>/.git/factory-extract/ ab (paths, files, source-commit);
+# `verify` und `scan` lesen sie dort und dazu die commit-map, die filter-repo hinterlässt.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FACTORY_DIR="${FACTORY_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
+RULES_FILE="$SCRIPT_DIR/factory-extract.rules"
+ALLOW_FILE="${FACTORY_EXTRACT_ALLOW:-$SCRIPT_DIR/factory-extract.allow}"
+FILTER_REPO_CMD="${FILTER_REPO_CMD:-git-filter-repo}"
+GITLEAKS_CMD="${GITLEAKS_CMD:-gitleaks}"
+# Bereiche, die nie Factory waren – auch nicht als Altpfad (A2, FS2).
+FORBIDDEN_ERE='^(app|db|lib|tasks|e2e|scripts/project|docs/specs|docs/project)/'
+NULL_COMMIT=0000000000000000000000000000000000000000
+A5_FORMAT='%an <%ae> %aI | %cI'
+EMAIL_ERE='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+
+die() { local code="$1"; shift; echo "factory-extract: $*" >&2; exit "$code"; }
+
+usage() {
+  die 2 "Verwendung: factory-extract.sh paths | run <ziel> | verify <ziel> | scan <ziel> | qualify <ziel>"
+}
+
+# require_tool <befehl> <installationshinweis>
+require_tool() { command -v "$1" >/dev/null 2>&1 || die 2 "$1 nicht gefunden – $2"; }
+
+# Die Umschreibregel läuft in Python `re` auf Bytes – demselben Dialekt wie
+# `git filter-repo --replace-message`, damit Tests und echter Lauf dieselbe Regel meinen.
+#   find <regeln>            stdin → Zeilen mit Treffer auf stdout, Exit 1 bei Treffer
+#   md|sh <regeln> <datei>   Datei umschreiben; sh nur in Kommentarzeilen (nicht `#!`), damit
+#                            Fixtures wie "Closes #42" im Code unverändert bleiben
+read -r -d '' RULES_PY <<'PYEOF' || true
+import re, sys
+
+def load(path):
+    rules = []
+    for raw in open(path, 'rb').read().splitlines():
+        if not raw.strip():
+            continue
+        if not raw.startswith(b'regex:') or b'==>' not in raw:
+            sys.stderr.write('factory-extract: ungueltige Regelzeile: %r\n' % raw)
+            sys.exit(2)
+        pattern, replacement = raw[len(b'regex:'):].split(b'==>', 1)
+        rules.append((re.compile(pattern), replacement))
+    if not rules:
+        sys.stderr.write('factory-extract: keine Regel in %s\n' % path)
+        sys.exit(2)
+    return rules
+
+def rewrite(rules, text):
+    for pattern, replacement in rules:
+        text = pattern.sub(replacement, text)
+    return text
+
+def is_comment(line):
+    stripped = line.lstrip()
+    return stripped.startswith(b'#') and not stripped.startswith(b'#!')
+
+mode, rules = sys.argv[1], load(sys.argv[2])
+if mode == 'find':
+    hits = [l for l in sys.stdin.buffer.read().splitlines() if any(p.search(l) for p, _ in rules)]
+    for line in hits:
+        sys.stdout.buffer.write(line + b'\n')
+    sys.exit(1 if hits else 0)
+path = sys.argv[3]
+original = open(path, 'rb').read()
+if mode == 'md':
+    updated = rewrite(rules, original)
+else:
+    updated = b'\n'.join(rewrite(rules, l) if is_comment(l) else l for l in original.split(b'\n'))
+if updated != original:
+    open(path, 'wb').write(updated)
+PYEOF
+
+rules_py() { python3 -I -c "$RULES_PY" "$@"; }
+
+# list_factory_files <repo> – Factory-Dateien laut der OWNERSHIP.md dieses Repo-Stands.
+list_factory_files() { FACTORY_DIR="$1" bash "$1/scripts/checks/ownership-check.sh" --list factory; }
+
+# follow_names <repo> <rev> <datei> – alle Namen der Datei laut `git log --follow`, sortiert.
+follow_names() {
+  git -C "$1" log --follow --name-only --format= "$2" -- "$3" | grep -v '^$' | LC_ALL=C sort -u
+}
+
+# list_paths <repo> – Factory-Dateien plus ihre Altpfade, LC_ALL=C sortiert und eindeutig (A1).
+list_paths() {
+  local repo="$1" files
+  files="$(list_factory_files "$repo")" || return 2
+  [ -n "$files" ] || { echo "factory-extract: keine Factory-Dateien in $repo" >&2; return 2; }
+  {
+    printf '%s\n' "$files"
+    printf '%s\n' "$files" | while IFS= read -r file; do
+      git -C "$repo" log --follow --name-only --format= -- "$file" || exit 2
+    done
+  } | grep -v '^$' | LC_ALL=C sort -u
+}
+
+# load_meta <ziel> – setzt META und SOURCE_COMMIT aus den Metadaten von `run`.
+load_meta() {
+  local target="$1" name
+  [ -d "$target/.git" ] || die 2 "kein Git-Repo: $target"
+  META="$target/.git/factory-extract"
+  for name in paths files source-commit; do
+    [ -s "$META/$name" ] || die 2 "Metadaten fehlen: $META/$name (zuerst 'run')"
+  done
+  SOURCE_COMMIT="$(cat "$META/source-commit")"
+  git -C "$FACTORY_DIR" cat-file -e "$SOURCE_COMMIT^{commit}" 2>/dev/null \
+    || die 2 "TCH-Commit $SOURCE_COMMIT fehlt in $FACTORY_DIR (git fetch?)"
+}
+
+# assert_main_current – herausgelöst wird nur der gemergte Stand: lokales main == origin/main.
+assert_main_current() {
+  local main origin
+  main="$(git -C "$FACTORY_DIR" rev-parse --verify -q refs/heads/main)" || die 2 "kein lokaler Branch main in $FACTORY_DIR"
+  if origin="$(git -C "$FACTORY_DIR" rev-parse --verify -q refs/remotes/origin/main)"; then
+    [ "$main" = "$origin" ] || die 2 "lokales main ($main) ≠ origin/main ($origin) – zuerst main aktualisieren"
+  fi
+}
+
+# check_a2 <ziel> – alle Pfade aller Commits ⊆ Liste, nichts aus den verbotenen Bereichen.
+check_a2() {
+  local target="$1" all problems
+  all="$(git -C "$target" log --all --name-only --format= | grep -v '^$' | LC_ALL=C sort -u)" \
+    || die 2 "Pfade der Historie nicht lesbar: $target"
+  problems="$(
+    {
+      LC_ALL=C comm -23 <(printf '%s\n' "$all") <(LC_ALL=C sort -u "$META/paths")
+      printf '%s\n' "$all" | grep -E "$FORBIDDEN_ERE" || true
+    } | grep -v '^$' | LC_ALL=C sort -u || true
+  )"
+  if [ -n "$problems" ]; then
+    printf '%s\n' "$problems" | sed 's/^/A2: /'
+    return 1
+  fi
+  echo "A2 ok: $(printf '%s\n' "$all" | grep -c .) Pfade in der Historie, alle in der Liste, keiner in einem verbotenen Bereich"
+}
+
+# check_a4 <ziel> – keine Commit-Message enthält ein unqualifiziertes #<nr>.
+check_a4() {
+  local target="$1" hits rc=0
+  hits="$(git -C "$target" log --all --format=%B | rules_py find "$RULES_FILE")" || rc=$?
+  [ "$rc" -le 1 ] || die 2 "Commit-Messages nicht prüfbar (Exit $rc)"
+  if [ "$rc" -eq 1 ]; then
+    printf '%s\n' "$hits" | sed 's/^/A4: /'
+    return 1
+  fi
+  echo "A4 ok: keine Commit-Message mit unqualifiziertem #<nr>"
+}
+
+# check_a3 <ziel> – je Factory-Datei reicht `--follow` im Ziel über dieselben Namen wie in TCH.
+check_a3() {
+  local target="$1" file src_names dst_names checked=0 renamed=0 bad=0
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    checked=$((checked + 1))
+    if ! git -C "$target" cat-file -e "HEAD:$file" 2>/dev/null; then
+      echo "A3: $file fehlt im Ziel"
+      bad=1
+      continue
+    fi
+    src_names="$(follow_names "$FACTORY_DIR" "$SOURCE_COMMIT" "$file")" || die 2 "--follow in TCH fehlgeschlagen: $file"
+    dst_names="$(follow_names "$target" HEAD "$file")" || die 2 "--follow im Ziel fehlgeschlagen: $file"
+    if [ "$src_names" != "$dst_names" ]; then
+      echo "A3: $file – --follow weicht ab (TCH: $(printf '%s ' $src_names)/ Ziel: $(printf '%s ' $dst_names))"
+      bad=1
+    elif [ "$(printf '%s\n' "$src_names" | grep -c .)" -gt 1 ]; then
+      renamed=$((renamed + 1))
+      echo "A3 Altpfad: $file ← $(printf '%s\n' "$src_names" | grep -vxF -- "$file" | tr '\n' ' ')"
+    fi
+  done < "$META/files"
+  [ "$bad" -eq 0 ] || return 1
+  echo "A3 ok: $checked Factory-Dateien, $renamed davon mit Altpfad – --follow reicht im Ziel genauso weit zurück"
+}
+
+# check_a5 <ziel> – Autor und Datum jedes umgeschriebenen Commits wie in TCH (commit-map von filter-repo).
+check_a5() {
+  local target="$1" map="$1/.git/filter-repo/commit-map" old new before after compared=0 bad=0
+  [ -r "$map" ] || die 2 "commit-map fehlt: $map (lief filter-repo?)"
+  while read -r old new; do
+    [ "$old" != old ] || continue
+    [ "$new" != "$NULL_COMMIT" ] || continue
+    before="$(git -C "$FACTORY_DIR" show -s --format="$A5_FORMAT" "$old")" || die 2 "Commit $old fehlt in $FACTORY_DIR"
+    after="$(git -C "$target" show -s --format="$A5_FORMAT" "$new")" || die 2 "Commit $new fehlt im Ziel"
+    compared=$((compared + 1))
+    if [ "$before" != "$after" ]; then
+      echo "A5: $old → $new: Autor/Datum weichen ab ($before / $after)"
+      bad=1
+    fi
+  done < "$map"
+  [ "$compared" -gt 0 ] || die 2 "commit-map ohne Einträge: $map (fail-closed)"
+  [ "$bad" -eq 0 ] || return 1
+  echo "A5 ok: $compared Commits mit unverändertem Autor und Datum"
+}
+
+# is_allowed <adresse> – trifft ein Muster der Erlaubt-Liste?
+is_allowed() {
+  local address="$1" pattern
+  while IFS= read -r pattern; do
+    case "$pattern" in ''|'#'*) continue ;; esac
+    # shellcheck disable=SC2254 # das Muster ist bewusst ein Glob
+    case "$address" in $pattern) return 0 ;; esac
+  done < "$ALLOW_FILE"
+  return 1
+}
+
+# scan_emails <ziel> – E-Mail-Muster über alle Blobs aller Commits (B2); Funde mit Datei (FS1).
+scan_emails() {
+  local target="$1" addresses address files total=0 bad=0
+  addresses="$(
+    git -C "$target" rev-list --all --objects | awk '{ print $1 }' \
+      | git -C "$target" cat-file --batch-check='%(objecttype) %(objectname)' \
+      | awk '$1 == "blob" { print $2 }' \
+      | git -C "$target" cat-file --batch \
+      | { LC_ALL=C grep -aoE "$EMAIL_ERE" || true; } \
+      | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C sort -u
+  )" || die 2 "Blobs nicht lesbar: $target"
+  while IFS= read -r address; do
+    [ -n "$address" ] || continue
+    total=$((total + 1))
+    is_allowed "$address" && continue
+    files="$(git -C "$target" log --all -i -S"$address" --format= --name-only | grep -v '^$' | LC_ALL=C sort -u | tr '\n' ' ')"
+    echo "$address (${files% })"
+    bad=1
+  done <<< "$addresses"
+  [ "$bad" -eq 0 ] || return 1
+  echo "$total Adressen, alle in der Erlaubt-Liste"
+}
+
+cmd_paths() {
+  local out
+  out="$(list_paths "$FACTORY_DIR")" || exit 2
+  printf '%s\n' "$out"
+}
+
+cmd_run() {
+  local target="$1" source_git meta
+  require_tool "$FILTER_REPO_CMD" "Installation z. B. per 'brew install git-filter-repo'"
+  require_tool python3 "wird für die Umschreibregel gebraucht"
+  [ ! -e "$target" ] || die 2 "Ziel existiert bereits: $target (frischen Pfad wählen)"
+  source_git="$(git -C "$FACTORY_DIR" rev-parse --path-format=absolute --git-common-dir)" || die 2 "kein Git-Repo: $FACTORY_DIR"
+  assert_main_current
+  git clone -q --no-local --single-branch --branch main "$source_git" "$target" || die 2 "Klon fehlgeschlagen: $target"
+  target="$(cd "$target" && pwd -P)"
+  meta="$target/.git/factory-extract"
+  mkdir -p "$meta"
+  git -C "$target" rev-parse HEAD > "$meta/source-commit"
+  list_factory_files "$target" > "$meta/files" || die 2 "Factory-Dateien nicht ermittelbar"
+  list_paths "$target" > "$meta/paths" || die 2 "Pfadliste nicht ermittelbar"
+  (cd "$target" && "$FILTER_REPO_CMD" --paths-from-file "$meta/paths" --replace-message "$RULES_FILE") \
+    || die 2 "filter-repo fehlgeschlagen in $target"
+  echo "factory-extract: herausgelöst nach $target (TCH-Commit $(cat "$meta/source-commit"), $(grep -c . "$meta/paths") Pfade)"
+}
+
+cmd_verify() {
+  local target="$1" failed=0
+  require_tool python3 "wird für die Umschreibregel gebraucht"
+  load_meta "$target"
+  check_a2 "$target" || failed=1
+  check_a4 "$target" || failed=1
+  check_a3 "$target" || failed=1
+  check_a5 "$target" || failed=1
+  exit "$failed"
+}
+
+# report_row <prüfung> <rc> <details> – eine Zeile der Ergebnistabelle.
+report_row() {
+  local mark="✓"
+  [ "$2" -eq 0 ] || mark="✗"
+  echo "| $1 | $mark | $(printf '%s\n' "$3" | grep -v '^$' | tr '\n' ';' | sed 's/;$//; s/;/; /g') |"
+}
+
+cmd_scan() {
+  local target="$1" leaks_out leaks_rc=0 b2_out b2_rc=0 a2_out a2_rc=0 filter_repo_version
+  require_tool "$GITLEAKS_CMD" "Installation z. B. per 'brew install gitleaks'"
+  [ -r "$ALLOW_FILE" ] || die 2 "Erlaubt-Liste nicht lesbar: $ALLOW_FILE"
+  load_meta "$target"
+  leaks_out="$("$GITLEAKS_CMD" git --no-banner --redact --log-opts=--all "$target" 2>&1)" || leaks_rc=$?
+  b2_out="$(scan_emails "$target")" || b2_rc=$?
+  a2_out="$(check_a2 "$target")" || a2_rc=$?
+  [ "$b2_rc" -le 1 ] && [ "$a2_rc" -le 1 ] || exit 2
+  filter_repo_version="$("$FILTER_REPO_CMD" --version 2>/dev/null || echo 'nicht gefunden')"
+
+  echo "## Scan-Bericht factory-extract"
+  echo ""
+  echo "| Kennzahl | Wert |"
+  echo "|---|---|"
+  echo "| TCH-Commit (Quelle) | \`$SOURCE_COMMIT\` |"
+  echo "| Commits | $(git -C "$target" rev-list --all --count) |"
+  echo "| Dateien im Ziel (HEAD) | $(git -C "$target" ls-tree -r --name-only HEAD | grep -c .) |"
+  echo "| Pfade in der Liste (A1) | $(grep -c . "$META/paths") |"
+  echo "| git | $(git --version | sed 's/^git version //') |"
+  echo "| git-filter-repo | $filter_repo_version |"
+  echo "| gitleaks | $("$GITLEAKS_CMD" version 2>&1 | head -1) |"
+  echo "| python3 | $(python3 --version 2>&1 | sed 's/^Python //') |"
+  echo ""
+  echo "| Prüfung | Ergebnis | Details |"
+  echo "|---|---|---|"
+  report_row A2 "$a2_rc" "$a2_out"
+  if [ "$leaks_rc" -eq 0 ]; then
+    report_row B1 0 "gitleaks über alle Commits: kein Fund"
+  else
+    report_row B1 1 "gitleaks Exit $leaks_rc – Fund oder Fehler, Ausgabe unten"
+  fi
+  report_row B2 "$b2_rc" "$b2_out"
+  if [ "$leaks_rc" -ne 0 ]; then
+    echo ""
+    echo "gitleaks-Ausgabe (redigiert):"
+    echo ""
+    echo '```'
+    printf '%s\n' "$leaks_out"
+    echo '```'
+  fi
+  [ "$leaks_rc" -eq 0 ] && [ "$b2_rc" -eq 0 ] && [ "$a2_rc" -eq 0 ] || exit 1
+}
+
+cmd_qualify() {
+  local target="$1" file
+  [ -d "$target" ] || die 2 "Verzeichnis fehlt: $target"
+  require_tool python3 "wird für die Umschreibregel gebraucht"
+  git -C "$target" ls-files -z | while IFS= read -r -d '' file; do
+    case "$file" in
+      *.md) rules_py md "$RULES_FILE" "$target/$file" ;;
+      *.sh) rules_py sh "$RULES_FILE" "$target/$file" ;;
+    esac || exit 2
+  done
+}
+
+case "${1:-}" in
+  paths) [ "$#" -eq 1 ] || usage; cmd_paths ;;
+  run|verify|scan|qualify) [ "$#" -eq 2 ] || usage; "cmd_$1" "$2" ;;
+  *) usage ;;
+esac
