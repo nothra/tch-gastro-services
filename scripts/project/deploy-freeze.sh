@@ -13,10 +13,10 @@
 # festgehalten (deploy-freeze-notify.sh), nicht im Ref.
 #
 # Verwendung:
-#   bash scripts/deploy-freeze.sh set <sha> <grund>   # Freeze setzen (nicht überschreiben)
-#   bash scripts/deploy-freeze.sh check               # Exit 0=frozen, 10=frei, sonst=unklar
-#   bash scripts/deploy-freeze.sh release             # Freeze aufheben (idempotent)
-#   bash scripts/deploy-freeze.sh status              # blockierenden SHA ausgeben
+#   bash scripts/project/deploy-freeze.sh set <sha> <grund>   # Freeze setzen (nicht überschreiben)
+#   bash scripts/project/deploy-freeze.sh check               # Exit 0=frozen, 10=frei, sonst=unklar
+#   bash scripts/project/deploy-freeze.sh release             # Freeze aufheben (idempotent)
+#   bash scripts/project/deploy-freeze.sh status              # blockierenden SHA ausgeben
 #
 # Exit-Codes (dokumentiert, ADR-032):
 #   check → 0  = eingefroren
@@ -36,7 +36,7 @@ FREEZE_REF="${FREEZE_REF:-refs/factory/deploy-freeze}"
 CMD="${1:-}"
 
 usage() {
-  echo "Verwendung: bash scripts/deploy-freeze.sh {set <sha> <grund>|check|release|status}" >&2
+  echo "Verwendung: bash scripts/project/deploy-freeze.sh {set <sha> <grund>|check|release|status}" >&2
 }
 
 # Gibt die Ref-Zeile aus ls-remote zurück (stdout) und den ls-remote-Exit-Code (Rückgabe).
@@ -79,7 +79,7 @@ freeze_status() {
 freeze_set() {
   local sha="${1:-}" grund="${2:-}"
   if [ -z "$sha" ] || [ -z "$grund" ]; then
-    echo "Verwendung: bash scripts/deploy-freeze.sh set <sha> <grund>" >&2
+    echo "Verwendung: bash scripts/project/deploy-freeze.sh set <sha> <grund>" >&2
     return 1
   fi
 

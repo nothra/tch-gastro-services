@@ -28,7 +28,7 @@ Der Refresh wird als zusätzliche Schritte **in `deploy-gate.yml`** ausgeführt,
 `INT auf diesen Commit bringen` und **vor** dem Warten auf den Build und den E2E:
 
 1. **Reset** des INT-Branches auf den PRD-Head via Neon-Restore-API
-   (`scripts/neon-reset-int.sh`, pollt die Neon-Operationen bis `finished`).
+   (`scripts/project/neon-reset-int.sh`, pollt die Neon-Operationen bis `finished`).
 2. **Anonymisieren** (`pnpm db:anonymize:int`, Guard `NEXT_PUBLIC_STAGE=int`).
 3. **Migrieren** (`pnpm db:migrate:int`) – testet ausstehende Migrationen auf prod-nahen Daten.
 4. **Seed** (`pnpm db:seed:int`) – setzt den bekannten INT-Admin (= E2E-Login).

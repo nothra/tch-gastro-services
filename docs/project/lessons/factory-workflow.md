@@ -24,7 +24,7 @@ Metadaten-Routen. Wird künftig eine solche Datei (`sitemap.ts`, `robots.ts`, `i
 hinzugefügt, den entsprechenden Pfad **manuell** in die Prosa-Notiz von `docs/routes.md` aufnehmen
 (kein Automatismus fängt das). Wer den Drift-Check erweitern will, muss das Ableitungs-Muster für
 diese Konventionen separat definieren **und** per Fixture testen (analog zum bestehenden
-Route-Group-/`_private`-Fall in `run-tests.sh`).
+Route-Group-/`_private`-Fall in `scripts/project/tests/run-project-tests.sh`).
 
 ### Neuer Worktree hat kein `.env.local` → irreführender `CredentialsSignin`-Fehlschlag beim ersten E2E-Lauf, keine echte Regression (aus #228, /implement-Selbstfund)
 

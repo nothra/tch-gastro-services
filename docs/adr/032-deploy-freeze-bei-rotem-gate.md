@@ -44,7 +44,7 @@ vorhandenen `contents: write`-`GITHUB_TOKEN` + `fetch-depth: 0` setz-, les- und 
 bleibt vom Ruleset `protect-main` (Factory-ADR-029) geschützt; `refs/factory/*` liegt außerhalb dessen
 Geltungsbereichs.
 
-**2 – Freeze-Logik in ein testbares Skript `scripts/deploy-freeze.sh` extrahieren** (Subkommandos
+**2 – Freeze-Logik in ein testbares Skript `scripts/project/deploy-freeze.sh` extrahieren** (Subkommandos
 `set <sha> <grund>`, `check`, `release`, `status`). Klare, dokumentierte Exit-Codes:
 `check` → `0` = eingefroren, `10` = nicht eingefroren, alles andere = **unklar/nicht lesbar**.
 Remote/Ref über Env überschreibbar (`FREEZE_REMOTE`, `FREEZE_REF`), damit die Vorfall-Simulation
@@ -89,7 +89,7 @@ idempotent + Tracking-Issue schließen). Nur Personen mit Repo-Schreibrecht kön
 Actions-Lauf protokolliert **wer** freigegeben hat. Voraussetzung (dokumentiert in README/Runbook):
 Fix gemergt **und** verifiziert. Nach Freigabe promotet der nächste grüne Gate-Lauf wieder regulär.
 
-**7 – Konsistenz/Simulations-Test** in `scripts/checks/tests/run-tests.sh` (Stil der #114/#117/#164-
+**7 – Konsistenz/Simulations-Test** in `scripts/project/tests/run-project-tests.sh` (Projekt-Suite, seit #432; Stil der #114/#117/#164-
 Guards): gegen ein temporäres Bare-Repo `set → check(frozen) → check bleibt frozen (simulierter
 grüner Folgelauf) → release → check(not-frozen)`, plus Nachweis, dass `frozen=true` den Promote-Pfad
 überspringt. Das ist die maschinelle Fassung der Vorfall-Sequenz #134-rot → #167-grün.
@@ -145,7 +145,7 @@ Position stärkt die ADR-017-Kopplung (nie Schema ohne Code).
 - Ein rotes Gate über echten Code-/Migrationsdefekt friert die Produktion ein; ein späterer
   (evtl. flaky-) grüner Lauf promotet nicht, bis ein Mensch nach Fix+Verifikation freigibt.
 - `main`-Fortschritt (Merges, Gate-Läufe) bleibt unberührt – nur der Promote pausiert.
-- Die Schutzlogik ist über `scripts/deploy-freeze.sh` + Bare-Repo-Test **verankert** und gegen
+- Die Schutzlogik ist über `scripts/project/deploy-freeze.sh` + Bare-Repo-Test **verankert** und gegen
   versehentliches Zurückdrehen abgesichert.
 - Kein Prod-DB-Schema-Drift während eines Freezes (Check vor PRD-Migration).
 

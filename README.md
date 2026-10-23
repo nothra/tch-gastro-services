@@ -85,7 +85,7 @@ Fehlen sie, wird der Refresh mit Warnung übersprungen (kein Reset = keine neue 
 
 **Manueller Refresh-/Testfluss** (lokal, identische Schritte):
 ```bash
-# (Neon: int-Branch von PRD zurücksetzen = frische Prod-Daten; CI nutzt scripts/neon-reset-int.sh)
+# (Neon: int-Branch von PRD zurücksetzen = frische Prod-Daten; CI nutzt scripts/project/neon-reset-int.sh)
 pnpm db:anonymize:int    # Namen/E-Mails überschreiben, Prod-Passwörter entwerten (Guard: nur STAGE=int)
 pnpm db:migrate:int      # ausstehende Migrationen auf INT testen (vor PRD)
 pnpm db:seed:int         # bekannten INT-Admin (SEED_ADMIN_*) setzen
@@ -175,8 +175,8 @@ durch einen späteren, evtl. **flaky-grünen** Lauf still überholt werden (Vorf
   **GitHub → Actions → *Deploy-Freeze aufheben (Freigabe)* → *Run workflow*** (Grund angeben).
   Er löscht das Ref (idempotent) und schließt das Tracking-Issue; der Lauf protokolliert, **wer**
   freigegeben hat. Der **nächste grüne** Gate-Lauf promotet wieder regulär.
-  Notfalls per CLI: `bash scripts/deploy-freeze.sh release` (setzt Repo-Schreibrecht + `origin`
-  voraus); `bash scripts/deploy-freeze.sh status` zeigt den blockierenden SHA.
+  Notfalls per CLI: `bash scripts/project/deploy-freeze.sh release` (setzt Repo-Schreibrecht + `origin`
+  voraus); `bash scripts/project/deploy-freeze.sh status` zeigt den blockierenden SHA.
 
 > Die Env-Dateien `.env.local` / `.env.int` / `.env.prd` sind **gitignored** – Secrets nie committen.
 > Secret erzeugen: `openssl rand -base64 32` (**nicht** `npx auth secret` – zieht das falsche CLI).

@@ -117,6 +117,16 @@ pnpm test:e2e
 
 ---
 
+## Lokale Umgebung & Oberflächentests
+
+Details und Kommandos: [`docs/project/betrieb.md`](../project/betrieb.md).
+
+- **Setup:** `pnpm install` · `.env.local` · `pnpm db:up` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm dev`
+- **Oberflächentests** (UI-Tasks, zusätzlich zu den Gates): `pnpm test:e2e` (Playwright, startet den Dev-Server selbst) + interaktiv gegen `pnpm dev`
+- **Stage 3:** E2E nur mit laufender DB; sonst Nachtest in der Task-Datei vermerken
+
+---
+
 ## Code-Qualität
 
 ```bash
@@ -356,6 +366,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Als „separat geflaggt"/„Hinweis-Ebene" markierter Out-of-Scope-Fund bleibt Session-Notiz statt sofort kanonisch (Issue/`kleinfunde.md`) verankert zu werden – Klassifizierung und Anlage gehören in denselben Schritt, nicht als Orchestrator-Nacharbeit (aus #345, Orchestrator-Selbstfund) → `/review`, `/security-review`, `/test`, `/refactor`, `/codify` – sobald ein eigener Report das Wort „separat geflaggt"/„Hinweis-Ebene"/„außerhalb des Scopes" für einen Fund verwendet
 - Repo-weiter Referenz-Scanner (`git grep`/`git ls-files`) nimmt `tasks/patch-*.diff` per Pathspec aus – der Patch trägt den künftigen Stand, seine Ziele existieren erst nach `git apply` (aus #426, /implement-Selbstfund) → `/implement`, `/review` – bei neuem Check über alle getrackten Dateien
 - Libs relativ zum Skript sourcen statt zu `FACTORY_DIR` (Tests überschreiben es → ~60 Falsch-Rot am `source`); vor dem Entfernen eines impliziten Defaults alle Fixtures zählen; `env -u`-Reihenfolge des #264-Guards (aus #431, /implement-Selbstfund) → `/implement`, `/refactor` – bei neuer gesourcter Lib in einem Skript mit überschreibbarem `FACTORY_DIR` bzw. beim Entfernen eines Defaults, den Test-Wegwerf-Repos implizit nutzen
+- Tests zwischen Suiten umgezogen: Prosa-Verweise auf den alten Testort (ADR, Lesson) im selben PR nachziehen, toten Patch-Zweig nach dem Anwenden entfernen, Anker gegen den Wortlaut der übernommenen Quelle statt gegen neue Zusammenfassungen setzen (aus #432, Review-Iteration 1/`/refactor`) → `/implement`, `/review`, `/refactor` – bei Umzug/Split von Tests oder Test zu einer `.claude/**`-Patch-Lieferung
 
 #### Projekt-Lessons (`docs/project/lessons/`)
 

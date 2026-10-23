@@ -73,3 +73,9 @@ jobs:
             exit 1
           fi
           eval "$FACTORY_TEST_COMMAND"
+      # Projekt-Suite (#432, Q10): Tests der projekteigenen Dateien (Routen-Doku-Check, Deploy-Freeze,
+      # Deploy-Workflows). Läuft im Required Check `test` – ein Fehlschlag macht ihn rot (kein Check-Name neu).
+      - name: yq bereitstellen
+        run: sudo bash scripts/install-yq.sh
+      - name: Projekt-Suite
+        run: bash scripts/project/tests/run-project-tests.sh
