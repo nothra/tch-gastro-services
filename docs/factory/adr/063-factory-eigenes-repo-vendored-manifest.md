@@ -328,8 +328,9 @@ Grundsatzentscheidung.
 
 ## Nachtrag 2026-10-23 · Detailentscheidungen aus T1b (Spec #427, Q1–Q6)
 
-Entschieden mit dem Entwickler; sie verfeinern D5/D6/D9/D11. Zwei Punkte **weichen** vom
-ursprünglichen Wortlaut ab und sind als solche markiert (D6-Versionsangabe, D9-Lint).
+Entschieden mit dem Entwickler; sie verfeinern D5/D6/D9/D11. Drei Punkte **weichen** vom
+ursprünglichen Wortlaut ab und sind als solche markiert (D5-Begriffs-Grep vor dem Push,
+D6-Versionsangabe, D9-Lint).
 
 - **Q6 · Schnitt von T1b:** T1b wird in zwei nacheinander laufende Tasks geteilt.
   **T1b-1 (#427, nur TCH):** dieser Nachtrag, das Herauslöse-Werkzeug mit Tests und ein Probelauf
@@ -345,29 +346,41 @@ ursprünglichen Wortlaut ab und sind als solche markiert (D6-Versionsangabe, D9-
   - `run <ziel>` – `git clone --no-local` von TCH-`main` nach `<ziel>`, dort
     `git filter-repo --paths-from-file <paths> --replace-message <regeln>`; der Arbeitsklon und
     sein `origin` bleiben unberührt (AK X2).
-  - `verify <ziel>` – A2 (alle Pfade aller Commits ⊆ Liste), A4 (kein unqualifiziertes `#<nr>` in
-    Messages), A3 (`--follow`-Stichprobe), A5 (Autor/Datum gegen TCH).
+  - `verify <ziel>` – A2 (alle Pfade aller Commits ⊆ Liste, keiner in einem App-/TCH-Bereich),
+    A3 (`--follow` jeder Factory-Datei reicht im Ziel über dieselben Namen wie in TCH),
+    A4 (kein unqualifiziertes `#<nr>` in Messages), A5 (Autor/Datum gegen TCH, über die commit-map
+    von filter-repo).
   - `scan <ziel>` – `gitleaks` über alle Commits, E-Mail-Muster über alle Blobs
     (`git rev-list --all --objects`) gegen die Erlaubt-Liste `scripts/project/factory-extract.allow`;
-    schreibt den Scan-Bericht (Markdown) nach stdout.
+    schreibt den Scan-Bericht (Markdown) nach stdout. Falsch-Positive von gitleaks stehen in
+    `scripts/project/factory-extract.gitleaksignore` (je Eintrag ein gitleaks-Fingerprint mit
+    Begründungskommentar darüber, übergeben per `--gitleaks-ignore-path`); ein Eintrag ohne
+    Begründung bricht den Scan ab, und der Bericht listet jeden ausgenommenen Fingerprint mit seiner
+    Begründung (AK B1).
   - `qualify <ziel>` – schreibt TCH-Nummern im **Inhalt** des Arbeitsbaums aus (C3; in T1b-2
     im Bereinigungs-PR aufgerufen): Markdown vollständig, Shell-Skripte **nur in Kommentarzeilen**
     (erstes Nicht-Leerzeichen `#`, nicht `#!`), damit Test-Fixtures wie `"Closes #42"` unverändert
-    bleiben. Was der Regel entgeht, findet die Durchsicht im PR-Diff.
+    bleiben. Andere Dateitypen (z. B. YAML-Kommentare) fasst `qualify` nicht an. Was der Regel
+    entgeht oder was sie fälschlich trifft (Abschnittsnummern wie `ADR-009 #7`), findet die
+    Durchsicht im PR-Diff.
 
   `git-filter-repo` und `gitleaks` sind Entwickler-Werkzeuge (lokal, kein CI); fehlt eines, bricht
   das Skript fail-closed mit Installationshinweis ab; ihre Versionen stehen im Scan-Bericht.
 - **Umschreibregel (A4/C3):** genau eine Regel in `scripts/project/factory-extract.rules`, von
-  `run` (Messages) und `qualify` (Inhalt) gemeinsam gelesen: unqualifiziertes `#<ziffern>` als
-  ganzes Wort, dem kein Wortzeichen, `/`, `.` oder `-` vorausgeht →
-  `nothra/tch-gastro-services#<ziffern>`. Bereits qualifizierte Verweise (`owner/repo#n`) und
-  Farbcodes wie `#1e40af` bleiben. **Konvention ab jetzt:** Im Factory-Repo steht vor jeder
+  `run` (Messages) und `qualify` (Inhalt) gemeinsam gelesen: unqualifiziertes `#<ziffern>` (ein
+  bis fünf Ziffern) als ganzes Wort, dem kein Wortzeichen, `/`, `.`, `-` oder `&` und nicht `](`
+  vorausgeht → `nothra/tch-gastro-services#<ziffern>`. Bereits qualifizierte Verweise
+  (`owner/repo#n`), Farbcodes wie `#1e40af` oder `#333333`, HTML-Entities wie `&#8212;` und
+  Markdown-Sprunganker wie `](#12-abschnitt)` bleiben. **Konvention ab jetzt:** Im Factory-Repo steht vor jeder
   TCH-Nummer der Repo-Slug; unqualifiziertes `#<nr>` meint das Factory-Repo selbst.
-- **Altpfade, die in TCH noch leben:** `CLAUDE.md`, `.claude/settings.json` und `.gitignore` sind
-  Altpfade von Factory-Dateien, existieren in TCH aber weiter als Projekt-Dateien. Sie kommen daher
-  mit ihrer TCH-Fassung ins Factory-Repo; der Bootstrap-PR ersetzt sie durch die eigenen Fassungen
-  des Factory-Repos (dessen `CLAUDE.md`, zusammengesetzte `settings.json`/`.gitignore` aus eigenen
-  Projekt-Fragmenten). Ihr alter Inhalt bleibt in der Historie – er ist über TCH ohnehin öffentlich.
+- **Altpfade, die in TCH noch leben:** `CLAUDE.md` und `.claude/settings.json` sind Altpfade von
+  Factory-Dateien (`FACTORY.md`, `settings.factory.json`), existieren in TCH aber weiter als
+  Projekt-Dateien. Sie kommen daher mit ihrer TCH-Fassung ins Factory-Repo; der Bootstrap-PR ersetzt
+  sie durch die eigenen Fassungen des Factory-Repos (dessen `CLAUDE.md`, zusammengesetzte
+  `settings.json` aus eigenen Projekt-Fragmenten). Ihr alter Inhalt bleibt in der Historie – er ist
+  über TCH ohnehin öffentlich. `.gitignore` ist laut Probelauf **kein** `--follow`-Altpfad von
+  `gitignore.factory` (Git erkennt die Aufteilung nicht als Umbenennung) und kommt nicht mit; der
+  Bootstrap-PR setzt sie aus den eigenen Fragmenten neu zusammen.
 - **Q5 · Reihenfolge im Factory-Repo:** (1) Bootstrap-Push = herausgelöste Historie, Inhalt
   unverändert, nur Messages umgeschrieben – nichts, was nicht schon über TCH öffentlich ist; erster
   Push mit `--no-verify`. (2) **Sofort** Ruleset `protect-main` (kein Bypass, PR-Pflicht, Squash,
@@ -375,6 +388,11 @@ ursprünglichen Wortlaut ab und sind als solche markiert (D6-Versionsangabe, D9-
   `lint`). (3) Bootstrap-PR (Factory-Issue #1): eigene Anpassungsstellen, `ci.yml`, Labels.
   (4) Bereinigungs-PR: `qualify` + Begriffs-Bereinigung. (5) Wegwerf-Probe. (6) Release.
   Bis (4) gemergt ist, stehen TCH-Begriffe auf `main`; vor dem Release sind sie weg (AK C1).
+  **Abweichung von D5:** Der dort verlangte Grep auf TCH-Domänenbegriffe **vor** dem ersten Push
+  entfällt; vor dem Push laufen nur Secret- und E-Mail-Scan (`scan`). Grund: Der Bootstrap-Push
+  enthält keinen Inhalt, der nicht schon über das öffentliche TCH-Repo öffentlich ist – TCH-Begriffe
+  sind dort kein Geheimnis, sondern nur im Factory-Repo fehl am Platz; sie verschwinden im
+  Bereinigungs-PR (4) unter CI und Ruleset, und C1 prüft das vor dem Release.
 - **Q4 · Besitz im Factory-Repo:** dort eine eigene `docs/factory/OWNERSHIP.md` im selben Format.
   Seite `factory` = ausgeliefert (heute die 111 Dateien der TCH-Liste); Seite `project` = gehört
   dem Factory-Repo selbst: `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `factory.config.yml`,

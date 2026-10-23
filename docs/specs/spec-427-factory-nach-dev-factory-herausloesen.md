@@ -121,8 +121,9 @@ Ruleset und der nicht rückholbare Bootstrap-Push brauchen eine Freigabe des Ent
   (z. B. `noreply@anthropic.com`, `*@example.*`, Test-Identitäten wie `t@t.com`); Adressen
   realer Personen kommen in Datei-Inhalten nicht vor (Autoren-Metadaten zählen nicht, A5).
 - [ ] **B3** GIVEN der Scan WHEN er abgeschlossen ist THEN liegt ein Scan-Bericht in der
-  Task-Datei und im PR-Body von TCH-PR #435: Werkzeug-Versionen, Ziel-Commit von TCH, Anzahl
-  Commits/Dateien, Ergebnis B1, B2 und A2.
+  Task-Datei und im PR-Body des TCH-PRs der jeweiligen Teil-Task (T1b-1: Probelauf, PR #435;
+  T1b-2: echter Lauf vor dem Push): Werkzeug-Versionen, Ziel-Commit von TCH, Anzahl
+  Commits/Dateien, Ergebnis B1 (inkl. jedes ausgenommenen Falsch-Positivs mit Begründung), B2 und A2.
 - [ ] **B4** GIVEN der Scan-Bericht WHEN der Bootstrap-Push ansteht THEN erfolgt er erst nach
   ausdrücklicher Freigabe des Entwicklers im Chat; ohne Freigabe oder bei offenem Fund aus B1/B2
   wird nicht gepusht (F5).

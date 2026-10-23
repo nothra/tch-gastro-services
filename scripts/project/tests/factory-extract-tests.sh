@@ -10,6 +10,12 @@ FX_SCRIPT="$SCRIPTS_DIR/project/factory-extract.sh"
 FX_RULES="$SCRIPTS_DIR/project/factory-extract.rules"
 FX_TMP="$(mktemp -d)"
 NULL_COMMIT_427=0000000000000000000000000000000000000000
+# Das Fixture-Repo im Kleinen: drei Factory-Dateien (eine mit Umlaut im Namen, gegen gequotete
+# Git-Pfade) und eine Factory-ADR, die von docs/adr/ nach docs/factory/adr/ zog – ihr Altpfad ist
+# der einzige Unterschied zwischen Dateiliste und Pfadliste. Beide LC_ALL=C sortiert.
+FX_FILES="$(printf '%s\n' docs/factory/OWNERSHIP.md docs/factory/adr/seam.md docs/factory/Überblick.md \
+  scripts/checks/ownership-check.sh)"
+FX_PATHS="$(printf '%s\n' docs/adr/seam.md "$FX_FILES")"
 
 # fx_git <repo> <git-argumente…> – Git mit fester Identität (Lesson #265: CI hat keinen Fallback).
 fx_git() { local repo="$1"; shift; git -C "$repo" -c user.email=t@t.com -c user.name=t "$@"; }
@@ -29,20 +35,28 @@ fx_ownership() {
 OWNEOF
 }
 
-# fx_source <repo> – TCH im Kleinen: eine Factory-ADR zog von docs/adr/ nach docs/factory/adr/,
-# daneben App-Code und eine App-ADR, die nie Factory waren.
+# fx_source <repo> [tch|extracted] – zwei Commits: Start, dann die Factory-ADR verschieben.
+#   tch (Default): wie TCH – dazu App-Code und eine App-ADR, Messages mit unqualifiziertem #<nr>
+#   extracted:     wie nach filter-repo – nur Factory-Pfade, Messages qualifiziert
 fx_source() {
-  git init -q -b main "$1"
-  mkdir -p "$1/docs/adr" "$1/app"
-  printf 'Zeile %s der Factory-ADR\n' 1 2 3 4 5 6 7 8 > "$1/docs/adr/seam.md"
-  echo 'export default function Page() {}' > "$1/app/page.tsx"
-  echo 'App-Entscheidung' > "$1/docs/adr/app.md"
-  fx_ownership "$1"
-  fx_git "$1" add -A
-  fx_git "$1" commit -qm "feat: start (#1)"
-  mkdir -p "$1/docs/factory/adr"
-  fx_git "$1" mv docs/adr/seam.md docs/factory/adr/seam.md
-  fx_git "$1" commit -qm "docs: adr verschieben (#2)"
+  local repo="$1" ref="#"
+  git init -q -b main "$repo"
+  mkdir -p "$repo/docs/adr"
+  printf 'Zeile %s der Factory-ADR\n' 1 2 3 4 5 6 7 8 > "$repo/docs/adr/seam.md"
+  fx_ownership "$repo"
+  echo 'Überblick' > "$repo/docs/factory/Überblick.md"
+  if [ "${2:-tch}" = tch ]; then
+    mkdir -p "$repo/app"
+    echo 'export default function Page() {}' > "$repo/app/page.tsx"
+    echo 'App-Entscheidung' > "$repo/docs/adr/app.md"
+  else
+    ref="nothra/tch-gastro-services#"
+  fi
+  fx_git "$repo" add -A
+  fx_git "$repo" commit -qm "feat: start (${ref}1)"
+  mkdir -p "$repo/docs/factory/adr"
+  fx_git "$repo" mv docs/adr/seam.md docs/factory/adr/seam.md
+  fx_git "$repo" commit -qm "docs: adr verschieben (${ref}2)"
 }
 
 echo ""
@@ -52,9 +66,8 @@ FX_SRC="$FX_TMP/src"
 fx_source "$FX_SRC"
 fx_paths_1="$(FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" paths)"
 assert_exit 0 "$?" "#427 A1: paths läuft auf dem Fixture-Repo durch"
-fx_expected="$(printf '%s\n' docs/adr/seam.md docs/factory/OWNERSHIP.md docs/factory/adr/seam.md scripts/checks/ownership-check.sh)"
-assert_true "$([ "$fx_paths_1" = "$fx_expected" ]; echo $?)" \
-  "#427 A1: Liste = --list factory + Altpfad, LC_ALL=C sortiert (war: $(printf '%s' "$fx_paths_1" | tr '\n' ' '))"
+assert_true "$([ "$fx_paths_1" = "$FX_PATHS" ]; echo $?)" \
+  "#427 A1: Liste = --list factory + Altpfad, LC_ALL=C sortiert, Umlaut-Pfad ungequotet (war: $(printf '%s' "$fx_paths_1" | tr '\n' ' '))"
 assert_absent "$fx_paths_1" "app/page.tsx" "#427 A1: App-Code steht nicht in der Liste"
 assert_absent "$fx_paths_1" "docs/adr/app.md" "#427 A1: eine App-ADR ohne Factory-Bezug steht nicht in der Liste"
 fx_paths_2="$(FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" paths)"
@@ -75,10 +88,12 @@ FX_Q="$FX_TMP/qualify"
 git init -q -b main "$FX_Q"
 cat > "$FX_Q/doku.md" <<'MDEOF'
 Siehe #42.
-Liste (#431, #432)
+Liste (#431, #432) und Kompositum #36-Gate
 bereits nothra/tch-gastro-services#7 und foo/bar#9
 Farbe #1e40af, Wort issue#12, Pfad a-#5, Punkt x.#6, Mischform #12abc
 Anker seite/#12
+Inhalt [0. Setup](#0-einmal-setup) und [1.2](#12-automatik) und [Abschnitt](#12)
+Entity &#8212; und Ziffern-Farbe #333333
 ## Überschrift
 MDEOF
 cat > "$FX_Q/skript.sh" <<'SHEOF'
@@ -89,6 +104,8 @@ echo "Closes #42"
 x=1 # Rest-Kommentar #8 hinter Code
 SHEOF
 echo 'name: x #77' > "$FX_Q/ci.yml"
+echo 'Außen #5' > "$FX_TMP/aussen.md"
+ln -s ../aussen.md "$FX_Q/link.md"
 fx_git "$FX_Q" add -A
 fx_git "$FX_Q" commit -qm init
 FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" qualify "$FX_Q"
@@ -96,10 +113,14 @@ assert_exit 0 "$?" "#427 qualify: läuft durch"
 fx_md="$(cat "$FX_Q/doku.md")"
 assert_contains_286 "$fx_md" "Siehe nothra/tch-gastro-services#42." "#427 Regel: #42 am Satzende wird qualifiziert"
 assert_contains_286 "$fx_md" "(nothra/tch-gastro-services#431, nothra/tch-gastro-services#432)" "#427 Regel: Klammer- und Komma-Liste wird qualifiziert"
+assert_contains_286 "$fx_md" "Kompositum nothra/tch-gastro-services#36-Gate" "#427 Regel: Kompositum mit Bindestrich (#36-Gate) wird qualifiziert"
 assert_contains_286 "$fx_md" "bereits nothra/tch-gastro-services#7 und foo/bar#9" "#427 Regel: schon qualifizierte Verweise bleiben"
 assert_contains_286 "$fx_md" "Farbe #1e40af, Wort issue#12, Pfad a-#5, Punkt x.#6, Mischform #12abc" \
   "#427 Regel: Farbcode, Wortzeichen/-/. davor und Ziffern+Buchstaben bleiben"
 assert_contains_286 "$fx_md" "Anker seite/#12" "#427 Regel: / direkt davor (Pfad-Anker) bleibt"
+assert_contains_286 "$fx_md" "Inhalt [0. Setup](#0-einmal-setup) und [1.2](#12-automatik) und [Abschnitt](#12)" \
+  "#427 Regel: Markdown-Sprunganker ](#…) bleiben"
+assert_contains_286 "$fx_md" "Entity &#8212; und Ziffern-Farbe #333333" "#427 Regel: HTML-Entity und sechsstelliger Ziffern-Farbcode bleiben"
 assert_contains_286 "$fx_md" "## Überschrift" "#427 Regel: Markdown-Überschrift bleibt"
 fx_sh="$(cat "$FX_Q/skript.sh")"
 assert_contains_286 "$fx_sh" "#!/usr/bin/env bash" "#427 qualify .sh: Shebang bleibt"
@@ -108,9 +129,13 @@ assert_contains_286 "$fx_sh" "  # eingerückt nothra/tch-gastro-services#5" "#42
 assert_contains_286 "$fx_sh" 'echo "Closes #42"' "#427 qualify .sh: String-Fixture in Code bleibt"
 assert_contains_286 "$fx_sh" "x=1 # Rest-Kommentar #8 hinter Code" "#427 qualify .sh: Code-Zeile mit Rest-Kommentar bleibt ganz"
 assert_contains_286 "$(cat "$FX_Q/ci.yml")" "name: x #77" "#427 qualify: andere Dateitypen bleiben unangetastet"
+assert_contains_286 "$(cat "$FX_TMP/aussen.md")" "Außen #5" "#427 qualify: Symlink wird übersprungen, nichts außerhalb des Ziels geändert"
 fx_before="$(cat "$FX_Q/doku.md" "$FX_Q/skript.sh")"
 FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" qualify "$FX_Q"
 assert_true "$([ "$fx_before" = "$(cat "$FX_Q/doku.md" "$FX_Q/skript.sh")" ]; echo $?)" "#427 qualify: zweiter Lauf ändert nichts (idempotent)"
+mkdir -p "$FX_TMP/kein-repo"
+bash "$FX_SCRIPT" qualify "$FX_TMP/kein-repo" >/dev/null 2>&1
+assert_exit 2 "$?" "#427 qualify: Ziel ohne Git-Repo → Exit 2"
 
 # Die Regeldatei hat genau eine Regel im filter-repo-Format (`regex:…==>…`) – dieselbe Datei
 # liest `run` für die Commit-Messages, die Tests oben belegen also auch die Message-Regel.
@@ -145,11 +170,12 @@ assert_exit 0 "$?" "#427 run: läuft mit Stub durch"
 fx_log="$(cat "$FX_STUB_LOG" 2>/dev/null)"
 fx_z_real="$(cd "$FX_Z" 2>/dev/null && pwd -P)"
 assert_contains_286 "$fx_log" "pwd=$fx_z_real" "#427 X2: filter-repo läuft im frischen Klon, nicht im Arbeitsklon"
-assert_contains_286 "$fx_log" "arg=--paths-from-file" "#427 run: filter-repo bekommt die Pfadliste"
+assert_contains_286 "$fx_log" "arg=--paths-from-file" "#427 run: filter-repo bekommt eine Pfadliste"
+assert_contains_286 "$fx_log" "arg=$fx_z_real/.git/factory-extract/paths" "#427 run: die Pfadliste ist die Metadaten-Datei des Klons"
 assert_contains_286 "$fx_log" "arg=--replace-message" "#427 run: filter-repo bekommt die Message-Regel"
 assert_contains_286 "$fx_log" "arg=$FX_RULES" "#427 run: Message-Regel ist factory-extract.rules"
 assert_true "$([ "$(cat "$FX_Z/.git/factory-extract/paths" 2>/dev/null)" = "$fx_paths_1" ]; echo $?)" \
-  "#427 run: die übergebene Pfadliste ist die paths-Ausgabe des geklonten Stands"
+  "#427 run: die Metadaten-Pfadliste ist die paths-Ausgabe des geklonten Stands"
 assert_true "$([ "$(cat "$FX_Z/.git/factory-extract/source-commit" 2>/dev/null)" = "$fx_src_head" ]; echo $?)" \
   "#427 run: Ziel-Commit von TCH ist festgehalten"
 assert_true "$([ "$(git -C "$FX_SRC" rev-parse HEAD)" = "$fx_src_head" ] && [ "$(git -C "$FX_SRC" for-each-ref)" = "$fx_src_refs" ] && [ -z "$(git -C "$FX_SRC" status --porcelain)" ]; echo $?)" \
@@ -170,43 +196,43 @@ assert_exit 2 "$?" "#427 run: lokales main ≠ origin/main → Exit 2"
 echo ""
 echo "#427 factory-extract.sh verify (A2–A5):"
 
-# fx_verify_pair <quelle> <ziel> – Quelle nur aus Factory-Pfaden, Ziel ein Klon davon, dazu die
-# Metadaten, die `run` schreibt, und eine identische commit-map, wie filter-repo sie hinterlässt.
+# fx_verify_pair <quelle> <ziel> – Quelle im Zustand „extracted", Ziel ein Klon davon mit den
+# Metadaten, die `run` schreibt, und einer identischen commit-map, wie filter-repo sie hinterlässt.
 fx_verify_pair() {
-  git init -q -b main "$1"
-  mkdir -p "$1/docs/adr"
-  printf 'Zeile %s der Factory-ADR\n' 1 2 3 4 5 6 7 8 > "$1/docs/adr/seam.md"
-  fx_ownership "$1"
-  fx_git "$1" add -A
-  fx_git "$1" commit -qm "feat: start (nothra/tch-gastro-services#1)"
-  mkdir -p "$1/docs/factory/adr"
-  fx_git "$1" mv docs/adr/seam.md docs/factory/adr/seam.md
-  fx_git "$1" commit -qm "docs: adr verschieben (nothra/tch-gastro-services#2)"
+  fx_source "$1" extracted
   git clone -q --no-local "$1" "$2"
   mkdir -p "$2/.git/factory-extract" "$2/.git/filter-repo"
   git -C "$1" rev-parse HEAD > "$2/.git/factory-extract/source-commit"
-  printf '%s\n' docs/factory/OWNERSHIP.md docs/factory/adr/seam.md scripts/checks/ownership-check.sh \
-    > "$2/.git/factory-extract/files"
-  printf '%s\n' docs/adr/seam.md docs/factory/OWNERSHIP.md docs/factory/adr/seam.md \
-    scripts/checks/ownership-check.sh > "$2/.git/factory-extract/paths"
+  printf '%s\n' "$FX_FILES" > "$2/.git/factory-extract/files"
+  printf '%s\n' "$FX_PATHS" > "$2/.git/factory-extract/paths"
   { echo "old new"; git -C "$1" rev-list --all | awk '{print $1 " " $1}'; } > "$2/.git/filter-repo/commit-map"
 }
 # fx_verify <quelle> <ziel> – Ausgabe von verify (stdout+stderr); Exit-Code in FX_RC.
 fx_verify() { FX_OUT="$(FACTORY_DIR="$1" bash "$FX_SCRIPT" verify "$2" 2>&1)"; FX_RC=$?; }
+# fx_assert_only <geprüfte-ak> <übrige-ak…> – Negativtest isoliert: jede übrige Prüfung meldet „ok".
+fx_assert_only() {
+  local failing="$1" other
+  shift
+  for other in "$@"; do
+    assert_contains_286 "$FX_OUT" "$other ok" "#427 $failing-Negativtest isoliert: $other bleibt grün"
+  done
+}
 
 fx_verify_pair "$FX_TMP/v-src" "$FX_TMP/v-ziel"
 fx_verify "$FX_TMP/v-src" "$FX_TMP/v-ziel"
 assert_exit 0 "$FX_RC" "#427 verify: sauberes Ziel → Exit 0"
-assert_contains_286 "$FX_OUT" "A3 ok" "#427 verify: A3 (--follow über den Altpfad) ist grün"
+fx_assert_only "(keiner)" A2 A3 A4 A5
 
+# A2: ein Pfad außerhalb der Liste, der in keinem verbotenen Bereich liegt – trifft nur die Teilmengen-Prüfung.
 fx_verify_pair "$FX_TMP/a2-src" "$FX_TMP/a2-ziel"
-mkdir -p "$FX_TMP/a2-ziel/app" && echo x > "$FX_TMP/a2-ziel/app/x.tsx"
-fx_git "$FX_TMP/a2-ziel" add -A && fx_git "$FX_TMP/a2-ziel" commit -qm "feat: app (nothra/tch-gastro-services#3)"
+echo x > "$FX_TMP/a2-ziel/docs/factory/fremd.md"
+fx_git "$FX_TMP/a2-ziel" add -A && fx_git "$FX_TMP/a2-ziel" commit -qm "docs: fremd (nothra/tch-gastro-services#3)"
 fx_verify "$FX_TMP/a2-src" "$FX_TMP/a2-ziel"
 assert_exit 1 "$FX_RC" "#427 A2: Pfad außerhalb der Liste → Exit 1"
-assert_contains_286 "$FX_OUT" "A2: app/x.tsx" "#427 A2: der fremde Pfad wird genannt"
-assert_absent "$FX_OUT" "A3:" "#427 A2: nur A2 schlägt an (Negativtest isoliert)"
+assert_contains_286 "$FX_OUT" "A2: docs/factory/fremd.md" "#427 A2: der fremde Pfad wird genannt"
+fx_assert_only A2 A3 A4 A5
 
+# A2/FS2: ein verbotener Bereich schlägt an, auch wenn der Pfad in der Liste steht.
 fx_verify_pair "$FX_TMP/a2b-src" "$FX_TMP/a2b-ziel"
 mkdir -p "$FX_TMP/a2b-ziel/tasks" && echo x > "$FX_TMP/a2b-ziel/tasks/t.md"
 echo "tasks/t.md" >> "$FX_TMP/a2b-ziel/.git/factory-extract/paths"
@@ -214,37 +240,37 @@ fx_git "$FX_TMP/a2b-ziel" add -A && fx_git "$FX_TMP/a2b-ziel" commit -qm "docs: 
 fx_verify "$FX_TMP/a2b-src" "$FX_TMP/a2b-ziel"
 assert_exit 1 "$FX_RC" "#427 A2/FS2: verbotener Bereich (tasks/) schlägt an, auch wenn er in der Liste steht"
 assert_contains_286 "$FX_OUT" "A2: tasks/t.md" "#427 A2/FS2: der Pfad im verbotenen Bereich wird genannt"
+fx_assert_only A2/FS2 A3 A4 A5
 
 fx_verify_pair "$FX_TMP/a4-src" "$FX_TMP/a4-ziel"
 fx_git "$FX_TMP/a4-ziel" commit -q --allow-empty -m "fix: etwas (#12)"
 fx_verify "$FX_TMP/a4-src" "$FX_TMP/a4-ziel"
 assert_exit 1 "$FX_RC" "#427 A4: unqualifiziertes #<nr> in einer Message → Exit 1"
 assert_contains_286 "$FX_OUT" "A4: fix: etwas (#12)" "#427 A4: die betroffene Message-Zeile wird genannt"
-assert_absent "$FX_OUT" "A2:" "#427 A4: nur A4 schlägt an (Negativtest isoliert)"
+fx_assert_only A4 A2 A3 A5
 
 fx_verify_pair "$FX_TMP/a5-src" "$FX_TMP/a5-ziel"
-git -C "$FX_TMP/a5-ziel" -c user.email=t@t.com -c user.name=t commit -q --allow-empty \
-  --author="Jemand Anders <x@example.com>" -m "docs: fremd (nothra/tch-gastro-services#4)"
+fx_git "$FX_TMP/a5-ziel" commit -q --allow-empty --author="Jemand Anders <x@example.com>" \
+  -m "docs: fremd (nothra/tch-gastro-services#4)"
 fx_a5_old="$(git -C "$FX_TMP/a5-src" rev-parse HEAD)"
 fx_a5_new="$(git -C "$FX_TMP/a5-ziel" rev-parse HEAD)"
 { echo "old new"; echo "$fx_a5_old $fx_a5_new"; } > "$FX_TMP/a5-ziel/.git/filter-repo/commit-map"
 fx_verify "$FX_TMP/a5-src" "$FX_TMP/a5-ziel"
 assert_exit 1 "$FX_RC" "#427 A5: abweichender Autor → Exit 1"
 assert_contains_286 "$FX_OUT" "A5: $fx_a5_old" "#427 A5: der betroffene Commit wird genannt"
-assert_absent "$FX_OUT" "A4:" "#427 A5: nur A5 schlägt an (Negativtest isoliert)"
+fx_assert_only A5 A2 A3 A4
 
 # A3: die Quelle hat einen Stand weiter umbenannt, das Ziel kennt den neuen Namen nicht.
 fx_verify_pair "$FX_TMP/a3-src" "$FX_TMP/a3-ziel"
 fx_git "$FX_TMP/a3-src" mv docs/factory/adr/seam.md docs/factory/adr/neu.md
 fx_git "$FX_TMP/a3-src" commit -qm "docs: umbenennen (nothra/tch-gastro-services#5)"
 git -C "$FX_TMP/a3-src" rev-parse HEAD > "$FX_TMP/a3-ziel/.git/factory-extract/source-commit"
-printf '%s\n' docs/factory/OWNERSHIP.md docs/factory/adr/neu.md scripts/checks/ownership-check.sh \
-  > "$FX_TMP/a3-ziel/.git/factory-extract/files"
+printf '%s\n' "$FX_FILES" | sed 's#adr/seam\.md#adr/neu.md#' > "$FX_TMP/a3-ziel/.git/factory-extract/files"
 printf '%s\n' docs/factory/adr/neu.md >> "$FX_TMP/a3-ziel/.git/factory-extract/paths"
 fx_verify "$FX_TMP/a3-src" "$FX_TMP/a3-ziel"
 assert_exit 1 "$FX_RC" "#427 A3/FS3: Factory-Datei fehlt im Ziel → Exit 1"
 assert_contains_286 "$FX_OUT" "A3: docs/factory/adr/neu.md" "#427 A3/FS3: die Datei wird genannt"
-assert_absent "$FX_OUT" "A5:" "#427 A3: nur A3 schlägt an (Negativtest isoliert)"
+fx_assert_only A3 A2 A4 A5
 
 # A3: die Datei ist im Ziel da, aber ohne ihren Altpfad – ein Ziel mit einem einzigen Commit, der
 # Autor und Datum des letzten TCH-Commits trägt (A5 grün), der erste TCH-Commit gilt als entfernt.
@@ -267,8 +293,7 @@ printf 'old new\n%s %s\n%s %s\n' "$fx_a3b_root" "$NULL_COMMIT_427" "$fx_a3b_head
 fx_verify "$FX_TMP/a3b-src" "$FX_TMP/a3b-ziel"
 assert_exit 1 "$FX_RC" "#427 A3/FS3: --follow reißt im Ziel am Altpfad ab → Exit 1"
 assert_contains_286 "$FX_OUT" "A3: docs/factory/adr/seam.md – --follow weicht ab" "#427 A3/FS3: die abreißende Datei wird genannt"
-assert_contains_286 "$FX_OUT" "A5 ok" "#427 A3: A5 bleibt grün (Negativtest isoliert)"
-assert_contains_286 "$FX_OUT" "A2 ok" "#427 A3: A2 bleibt grün (Negativtest isoliert)"
+fx_assert_only A3/FS3 A2 A4 A5
 
 fx_verify_pair "$FX_TMP/nomap-src" "$FX_TMP/nomap-ziel"
 rm -f "$FX_TMP/nomap-ziel/.git/filter-repo/commit-map"
@@ -292,6 +317,7 @@ STUBEOF
 chmod +x "$FX_STUB_DIR/gitleaks"
 FX_LEAKS_LOG="$FX_TMP/gitleaks.log"
 # fx_scan <quelle> <ziel> [leaks-rc] – Bericht (stdout+stderr) in FX_OUT, Exit-Code in FX_RC.
+# Weitere Umgebung (Listen-Pfade) als Präfix vor dem Aufruf: `FACTORY_EXTRACT_ALLOW=… fx_scan …`.
 fx_scan() {
   FX_OUT="$(FACTORY_DIR="$1" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_RC="${3:-0}" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
     bash "$FX_SCRIPT" scan "$2" 2>&1)"
@@ -299,13 +325,15 @@ fx_scan() {
 }
 
 fx_verify_pair "$FX_TMP/s-src" "$FX_TMP/s-ziel"
-echo "Kontakt: noreply@anthropic.com, demo@example.com, t@t.com" > "$FX_TMP/s-ziel/docs/factory/kontakt.md"
+fx_allowed_427="noreply@anthropic.com demo@example.com t@t.com"
+echo "Kontakt: ${fx_allowed_427// /, }" > "$FX_TMP/s-ziel/docs/factory/kontakt.md"
 fx_git "$FX_TMP/s-ziel" add -A && fx_git "$FX_TMP/s-ziel" commit -qm "docs: kontakt (nothra/tch-gastro-services#6)"
 printf '%s\n' docs/factory/kontakt.md >> "$FX_TMP/s-ziel/.git/factory-extract/paths"
 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 0 "$FX_RC" "#427 scan: kein Fund, nur erlaubte Adressen → Exit 0"
 assert_contains_286 "$FX_OUT" "8.99.0-stub" "#427 B3: Bericht nennt die gitleaks-Version"
 assert_contains_286 "$FX_OUT" "$(git -C "$FX_TMP/s-src" rev-parse HEAD)" "#427 B3: Bericht nennt den Ziel-Commit von TCH"
+# 3 = die zwei Commits aus fx_verify_pair + der Kontakt-Commit.
 assert_contains_286 "$FX_OUT" "| Commits | 3 |" "#427 B3: Bericht nennt die Anzahl Commits"
 assert_contains_286 "$FX_OUT" "| B1" "#427 B3: Bericht hat eine Zeile B1"
 assert_contains_286 "$FX_OUT" "| B2" "#427 B3: Bericht hat eine Zeile B2"
@@ -316,14 +344,20 @@ assert_contains_286 "$fx_leaks_args" "arg=--gitleaks-ignore-path" "#427 B1: gitl
 assert_contains_286 "$fx_leaks_args" "arg=$SCRIPTS_DIR/project/factory-extract.gitleaksignore" \
   "#427 B1: Falsch-Positiv-Liste ist factory-extract.gitleaksignore"
 
-# Die Zahl der ausgenommenen Falsch-Positive steht im Bericht (Kommentar- und Leerzeilen zählen nicht).
-printf '# Grund A\nabc:datei:regel:1\n\n# Grund B\ndef:datei:regel:2\n' > "$FX_TMP/ignore"
-FX_OUT="$(FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
-  FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore" bash "$FX_SCRIPT" scan "$FX_TMP/s-ziel" 2>&1)"
+# Jeder ausgenommene Falsch-Positiv steht einzeln mit seiner Begründung im Bericht (Spec B1); der
+# Kopfkommentar der Datei gehört zu keinem Eintrag (Leerzeile trennt).
+printf '# Kopf der Datei\n\n# Grund A,\n# zweite Zeile\nabc:datei:regel:1\n\n# Grund B\ndef:datei:regel:2\n' > "$FX_TMP/ignore"
+FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 0 "$FX_RC" "#427 B1: begründete Falsch-Positive → Exit 0"
 assert_contains_286 "$FX_OUT" "2 Falsch-Positive ausgenommen" "#427 B1/B3: Bericht nennt die Zahl der ausgenommenen Falsch-Positive"
-FX_OUT="$(FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
-  FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/gibt-es-nicht" bash "$FX_SCRIPT" scan "$FX_TMP/s-ziel" 2>&1)"
-assert_exit 2 "$?" "#427 B1: Falsch-Positiv-Liste nicht lesbar → Exit 2 (fail-closed)"
+assert_contains_286 "$FX_OUT" '- `abc:datei:regel:1` – Grund A, zweite Zeile' "#427 B1/B3: erster Falsch-Positiv mit mehrzeiliger Begründung"
+assert_contains_286 "$FX_OUT" '- `def:datei:regel:2` – Grund B' "#427 B1/B3: zweiter Falsch-Positiv mit Begründung"
+assert_absent "$FX_OUT" "Kopf der Datei" "#427 B1/B3: der Dateikopf ist keine Begründung"
+printf '# Kopf\n\nabc:datei:regel:1\n' > "$FX_TMP/ignore-ohne-grund"
+FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-ohne-grund" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 2 "$FX_RC" "#427 B1: Falsch-Positiv ohne Begründung → Exit 2 (fail-closed)"
+FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 2 "$FX_RC" "#427 B1: Falsch-Positiv-Liste nicht lesbar → Exit 2 (fail-closed)"
 
 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel" 1
 assert_exit 1 "$FX_RC" "#427 B1: gitleaks meldet Fund → Exit 1"
@@ -344,10 +378,11 @@ fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 1 "$FX_RC" "#427 B2: nicht erlaubte Adresse in einem alten Blob → Exit 1"
 assert_contains_286 "$FX_OUT" "max.muster@firma.de" "#427 B2/FS1: die Adresse wird genannt"
 assert_contains_286 "$FX_OUT" "docs/factory/alt.md" "#427 B2/FS1: die Datei der Adresse wird genannt"
-assert_absent "$FX_OUT" "| B2 | ✗ | demo@example.com" "#427 B2: erlaubte Adressen sind kein Fund"
+for fx_address in $fx_allowed_427; do
+  assert_absent "$FX_OUT" "$fx_address" "#427 B2: erlaubte Adresse $fx_address ist kein Fund"
+done
 
-FX_OUT="$(FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FACTORY_EXTRACT_ALLOW="$FX_TMP/gibt-es-nicht" \
-  bash "$FX_SCRIPT" scan "$FX_TMP/s-ziel" 2>&1)"
-assert_exit 2 "$?" "#427 B2: Erlaubt-Liste nicht lesbar → Exit 2 (fail-closed)"
+FACTORY_EXTRACT_ALLOW="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 2 "$FX_RC" "#427 B2: Erlaubt-Liste nicht lesbar → Exit 2 (fail-closed)"
 
 rm -rf "$FX_TMP"

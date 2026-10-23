@@ -32,10 +32,13 @@ Entscheidungen: ADR-063 → „Nachtrag 2026-10-23 · Detailentscheidungen aus T
 - **Neue Dateien (alle projekteigen, `scripts/project/**`):** `factory-extract.sh` mit
   `paths`, `run <ziel>`, `verify <ziel>`, `scan <ziel>`, `qualify <ziel>`;
   `factory-extract.rules` (einzige Umschreibregel, von `run` und `qualify` gelesen);
-  `factory-extract.allow` (Erlaubt-Liste E-Mail-Muster); Tests in `scripts/project/tests/`.
-- **Umschreibregel:** `#<ziffern>` als ganzes Wort, ohne vorangehendes Wortzeichen, `/`, `.`, `-`
-  → `nothra/tch-gastro-services#<ziffern>`. Gegenbeispiele testen: schon qualifiziert, Farbcode
-  `#1e40af`, `#!`, String-Fixture `"Closes #42"` in Shell-Code (bleibt, `qualify` fasst in `*.sh`
+  `factory-extract.allow` (Erlaubt-Liste E-Mail-Muster); `factory-extract.gitleaksignore`
+  (begründete gitleaks-Falsch-Positive, im Probelauf entstanden, ADR-Nachtrag nachgezogen);
+  Tests in `scripts/project/tests/factory-extract-tests.sh`.
+- **Umschreibregel:** `#<ziffern>` (1–5 Ziffern) als ganzes Wort, ohne vorangehendes Wortzeichen,
+  `/`, `.`, `-`, `&` und nicht nach `](` → `nothra/tch-gastro-services#<ziffern>`. Gegenbeispiele
+  getestet: schon qualifiziert, Farbcodes `#1e40af`/`#333333`, `&#8212;`, Sprunganker
+  `](#12-x)`, `#!`, String-Fixture `"Closes #42"` in Shell-Code (bleibt, `qualify` fasst in `*.sh`
   nur Kommentarzeilen an).
 - **TDD:** `paths` gegen Fixture-Repo mit Umbenennung (Altpfad muss erscheinen, fremde Datei
   nicht); Regel über `python3 re` (gleiches Regex-Dialekt wie `filter-repo --replace-message`),
@@ -98,11 +101,26 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
 - `CLAUDE.md` und `.claude/settings.json` kommen als Altpfade mit ihrer TCH-Fassung ins Ziel (ADR-063
   Nachtrag) – erwartet, kein A2-Verstoß; der Bootstrap-PR ersetzt sie.
 - `.gitignore` ist **kein** `--follow`-Altpfad von `docs/factory/gitignore.factory` (Git erkennt die
-  Aufteilung in #431 nicht als Umbenennung) und kommt daher nicht mit. Der ADR-Nachtrag nennt sie als
-  mögliche Altpfad-Datei; das ändert am Vorgehen nichts.
-- Der Fingerprint in `factory-extract.gitleaksignore` hängt am Commit-Hash im Ziel. filter-repo
-  schreibt deterministisch; solange der Initial-Commit gleich bleibt, passt er. Meldet `scan` den
-  Fund in T1b-2 erneut, ist nur der Fingerprint nachzuziehen.
+  Aufteilung in #431 nicht als Umbenennung) und kommt daher nicht mit; der ADR-Nachtrag ist im
+  Review-Rework entsprechend korrigiert.
+- Der Fingerprint in `factory-extract.gitleaksignore` hängt am Commit-Hash im Ziel, und der hängt an
+  Pfadliste, Umschreibregel und filter-repo-Version. Kommt bis T1b-2 eine Factory-Datei oder ein
+  Altpfad hinzu, ändern sich auch alte Hashes – dann meldet `scan` den Fund erneut, und nur der
+  Fingerprint ist nachzuziehen.
+- `qualify` aus dem TCH-Klon gegen den Pfad des Factory-Klons aufrufen
+  (`bash scripts/project/factory-extract.sh qualify <factory-klon>`); Grenzen, die die Durchsicht im
+  Bereinigungs-PR abfangen muss:
+  - Falschtreffer bei Abschnittsnummern wie `ADR-009 #7` oder `bash-gotchas #3` (9 Stellen in
+    `*.md`/`*.sh`, Stand Review 2026-10-23) – zurückdrehen;
+  - YAML-Kommentare (`factory-ci.yml`, `factory-poll.yml`, `factory.defaults.yml`,
+    `factory.config.yml.example`, zusammen ~21 `#<nr>`) fasst `qualify` nicht an – von Hand
+    qualifizieren;
+  - das Fixture `scripts/checks/tests/fixtures/lessons-split-426.tsv` (173 Treffer) bleibt Fixture.
+- `run` vergleicht `main` mit dem lokal bekannten `origin/main` – vorher `git fetch`, sonst gilt ein
+  veralteter Stand als „gemergt". Prüfen, dass der ADR-063-Nachtrag dieser Task auf `main` liegt.
+- Die Umschreibregel wurde im Review-Rework (Anker, Entities, Ziffern-Farbcodes) geändert. Gegen
+  alle 184 Commit-Messages von `origin/main` liefert die neue Regel dasselbe Ergebnis wie die des
+  Probelaufs; A4 und der gitleaks-Fingerprint aus dem Probelauf bleiben damit gültig.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
