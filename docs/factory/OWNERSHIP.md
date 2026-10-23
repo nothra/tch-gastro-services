@@ -50,7 +50,7 @@ Parser und liest nichts anderes:
 | factory | `.github/workflows/factory-poll.yml` | Async-Start der Pipeline (ADR-008) |
 | factory | `config/otel.env.example` | Vorlage für die Telemetrie-Erhebung |
 | factory | `docs/factory/FACTORY.md` | Generischer Teil der Agenten-Regeln (aus `CLAUDE.md`, #431) |
-| factory | `docs/factory/OPERATING.md` | Betriebshandbuch der Pipeline; TCH-Abschnitte wandern in #432 nach `docs/project/` |
+| factory | `docs/factory/OPERATING.md` | Betriebshandbuch der Pipeline; TCH-Abschnitte stehen in `docs/project/betrieb.md` |
 | factory | `docs/factory/OWNERSHIP.md` | diese Tabelle |
 | factory | `docs/factory/kleinfunde.md` | Kleinfunde zu Factory-Dateien (Q6) |
 | factory | `docs/factory/agents/**` | Agenten-Personas |
@@ -116,6 +116,7 @@ Parser und liest nichts anderes:
 | project | `docs/anleitung/**` | Anwender-Anleitung der App |
 | project | `docs/factory/PROJECT-CONTEXT.md` | Projekt-Gedächtnis (Anpassungsstelle) |
 | project | `docs/project/**` | projekteigene Doku (App-Lessons, Kleinfunde) |
+| project | `docs/project/betrieb.md` | TCH-Betrieb: Werkzeuge, lokale Umgebung, Deploy-Gate-Secrets, Vercel, destruktive Migrationen (#432) |
 | project | `docs/specs/**` | Spec-Archiv des Projekts |
 | project | `docs/ux/**` | UX-Glossar und -Entwürfe der App |
 | project | `docker-compose.yml` | lokale Datenbank |

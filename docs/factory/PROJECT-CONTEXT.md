@@ -117,6 +117,16 @@ pnpm test:e2e
 
 ---
 
+## Lokale Umgebung & Oberflächentests
+
+Details und Kommandos: [`docs/project/betrieb.md`](../project/betrieb.md).
+
+- **Setup:** `pnpm install` · `.env.local` · `pnpm db:up` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm dev`
+- **Oberflächentests** (UI-Tasks, zusätzlich zu den Gates): `pnpm test:e2e` (Playwright, startet den Dev-Server selbst) + interaktiv gegen `pnpm dev`
+- **Stage 3:** E2E nur mit laufender DB; sonst Nachtest in der Task-Datei vermerken
+
+---
+
 ## Code-Qualität
 
 ```bash

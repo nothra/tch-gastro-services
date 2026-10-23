@@ -40,15 +40,15 @@ Spec, Architektur und Abfolge:
 - [x] AK-J3 Die Projekt-Suite läuft im Required Check `test` des projekteigenen `ci.yml` (Q10). Ein Fehlschlag macht den Check rot. Das ist per Negativprobe belegt, nicht nur per Wiring-Grep.
 - [x] AK-J4 Testfall-Zählung: `Factory-Suite nachher + Projekt-Suite nachher = Suite vorher (main @ 1f36544)`. Neue T1a-3-Tests werden separat ausgewiesen. Die Zahlen stehen hier in der Task-Datei.
 ### K · Factory-Texte generisch
-- [ ] AK-K1 Ein Grep nach `pnpm|Neon|Vercel|db:seed|Drizzle` liefert in diesen Dateien keinen Treffer mehr:
+- [x] AK-K1 Ein Grep nach `pnpm|Neon|Vercel|db:seed|Drizzle` liefert in diesen Dateien keinen Treffer mehr:
   - `.claude/commands/implement.md` (5 Treffer, Patch-Weg)
   - `coding-agent.md` (2), `review-agent.md` (1)
   - `git-workflow.md` (1), `testing-standards.md` (1), `bash-gotchas.md` (11)
   - `OPERATING.md` (11)
 
   Wo nötig, verweisen die Texte auf `PROJECT-CONTEXT.md` → „Lokale Umgebung & Oberflächentests" bzw. auf `docs/project/betrieb.md`.
-- [ ] AK-K1a `PROJECT-CONTEXT.md` hat einen kurzen Abschnitt „Lokale Umgebung & Oberflächentests" (≤ 10 Zeilen, Verweis auf `docs/project/betrieb.md`). `import-context-limit-check.sh` bleibt grün (Q11).
-- [ ] AK-K2 Die TCH-Abschnitte von `OPERATING.md` stehen in `docs/project/betrieb.md`:
+- [x] AK-K1a `PROJECT-CONTEXT.md` hat einen kurzen Abschnitt „Lokale Umgebung & Oberflächentests" (≤ 10 Zeilen, Verweis auf `docs/project/betrieb.md`). `import-context-limit-check.sh` bleibt grün (Q11).
+- [x] AK-K2 Die TCH-Abschnitte von `OPERATING.md` stehen in `docs/project/betrieb.md`:
   - TCH-Zeilen aus §0.1
   - §0.2 Deploy-Gate-Secrets
   - §0.3 Vercel-Production-Branch
@@ -56,9 +56,9 @@ Spec, Architektur und Abfolge:
   - Deploy-Details aus §1.4
 
   `OPERATING.md` verweist an diesen Stellen auf die neue Datei. Kein Abschnitt geht verloren: Vorher/Nachher-Abgleich, Lesson #196.
-- [ ] AK-K3 Restliste der AK1.3-Begriffe (`Veranstaltung`, `Montagsrunde`, `Thekenwart`, `TCH`, `tch-gastro`, `Neon`, `Vercel`) über alle `factory`-Dateien laut `OWNERSHIP.md` (Datei, Anzahl) steht hier als Eingabe für T1b.
+- [x] AK-K3 Restliste der AK1.3-Begriffe (`Veranstaltung`, `Montagsrunde`, `Thekenwart`, `TCH`, `tch-gastro`, `Neon`, `Vercel`) über alle `factory`-Dateien laut `OWNERSHIP.md` (Datei, Anzahl) steht hier als Eingabe für T1b.
 ### Epic-weit (für diesen PR)
-- [ ] AK-X1 Diese Gates sind vorher (`main` @ `1f36544`) und nachher grün; die Ergebnisse stehen hier:
+- [x] AK-X1 Diese Gates sind vorher (`main` @ `1f36544`) und nachher grün; die Ergebnisse stehen hier:
   - `run-tests.sh` + Projekt-Suite
   - `lint`, `typecheck`, `test`, `format:check`
 - [ ] AK-X2 Alle Required Checks sind grün, ihre Namen unverändert: `lint`, `test`, `issue-sync`, `factory-self-test`, `pr-closes-issue`, `config-validation`.
@@ -120,6 +120,39 @@ Projekt-Suite = 87 umgezogen + 3 neue AK-J3-Wiring-Tests = 90. **Neue T1a-3-Test
 **AK-J3 Negativprobe:** `exit 77` in `deploy-freeze.sh` → Projekt-Suite 73 grün / 14 rot, Exit 1 (Step ohne `||`) → Check `test` rot; Datei danach wiederhergestellt.
 **Gates nachher:** `pre-push.sh` (lint, typecheck, test, format:check, Zuordnung 1250 Dateien, Dauerkontext 1021/1100) grün.
 Offen aus Etappe J: AK-X1-Vorher-Lauf von lint/typecheck/test/format:check auf `main` nicht separat protokolliert (Baseline = Stand des Branch-Starts, nur Doku-Commits).
+
+## Etappe K – Ergebnisse (2026-10-23)
+**Blocker 2026-10-23:** `.claude/commands/implement.md` liegt unter `.claude/**` (Lesson #91) – die Änderung (5 pnpm-Treffer) liegt als
+`tasks/patch-432.diff` vor (`git apply --check` ok). **Der Mensch muss `git apply tasks/patch-432.diff` ausführen** und den Patch
+danach löschen. Bis dahin prüft der AK-K1-Test die Live-Datei mit angewendetem Patch (Temp-Kopie); nach dem Anwenden prüft er die Live-Datei direkt.
+**Zählung (AK-J4, Endstand):** Factory-Suite **1835** + Projekt-Suite **90** = 1925 = 1894 (Baseline) + **31 neue T1a-3-Tests**
+(3 AK-G4 neutral, 3 AK-J3-Wiring, 25 Gruppe K). Alle grün, 0 rot.
+**AK-K2-Abgleich:** Jede nicht-leere Zeile der Abschnitte 0.2, 0.3, 1.4, 4.3 aus `OPERATING.md` (Stand vorher) steht in `betrieb.md`;
+einzige Abweichung: Überschriftsebene (`###` → `##`).
+**AK-K3 – Restliste für T1b** (Datei, Zeilen mit AK1.3-Begriff `Veranstaltung|Montagsrunde|Thekenwart|TCH|tch-gastro|Neon|Vercel`, über alle `factory`-Dateien laut OWNERSHIP):
+
+| Datei | Zeilen |
+|---|---|
+| `docs/factory/OPERATING.md` | 4 |
+| `docs/factory/OWNERSHIP.md` | 6 |
+| `docs/factory/adr/008-async-trigger-mechanism.md` | 1 |
+| `docs/factory/adr/012-github-platform-migration.md` | 2 |
+| `docs/factory/adr/029-branch-protection-main-ruleset.md` | 4 |
+| `docs/factory/adr/030-pr-shepherd-direct-merge-fallback.md` | 1 |
+| `docs/factory/adr/037-lessons-auslagern-aus-import-kontext.md` | 1 |
+| `docs/factory/adr/041-config-validation-ci-required-check.md` | 1 |
+| `docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md` | 1 |
+| `docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md` | 28 |
+| `docs/factory/lessons/code-style.md` | 1 |
+| `docs/factory/lessons/factory-workflow.md` | 8 |
+| `docs/factory/lessons/testing.md` | 1 |
+| `scripts/checks/completion-check.sh` | 1 |
+| `scripts/checks/tests/fixtures/lessons-split-426.tsv` | 1 |
+| `scripts/checks/tests/run-tests.sh` | 12 |
+| `scripts/sync-issues.sh` | 1 |
+
+**AK-X1:** `run-tests.sh` 1835 grün/0 rot, Projekt-Suite 90 grün/0 rot, `pre-push.sh` (lint, typecheck, test, format:check) grün (siehe Commit).
+**Offen:** AK-X2 (Required Checks in der PR-CI) und AK-X3 (Stage-2-Probelauf nach dem Merge) – erst nach Push/Merge prüfbar.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

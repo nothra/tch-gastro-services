@@ -9050,6 +9050,48 @@ else
   skip_yq "#431 /test AK-H6: fehlgeschlagener Install-Schritt"
 fi
 
+# ─── #432 T1a-3 · Gruppe K: Factory-Texte generisch (AK-K1, K1a, K2) ─────────────────────────
+echo ""
+echo "#432 AK-K: Factory-Texte ohne TCH-Stack, TCH-Details in docs/project/betrieb.md:"
+STACK_RE_432='pnpm|Neon|Vercel|db:seed|Drizzle'
+for txt_432 in docs/factory/agents/coding-agent.md docs/factory/agents/review-agent.md \
+    docs/factory/guidelines/git-workflow.md docs/factory/guidelines/testing-standards.md \
+    docs/factory/guidelines/bash-gotchas.md docs/factory/OPERATING.md; do
+  grep -qE "$STACK_RE_432" "$FACTORY_ROOT/$txt_432"
+  assert_exit 1 "$?" "#432 AK-K1: $txt_432 nennt pnpm/Neon/Vercel/db:seed/Drizzle nicht mehr"
+done
+# implement.md liegt unter .claude/** und kommt per Patch (Lesson #91): Endzustand = Live-Datei, solange der
+# Patch angewendet ist; liegt er noch aus, die Live-Datei MIT angewendetem Patch prüfen (Lesson #212).
+IMPL_432="$FACTORY_ROOT/.claude/commands/implement.md"
+if grep -qE "$STACK_RE_432" "$IMPL_432" && [ -f "$FACTORY_ROOT/tasks/patch-432.diff" ]; then
+  TMP_K1_432="$(mktemp -d)"; mkdir -p "$TMP_K1_432/.claude/commands"; cp "$IMPL_432" "$TMP_K1_432/.claude/commands/"
+  git -C "$TMP_K1_432" apply "$FACTORY_ROOT/tasks/patch-432.diff" 2>/dev/null
+  grep -qE "$STACK_RE_432" "$TMP_K1_432/.claude/commands/implement.md"
+  assert_exit 1 "$?" "#432 AK-K1: implement.md (Live-Datei + tasks/patch-432.diff) nennt keinen TCH-Stack mehr"
+  rm -rf "$TMP_K1_432"
+else
+  grep -qE "$STACK_RE_432" "$IMPL_432"
+  assert_exit 1 "$?" "#432 AK-K1: implement.md nennt keinen TCH-Stack mehr"
+fi
+
+BETRIEB_432="$FACTORY_ROOT/docs/project/betrieb.md"
+betrieb_flat_432="$(flat_286 "$BETRIEB_432")"
+for sec_432 in '## 0.2 GitHub-Repository-Secrets' '## 0.3 Vercel Production-Branch' '## 4.3 Destruktive Produktions-Migrationen' \
+    '## 1.4 Was nach dem Merge automatisch passiert' 'PRD_DATABASE_URL' 'VERCEL_AUTOMATION_BYPASS_SECRET' \
+    'Production Branch = `production`' 'DROP`/`TRUNCATE`' 'Docker (Compose v2)' 'pnpm db:seed'; do
+  assert_contains_286 "$betrieb_flat_432" "$sec_432" "#432 AK-K2: betrieb.md enthält '$sec_432'"
+done
+operating_flat_432="$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")"
+for ref_432 in '0.1' '0.2' '0.3' '1.4' '4.3'; do
+  assert_contains_286 "$operating_flat_432" "project/betrieb.md) → $ref_432" "#432 AK-K2: OPERATING.md verweist für $ref_432 auf betrieb.md"
+done
+
+PCTX_432="$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")"
+assert_contains_286 "$PCTX_432" '## Lokale Umgebung & Oberflächentests' "#432 AK-K1a: PROJECT-CONTEXT.md hat den Abschnitt „Lokale Umgebung & Oberflächentests“"
+k1a_lines_432="$(awk '/^## Lokale Umgebung & Oberflächentests/{f=1;next} /^---$/{if(f)exit} /^## /{if(f)exit} f && NF' "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md" | wc -l)"
+assert_true "$([ "$k1a_lines_432" -le 10 ]; echo $?)" "#432 AK-K1a: der Abschnitt hat höchstens 10 Zeilen (Ist: $k1a_lines_432)"
+assert_contains_286 "$PCTX_432" 'docs/project/betrieb.md' "#432 AK-K1a: der Abschnitt verweist auf docs/project/betrieb.md"
+
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 echo ""
 echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
