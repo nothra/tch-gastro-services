@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -123,8 +123,7 @@ Offen aus Etappe J: AK-X1-Vorher-Lauf von lint/typecheck/test/format:check auf `
 
 ## Etappe K – Ergebnisse (2026-10-23)
 **Blocker 2026-10-23:** `.claude/commands/implement.md` liegt unter `.claude/**` (Lesson #91) – die Änderung (5 pnpm-Treffer) liegt als
-`tasks/patch-432.diff` vor (`git apply --check` ok). **Der Mensch muss `git apply tasks/patch-432.diff` ausführen** und den Patch
-danach löschen. Bis dahin prüft der AK-K1-Test die Live-Datei mit angewendetem Patch (Temp-Kopie); nach dem Anwenden prüft er die Live-Datei direkt.
+`tasks/patch-432.diff` vor (`git apply --check` ok). Der Mensch hat den Patch am 2026-10-23 angewendet; die Patch-Datei ist gelöscht, der AK-K1-Test prüft die Live-Datei direkt (Review-Rework).
 **Zählung (AK-J4, Endstand):** Factory-Suite **1835** + Projekt-Suite **90** = 1925 = 1894 (Baseline) + **31 neue T1a-3-Tests**
 (3 AK-G4 neutral, 3 AK-J3-Wiring, 25 Gruppe K). Alle grün, 0 rot.
 **AK-K2-Abgleich:** Jede nicht-leere Zeile der Abschnitte 0.2, 0.3, 1.4, 4.3 aus `OPERATING.md` (Stand vorher) steht in `betrieb.md`;
@@ -155,7 +154,7 @@ einzige Abweichung: Überschriftsebene (`###` → `##`).
 **Offen:** AK-X2 (Required Checks in der PR-CI) und AK-X3 (Stage-2-Probelauf nach dem Merge) – erst nach Push/Merge prüfbar.
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+Siehe `tasks/review-432.md`: Runde 1 NEEDS_REWORK (4 wichtige Findings, behoben) → APPROVED.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

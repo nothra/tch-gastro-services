@@ -9060,19 +9060,9 @@ for txt_432 in docs/factory/agents/coding-agent.md docs/factory/agents/review-ag
   grep -qE "$STACK_RE_432" "$FACTORY_ROOT/$txt_432"
   assert_exit 1 "$?" "#432 AK-K1: $txt_432 nennt pnpm/Neon/Vercel/db:seed/Drizzle nicht mehr"
 done
-# implement.md liegt unter .claude/** und kommt per Patch (Lesson #91): Endzustand = Live-Datei, solange der
-# Patch angewendet ist; liegt er noch aus, die Live-Datei MIT angewendetem Patch prüfen (Lesson #212).
 IMPL_432="$FACTORY_ROOT/.claude/commands/implement.md"
-if grep -qE "$STACK_RE_432" "$IMPL_432" && [ -f "$FACTORY_ROOT/tasks/patch-432.diff" ]; then
-  TMP_K1_432="$(mktemp -d)"; mkdir -p "$TMP_K1_432/.claude/commands"; cp "$IMPL_432" "$TMP_K1_432/.claude/commands/"
-  git -C "$TMP_K1_432" apply "$FACTORY_ROOT/tasks/patch-432.diff" 2>/dev/null
-  grep -qE "$STACK_RE_432" "$TMP_K1_432/.claude/commands/implement.md"
-  assert_exit 1 "$?" "#432 AK-K1: implement.md (Live-Datei + tasks/patch-432.diff) nennt keinen TCH-Stack mehr"
-  rm -rf "$TMP_K1_432"
-else
-  grep -qE "$STACK_RE_432" "$IMPL_432"
-  assert_exit 1 "$?" "#432 AK-K1: implement.md nennt keinen TCH-Stack mehr"
-fi
+grep -qE "$STACK_RE_432" "$IMPL_432"
+assert_exit 1 "$?" "#432 AK-K1: .claude/commands/implement.md nennt pnpm/Neon/Vercel/db:seed/Drizzle nicht mehr (Endzustand der Live-Datei)"
 
 BETRIEB_432="$FACTORY_ROOT/docs/project/betrieb.md"
 betrieb_flat_432="$(flat_286 "$BETRIEB_432")"
