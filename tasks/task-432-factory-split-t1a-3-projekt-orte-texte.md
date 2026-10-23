@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Teil-Task **T1a-3** von Epic #424 (Factory in eigenes Repo auslagern). Die TCH-Spezifika ziehen an
