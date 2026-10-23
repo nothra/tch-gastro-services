@@ -22,7 +22,7 @@ Spec: [`docs/specs/spec-427-factory-nach-dev-factory-herausloesen.md`](../docs/s
 <!-- Volltext in der Spec; T1b-1-Anteil laut Teilungstabelle. Übrige AK → T1b-2 (#436) -->
 - [x] A1 `factory-extract.sh paths` = `ownership-check.sh --list factory` + Altpfade, erzeugt, zweiter Lauf identisch
 - [x] A4 Umschreibregel (`factory-extract.rules`) getestet; im Probelauf kein unqualifiziertes `#<nr>` in Messages
-- [ ] B3 Probelauf-Bericht (Werkzeug-Versionen, TCH-Commit, Commits/Dateien, A2/B1/B2-Ergebnis) in dieser Task-Datei und im PR-Body #435
+- [x] B3 Probelauf-Bericht (Werkzeug-Versionen, TCH-Commit, Commits/Dateien, A2/B1/B2-Ergebnis) in dieser Task-Datei und im PR-Body #435
 - [x] X1 Diff ändert keine Factory-Datei außer dem ADR-063-Nachtrag; `run-tests.sh` + App-Gates grün
 - [x] X2 `run` arbeitet auf frischem Klon; Arbeitsklon und `origin` unberührt
 
