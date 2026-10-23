@@ -46,9 +46,9 @@ Arbeit überwiegend im Factory-Repo, diese Datei hält Scan- und Abschlussberich
 
 ## Offene Fragen
 <!-- Quelle: spec-436 „Offene Fragen" -->
-- [ ] Q1 Merge-Zeitpunkt TCH-PR #439 (Vorschlag: Draft bis `v0.6.0` steht)
+- [x] Q1 #439 bleibt Draft, bis `v0.6.0` steht (2026-10-23)
 - [ ] Q2 Umgang mit echtem Scan-Fund (Entwickler entscheidet, FS1)
-- [ ] Q3 ShellCheck-Folge-Issue im Factory-Repo nach `v0.6.0`
+- [x] Q3 ShellCheck-Folge-Issue im Factory-Repo nach `v0.6.0` (2026-10-23)
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

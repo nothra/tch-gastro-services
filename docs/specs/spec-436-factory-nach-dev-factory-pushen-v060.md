@@ -76,11 +76,11 @@ Läuft manuell in **Stage 2**, nicht über `run-pipeline.sh` (spec-427 „Arbeit
 
 ## Offene Fragen
 
-- [ ] **Q1** Wann wird der TCH-PR #439 gemergt? Die Task-Datei muss laut Guardrail **vor dem Merge**
+- [x] **Q1** (entschieden 2026-10-23: #439 bleibt Draft, bis `v0.6.0` steht; Merge erst mit vollständigem Abschlussbericht) Wann wird der TCH-PR #439 gemergt? Die Task-Datei muss laut Guardrail **vor dem Merge**
   abgeschlossen sein, die Arbeit im Factory-Repo (inkl. Release) endet aber erst danach.
   Vorschlag: #439 bleibt Draft, bis `v0.6.0` steht; Merge erst mit vollständigem Abschlussbericht.
   → Entscheidung Entwickler.
 - [ ] **Q2** Bei einem **echten** Fund aus B1/B2 (FS1): Ausschluss oder Umschreiben entscheidet der
   Entwickler im Chat – kein Default. (Nur zur Kenntnis; keine Vorabentscheidung nötig.)
-- [ ] **Q3** Soll `shellcheck` (heute lokal nicht installiert) als Folge-Issue im Factory-Repo
+- [x] **Q3** (entschieden 2026-10-23: ja, Folge-Issue im Factory-Repo nach `v0.6.0`) Soll `shellcheck` (heute lokal nicht installiert) als Folge-Issue im Factory-Repo
   angelegt werden (ADR-063-Nachtrag: „folgt als Issue")? Vorschlag: ja, nach `v0.6.0`.
