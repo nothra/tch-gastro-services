@@ -50,12 +50,12 @@ jobs:
         run: |
           echo "Freigabe angefordert von: $ACTOR"
           echo "Grund: $GRUND"
-          blocking=$(bash scripts/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
+          blocking=$(bash scripts/project/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
           echo "Blockierender Commit vor Freigabe: ${blocking}"
           echo "blocking_sha=${blocking}" >> "$GITHUB_ENV"
 
       - name: Deploy-Freeze aufheben (Ref löschen, idempotent)
-        run: bash scripts/deploy-freeze.sh release
+        run: bash scripts/project/deploy-freeze.sh release
 
       - name: Tracking-Issue schließen (Benachrichtigung, fail-open)
         # inputs.grund/github.actor über env: gequotet weiterreichen (kein inline ${{ … }}
@@ -64,7 +64,7 @@ jobs:
           ACTOR: ${{ github.actor }}
           GRUND: ${{ inputs.grund }}
         run: |
-          bash scripts/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "$GRUND" "$RUN_URL" || true
+          bash scripts/project/deploy-freeze-notify.sh released "${blocking_sha:-unbekannt}" "$GRUND" "$RUN_URL" || true
           {
             echo "### ✅ Deploy-Freeze aufgehoben"
             echo ""

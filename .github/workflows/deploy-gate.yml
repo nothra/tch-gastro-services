@@ -131,7 +131,7 @@ jobs:
           NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
           NEON_INT_BRANCH_ID: ${{ secrets.NEON_INT_BRANCH_ID }}
           NEON_PRD_BRANCH_ID: ${{ secrets.NEON_PRD_BRANCH_ID }}
-        run: bash scripts/neon-reset-int.sh
+        run: bash scripts/project/neon-reset-int.sh
 
       # Der Sammelschritt ist in drei Steps aufgeteilt (ADR-032 §4): nur die Migration
       # (db:migrate:int) ist ein Freeze-Trigger; Anonymisierung + Seed bleiben Infra/Safety.
@@ -204,7 +204,7 @@ jobs:
         id: check_freeze
         run: |
           set +e
-          bash scripts/deploy-freeze.sh check
+          bash scripts/project/deploy-freeze.sh check
           rc=$?
           set -e
           if [ "$rc" -eq 10 ]; then
@@ -214,7 +214,7 @@ jobs:
           fi
           # rc 0 = eingefroren, alles andere = unklar/unlesbar → in beiden Fällen fail-closed.
           echo "frozen=true" >> "$GITHUB_OUTPUT"
-          sha=$(bash scripts/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
+          sha=$(bash scripts/project/deploy-freeze.sh status 2>/dev/null || echo "unbekannt")
           reason="Deploy-Freeze aktiv (Freeze-Check-Exit ${rc}: 0=eingefroren, sonst=Marker unklar)."
           echo "::warning::${reason} Blockierender Commit: ${sha}. Promote wird zurückgehalten (Lauf bleibt grün, AC5)."
           {
@@ -226,7 +226,7 @@ jobs:
             echo "PRD-Migration + Promote + Healthcheck wurden übersprungen. Nach Fix + Verifikation"
             echo "über den Workflow **Deploy-Freeze aufheben (Freigabe)** (Actions → Run workflow) freigeben."
           } >> "$GITHUB_STEP_SUMMARY"
-          bash scripts/deploy-freeze-notify.sh blocked "$sha" "$reason" "$RUN_URL" || true
+          bash scripts/project/deploy-freeze-notify.sh blocked "$sha" "$reason" "$RUN_URL" || true
 
       # PRD-DB migrieren + Login seeden – ERST nach grünem INT-E2E (ADR-017) und nur, wenn KEIN
       # Deploy-Freeze aktiv ist (ADR-032, AC3/AC4). Das INT-Gate hat dieselbe Migration gegen
@@ -301,9 +301,9 @@ jobs:
           echo "::warning::Verifikationsrelevanter Fehlschlag (${reason}) → Deploy-Freeze wird gesetzt (blockiert Promote bis zur Freigabe)."
           # Fail-closed: schlägt der Ref-Push fehl, endet dieser Step non-zero (sichtbar). Ein
           # bestehender Freeze wird nicht überschrieben (deploy-freeze.sh set, ADR-032).
-          bash scripts/deploy-freeze.sh set "$SHA" "$reason"
+          bash scripts/project/deploy-freeze.sh set "$SHA" "$reason"
           # Benachrichtigung ist fail-open – darf den Marker nie blockieren.
-          bash scripts/deploy-freeze-notify.sh frozen "$SHA" "$reason" "$RUN_URL" || true
+          bash scripts/project/deploy-freeze-notify.sh frozen "$SHA" "$reason" "$RUN_URL" || true
           {
             echo "### 🚫 Deploy-Freeze gesetzt"
             echo ""

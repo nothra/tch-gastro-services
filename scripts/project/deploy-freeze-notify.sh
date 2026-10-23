@@ -11,7 +11,7 @@
 # neu geöffnet); bei Freigabe kommentiert + geschlossen.
 #
 # Verwendung:
-#   bash scripts/deploy-freeze-notify.sh <event> <sha> <grund> [run-url]
+#   bash scripts/project/deploy-freeze-notify.sh <event> <sha> <grund> [run-url]
 #     event: frozen   – ein neuer Freeze wurde gesetzt
 #            blocked  – ein Promote wurde wegen aktivem Freeze zurückgehalten
 #            released – der Freeze wurde aufgehoben

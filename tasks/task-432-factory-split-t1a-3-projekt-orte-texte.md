@@ -1,7 +1,7 @@
 # Task 432: factory-split-t1a-3-projekt-orte-texte
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -29,16 +29,16 @@ Spec, Architektur und Abfolge:
 
 ## Akzeptanzkriterien
 ### J · TCH-Skripte und ihre Tests an projekteigene Orte
-- [ ] AK-J1 `neon-reset-int.sh`, `deploy-freeze.sh` und `deploy-freeze-notify.sh` liegen per `git mv` unter `scripts/project/`. Alle Aufrufer (Workflows, Doku, Skripte, `.env.example`, `README.md`) nutzen den neuen Pfad.
-- [ ] AK-J2 Die Projekt-Suite liegt unter `scripts/project/tests/`. In `run-tests.sh` findet ein Grep nach den TCH-Skript- und TCH-Workflow-Namen keinen Treffer mehr (Q9).
+- [x] AK-J1 `neon-reset-int.sh`, `deploy-freeze.sh` und `deploy-freeze-notify.sh` liegen per `git mv` unter `scripts/project/`. Alle Aufrufer (Workflows, Doku, Skripte, `.env.example`, `README.md`) nutzen den neuen Pfad.
+- [x] AK-J2 Die Projekt-Suite liegt unter `scripts/project/tests/`. In `run-tests.sh` findet ein Grep nach den TCH-Skript- und TCH-Workflow-Namen keinen Treffer mehr (Q9).
   Die Projekt-Suite umfasst:
   - die Tests von `routes-doc-check.sh` (#145) und Deploy-Freeze (#173);
   - die Workflow-Tests zu `deploy-gate.yml` und `deploy-freeze-release.yml` (#66, Deploy-Gate-Verdrahtung, #173/#66-Härtung);
   - die Prüfungen echter TCH-Dateien aus den Factory-Mechanik-Tests (#426/#431).
   Die Factory-Mechanik-Tests selbst nutzen danach neutrale Fixture-Namen.
-- [ ] AK-J2a Die gemeinsamen Prüf-Helfer liegen in einer Factory-Lib unter `scripts/checks/tests/lib/`. `run-tests.sh` und die Projekt-Suite sourcen beide diese Lib, es gibt keine Kopie (Q10).
-- [ ] AK-J3 Die Projekt-Suite läuft im Required Check `test` des projekteigenen `ci.yml` (Q10). Ein Fehlschlag macht den Check rot. Das ist per Negativprobe belegt, nicht nur per Wiring-Grep.
-- [ ] AK-J4 Testfall-Zählung: `Factory-Suite nachher + Projekt-Suite nachher = Suite vorher (main @ 1f36544)`. Neue T1a-3-Tests werden separat ausgewiesen. Die Zahlen stehen hier in der Task-Datei.
+- [x] AK-J2a Die gemeinsamen Prüf-Helfer liegen in einer Factory-Lib unter `scripts/checks/tests/lib/`. `run-tests.sh` und die Projekt-Suite sourcen beide diese Lib, es gibt keine Kopie (Q10).
+- [x] AK-J3 Die Projekt-Suite läuft im Required Check `test` des projekteigenen `ci.yml` (Q10). Ein Fehlschlag macht den Check rot. Das ist per Negativprobe belegt, nicht nur per Wiring-Grep.
+- [x] AK-J4 Testfall-Zählung: `Factory-Suite nachher + Projekt-Suite nachher = Suite vorher (main @ 1f36544)`. Neue T1a-3-Tests werden separat ausgewiesen. Die Zahlen stehen hier in der Task-Datei.
 ### K · Factory-Texte generisch
 - [ ] AK-K1 Ein Grep nach `pnpm|Neon|Vercel|db:seed|Drizzle` liefert in diesen Dateien keinen Treffer mehr:
   - `.claude/commands/implement.md` (5 Treffer, Patch-Weg)
@@ -109,6 +109,17 @@ Reihenfolge aus `CLAUDE.md` (Lesson #351). Jede Etappe endet mit sauberem `git s
 
 ## Offene Fragen
 _Keine – Q9–Q12 entschieden am 2026-10-22 (siehe spec-426)._
+
+## Etappe J – Ergebnisse (2026-10-23)
+**Zählung (AK-J4):** Baseline `main` @ 1f36544: `run-tests.sh` **1894 grün, 0 rot**.
+Nachher: Factory-Suite **1810** + Projekt-Suite **90** = 1900.
+Herleitung: 1894 − 87 umgezogene Tests (68 Blöcke #66/#145/#173/Gate-Verdrahtung/Härtung, 9 TCH-Zuordnungen AK-A3,
+2 Workflow-Zuordnungen AK-F4, 6 AK-G4-Echtdatei-Tests, 2 AK-D3) + 3 neue neutrale AK-G4-Tests = 1810.
+Projekt-Suite = 87 umgezogen + 3 neue AK-J3-Wiring-Tests = 90. **Neue T1a-3-Tests (separat): 3 + 3 = 6**; 1894 + 6 = 1900 ✓.
+**AK-J2:** `grep -E "neon-reset-int|deploy-freeze|deploy-gate|routes-doc-check" run-tests.sh` → kein Treffer.
+**AK-J3 Negativprobe:** `exit 77` in `deploy-freeze.sh` → Projekt-Suite 73 grün / 14 rot, Exit 1 (Step ohne `||`) → Check `test` rot; Datei danach wiederhergestellt.
+**Gates nachher:** `pre-push.sh` (lint, typecheck, test, format:check, Zuordnung 1250 Dateien, Dauerkontext 1021/1100) grün.
+Offen aus Etappe J: AK-X1-Vorher-Lauf von lint/typecheck/test/format:check auf `main` nicht separat protokolliert (Baseline = Stand des Branch-Starts, nur Doku-Commits).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->

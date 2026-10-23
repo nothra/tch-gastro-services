@@ -44,7 +44,7 @@ vorhandenen `contents: write`-`GITHUB_TOKEN` + `fetch-depth: 0` setz-, les- und 
 bleibt vom Ruleset `protect-main` (Factory-ADR-029) geschützt; `refs/factory/*` liegt außerhalb dessen
 Geltungsbereichs.
 
-**2 – Freeze-Logik in ein testbares Skript `scripts/deploy-freeze.sh` extrahieren** (Subkommandos
+**2 – Freeze-Logik in ein testbares Skript `scripts/project/deploy-freeze.sh` extrahieren** (Subkommandos
 `set <sha> <grund>`, `check`, `release`, `status`). Klare, dokumentierte Exit-Codes:
 `check` → `0` = eingefroren, `10` = nicht eingefroren, alles andere = **unklar/nicht lesbar**.
 Remote/Ref über Env überschreibbar (`FREEZE_REMOTE`, `FREEZE_REF`), damit die Vorfall-Simulation
@@ -145,7 +145,7 @@ Position stärkt die ADR-017-Kopplung (nie Schema ohne Code).
 - Ein rotes Gate über echten Code-/Migrationsdefekt friert die Produktion ein; ein späterer
   (evtl. flaky-) grüner Lauf promotet nicht, bis ein Mensch nach Fix+Verifikation freigibt.
 - `main`-Fortschritt (Merges, Gate-Läufe) bleibt unberührt – nur der Promote pausiert.
-- Die Schutzlogik ist über `scripts/deploy-freeze.sh` + Bare-Repo-Test **verankert** und gegen
+- Die Schutzlogik ist über `scripts/project/deploy-freeze.sh` + Bare-Repo-Test **verankert** und gegen
   versehentliches Zurückdrehen abgesichert.
 - Kein Prod-DB-Schema-Drift während eines Freezes (Check vor PRD-Migration).
 
