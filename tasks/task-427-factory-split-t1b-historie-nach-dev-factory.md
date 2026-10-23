@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Teil-Task **T1b-1** des Epics #424 (T1b geteilt, spec-427 Q6): das Werkzeug fürs Herauslösen der
@@ -191,6 +191,11 @@ Report: `tasks/codify-427.md`. Neu: `docs/project/lessons/repo-werkzeuge.md` (Sc
 und Datenflächen vorab aufzählen; Umschreibregel gegen den echten Bestand vergleichen) + Index-Gruppe in
 `PROJECT-CONTEXT.md`. Factory-seitige Learnings (Prozess-Substitution, `factory-commit.sh` mit `git add -A`,
 Kleinfunde unter X1, Rezidiv Mutationsbeleg) wegen X1 zurückgestellt → Issue #438.
+
+## PR-Shepherd
+PR-Shepherd 2026-10-23: Merge freigegeben – alle Gates grün (CI: lint, test, factory-self-test,
+config-validation, pr-closes-issue, CodeQL, Vercel; Branch aktuell zu `main`; keine offenen
+Review-Kommentare; keine Approval-Pflicht). PR #435, Squash-Merge.
 
 ---
 Branch: `feature/427-factory-split-t1b-historie-nach-dev-factory`
