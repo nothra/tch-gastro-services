@@ -1,0 +1,1 @@
+regex:(?mi)^co-authored-by:[^\n<]*<(?![^>\n]*noreply)[^>\n]*>[ \t]*\r?\n?==>

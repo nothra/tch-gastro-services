@@ -450,6 +450,11 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Playwright `getByRole(name)` ist Teilstring-Treffer wie `hasText` – ein neues Bedienelement im Dialog (z. B. „Meldung schließen") bricht Locatoren auf „Schließen"; `exact: true` + Grep über alle Specs (aus #372, /implement) · **Laden bei:** `/implement`, `/test` – bei neuem Element in einem Dialog/einer Seite mit bestehenden E2E-Specs
 - React-19-Async-Actions: nie auflösende Promises halten einen modulweiten Scope offen – spätere Abwesenheits-Tests sind grün aus dem falschen Grund; Resolve-Liste + `afterEach` in `act`, Anwesenheits-Vorbedingung, Mutationsbeleg je Test (aus #370, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test`, `/review` – bei Tests mit offen gehaltener `useActionState`-Action
 
+**[`docs/project/lessons/repo-werkzeuge.md`](../project/lessons/repo-werkzeuge.md)** – Werkzeuge über die ganze Repo-Historie (Herauslösen, Massen-Umschreibung, Secret-/PII-Gate vor öffentlichem Push) · **Laden bei:** `/implement`, `/review`, `/security-review` an `scripts/project/factory-extract*` oder einem neuen Gate um einen externen Scanner
+
+- Gate um einen fremden Scanner: alle Abschalt-Eingänge (Ziel-/Arbeitsverzeichnis-Dateien, Umgebung, Inline-Marker, globale Fingerprints) und alle Datenflächen (Messages, alle Refs) vorab aufzählen, je Eintrag Test + Gegenbeweis mit echtem Scanner (aus #427, Security-Review + Re-Review)
+- Umschreibregel über Repo-Inhalt: alte gegen neue Regel auf dem echten Bestand vergleichen, jede abweichende Zeile ansehen (aus #427, Review-Iteration 1)
+
 **[`docs/project/lessons/build-tooling.md`](../project/lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, Abhängigkeiten/Audit · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
 
 - Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
