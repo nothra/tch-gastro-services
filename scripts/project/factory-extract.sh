@@ -55,8 +55,11 @@ require_tool() { command -v "$1" >/dev/null 2>&1 || die 2 "$1 nicht gefunden –
 # nonempty_sorted – stdin ohne Leerzeilen, LC_ALL=C sortiert und eindeutig.
 nonempty_sorted() { grep -v '^$' | LC_ALL=C sort -u; }
 
-# list_entries <datei> – Einträge einer Listen-Datei: ohne Leerzeilen und ohne `#`-Kommentare.
-list_entries() { grep -v '^[[:space:]]*\(#.*\)\{0,1\}$' "$1" || true; }
+# list_entries <datei> – Einträge einer Listen-Datei, ohne Rand-Leerzeichen; Leerzeilen und
+# `#`-Kommentare (auch eingerückt) fallen weg.
+list_entries() {
+  sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$1" | { grep -v '^\(#.*\)\{0,1\}$' || true; }
+}
 
 # Die Umschreibregel läuft in Python `re` auf Bytes – derselben Regex-Engine wie
 # `git filter-repo --replace-message`. Der Parser hier ist bewusst strenger als der von
@@ -234,19 +237,21 @@ check_a5() {
   echo "A5 ok: $compared Commits mit unverändertem Autor und Datum"
 }
 
-# is_allowed <adresse> – trifft ein Muster der Erlaubt-Liste?
+# is_allowed <adresse> <muster-zeilen> – trifft eines der Muster (Glob, eins je Zeile)?
 is_allowed() {
   local address="$1" pattern
   while IFS= read -r pattern; do
+    [ -n "$pattern" ] || continue
     # shellcheck disable=SC2254 # das Muster ist bewusst ein Glob
     case "$address" in $pattern) return 0 ;; esac
-  done <<< "$(list_entries "$ALLOW_FILE")"
+  done <<< "$2"
   return 1
 }
 
 # scan_emails <ziel> – E-Mail-Muster über alle Blobs aller Commits (B2); Funde mit Datei (FS1).
 scan_emails() {
-  local target="$1" addresses address files total=0 bad=0
+  local target="$1" allowed addresses address files total=0 bad=0
+  allowed="$(list_entries "$ALLOW_FILE")"
   addresses="$(
     git -C "$target" rev-list --all --objects | awk '{ print $1 }' \
       | git -C "$target" cat-file --batch-check='%(objecttype) %(objectname)' \
@@ -258,7 +263,7 @@ scan_emails() {
   while IFS= read -r address; do
     [ -n "$address" ] || continue
     total=$((total + 1))
-    is_allowed "$address" && continue
+    is_allowed "$address" "$allowed" && continue
     files="$(git -C "$target" log --all -i -S"$address" --format= --name-only | nonempty_sorted | tr '\n' ' ')"
     echo "$address (${files% })"
     bad=1
@@ -269,12 +274,15 @@ scan_emails() {
 
 # ignored_with_reasons – je Eintrag der Falsch-Positiv-Liste „<fingerprint>\t<begründung>"; die
 # Begründung ist der Kommentarblock direkt darüber (eine Leerzeile beendet ihn). Ein Eintrag ohne
-# Begründung bricht ab: Spec B1 verlangt jeden Falsch-Positiv einzeln begründet.
+# Begründung bricht ab: Spec B1 verlangt jeden Falsch-Positiv einzeln begründet. Rand-Leerzeichen
+# zählen nicht – dieselbe Lesart wie list_entries.
 ignored_with_reasons() {
-  local line reason=""
-  while IFS= read -r line || [ -n "$line" ]; do
+  local raw line reason=""
+  while IFS= read -r raw || [ -n "$raw" ]; do
+    line="$(printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
     case "$line" in
       '') reason="" ;;
+      '#') ;;
       '#'*) line="${line#\#}"; reason="${reason:+$reason }${line# }" ;;
       *)
         [ -n "$reason" ] || die 2 "Falsch-Positiv ohne Begründung: $line ($GITLEAKS_IGNORE)"
@@ -329,8 +337,10 @@ report_row() {
 }
 
 # print_scan_report <ziel> – Scan-Bericht (B3) aus den Ergebnissen, die cmd_scan gesammelt hat.
+# Liest: SOURCE_COMMIT und META (load_meta); FALSE_POSITIVES (Fingerprint\tBegründung je Zeile);
+# LEAKS_RC/LEAKS_OUT (gitleaks), B2_RC/B2_OUT (E-Mail-Scan), A2_RC/A2_OUT (Pfad-Prüfung).
 print_scan_report() {
-  local target="$1" fingerprint reason
+  local target="$1" fingerprint reason ignored_count
   echo "## Scan-Bericht factory-extract"
   echo ""
   echo "| Kennzahl | Wert |"
@@ -347,19 +357,22 @@ print_scan_report() {
   echo "| Prüfung | Ergebnis | Details |"
   echo "|---|---|---|"
   report_row A2 "$A2_RC" "$A2_OUT"
-  if [ "$LEAKS_RC" -eq 0 ]; then
-    report_row B1 0 "gitleaks über alle Commits: kein Fund ($(printf '%s' "$IGNORED" | grep -c .) Falsch-Positive ausgenommen, Liste unten)"
+  ignored_count="$(printf '%s' "$FALSE_POSITIVES" | grep -c . || true)"
+  if [ "$LEAKS_RC" -eq 0 ] && [ "$ignored_count" -eq 0 ]; then
+    report_row B1 0 "gitleaks über alle Commits: kein Fund (0 Falsch-Positive ausgenommen)"
+  elif [ "$LEAKS_RC" -eq 0 ]; then
+    report_row B1 0 "gitleaks über alle Commits: kein Fund ($ignored_count Falsch-Positive ausgenommen, Liste unten)"
   else
     report_row B1 1 "gitleaks Exit $LEAKS_RC – Fund oder Fehler, Ausgabe unten"
   fi
   report_row B2 "$B2_RC" "$B2_OUT"
-  if [ -n "$IGNORED" ]; then
+  if [ -n "$FALSE_POSITIVES" ]; then
     echo ""
     echo "Ausgenommene Falsch-Positive (B1, aus $(basename "$GITLEAKS_IGNORE")):"
     echo ""
     while IFS="$(printf '\t')" read -r fingerprint reason; do
       echo "- \`$fingerprint\` – $reason"
-    done <<< "$IGNORED"
+    done <<< "$FALSE_POSITIVES"
   fi
   if [ "$LEAKS_RC" -ne 0 ]; then
     echo ""
@@ -377,7 +390,7 @@ cmd_scan() {
   [ -r "$ALLOW_FILE" ] || die 2 "Erlaubt-Liste nicht lesbar: $ALLOW_FILE"
   [ -r "$GITLEAKS_IGNORE" ] || die 2 "Falsch-Positiv-Liste nicht lesbar: $GITLEAKS_IGNORE"
   load_meta "$target"
-  IGNORED="$(ignored_with_reasons)" || exit 2
+  FALSE_POSITIVES="$(ignored_with_reasons)" || exit 2
   LEAKS_RC=0; LEAKS_OUT="$("$GITLEAKS_CMD" git --no-banner --redact --log-opts=--all \
     --gitleaks-ignore-path "$GITLEAKS_IGNORE" "$target" 2>&1)" || LEAKS_RC=$?
   B2_RC=0; B2_OUT="$(scan_emails "$target")" || B2_RC=$?
@@ -388,16 +401,17 @@ cmd_scan() {
 }
 
 cmd_qualify() {
-  local target="$1" files file
+  local target="$1" file
   [ -d "$target" ] || die 2 "Verzeichnis fehlt: $target"
   require_tool python3 "wird für die Umschreibregel gebraucht"
-  files="$(git -C "$target" ls-files)" || die 2 "kein Git-Repo: $target"
-  while IFS= read -r file; do
+  git -C "$target" rev-parse --git-dir >/dev/null 2>&1 || die 2 "kein Git-Repo: $target"
+  # -z: auch Namen mit `"`, `\` oder Zeilenumbruch kommen ungequotet an.
+  while IFS= read -r -d '' file; do
     case "$file" in
       *.md) rules_py md "$RULES_FILE" "$target/$file" || exit 2 ;;
       *.sh) rules_py sh "$RULES_FILE" "$target/$file" || exit 2 ;;
     esac
-  done <<< "$files"
+  done < <(git -C "$target" ls-files -z)
 }
 
 case "${1:-}" in

@@ -8,7 +8,8 @@
 #
 # Der Commit ist der Hash im herausgelösten Repo. filter-repo schreibt deterministisch, der Hash
 # hängt aber an Pfadliste, Umschreibregel und filter-repo-Version: Kommt eine Factory-Datei oder
-# ein Altpfad hinzu, ändern sich auch alte Hashes, und der Eintrag ist nachzuziehen.
+# ein Altpfad hinzu, der schon in früheren Commits existierte, ändern sich auch deren Hashes, und
+# der Eintrag ist nachzuziehen.
 
 # Absichtlich angelegte Fixture `api_key = "…"` im Regressionstest des Credential-Checks von
 # pre-commit.sh (Block „Pre-Commit portable Regex"); der Wert ist kein Schlüssel, der Test prüft

@@ -104,6 +104,7 @@ echo "Closes #42"
 x=1 # Rest-Kommentar #8 hinter Code
 SHEOF
 echo 'name: x #77' > "$FX_Q/ci.yml"
+echo 'Sonderzeichen #9' > "$FX_Q/we\"ird.md"
 echo 'Außen #5' > "$FX_TMP/aussen.md"
 ln -s ../aussen.md "$FX_Q/link.md"
 fx_git "$FX_Q" add -A
@@ -129,9 +130,11 @@ assert_contains_286 "$fx_sh" "  # eingerückt nothra/tch-gastro-services#5" "#42
 assert_contains_286 "$fx_sh" 'echo "Closes #42"' "#427 qualify .sh: String-Fixture in Code bleibt"
 assert_contains_286 "$fx_sh" "x=1 # Rest-Kommentar #8 hinter Code" "#427 qualify .sh: Code-Zeile mit Rest-Kommentar bleibt ganz"
 assert_contains_286 "$(cat "$FX_Q/ci.yml")" "name: x #77" "#427 qualify: andere Dateitypen bleiben unangetastet"
+assert_contains_286 "$(cat "$FX_Q/we\"ird.md")" "Sonderzeichen nothra/tch-gastro-services#9" \
+  "#427 qualify: Dateiname, den Git quotet (\"), wird trotzdem umgeschrieben"
 assert_contains_286 "$(cat "$FX_TMP/aussen.md")" "Außen #5" "#427 qualify: Symlink wird übersprungen, nichts außerhalb des Ziels geändert"
 fx_before="$(cat "$FX_Q/doku.md" "$FX_Q/skript.sh")"
-FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" qualify "$FX_Q"
+FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" qualify "$FX_Q" >/dev/null 2>&1
 assert_true "$([ "$fx_before" = "$(cat "$FX_Q/doku.md" "$FX_Q/skript.sh")" ]; echo $?)" "#427 qualify: zweiter Lauf ändert nichts (idempotent)"
 mkdir -p "$FX_TMP/kein-repo"
 bash "$FX_SCRIPT" qualify "$FX_TMP/kein-repo" >/dev/null 2>&1
@@ -209,19 +212,21 @@ fx_verify_pair() {
 }
 # fx_verify <quelle> <ziel> – Ausgabe von verify (stdout+stderr); Exit-Code in FX_RC.
 fx_verify() { FX_OUT="$(FACTORY_DIR="$1" bash "$FX_SCRIPT" verify "$2" 2>&1)"; FX_RC=$?; }
-# fx_assert_only <geprüfte-ak> <übrige-ak…> – Negativtest isoliert: jede übrige Prüfung meldet „ok".
-fx_assert_only() {
-  local failing="$1" other
+# fx_assert_ok <label-präfix> <ak…> – jede genannte Prüfung meldet „ok".
+fx_assert_ok() {
+  local prefix="$1" check
   shift
-  for other in "$@"; do
-    assert_contains_286 "$FX_OUT" "$other ok" "#427 $failing-Negativtest isoliert: $other bleibt grün"
+  for check in "$@"; do
+    assert_contains_286 "$FX_OUT" "$check ok" "#427 $prefix: $check bleibt grün"
   done
 }
+# fx_assert_only <geprüfte-ak> <übrige-ak…> – Negativtest isoliert: jede übrige Prüfung meldet „ok".
+fx_assert_only() { local failing="$1"; shift; fx_assert_ok "$failing-Negativtest isoliert" "$@"; }
 
 fx_verify_pair "$FX_TMP/v-src" "$FX_TMP/v-ziel"
 fx_verify "$FX_TMP/v-src" "$FX_TMP/v-ziel"
 assert_exit 0 "$FX_RC" "#427 verify: sauberes Ziel → Exit 0"
-fx_assert_only "(keiner)" A2 A3 A4 A5
+fx_assert_ok "verify sauberes Ziel" A2 A3 A4 A5
 
 # A2: ein Pfad außerhalb der Liste, der in keinem verbotenen Bereich liegt – trifft nur die Teilmengen-Prüfung.
 fx_verify_pair "$FX_TMP/a2-src" "$FX_TMP/a2-ziel"
@@ -317,10 +322,11 @@ STUBEOF
 chmod +x "$FX_STUB_DIR/gitleaks"
 FX_LEAKS_LOG="$FX_TMP/gitleaks.log"
 # fx_scan <quelle> <ziel> [leaks-rc] – Bericht (stdout+stderr) in FX_OUT, Exit-Code in FX_RC.
-# Weitere Umgebung (Listen-Pfade) als Präfix vor dem Aufruf: `FACTORY_EXTRACT_ALLOW=… fx_scan …`.
+# Weitere Umgebung (Listen-Pfade) als Präfix vor dem Aufruf: `FACTORY_EXTRACT_ALLOW=… fx_scan …`;
+# ein anderes gitleaks über FX_GITLEAKS_CMD.
 fx_scan() {
-  FX_OUT="$(FACTORY_DIR="$1" GITLEAKS_CMD="$FX_STUB_DIR/gitleaks" FX_LEAKS_RC="${3:-0}" FX_LEAKS_LOG="$FX_LEAKS_LOG" \
-    bash "$FX_SCRIPT" scan "$2" 2>&1)"
+  FX_OUT="$(FACTORY_DIR="$1" GITLEAKS_CMD="${FX_GITLEAKS_CMD:-$FX_STUB_DIR/gitleaks}" FX_LEAKS_RC="${3:-0}" \
+    FX_LEAKS_LOG="$FX_LEAKS_LOG" bash "$FX_SCRIPT" scan "$2" 2>&1)"
   FX_RC=$?
 }
 
@@ -353,6 +359,18 @@ assert_contains_286 "$FX_OUT" "2 Falsch-Positive ausgenommen" "#427 B1/B3: Beric
 assert_contains_286 "$FX_OUT" '- `abc:datei:regel:1` – Grund A, zweite Zeile' "#427 B1/B3: erster Falsch-Positiv mit mehrzeiliger Begründung"
 assert_contains_286 "$FX_OUT" '- `def:datei:regel:2` – Grund B' "#427 B1/B3: zweiter Falsch-Positiv mit Begründung"
 assert_absent "$FX_OUT" "Kopf der Datei" "#427 B1/B3: der Dateikopf ist keine Begründung"
+# Eingerückte Kommentare und reine `#`-Zeilen gehören zur Begründung, eine Zeile nur aus Leerzeichen
+# trennt wie eine Leerzeile.
+printf '# Kopf\n  \n  # Grund C\n#\n# weiter\nghi:datei:regel:3\n' > "$FX_TMP/ignore-format"
+FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-format" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 0 "$FX_RC" "#427 B1: eingerückte Begründung und Leerzeichen-Zeile werden gelesen → Exit 0"
+assert_contains_286 "$FX_OUT" '- `ghi:datei:regel:3` – Grund C weiter' \
+  "#427 B1/B3: Begründung ohne Kopf, ohne doppelte Leerzeichen aus reinen #-Zeilen"
+# Ohne Falsch-Positive verspricht der Bericht keine Liste.
+printf '# nur ein Kopf\n' > "$FX_TMP/ignore-leer"
+FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-leer" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_contains_286 "$FX_OUT" "kein Fund (0 Falsch-Positive ausgenommen)" "#427 B3: ohne Falsch-Positive steht die Zahl 0 im Bericht"
+assert_absent "$FX_OUT" "Liste unten" "#427 B3: ohne Falsch-Positive verweist der Bericht auf keine Liste"
 printf '# Kopf\n\nabc:datei:regel:1\n' > "$FX_TMP/ignore-ohne-grund"
 FACTORY_EXTRACT_GITLEAKSIGNORE="$FX_TMP/ignore-ohne-grund" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 2 "$FX_RC" "#427 B1: Falsch-Positiv ohne Begründung → Exit 2 (fail-closed)"
@@ -366,8 +384,13 @@ assert_contains_286 "$FX_OUT" "| B1 | ✗" "#427 B1: Fund steht als ✗ im Beric
 fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel" 3
 assert_exit 1 "$FX_RC" "#427 B1: gitleaks-Fehler (Exit 3) gilt nicht als sauber → Exit 1"
 
-FX_OUT="$(FACTORY_DIR="$FX_TMP/s-src" GITLEAKS_CMD="$FX_TMP/gibt-es-nicht" bash "$FX_SCRIPT" scan "$FX_TMP/s-ziel" 2>&1)"
-assert_exit 2 "$?" "#427 B1: gitleaks fehlt → Exit 2 (fail-closed)"
+FX_GITLEAKS_CMD="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 2 "$FX_RC" "#427 B1: gitleaks fehlt → Exit 2 (fail-closed)"
+
+# Ein Leerzeichen am Ende eines Musters der Erlaubt-Liste macht es nicht wirkungslos.
+printf 't@t.com \nnoreply@anthropic.com\n*@example.com\n' > "$FX_TMP/allow-leerzeichen"
+FACTORY_EXTRACT_ALLOW="$FX_TMP/allow-leerzeichen" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
+assert_exit 0 "$FX_RC" "#427 B2: Muster mit Leerzeichen am Zeilenende greift trotzdem → Exit 0"
 
 # Eine echte Adresse, die nur in einem alten Stand stand, wird trotzdem gefunden (alle Blobs).
 echo "Ansprechpartner: max.muster@firma.de" > "$FX_TMP/s-ziel/docs/factory/alt.md"

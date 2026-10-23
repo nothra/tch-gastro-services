@@ -47,7 +47,8 @@ Entscheidungen: ADR-063 → „Nachtrag 2026-10-23 · Detailentscheidungen aus T
 - **Probelauf** braucht lokal `git-filter-repo` und `gitleaks` (z. B. `brew install`) – Installation
   vorher mit dem Entwickler abstimmen. Ziel-Verzeichnis außerhalb des Repos (Scratchpad o. ä.),
   danach löschen. Nichts pushen, kein `gh repo create`.
-- **Altpfade, die in TCH weiterleben** (`CLAUDE.md`, `.claude/settings.json`, `.gitignore`): kommen
+- **Altpfade, die in TCH weiterleben** (`CLAUDE.md`, `.claude/settings.json`; `.gitignore` ist laut
+  Probelauf keiner, s. Hinweise für T1b-2): kommen
   bewusst mit; im Probelauf-Bericht als erwartet ausweisen, nicht als A2-Verstoß.
 - **Bash 3.2 / BSD-kompatibel** (macOS): `LC_ALL=C sort`, `shasum -a 256`, kein `sed -i` ohne
   Suffix-Argument, Zeichenklassen in BSD-`awk` per `index()`.
@@ -86,7 +87,7 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
 
 **Befunde aus dem ersten Scan und wie sie aufgelöst sind:**
 - **B1 – ein gitleaks-Fund, Falsch-Positiv:** `generic-api-key` in `scripts/checks/tests/run-tests.sh:280`
-  (Initial-Commit `5fbdaf2`): die absichtlich geplantete Fixture `api_key = "…"` des
+  (Initial-Commit `5fbdaf2`): die absichtlich angelegte Fixture `api_key = "…"` des
   Credential-Check-Regressionstests von `pre-commit.sh`. Ausgenommen per Fingerprint in
   `scripts/project/factory-extract.gitleaksignore` (mit Begründung), damit `scan` reproduzierbar mit
   Exit 0 endet statt dauerhaft rot zu sein.
@@ -105,8 +106,8 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
   Review-Rework entsprechend korrigiert.
 - Der Fingerprint in `factory-extract.gitleaksignore` hängt am Commit-Hash im Ziel, und der hängt an
   Pfadliste, Umschreibregel und filter-repo-Version. Kommt bis T1b-2 eine Factory-Datei oder ein
-  Altpfad hinzu, ändern sich auch alte Hashes – dann meldet `scan` den Fund erneut, und nur der
-  Fingerprint ist nachzuziehen.
+  Altpfad hinzu, der schon in früheren Commits existierte, ändern sich auch deren Hashes – dann
+  meldet `scan` den Fund erneut, und nur der Fingerprint ist nachzuziehen.
 - `qualify` aus dem TCH-Klon gegen den Pfad des Factory-Klons aufrufen
   (`bash scripts/project/factory-extract.sh qualify <factory-klon>`); Grenzen, die die Durchsicht im
   Bereinigungs-PR abfangen muss:
@@ -115,7 +116,9 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
   - YAML-Kommentare (`factory-ci.yml`, `factory-poll.yml`, `factory.defaults.yml`,
     `factory.config.yml.example`, zusammen ~21 `#<nr>`) fasst `qualify` nicht an – von Hand
     qualifizieren;
-  - das Fixture `scripts/checks/tests/fixtures/lessons-split-426.tsv` (173 Treffer) bleibt Fixture.
+  - drei- bis fünfstellige Ziffern-Farbcodes (`#000`) würden umgeschrieben (heute 0 im Bestand);
+  - das Fixture `scripts/checks/tests/fixtures/lessons-split-426.tsv` (173 Zeilen mit Treffern)
+    bleibt Fixture.
 - `run` vergleicht `main` mit dem lokal bekannten `origin/main` – vorher `git fetch`, sonst gilt ein
   veralteter Stand als „gemergt". Prüfen, dass der ADR-063-Nachtrag dieser Task auf `main` liegt.
 - Die Umschreibregel wurde im Review-Rework (Anker, Entities, Ziffern-Farbcodes) geändert. Gegen
