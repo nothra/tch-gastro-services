@@ -405,13 +405,18 @@ cmd_qualify() {
   [ -d "$target" ] || die 2 "Verzeichnis fehlt: $target"
   require_tool python3 "wird für die Umschreibregel gebraucht"
   git -C "$target" rev-parse --git-dir >/dev/null 2>&1 || die 2 "kein Git-Repo: $target"
-  # -z: auch Namen mit `"`, `\` oder Zeilenumbruch kommen ungequotet an.
+  # -z: auch Namen mit `"`, `\` oder Zeilenumbruch kommen ungequotet an. Die Liste geht über eine
+  # Datei statt einer Prozess-Substitution, damit ein Fehler von ls-files nicht still „nichts zu
+  # tun" bedeutet (bash 3.2 kann auf eine Prozess-Substitution nicht warten).
+  QUALIFY_FILES="$(mktemp)"
+  trap 'rm -f "$QUALIFY_FILES"' EXIT
+  git -C "$target" ls-files -z > "$QUALIFY_FILES" || die 2 "git ls-files fehlgeschlagen: $target"
   while IFS= read -r -d '' file; do
     case "$file" in
       *.md) rules_py md "$RULES_FILE" "$target/$file" || exit 2 ;;
       *.sh) rules_py sh "$RULES_FILE" "$target/$file" || exit 2 ;;
     esac
-  done < <(git -C "$target" ls-files -z)
+  done < "$QUALIFY_FILES"
 }
 
 case "${1:-}" in

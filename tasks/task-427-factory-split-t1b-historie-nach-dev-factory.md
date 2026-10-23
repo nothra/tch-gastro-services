@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -124,6 +124,28 @@ Branches; der ändert nur eine bestehende Datei, Pfadliste und Altpfade bleiben 
 - Die Umschreibregel wurde im Review-Rework (Anker, Entities, Ziffern-Farbcodes) geändert. Gegen
   alle 184 Commit-Messages von `origin/main` liefert die neue Regel dasselbe Ergebnis wie die des
   Probelaufs; A4 und der gitleaks-Fingerprint aus dem Probelauf bleiben damit gültig.
+
+## Test-Abdeckung (/test, 2026-10-23)
+
+Coverage misst das Projekt nur für die App (Vitest); dieser Diff ist reines Bash, die App-Gates
+(`pnpm test`, Typecheck) laufen unverändert im Pre-Push mit. Vollständigkeit deshalb über AK ↔ Test
+(`scripts/project/tests/factory-extract-tests.sh`, 223 grün in der Projekt-Suite):
+
+| AK / FS | Happy Path | Fehler- / Grenzfälle |
+|---|---|---|
+| A1 | Liste = `--list factory` + Altpfad, sortiert, zweiter Lauf gleich | Umbenennungskette (zwei Altpfade), Umlaut-Pfad ungequotet, App-Code/App-ADR nicht drin, leere Tabelle → Exit 2 ohne Teil-Liste |
+| A4 / C3 | `qualify` + Regel: Satzende, Klammer/Komma-Liste, Kompositum, Shell-Kommentar | qualifiziert, Farbcodes, Entity, Sprunganker, `/ . - &` davor, `#!`, String-Fixture, Code mit Rest-Kommentar, YAML, Symlink, gequoteter Dateiname, idempotent, kein Repo / kein Verzeichnis / kaputter Index → Exit 2; A4 in `verify` |
+| A2 / FS2 | sauberes Ziel | Pfad außerhalb der Liste; verbotener Bereich trotz Liste; je isoliert |
+| A3 / FS3 | alle Factory-Dateien `--follow` gleich | Datei fehlt im Ziel; `--follow` reißt am Altpfad ab |
+| A5 | identische commit-map | abweichender Autor; commit-map fehlt / ohne verbleibende Commits / mit unbekanntem Ziel-Commit → Exit 2 |
+| B1 | kein Fund; Falsch-Positive mit Begründung im Bericht | Fund (Exit 1), gitleaks-Fehler (Exit 1), gitleaks fehlt / Liste fehlt / Eintrag ohne Begründung (Exit 2), Formatvarianten der Liste, 0 Falsch-Positive |
+| B2 / FS1 | nur erlaubte Adressen | Adresse nur in altem Blob mit Datei genannt; Leerzeichen am Musterende; Liste fehlt (Exit 2) |
+| B3 | Bericht: Versionen, TCH-Commit, Commits, Zeilen A2/B1/B2 | A2 ✗ im Bericht bei sonst sauberem Scan |
+| X2 | filter-repo läuft im frischen Klon mit Pfadliste + Regel; Arbeitsklon unberührt | Ziel existiert, filter-repo fehlt / scheitert (Hinweis „halbes Ziel"), `main` ≠ `origin/main`, kein `main` → Exit 2 |
+| X1 | – (Prozess-Kriterium, per `ownership-check.sh` gegen den Diff geprüft, s. Review) | – |
+
+Aufruf mit falschen Argumenten → Exit 2. Einziger Produktionscode in `/test`: der vom Entwickler
+mitbestellte Fix des `qualify`-Fail-open aus Review-Iteration 3 (Test zuerst rot: kaputter Index → Exit 0).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

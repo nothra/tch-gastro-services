@@ -81,6 +81,22 @@ fx_out="$(FACTORY_DIR="$FX_BROKEN" bash "$FX_SCRIPT" paths 2>/dev/null)"
 assert_exit 2 "$?" "#427 A1: leere Zuordnungstabelle → Exit 2 (fail-closed)"
 assert_true "$([ -z "$fx_out" ]; echo $?)" "#427 A1: bei Abbruch keine Teil-Liste auf stdout"
 
+# Zwei Umbenennungen hintereinander: beide früheren Namen sind Altpfade.
+FX_CHAIN="$FX_TMP/chain"
+fx_source "$FX_CHAIN"
+fx_git "$FX_CHAIN" mv docs/factory/adr/seam.md docs/factory/adr/seam2.md
+fx_git "$FX_CHAIN" commit -qm "docs: zweite umbenennung (#3)"
+fx_chain_paths="$(FACTORY_DIR="$FX_CHAIN" bash "$FX_SCRIPT" paths)"
+assert_contains_286 "$fx_chain_paths" "docs/adr/seam.md" "#427 A1: Umbenennungskette – ältester Name ist Altpfad"
+assert_contains_286 "$fx_chain_paths" "docs/factory/adr/seam.md" "#427 A1: Umbenennungskette – mittlerer Name ist Altpfad"
+assert_contains_286 "$fx_chain_paths" "docs/factory/adr/seam2.md" "#427 A1: Umbenennungskette – aktueller Name steht in der Liste"
+
+for fx_args in "" "paths extra" "run" "verify a b" "unbekannt x"; do
+  # shellcheck disable=SC2086 # Argumente sollen hier zerfallen
+  bash "$FX_SCRIPT" $fx_args >/dev/null 2>&1
+  assert_exit 2 "$?" "#427 Aufruf: falsche Argumente ('$fx_args') → Exit 2"
+done
+
 echo ""
 echo "#427 factory-extract.sh qualify + Umschreibregel (A4/C3):"
 
@@ -135,10 +151,20 @@ assert_contains_286 "$(cat "$FX_Q/we\"ird.md")" "Sonderzeichen nothra/tch-gastro
 assert_contains_286 "$(cat "$FX_TMP/aussen.md")" "Außen #5" "#427 qualify: Symlink wird übersprungen, nichts außerhalb des Ziels geändert"
 fx_before="$(cat "$FX_Q/doku.md" "$FX_Q/skript.sh")"
 FACTORY_DIR="$FX_SRC" bash "$FX_SCRIPT" qualify "$FX_Q" >/dev/null 2>&1
+assert_exit 0 "$?" "#427 qualify: zweiter Lauf läuft durch"
 assert_true "$([ "$fx_before" = "$(cat "$FX_Q/doku.md" "$FX_Q/skript.sh")" ]; echo $?)" "#427 qualify: zweiter Lauf ändert nichts (idempotent)"
 mkdir -p "$FX_TMP/kein-repo"
 bash "$FX_SCRIPT" qualify "$FX_TMP/kein-repo" >/dev/null 2>&1
 assert_exit 2 "$?" "#427 qualify: Ziel ohne Git-Repo → Exit 2"
+bash "$FX_SCRIPT" qualify "$FX_TMP/gibt-es-nicht" >/dev/null 2>&1
+assert_exit 2 "$?" "#427 qualify: fehlendes Verzeichnis → Exit 2"
+# Kaputter Index: das Repo ist erkennbar, aber `git ls-files` scheitert – das darf nicht als
+# „nichts umzuschreiben" (Exit 0) durchgehen.
+FX_QBROKEN="$FX_TMP/qualify-kaputt"
+git clone -q --no-local "$FX_Q" "$FX_QBROKEN"
+printf 'kaputt' > "$FX_QBROKEN/.git/index"
+bash "$FX_SCRIPT" qualify "$FX_QBROKEN" >/dev/null 2>&1
+assert_exit 2 "$?" "#427 qualify: git ls-files scheitert (kaputter Index) → Exit 2, nicht still 0"
 
 # Die Regeldatei hat genau eine Regel im filter-repo-Format (`regex:…==>…`) – dieselbe Datei
 # liest `run` für die Commit-Messages, die Tests oben belegen also auch die Message-Regel.
@@ -195,6 +221,21 @@ git -C "$FX_BEHIND" fetch -q origin
 FACTORY_DIR="$FX_BEHIND" FILTER_REPO_CMD="$FX_STUB_DIR/git-filter-repo" FX_STUB_LOG="$FX_STUB_LOG" \
   bash "$FX_SCRIPT" run "$FX_TMP/ziel-behind" >/dev/null 2>&1
 assert_exit 2 "$?" "#427 run: lokales main ≠ origin/main → Exit 2"
+
+# Ohne lokalen Branch main gibt es keinen gemergten Stand.
+FX_NOMAIN="$FX_TMP/ohne-main"
+git init -q -b trunk "$FX_NOMAIN" && fx_git "$FX_NOMAIN" commit -q --allow-empty -m init
+FACTORY_DIR="$FX_NOMAIN" FILTER_REPO_CMD="$FX_STUB_DIR/git-filter-repo" FX_STUB_LOG="$FX_STUB_LOG" \
+  bash "$FX_SCRIPT" run "$FX_TMP/ziel-ohne-main" >/dev/null 2>&1
+assert_exit 2 "$?" "#427 run: kein lokaler Branch main → Exit 2"
+
+# filter-repo scheitert → Exit 2 und Hinweis auf das halbe Ziel.
+printf '#!/usr/bin/env bash\nexit 1\n' > "$FX_STUB_DIR/filter-repo-kaputt"
+chmod +x "$FX_STUB_DIR/filter-repo-kaputt"
+fx_out="$(FACTORY_DIR="$FX_SRC" FILTER_REPO_CMD="$FX_STUB_DIR/filter-repo-kaputt" \
+  bash "$FX_SCRIPT" run "$FX_TMP/ziel-kaputt" 2>&1)"
+assert_exit 2 "$?" "#427 run: filter-repo scheitert → Exit 2"
+assert_contains_286 "$fx_out" "halbes Ziel" "#427 run: Abbruchmeldung weist auf das halbe Ziel hin"
 
 echo ""
 echo "#427 factory-extract.sh verify (A2–A5):"
@@ -308,6 +349,27 @@ rm -rf "$FX_TMP/nomap-ziel/.git/factory-extract"
 fx_verify "$FX_TMP/nomap-src" "$FX_TMP/nomap-ziel"
 assert_exit 2 "$FX_RC" "#427 verify: Metadaten von run fehlen → Exit 2 (fail-closed)"
 
+# commit-map, in der jeder Commit als entfernt gilt: A5 hätte nichts verglichen.
+fx_verify_pair "$FX_TMP/nullmap-src" "$FX_TMP/nullmap-ziel"
+{ echo "old new"; git -C "$FX_TMP/nullmap-src" rev-list --all | awk -v z="$NULL_COMMIT_427" '{print $1 " " z}'; } \
+  > "$FX_TMP/nullmap-ziel/.git/filter-repo/commit-map"
+fx_verify "$FX_TMP/nullmap-src" "$FX_TMP/nullmap-ziel"
+assert_exit 2 "$FX_RC" "#427 A5: commit-map ohne verbleibende Commits → Exit 2 (fail-closed)"
+
+# commit-map nennt einen Ziel-Commit, den es nicht gibt.
+fx_verify_pair "$FX_TMP/ghost-src" "$FX_TMP/ghost-ziel"
+{ echo "old new"; echo "$(git -C "$FX_TMP/ghost-src" rev-parse HEAD) 1111111111111111111111111111111111111111"; } \
+  > "$FX_TMP/ghost-ziel/.git/filter-repo/commit-map"
+fx_verify "$FX_TMP/ghost-src" "$FX_TMP/ghost-ziel"
+assert_exit 2 "$FX_RC" "#427 A5: Commit aus der commit-map fehlt im Ziel → Exit 2"
+
+# Der festgehaltene TCH-Commit ist im Arbeitsklon nicht vorhanden (nicht gefetcht).
+fx_verify_pair "$FX_TMP/nosrc-src" "$FX_TMP/nosrc-ziel"
+echo 2222222222222222222222222222222222222222 > "$FX_TMP/nosrc-ziel/.git/factory-extract/source-commit"
+fx_verify "$FX_TMP/nosrc-src" "$FX_TMP/nosrc-ziel"
+assert_exit 2 "$FX_RC" "#427 verify: TCH-Commit fehlt im Arbeitsklon → Exit 2"
+assert_contains_286 "$FX_OUT" "git fetch" "#427 verify: Abbruchmeldung nennt git fetch"
+
 echo ""
 echo "#427 factory-extract.sh scan (B1/B2/B3, mit gitleaks-Stub):"
 
@@ -407,5 +469,11 @@ done
 
 FACTORY_EXTRACT_ALLOW="$FX_TMP/gibt-es-nicht" fx_scan "$FX_TMP/s-src" "$FX_TMP/s-ziel"
 assert_exit 2 "$FX_RC" "#427 B2: Erlaubt-Liste nicht lesbar → Exit 2 (fail-closed)"
+
+# A2 im Bericht: ein Pfad außerhalb der Liste macht den Scan rot, auch ohne gitleaks-/E-Mail-Fund.
+fx_scan "$FX_TMP/a2-src" "$FX_TMP/a2-ziel"
+assert_exit 1 "$FX_RC" "#427 B3/A2: Pfad außerhalb der Liste → scan Exit 1"
+assert_contains_286 "$FX_OUT" "| A2 | ✗ | A2: docs/factory/fremd.md" "#427 B3/A2: Bericht zeigt A2 als ✗ mit dem Pfad"
+assert_contains_286 "$FX_OUT" "| B1 | ✓" "#427 B3/A2: B1 bleibt im selben Bericht ✓"
 
 rm -rf "$FX_TMP"
