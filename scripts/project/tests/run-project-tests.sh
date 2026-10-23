@@ -533,6 +533,4 @@ assert_absent "$test_job_432" 'run-project-tests.sh ||' "#432 AK-J3: der Aufruf 
 assert_absent "$test_job_432" 'continue-on-error' "#432 AK-J3: der Job test hat kein continue-on-error"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
-echo ""
-echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
-[[ "$FAIL" -eq 0 ]]
+print_summary

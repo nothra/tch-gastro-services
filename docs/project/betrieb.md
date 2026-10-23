@@ -47,9 +47,6 @@ Browser vorhanden. Die interaktive Browser-Verifikation entfällt; automatisiert
 das nicht gegeben, die offene UI-Verifikation als Blocker/Nachtest in der Task-Datei
 protokollieren (Nachweis später über `/post-merge-verify`) – nicht still überspringen.
 
-**Kurzreferenz der Kommandos:** `pnpm db:up` (lokale DB), `pnpm db:migrate`, `pnpm db:seed`,
-`pnpm dev` (Dev-Server), `pnpm test:e2e` (Playwright), `pnpm test` (Unit/Integration).
-
 ---
 
 ## 0.2 GitHub-Repository-Secrets (für das Deploy-Gate)

@@ -9068,7 +9068,7 @@ BETRIEB_432="$FACTORY_ROOT/docs/project/betrieb.md"
 betrieb_flat_432="$(flat_286 "$BETRIEB_432")"
 for sec_432 in '## 0.2 GitHub-Repository-Secrets' '## 0.3 Vercel Production-Branch' '## 4.3 Destruktive Produktions-Migrationen' \
     '## 1.4 Was nach dem Merge automatisch passiert' 'PRD_DATABASE_URL' 'VERCEL_AUTOMATION_BYPASS_SECRET' \
-    'Production Branch = `production`' 'DROP`/`TRUNCATE`' 'Docker (Compose v2)' 'pnpm db:seed'; do
+    'Production Branch = `production`' 'DROP`/`TRUNCATE`' 'Docker (Compose v2)' '`db:seed`'; do
   assert_contains_286 "$betrieb_flat_432" "$sec_432" "#432 AK-K2: betrieb.md enthält '$sec_432'"
 done
 operating_flat_432="$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")"
@@ -9083,6 +9083,4 @@ assert_true "$([ "$k1a_lines_432" -le 10 ]; echo $?)" "#432 AK-K1a: der Abschnit
 assert_contains_286 "$PCTX_432" 'docs/project/betrieb.md' "#432 AK-K1a: der Abschnitt verweist auf docs/project/betrieb.md"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
-echo ""
-echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
-[[ "$FAIL" -eq 0 ]]
+print_summary

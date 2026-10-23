@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -169,3 +169,10 @@ Erstellt: 2026-10-22 22:39
 - Factory-Suite 1835 grün / 0 rot, Projekt-Suite 90 grün / 0 rot (Summe 1925 = 1894 + 31 neue, AK-J4).
 - AK-J1–J3 und AK-K1/K1a/K2 haben je eigene Assertions (Wiring, Negativprobe AK-J3, Stack-Begriffe je Datei, Abschnittslänge, Anker/Pointer); AK-K3 ist ein Dokument-Ergebnis (Residuenliste), AK-X2/X3 sind erst nach Push/Merge prüfbar.
 - Keine Lücke gefunden, keine neuen Tests nötig, kein Produktionscode geändert.
+
+## /refactor-Ergebnis (2026-10-23)
+
+- `print_summary` in `scripts/checks/tests/lib/assert-helpers.sh`: die Ergebnis-Fußzeile steht nur noch einmal und wird von beiden Suiten aufgerufen (Review-Nitpick 1).
+- `docs/project/betrieb.md`: der neu entstandene Block „Kurzreferenz der Kommandos" ist entfernt, weil er nur Kommandos aus dem Text darüber und aus `PROJECT-CONTEXT.md` wiederholte (Review-Nitpick 2). Er war nicht Teil von `OPERATING.md` auf `main`, also geht kein Originalinhalt verloren.
+- Folge: der AK-K2-Anker `pnpm db:seed` traf nur diesen Block. Er ist jetzt `` `db:seed` `` und entspricht damit dem Wortlaut der übernommenen Setup-Zeile.
+- Kein neues Verhalten. Beide Suiten danach unverändert grün: Factory 1835, Projekt 90, 0 rot.

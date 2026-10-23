@@ -6,7 +6,8 @@
 # die Helfer gehören der Factory und kommen ab T2 mit Factory-Updates.
 #
 # Stellt bereit: die Zähler PASS/FAIL, die Farben, assert_exit/assert_true/assert_contains_286/
-# assert_absent, flat_286, mk_feature_repo, ls_mode_matches, HAS_YQ/skip_yq und ci_job_block.
+# assert_absent, flat_286, mk_feature_repo, ls_mode_matches, HAS_YQ/skip_yq, ci_job_block und
+# print_summary (Ergebnis-Fußzeile samt Exit-Code).
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
@@ -109,4 +110,11 @@ skip_yq() { echo "  • ${1} – übersprungen (yq fehlt, ADR-009)"; }
 # des Folge-Jobs (kein "wort:"-Muster) fälschlich mit einschließen (Lesson #255).
 ci_job_block() {
   awk -v j="$1" '$0 ~ "^  " j ":" {f=1; next} /^  ([A-Za-z0-9_-]+:|# ───)/{if (f) exit} f' "$2"
+}
+
+# print_summary – Ergebnis-Fußzeile; der Rückgabewert (0 nur ohne Rot) ist der Exit-Code der Suite.
+print_summary() {
+  echo ""
+  echo -e "Ergebnis: ${GREEN}${PASS} grün${NC}, ${RED}${FAIL} rot${NC}"
+  [[ "$FAIL" -eq 0 ]]
 }
