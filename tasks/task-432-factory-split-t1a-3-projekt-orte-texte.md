@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -162,3 +162,10 @@ Siehe `tasks/review-432.md`: Runde 1 NEEDS_REWORK (4 wichtige Findings, behoben)
 ---
 Branch: `feature/432-factory-split-t1a-3-projekt-orte-texte`
 Erstellt: 2026-10-22 22:39
+
+## /test-Ergebnis (2026-10-23)
+
+- Reine Bash-/Doku-Änderung, kein App-Code: der Coverage-Lauf (`pnpm test:coverage`) entfällt; Maßstab ist die AK-Abdeckung der beiden Bash-Suiten.
+- Factory-Suite 1835 grün / 0 rot, Projekt-Suite 90 grün / 0 rot (Summe 1925 = 1894 + 31 neue, AK-J4).
+- AK-J1–J3 und AK-K1/K1a/K2 haben je eigene Assertions (Wiring, Negativprobe AK-J3, Stack-Begriffe je Datei, Abschnittslänge, Anker/Pointer); AK-K3 ist ein Dokument-Ergebnis (Residuenliste), AK-X2/X3 sind erst nach Push/Merge prüfbar.
+- Keine Lücke gefunden, keine neuen Tests nötig, kein Produktionscode geändert.
