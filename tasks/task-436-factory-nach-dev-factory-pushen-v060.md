@@ -18,9 +18,9 @@ Arbeit überwiegend im Factory-Repo, diese Datei hält Scan- und Abschlussberich
 
 ## Akzeptanzkriterien
 <!-- AK-Volltext in spec-427; hier nur die Checkliste von T1b-2 -->
-- [ ] A2 Keine Pfade außerhalb der Pfadliste in der herausgelösten Historie (`verify`)
-- [ ] A3 `git log --follow` reicht bei allen Altpfad-Dateien über die Umbenennung (Stichprobe ADR-019, `FACTORY.md`, `settings.factory.json`)
-- [ ] A5 Autor/Datum der Commits gegenüber TCH unverändert
+- [x] A2 Keine Pfade außerhalb der Pfadliste in der herausgelösten Historie (`verify`)
+- [x] A3 `git log --follow` reicht bei allen Altpfad-Dateien über die Umbenennung (Stichprobe ADR-019, `FACTORY.md`, `settings.factory.json`)
+- [x] A5 Autor/Datum der Commits gegenüber TCH unverändert
 - [ ] B1 gitleaks über alle Commits + Messages: kein Fund (Falsch-Positive einzeln belegt)
 - [ ] B2 E-Mail-Scan: nur Treffer aus der Erlaubt-Liste
 - [ ] B3 Scan-Bericht in dieser Datei und im PR-Body #439
@@ -47,8 +47,32 @@ Arbeit überwiegend im Factory-Repo, diese Datei hält Scan- und Abschlussberich
 ## Offene Fragen
 <!-- Quelle: spec-436 „Offene Fragen" -->
 - [x] Q1 #439 bleibt Draft, bis `v0.6.0` steht (2026-10-23)
-- [ ] Q2 Umgang mit echtem Scan-Fund (Entwickler entscheidet, FS1)
+- [x] Q2 Umgang mit Scan-Fund (Entwickler entscheidet, FS1): Inline-Treffer in ADR-063 = Fließtext, Wortlaut im Factory-Repo ändern (2026-10-24)
 - [x] Q3 ShellCheck-Folge-Issue im Factory-Repo nach `v0.6.0` (2026-10-23)
+
+## Scan-Bericht (Schritt 2/3, 2026-10-24)
+Frischer Klon von `main` (X2), `run` → `verify` → `scan`; kein Push erfolgt.
+
+| Kennzahl | Wert |
+|---|---|
+| TCH-Commit (Quelle) | `f998473862f4e191ea26cd5fea7d0b755618ac48` |
+| Commits / Dateien im Ziel / Pfade | 124 / 113 / 142 |
+| Werkzeuge | git 2.54.0, git-filter-repo a40bce548d2c, gitleaks 8.30.1, python3 3.9.6 |
+
+| Prüfung | Ergebnis | Details |
+|---|---|---|
+| A2 | ✓ | 142 Pfade in der Historie, alle in der Liste, keiner in einem verbotenen Bereich |
+| A3 | ✓ | 111 Factory-Dateien, 31 mit Altpfad (u. a. ADR-019, ADR-003 … ADR-063): `--follow` reicht über die Umbenennung |
+| A4 | ✓ | keine Commit-Message mit unqualifiziertem `#<nr>` |
+| A5 | ✓ | 124 Commits mit unverändertem Autor und Datum |
+| B1 Historie | ✓ | kein Fund; 1 bekannter Falsch-Positiv (`5fbdaf21…:scripts/checks/tests/run-tests.sh:generic-api-key:280`, Test-Fixture), Fingerprint unverändert gültig |
+| B1 Messages | ✓ | kein Fund |
+| B1 Inline-Ausnahmen | ✗ → Falsch-Positiv | `gitleaks:allow` in `docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md:371` (einziger Treffer, `git grep` im Ziel) |
+| B2 Dateien / Messages | ✓ | 8 bzw. 1 Adresse(n), alle in der Erlaubt-Liste |
+
+Restrisiko B2: erkennt ASCII-Adressen `name@domain.tld`; Umlaut-Domains, verschleierte Formen und komprimierte Dateien nicht.
+
+**Q2/FS1-Entscheidung (Entwickler, 2026-10-24):** Der Inline-Treffer ist Fließtext der ADR („Jedes Inline-`gitleaks:allow` in Dateien oder Messages macht …"), keine Unterdrückung eines Fundes, in der Zeile steht kein Secret. Der Wortlaut wird im Factory-Repo nach dem Bootstrap-Push geändert (Bereinigungs-PR); die TCH-Quelle bleibt unverändert (X1).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
