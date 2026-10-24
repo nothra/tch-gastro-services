@@ -21,17 +21,17 @@ Arbeit überwiegend im Factory-Repo, diese Datei hält Scan- und Abschlussberich
 - [x] A2 Keine Pfade außerhalb der Pfadliste in der herausgelösten Historie (`verify`)
 - [x] A3 `git log --follow` reicht bei allen Altpfad-Dateien über die Umbenennung (Stichprobe ADR-019, `FACTORY.md`, `settings.factory.json`)
 - [x] A5 Autor/Datum der Commits gegenüber TCH unverändert
-- [ ] B1 gitleaks über alle Commits + Messages: kein Fund (Falsch-Positive einzeln belegt)
-- [ ] B2 E-Mail-Scan: nur Treffer aus der Erlaubt-Liste
-- [ ] B3 Scan-Bericht in dieser Datei und im PR-Body #439
-- [ ] B4 Bootstrap-Push erst nach ausdrücklicher Freigabe im Chat
+- [x] B1 gitleaks über alle Commits + Messages: kein Fund (Falsch-Positive einzeln belegt)
+- [x] B2 E-Mail-Scan: nur Treffer aus der Erlaubt-Liste
+- [x] B3 Scan-Bericht in dieser Datei und im PR-Body #439
+- [x] B4 Bootstrap-Push erst nach ausdrücklicher Freigabe im Chat
 - [ ] C1 Begriffs-Grep im Factory-Repo nur an dokumentierten erlaubten Stellen
 - [ ] C2 Bereinigung ändert nur Wortlaut/Beispiele; Self-Tests grün
 - [ ] C3 Jeder TCH-Verweis qualifiziert (`nothra/tch-gastro-services#<nr>`)
 - [ ] D1 Repo öffentlich, Inhalt + README mit Herkunftshinweis
 - [ ] D2 Eigene `factory.config.yml`, `CLAUDE.md`, `PROJECT-CONTEXT.md`, `OWNERSHIP.md`
 - [ ] D3 CI grün (`factory-self-test`, `config-validation`, `pr-closes-issue`, `lint`); Self-Tests angepasst, nicht übersprungen
-- [ ] D4 Ruleset `protect-main` unmittelbar nach dem Push; Direkt-Push wird abgelehnt
+- [x] D4 Ruleset `protect-main` unmittelbar nach dem Push; Direkt-Push wird abgelehnt
 - [ ] D5 Frischer Klon: `install-hooks.sh` + lokale Gates grün ohne pnpm/Node/DB
 - [ ] E1 Alle Art-/Aspekt-Labels im Factory-Repo vorhanden
 - [ ] E2 Wegwerf-Probe `start-work.sh` (Issue, Branch, Worktree, Task-Datei, Draft-PR) und Aufräumen
@@ -73,6 +73,12 @@ Frischer Klon von `main` (X2), `run` → `verify` → `scan`; kein Push erfolgt.
 Restrisiko B2: erkennt ASCII-Adressen `name@domain.tld`; Umlaut-Domains, verschleierte Formen und komprimierte Dateien nicht.
 
 **Q2/FS1-Entscheidung (Entwickler, 2026-10-24):** Der Inline-Treffer ist Fließtext der ADR („Jedes Inline-`gitleaks:allow` in Dateien oder Messages macht …"), keine Unterdrückung eines Fundes, in der Zeile steht kein Secret. Der Wortlaut wird im Factory-Repo nach dem Bootstrap-Push geändert (Bereinigungs-PR); die TCH-Quelle bleibt unverändert (X1).
+
+## Bootstrap-Push (Schritt 4/5, 2026-10-24)
+- Freigabe B4: ausdrücklich im Chat („Freigabe Bootstrap-Push"). Der Entwickler hat `nothra/dev-factory` selbst öffentlich angelegt (Klassifizierer blockte `gh repo create --public`); `gh repo view`: `PUBLIC`, leer.
+- Push `main` (124 Commits, TCH-Quelle `f998473`) mit `--no-verify`.
+- Ruleset `protect-main` (ID 25774138) unmittelbar danach: Pflicht-Checks `lint`, `factory-self-test`, `pr-closes-issue`, `config-validation`; nur Squash; kein Bypass; löschen/Force-Push gesperrt.
+- D4-Probe (Leer-Commit direkt auf `main`): `remote: - Changes must be made through a pull request.` / `[remote rejected] main -> main (push declined due to repository rule violations)`.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
