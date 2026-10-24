@@ -1,4 +1,4 @@
-# Spec: Factory versioniert per `factory.lock` einbinden (T2)
+# Spec: Factory versioniert per `factory.lock` einbinden (T2a)
 
 > **Detail-Spec zu Teil-Task T2** des Epics #424 ([spec-424](spec-424-factory-in-eigenes-repo-auslagern.md)).
 > Der AK-Volltext von AK2.1–AK2.13 und F1–F4/F7/F8 steht dort; hier steht er **verfeinert auf den
@@ -126,7 +126,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   und die Pipeline gefahren wird THEN funktioniert alles wie gewohnt; nur Abholen, Update-PR und die
   CI-Stufe des Gates sind betroffen (F4: klarer Fehler im Update-Lauf, nichts halb aktualisiert).
 
-### Factory-Funde aus Projekt-Arbeit
+### Factory-Funde aus Projekt-Arbeit — **T2b (#441)**
 
 - [ ] **AK2.9** GIVEN ein Skill findet einen Fund oberhalb der Issue-Schwelle (ADR-043), der eine
   Datei aus `factory.lock` betrifft WHEN er ihn ablegt THEN entsteht das Issue im **Factory-Repo**
@@ -153,7 +153,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   Abschnitt „Factory-Funde (nicht übertragen)" der Task-Datei, **Exit 0** mit leerem stdout; der
   Lauf bricht daran nicht ab.
 
-### Neues Projekt aufsetzen
+### Neues Projekt aufsetzen — **T2b (#441)**
 
 - [ ] **AK2.7a** GIVEN ein leeres neues Git-Repo WHEN man es nach `docs/factory/NEW-PROJECT.md`
   mit dem `--init`-Modus aufsetzt THEN hat es eine eingebundene Version samt `factory.lock`, installierte
@@ -180,13 +180,33 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   `factory-integrity` als Required Check; die bisherigen Check-Namen sind unverändert
   (Nachtrag in ADR-029).
 
+### Konsumenten-Vertrag (neu, ADR-063 Nachtrag Q7/Q8)
+
+- [ ] **AK2.15a** GIVEN ein Repo mit `factory.lock` WHEN `ownership-check.sh` läuft THEN gilt als Seite
+  `factory` genau die Pfadmenge des Locks, der Rest als Projekt; der Check braucht keine
+  `docs/factory/OWNERSHIP.md` und ist grün, ohne dass das Projekt eine Zuordnungstabelle pflegt.
+- [ ] **AK2.15b** GIVEN dasselbe WHEN ein Lock-Pfad nicht existiert oder ein Pfad einer Anpassungsstelle
+  im Lock steht THEN schlägt der Check fehl und nennt den Pfad.
+- [ ] **AK2.15c** GIVEN das Factory-Repo (kein Lock) WHEN der Check läuft THEN gilt weiter die Tabelle
+  `OWNERSHIP.md` wie bisher (Quelle, Modus bleibt).
+- [ ] **AK2.15d** GIVEN die Erst-Einbindung WHEN sie abgeschlossen ist THEN ist TCHs `OWNERSHIP.md`
+  entfernt und kein Skill-/Doku-Text verweist mehr darauf als Quelle der Zuordnung (Verweis zeigt auf
+  `factory.lock`).
+- [ ] **AK2.16a** GIVEN ein Repo mit eingebundener Factory WHEN die ausgelieferte Self-Test-Suite
+  (`factory-self-test`) läuft THEN ist sie grün, ohne dass der Zustand des Factory-Repos vorausgesetzt
+  wird (kein Bezug auf dessen `ci.yml`, `release.yml`, Dateizahlen).
+- [ ] **AK2.16b** GIVEN die Factory-Repo-spezifischen Prüfungen WHEN sie geschnitten werden THEN laufen
+  sie nur im Factory-Repo (`scripts/project/tests/`), und keine Prüfung ist dabei ersatzlos entfallen
+  (Vorher/Nachher-Liste der Testgruppen im Factory-PR). *Beleg: Mutations-/Zählvergleich.*
+
 ### Epic-weit
 
-- [ ] **AKE.1** GIVEN T2 ist gemergt WHEN TCH die Pipeline fährt (Stage 2/3) THEN verhält sie sich wie
+- [ ] **AKE.1** GIVEN T2a ist gemergt WHEN TCH die Pipeline fährt (Stage 2/3) THEN verhält sie sich wie
   zuvor; Self-Tests und App-Gates sind grün, die Required-Check-Namen sind bis auf die Ergänzung
   `factory-integrity` unverändert.
-- [ ] **AKE.2** GIVEN T2 WHEN gearbeitet wird THEN läuft sie als eigener PR mit eigenem Issue (#428)
-  und gilt erst nach grünen Gates in **beiden** Repos als fertig.
+- [ ] **AKE.2** GIVEN T2a WHEN gearbeitet wird THEN läuft sie als eigener PR mit eigenem Issue (#428)
+  und gilt erst nach grünen Gates in **beiden** Repos als fertig; die Reihenfolge ist Factory-PR →
+  Release `v0.7.0` → TCH-PR (ADR-063 Nachtrag Q1).
 
 ## Fehlerszenarien
 
@@ -209,32 +229,39 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 > Für `/architecture` (ADR-Trigger ist in ADR-063 schon beantwortet; hier Detailfragen mit
 > Auswirkung auf Umfang oder Reihenfolge) bzw. vor `/implement`.
 
-- [ ] **Q1 · Wo entstehen die neuen Dateien?** Laut ADR-063 sind `factory-sync.sh`,
+- [x] **Q1 · Wo entstehen die neuen Dateien?** → **ADR-063 Nachtrag Q1:** Factory-Repo zuerst, Release `v0.7.0`, dann TCH-PR. *(Frage:)* Laut ADR-063 sind `factory-sync.sh`,
   `factory-integrity-check.sh`, `factory-update.yml`, Seam und `NEW-PROJECT.md` **übernommene**
   (Seite `factory`) Dateien, gehören also ins **Factory-Repo** – dort aber hat TCH sie heute nicht
   (v0.6.0 enthält nur den Stand aus T1a). Folge: T2 braucht **mindestens einen Factory-PR + Release
   (v0.7.0?)** *vor* dem TCH-PR, in dem TCH `factory.lock` einführt. Reihenfolge und Release-Nummer
   festlegen. *Eskalation:* ändert den Zuschnitt dieser Task (zwei Repos, zwei PRs).
-- [ ] **Q2 · Woraus entsteht das erste `factory.lock`?** v0.6.0 enthält die **bereinigte** Fassung
+- [x] **Q2 · Woraus entsteht das erste `factory.lock`?** → **Nachtrag Q2/Q9:** Wechsel auf `v0.7.0`, Änderungsstopp, kein TCH-Delta (gemessen: 50 von 74 Abweichungen nur Qualifizierung). *(Frage:)* v0.6.0 enthält die **bereinigte** Fassung
   (T1b-2 hat Wortlaut und Verweise in den Factory-Dateien angepasst); TCH-`main` hat die alte Fassung.
   Wird TCH bei der Erst-Einbindung auf die neue Fassung **gesetzt** (jede TCH-Abweichung verloren,
   AK2.14b) oder wird zuerst das Delta ins Factory-Repo gegeben? → AK2.14b sichert nur, dass nichts
   still verloren geht; die Strategie legt `/architecture` fest.
-- [ ] **Q3 · `FACTORY_SYNC_TOKEN`:** muss der Entwickler als Fine-grained PAT anlegen
+- [ ] **Q3 · `FACTORY_SYNC_TOKEN`** (bleibt menschlicher Schritt, Nachtrag Q3/Q5): muss der Entwickler als Fine-grained PAT anlegen
   (Projekt-Repo *contents:write* + *pull-requests:write*; `nothra/dev-factory` *issues:write*) und
   als Secret hinterlegen. **Menschlicher Schritt** vor dem ersten Workflow-Lauf; Ablaufdatum +
   Rotation in `OPERATING.md`. Ohne Token ist FS-T2.3 die erwartete Antwort.
-- [ ] **Q4 · Ruleset:** `factory-integrity` als Required Check in `protect-main` ist eine
+- [x] **Q4 · Ruleset:** → **Nachtrag Q4:** erst **nach** dem Merge von T2a. *(Frage:)* `factory-integrity` als Required Check in `protect-main` ist eine
   Repo-Einstellung (kein Code) – wer ändert sie, und **wann relativ zum Merge**? Zu früh blockiert
   jeden PR (der Check existiert noch nicht), zu spät lässt den Merge ohne Gate durch.
-- [ ] **Q5 · Echter Neuprojekt-Nachweis (AK2.7c):** legt ein Wegwerf-Repo auf GitHub an (öffentlich
+- [ ] **Q5 · Echter Neuprojekt-Nachweis (AK2.7c, jetzt T2b):** legt ein Wegwerf-Repo auf GitHub an (öffentlich
   oder privat?) und löscht es wieder – braucht ausdrückliche Freigabe des Entwicklers im Chat.
-- [ ] **Q6 · Größe:** 35 Kriterien, zwei Repos, vier Workflow-/Skript-Bausteine. Das liegt **über**
+- [x] **Q6 · Größe:** → **entschieden 2026-10-24:** Teilung T2a (#428) / T2b (#441). *(Frage:)* 35 Kriterien, zwei Repos, vier Workflow-/Skript-Bausteine. Das liegt **über**
   der Turn-Limit-Schwelle (> 25 AK, Lesson #369). Vorschlag zur Prüfung in `/architecture`:
   Teilung in **T2a** (Abholen + Manifest + Gate + Update-PR) und **T2b** (Fund-Ablage + Neuprojekt),
   beide hinter v0.7.0. Entscheidung des Entwicklers.
-- [ ] **Q7 · Skill-Texte:** `/review`, `/security-review`, `/test`, `/refactor`, `/codify`
+- [x] **Q7 · Skill-Texte:** → gehören zu T2b (AK2.12), Factory-PR vor Update-PR. *(Frage:)* `/review`, `/security-review`, `/test`, `/refactor`, `/codify`
   sind Factory-Dateien – ihre Änderung (AK2.12) ist ebenfalls ein Factory-PR und fällt in Q1.
+
+## Zuordnung zu T2a / T2b
+
+| Task | Kriterien |
+|---|---|
+| **T2a (#428)** | AK2.1a–c, AK2.2a–d, AK2.3, AK2.3b, AK2.4, AK2.4b, F3, AK2.5a–d, AK2.6, F1, F2, F4, F7, AK2.8, AK2.14a–c, AK2.15a–d, AK2.16a–b, AKE.1, AKE.2, FS-T2.1–FS-T2.4 (**37**, davon 7 reine Nachweis-/Epic-Kriterien: AK2.14a–c, AKE.1–2, AK2.15d, AK2.16b; die Schwelle von 25 AK ist damit überschritten – Rückfalloption laut ADR-063 Nachtrag: Suite-Schnitt Q8 als eigener Factory-Task **vor** T2a) |
+| **T2b (#441)** | AK2.7a–d, AK2.9–AK2.13b, F8 (11) |
 
 ## Zuordnung zum Epic
 
@@ -250,4 +277,4 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 | AK2.8 | AK2.8 |
 | AK2.9–AK2.13 | AK2.9–AK2.13b |
 | F1–F4, F7, F8 | F1, F2, F3, F4 (→AK2.2b), F7 (→AK2.5a), F8 |
-| neu | AK2.14a–c, FS-T2.1–FS-T2.4 |
+| neu | AK2.14a–c, AK2.15a–d, AK2.16a–b, FS-T2.1–FS-T2.4 |
