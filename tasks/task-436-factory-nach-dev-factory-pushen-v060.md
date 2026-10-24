@@ -25,21 +25,21 @@ Arbeit überwiegend im Factory-Repo, diese Datei hält Scan- und Abschlussberich
 - [x] B2 E-Mail-Scan: nur Treffer aus der Erlaubt-Liste
 - [x] B3 Scan-Bericht in dieser Datei und im PR-Body #439
 - [x] B4 Bootstrap-Push erst nach ausdrücklicher Freigabe im Chat
-- [ ] C1 Begriffs-Grep im Factory-Repo nur an dokumentierten erlaubten Stellen
-- [ ] C2 Bereinigung ändert nur Wortlaut/Beispiele; Self-Tests grün
-- [ ] C3 Jeder TCH-Verweis qualifiziert (`nothra/tch-gastro-services#<nr>`)
-- [ ] D1 Repo öffentlich, Inhalt + README mit Herkunftshinweis
-- [ ] D2 Eigene `factory.config.yml`, `CLAUDE.md`, `PROJECT-CONTEXT.md`, `OWNERSHIP.md`
-- [ ] D3 CI grün (`factory-self-test`, `config-validation`, `pr-closes-issue`, `lint`); Self-Tests angepasst, nicht übersprungen
+- [x] C1 Begriffs-Grep im Factory-Repo nur an dokumentierten erlaubten Stellen
+- [x] C2 Bereinigung ändert nur Wortlaut/Beispiele; Self-Tests grün
+- [x] C3 Jeder TCH-Verweis qualifiziert (`nothra/tch-gastro-services#<nr>`)
+- [x] D1 Repo öffentlich, Inhalt + README mit Herkunftshinweis
+- [x] D2 Eigene `factory.config.yml`, `CLAUDE.md`, `PROJECT-CONTEXT.md`, `OWNERSHIP.md`
+- [x] D3 CI grün (`factory-self-test`, `config-validation`, `pr-closes-issue`, `lint`); Self-Tests angepasst, nicht übersprungen
 - [x] D4 Ruleset `protect-main` unmittelbar nach dem Push; Direkt-Push wird abgelehnt
-- [ ] D5 Frischer Klon: `install-hooks.sh` + lokale Gates grün ohne pnpm/Node/DB
-- [ ] E1 Alle Art-/Aspekt-Labels im Factory-Repo vorhanden
-- [ ] E2 Wegwerf-Probe `start-work.sh` (Issue, Branch, Worktree, Task-Datei, Draft-PR) und Aufräumen
-- [ ] F1 Tag `v0.6.0` + Release mit Notes (inkl. „Breaking")
-- [ ] F2 Release-Manifest `factory-release.json`, Hashes stimmen mit dem Tag überein
-- [ ] F3 `CHANGELOG.md`-Eintrag und `FACTORY.md`-Version = `v0.6.0`
-- [ ] X1 TCH-Diff dieser Task ändert keine Factory-Datei (nur Spec, Task-Datei)
-- [ ] X2 Herauslösen auf frischem Klon; Arbeitsklon/`origin`/TCH-GitHub unberührt
+- [x] D5 Frischer Klon: `install-hooks.sh` + lokale Gates grün ohne pnpm/Node/DB
+- [x] E1 Alle Art-/Aspekt-Labels im Factory-Repo vorhanden
+- [x] E2 Wegwerf-Probe `start-work.sh` (Issue, Branch, Worktree, Task-Datei, Draft-PR) und Aufräumen
+- [x] F1 Tag `v0.6.0` + Release mit Notes (inkl. „Breaking")
+- [x] F2 Release-Manifest `factory-release.json`, Hashes stimmen mit dem Tag überein
+- [x] F3 `CHANGELOG.md`-Eintrag und `FACTORY.md`-Version = `v0.6.0`
+- [x] X1 TCH-Diff dieser Task ändert keine Factory-Datei (nur Spec, Task-Datei)
+- [x] X2 Herauslösen auf frischem Klon; Arbeitsklon/`origin`/TCH-GitHub unberührt
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
@@ -79,6 +79,21 @@ Restrisiko B2: erkennt ASCII-Adressen `name@domain.tld`; Umlaut-Domains, verschl
 - Push `main` (124 Commits, TCH-Quelle `f998473`) mit `--no-verify`.
 - Ruleset `protect-main` (ID 25774138) unmittelbar danach: Pflicht-Checks `lint`, `factory-self-test`, `pr-closes-issue`, `config-validation`; nur Squash; kein Bypass; löschen/Force-Push gesperrt.
 - D4-Probe (Leer-Commit direkt auf `main`): `remote: - Changes must be made through a pull request.` / `[remote rejected] main -> main (push declined due to repository rule violations)`.
+
+## Abschlussbericht (2026-10-24)
+Arbeit im Factory-Repo `nothra/dev-factory` (öffentlich), Release **v0.6.0** = `main` `72c1779` (CI grün).
+
+| Schritt | Ergebnis |
+|---|---|
+| 6 Bootstrap | Issue #1, PR #2: eigene `factory.config.yml`, `CLAUDE.md`, `PROJECT-CONTEXT.md`, `OWNERSHIP.md`, Fragmente, README/CONTRIBUTING/CHANGELOG, `ci.yml` (Job `lint`); Labels angelegt (security, tech-debt, test, factory::*). Self-Tests angepasst (136 rot → 1654 grün), TCH-only-Tests entfernt (Liste im PR #2). |
+| 7 Bereinigung | Issue #3, PR #4: `qualify` + Handarbeit (Abschnittsnummern `ADR-009 #7`, `bash-gotchas #3` u. a. zurückgedreht, YAML-Kommentare qualifiziert), ADR-063/-012/-037, `OPERATING.md`, Lessons-Beispiele neutralisiert, tote Links aufgelöst, C1-Guard in der Suite (C1-Grep: Treffer nur `PROJECT-CONTEXT.md:61-62` und `lessons-split-426.tsv:95`). |
+| Fund | Die Suite als `commands.test` im pre-push-Hook eines Worktrees: `GIT_DIR` schlug in Wegwerf-Repos durch und beschädigte das Probe-Repo (Branch, Remote, Dateien); dabei entstanden 19 Test-Branches auf GitHub (gelöscht, Issues/PRs unberührt). Fix mit Test: Issue #6, PR #7. |
+| 8 Probe E2 | `start-work.sh` im frischen Klon: Issue #8 (`enhancement`), Branch `chore/8-…`, Worktree, `tasks/task-8-…md`, Draft-PR #9 `Closes #8`; danach PR/Issue geschlossen, Branch, Worktree entfernt. Der Aufruf von `/requirements` ist **nicht** ausgeführt (nur Skill-Datei und Task-Datei als Voraussetzung belegt). Erster Versuch (Issue #5) scheiterte am Fund oben. |
+| D5 | Frischer Klon: `install-hooks.sh`, `pre-commit.sh`, `pre-push.sh` grün mit PATH ohne pnpm/Node/Docker. |
+| 9 Release | Issue #10, PR #11: `factory-release-manifest.sh`, `factory-release-check.sh`, `release.yml` (Tests zuerst); Issue #12, PR #13: Version `v0.6.0` + CHANGELOG (Neu/Breaking). Tag `v0.6.0` setzte der Entwickler; `release.yml` lief grün. Release mit Notes (### Neu, ### Breaking) und Asset `factory-release.json` (schema 1, 113 Dateien, commit `72c1779`). Hash-Prüfung: alle 113 Pfade gegen `git show v0.6.0:<pfad>` gleich (0 Abweichungen); Dateiliste == `OWNERSHIP.md` Seite factory am Tag; `FACTORY.md` = v0.6.0. |
+| X1/X2 | TCH-Diff dieser Task: nur `docs/specs/spec-436-…md` und diese Task-Datei, keine Factory-Datei. Herauslösen lief auf frischem Klon (`run` → `verify` → `scan`); Arbeitsklon, `origin` und TCH-GitHub unberührt. |
+
+**Offen / Folge:** Factory-Issue #14 (ShellCheck, Q3), #15 (sporadisch roter Test `#334 add-ok/commit-fehlgeschlagen`, ~2 von 8 lokalen Läufen); Lizenz des öffentlichen Repos ungeklärt (keine `LICENSE`). Abweichungen vom Spec-Ablauf: `release.yml` kam mit dem Manifest-Skript in einen eigenen PR (#11) statt in den Bootstrap-PR. `OPERATING.md` und Lessons verweisen auf `docs/project/betrieb.md` & Co. nur noch als Code-Span (Konvention des adoptierenden Projekts). `#<nr>` in Shell-Strings (Testnamen) bleibt unqualifiziert (Konvention in `PROJECT-CONTEXT.md`).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
