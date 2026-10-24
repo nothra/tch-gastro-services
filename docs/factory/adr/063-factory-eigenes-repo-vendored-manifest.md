@@ -543,3 +543,29 @@ gegen 111 TCH-Dateien); sie hat zwei Annahmen der T1b-Planung widerlegt (Q7, Q8)
   Nachtrag selbst liegt in einer solchen Datei und wird mit v0.7.0 nach `dev-factory` geliefert.
 - Schlägt der Suite-Schnitt (Q8) größer aus als ein PR trägt, wird er ein eigener Factory-Task
   **vor** T2a (Reihenfolge bleibt: Factory zuerst).
+
+### Zweiter Schnitt von T2a (2026-10-24, nach Messung gegen v0.6.1)
+
+Entschieden mit dem Entwickler; er **ersetzt** die in Q6/Q1 oben genannte Einteilung von T2a
+(„ein TCH-PR nach v0.7.0") und die dort genannten Versionsnummern. Anlass: T2a hatte 37 Kriterien
+(Schwelle 25) und vermischte Arbeit in zwei Repos. Zusätzlich ist `v0.6.1` erschienen (Patch:
+Apache-2.0-`LICENSE`, neutralisierte Bezeichnung; Messung wiederholt: 34 identisch, 47 nur
+`#nr`-Qualifizierung, 30 mit Textänderung – Aussage von Q2 unverändert, Messbasis ab jetzt v0.6.1).
+
+| Task | Repo | Inhalt | AK (spec-428) |
+|---|---|---|---|
+| **T2a-1** · Konsumenten-Vertrag | dev-factory ([#22](https://github.com/nothra/dev-factory/issues/22)) | Ownership-Modus (Q7), Suite-Schnitt (Q8) | AK2.15a–c, AK2.16a–b |
+| **T2a-2** · Abholen, Manifest, Gate | dev-factory ([#23](https://github.com/nothra/dev-factory/issues/23)) | `factory-sync.sh` Sync-Modus, `factory-integrity-check.sh` + CI-Job (D1, D4) | AK2.1a–c, 2.2a–c, 2.3, 2.3b, 2.5a–d, 2.6, 2.8, F2, F4, F7, FS-T2.1/.2/.4 |
+| **T2a-3** · Update-PR | dev-factory ([#24](https://github.com/nothra/dev-factory/issues/24)) | `factory-update.yml` (D2) | AK2.2d, 2.4, 2.4b, F1, F3, FS-T2.3 |
+| **T2a-4** · Erst-Einbindung | TCH (**#428**) | Bootstrap, `factory.lock`, `OWNERSHIP.md` entfällt, Änderungsstopp-Beleg | AK2.14a–c, AK2.15d, AKE.1, AKE.2 |
+
+Strikt nacheinander; **jeder Factory-Task endet mit einem Release** (jeweils die nächste MINOR-Version,
+Nummern nicht vorab festgelegt – Brüche unter „Breaking", D6). Die Erst-Einbindung (T2a-4) bindet die
+**letzte** dieser Versionen ein und nimmt Sync, Gate und Update-Workflow in einem Schritt auf; der erste
+Lauf von `factory-update.yml` in TCH braucht den PAT (Q3). Überall im Nachtrag oben gilt „v0.7.0" als
+„die Version, die T2a-4 einbindet". Die Factory-Tasks laufen mit der Pipeline von `dev-factory` (D9) und
+haben dort eigene Specs/Tasks; die Kriterien-Texte liefert spec-428.
+
+Alternative: Konsumenten-Vertrag und Sync/Gate zusammen (ein Factory-Task, ~24 AK). *Contra:* an der
+Schwelle, und der Suite-Schnitt (Q8, ~1000 Zeilen) allein sprengt erfahrungsgemäß ein Turn-Budget
+(Lesson #369). **Verworfen.**
