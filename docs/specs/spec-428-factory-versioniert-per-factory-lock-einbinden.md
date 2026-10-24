@@ -1,10 +1,25 @@
 # Spec: Factory versioniert per `factory.lock` einbinden (T2a)
 
-> **Detail-Spec zu Teil-Task T2** des Epics #424 ([spec-424](spec-424-factory-in-eigenes-repo-auslagern.md)).
+> **Detail-Spec zu T2** des Epics #424 ([spec-424](spec-424-factory-in-eigenes-repo-auslagern.md)).
 > Der AK-Volltext von AK2.1–AK2.13 und F1–F4/F7/F8 steht dort; hier steht er **verfeinert auf den
 > Ist-Stand nach T1b** (v0.6.0 ist veröffentlicht) und um die Bootstrap-Fälle ergänzt, die das Epic
 > nicht kannte. Technische Grundlage: [ADR-063](../factory/adr/063-factory-eigenes-repo-vendored-manifest.md)
 > D1, D2, D4, D7, D10 und Nachträge. Verfeinerung, kein Widerspruch zur Epic-Spec.
+
+> **Schnitt (2026-10-24, zweimal; ADR-063 Nachtrag „Zweiter Schnitt von T2a"):** T2 ist in **T2a** und
+> **T2b** ([#441](https://github.com/nothra/tch-gastro-services/issues/441)) geteilt; T2a wiederum in vier
+> nacheinander laufende Tasks, die diese Spec als **gemeinsame Kriterien-Quelle** teilen:
+>
+> | Task | Repo | Kriterien |
+> |---|---|---|
+> | T2a-1 Konsumenten-Vertrag | dev-factory [#22](https://github.com/nothra/dev-factory/issues/22) | AK2.15a–c, AK2.16a–b |
+> | T2a-2 Abholen, Manifest, Gate | dev-factory [#23](https://github.com/nothra/dev-factory/issues/23) | AK2.1a–c, 2.2a–c, 2.3, 2.3b, 2.5a–d, 2.6, 2.8, F2, F4, F7, FS-T2.1/.2/.4 |
+> | T2a-3 Update-PR | dev-factory [#24](https://github.com/nothra/dev-factory/issues/24) | AK2.2d, 2.4, 2.4b, F1, F3, FS-T2.3 |
+> | **T2a-4 Erst-Einbindung = diese Task (#428)** | TCH | AK2.14a–c, AK2.15d, AKE.1, AKE.2 |
+>
+> **In #428 umgesetzt werden nur die Kriterien der Zeile T2a-4.** Alle anderen stehen hier unverändert
+> als Quelle für die Factory-Tasks und werden dort in deren eigene Specs übernommen. T2b (AK2.7,
+> AK2.9–AK2.13, F8, #441) bleibt zurückgestellt. Messbasis ist ab jetzt `v0.6.1`.
 
 ## Kontext
 
@@ -256,12 +271,10 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 - [x] **Q7 · Skill-Texte:** → gehören zu T2b (AK2.12), Factory-PR vor Update-PR. *(Frage:)* `/review`, `/security-review`, `/test`, `/refactor`, `/codify`
   sind Factory-Dateien – ihre Änderung (AK2.12) ist ebenfalls ein Factory-PR und fällt in Q1.
 
-## Zuordnung zu T2a / T2b
+## Zuordnung zu den Teil-Tasks
 
-| Task | Kriterien |
-|---|---|
-| **T2a (#428)** | AK2.1a–c, AK2.2a–d, AK2.3, AK2.3b, AK2.4, AK2.4b, F3, AK2.5a–d, AK2.6, F1, F2, F4, F7, AK2.8, AK2.14a–c, AK2.15a–d, AK2.16a–b, AKE.1, AKE.2, FS-T2.1–FS-T2.4 (**37**, davon 7 reine Nachweis-/Epic-Kriterien: AK2.14a–c, AKE.1–2, AK2.15d, AK2.16b; die Schwelle von 25 AK ist damit überschritten – Rückfalloption laut ADR-063 Nachtrag: Suite-Schnitt Q8 als eigener Factory-Task **vor** T2a) |
-| **T2b (#441)** | AK2.7a–d, AK2.9–AK2.13b, F8 (11) |
+Siehe Tabelle im Kopf. Kennzahlen: T2a-1 **5**, T2a-2 **19**, T2a-3 **6**, T2a-4 **6** Kriterien (alle
+unter der Turn-Limit-Schwelle von 25 AK); T2b **11**.
 
 ## Zuordnung zum Epic
 
