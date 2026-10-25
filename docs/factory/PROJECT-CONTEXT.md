@@ -406,6 +406,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - Auto-Prefetch geschützter Routen belebt die Session nach dem Abmelden wieder (aus #164)
 - Früher Gate-/Drossel-Zweig vor einer Server-Action-Route muss deren Antwortprotokoll einhalten, sonst globaler Client-Crash statt Inline-Fehler (aus #297, Security-Review-Finding, Issue #331)
 - `/_next/image`-Rauchtest gegen beliebiges `public/`-Asset kann am eigenen Auth-Proxy-Matcher scheitern (interner Self-Fetch der Bildoptimierung läuft durch denselben Proxy) statt an der Optimierung selbst – gegen einen matcher-ausgenommenen Pfad testen (aus #337, /implement-Selbstfund)
+- Nachtrag: tragfähiger `/_next/image`-Nachweis ist `/favicon.ico` (200); SVG-Ablehnung 400 ist der GHSA-2464-Fix, kein Fehler (aus #443)
 
 **[`docs/project/lessons/db-drizzle.md`](../project/lessons/db-drizzle.md)** – Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen · **Laden bei:** `/implement`, `/review`, `/test` bei Data-Layer (Drizzle)
 
@@ -466,6 +467,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - `pnpm audit` zeigt bei Paketen mit mehreren parallel gepflegten Major-Linien (z. B. `brace-expansion`) nur eine Range-Gruppe, die nicht zur per `pnpm why` aufgelösten Version passen muss – vor „echtes Finding" die volle GHSA-Advisory-Liste (`vulnerabilities[]` komplett) gegenprüfen (aus #231, /security-review-Selbstfund; drittes Vorkommnis als echte ungedeckte Major-Linie statt Anzeige-Artefakt aus #337, /security-review-Selbstfund)
 - Security-Deps-Durchgang: Alert-AK „Dependabot meldet nichts mehr" ist vor dem Merge nicht prüfbar (nur Default-Branch) – in Vorab- und Nach-Merge-Teil trennen; Ersatz bei defektem `pnpm audit` ist die npm-Bulk-Advisory-API mit Gegenprobe gegen Altversionen, über den ganzen Lockfile-Baum (aus #390, /security-review) · **Laden bei:** `/requirements`, `/implement`, `/security-review` – bei Deps-/Advisory-Durchgang
 - `next dev` (≥16.3) schreibt automatisch einen `<!-- BEGIN:nextjs-agent-rules -->`-Block ans Ende von `CLAUDE.md`/`AGENTS.md` – gehört nicht in einen fachlichen Task-Commit, aus dem Diff entfernen (aus #337, Review-Runde-1-Finding; Rezidiv in #369 und #370 – der Block empfiehlt selbst das Mitcommitten, die Lesson gilt: nach jedem `next dev`-Lauf `git checkout -- CLAUDE.md`)
+- next-Bump: `eslint-config-next` ist versionsgleich gepinnt und mitzuheben; `next dev` legt im Worktree zusätzlich ein untracked `AGENTS.md` an – vor dem Commit löschen (aus #443)
 
 **[`docs/project/lessons/code-style.md`](../project/lessons/code-style.md)** – Clean-Code-Muster der App (`lib/`, Schema-Konstanten, JSDoc, Tailwind) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
 

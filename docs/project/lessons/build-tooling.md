@@ -261,3 +261,15 @@ GHSA-vfj7-8cjw-p6xm, kein Fix vorhanden) übrig, die der Durchgang nicht beheben
 3. Den ganzen Baum abgleichen, nicht nur die Alert-Pakete. So fiel `braces@3.0.3` auf, das weder die
    Dependabot-Liste noch der Diff zeigten. Findet sich dabei ein Paket ohne Fix, ist eine begründete
    Restausnahme mit Tracking-Issue die richtige Antwort, kein Override ins Leere.
+
+### next-Bump: `eslint-config-next` ist versionsgleich gepinnt und gehört in denselben Bump; `next dev` legt im Worktree zusätzlich ein untracked `AGENTS.md` an (aus #443, /implement-Selbstfund)
+
+`package.json` pinnt `next` **und** `eslint-config-next` exakt auf dieselbe Version. Die Spec nannte nur
+`next` – ohne das Mitheben bliebe ein Versions-Drift (Lint-Regeln der alten Linie gegen neues Framework).
+Außerdem schreibt `next dev` (≥16.3) nicht nur den `nextjs-agent-rules`-Block in `CLAUDE.md` (siehe
+Lesson oben), sondern erzeugt in einem frischen Worktree auch eine **untracked `AGENTS.md`**
+(„Generated AGENTS.md for AI agents"); `git add -A` im Commit-Schritt würde sie mitnehmen.
+
+**Regel:** Beim next-Bump `grep -n '16\.' package.json` auf alle versionsgleichen Pins (`eslint-config-next`)
+und in der Spec mit aufführen. Nach jedem `next dev`-Lauf `git status --short` prüfen und `AGENTS.md`
+löschen sowie `git checkout -- CLAUDE.md`, **vor** `factory-commit.sh`.
