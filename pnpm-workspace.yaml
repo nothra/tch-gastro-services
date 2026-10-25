@@ -51,10 +51,11 @@ allowBuilds:
 #            Entfern-Kriterium erreicht. Frisch gemessen ohne den Eintrag: 8.5.23 (via next)
 #            und 8.5.26 (via tailwindcss bzw. vite/rolldown), beide auf/über dem Floor.
 #            Erledigt damit #169. Neu bewertet in #390 (next 16.3.8): next pinnt postcss
-#            weiterhin exakt auf 8.5.23, aufgelöst 8.5.23 und 8.5.26 – der Eintrag bleibt entfernt.
+#            weiterhin exakt auf 8.5.23, aufgelöst 8.5.23 und 8.5.26 – der Eintrag bleibt entfernt. Erneut gemessen in #443 (next 16.4.3): Pin
+#            unverändert 8.5.23, aufgelöst 8.5.23 und 8.5.26.
 # - sharp    <0.35.0: GHSA-f88m-g3jw-g9cj (high), via next (Bildoptimierung, optionale Dep).
 #            next 16.3.5 deklariert sharp selbst als ^0.35.4; frisch gemessen ohne den Eintrag:
-#            0.35.4 (in #390 unter next 16.3.8 erneut gemessen: 0.35.4). Nebeneffekt: die in
+#            0.35.4 (in #390 unter next 16.3.8 erneut gemessen: 0.35.4). In #443 unter next 16.4.3: 0.35.5. Nebeneffekt: die in
 #            #291 bewusst hingenommene Range-Verletzung (Override
 #            außerhalb der von next deklarierten ^0.34.5) ist damit aufgelöst. sharp bleibt in
 #            allowBuilds – die optionale Dep liegt weiter im Baum und braucht ihren
