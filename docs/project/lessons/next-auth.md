@@ -146,3 +146,14 @@ Sicherheits-relevanter Nebenbefund: die praktische Reachability einer `next/imag
 Spec/Analyse ohne Kenntnis dieses Verhaltens annehmen würde – aber kein verlässlicher
 Schutzmechanismus, weil `proxy.ts` unabhängig von next/image geändert werden kann.
 
+
+### Nachtrag zum `/_next/image`-Rauchtest: tragfähiger Nachweis ist `/favicon.ico` (200), SVG-Ablehnung (400) ist der Fix, kein Fehler (aus #443, /implement-Selbstfund)
+
+Im Matcher-Ausnahmekatalog von `proxy.ts` gibt es genau ein **Raster**-Asset: `app/favicon.ico`.
+Der Rauchtest `/_next/image?url=%2Ffavicon.ico&w=64&q=75` liefert unter next 16.4.3 `200 image/x-icon`.
+Die ausgenommenen SVGs (`icon-dev.svg` …) antworten `400` („`dangerouslyAllowSVG` is disabled") –
+das ist genau der Vektor von GHSA-2464-fhr4-w9xw und damit das gewünschte Verhalten. `public/next.svg`
+liefert `500` (Self-Fetch läuft in den Proxy, 307 auf `/login`), siehe Lesson oben – kein Befund.
+
+**Regel:** Für einen `/_next/image`-Nachweis `/favicon.ico` nehmen (nicht ein beliebiges `public/`-Asset
+und nicht ein SVG); ein `400` auf SVG nicht als Regression melden.
