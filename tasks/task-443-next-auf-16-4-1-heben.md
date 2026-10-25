@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [x] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -39,6 +39,10 @@ Spec: [`docs/specs/spec-443-next-16-4-1-rce-dos.md`](../docs/specs/spec-443-next
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
+
+## Test-Notizen (/test)
+- Keine neuen Tests nötig: reiner Dependency-Bump ohne Code-Änderung; jedes AK ist durch bestehende Tests/Messungen belegt (Spec-AK → Task-Notizen).
+- Vitest inkl. DB 1881/1881 grün, Coverage 98,68 % Statements (Schwelle 80 %); Bash-Suite `scripts/checks/tests/run-tests.sh` (inkl. Floor-Guard gegen das neue Lockfile) 1836 grün / 0 rot.
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
