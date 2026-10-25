@@ -53,3 +53,5 @@ Spec: [`docs/specs/spec-443-next-16-4-1-rce-dos.md`](../docs/specs/spec-443-next
 ---
 Branch: `chore/443-next-auf-16-4-1-heben`
 Erstellt: 2026-10-25 20:01
+
+PR-Shepherd 2026-10-25: Merge freigegeben – alle Gates grün (CI 11/11, Branch aktuell, keine Review-Kommentare). Nach Merge prüfen: Dependabot-Alerts #87–#89, #94–#96 am Default-Branch geschlossen.
