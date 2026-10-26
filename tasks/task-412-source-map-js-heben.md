@@ -10,17 +10,22 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+`source-map-js` (transitiv, aufgelöst 1.2.1) auf ≥ 1.2.2 heben – High, Event-Loop-DoS (GHSA-68fv-2mgg-jv7q, Dependabot-Alert #82). Spec: `docs/specs/spec-412-source-map-js-heben.md`.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [ ] GIVEN das Lockfile WHEN `source-map-js` aufgelöst wird THEN liegt jede aufgelöste Version bei ≥ 1.2.2 (1.x-Linie).
+- [ ] GIVEN eine Neuauflösung ohne Alt-Lockfile WHEN `pnpm why source-map-js` läuft THEN zeigt es ausschließlich ≥ 1.2.2.
+- [ ] GIVEN die Parents deklarieren nur `^1.2.1` WHEN ein Lockfile mit `source-map-js` < 1.2.2 entsteht THEN schlägt der Floor-Guard an (inkl. Mutationsbeleg).
+- [ ] GIVEN die Änderung WHEN `pnpm build`, `pnpm lint`, Typecheck und `pnpm test` laufen THEN sind alle grün.
+- [ ] GIVEN die Erreichbarkeitsannahme WHEN die Umsetzung beginnt THEN ist in der Task-Datei belegt, dass kein Laufzeitpfad fremde Source Maps verarbeitet.
+- [ ] GIVEN der Fix ist auf `main` gemergt WHEN Dependabot neu scannt THEN ist Alert #82 geschlossen (Nach-Merge-Prüfung).
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 
 ## Offene Fragen
-<!-- Fragen, die noch geklärt werden müssen -->
+- [ ] Lockfile-Refresh oder konditionaler Override (`source-map-js@<1.2.2` → `^1.2.2`)? Messbefund: alle Parents deklarieren `^1.2.1`, 1.2.2 ist auf npm verfügbar; die deklarierte Untergrenze liegt unter dem Floor → Annahme: Override + Floor-Guard-Eintrag (siehe Spec).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
