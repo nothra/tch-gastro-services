@@ -10,11 +10,15 @@
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
-<!-- Was soll implementiert werden? -->
+`zod` auf >= 4.6.6 heben (Dependabot #97, GHSA-mrhx-c7xc-m3w5). Spec: `docs/specs/spec-448-zod-4-6-6-ghsa-mrhx.md`.
 
 ## Akzeptanzkriterien
 <!-- Von /requirements befüllt oder manuell eingeben -->
-- [ ] GIVEN ... WHEN ... THEN ...
+- [ ] AK1: `package.json` hat `zod` als Caret in 4.x mit Untergrenze >= 4.6.6
+- [ ] AK2: Lockfile enthält keine `zod`-Version < 4.6.6 (auch transitiv)
+- [ ] AK3: `pnpm test`, Lint, Typecheck, `pnpm build` grün
+- [ ] AK4: DB-Integrationstests (mit dotenv) grün
+- [ ] AK5: Advisory-Prüfung meldet für `zod` nichts Offenes
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
