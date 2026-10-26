@@ -273,3 +273,12 @@ Lesson oben), sondern erzeugt in einem frischen Worktree auch eine **untracked `
 **Regel:** Beim next-Bump `grep -n '16\.' package.json` auf alle versionsgleichen Pins (`eslint-config-next`)
 und in der Spec mit aufführen. Nach jedem `next dev`-Lauf `git status --short` prüfen und `AGENTS.md`
 löschen sowie `git checkout -- CLAUDE.md`, **vor** `factory-commit.sh`.
+
+## `pnpm update <paket>@^X` setzt den Specifier auf die neueste Version, nicht auf X (aus #448)
+
+`pnpm update zod@^4.6.6` löste auf 4.6.7 auf und schrieb `^4.6.7` in `package.json` und Lockfile; Spec und
+Task-Notiz nannten `^4.6.6`. Erst `/review` fand die Abweichung (kein Sicherheitsproblem, die Untergrenze war erfüllt).
+
+**Regel:** Bei Security-Bumps in Spec/AK die **Untergrenze** („>= X, Caret in 4.x") formulieren, nicht einen exakten
+Specifier; nach `pnpm update` den tatsächlich geschriebenen Specifier (`git diff package.json`) in die Task-Notiz
+übernehmen.

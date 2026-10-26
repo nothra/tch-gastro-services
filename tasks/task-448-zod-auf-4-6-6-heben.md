@@ -6,7 +6,7 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
+- [x] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
 ## Beschreibung
@@ -36,7 +36,7 @@ Kein Produktionscode geändert, keine neuen Tests nötig: AK1–AK5 sind Depende
 Kein Code-Diff (reiner Dependency-Bump) – nichts zu refactoren; nur Review-Nitpick in der Task-Notiz nachgezogen.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Eine Lesson (build-tooling): `pnpm update`-Specifier-Drift. Details: `tasks/codify-448.md`.
 
 ---
 Branch: `chore/448-zod-auf-4-6-6-heben`
