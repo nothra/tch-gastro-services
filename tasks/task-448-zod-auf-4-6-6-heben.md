@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `zod` auf >= 4.6.6 heben (Dependabot #97, GHSA-mrhx-c7xc-m3w5). Spec: `docs/specs/spec-448-zod-4-6-6-ghsa-mrhx.md`.
