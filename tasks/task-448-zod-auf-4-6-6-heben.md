@@ -41,3 +41,5 @@ Eine Lesson (build-tooling): `pnpm update`-Specifier-Drift. Details: `tasks/codi
 ---
 Branch: `chore/448-zod-auf-4-6-6-heben`
 Erstellt: 2026-10-26 07:57
+
+PR-Shepherd 2026-10-27: Merge freigegeben – alle Gates grün (Branch aktuell, keine Review-Kommentare, CI läuft, Auto-Merge wartet server-seitig).
