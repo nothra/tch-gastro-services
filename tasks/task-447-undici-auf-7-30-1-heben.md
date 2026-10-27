@@ -4,7 +4,7 @@
 - [x] In Bearbeitung
 - [x] Review bestanden
 - [x] Tests vollständig
-- [ ] Security-Review bestanden
+- [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
@@ -67,6 +67,11 @@ einen Helper dafür gibt es nicht, eine neue Abstraktion über die Alt-Blöcke h
 ohne Verhaltensgewinn. Review-Nitpicks erledigt: #447-Zeile im Chronik-Kommentar (`floor_cases_291`
 in run-tests.sh) und Major-6-Beleg mit Fixture 6.29.0 (in /test). Namen, WHY-Kommentare und
 Magic Numbers unauffällig.
+
+**/security-review (2026-10-27): PASSED** – Details in [`security-447.md`](security-447.md).
+0 kritisch, 0 wichtig. Lockfile-Integrity gegen die Registry geprüft; Bulk-Advisory-API zeigt für 7.30.1
+keine Treffer, für 7.30.0 drei (Gegenprobe). Hinweis: sechs gitignorte `scripts/*447.tmp.*` vor dem
+Merge von Hand löschen (`rm` war nicht freigegeben).
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
