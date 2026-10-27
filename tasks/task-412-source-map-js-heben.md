@@ -24,6 +24,7 @@
 ## Technische Notizen
 - Entscheidung: konditionaler Override `source-map-js@<1.2.2` → `^1.2.2` (Parents deklarieren `^1.2.1`, Untergrenze unter Floor) + Floor-Guard-Fall und Mutationsbeleg (`run-tests.sh`). Kein ADR (Patch-Bump, Muster #339).
 - Erreichbarkeit belegt: Grep nach source-map/sourcemap in `app/`, `lib/`, `db/`, Next-/Vitest-Config ohne Treffer, `productionBrowserSourceMaps` nicht gesetzt; Paket hängt nur an postcss/css-tree/magicast (Build-/Test-Tooling).
+- Frisch-Auflösung (AK2, Review-Rework): Lockfile entfernt + `pnpm install --lockfile-only` → ausschließlich 1.2.2, sowohl MIT als auch OHNE Override. Der Override ist bei Frisch-Auflösung also ein No-op, wirkt aber gegen das bestehende 1.2.1-Lockfile und ist die einzige durable Zusicherung (Parent-Range ^1.2.1 < Floor; Muster brace-expansion #339).
 - Gemessen: `pnpm why source-map-js` → ausschließlich 1.2.2; lint, tsc, `pnpm test` (1769 grün; DB-Tests ohne dotenv geskippt), `run-tests.sh` (1838 grün), `pnpm build` grün.
 - Offen (Nach-Merge): Dependabot-Alert #82 geschlossen prüfen.
 
