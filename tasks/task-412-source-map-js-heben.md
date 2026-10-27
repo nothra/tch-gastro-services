@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `source-map-js` (transitiv, aufgelöst 1.2.1) auf ≥ 1.2.2 heben – High, Event-Loop-DoS (GHSA-68fv-2mgg-jv7q, Dependabot-Alert #82). Spec: `docs/specs/spec-412-source-map-js-heben.md`.
@@ -40,6 +40,8 @@
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+PR-Shepherd 2026-10-27: Merge freigegeben – alle Gates grün (PR #450, CI grün, keine offenen Review-Kommentare, Branch aktuell). Offen nach dem Merge: Dependabot-Alert #82 auf `main` prüfen.
 
 ---
 Branch: `chore/412-source-map-js-heben`
