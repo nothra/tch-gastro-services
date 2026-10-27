@@ -5265,6 +5265,9 @@ printf '  source-map-js@1.2.1:\n  source-map-js@1.2.2:\n' > "$mut_smj_412"
 mut_smj_below_412="$(versions_below_floor_291 source-map-js 1 1.2.2 "$mut_smj_412")"
 assert_true "$([ "$mut_smj_below_412" = " 1.2.1" ]; echo $?)" \
   "#412 Mutationsbeleg: source-map-js-Fall meldet auf einer Fixture mit 1.2.1 genau diese Version, nicht die 1.2.2-Nachbarzeile (ist: '${mut_smj_below_412}')"
+mut_smj_clean_412="$(versions_below_floor_291 source-map-js 1 1.2.1 "$mut_smj_412")"
+assert_true "$([ -z "$mut_smj_clean_412" ]; echo $?)" \
+  "#412 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 1.2.1 sauber – der Guard schlägt nur unter dem Floor an (ist: '${mut_smj_clean_412}')"
 rm -f "$mut_smj_412"
 
 # Mutationsbeleg für den #390-Vorsorge-Fall undici@6.x, nach dem Muster des Major-4-Falls: die
