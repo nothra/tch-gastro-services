@@ -5210,6 +5210,7 @@ floor_cases_291=(
   "baseline-browser-mapping|2|2.11.0|runtime, via browserslist/caniuse, Floor aus #337"
   "vitest|4|4.1.11|development, direkt deklariert, Floor aus #337"
   "@vitest/mocker|4|4.1.11|development, via vitest, Floor aus #337"
+  "source-map-js|1|1.2.2|runtime-Build + development, via postcss/css-tree/magicast, Floor aus #412"
 )
 
 for case_291 in "${floor_cases_291[@]}"; do
@@ -5256,6 +5257,15 @@ mut_vorsorge4_clean_339="$(versions_below_floor_291 brace-expansion 5 5.0.9 "$mu
 assert_true "$([ -z "$mut_vorsorge4_clean_339" ]; echo $?)" \
   "#339 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-5-Filter gegen Floor 5.0.9 sauber (5.0.12 liegt darüber) (ist: '${mut_vorsorge4_clean_339}')"
 rm -f "$mut_vorsorge4_339"
+
+# Mutationsbeleg für den #412-Fall source-map-js: eine 1.2.1-Kopie neben 1.2.2 MUSS anschlagen,
+# die 1.2.2-Nachbarzeile darf nicht mitzählen (sonst wäre der Ist-Lauf aus dem falschen Grund grün).
+mut_smj_412="$(mktemp)"
+printf '  source-map-js@1.2.1:\n  source-map-js@1.2.2:\n' > "$mut_smj_412"
+mut_smj_below_412="$(versions_below_floor_291 source-map-js 1 1.2.2 "$mut_smj_412")"
+assert_true "$([ "$mut_smj_below_412" = " 1.2.1" ]; echo $?)" \
+  "#412 Mutationsbeleg: source-map-js-Fall meldet auf einer Fixture mit 1.2.1 genau diese Version, nicht die 1.2.2-Nachbarzeile (ist: '${mut_smj_below_412}')"
+rm -f "$mut_smj_412"
 
 # Mutationsbeleg für den #390-Vorsorge-Fall undici@6.x, nach dem Muster des Major-4-Falls: die
 # 7.30.0-Nachbarzeile belegt zusätzlich die Trennung der Major-Linien – sie darf beim Major-6-
