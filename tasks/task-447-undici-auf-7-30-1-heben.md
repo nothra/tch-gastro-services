@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -61,6 +61,9 @@ Kein ADR-Trigger (gleiche Mechanik wie #291/#390/#412) → /architecture entfäl
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+**/review Iteration 1 (2026-10-27): APPROVED** – Details in [`review-447.md`](review-447.md).
+0 kritisch, 1 wichtig (Aspekt-Label `factory-pipeline` am Issue fehlt, kein Code-Rework),
+2 Nitpicks (Chronik-Kommentar ohne #447-Zeile; Major-6-Fixture belegt den Floor-Bump nicht).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
