@@ -39,3 +39,5 @@ gegen den geplanten Dateinamen laufen lassen, nicht das Muster erraten.
 die AK5.4-Aufnahmen stand im Review als `??` im `git status`; `*.tmp.spec.ts` deckte sie nicht ab. Das Muster
 `*.tmp.config.ts` fehlt in `.gitignore` noch (Edit wurde in der Session nicht freigegeben, offen). Regel unverändert: vor dem Anlegen eines Wegwerf-Artefakts mit
 `git check-ignore -v <pfad>` prüfen, dass ein Muster es deckt, nicht hinterher aufräumen.
+
+**Nachtrag (aus #447): fünftes Vorkommnis – sechs `scripts/*447.tmp.*`-Wegwerfdateien (Probe, Audit-Abfrage, Testlauf-Log) blieben bis `/security-review` liegen.** Sie waren gitignoret (kein Commit-Risiko), aber `rm` war nicht freigegeben, und das Log (`runtests447.tmp.log`) machte den verzeichnisweiten Content-Scan-Guard in `run-tests.sh` rot (vgl. `lessons/factory-workflow.md`, Content-Scan-Guard). **Regel (verschärft):** Lässt sich eine Wegwerf-Datei später nicht löschen, gar nicht erst im Repo-Baum anlegen – Ausgabe stattdessen per Pipe ins Terminal bzw. in die Task-Notiz, oder die Datei im selben Bash-Aufruf mit explizitem Namen (`rm -f scripts/x447.tmp.sh`) entfernen, der sie erzeugt und nutzt.

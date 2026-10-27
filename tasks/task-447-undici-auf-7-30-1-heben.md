@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Dependabot-Alert #100 (high, GHSA-xjj6-f33q-929c, DoS über `content-encoding`) schließen:
@@ -86,6 +86,8 @@ Merge von Hand löschen (`rm` war nicht freigegeben).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
+
+**PR-Shepherd 2026-10-27:** Merge freigegeben – alle Gates grün.
 
 ---
 Branch: `chore/447-undici-auf-7-30-1-heben`
