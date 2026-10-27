@@ -469,6 +469,7 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 - `next dev` (≥16.3) schreibt automatisch einen `<!-- BEGIN:nextjs-agent-rules -->`-Block ans Ende von `CLAUDE.md`/`AGENTS.md` – gehört nicht in einen fachlichen Task-Commit, aus dem Diff entfernen (aus #337, Review-Runde-1-Finding; Rezidiv in #369 und #370 – der Block empfiehlt selbst das Mitcommitten, die Lesson gilt: nach jedem `next dev`-Lauf `git checkout -- CLAUDE.md`)
 - next-Bump: `eslint-config-next` ist versionsgleich gepinnt und mitzuheben; `next dev` legt im Worktree zusätzlich ein untracked `AGENTS.md` an – vor dem Commit löschen (aus #443)
 - `pnpm update <paket>@^X` schreibt den neuesten Specifier (`^4.6.7` statt `^4.6.6`) – in Spec/AK die Untergrenze nennen, geschriebenen Specifier in die Task-Notiz übernehmen (aus #448, Review-Nitpick)
+- AK „ohne Alt-Lockfile" nicht mit `pnpm install` gegen das bestehende Lockfile abhaken – Frisch-Auflösung per `pnpm install --lockfile-only` ohne Lockfile, je mit/ohne Override messen (aus #412, Review-Runde-1-Finding)
 
 **[`docs/project/lessons/code-style.md`](../project/lessons/code-style.md)** – Clean-Code-Muster der App (`lib/`, Schema-Konstanten, JSDoc, Tailwind) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
 
