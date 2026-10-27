@@ -5194,6 +5194,9 @@ versions_below_floor_291() {
 # #390: dieselbe Lage für undici@6.x – der Selektor ist seit #390 auf >=7.0.0 begrenzt, der
 # Major-6-Fall ist damit die EINZIGE Deckung der 6er-Linie (eigener Fix 6.28.1, GHSA-r53p-7pc4-xj5r;
 # die übrigen fünf undici-Advisories aus #390 betreffen 6.x nicht).
+# #447: GHSA-xjj6-f33q-929c hebt die Floors auf 6.29.1 / 7.30.1 / 8.12.2. Der Selektor reicht
+# nach oben nur bis <7.30.1, der Major-8-Fall ist damit – wie der Major-6-Fall – die EINZIGE
+# Deckung seiner Linie (heute keine 8.x-Kopie im Baum; jsdom 30 würde auf ^8 wechseln).
 floor_cases_291=(
   "postcss|8|8.5.23|runtime, via next"
   "nanoid|3|3.3.17|runtime, via postcss"
@@ -5203,8 +5206,9 @@ floor_cases_291=(
   "brace-expansion|4|5.0.12|Vorsorge, heute keine 4.x-Kopie im Baum, Floor in der 5er-Linie (#339/#390)"
   "brace-expansion|5|5.0.12|development, via minimatch@10 (typescript-eslint), Floor aus #390"
   "sharp|0|0.35.4|runtime, via next (Bildoptimierung), Floor aus #337"
-  "undici|6|6.28.1|Vorsorge, heute keine 6.x-Kopie im Baum, kein Override-Selektor (#390)"
-  "undici|7|7.29.1|development, via jsdom, Floor aus #390"
+  "undici|6|6.29.1|Vorsorge, heute keine 6.x-Kopie im Baum, kein Override-Selektor (#390), Floor aus #447"
+  "undici|7|7.30.1|development, via jsdom, Floor aus #447"
+  "undici|8|8.12.2|Vorsorge, heute keine 8.x-Kopie im Baum, kein Override-Selektor (#447)"
   "js-yaml|4|4.3.2|development, via eslint, Floor aus #337"
   "browserslist|4|4.28.7|runtime, via next, Floor aus #337/#329"
   "baseline-browser-mapping|2|2.11.0|runtime, via browserslist/caniuse, Floor aus #337"
@@ -5273,15 +5277,41 @@ rm -f "$mut_smj_412"
 # Mutationsbeleg für den #390-Vorsorge-Fall undici@6.x, nach dem Muster des Major-4-Falls: die
 # 7.30.0-Nachbarzeile belegt zusätzlich die Trennung der Major-Linien – sie darf beim Major-6-
 # Filter nicht mitzählen, sonst wäre der Ist-Lauf aus dem falschen Grund grün.
+# #447: der Floor steigt auf 6.29.1, die Fixture-Version 6.28.0 liegt weiter darunter – der
+# Beleg läuft gegen den aktuellen Floor, nicht gegen den historischen 6.28.1.
 mut_vorsorge6_390="$(mktemp)"
 printf '  undici@6.28.0:\n  undici@7.30.0:\n' > "$mut_vorsorge6_390"
-mut_vorsorge6_below_390="$(versions_below_floor_291 undici 6 6.28.1 "$mut_vorsorge6_390")"
+mut_vorsorge6_below_390="$(versions_below_floor_291 undici 6 6.29.1 "$mut_vorsorge6_390")"
 assert_true "$([ "$mut_vorsorge6_below_390" = " 6.28.0" ]; echo $?)" \
   "#390 Mutationsbeleg: undici-Major-6-Vorsorge-Fall meldet auf einer Fixture mit undici@6.28.0 genau diese Version, nicht die 7.x-Nachbarzeile (ist: '${mut_vorsorge6_below_390}')"
 mut_vorsorge6_clean_390="$(versions_below_floor_291 undici 6 6.28.0 "$mut_vorsorge6_390")"
 assert_true "$([ -z "$mut_vorsorge6_clean_390" ]; echo $?)" \
   "#390 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-6-Filter gegen Floor 6.28.0 sauber (ist: '${mut_vorsorge6_clean_390}')"
 rm -f "$mut_vorsorge6_390"
+
+# Mutationsbeleg für den #447-Floor der 7er-Linie: 7.30.0 ist genau die Version, die vor #447
+# im Baum lag – der alte Floor 7.29.1 hätte sie durchgelassen, der neue MUSS sie melden.
+mut_major7_447="$(mktemp)"
+printf '  undici@7.30.0:\n' > "$mut_major7_447"
+mut_major7_below_447="$(versions_below_floor_291 undici 7 7.30.1 "$mut_major7_447")"
+assert_true "$([ "$mut_major7_below_447" = " 7.30.0" ]; echo $?)" \
+  "#447 Mutationsbeleg: undici-Major-7-Fall meldet auf einer Fixture mit undici@7.30.0 genau diese Version (ist: '${mut_major7_below_447}')"
+mut_major7_old_floor_447="$(versions_below_floor_291 undici 7 7.29.1 "$mut_major7_447")"
+assert_true "$([ -z "$mut_major7_old_floor_447" ]; echo $?)" \
+  "#447 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen den alten Floor 7.29.1 sauber – erst der neue Floor fängt 7.30.0 (ist: '${mut_major7_old_floor_447}')"
+rm -f "$mut_major7_447"
+
+# Mutationsbeleg für den #447-Vorsorge-Fall undici@8.x, nach dem Muster des Major-6-Falls: die
+# 7.30.1-Nachbarzeile darf beim Major-8-Filter nicht mitzählen.
+mut_vorsorge8_447="$(mktemp)"
+printf '  undici@7.30.1:\n  undici@8.12.1:\n' > "$mut_vorsorge8_447"
+mut_vorsorge8_below_447="$(versions_below_floor_291 undici 8 8.12.2 "$mut_vorsorge8_447")"
+assert_true "$([ "$mut_vorsorge8_below_447" = " 8.12.1" ]; echo $?)" \
+  "#447 Mutationsbeleg: undici-Major-8-Vorsorge-Fall meldet auf einer Fixture mit undici@8.12.1 genau diese Version, nicht die 7.x-Nachbarzeile (ist: '${mut_vorsorge8_below_447}')"
+mut_vorsorge8_clean_447="$(versions_below_floor_291 undici 8 8.12.1 "$mut_vorsorge8_447")"
+assert_true "$([ -z "$mut_vorsorge8_clean_447" ]; echo $?)" \
+  "#447 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-8-Filter gegen Floor 8.12.1 sauber (ist: '${mut_vorsorge8_clean_447}')"
+rm -f "$mut_vorsorge8_447"
 
 # Mutationsbeleg für den QUOTIERTEN Scoped-Schlüssel (#337): @vitest/mocker steht im Lockfile
 # als '@vitest/mocker@4.1.11': – ohne die Quote-Entfernung in lock_versions_291 fände die Kette
@@ -5385,9 +5415,10 @@ assert_true "$(grep -qxF -- '  "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12"' "$W
 # #390: undici-Selektor nach unten auf die 7er-Linie begrenzt. Das bisherige "undici@<7.29.0"
 # griffe auch auf eine 6.x-Kopie und höbe sie über die Major-Grenze auf ^7 – dieselbe Klasse
 # wie der 2er-brace-expansion-Selektor (#291). Die 6er-Linie trägt einen eigenen Fix (6.28.1,
-# GHSA-r53p-7pc4-xj5r); heute löst der Baum keine 6.x-Kopie auf.
-assert_true "$(grep -qxF -- '  "undici@>=7.0.0 <7.29.1": "^7.29.1"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#390 AK3: undici-Override ist auf die 7er-Linie begrenzt (>=7.0.0) und hebt auf ^7.29.1"
+# GHSA-r53p-7pc4-xj5r); heute löst der Baum keine 6.x-Kopie auf. #447 hebt den Floor auf
+# 7.30.1 (GHSA-xjj6-f33q-929c), die untere Schranke bleibt.
+assert_true "$(grep -qxF -- '  "undici@>=7.0.0 <7.30.1": "^7.30.1"' "$WORKSPACE_YAML_291"; echo $?)" \
+  "#390/#447 AK1: undici-Override ist auf die 7er-Linie begrenzt (>=7.0.0) und hebt auf ^7.30.1"
 
 # Caret-Regel projektweit für ALLE neuen #291-Einträge, nicht nur brace-expansion – sharp/
 # undici/js-yaml tragen dieselbe Ziel-Range-Form und dürfen bei einem künftigen Umstellen auf

@@ -222,19 +222,6 @@
   eigener Task.
 - **Herkunft:** `/implement`-Selbstfund während der Review-Rework-Runde 2 zu #319.
 
-### Floor-Guard hat keinen Vorsorge-Fall für die undici-8.x-Linie
-
-- **Wo:** [`scripts/checks/tests/run-tests.sh:5638`](../../scripts/checks/tests/run-tests.sh) – die undici-Fälle in
-  `floor_cases_291` decken nur Major 6 und 7 ab (verifiziert am 2026-10-05).
-- **Was:** Alle sechs undici-Advisories aus #390 haben eine eigene 8.x-Linie mit Floor 8.10.2
-  (`gh api advisories/<ghsa>`, z. B. GHSA-w293-vg96-wgc3 `>= 8.0.0, < 8.10.2`). Der Override-Selektor
-  `>=7.0.0 <7.29.1` reicht nicht bis 8.x. Zieht ein Parent künftig eine `undici@8.x` unter 8.10.2 herein, sehen
-  Override und Guard beide weg. Heute liegt keine 8.x im Baum. Auch der Selektor vor #390 (`<7.29.0`) hat die
-  Linie nie gedeckt, es geht also keine bestehende Deckung verloren.
-- **Fix:** Fall `"undici|8|8.10.2|Vorsorge, …"` ergänzen, dazu einen Mutationsbeleg nach dem Muster des Major-6-Falls
-  (Fixture `undici@8.10.1` + Nachbarzeile `7.30.0`). Etwa zehn Zeilen.
-- **Herkunft:** `/implement` zu #390 (Rework nach Review-Iteration 1, bei der Floor-Messung über alle Major-Linien).
-
 ### factory-sync --compose schreibt die Zieldateien mit Modus 0600
 
 - **Wo:** `scripts/factory-sync.sh:87` (`mv "$tmp" "$target"`), verifiziert am 2026-10-22.

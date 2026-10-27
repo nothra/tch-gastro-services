@@ -1,7 +1,7 @@
 # Task 447: undici-auf-7-30-1-heben
 
 ## Status
-- [ ] In Bearbeitung
+- [x] In Bearbeitung
 - [ ] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
@@ -16,22 +16,43 @@ mitgenommen). Spec: [`docs/specs/spec-447-undici-7-30-1-ghsa-xjj6.md`](../docs/s
 
 ## Akzeptanzkriterien
 <!-- Wortlaut: siehe Spec -->
-- [ ] AK1: Override `"undici@>=7.0.0 <7.30.1": "^7.30.1"` in `pnpm-workspace.yaml`
-- [ ] AK2: YAML-Kommentar nennt GHSA-xjj6-f33q-929c + Fixes 6.29.1 / 8.12.2
-- [ ] AK3: Lockfile ohne undici < 7.30.1 (7.x), keine 6.x/8.x unter Floor
-- [ ] AK4: Frisch-Auflösung ohne Alt-Lockfile ≥ 7.30.1, mit/ohne Override in Task-Notiz
-- [ ] AK5: Floor-Guard prüft undici 6.29.1 / 7.30.1 / 8.12.2, grün
-- [ ] AK6: Mutationsbeleg Major 7 (Fixture 7.30.0 wird gemeldet)
-- [ ] AK7: Mutationsbeleg Major 8 (8.12.1 gemeldet, 7.x-Nachbar nicht; Gegenprobe)
-- [ ] AK8: Major-6-Mutationsbeleg bleibt unter neuem Floor 6.29.1 gültig
-- [ ] AK9: Kleinfund „undici-8.x-Linie" entfernt
-- [ ] AK10: test, lint, Typecheck, build, run-tests.sh grün
-- [ ] AK11: Bulk-Advisory-API ohne undici-Treffer (Gegenprobe 7.30.0)
+- [x] AK1: Override `"undici@>=7.0.0 <7.30.1": "^7.30.1"` in `pnpm-workspace.yaml`
+- [x] AK2: YAML-Kommentar nennt GHSA-xjj6-f33q-929c + Fixes 6.29.1 / 8.12.2
+- [x] AK3: Lockfile ohne undici < 7.30.1 (7.x), keine 6.x/8.x unter Floor
+- [x] AK4: Frisch-Auflösung ohne Alt-Lockfile ≥ 7.30.1, mit/ohne Override in Task-Notiz
+- [x] AK5: Floor-Guard prüft undici 6.29.1 / 7.30.1 / 8.12.2, grün
+- [x] AK6: Mutationsbeleg Major 7 (Fixture 7.30.0 wird gemeldet)
+- [x] AK7: Mutationsbeleg Major 8 (8.12.1 gemeldet, 7.x-Nachbar nicht; Gegenprobe)
+- [x] AK8: Major-6-Mutationsbeleg bleibt unter neuem Floor 6.29.1 gültig
+- [x] AK9: Kleinfund „undici-8.x-Linie" entfernt
+- [x] AK10: test, lint, Typecheck, build, run-tests.sh grün (Vitest/Lint/tsc/Build Exit 0; run-tests.sh 1844 grün / 0 rot)
+- [x] AK11: Bulk-Advisory-API ohne undici-Treffer (Gegenprobe 7.30.0)
 - [ ] AK12 (Nach-Merge): Dependabot-Alert #100 geschlossen
 
 ## Technische Notizen
 <!-- Von /architecture befüllt oder eigene Notizen -->
 Kein ADR-Trigger (gleiche Mechanik wie #291/#390/#412) → /architecture entfällt.
+
+**/implement (2026-10-27):**
+- RED: Probe gegen den Ist-Stand – Override-Zeile und Major-7-Fall rot (`undici@7.30.0`), Major 6/8 grün.
+- GREEN: Override `"undici@>=7.0.0 <7.30.1": "^7.30.1"`, `pnpm install` → Lockfile `undici@7.30.1`
+  (einzige Kopie, via jsdom@29.1.1; `pnpm why undici`: „Found 1 version").
+- AK4 Frisch-Auflösung ohne Alt-Lockfile (`pnpm install --lockfile-only` in Wegwerf-Kopie):
+  **mit** Override 7.30.1, **ohne** Override 7.30.1. Der Eintrag ist frisch aufgelöst also ein No-op,
+  bleibt aber die einzige durable Zusicherung: jsdom deklariert `^7.25.0` (unter dem Floor) und gegen
+  ein bestehendes Lockfile mit 7.30.0 wirkt er (gleiche Lage wie source-map-js, #412).
+- AK11 npm-Bulk-Advisory-API über den ganzen Lockfile-Baum (706 Pakete / 774 Versionen): kein
+  undici-Treffer. Gegenprobe `undici@7.30.0` → GHSA-xjj6-f33q-929c (high) **plus**
+  GHSA-4qv8-2p9j-2685 und GHSA-f72v-6w45-q472 (moderate). Alle drei haben dieselben Floors
+  6.29.1 / 7.30.1 / 8.12.2 (je Linie gemessen: x.y.(z-1) getroffen, Floor sauber) → im YAML-Kommentar
+  mitgenannt, Floor-Guard deckt sie ohne weitere Fälle. Verbleibende Treffer im Baum: nur vite und
+  @vitest/mocker (out of scope, #444).
+- Floor-Guard: Fälle 6.29.1 / 7.30.1 / 8.12.2 (8.x neu); Mutationsbelege Major 7 (7.30.0 gemeldet,
+  gegen alten Floor 7.29.1 sauber), Major 8 (8.12.1 gemeldet, 7.30.1-Nachbar nicht, gegen 8.12.1 sauber),
+  Major 6 läuft jetzt gegen den neuen Floor 6.29.1 (Fixture 6.28.0 weiter darunter).
+  Wiring-Assertion #390 AK3 auf den neuen Override-Wortlaut gehoben. Die Fixture-Zeile
+  `"undici@<7.29.0"` im #337-Mutationsbeleg bleibt: synthetische Fixture, prüft nur den Zähl-Ausdruck.
+- Kleinfund „undici-8.x-Linie" aus `docs/factory/kleinfunde.md` entfernt.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
