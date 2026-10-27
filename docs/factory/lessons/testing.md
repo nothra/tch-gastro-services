@@ -8,6 +8,12 @@
 > siehe `/codify` + ADR-037).
 > Projekt-Anteil dieses Themas: [`docs/project/lessons/testing.md`](../../project/lessons/testing.md).
 
+### Mutationsbeleg für einen Floor-Bump: Fixture muss zwischen altem und neuem Floor liegen (aus #447, Review-Nitpick)
+
+Der Major-6-Mutationsbeleg behielt nach dem Floor-Bump 6.28.1 → 6.29.1 die Fixture `6.28.0` – sie lag schon unter dem **alten** Floor und belegte den Bump daher nicht. Erst Fixture `6.29.0` (vom neuen Floor gemeldet, vom alten nicht) macht den Bump kausal sichtbar.
+
+**Regel:** Beim Heben eines Floor-Guards je betroffener Linie die Mutations-Fixture auf die Version direkt unter dem neuen Floor (x.y.(z−1)) setzen und per Gegenprobe gegen den alten Floor belegen, dass er sie nicht gemeldet hätte. Alte Fixtures nicht stehen lassen, nur weil sie grün bleiben.
+
 ### AC mit Direktive + Begründung: je separierbaren Teil eine eigene Assertion (aus #117, /test-Selbstfund)
 
 Der `#117`-Doc-Guard prüfte, ob `pr-shepherd.md` Schritt 2 das Seam-**Kommando**

@@ -94,18 +94,24 @@ allowBuilds:
 #            passiert, wacht seit #339 ein Major-3-Fall im Floor-Guard
 #            (scripts/checks/tests/run-tests.sh) darüber – heute grün, rot sobald eine 3.x-Kopie
 #            unter 3.0.9 einzieht.
-# - undici   >=7.0.0 <7.29.1: GHSA-w293-vg96-wgc3 (high) plus GHSA-pmjh-fq2x-6v4x,
-#            GHSA-2jfj-6hjv-fm6j (medium), GHSA-r53p-7pc4-xj5r, GHSA-2gqq-gqf2-x968,
-#            GHSA-8436-99hf-9mmv (low) – alle mit Floor 7.29.1 (#390); darin gehen die
-#            Floor-7.29.0-Advisories aus #291 auf (GHSA-4cwx-7wf7-3272 u. a.).
-#            Via jsdom (Vitest-Environment, dev-Scope). Untere Schranke `>=7.0.0` seit #390: das
-#            frühere `undici@<7.29.0` griffe auch auf eine 6.x-Kopie und höbe sie über die
-#            Major-Grenze; die 6er-Linie hat einen eigenen Fix (6.28.1, nur GHSA-r53p-7pc4-xj5r
-#            betrifft 6.x), heute liegt keine im Baum. Zieht ein Parent künftig eine herein,
-#            braucht es einen Selektor `undici@<6.28.1` → `^6.28.1`. Damit das nicht still
-#            passiert, wacht seit #390 ein Major-6-Fall im Floor-Guard
-#            (scripts/checks/tests/run-tests.sh) darüber – heute grün, rot sobald eine 6.x-Kopie
-#            unter 6.28.1 einzieht.
+# - undici   >=7.0.0 <7.30.1: GHSA-xjj6-f33q-929c (high, DoS über zu viele
+#            `content-encoding`-Werte, Dependabot-Alert #100) mit Floor 7.30.1 (#447), dazu mit
+#            denselben Floors in allen drei Linien GHSA-4qv8-2p9j-2685 und GHSA-f72v-6w45-q472
+#            (moderate, npm-Bulk-Advisory-API, #447); darin
+#            gehen die Floor-7.29.1-Advisories aus #390 auf (GHSA-w293-vg96-wgc3 (high),
+#            GHSA-pmjh-fq2x-6v4x, GHSA-2jfj-6hjv-fm6j (medium), GHSA-r53p-7pc4-xj5r,
+#            GHSA-2gqq-gqf2-x968, GHSA-8436-99hf-9mmv (low)) und die Floor-7.29.0-Advisories
+#            aus #291 (GHSA-4cwx-7wf7-3272 u. a.).
+#            Via jsdom (Vitest-Environment, dev-Scope); jsdom@29 deklariert ^7.25.0, also UNTER
+#            dem Floor. Untere Schranke `>=7.0.0` seit #390: das frühere `undici@<7.29.0`
+#            griffe auch auf eine 6.x-Kopie und höbe sie über die Major-Grenze.
+#            6.x und 8.x haben eigene Fixes (GHSA-xjj6-f33q-929c: 6.29.1 bzw. 8.12.2), heute
+#            liegt keine Kopie im Baum. Zieht ein Parent künftig eine herein, braucht es einen
+#            Selektor `undici@<6.29.1` → `^6.29.1` bzw. `undici@>=8.0.0 <8.12.2` → `^8.12.2`.
+#            Damit das nicht still passiert, wachen ein Major-6-Fall (seit #390) und ein
+#            Major-8-Fall (seit #447) im Floor-Guard (scripts/checks/tests/run-tests.sh)
+#            darüber – heute grün, rot sobald eine 6.x-Kopie unter 6.29.1 bzw. eine 8.x-Kopie
+#            unter 8.12.2 einzieht.
 # - esbuild  <0.25.0: GHSA-67mh-4wv8-2f99 (Dev-Server-Request-Leak), via drizzle-kit (dev).
 #            Nachweislich KEIN No-op: ohne den Eintrag löst der Baum esbuild@0.18.20 auf
 #            (in #291 durch Entfernen + Neuinstallation verifiziert).
@@ -125,7 +131,7 @@ overrides:
   "brace-expansion@<1.1.21": "^1.1.21"
   "brace-expansion@>=2.0.0 <2.1.7": "^2.1.7"
   "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12"
-  "undici@>=7.0.0 <7.29.1": "^7.29.1"
+  "undici@>=7.0.0 <7.30.1": "^7.30.1"
   "esbuild@<0.25.0": ">=0.25.0"
   "uuid@<11.1.1": ">=11.1.1"
   "source-map-js@<1.2.2": "^1.2.2"
