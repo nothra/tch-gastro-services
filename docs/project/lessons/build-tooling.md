@@ -282,3 +282,14 @@ Task-Notiz nannten `^4.6.6`. Erst `/review` fand die Abweichung (kein Sicherheit
 **Regel:** Bei Security-Bumps in Spec/AK die **Untergrenze** („>= X, Caret in 4.x") formulieren, nicht einen exakten
 Specifier; nach `pnpm update` den tatsächlich geschriebenen Specifier (`git diff package.json`) in die Task-Notiz
 übernehmen.
+
+## AK „ohne Alt-Lockfile" nicht mit `pnpm install` gegen das bestehende Lockfile abhaken (aus #412)
+
+AK2 der source-map-js-Task verlangte `pnpm why` nach Neuauflösung **ohne Alt-Lockfile**. `/implement` hakte es nach einem
+bloßen `pnpm install` ab (das Lockfile hielt die Auflösung fest, der Override wirkte) und schrieb „gemessen" in die Notiz –
+erst `/review` Runde 1 fand die Lücke. Gleiche Fehlerklasse wie der No-op-Verdacht bei #291/#339, nur am AK statt am Override.
+
+**Regel:** Frisch-Auflösung billig und ohne `node_modules`-Eingriff messen: Lockfile sichern, `pnpm-lock.yaml` löschen,
+`pnpm install --lockfile-only` (~10 s), Ergebnis lesen, Lockfile wiederherstellen – **je einmal mit und ohne** den Override-Eintrag
+(Datei vorher sichern). Ist die Frisch-Auflösung auch ohne Override sauber, bleibt der Eintrag trotzdem, wenn die Parent-Range unter
+dem Floor liegt (einzige durable Zusicherung, #339); das Ergebnis samt Begründung in Task-Notiz **und** Override-Kommentar nennen.
