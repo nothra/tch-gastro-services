@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -60,6 +60,13 @@ Major-6-Mutationsbeleg mit Fixture 6.29.0 (neuer Floor meldet, alter 6.28.1 nich
 1845 grün / 1 rot – das eine Rot („kein `grep -c … || echo`-Muster in scripts/") stammt von der
 gitignorten Alt-Datei `scripts/runtests447.tmp.log` (Content-Scan-Guard, bekannte Lesson #312/#339);
 Löschen war nicht freigegeben → vor dem Merge von Hand entfernen, danach 1846 grün erwartet.
+
+**/refactor (2026-10-27):** Kein Code-Eingriff nötig. Geprüft: Diff ist Konfiguration + Test-Fälle im
+bestehenden Muster (inline Mutationsbeleg + Diskriminierungs-Kontrolle je Linie, wie #291/#337/#390/#412);
+einen Helper dafür gibt es nicht, eine neue Abstraktion über die Alt-Blöcke hinweg wäre Umbau fremder Tests
+ohne Verhaltensgewinn. Review-Nitpicks erledigt: #447-Zeile im Chronik-Kommentar (`floor_cases_291`
+in run-tests.sh) und Major-6-Beleg mit Fixture 6.29.0 (in /test). Namen, WHY-Kommentare und
+Magic Numbers unauffällig.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->
