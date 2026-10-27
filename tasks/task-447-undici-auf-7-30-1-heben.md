@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -53,6 +53,13 @@ Kein ADR-Trigger (gleiche Mechanik wie #291/#390/#412) → /architecture entfäl
   Wiring-Assertion #390 AK3 auf den neuen Override-Wortlaut gehoben. Die Fixture-Zeile
   `"undici@<7.29.0"` im #337-Mutationsbeleg bleibt: synthetische Fixture, prüft nur den Zähl-Ausdruck.
 - Kleinfund „undici-8.x-Linie" aus `docs/factory/kleinfunde.md` entfernt.
+
+**/test (2026-10-27):** Vitest-Coverage 93,35 % Statements / 98,17 % Branches (≥ 80 %; `db/` niedrig,
+weil DB-Integrationstests ohne dotenv skippen – unabhängig von #447). Review-Nitpick umgesetzt:
+Major-6-Mutationsbeleg mit Fixture 6.29.0 (neuer Floor meldet, alter 6.28.1 nicht). run-tests.sh:
+1845 grün / 1 rot – das eine Rot („kein `grep -c … || echo`-Muster in scripts/") stammt von der
+gitignorten Alt-Datei `scripts/runtests447.tmp.log` (Content-Scan-Guard, bekannte Lesson #312/#339);
+Löschen war nicht freigegeben → vor dem Merge von Hand entfernen, danach 1846 grün erwartet.
 
 ## Offene Fragen
 <!-- Fragen, die noch geklärt werden müssen -->

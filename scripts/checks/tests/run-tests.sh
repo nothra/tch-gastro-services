@@ -5289,6 +5289,17 @@ assert_true "$([ -z "$mut_vorsorge6_clean_390" ]; echo $?)" \
   "#390 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-6-Filter gegen Floor 6.28.0 sauber (ist: '${mut_vorsorge6_clean_390}')"
 rm -f "$mut_vorsorge6_390"
 
+# #447: 6.29.0 liegt zwischen altem (6.28.1) und neuem Floor (6.29.1) – nur der neue Floor meldet sie.
+mut_major6_447="$(mktemp)"
+printf '  undici@6.29.0:\n' > "$mut_major6_447"
+mut_major6_new_447="$(versions_below_floor_291 undici 6 6.29.1 "$mut_major6_447")"
+assert_true "$([ "$mut_major6_new_447" = " 6.29.0" ]; echo $?)" \
+  "#447 Mutationsbeleg: undici-Major-6-Fall meldet 6.29.0 gegen den neuen Floor 6.29.1 (ist: '${mut_major6_new_447}')"
+mut_major6_old_447="$(versions_below_floor_291 undici 6 6.28.1 "$mut_major6_447")"
+assert_true "$([ -z "$mut_major6_old_447" ]; echo $?)" \
+  "#447 Diskriminierungs-Kontrolle: 6.29.0 ist gegen den alten Floor 6.28.1 sauber – erst der Bump fängt sie (ist: '${mut_major6_old_447}')"
+rm -f "$mut_major6_447"
+
 # Mutationsbeleg für den #447-Floor der 7er-Linie: 7.30.0 ist genau die Version, die vor #447
 # im Baum lag – der alte Floor 7.29.1 hätte sie durchgelassen, der neue MUSS sie melden.
 mut_major7_447="$(mktemp)"
