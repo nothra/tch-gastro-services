@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -32,7 +32,11 @@
 - [x] Lockfile-Refresh oder konditionaler Override (`source-map-js@<1.2.2` → `^1.2.2`)? Messbefund: alle Parents deklarieren `^1.2.1`, 1.2.2 ist auf npm verfügbar; die deklarierte Untergrenze liegt unter dem Floor → Annahme: Override + Floor-Guard-Eintrag (siehe Spec).
 
 ## Review-Findings
-<!-- Wird durch /review befüllt -->
+- Runde 1 (NEEDS_REWORK): AK2 ohne Frisch-Auflösung abgehakt → behoben (7815dc1, Messung mit/ohne Override: 1.2.2).
+- Runde 2 (APPROVED): zwei Nitpicks (Zeilenlänge Kommentar, leerer Findings-Abschnitt) → in `/refactor` erledigt.
+
+## Refactoring-Notizen
+- Kommentarzeile in `pnpm-workspace.yaml` auf die Blocklänge der Nachbarzeilen umbrochen; kein Code-, kein Verhaltens-Diff.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->

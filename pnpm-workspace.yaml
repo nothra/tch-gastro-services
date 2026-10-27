@@ -118,8 +118,9 @@ allowBuilds:
 #            (gleiche Lage wie brace-expansion, #339). Frisch aufgelöst OHNE Alt-Lockfile löst
 #            der Baum auch ohne den Eintrag 1.2.2 auf (gemessen in #412) – gegen ein bestehendes
 #            Lockfile mit 1.2.1 wirkt er jedoch, und er ist die einzige durable Zusicherung, weil
-#            die Parent-Range unter dem Floor liegt. Erreichbarkeit (#412): weder App-Code noch Next-/Vitest-
-#            Config verarbeiten fremde Source Maps, productionBrowserSourceMaps ist nicht gesetzt.
+#            die Parent-Range unter dem Floor liegt. Erreichbarkeit (#412): weder App-Code noch
+#            Next-/Vitest-Config verarbeiten fremde Source Maps, productionBrowserSourceMaps ist
+#            nicht gesetzt.
 overrides:
   "brace-expansion@<1.1.21": "^1.1.21"
   "brace-expansion@>=2.0.0 <2.1.7": "^2.1.7"
