@@ -5,7 +5,7 @@
 - [x] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -84,6 +84,14 @@ wurde in diesem Schritt nicht wiederholt (Secret-Datei-Guardrail); Beleg aus `/i
 1881 Tests grün, und kein Code/Test seitdem geändert. Das gitignorierte Wegwerf-Skript
 `scripts/bump444.tmp.sh` konnte hier nicht gelöscht werden (`rm` nicht freigegeben) – bitte von Hand
 entfernen.
+
+## Refactoring-Notizen (/refactor)
+Diff geprüft (`package.json`, Lockfile, `run-tests.sh`): kein Refactoring nötig. Der Bump enthält
+keinen Produktionscode; die neuen Floor-Fälle und Mutationsbelege folgen Namen und Aufbau der
+bestehenden #291/#337/#447-Blöcke (eine geteilte Fixture `mut_vite_444` für beide Belege, keine
+Duplikat-Schleife). Keine Codeänderung, daher auch kein neuer Testlauf nötig. Das gitignorierte
+Wegwerf-Skript `scripts/bump444.tmp.sh` liegt weiterhin dort – `rm` ist nicht freigegeben, bitte
+von Hand löschen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
