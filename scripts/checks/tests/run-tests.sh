@@ -5197,6 +5197,10 @@ versions_below_floor_291() {
 # #447: GHSA-xjj6-f33q-929c hebt die Floors auf 6.29.1 / 7.30.1 / 8.12.2. Der Selektor reicht
 # nach oben nur bis <7.30.1, der Major-8-Fall ist damit – wie der Major-6-Fall – die EINZIGE
 # Deckung seiner Linie (heute keine 8.x-Kopie im Baum; jsdom 30 würde auf ^8 wechseln).
+# #444: vitest/@vitest/mocker auf 4.1.12 (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp), neu vite
+# auf 8.1.6 (GHSA-rq7h-c2jc-7f22, GHSA-9jrq-w75r-8gcw und die im vite-Bundle steckenden
+# launch-editor-Advisories GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm, GHSA-698v-4r3x-3vcv).
+# @vitest/coverage-v8 trägt keinen eigenen Advisory, erwartet vitest aber versionsgleich als Peer.
 floor_cases_291=(
   "postcss|8|8.5.23|runtime, via next"
   "nanoid|3|3.3.17|runtime, via postcss"
@@ -5212,8 +5216,10 @@ floor_cases_291=(
   "js-yaml|4|4.3.2|development, via eslint, Floor aus #337"
   "browserslist|4|4.28.7|runtime, via next, Floor aus #337/#329"
   "baseline-browser-mapping|2|2.11.0|runtime, via browserslist/caniuse, Floor aus #337"
-  "vitest|4|4.1.11|development, direkt deklariert, Floor aus #337"
-  "@vitest/mocker|4|4.1.11|development, via vitest, Floor aus #337"
+  "vitest|4|4.1.12|development, direkt deklariert, Floor aus #444"
+  "@vitest/coverage-v8|4|4.1.12|development, direkt deklariert, Gleichschritt mit vitest (#444)"
+  "@vitest/mocker|4|4.1.12|development, via vitest, Floor aus #444"
+  "vite|8|8.1.6|development, via vitest/@vitejs/plugin-react, Floor aus #444"
   "source-map-js|1|1.2.2|runtime-Build + development, via postcss/css-tree/magicast, Floor aus #412"
 )
 
@@ -5339,6 +5345,24 @@ assert_true "$([ -z "$mut_scoped_clean_337" ]; echo $?)" \
   "#337 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 4.1.9 sauber (ist: '${mut_scoped_clean_337}')"
 rm -f "$mut_scoped_337"
 
+# Mutationsbeleg für die #444-Floors: genau die Versionen, die vor #444 im Baum lagen, liegen
+# zwischen altem und neuem Floor – nur der neue Floor darf sie melden (Lesson testing.md, #447).
+mut_vite_444="$(mktemp)"
+printf "  '@vitest/mocker@4.1.11':\n  vite@8.1.3:\n" > "$mut_vite_444"
+mut_mocker_new_444="$(versions_below_floor_291 '@vitest/mocker' 4 4.1.12 "$mut_vite_444")"
+assert_true "$([ "$mut_mocker_new_444" = " 4.1.11" ]; echo $?)" \
+  "#444 Mutationsbeleg: @vitest/mocker-Fall meldet 4.1.11 gegen den neuen Floor 4.1.12 (ist: '${mut_mocker_new_444}')"
+mut_mocker_old_444="$(versions_below_floor_291 '@vitest/mocker' 4 4.1.11 "$mut_vite_444")"
+assert_true "$([ -z "$mut_mocker_old_444" ]; echo $?)" \
+  "#444 Diskriminierungs-Kontrolle: 4.1.11 ist gegen den alten Floor 4.1.11 sauber – erst der Bump fängt sie (ist: '${mut_mocker_old_444}')"
+mut_vite_below_444="$(versions_below_floor_291 vite 8 8.1.6 "$mut_vite_444")"
+assert_true "$([ "$mut_vite_below_444" = " 8.1.3" ]; echo $?)" \
+  "#444 Mutationsbeleg: vite-Fall meldet auf einer Fixture mit vite@8.1.3 genau diese Version (ist: '${mut_vite_below_444}')"
+mut_vite_clean_444="$(versions_below_floor_291 vite 8 8.1.3 "$mut_vite_444")"
+assert_true "$([ -z "$mut_vite_clean_444" ]; echo $?)" \
+  "#444 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 8.1.3 sauber (ist: '${mut_vite_clean_444}')"
+rm -f "$mut_vite_444"
+
 # AK-1/AK-2: next exakt gepinnt, oberhalb des Floors, und eslint-config-next im Lockstep.
 # pkg_pin_291 <paket> <package.json> – die deklarierte Version, ohne Range-Präfix zu raten.
 pkg_pin_291() {
@@ -5358,6 +5382,15 @@ assert_true "$([ -n "$next_pin_291" ] && ! version_below_291 "$next_pin_291" "16
   "#291/#337/#390 AK1: package.json pinnt next auf >= 16.3.6 (ist: '${next_pin_291}')"
 assert_true "$([ -n "$eslint_next_pin_291" ] && [ "$eslint_next_pin_291" = "$next_pin_291" ]; echo $?)" \
   "#291 AK2: eslint-config-next trägt dieselbe Version wie next (ist: '${eslint_next_pin_291}')"
+
+# #444 AK1: vitest und @vitest/coverage-v8 als Caret in 4.x, Untergrenze >= 4.1.12, im
+# Gleichschritt – coverage-v8 erwartet vitest versionsgleich als Peer.
+vitest_spec_444="$(pkg_pin_291 vitest "$PKG_JSON_291")"
+coverage_spec_444="$(pkg_pin_291 '@vitest/coverage-v8' "$PKG_JSON_291")"
+assert_true "$(printf '%s' "$vitest_spec_444" | grep -qE '^\^4\.[0-9]+\.[0-9]+$' && ! version_below_291 "${vitest_spec_444#^}" "4.1.12"; echo $?)" \
+  "#444 AK1: package.json deklariert vitest als Caret in 4.x mit Untergrenze >= 4.1.12 (ist: '${vitest_spec_444}')"
+assert_true "$([ -n "$coverage_spec_444" ] && [ "$coverage_spec_444" = "$vitest_spec_444" ]; echo $?)" \
+  "#444 AK1: @vitest/coverage-v8 trägt denselben Specifier wie vitest (ist: '${coverage_spec_444}')"
 
 # Der Pin allein genügt nicht (AK-1 verlangt dieselbe Version im Lockfile): genau eine
 # aufgelöste next-Version, und die deckungsgleich mit der Deklaration.
