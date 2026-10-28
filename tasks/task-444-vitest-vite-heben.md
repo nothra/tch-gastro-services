@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [ ] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
@@ -72,6 +72,8 @@ GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm (vite, `>=8.0.0 <=8.1.5`).
 
 ## Review-Findings
 <!-- Wird durch /review befüllt -->
+Iteration 1: **APPROVED** – 0 kritisch, 0 wichtig, 3 Nitpicks (Details in
+[`review-444.md`](review-444.md)).
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
