@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [x] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -74,6 +74,16 @@ GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm (vite, `>=8.0.0 <=8.1.5`).
 <!-- Wird durch /review befüllt -->
 Iteration 1: **APPROVED** – 0 kritisch, 0 wichtig, 3 Nitpicks (Details in
 [`review-444.md`](review-444.md)).
+
+## Test-Notizen (/test)
+Keine neuen Tests nötig: Die Änderung ist ein Dependency-Bump; jedes AK ist durch den Floor-Guard
+in `run-tests.sh` (Floors, Mutationsbeleg + Diskriminierungs-Kontrolle, AK1-Specifier-Check) oder
+einen Gate-Lauf belegt. Lauf: `run-tests.sh` 1854 grün / 0 rot; `pnpm test:coverage` Statements
+93,4 %, Branches 98,17 %, Lines 93,16 % (≥ 80 %). Der DB-Integrationslauf (`dotenv -e .env.local`)
+wurde in diesem Schritt nicht wiederholt (Secret-Datei-Guardrail); Beleg aus `/implement`: AK5,
+1881 Tests grün, und kein Code/Test seitdem geändert. Das gitignorierte Wegwerf-Skript
+`scripts/bump444.tmp.sh` konnte hier nicht gelöscht werden (`rm` nicht freigegeben) – bitte von Hand
+entfernen.
 
 ## Codify-Notizen
 <!-- Wird durch /codify befüllt – Learnings dieser Task -->
