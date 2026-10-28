@@ -451,3 +451,121 @@ D6-Versionsangabe, D9-Lint).
   qualifiziert, Farbcode, `#!`, String-Fixture); `verify`/`scan`-Entscheidungslogik gegen
   präparierte Fixture-Repos mit `gitleaks`-Stub im `PATH` (Messung brechen, nicht nur Input – Lesson
   aus #319). `git filter-repo` selbst läuft in keinem Test und in keiner CI.
+
+## Nachtrag 2026-10-24 · Detailentscheidungen aus T2 (Spec #428, Q1–Q6)
+
+Entschieden bzw. vorgeschlagen im Anschluss an `/requirements`; sie verfeinern D1/D2/D4/D7/D10/D11
+und widersprechen keiner Grundsatzentscheidung. Grundlage ist eine **Messung** der v0.6.0 gegen den
+TCH-Stand (`factory-release.json` gegen `ownership-check.sh --list factory`, 113 Release-Dateien
+gegen 111 TCH-Dateien); sie hat zwei Annahmen der T1b-Planung widerlegt (Q7, Q8).
+
+- **Q6 · Schnitt von T2 (Entscheidung des Entwicklers, 2026-10-24):** 35 Kriterien liegen über der
+  Turn-Limit-Schwelle. T2 wird in zwei nacheinander laufende Tasks geteilt. **T2a (#428 bleibt):**
+  Manifest, Abholen, Änderungs-Gate, Update-PR, Erst-Einbindung (D1, D2, D4). **T2b (eigenes Issue,
+  Klammer-Task in TCH):** Fund-Ablage und Neuprojekt (D7, D10). Grund für die Reihenfolge: Ab T2a
+  läuft jede weitere Factory-Änderung über den Update-PR; die TCH-Seite von T2b besteht dann aus
+  genau diesem Update-PR plus Konfiguration und Zuordnungsregel – ein eigener TCH-Code-Pfad entfällt.
+- **Q1 · Reihenfolge je Teil-Task: erst Factory-Repo, dann TCH.** Die neuen Artefakte
+  (`factory-sync.sh`-Modi, `factory-integrity-check.sh`, `factory-update.yml`, später
+  `create_factory_issue`, `templates/`, `NEW-PROJECT.md`) sind Seite `factory` und entstehen in
+  `nothra/dev-factory` – mit dessen Pipeline (D9), nicht in TCH. T2a: Factory-PR(s) → Release
+  **v0.7.0** → TCH-PR #428 (Erst-Einbindung). T2b: Factory-PR(s) → **v0.8.0** → Update-PR in TCH
+  (automatisch, sobald T2a steht; bis dahin per `workflow_dispatch`). Eine MINOR-Version darf
+  brechen (D6); Brüche stehen unter „Breaking".
+- **Q7 · Besitz im Konsumenten kommt aus dem Lock, nicht aus `OWNERSHIP.md`.** Befund: Die in v0.6.0
+  ausgelieferte `docs/factory/OWNERSHIP.md` ist die Tabelle des **Factory-Repos** (ihre `project`-Zeilen
+  nennen `release.yml`, `CHANGELOG.md` …); in TCH würde `ownership-check.sh` an allen 1162
+  Projekt-Dateien scheitern. Entscheidung: Die Datei ist ab v0.7.0 **projekteigen** (Seite `project`
+  in `dev-factory`, nicht im Release-Manifest). `ownership-check.sh` (ausgeliefert) hat zwei Modi:
+  **mit** `factory.lock` ist die Seite `factory` die Pfadmenge des Locks, der Rest gehört dem
+  Projekt (D3 „kanonisch ist das Manifest") – geprüft wird nur noch, dass kein Lock-Pfad fehlt oder
+  ein Anpassungsstellen-Muster trifft; **ohne** Lock (Factory-Repo, Quelle) gilt `OWNERSHIP.md` wie
+  heute. TCH löscht seine `OWNERSHIP.md` bei der Erst-Einbindung; die in T1a daran hängenden Verweise
+  (`CLAUDE.md`-/Skill-Texte „Datei laut `OWNERSHIP.md`") zeigen künftig auf `factory.lock`.
+- **Q8 · Die Self-Test-Suite wird konsumenten-neutral geliefert.** Befund: `run-tests.sh` aus v0.6.0
+  enthält Prüfungen, die den Zustand des Factory-Repos voraussetzen (dessen `ci.yml`, Dateizahlen,
+  `release.yml`; ~1000 geänderte Zeilen gegenüber TCH). Als Konsument hängt TCH an dieser Suite (Job
+  `factory-self-test`, Required Check). Entscheidung: Die ausgelieferte Suite enthält nur Prüfungen,
+  die in **jedem** Repo mit eingebundener Factory gelten; Factory-Repo-spezifische Prüfungen liegen in
+  `scripts/project/tests/` von `dev-factory` (projekteigen) und laufen nur dort. Der Schnitt ist Teil
+  des Factory-PR für v0.7.0; ohne ihn ist AKE.1 für TCH nicht erfüllbar.
+- **Q2 · Erst-Einbindung = Wechsel auf die erste Version mit Konsumenten-Vertrag (v0.7.0), kein
+  Rückgabe-Zwischenschritt.** Befund der Messung: von 74 abweichenden Dateien unterscheiden sich 50
+  **ausschließlich** durch die in T1b beschlossene Qualifizierung (`#<nr>` → `<slug>#<nr>`); 24
+  tragen echte Textänderungen (meist zwei Zeilen Wortlaut; groß nur `run-tests.sh` – Q8, `OWNERSHIP.md` –
+  Q7, die ADR-063-Nachträge und `OPERATING.md`). Der Quellstand der Herauslösung war TCH-`main` selbst;
+  es gibt also kein TCH-seitiges Delta, das zurückgegeben werden müsste. **Regel:** Zwischen
+  Herauslösung und Erst-Einbindung gilt ein **Änderungsstopp** für Seite-`factory`-Dateien in TCH;
+  jede Änderung daran (so auch dieser Nachtrag) wird im Factory-PR für v0.7.0 mitgeliefert. Beleg im
+  T2a-PR: `git log <Herauslöse-Commit>..main -- <Lock-Pfade>` listet nur diese bekannten Änderungen
+  (AK2.14b).
+- **Q9 · Bootstrap des Abholens.** Das erste `factory-sync.sh` mit Sync-Modus liegt erst in v0.7.0,
+  TCH hat es noch nicht. Einmaliger, dokumentierter Schritt: Tag-Tarball von v0.7.0 in ein
+  Temp-Verzeichnis entpacken und **dessen** `scripts/factory-sync.sh v0.7.0` mit
+  `FACTORY_DIR=<TCH-Worktree>` ausführen (der Override existiert, ADR-063 Q2). Kein `curl | bash`,
+  kein händisches Kopieren von 113 Dateien. Vertrauenswurzel ist das Release-Manifest desselben Tags
+  über TLS; das Skript verifiziert jede Datei dagegen (FS-T2.2).
+- **Q4 · Ruleset zuletzt.** `factory-integrity` kommt erst **nach** dem Merge von T2a als Required
+  Check in `protect-main` (menschlicher Schritt, Nachtrag in ADR-029): Der Job lebt in der
+  ausgelieferten `factory-ci.yml`, existiert also erst mit der Erst-Einbindung; früher eingetragen
+  würde er jeden PR – auch den eigenen – blockieren. Der T2a-PR belegt, dass der Job auf sich selbst
+  grün läuft.
+- **Q3 / Q5 · Menschliche Schritte** (kein Code, nicht automatisierbar): PAT `FACTORY_SYNC_TOKEN`
+  anlegen und hinterlegen (vor dem ersten Lauf von `factory-update.yml`, Rotation in `OPERATING.md`);
+  für den echten Neuprojekt-Nachweis (T2b) ein Wegwerf-Repo anlegen und wieder löschen. Beide laufen
+  mit ausdrücklicher Freigabe im Chat.
+
+### Alternativen zu den Nachtrags-Entscheidungen
+
+- **Q7 · A:** `OWNERSHIP.md` weiter ausliefern, Konsumenten ergänzen eigene `project`-Zeilen. *Contra:*
+  Mischdatei (verletzt D3), jeder Release überschriebe die Ergänzungen. **Verworfen.** **B:** Zuordnung
+  aus dem Lock ableiten (**gewählt**) – eine Quelle, kein Drift zwischen Tabelle und Lock.
+- **Q8 · A:** die volle Suite ausliefern und Factory-spezifische Tests im Konsumenten überspringen
+  (`skip`). *Contra:* Überspringen versteckt echte Rotfälle (Lesson #319). **Verworfen.** **B:** zwei
+  Suiten nach Geltungsbereich (**gewählt**).
+- **Q2 · A:** vor der Einbindung das TCH-Delta ins Factory-Repo zurückgeben. *Contra:* Messung zeigt,
+  dass es keins gibt; der Schritt wäre Leerlauf. **B:** direkt einbinden mit Änderungsstopp und
+  belegter Log-Prüfung (**gewählt**).
+- **Q9 · A:** `curl … | bash` des Skripts. *Contra:* führt ungeprüften Code aus. **B:** 113 Dateien von
+  Hand kopieren. *Contra:* genau der Fehlerweg, den das Manifest verhindern soll. **C:** Tarball +
+  Skript des Tags mit `FACTORY_DIR` (**gewählt**).
+- **Q4 · A:** Required Check vor dem Merge eintragen. *Contra:* blockiert den eigenen PR. **B:** danach
+  (**gewählt**); Risiko ist das kurze Fenster ohne Server-Gate – der lokale Hook und der Job selbst
+  laufen schon.
+
+### Konsequenzen
+
+- **T2a-Umfang wächst um** den Ownership-Modus (Q7) und den Suite-Schnitt (Q8) – beide Teil des
+  Factory-PR für v0.7.0. Neue Kriterien dafür stehen in spec-428 (AK2.15, AK2.16).
+- Die Reihenfolge je Teil-Task (Factory-PR → Release → TCH) verlängert den Weg gegenüber dem
+  Epic-Bild „ein PR"; dafür ist jede Seite mit **ihrer** Pipeline und ihren Gates geprüft.
+- **Änderungsstopp** für Seite-`factory`-Dateien in TCH ab sofort bis zur Erst-Einbindung; dieser
+  Nachtrag selbst liegt in einer solchen Datei und wird mit v0.7.0 nach `dev-factory` geliefert.
+- Schlägt der Suite-Schnitt (Q8) größer aus als ein PR trägt, wird er ein eigener Factory-Task
+  **vor** T2a (Reihenfolge bleibt: Factory zuerst).
+
+### Zweiter Schnitt von T2a (2026-10-24, nach Messung gegen v0.6.1)
+
+Entschieden mit dem Entwickler; er **ersetzt** die in Q6/Q1 oben genannte Einteilung von T2a
+(„ein TCH-PR nach v0.7.0") und die dort genannten Versionsnummern. Anlass: T2a hatte 37 Kriterien
+(Schwelle 25) und vermischte Arbeit in zwei Repos. Zusätzlich ist `v0.6.1` erschienen (Patch:
+Apache-2.0-`LICENSE`, neutralisierte Bezeichnung; Messung wiederholt: 34 identisch, 47 nur
+`#nr`-Qualifizierung, 30 mit Textänderung – Aussage von Q2 unverändert, Messbasis ab jetzt v0.6.1).
+
+| Task | Repo | Inhalt | AK (spec-428) |
+|---|---|---|---|
+| **T2a-1** · Konsumenten-Vertrag | dev-factory ([#22](https://github.com/nothra/dev-factory/issues/22)) | Ownership-Modus (Q7), Suite-Schnitt (Q8) | AK2.15a–c, AK2.16a–b |
+| **T2a-2** · Abholen, Manifest, Gate | dev-factory ([#23](https://github.com/nothra/dev-factory/issues/23)) | `factory-sync.sh` Sync-Modus, `factory-integrity-check.sh` + CI-Job (D1, D4) | AK2.1a–c, 2.2a–c, 2.3, 2.3b, 2.5a–d, 2.6, 2.8, F2, F4, F7, FS-T2.1/.2/.4 |
+| **T2a-3** · Update-PR | dev-factory ([#24](https://github.com/nothra/dev-factory/issues/24)) | `factory-update.yml` (D2) | AK2.2d, 2.4, 2.4b, F1, F3, FS-T2.3 |
+| **T2a-4** · Erst-Einbindung | TCH (**#428**) | Bootstrap, `factory.lock`, `OWNERSHIP.md` entfällt, Änderungsstopp-Beleg | AK2.14a–c, AK2.15d, AKE.1, AKE.2 |
+
+Strikt nacheinander; **jeder Factory-Task endet mit einem Release** (jeweils die nächste MINOR-Version,
+Nummern nicht vorab festgelegt – Brüche unter „Breaking", D6). Die Erst-Einbindung (T2a-4) bindet die
+**letzte** dieser Versionen ein und nimmt Sync, Gate und Update-Workflow in einem Schritt auf; der erste
+Lauf von `factory-update.yml` in TCH braucht den PAT (Q3). Überall im Nachtrag oben gilt „v0.7.0" als
+„die Version, die T2a-4 einbindet". Die Factory-Tasks laufen mit der Pipeline von `dev-factory` (D9) und
+haben dort eigene Specs/Tasks; die Kriterien-Texte liefert spec-428.
+
+Alternative: Konsumenten-Vertrag und Sync/Gate zusammen (ein Factory-Task, ~24 AK). *Contra:* an der
+Schwelle, und der Suite-Schnitt (Q8, ~1000 Zeilen) allein sprengt erfahrungsgemäß ein Turn-Budget
+(Lesson #369). **Verworfen.**
