@@ -293,3 +293,15 @@ erst `/review` Runde 1 fand die Lücke. Gleiche Fehlerklasse wie der No-op-Verda
 `pnpm install --lockfile-only` (~10 s), Ergebnis lesen, Lockfile wiederherstellen – **je einmal mit und ohne** den Override-Eintrag
 (Datei vorher sichern). Ist die Frisch-Auflösung auch ohne Override sauber, bleibt der Eintrag trotzdem, wenn die Parent-Range unter
 dem Floor liegt (einzige durable Zusicherung, #339); das Ergebnis samt Begründung in Task-Notiz **und** Override-Kommentar nennen.
+
+## Nur als Peer im Baum hängende Dependency: weder `pnpm update` noch `overrides` wirken (aus #444)
+
+`vite` stand in keiner `package.json`, sondern nur als `peerDependencies` von `vitest`/`@vitejs/plugin-react`; pnpm
+installiert den Peer automatisch. Auf diese Kopie wirkten `pnpm update vite` und ein `overrides`-Eintrag nicht (Lockfile
+blieb auf `vite@8.1.3`, beides gemessen). Eine komplette Neuauflösung ohne Lockfile hätte ~100 Pakete inkl. Runtime-Deps
+(`pg`, `drizzle-orm`, `pdfmake`) mitgehoben – außerhalb des Scopes.
+
+**Regel:** Peer-Treffer in `pnpm why` zuerst als solchen erkennen (Peer-Range der Parents lesen). Dann
+`pnpm add -D <peer>@^<Floor>` und direkt `pnpm remove <peer>`: das Lockfile behält die neue Auflösung, `package.json` bleibt
+unverändert. Danach `pnpm why` + Advisory-Gegenprobe. Die Streuung des Lockfile-Diffs am `git diff` messen, statt „nur
+Teilbaum X" zu schreiben (der Review fand `picomatch` 4.0.5 → 4.0.7 außerhalb des behaupteten Teilbaums).

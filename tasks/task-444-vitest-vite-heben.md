@@ -6,8 +6,8 @@
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
-- [ ] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Codify ausgeführt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 `vitest` und `@vitest/coverage-v8` auf >= 4.1.12 heben und das Lockfile neu auflösen, sodass
@@ -94,8 +94,11 @@ Wegwerf-Skript `scripts/bump444.tmp.sh` liegt weiterhin dort – `rm` ist nicht 
 von Hand löschen.
 
 ## Codify-Notizen
-<!-- Wird durch /codify befüllt – Learnings dieser Task -->
+Zwei Lessons: Peer-only-Dependency (`docs/project/lessons/build-tooling.md`) und sechstes
+Wegwerf-Datei-Vorkommnis (`docs/factory/lessons/build-tooling.md`); Details in `codify-444.md`.
 
 ---
 Branch: `feature/444-vitest-vite-heben`
 Erstellt: 2026-10-28 21:16
+
+PR-Shepherd 2026-10-28: Merge freigegeben – alle Gates grün.
