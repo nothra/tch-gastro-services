@@ -21,6 +21,13 @@
 > als Quelle für die Factory-Tasks und werden dort in deren eigene Specs übernommen. T2b (AK2.7,
 > AK2.9–AK2.13, F8, #441) bleibt zurückgestellt. Messbasis ist ab jetzt `v0.6.1`.
 
+> **Nachtrag 2026-11-15 (Stand nach dev-factory `v0.8.0`):** T2a-1 bis T2a-3 sind umgesetzt. Die Erst-Einbindung
+> in #428 zielt auf **`v0.8.0`** statt `v0.7.0`: `v0.7.0` hat die Token-Lücke aus nothra/dev-factory#37, `v0.8.0`
+> enthält den Fix. In `v0.8.0` stecken außerdem Vertragsänderungen, die TCH in #428 mittragen muss:
+> nothra/dev-factory#44 (Lessons-Index nicht mehr in `PROJECT-CONTEXT.md`), #45 (Übergabe-Kommentar an #428),
+> #47 (`start_work.copy_files`), #49 (Preflight verlangt Spec mit AK) – Migrationsliste im Kommentar an #428.
+> Die Release-Nummer von T2b ist damit nicht mehr `v0.8.0` (ADR-063 Q1 nannte sie so), sondern die nächste freie.
+
 ## Kontext
 
 Seit T1a (#426, #431, #432) ist die Trennlinie gezogen (`docs/factory/OWNERSHIP.md`, 111 Dateien auf
@@ -221,7 +228,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   `factory-integrity` unverändert.
 - [ ] **AKE.2** GIVEN T2a WHEN gearbeitet wird THEN läuft sie als eigener PR mit eigenem Issue (#428)
   und gilt erst nach grünen Gates in **beiden** Repos als fertig; die Reihenfolge ist Factory-PR →
-  Release `v0.7.0` → TCH-PR (ADR-063 Nachtrag Q1).
+  Release `v0.8.0` (ursprünglich `v0.7.0` geplant, Nachtrag 2026-11-15) → TCH-PR (ADR-063 Nachtrag Q1).
 
 ## Fehlerszenarien
 
@@ -244,20 +251,22 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 > Für `/architecture` (ADR-Trigger ist in ADR-063 schon beantwortet; hier Detailfragen mit
 > Auswirkung auf Umfang oder Reihenfolge) bzw. vor `/implement`.
 
-- [x] **Q1 · Wo entstehen die neuen Dateien?** → **ADR-063 Nachtrag Q1:** Factory-Repo zuerst, Release `v0.7.0`, dann TCH-PR. *(Frage:)* Laut ADR-063 sind `factory-sync.sh`,
+- [x] **Q1 · Wo entstehen die neuen Dateien?** → **ADR-063 Nachtrag Q1:** Factory-Repo zuerst, Release `v0.7.0`, dann TCH-PR; **umgesetzt als `v0.8.0`** (Nachtrag 2026-11-15). *(Frage:)* Laut ADR-063 sind `factory-sync.sh`,
   `factory-integrity-check.sh`, `factory-update.yml`, Seam und `NEW-PROJECT.md` **übernommene**
   (Seite `factory`) Dateien, gehören also ins **Factory-Repo** – dort aber hat TCH sie heute nicht
   (v0.6.0 enthält nur den Stand aus T1a). Folge: T2 braucht **mindestens einen Factory-PR + Release
   (v0.7.0?)** *vor* dem TCH-PR, in dem TCH `factory.lock` einführt. Reihenfolge und Release-Nummer
   festlegen. *Eskalation:* ändert den Zuschnitt dieser Task (zwei Repos, zwei PRs).
-- [x] **Q2 · Woraus entsteht das erste `factory.lock`?** → **Nachtrag Q2/Q9:** Wechsel auf `v0.7.0`, Änderungsstopp, kein TCH-Delta (gemessen: 50 von 74 Abweichungen nur Qualifizierung). *(Frage:)* v0.6.0 enthält die **bereinigte** Fassung
+- [x] **Q2 · Woraus entsteht das erste `factory.lock`?** → **Nachtrag Q2/Q9:** Wechsel auf `v0.8.0` (ursprünglich `v0.7.0`, Nachtrag 2026-11-15), Änderungsstopp, kein TCH-Delta (gemessen: 50 von 74 Abweichungen nur Qualifizierung). *(Frage:)* v0.6.0 enthält die **bereinigte** Fassung
   (T1b-2 hat Wortlaut und Verweise in den Factory-Dateien angepasst); TCH-`main` hat die alte Fassung.
   Wird TCH bei der Erst-Einbindung auf die neue Fassung **gesetzt** (jede TCH-Abweichung verloren,
   AK2.14b) oder wird zuerst das Delta ins Factory-Repo gegeben? → AK2.14b sichert nur, dass nichts
   still verloren geht; die Strategie legt `/architecture` fest.
 - [ ] **Q3 · `FACTORY_SYNC_TOKEN`** (bleibt menschlicher Schritt, Nachtrag Q3/Q5): muss der Entwickler als Fine-grained PAT anlegen
   (Projekt-Repo *contents:write* + *pull-requests:write*; `nothra/dev-factory` *issues:write*) und
-  als Secret hinterlegen. **Menschlicher Schritt** vor dem ersten Workflow-Lauf; Ablaufdatum +
+  als Secret hinterlegen – **seit `v0.8.0` (nothra/dev-factory#37) als Secret des Environments `factory-update`**
+  (Branch-Regel `main`), **nicht** als Repository-Secret; ein vorhandenes Repository-Secret ins Environment verschieben
+  und löschen, sonst endet `guard` rot (`OPERATING.md` §0.6). **Menschlicher Schritt** vor dem ersten Workflow-Lauf; Ablaufdatum +
   Rotation in `OPERATING.md`. Ohne Token ist FS-T2.3 die erwartete Antwort.
 - [x] **Q4 · Ruleset:** → **Nachtrag Q4:** erst **nach** dem Merge von T2a. *(Frage:)* `factory-integrity` als Required Check in `protect-main` ist eine
   Repo-Einstellung (kein Code) – wer ändert sie, und **wann relativ zum Merge**? Zu früh blockiert
