@@ -9,6 +9,7 @@
 #   - Deploy-Freeze (#173, ADR-032): deploy-freeze.sh, deploy-freeze-notify.sh
 #   - Workflow-Tests zu deploy-gate.yml und deploy-freeze-release.yml (#66, #173)
 #   - factory-extract.sh (#427) – in factory-extract-tests.sh, unten gesourct
+#   - Dependency-Security-Floors (#291ff., #428) – in dependency-floor-tests.sh, unten gesourct
 # Die Prüf-Helfer kommen aus der Factory-Lib (scripts/checks/tests/lib/assert-helpers.sh, Q10).
 # Läuft in CI im Required Check `test` des projekteigenen ci.yml (AK-J3).
 
@@ -535,6 +536,9 @@ assert_absent "$test_job_432" 'continue-on-error' "#432 AK-J3: der Job test hat 
 
 # ─── #427: factory-extract.sh (Herauslösen der Factory, ADR-063 Nachtrag) ─────
 source "$PROJECT_TESTS_DIR/factory-extract-tests.sh"
+
+# ─── #291/#337/#339/#390/#412/#444/#447/#448: Dependency-Security-Floors (#428 AK2.18b: aus der Factory-Suite hierher) ───
+source "$PROJECT_TESTS_DIR/dependency-floor-tests.sh"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 print_summary
