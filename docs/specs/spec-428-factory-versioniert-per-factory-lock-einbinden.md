@@ -15,11 +15,11 @@
 > | T2a-1 Konsumenten-Vertrag | dev-factory [#22](https://github.com/nothra/dev-factory/issues/22) | AK2.15a–c, AK2.16a–b |
 > | T2a-2 Abholen, Manifest, Gate | dev-factory [#23](https://github.com/nothra/dev-factory/issues/23) | AK2.1a–c, 2.2a–c, 2.3, 2.3b, 2.5a–d, 2.6, 2.8, F2, F4, F7, FS-T2.1/.2/.4 |
 > | T2a-3 Update-PR | dev-factory [#24](https://github.com/nothra/dev-factory/issues/24) | AK2.2d, 2.4, 2.4b, F1, F3, FS-T2.3 |
-> | **T2a-4 Erst-Einbindung = diese Task (#428)** | TCH | AK2.14a–c, AK2.15d, AKE.1, AKE.2 |
+> | **T2a-4 Erst-Einbindung = diese Task (#428)** | TCH | AK2.14a–c, AK2.15d, AK2.17a–h, AK2.18a–c, FS-T2.5, AKE.1, AKE.2 |
 >
 > **In #428 umgesetzt werden nur die Kriterien der Zeile T2a-4.** Alle anderen stehen hier unverändert
 > als Quelle für die Factory-Tasks und werden dort in deren eigene Specs übernommen. T2b (AK2.7,
-> AK2.9–AK2.13, F8, #441) bleibt zurückgestellt. Messbasis ist ab jetzt `v0.6.1`.
+> AK2.9–AK2.13, F8, #441) bleibt zurückgestellt. Messbasis ist ab jetzt `v0.6.1` *(überholt, siehe Nachtrag 2026-11-17: Messbasis `v0.8.0`)*.
 
 > **Nachtrag 2026-11-15 (Stand nach dev-factory `v0.8.0`):** T2a-1 bis T2a-3 sind umgesetzt. Die Erst-Einbindung
 > in #428 zielt auf **`v0.8.0`** statt `v0.7.0`: `v0.7.0` hat die Token-Lücke aus nothra/dev-factory#37, `v0.8.0`
@@ -27,6 +27,14 @@
 > nothra/dev-factory#44 (Lessons-Index nicht mehr in `PROJECT-CONTEXT.md`), #45 (Übergabe-Kommentar an #428),
 > #47 (`start_work.copy_files`), #49 (Preflight verlangt Spec mit AK) – Migrationsliste im Kommentar an #428.
 > Die Release-Nummer von T2b ist damit nicht mehr `v0.8.0` (ADR-063 Q1 nannte sie so), sondern die nächste freie.
+
+> **Nachtrag 2026-11-17 (Spec-Prüfung vor `/implement`):** Zwei Lücken geschlossen. (1) Die Migrationsliste
+> für `v0.8.0` stand nur in Kommentaren an #428 (1.11., 13.11., 15.11.) – sie ist jetzt als **AK2.17a–h**
+> Teil dieser Spec. (2) Der Änderungsstopp aus Q2 wurde verletzt: fünf TCH-PRs nach der Herauslösung
+> (#443, #444, #447, #448, #412) haben Dateien der Seite `factory` geändert (`docs/factory/lessons/build-tooling.md`,
+> `docs/factory/lessons/testing.md`, `scripts/checks/tests/run-tests.sh` +~100 Zeilen, `docs/factory/kleinfunde.md`),
+> und keine dieser Änderungen steckt in `v0.8.0` – ein Sync würde sie still löschen. Das verfeinert AK2.14b
+> zu **AK2.18a–c** und **FS-T2.5**. Messbasis für AK2.14b ist `v0.8.0`; die Messung vom 2026-10-24 ist überholt.
 
 ## Kontext
 
@@ -221,6 +229,60 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   sie nur im Factory-Repo (`scripts/project/tests/`), und keine Prüfung ist dabei ersatzlos entfallen
   (Vorher/Nachher-Liste der Testgruppen im Factory-PR). *Beleg: Mutations-/Zählvergleich.*
 
+### Migration auf `v0.8.0` (Nachtrag 2026-11-17, aus den Kommentaren an #428)
+
+> Grund je Punkt: `v0.8.0` enthält Vertragsänderungen, die das Projekt mittragen muss, sonst geht beim
+> Sync TCH-Verhalten still verloren oder ein Gate wird rot. Quelle: nothra/dev-factory#37, #44, #45, #47, #49.
+
+- [ ] **AK2.17a** *(#44)* GIVEN der Sync auf `v0.8.0` WHEN er im PR landet THEN enthält **derselbe** PR das
+  Entfernen der Gruppe „Factory-Lessons" (Überschrift + Einzelzeilen) aus `docs/factory/PROJECT-CONTEXT.md`;
+  die Gruppe „Projekt-Lessons" und die Kern-Kurzregeln bleiben; `import-context-limit-check.sh` ist mit dem
+  Deckel aus `v0.8.0` (750 Zeilen / 38.000 Bytes) grün. *Beleg: Check-Lauf im PR.*
+- [ ] **AK2.17b** *(#47)* GIVEN `factory.config.yml` WHEN `start-work.sh` aus `v0.8.0` einen Worktree anlegt
+  THEN wird `.env.local` weiter kopiert, weil `start_work.copy_files: [".env.local"]` gesetzt ist.
+  *Beleg: Konfigurationswert + `config-validation` grün; Verhalten einmal real oder per Self-Test.*
+- [ ] **AK2.17c** *(#49)* GIVEN `run-pipeline.sh` aus `v0.8.0` mit Preflight WHEN es für #428 mit `--dry-run`
+  läuft THEN besteht der Preflight (Spec mit Abschnitt `## Akzeptanzkriterien` vorhanden); offene TCH-Tasks,
+  für die ein Pipeline-Lauf geplant ist, sind im PR genannt, falls ihnen eine solche Spec fehlt.
+- [ ] **AK2.17d** *(#45, Routen-Doku)* GIVEN die Routen-Doku-Regel WHEN die Skill-/Agent-Texte aus `v0.8.0` sie
+  nicht mehr nennen THEN steht sie in `CLAUDE.md` → „Projekt-Regeln (TCH)" (heute schon vorhanden – im PR
+  gegenprüfen) **und** gilt erkennbar für `/implement` und `/review` (Schritt- bzw. Prüfpunkt-Hinweis in der
+  projekteigenen Regel).
+- [ ] **AK2.17e** *(#45, `runAtomic`)* GIVEN eine neue Mehrfach-Write-Funktion in `db/` WHEN `/review` läuft
+  THEN findet der Reviewer die Regel „`runAtomic` (`db/atomic.ts`), nicht `db.transaction()`" in einer
+  projekteigenen, dauerhaft geladenen Stelle (`CLAUDE.md` oder `PROJECT-CONTEXT.md`, nicht nur im Lessons-Index).
+- [ ] **AK2.17f** *(#45, Oberflächentests)* GIVEN `implement.md`/`coding-agent.md` aus `v0.8.0` sagen nur noch
+  „E2E-Werkzeug des Projekts" WHEN man `PROJECT-CONTEXT.md` → „Lokale Umgebung & Oberflächentests" liest THEN
+  stehen dort Playwright, `e2e/*.spec.ts`, `webServer` startet den Dev-Server selbst (`reuseExistingServer`
+  außerhalb CI), Preview-Config `dev`, Voraussetzung `.env.local`.
+- [ ] **AK2.17g** *(#45, Ignore-Muster)* GIVEN `docs/factory/gitignore.factory` aus `v0.8.0` enthält
+  `*.tmp.spec.ts`/`*.tmp.spec.tsx` nicht mehr WHEN `.gitignore` neu zusammengesetzt wird THEN sind beide Muster
+  weiter wirksam, weil sie in `.gitignore.project` stehen. *Beleg: `git check-ignore` auf eine Beispieldatei.*
+- [ ] **AK2.17h** *(#37, menschlicher Schritt)* GIVEN der Update-Workflow aus `v0.8.0` WHEN er nach dem Merge
+  zum ersten Mal läuft THEN liegt `FACTORY_SYNC_TOKEN` als Secret des Environments `factory-update`
+  (Branch-Regel `main`) vor, **kein** Repository-Secret gleichen Namens (`OPERATING.md` §0.6). Bis dahin ist
+  ein roter `guard` die erwartete Antwort (FS-T2.3), keine Regression. Der PR nennt den Schritt als offene
+  menschliche Checkbox.
+- Zur Kenntnis, kein AK: Self-Test-Suite läuft parallel (nothra/dev-factory#52, `FACTORY_SELF_TEST_SERIAL=1`
+  für seriell); Gegenprüfung der generisch gemachten Kommentare (#45 Punkt 5) ist Teil von AK2.14b.
+
+### Drift nach der Herauslösung (Nachtrag 2026-11-17, verfeinert AK2.14b)
+
+- [ ] **AK2.18a** GIVEN die generischen Learnings, die TCH nach der Herauslösung in Factory-Lessons geschrieben
+  hat (u. a. `build-tooling.md` aus #447/#444, `testing.md` Floor-Bump-Mutationsbeleg aus #447) WHEN die
+  Erst-Einbindung läuft THEN sind sie **vor** dem Sync ins Factory-Repo gegeben (Issue mit Label
+  `lesson-vorschlag` oder PR in `nothra/dev-factory`, verlinkt im TCH-PR) – nicht still verloren.
+- [ ] **AK2.18b** GIVEN die Abhängigkeits-Floor-Tests in `scripts/checks/tests/run-tests.sh` (Override-/Floor-Fälle
+  zu `pnpm-workspace.yaml`, u. a. undici, vite, zod, source-map; aus #291, #390, #412, #444, #447, #448) WHEN die
+  Erst-Einbindung läuft THEN liegen sie in der projekteigenen Suite (`scripts/project/tests/`), weil sie
+  TCH-Abhängigkeiten prüfen; die Zahl dieser Fälle ist vorher und nachher gleich, und sie laufen weiter im
+  CI-Job `factory-self-test` bzw. dem projekteigenen Testlauf. *Beleg: Zählvergleich + Mutationsbeleg
+  (Floor unterschreiten → rot).*
+- [ ] **AK2.18c** GIVEN die vollständige Liste der Commits auf `main` seit dem Herauslöse-Stand, die Dateien der
+  Seite `factory` geändert haben WHEN der PR gestellt wird THEN ordnet er **jede** dieser Änderungen zu
+  (in `v0.8.0` enthalten / ins Factory-Repo gegeben / projekteigen verschoben / bewusst verworfen mit Grund);
+  die Liste wird **unmittelbar vor dem Merge** neu erzeugt (FS-T2.5).
+
 ### Epic-weit
 
 - [ ] **AKE.1** GIVEN T2a ist gemergt WHEN TCH die Pipeline fährt (Stage 2/3) THEN verhält sie sich wie
@@ -243,6 +305,9 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   oder Übertragungsfehler) → Abbruch, nichts geändert.
 - [ ] **FS-T2.3** Der Update-Workflow läuft ohne gültiges `FACTORY_SYNC_TOKEN` (fehlt/abgelaufen) →
   klarer Fehler im Lauf, kein halber PR, kein Fallback auf einen Token, der Gates nicht auslöst.
+- [ ] **FS-T2.5** Zwischen PR-Erstellung und Merge ändert ein anderer TCH-PR eine Datei der Seite `factory`
+  (Änderungsstopp verletzt, wie bei #443/#444/#447/#448/#412 geschehen) → die Liste aus AK2.18c wird vor dem
+  Merge neu erzeugt; jede neue Änderung wird zugeordnet, sonst kein Merge.
 - [ ] **FS-T2.4** Ein Tag existiert, hat aber kein Release/kein Manifest-Asset → wird nicht
   eingebunden, Lauf meldet es.
 
@@ -257,7 +322,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   (v0.6.0 enthält nur den Stand aus T1a). Folge: T2 braucht **mindestens einen Factory-PR + Release
   (v0.7.0?)** *vor* dem TCH-PR, in dem TCH `factory.lock` einführt. Reihenfolge und Release-Nummer
   festlegen. *Eskalation:* ändert den Zuschnitt dieser Task (zwei Repos, zwei PRs).
-- [x] **Q2 · Woraus entsteht das erste `factory.lock`?** → **Nachtrag Q2/Q9:** Wechsel auf `v0.8.0` (ursprünglich `v0.7.0`, Nachtrag 2026-11-15), Änderungsstopp, kein TCH-Delta (gemessen: 50 von 74 Abweichungen nur Qualifizierung). *(Frage:)* v0.6.0 enthält die **bereinigte** Fassung
+- [x] **Q2 · Woraus entsteht das erste `factory.lock`?** → **Nachtrag Q2/Q9:** Wechsel auf `v0.8.0` (ursprünglich `v0.7.0`, Nachtrag 2026-11-15), Änderungsstopp, kein TCH-Delta (gemessen: 50 von 74 Abweichungen nur Qualifizierung – Messung vom 2026-10-24 gegen `v0.6.x`, überholt; Änderungsstopp seither durch fünf PRs verletzt → AK2.18a–c). *(Frage:)* v0.6.0 enthält die **bereinigte** Fassung
   (T1b-2 hat Wortlaut und Verweise in den Factory-Dateien angepasst); TCH-`main` hat die alte Fassung.
   Wird TCH bei der Erst-Einbindung auf die neue Fassung **gesetzt** (jede TCH-Abweichung verloren,
   AK2.14b) oder wird zuerst das Delta ins Factory-Repo gegeben? → AK2.14b sichert nur, dass nichts
@@ -282,7 +347,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 
 ## Zuordnung zu den Teil-Tasks
 
-Siehe Tabelle im Kopf. Kennzahlen: T2a-1 **5**, T2a-2 **19**, T2a-3 **6**, T2a-4 **6** Kriterien (alle
+Siehe Tabelle im Kopf. Kennzahlen: T2a-1 **5**, T2a-2 **19**, T2a-3 **6**, T2a-4 **18** Kriterien (alle
 unter der Turn-Limit-Schwelle von 25 AK); T2b **11**.
 
 ## Zuordnung zum Epic
@@ -299,4 +364,4 @@ unter der Turn-Limit-Schwelle von 25 AK); T2b **11**.
 | AK2.8 | AK2.8 |
 | AK2.9–AK2.13 | AK2.9–AK2.13b |
 | F1–F4, F7, F8 | F1, F2, F3, F4 (→AK2.2b), F7 (→AK2.5a), F8 |
-| neu | AK2.14a–c, AK2.15a–d, AK2.16a–b, FS-T2.1–FS-T2.4 |
+| neu | AK2.14a–c, AK2.15a–d, AK2.16a–b, AK2.17a–h, AK2.18a–c, FS-T2.1–FS-T2.5 |
