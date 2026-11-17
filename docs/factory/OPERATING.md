@@ -14,8 +14,8 @@
 >
 > **Verhältnis zu anderen Dokumenten:**
 > - **Was** die Factory ist und **warum** (Prinzipien, Pipeline-Übersicht): [`CLAUDE.md`](../../CLAUDE.md)
-> - **Betriebsumgebung** des Projekts (Werkzeuge, Stages, Deploy-Gate): [`docs/project/betrieb.md`](../project/betrieb.md)
-> - **Entscheidungen** (mit Alternativen): [`docs/adr/`](../adr/) (App) und [`docs/factory/adr/`](adr/) (Factory)
+> - **Betriebsumgebung** des Projekts (Werkzeuge, Stages, Deploy-Gate): `docs/project/betrieb.md`
+> - **Entscheidungen** (mit Alternativen): `docs/adr/` (Projekt) und [`docs/factory/adr/`](adr/) (Factory)
 > - **Dieses Dokument** ist das prozedurale Bindeglied: die Reihenfolge der Handgriffe.
 
 ---
@@ -84,43 +84,43 @@ Diese Schritte sind einmalig. Danach greift die Automatik.
 | `yq` | Config-Merge in `run-pipeline.sh` (Prerequisite) | `yq --version` |
 | `claude` CLI (authentifiziert) | Skills, Stage-3-Pipeline | `claude --version` |
 
-Projekt aufsetzen (Install, `.env.local`, lokale DB, Dev-Server): siehe [`docs/project/betrieb.md`](../project/betrieb.md) → 0.1.
+Projekt aufsetzen (Install, `.env.local`, lokale DB, Dev-Server): siehe `docs/project/betrieb.md` → 0.1.
 
 ### 0.2 Secrets für das Deploy-Gate (projektspezifisch)
 
-Ob und welche Repository-Secrets ein Deploy-Gate braucht, ist Sache des Projekts. TCH: siehe
-[`docs/project/betrieb.md`](../project/betrieb.md) → 0.2.
+Ob und welche Repository-Secrets ein Deploy-Gate braucht, ist Sache des Projekts: siehe
+`docs/project/betrieb.md` → 0.2.
 
 ### 0.3 Production-Branch scharfschalten (projektspezifisch)
 
 Die Aktivierungsreihenfolge für die Production-Entkopplung steht in
-[`docs/project/betrieb.md`](../project/betrieb.md) → 0.3.
+`docs/project/betrieb.md` → 0.3.
 
 ### 0.4 Async-Trigger scharfschalten (unbeaufsichtigte Pipeline in CI)
 
 Voraussetzung für den **vollständig unbeaufsichtigten** Pfad ([1.3](#13-vollautomatisch-unbeaufsichtigt-in-ci)) –
-Issues, die die Factory eigenständig abarbeitet (`factory-poll.yml`, ADR-008):
+Issues, die die Factory eigenständig abarbeitet (`factory-poll.yml`, CI-Stage `orchestrate`, ADR-008):
 
 - Repo-Secret `ANTHROPIC_API_KEY` (oder `ANTHROPIC_BASE_URL`).
 - Labels existieren bereits (`factory::run/running/done/failed/interrupted`).
 - Optional Repo-**Variablen**: `FACTORY_MAX_RUNS_PER_DAY` (Default 5), `FACTORY_RUN_TIMEOUT` (Default 3600s).
 - **claude-CLI gepinnt und verifiziert installieren** – Vorbedingung, nicht optional: der Step
   „Runtime bereitstellen" holt sie heute ungepinnt per `npm install -g` in einen Job mit
-  `contents: write` + `issues: write` (+ `pull-requests: read`/`actions: read` seit #314,
+  `contents: write` + `issues: write` (+ `pull-requests: read`/`actions: read` seit nothra/tch-gastro-services#314,
   ADR-045 §8, für die Prozess-Metriken). Seam analog `install-yq.sh` → Issue
-  [#290](https://github.com/nothra/tch-gastro-services/issues/290).
+  [nothra/tch-gastro-services#290](https://github.com/nothra/tch-gastro-services/issues/290).
 - Steuerung erfolgt **ausschließlich** über das Label `factory::run` am Issue (bewusst per Hand).
 - **`schedule`-Trigger in `.github/workflows/factory-poll.yml` wieder eintragen** – er ist seit
-  #284 entfernt (siehe unten); ohne ihn läuft der Poll nur auf manuelles `workflow_dispatch`.
+  nothra/tch-gastro-services#284 entfernt (siehe unten); ohne ihn läuft der Poll nur auf manuelles `workflow_dispatch`.
   Dieser Punkt kommt **zuletzt**: er schaltet die Automatik scharf.
 
-> Default **aus**. Ohne `factory::run`-Label und ohne API-Key passiert nichts – und seit #284
+> Default **aus**. Ohne `factory::run`-Label und ohne API-Key passiert nichts – und seit nothra/tch-gastro-services#284
 > zusätzlich ohne `schedule`-Trigger: Der Poll passiert nicht mehr von selbst, bleibt aber per
 > `workflow_dispatch` auf Knopfdruck verfügbar (ADR-008, Update 2026-08-12).
 
 ### 0.5 Telemetrie (Token/Kosten) – Default an, nichts einzurichten
 
-Seit #334 ist die Telemetrie **Teil jedes `run-pipeline.sh`-Laufs** und standardmäßig
+Seit nothra/tch-gastro-services#334 ist die Telemetrie **Teil jedes `run-pipeline.sh`-Laufs** und standardmäßig
 **eingeschaltet** ([ADR-049](adr/049-telemetrie-persistenz-je-pipeline-lauf.md)). Es ist
 nichts zu konfigurieren: Der Lauf setzt `CLAUDE_CODE_ENABLE_TELEMETRY=1` und
 `OTEL_METRICS_EXPORTER=console` selbst, erntet am Ende die **Ist-Werte der CLI** und legt sie ab.
@@ -142,6 +142,71 @@ Commit vor diesem Schritt liegen muss.
 `config/otel.env.example` bleibt als Vorlage für den manuellen Weg bzw. eine Gateway-Anbindung
 bestehen; `run-pipeline.sh` sourct sie **nicht**. Die **Prozess**-Kennzahlen (Abschnitt 5)
 brauchen die Telemetrie **nicht** – die zwei Ebenen aus ADR-006 bleiben getrennt.
+
+### 0.6 Update-Workflow: Token `FACTORY_SYNC_TOKEN` (je Konsumenten-Repo)
+
+Der Workflow `factory-update.yml` läuft täglich (und per `workflow_dispatch`), erkennt eine neuere
+Factory-Version in `upstream.repo` und pflegt dafür **einen** PR auf dem Branch `chore/factory-update`
+(Factory-ADR-063, Nachtrag E10–E15). Er merged nie; über den PR entscheiden die Gates und der Mensch.
+Ohne `factory.lock` (z. B. im Factory-Repo selbst) ist der Lauf ein grüner No-op ohne Token.
+
+**Anlegen (menschlicher Schritt, einmalig):**
+
+1. GitHub → *Settings* → *Developer settings* → *Fine-grained personal access tokens* → *Generate new token*.
+2. *Repository access:* **nur** das Konsumenten-Repo.
+3. *Permissions* (Repository): **Contents** read and write, **Pull requests** read and write,
+   **Workflows** read and write (eine Version, die eine Datei unter `.github/workflows/` ändert, ließe
+   sich sonst nicht pushen); *Metadata: read* setzt GitHub selbst. Das öffentliche Quell-Repo liest der
+   Token ohne eigenes Recht.
+4. *Expiration:* höchstens **1 Jahr**; Ablaufdatum im Team-Kalender notieren.
+5. Im Konsumenten-Repo das **Environment `factory-update`** anlegen (*Settings* → *Environments* → *New environment*):
+   *Deployment branches and tags* → *Selected branches and tags* → Regel **`main`**; keine Pflicht-Reviewer (der Lauf ist
+   täglich und unbeaufsichtigt). Darin unter *Environment secrets* das Secret **`FACTORY_SYNC_TOKEN`** hinterlegen.
+   **Kein** gleichnamiges Repository-Secret anlegen: jeder `pull_request`-Workflow des Update-PRs sähe es und ließe sich
+   von einer Release-Version, die eine Workflow-Datei ändert, auslesen. Das Environment-Secret sieht nur ein Job mit diesem
+   Environment auf `main` – PR-Workflows auf `chore/factory-update` nicht (Factory-ADR-063, Nachtrag 2026-10-31 E17–E19).
+   Voraussetzung: Environments mit Branch-Regel – für private Repos plan-abhängig, **vor der Einbindung prüfen**; wo sie
+   fehlen, bleibt nur die manuelle Abholung (`factory-sync.sh`), ein Ersatz per Organisations-Secret wäre für PR-Workflows
+   weiter sichtbar.
+
+**Bestand umziehen (Repo mit Secret aus der Zeit vor dieser Aufteilung):** Wert im Environment `factory-update` als Secret
+`FACTORY_SYNC_TOKEN` anlegen, danach das Repository-Secret gleichen Namens **löschen**. Solange es existiert, endet der Job
+`guard` rot (gewollt) – das Update läuft dann nicht. Ein Environment-Secret überstimmt das Repository-Secret nur im
+Environment-Job; PR-Workflows sähen das Repository-Secret weiter.
+
+**Test-Lauf:** nach der Einrichtung `workflow_dispatch` **auf `main`** auslösen (von einem anderen Branch lehnt das
+Environment den Lauf ab); der Lauf muss grün sein. Ob GitHub die Branch-Regel wie beschrieben durchsetzt, belegt einmal ein
+Test-PR am echten Repo, dessen Workflow `${{ secrets.FACTORY_SYNC_TOKEN }}` ausgibt: erwartet wird ein leerer (maskierter) Wert.
+
+**Aufbau des Workflows:** vier Jobs. `guard` (ohne Environment) prüft Lock und Repository-Secret, `preflight` und `publish`
+(Environment `factory-update`) tragen das Token und führen nur Code aus `main` aus, `fetch` (ohne Secret) holt die neue Version
+ab – nur dort läuft Code des noch ungeprüften Release – und übergibt das Ergebnis als `git bundle`. `publish` prüft es
+(ein Commit auf `main`, keine Symlinks, keine geschützten Stellen im Manifest, nur erwartete Pfade, `factory.lock` = Manifest, Datei-Hashes) und erzeugt den Commit
+neu. Restrisiko: ein bösartiges Release, das der Mensch im Update-PR nicht bemerkt – siehe Factory-ADR-063, Nachtrag 2026-10-31.
+
+**Warum ein PAT und nicht `GITHUB_TOKEN`:** Pushes und PRs mit dem eingebauten Token lösen keine
+`pull_request`-Workflows aus – die Gates am Update-PR liefen nie. Der eingebaute Token bleibt im
+Workflow auf `contents: read`; das Skript liest ihn nie.
+
+**Ablauf und Rotation:** Vor dem Ablauf einen neuen Token mit denselben Rechten anlegen, das Secret im
+Environment `factory-update` überschreiben und den alten Token löschen. Danach einmal `workflow_dispatch` auf `main`
+auslösen: der Lauf muss grün sein.
+
+**Symptom „Lauf rot: Token"** – Meldung `FACTORY_SYNC_TOKEN fehlt …`, `… wird abgelehnt …` oder
+`… hat kein Schreibrecht …`: Secret fehlt (oder liegt im falschen Kontext – als Repository-Secret statt im Environment
+`factory-update`, oder der Lauf kam nicht von `main`), Token abgelaufen bzw. widerrufen oder Rechte zu knapp. Das
+Skript prüft das Token bei vorhandenem Lock **bei jedem Lauf zuerst**, auch ohne neue Version – ein
+abgelaufener Token fällt am nächsten Tag auf, nicht erst beim nächsten Release. Die Rechteprüfung liest
+`permissions.push` des Repos; ob GitHub dort die Rechte eines Fine-grained-Tokens oder die Rolle seines
+Besitzers meldet, ist noch nicht am echten Repo belegt. Fehlt dem Token nur *Contents: write* bzw.
+*Pull requests: write*, kann der Lauf daher erst beim Push bzw. beim Anlegen des PRs rot werden – rot
+bleibt er in jedem Fall. Abhilfe: Token wie oben neu anlegen bzw. rotieren.
+
+**Branch-Besitz:** `chore/factory-update` gehört dem Workflow. Steht der PR schon auf der neuesten
+Version, bleibt der Branch unberührt; bei einer neueren Version wird er von `main` neu aufgebaut, eigene
+Commits entfallen dann. Ein ohne Merge geschlossener PR sperrt seine Version – erst eine neuere wird wieder
+angeboten. Der Update-PR braucht kein Issue (Ausnahme im Gate `pr-closes-issue`, nur für diesen Branch im
+selben Repo).
 
 ---
 
@@ -208,7 +273,7 @@ PR-Lifecycle bis zum (Auto-)Merge. **Eigenschaften:**
   Warnung → erst 1.1), stale Interrupt-Sentinel wird entfernt.
 - **Review-Loop** mit **Circuit Breaker**: `MAX_REVIEW_ITERATIONS` (Default 2) – danach `exit 2`,
   Mensch übernimmt.
-- **Security-Gate (fail-closed, #312):** Es passiert **nur ein eindeutiges `PASSED`** – alles
+- **Security-Gate (fail-closed, nothra/tch-gastro-services#312):** Es passiert **nur ein eindeutiges `PASSED`** – alles
   andere (`NEEDS_FIXES`, fehlender Report, Report ohne auswertbaren Verdict-Anker) bricht vor dem
   Merge ab. Im `--dry-run` wird das Gate übersprungen (dort läuft kein Skill, also entsteht auch
   kein Report).
@@ -217,11 +282,16 @@ PR-Lifecycle bis zum (Auto-)Merge. **Eigenschaften:**
   Kein stiller Durchlauf.
 - **Kosten-Hebel** (Env-Vars): `CLAUDE_MODEL_HEAVY`, `CLAUDE_MODEL_LIGHT`, `CLAUDE_MODEL` (globaler
   Override), `MAX_TURNS`. Tier/Turns pro Skill aus `factory.defaults.yml` (optional
-  `factory.config.yml`, ADR-009).
+  `factory.config.yml`, ADR-009). Das Turn-Budget von `/implement` ist nach der AK-Zahl der Spec
+  gestaffelt (`skills.implement.max_turns_by_size`, Factory-ADR-065) – auch für die
+  Rework-Iterationen nach `/review`; `MAX_TURNS` sticht die Staffelung.
+- **Spec ist Vorbedingung (Factory-ADR-065):** Fehlt `docs/specs/spec-<id>-*.md`, fehlt dort der
+  Abschnitt `## Akzeptanzkriterien` oder enthält er keine Checkbox-Zeile, bricht der Lauf im
+  Preflight ab (Exit ≠ 0, auch mit `--dry-run` und `MAX_TURNS`) – vorher `/requirements <id>`.
 
 > **Kosten:** Der Lauf fährt 6+ Claude-Sessions pro Feature hintereinander – deutlich mehr Token als
 > interaktive Nutzung. Die **Task-Datei** wird von der Automatik abgeschlossen; die letzte Checkbox
-> `Fertig / PR erstellt` muss **vor** dem Merge im Branch stehen (Guardrail aus #63) – bei
+> `Fertig / PR erstellt` muss **vor** dem Merge im Branch stehen (Guardrail aus nothra/tch-gastro-services#63) – bei
 > `PR_SHEPHERD=true` erledigt der Lauf das, sonst manuell vor `/pr-shepherd` prüfen ([2.2](#22-vor-dem-merge-task-datei-auf-dem-branch-abschließen-)).
 
 ### 1.3 Vollautomatisch, unbeaufsichtigt in CI
@@ -231,7 +301,7 @@ Für Issues, die ganz ohne lokale Session laufen sollen: das Issue mit **`factor
 `run-pipeline.sh` selbst – **fail-closed hinter dem Budget-Guard** (Label-Eintrittstür +
 Concurrency=1 + Tageskappe). Voraussetzung: Async-Trigger scharfgeschaltet ([0.4](#04-async-trigger-scharfschalten-unbeaufsichtigte-pipeline-in-ci)).
 
-> **Stand heute:** Der Poll läuft **nicht** von selbst – der `schedule`-Trigger ist seit #284
+> **Stand heute:** Der Poll läuft **nicht** von selbst – der `schedule`-Trigger ist seit nothra/tch-gastro-services#284
 > entfernt, `workflow_dispatch` ist der einzige Auslöser. Ein gelabeltes Issue wird also erst
 > abgearbeitet, wenn der Workflow von Hand gestartet oder der Schedule per [0.4](#04-async-trigger-scharfschalten-unbeaufsichtigte-pipeline-in-ci)
 > wieder eingetragen wird.
@@ -245,7 +315,7 @@ Concurrency=1 + Tageskappe). Voraussetzung: Async-Trigger scharfgeschaltet ([0.4
 
 Kein Handgriff mehr – der Merge auf `main` löst die Kette nach Production aus: das **Deploy-Gate
 des Projekts** prüft (Gate rot → **kein** Promote, Production bleibt auf dem letzten Stand).
-Ablauf im Einzelnen für TCH: [`docs/project/betrieb.md`](../project/betrieb.md) → 1.4.
+Ablauf im Einzelnen im Projekt: `docs/project/betrieb.md` → 1.4.
 
 ---
 
@@ -274,14 +344,14 @@ Gesprächsgedächtnis nötig).
 | 5 | `/test <id>` | immer | Test-Suite vollständig, Coverage ≥ 80 % (neuer Code: 100 % erwartet) |
 | 6 | `/refactor <id>` | immer | Clean-Code-Pass, **kein** neues Verhalten, Tests bleiben grün |
 | 7 | `/security-review <id>` | immer (letztes Gate vor Merge) | `tasks/security-<id>.md`, `PASSED` / `NEEDS_FIXES` |
-| 8 | `/codify <id>` | immer | `tasks/codify-<id>.md`; Learnings → Regeln in `CLAUDE.md`/`PROJECT-CONTEXT.md`/Guidelines |
+| 8 | `/codify <id>` | immer | `tasks/codify-<id>.md`; Learnings → Regeln in `CLAUDE.md`/Guidelines, Lessons + `lessons/INDEX.md` (Projekt: `PROJECT-CONTEXT.md`) |
 
 Alternativer Einstieg statt 1: **`/bug-fix <id>`** – von Bug/Stacktrace statt Spec
 (Reproduzieren → Isolieren → Beheben → Verifizieren).
 
 ### 2.2 Vor dem Merge: Task-Datei **auf dem Branch** abschließen ⚠️
 
-**Guardrail (aus #63):** Die letzte Checkbox `Fertig / PR erstellt` und alle Abschluss-Notizen
+**Guardrail (aus nothra/tch-gastro-services#63):** Die letzte Checkbox `Fertig / PR erstellt` und alle Abschluss-Notizen
 müssen **im Feature-Branch** gesetzt sein, **bevor** der Merge läuft. Nach dem Merge liegt die
 Datei auf `main` und ist nur noch über einen **neuen** PR änderbar (Direkt-Commit auf `main` ist
 verboten) – für ein Häkchen unverhältnismäßig.
@@ -360,7 +430,7 @@ klären. In Stage 2 fragt der Agent interaktiv; in Stage 3 löst er den `ADR`-In
 ### 4.2 Security-Freigabe
 
 `/security-review` ist das **letzte Gate vor Merge**. Ergebnis `NEEDS_FIXES` = **Stopp**:
-kritische/wichtige Findings werden behoben (nicht wegdiskutiert). Allgemeiner gilt seit #312
+kritische/wichtige Findings werden behoben (nicht wegdiskutiert). Allgemeiner gilt seit nothra/tch-gastro-services#312
 fail-closed: weiter geht es nur mit einem eindeutigen `PASSED` – ein fehlender oder mehrdeutiger
 Verdict stoppt genauso. Bewusst akzeptierte Rest-Punkte gehören **begründet** in den Report und
 als Backlog-Issue heraus – nie stillschweigend.
@@ -369,7 +439,7 @@ als Backlog-Issue heraus – nie stillschweigend.
 
 Automatisch laufen nur **additive/geprüfte** Migrationen. Destruktive Migrationen mit echtem
 Produktions-Datenbestand sind ein **Menschen-Gate**: eigene ADR, Datensicherung/Rücklaufplan,
-manuell kontrolliert fahren. Die TCH-Regeln dazu: [`docs/project/betrieb.md`](../project/betrieb.md) → 4.3.
+manuell kontrolliert fahren. Die Regeln des Projekts dazu: `docs/project/betrieb.md` → 4.3.
 
 ### 4.4 Auslöser des Auto-Triggers
 
@@ -388,14 +458,15 @@ Nie an reine Backlog-/Doku-Issues.
 `/codify <id>` extrahiert Learnings → neue Regeln in `CLAUDE.md`, den Guidelines oder als
 ausgelagertes Stolperstein-Learning unter `docs/factory/lessons/` (generisch) bzw.
 `docs/project/lessons/` (projektspezifisch) + Index-Zeile in
-`docs/factory/PROJECT-CONTEXT.md` (ADR-037). **Achtung:** die beiden erstgenannten Ziele liegen im
+`docs/factory/lessons/INDEX.md` (generisch) bzw. `docs/factory/PROJECT-CONTEXT.md` (projektspezifisch; ADR-037, Nachtrag #44). **Achtung:** die beiden erstgenannten Ziele liegen im
 `@import`-Dauerkontext und stehen seit
 [ADR-047](adr/047-import-kontext-guidelines-nach-erzwungenheit.md) §4 unter einem harten
 Deckel – wächst die Summe über die Grenze, wird der Push rot. Faustregeln aus der Praxis:
 
 - **Stack-spezifisch** (Framework-, Datenbank-, Test-Stack des Projekts …) → Volltext nach
   `docs/project/lessons/<thema>.md` (generische Pipeline-/Skript-Learnings: `docs/factory/lessons/`;
-  Zuordnung nach der betroffenen Datei laut [`OWNERSHIP.md`](OWNERSHIP.md)) + Index-Zeile in `PROJECT-CONTEXT.md` (ADR-037), **nicht**
+  Zuordnung nach der betroffenen Datei: Seite `factory`, wenn
+  `bash scripts/checks/ownership-check.sh --list factory` sie listet) + Index-Zeile in `docs/factory/lessons/INDEX.md` (generisch) bzw. `PROJECT-CONTEXT.md` (projektspezifisch; ADR-037), **nicht**
   die stack-agnostischen Guidelines.
 - **Kanonische Quelle referenzieren:** taucht eine Regel mehrfach auf (Skill + Persona + Spec),
   jede Kopie auf die Quelle verweisen und beim Update **alle** synchronisieren.
@@ -407,7 +478,7 @@ Deckel – wächst die Summe über die Grenze, wird der Push rot. Faustregeln au
 
 ### 5.2 Prozess-Kennzahlen
 
-**Läuft automatisch (ADR-045, #314):** `scripts/metrics.sh --quiet --publish` ist ein
+**Läuft automatisch (ADR-045, nothra/tch-gastro-services#314):** `scripts/metrics.sh --quiet --publish` ist ein
 Abschluss-Schritt **jedes** `run-pipeline.sh`-Laufs – per EXIT-Trap, fail-open, auch bei
 Abbruch, ohne den Exit-Code der Pipeline je zu verändern. Veröffentlicht wird an
 `$GITHUB_STEP_SUMMARY` (in CI, wenn gesetzt) und als Kommentar an `FACTORY_METRICS_ISSUE`
@@ -441,7 +512,7 @@ Smoke-Tests gibt es `post-merge-verify.sh` (CI-Stage `verify`, nur auf `main`, A
 
 Fehlschlag → `POST_MERGE_FAIL`-Interrupt + roter Job (fail-closed).
 
-> **Hinweis (aus #63):** `FACTORY_HEALTHCHECK_URL` **nicht** auf `/api/health` zeigen lassen –
+> **Hinweis (aus nothra/tch-gastro-services#63):** `FACTORY_HEALTHCHECK_URL` **nicht** auf `/api/health` zeigen lassen –
 > `post-merge-verify` läuft parallel/vor dem Promote und würde einen Fehlalarm erzeugen (Timing).
 
 ### 5.4 Invarianten laufend grün halten
@@ -452,16 +523,16 @@ Fehlschlag → `POST_MERGE_FAIL`-Interrupt + roter Job (fail-closed).
   ist das serverseitige Ruleset `protect-main` (ADR-029); immer über Feature-Branch + PR.
 - **`@import`-Kontext unter dem Deckel halten** (ADR-047 §4):
   `bash scripts/checks/import-context-limit-check.sh` – summiert `CLAUDE.md` + alle
-  `@`-eingebundenen Dateien gegen `MAX_IMPORT_LINES`. Läuft im pre-push-Gate; neue Regeln
+  `@`-eingebundenen Dateien gegen `MAX_IMPORT_LINES` (Zeilen) und `MAX_IMPORT_BYTES` (Bytes). Läuft im pre-push-Gate; neue Regeln
   verdichten oder als Lesson auslagern, statt anzuhängen.
 - **Parallele Sessions in eigenen Worktrees** – `start-work.sh` legt jede Task in einem eigenen
   git-Worktree an; nach dem Merge `git worktree remove <pfad>` (siehe git-workflow.md).
 - **Lokale Git-Hooks installiert halten** (ADR-042): `bash scripts/install-hooks.sh` ist die
   kanonische Quelle für `pre-commit`, `pre-push` und den `commit-msg`-Hook (Flag-Guard gegen
-  `--help`/`-h` als Commit-Message, #262). Idempotent – in einem frischen Clone und in einem vor
+  `--help`/`-h` als Commit-Message, nothra/tch-gastro-services#262). Idempotent – in einem frischen Clone und in einem vor
   Einführung eines Hooks initialisierten Repo einmalig ausführen, sonst greift die lokale
   Gate-Ebene gar nicht.
-- **`yq` in CI nur über den verifizierten Seam** (#258): `bash scripts/install-yq.sh` ist die
+- **`yq` in CI nur über den verifizierten Seam** (nothra/tch-gastro-services#258): `bash scripts/install-yq.sh` ist die
   kanonische Quelle der yq-Bereitstellung für alle Jobs (`config-validation`,
   `factory-self-test`, `factory-poll`). Das Skript pinnt Version **und** SHA-256 und bricht
   fail-closed ab, bevor das Ausführbar-Bit fällt. Ein neuer Job ruft den Seam auf statt einen
@@ -482,13 +553,33 @@ bearbeitet, sondern aus Fragmenten zusammengesetzt (Factory-ADR-063 D3):
 
 **Projekt-Permission oder Ignore-Eintrag ergänzen:** Projekt-Fragment ändern →
 `bash scripts/factory-sync.sh --compose` → Fragment **und** Ergebnis beide committen. Ein Eintrag im
-Ergebnis ohne Fragment geht beim nächsten Zusammensetzen verloren; `--compose --check` (und die
-Self-Test-Suite) schlagen bei jeder Abweichung fehl. `.claude/**` ist für Agenten gesperrt – dort
+Ergebnis ohne Fragment geht beim nächsten Zusammensetzen verloren; `--compose --check` (und
+die lokale Stufe des Integritäts-Gates, §5.5a) schlagen bei jeder Abweichung fehl. `.claude/**` ist für Agenten gesperrt – dort
 läuft die Änderung über den Patch-Workflow.
+
+### 5.5a Factory-Version abholen und Integritäts-Gate
+
+**Abholen** (Factory-ADR-063, Nachtrag E3/E4): `bash scripts/factory-sync.sh <version>` mit `<version>` der Form
+`vX.Y.Z`. Das Skript klont den Tag aus `upstream.repo` (Default `nothra/dev-factory`, ohne Token), prüft jede Datei gegen das
+Release-Manifest, übernimmt atomar (Backup + Rückbau bei Abbruch), löscht entfallene Dateien, setzt `settings.json`/`.gitignore`
+neu zusammen und schreibt `factory.lock` zuletzt. Mit `factory.lock` bricht die Abholung ab, sobald eine übernommene Datei lokal
+geändert ist (Dateiliste in der Meldung). Die **Erstabholung** ohne Lock bricht bei abweichenden Dateien ebenfalls ab; nur
+`--adopt` überschreibt sie und gibt die Liste aus (mit Lock wird `--adopt` abgelehnt). Ein Manifest, das eine Anpassungsstelle
+oder einen Projektbereich (`scripts/project/`, `docs/project/`, `docs/adr/`, `docs/specs/`, `tasks/`) liefern würde, wird abgelehnt.
+
+**Automatisch abholen:** Der Workflow `factory-update.yml` ruft `factory-sync.sh` täglich für die neueste veröffentlichte Version
+auf und legt das Ergebnis als Update-PR auf `chore/factory-update` vor (`scripts/factory-update.sh`). Einrichtung des Tokens und
+Verhalten im Fehlerfall: [0.6](#06-update-workflow-token-factory_sync_token-je-konsumenten-repo).
+
+**Gate:** `bash scripts/checks/factory-integrity-check.sh` (lokale Stufe, offline; fester Check in `pre-commit.sh` und
+`pre-push.sh`) prüft Hashes gegen `factory.lock` und `--compose --check`; `--ci` (Job `factory-integrity`) vergleicht zusätzlich
+den Lock mit dem Release-Manifest des Tags und schlägt fail-closed fehl, wenn dieses nicht erreichbar ist. Exit 0 = ok bzw.
+No-op (kein `factory.lock`, z. B. im Factory-Repo), 1 = Abweichung (Datei + Hinweis „Änderung gehört nach `nothra/dev-factory`“),
+2 = Umgebungs-/Netzfehler oder ungültiger Lock.
 
 ### 5.6 Gate-Kommandos und Projekt-Erweiterungspunkte
 
-Die Git-Gates und die Pipeline kennen **keinen Paketmanager** (Factory-ADR-063 D3, #431):
+Die Git-Gates und die Pipeline kennen **keinen Paketmanager** (Factory-ADR-063 D3, nothra/tch-gastro-services#431):
 
 - **Kommandos** stehen in `factory.config.yml` unter `commands.lint|test|typecheck|format|coverage`
   (dazu `commands.install` für `start-work.sh`). `factory.defaults.yml` trägt dafür bewusst
@@ -502,8 +593,12 @@ Die Git-Gates und die Pipeline kennen **keinen Paketmanager** (Factory-ADR-063 D
   Scheitert eines, ist das Gate rot und nennt den Skriptnamen; eine nicht ausführbare Datei ist
   ebenfalls rot (`chmod +x`). Fehlt das Verzeichnis oder ist es leer, läuft das Gate normal weiter;
   Punkt-Dateien (`.gitkeep`) zählen nicht.
-- **`start-work.sh`** liest den Install-Schritt aus `commands.install` und den Seed-Hinweis aus
-  `start_work.hint`; ohne Eintrag entfällt beides still.
+- **`start-work.sh`** liest den Install-Schritt aus `commands.install`, den Abschluss-Hinweis aus
+  `start_work.hint` (in jedem Modus) und die in neue Worktrees zu spiegelnden lokalen Dateien aus
+  `start_work.copy_files` (Liste relativer Dateipfade, Default `[]`; Opt-out `FACTORY_WT_SKIP_COPY=1`;
+  kopiert wird nur, was im Worktree gitignoret ist, sonst Warnung und Überspringen);
+  ohne Eintrag entfällt der jeweilige Schritt still. `config-validation-check.sh` lehnt absolute Pfade,
+  `..`-Segmente, leere Einträge, abschließendes `/`, Steuerzeichen und Nicht-Strings in `copy_files` ab.
 - **CI** liest `lint`/`test` weiter aus den Repo-Variablen `FACTORY_LINT_COMMAND` /
   `FACTORY_TEST_COMMAND` (`ci.yml`, Q7) – beide Quellen müssen denselben Befehl tragen.
 
@@ -512,7 +607,7 @@ Die Git-Gates und die Pipeline kennen **keinen Paketmanager** (Factory-ADR-063 D
 ## Anhang: Branch-Protection richtig einordnen
 
 **Production ist bereits abgesichert** – über den vom `main`-Push **entkoppelten**
-`production`-Branch plus das **E2E-Deploy-Gate** (Issue #38). Prod deployt ausschließlich, wenn
+`production`-Branch plus das **E2E-Deploy-Gate** (Issue nothra/tch-gastro-services#38). Prod deployt ausschließlich, wenn
 INT-E2E **und** PRD-Migration grün sind; sonst kein Promote. Ein direkter Weg an dieser Kette
 vorbei nach Production existiert nicht.
 

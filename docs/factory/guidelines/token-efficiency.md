@@ -53,7 +53,7 @@ Verbrauch niedrig, ohne die Qualität zu senken.
   (`clean-code.md`, `tdd-principles.md`, `testing-standards.md`) werden bei **jeder** Session
   geladen. Jede Zeile darin wird dauerhaft mitbezahlt. `git-workflow.md` und
   `architecture-principles.md` sind seit [ADR-047](../adr/047-import-kontext-guidelines-nach-erzwungenheit.md)
-  (#319) **nicht** mehr im Dauerkontext – Kurzregeln + „Laden bei"-Trigger stehen in `CLAUDE.md`.
+  (nothra/tch-gastro-services#319) **nicht** mehr im Dauerkontext – Kurzregeln + „Laden bei"-Trigger stehen in `CLAUDE.md`.
 - Nur aufnehmen, was wirklich projektweit gilt. Veraltetes raus.
 - Die Summe ist gedeckelt: `scripts/checks/import-context-limit-check.sh` blockiert im
   Push-Gate, wenn `CLAUDE.md` + alle Imports die Grenze überschreiten (ADR-047 §4).
@@ -86,5 +86,5 @@ Verbrauch niedrig, ohne die Qualität zu senken.
 
 Weitere projektspezifische Kniffe zur Vermeidung teurer Full-Scans gehören als
 `/codify`-Learning in die thematisch passende Datei unter `docs/factory/lessons/`
-(generisch) bzw. `docs/project/lessons/` (projektspezifisch; Volltext, **nicht** @import) plus eine Index-Zeile in `PROJECT-CONTEXT.md` (ADR-037),
+(generisch) bzw. `docs/project/lessons/` (projektspezifisch; Volltext, **nicht** @import) plus eine Index-Zeile in `docs/factory/lessons/INDEX.md` bzw. `PROJECT-CONTEXT.md` (ADR-037, Nachtrag #44),
 sobald sie konkret benannt sind – nicht als vage Allgemeinplätze hier.

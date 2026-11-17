@@ -1,8 +1,8 @@
 # Architecture Decision Records (ADRs)
 
-This directory contains the architectural decisions of the **dm Development Factory** (pipeline,
-skills, gates, configuration). Decisions about the application itself live in
-[`docs/adr/`](../../adr/README.md).
+This directory contains the architectural decisions of the **Development Factory** (pipeline,
+skills, gates, configuration). Decisions about an adopting project's own application live in that
+project's repository.
 
 ## What is an ADR?
 
@@ -85,7 +85,7 @@ YYYY-MM-DD
 ## Index
 
 Every ADR in this directory, in number order (the test suite checks that this list matches the
-directory). Duplicate numbers (040) are known, see #321.
+directory). Duplicate numbers (040) are known, see nothra/tch-gastro-services#321.
 
 | Nr. | Titel | Status |
 |---|---|---|
@@ -118,3 +118,6 @@ directory). Duplicate numbers (040) are known, see #321.
 | 049 | [Telemetrie-Persistenz je Pipeline-Lauf – in `run-pipeline.sh` integriert, Default an, personenfrei getrackt in Git](049-telemetrie-persistenz-je-pipeline-lauf.md) | Accepted |
 | 051 | [Turn-Limit-Ceiling für `/implement` von 50 auf 80 anheben (erweitert ADR-009 §6 / ADR-010)](051-turn-limit-ceiling-implement-80.md) | Accepted |
 | 063 | [Factory in eigenes Repo – versionierte Übernahme per Manifest](063-factory-eigenes-repo-vendored-manifest.md) | Accepted |
+| 064 | [Konsumenten-Vertrag – `factory.lock` als Ownership-Quelle, Lock-Format](064-konsumenten-vertrag-lock-als-ownership-quelle.md) | Accepted |
+| 065 | [Turn-Budget von `/implement` nach AK-Zahl staffeln (erweitert ADR-038)](065-turn-budget-nach-ak-zahl.md) | Accepted |
+| 066 | [Testgruppen der ausgelieferten Suite als parallele Teilprozesse](066-self-test-gruppen-parallel.md) | Accepted |

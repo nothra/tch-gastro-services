@@ -2,7 +2,7 @@
 
 > **Zweck:** Sammelstelle für technisch korrekte, aber sehr kleine Funde (Größenordnung „unter zehn
 > Zeilen") an **Projekt-Dateien** (App-Code, Projekt-Skripte, App-Doku – laut
-> [`docs/factory/OWNERSHIP.md`](../factory/OWNERSHIP.md) Seite `project`), deren Nutzen einen eigenen
+> [`factory.lock`](../../factory.lock): Datei nicht gelistet, also Seite `project`), deren Nutzen einen eigenen
 > Pipeline-Lauf nicht rechtfertigt. Ein Eintrag wird **mitgenommen, wenn die betroffene Datei aus einem
 > anderen Grund sowieso angefasst wird** – nicht als eigener Task eingeplant. Funde an
 > **Factory-Dateien** stehen in [`docs/factory/kleinfunde.md`](../factory/kleinfunde.md).

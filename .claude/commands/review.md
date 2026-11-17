@@ -34,7 +34,7 @@ Personas aus: `docs/factory/agents/review-agent.md`
 - Architektur-Entscheidungen aus ADRs eingehalten?
 - Keine Schicht-Verletzungen?
 - Konsistent mit bestehendem Code-Stil?
-- Bei Routen-Änderungen: `docs/routes.md` mitgepflegt (neue/geänderte/entfernte `page.tsx`/`route.ts`; Pfad, Funktion, Zugriff)? (#145)
+- Projekteigene Zusatzregeln aus `CLAUDE.md`/`PROJECT-CONTEXT.md` des Projekts eingehalten (z. B. im selben PR mitzupflegende Doku)?
 
 ## Output-Format
 
@@ -86,9 +86,9 @@ stdout; im Review-Report referenzieren.
 
 **B – unterhalb der Schwelle:** Eintrag in
 [`docs/factory/kleinfunde.md`](../../docs/factory/kleinfunde.md) (Fund an einer Factory-Datei) **oder**
-[`docs/project/kleinfunde.md`](../../docs/project/kleinfunde.md) (Fund an einer Projekt-Datei) ergänzen –
-welche Datei, entscheidet die betroffene Datei laut
-[`docs/factory/OWNERSHIP.md`](../../docs/factory/OWNERSHIP.md). Schema,
+`docs/project/kleinfunde.md` (Fund an einer Projekt-Datei) ergänzen –
+welche Datei, entscheidet die betroffene Datei (Seite `factory`, wenn
+`bash scripts/checks/ownership-check.sh --list factory` sie listet, sonst Seite `project`). Schema,
 Duplikat-Prüfung und Verhalten bei fehlgeschlagenem Edit stehen im Dateikopf.
 
 Findings **im** Scope bleiben in `tasks/review-<id>.md`.

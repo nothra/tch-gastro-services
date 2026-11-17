@@ -39,3 +39,7 @@ next-env.d.ts
 
 # misc
 *.pem
+
+# Wegwerf-E2E-Specs (#428 AK2.17g: aus docs/factory/gitignore.factory v0.8.0 hierher, tsx fehlt dort)
+*.tmp.spec.ts
+*.tmp.spec.tsx

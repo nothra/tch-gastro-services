@@ -14,7 +14,7 @@ Gate, bevor es als fertig gilt.
 Alle Begründungs- und Trade-off-Texte leben **nur** in `factory.defaults.yml`
 (Annotations-Konvention **ADR-011**: Tags `@reason` / `@tradeoff` am Knopf). Dieser Skill
 **zitiert sie zur Laufzeit** aus dieser Datei — er hält **keine eigene Kopie** (Anti-Drift,
-Spec #35 Kriterium C). Beim Anzeigen eines Knopfes immer den aktuellen Text aus den
+Spec nothra/tch-gastro-services#35 Kriterium C). Beim Anzeigen eines Knopfes immer den aktuellen Text aus den
 Defaults extrahieren, nicht hier hineinschreiben.
 
 ## Aufgabe
@@ -33,7 +33,17 @@ Knopf-Liste aus den Defaults ableiten (yq, da Prerequisite):
 yq eval '.skills | keys | .[]' factory.defaults.yml
 # Modell-Tiers (heavy/light → Modell-ID):
 yq eval '.model_tiers | keys | .[]' factory.defaults.yml
+# Turn-Staffelung von /implement nach AK-Zahl (Factory-ADR-065):
+yq eval '.skills.implement.max_turns_by_size' factory.defaults.yml
 ```
+
+**Turn-Budget von `/implement`:** gestaffelt nach der AK-Zahl der Spec (Factory-ADR-065).
+`max_turns` ist die Basis für die kleinsten Specs, ab `max_turns_by_size.mid.from` AK gilt
+`mid.max_turns`, ab `high.from` AK gilt `high.max_turns` – aktuelle Werte aus den Defaults
+zeigen, nicht von hier übernehmen. Jede Grenze und jedes Budget ist ein eigener Knopf (z. B.
+`skills.implement.max_turns_by_size.high.max_turns`). Das Gate verlangt Budgets in `[1, 80]`,
+`mid.from >= 2` und `high.from > mid.from`. Eine weitere Stufe oder eine Staffelung an einem
+anderen Skill ist kein Knopf.
 
 ### 2. Begründung aus der einen Quelle zeigen
 
@@ -64,7 +74,7 @@ ergänzen/ersetzen.
 
 ### 4. Über das Gate validieren (vor „fertig")
 
-Vor dem Abschluss **immer** das Validierungs-Gate (#36) aufrufen:
+Vor dem Abschluss **immer** das Validierungs-Gate (nothra/tch-gastro-services#36) aufrufen:
 
 ```bash
 bash scripts/checks/config-validation-check.sh

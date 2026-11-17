@@ -36,18 +36,11 @@ je Teilnehmer/Familie) und kassiert bar. Erstes Anwendungsfeld ist die wöchentl
   Status `offen`/`abgeschlossen`). Essen ist **kein** Feld der Veranstaltung, sondern ein
   Katalogartikel (ADR-023 §D4/§D7).
 - **Teilnehmer** – Person **oder** Familie (eine Abrechnungszeile); Mitglied/Nicht-Mitglied.
-- **Katalog** – eine **benannte, eigenständige Preisliste** und damit das Preis-Template
-  (ADR-050, #59): „Montagsrunde" und „Dorfmeisterschaften" sind zwei Kataloge mit eigenen
-  Artikeln und Preisen. Jeder **Katalogartikel** gehört zu genau einem Katalog (Pflichtbezug,
-  DB-fail-closed); die Duplikat-Regel „gleicher Name + Größe" gilt **je Katalog**, nicht global.
-  Ein eigener fachlicher „Veranstaltungstyp" existiert **nicht** – die Typ-Semantik trägt der
-  Katalogname; `kasse` ist **nicht** die Preis-Achse (Kasse = Geldtopf, Katalog = Preisliste).
-  Artikel tragen eine Kategorie (`getraenk`/`kaffee`/`essen`); **Kaffee** und **Essen** sind
-  Katalogartikel mit **festem** Preis (Essen = Kategorie `essen`, kein Veranstaltungs-Property),
-  gewählt bei der Erfassung (ADR-023 §D4/§D7, #116).
-  Stand #59: es existiert genau **ein** geseedeter Katalog („Montagsrunde", stabiler Key
-  `standard`), und alle Bedienwege nutzen ihn – mehrere Kataloge pflegen (#345) und den Katalog
-  je Veranstaltung wählen (#346) folgen.
+- **Katalog** – **benannte, eigenständige Preisliste** (ADR-050): „Montagsrunde" und „Dorfmeisterschaften" sind
+  Kataloge mit eigenen Artikeln und Preisen. Jeder **Katalogartikel** gehört zu genau einem Katalog (Pflichtbezug,
+  DB-fail-closed); „gleicher Name + Größe" ist **je Katalog** ein Duplikat. Es gibt keinen „Veranstaltungstyp" (die
+  Typ-Semantik trägt der Katalogname), `kasse` ist nicht die Preis-Achse (Geldtopf ≠ Preisliste). Artikel tragen eine
+  Kategorie (`getraenk`/`kaffee`/`essen`); Kaffee und Essen haben **feste** Preise, gewählt bei der Erfassung (ADR-023 §D4/§D7).
 - **Verzehr** – Getränke + Essen + Kaffee eines Teilnehmers.
 - **Auslagenerstattung** – vorgestreckte Kosten, als **eigener Vorgang** (getrennt vom
   Kassieren) erstattet; je Auslage ein Teilnehmer + Kategorie (**Getränke/Essen/Sonstiges**).
@@ -82,37 +75,14 @@ Teilnehmer erfassen ohne Konto per Veranstaltungs-Link/QR + Namenswahl. Details 
 
 ## Build & Run
 
-```bash
-# Abhängigkeiten installieren
-pnpm install
-
-# Dev-Server / lokale Ausführung starten
-pnpm dev
-
-# Produktions-Build
-pnpm build
-```
+`pnpm install` · `pnpm dev` (Dev-Server) · `pnpm build` (Produktions-Build)
 
 ---
 
 ## Testing
 
-```bash
-# Alle Tests ausführen (Unit/Integration)
-pnpm test
-
-# Tests mit Coverage-Report
-pnpm test:coverage
-
-# Einen einzelnen Test ausführen
-pnpm vitest run <pfad-oder-muster>
-
-# End-to-End-Tests (Playwright)
-pnpm test:e2e
-```
-
-- **Test-Framework:** Vitest (Unit/Integration) + Playwright (E2E)
-- **Mindest-Coverage:** 80 %
+- **Kommandos:** `pnpm test` (Unit/Integration) · `pnpm test:coverage` · `pnpm vitest run <pfad-oder-muster>` (einzeln) · `pnpm test:e2e` (Playwright)
+- **Test-Framework:** Vitest (Unit/Integration) + Playwright (E2E); **Mindest-Coverage:** 80 %
 - **Test-Konventionen:** Arrange-Act-Assert; Unit-Tests neben dem Code als `*.test.ts(x)`, E2E unter `e2e/`; siehe `docs/factory/guidelines/testing-standards.md`
 
 ---
@@ -122,26 +92,17 @@ pnpm test:e2e
 Details und Kommandos: [`docs/project/betrieb.md`](../project/betrieb.md).
 
 - **Setup:** `pnpm install` · `.env.local` · `pnpm db:up` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm dev`
-- **Oberflächentests** (UI-Tasks, zusätzlich zu den Gates): `pnpm test:e2e` (Playwright, startet den Dev-Server selbst) + interaktiv gegen `pnpm dev`
+- **Oberflächentests** (UI-Tasks, zusätzlich zu den Gates; die Skill-Texte sagen nur „E2E-Werkzeug des Projekts", hier steht es):
+  je Akzeptanzkriterium eine Playwright-Spec unter `e2e/*.spec.ts`; `pnpm test:e2e` startet den Dev-Server über die
+  `webServer`-Config selbst (`reuseExistingServer` außerhalb CI); interaktiv: Preview-Config `dev` (`pnpm dev`) durchklicken.
+  Voraussetzung: `.env.local` (im Worktree über `start_work.copy_files` kopiert) und geseedete DB.
 - **Stage 3:** E2E nur mit laufender DB; sonst Nachtest in der Task-Datei vermerken
 
 ---
 
 ## Code-Qualität
 
-```bash
-# Linting ausführen
-pnpm lint
-
-# Formatierung prüfen
-pnpm format:check
-
-# Formatierung automatisch anwenden
-pnpm format
-```
-
-- **Linter:** ESLint (`next/core-web-vitals`, TypeScript)
-- **Formatter:** Prettier
+`pnpm lint` (ESLint: `next/core-web-vitals`, TypeScript) · `pnpm format:check` / `pnpm format` (Prettier)
 
 ---
 
@@ -188,25 +149,15 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 |-------|--------|
 | `factory-pipeline` | Arbeit am **Factory-Harness** (Pipeline, Skills, Gates, Factory-Doku) statt an der TCH-Applikation |
 
-> **`factory-pipeline` trennt Werkzeug von Produkt** (aus #315): Das Label beantwortet – anders
-> als die übrigen Aspekt-Labels – nicht „welche Dimension zusätzlich", sondern „welches
-> Subsystem". Es entscheidet sich an den berührten Pfaden (Anker jeweils ab der Repo-Wurzel
-> gelesen):
+> **`factory-pipeline` trennt Werkzeug von Produkt** (aus #315; Herleitung: `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`).
+> Das Label beantwortet „welches Subsystem", nicht „welche Dimension zusätzlich", und entscheidet sich an den berührten Pfaden:
 >
 > - **Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.
 > - **TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.
 >
-> **Im Zweifel Label setzen.** Berührt ein Issue beide Seiten, oder liegen die berührten Pfade
-> außerhalb beider Anker-Listen, wird das Label gesetzt. Von keiner der beiden Listen gedeckt
-> sind u. a.:
-> Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`,
-> `docs/specs/` (Ablagekonvention statt Subsystem-Grenze – enthält sowohl Produkt- als auch
-> Factory-Harness-Specs, siehe z. B.
-> `docs/specs/spec-315-factory-pipeline-label-dokumentieren.md`).
-> Die Regel ist einseitig fail-safe – genau wie „im Zweifel Issue" im Abschnitt „Schwelle:
-> Issue oder Sammeldatei": ein zu viel gesetztes Label kostet einen Filterklick, ein fehlendes
-> macht Factory-Arbeit im Backlog unsichtbar. Genau darin liegt der Nutzen – ohne das Label ist
-> der offene Backlog nicht danach filterbar, was das Produkt und was das Werkzeug betrifft.
+> **Im Zweifel Label setzen** (berührt ein Issue beide Seiten oder liegt außerhalb beider Listen: Repo-Wurzel, `docs/adr/`,
+> `tasks/`, `e2e/`, `docs/specs/` – Ablagekonvention, keine Subsystem-Grenze). Einseitig fail-safe wie „im Zweifel Issue":
+> ein zu viel gesetztes Label kostet einen Filterklick, ein fehlendes macht Factory-Arbeit im Backlog unsichtbar.
 
 ---
 
@@ -214,23 +165,10 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 
 ## Bekannte Stolpersteine
 
-> Wird durch `/codify` befüllt – Dinge, die Claude wiederholt falsch gemacht hat
-> und die als projektspezifische Regeln gelten.
->
-> **Volltext ausgelagert (Factory-ADR-037):** Die vollständigen Learnings stehen thematisch
-> getrennt unter [`docs/factory/lessons/`](lessons/) (generisch, gehört der Factory) und
-> [`docs/project/lessons/`](../project/lessons/) (TCH-spezifisch) und sind **nicht** `@import`-
-> geladen – bei Bedarf die passende Datei gezielt lesen. `/codify` schreibt neue Learnings
-> in die Lesson-Datei **ihrer Seite** (Volltext) **plus** eine Index-Zeile hier, nicht in
-> diesen Abschnitt.
->
-> **Bedarfsgesteuertes Laden:** Der Index (unten) trägt je Eintrag/Gruppe einen
-> **„Laden bei"-Trigger** (Skill + Situation). Beim Start eines Skills nur die Lessons öffnen,
-> deren Trigger zum **laufenden Skill** und zur **Domäne der Task** passt – nicht alle
-> `lessons/` vorsorglich lesen. Beispiel: `/pr-shepherd` lädt nur die `/pr-shepherd`-Zeilen aus
-> `factory-workflow.md`; eine `/implement`-Task an einer Server Action lädt `db-drizzle.md`
-> (+ ggf. `frontend-react.md`; beide unter `docs/project/lessons/`), aber nicht `next-auth.md`,
-> wenn kein Auth/Routen betroffen ist.
+> Wird durch `/codify` befüllt (Dinge, die Claude wiederholt falsch gemacht hat). Volltext liegt thematisch in
+> [`docs/factory/lessons/`](lessons/) (Factory) und [`docs/project/lessons/`](../project/lessons/) (TCH), **nicht**
+> `@import`-geladen (Factory-ADR-037). **Bedarfsgesteuert laden:** beim Start eines Skills nur die Lessons öffnen, deren
+> „Laden bei"-Trigger zum laufenden Skill und zur Domäne der Task passt – nicht alle vorsorglich lesen.
 
 ### Kern-Kurzregeln (immer geladen)
 
@@ -244,249 +182,28 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 
 ### Index der ausgelagerten Learnings
 
-> Eine Zeile je Learning (Titel + Herkunfts-Issue), gruppiert nach **Besitzer** und Ziel-Lesson-Datei:
-> **Factory-Lessons** (`docs/factory/lessons/`, generisch, wandern mit der Factory) und **Projekt-Lessons**
-> (`docs/project/lessons/`, TCH-spezifisch). Jede Gruppe nennt einen **„Laden bei"-Trigger** (Skill +
-> Situation); wo eine Datei gemischte Auslöser hat (`factory-workflow.md`), steht der Trigger `→ …` je
-> Zeile. Danach entscheiden, welche Lesson der aktuelle Skill wirklich braucht. Wohin ein neues Learning
-> gehört, regelt `/codify` (Datei laut `docs/factory/OWNERSHIP.md`).
-
-#### Factory-Lessons (`docs/factory/lessons/`)
-
-**[`lessons/testing.md`](lessons/testing.md)** – Guard-/Gate-Tests für Skripte und Pipeline, Mutationsbelege, Fixtures, Test-Helfer · **Laden bei:** `/implement`, `/test`, `/review` beim Schreiben von Tests für Skripte/Gates/Pipeline
-
-- AC mit Direktive + Begründung: je separierbaren Teil eine eigene Assertion (aus #117, /test-Selbstfund)
-- Neue gesourcte Lib in run-pipeline.sh → alle Temp-Repo-Scaffoldings in run-tests.sh mitkopieren (aus #197)
-- Spiegel-/Symmetrie-Akzeptanzkriterien beide Richtungen explizit assertieren – Wiring-/Abwesenheits-Guard ersetzt die zweite Assertion nicht (aus #211, Review-Finding); Rezidiv außerhalb eines Spec-AK-Paars bei einem Bugfix, der einen Code-Zweig in zwei Verhaltensweisen aufspaltet – Coverage-Lauf nach dem eigenen Fix deckte die ungetestete Gegenrichtung auf (aus #352, `/test`-Selbstfund)
-- Strict-mode-/Umgebungs-Kontrakt-Tests auf die Fehler-/No-Match-Zweige legen, nicht den früh-returnenden Happy-Path (aus #207, Review-Finding W3)
-- Deterministisches Gate/Backstop im Orchestrator-Skript braucht E2E-Verhaltenstest, nicht nur Wiring-Grep (aus #212, Review-Finding)
-- Negativ-Test mit mehreren Fail-Pfaden auf den Ziel-Pfad isolieren (nur er darf greifen) + pfadspezifisches Signal assertieren – sonst grün aus dem falschen Grund (aus #214, Review-Finding W1)
-- Kopplungs-/Drift-Guard (liest Quelle A, prüft gegen B): je Seite ein eigener Negativtest (A brechen / B brechen) + Fail-closed bei unlesbarer Quelle (aus #214, /test-Selbstfund)
-- Neue Regressions-Assertion-Schleife gegen bereits vorhandene Schleife mit identischem Rumpf abgleichen, bevor eine parallele Schleife angelegt wird (aus #240, /test→/refactor-Diskrepanz)
-- 4. Vorkommnis desselben Smells auf Einzel-Assertion-Ebene: sechs neue Präsenz-/Abwesenheits-Checks in `run-tests.sh` reimplementierten inline den Rumpf der bereits vorhandenen Helfer `assert_contains_286`/`assert_absent`, statt sie aufzurufen – erst `/refactor` bemerkte es, nicht `/implement` (aus #267, /implement→/refactor-Diskrepanz)
-- 5. Vorkommnis desselben Smells auf Test-Scaffolding-Ebene: eigene parallele Repo-Scaffold-Funktion (`scaffold_310`) statt Aufruf + Differenz-Ergänzung auf der bestehenden `_mk_pipe_repo` – in `/implement` selbst per Review-Rework korrigiert (aus #310, Review-Runde-1-Finding W3)
-- `grep -qF`-Fixed-String-Regressionstest gegen Markdown-Prosa: beim Umbrechen die Testphrase auf einer Zeile halten, sonst lautlos rot – gilt in beide Richtungen (Prosa ändern UND neuen Test gegen bestehende Prosa schreiben) (aus #240/#249; viertes Vorkommnis aus #286, /test-Selbstfund – ab zwei Mehrwort-Checks gegen dieselbe Datei lohnt ein zeilenumbruch-toleranter Lese-Helper mehr als Zeilen-für-Zeile-Vorsicht)
-- Mutationsbeleg muss denselben Assert-Ausdruck (inkl. Negation/Vergleich) ausführen, nicht nur denselben Grundbefehl – sonst beweist er nur Syntax/Quoting, nicht Kausalität zum echten Guard (aus #286, Review-Runde-2-Finding)
-- „Kein Argument übergeben"-Test simuliert nicht automatisch Abwesenheit, wenn das Skript einen `${N:-$REPO_ROOT/...}`-Default auf einen echten, existierenden Repo-Pfad hat – garantiert fehlenden Pfad explizit übergeben (aus #254, Review-Finding)
-- YAML-Testfixture per `printf >>` an eine Kopie mit bereits vorhandenem Top-Level-Key anhängen erzeugt ein Duplicate-Key-Dokument (yq „last-key-wins") – Test besteht nur zufällig; echten `yq -i eval`-Merge nutzen (aus #255, Review-Runde-3-Finding)
-- Rezidiv des #240-Duplikat-Schleife-Learnings trotz vorhandener Lesson: mehrdeutiger Spec-Wortlaut („Werteliste ergänzen **oder** neue Schleife daneben platzieren") bot die vom Lesson-Text bereits verbotene Alternative als scheinbar gleichwertige Option an – bei Widerspruch zwischen Spec und Lesson gilt der Lesson-Text (aus #251, Review-Runde-1-Finding)
-- Neuer git-Repo-Fixture-Helper, der committet, braucht lokale Git-Identität (`git config user.email`/`user.name`) – ohne sie läuft er nur zufällig, weil die lokale Entwicklungsumgebung meist einen Fallback liefert; in identitätsloser Umgebung schlägt der Commit fehl (aus #265, Review-Finding)
-- Positivkontrolle für einen Mutations-Fixture (belegt Datei-Existenz/Parsbarkeit gegen einen Fail-closed-Pfad wie AK6) darf keinen bereits vorhandenen Mutanten wiederverwenden, der selbst eine Fail-closed-Vorbedingung des Kontroll-Guards verletzt – RED-vor-GREEN gilt auch für die Kontrolle selbst (aus #284, Review-Runde-2-Nitpick + /test-Selbstfund)
-- Zähl-Assertion in einem per `awk` extrahierten Funktionsrumpf: das Label darf nur behaupten, was das Extraktionsfenster abdeckt – ruft die als isoliert behandelte Funktion denselben Wert über eine externe Hilfsfunktion außerhalb des Fensters erneut ab, gehört das explizit ins Label, sonst übernimmt eine spätere Review-Runde die falsche Zusammenfassung ungeprüft (aus #312, Review-Runde-3-Finding W1)
-- Neuer EXIT-Trap/Hook, der ein externes CLI aufruft, aus einem von mehreren bestehenden echten Pipeline-Tests geteilten Scaffold heraus: Stub fürs CLI ins Scaffold selbst legen, nicht auf ambientes Fail-Fast der Testmaschine verlassen (aus #314, Review-Runde-2-Finding)
-- Mutationsbeleg für einen Floor-Bump: Fixture direkt unter den **neuen** Floor + Gegenprobe gegen den alten – eine Fixture, die schon unter dem alten Floor lag, belegt den Bump nicht (aus #447, Review-Nitpick)
-- Zeilen-Gap-Assertion auf deterministischem Output: Ist-Wert exakt prüfen (`-eq`), keine unbegründete Toleranz (`-ge`/`-le`) ohne Kommentar zur Variabilitätsquelle (aus #322, Review-Runde-2-Finding)
-- Coverage-Ausgabe nur in `.gitignore`-abgedeckte Pfade (`coverage/`, `.coverage-tmp<id>/`) – Factory-ADR-040 (verschoben aus `testing-standards.md`, #319)
-- Fail-closed-Zusicherung eines Gates braucht einen Test, der die **Messung** bricht (Stub im `PATH`), nicht nur den Input – zwölf grüne Input-Tests sahen den fail-open-Fall nicht (aus #319, Security-Review-Finding)
-- Content-Scan-Guard, dessen Suchphrase als Literal in der gescannten Datei steht, ist immer rot – Phrase zur Laufzeit zusammensetzen (aus #319, /implement-Selbstfund)
-- Anker, der mit `-` beginnt, macht `assert_contains_286`/`assert_absent` still falsch (`grep` liest ihn als Option) – erster Blick bei unerklärlichem Rot (aus #319, dritter Fall derselben Regel im selben PR)
-- Claude-Stub-Nebenwirkung in einem Mehr-Lauf-E2E-Szenario an Skill- UND Task-Marker binden, nicht nur den Skill-Marker – sonst schreibt der erste Lauf vorsorglich eine Datei für den zweiten, der dortige Report-Frische-Guard schlägt fehl, und der Test besteht nur zufällig über einen Fallback-Pfad statt den behaupteten (aus #334, /test-Selbstfund)
-- Locale-abhängige Zahlenformatierung/-parsing in Shell-Test-Utilities: `awk`-Ausdrücke, die Dezimalzahlen parsen/formatieren (`s+=$N`, `%.Nf`), brauchen ein lokales `LC_ALL=C`-Präfix am Aufruf – Rezidiv derselben Fehlerklasse wie #96 (bash-`printf`), diesmal in `awk` (aus #341, Bug-Fix-Selbstfund)
-- Ein Config-/Gate-Wert, der als „gültig" akzeptiert wird, ist damit noch nicht als „angewendet" belegt – Gate-Grenzfall-Tests (80 akzeptiert/81 abgelehnt) beweisen nur die Gate-Entscheidung, nicht dass der separate Konsument (`run-pipeline.sh`) den Wert auch tatsächlich nutzt; End-to-End-Assertion mit den realen Repo-Dateien gegen den realen Konsumenten ergänzen (aus #348, /test-Selbstfund)
-- Rezidiv #348: Quelle auf mehrere Konsumenten umgestellt (Hooks + Pipeline) – nur die Hooks bekamen Verhaltenstests, die Pipeline blieb beim Grep; je Konsument ein eigener Test (aus #431, Review-Iteration 1)
-- Laufende `run-tests.sh` (Hintergrund-Lauf) nicht editieren – Bash liest Skripte inkrementell; neue Tests in Scratch-Datei vorbereiten (aus #431, /implement-Selbstfund)
-- Test, der die Git-Historie liest (`git log --follow`): in CI flacher Klon → Test dort rot, lokal grün – hinter `--is-shallow-repository`-Skip legen, Skip sichtbar ausgeben, Verhalten zusätzlich historienfrei belegen (aus #426, /implement-Selbstfund)
-- `assert_contains_286`/`printf | grep -q` auf Datei-/Listen-Haystacks (ab wenigen KB): SIGPIPE-Race + `pipefail` → in CI Falsch-Rot, lokal grün – Datei direkt `grep -qF -- … <datei>`, Variable per Here-String; nach Test-Refactor CI abwarten (aus #426, CI-Befund nach `/refactor`)
-
-**[`lessons/build-tooling.md`](lessons/build-tooling.md)** – Wegwerf-/Debug-Artefakte und `.gitignore` · **Laden bei:** `/implement`, `/review` bei Wegwerf-Dateien und Ignore-Mustern
-
-- Debug-/Lint-Artefakte nicht durch .gitignore gedeckt (aus #67); wiederholt bei Wegwerf-E2E-Verifikation + unverifizierter „ist gitignoret"-Behauptung im Dateikommentar (aus #324); drittes Vorkommnis als Wegwerf-`*.tmp.config.ts`, vom Muster nicht gedeckt (aus #374); viertes Mal `playwright-372.tmp.config.ts` + `scripts/advisory372.tmp.sh` bis `/security-review` liegen geblieben, `rm` war nicht freigegeben – Wegwerf-Dateien direkt nach der Nutzung löschen, nicht „später" (aus #372); fünftes Mal als sechs `scripts/*447.tmp.*`, `rm` nicht freigegeben – Wegwerf-Datei gar nicht erst im Repo-Baum anlegen oder im selben Aufruf löschen (aus #447); sechstes Mal `scripts/bump444.tmp.sh` über drei Skills hinweg, Regel aus #447 nicht angewandt (aus #444)
-
-**[`lessons/code-style.md`](lessons/code-style.md)** – Clean-Code-Muster (Naming, Kommentar-Ort) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
-
-- WHAT-Kommentar am Modul-Level (aus #67, Refactoring-Finding)
-- Fail-Safe/Guard symmetrisch auf alle Inputs einer Vergleichsoperation (aus #197, Review-Finding)
-- Zähl-/Aufzählungs-nennender Modul-Header („stellt EINE Funktion bereit") beim Hinzufügen einer Einheit mitpflegen (aus #207, Review-Finding W1)
-- Neue Verfügbarkeits-/Capability-Prüfung (`command -v` o. ä.) gegen bereits vorhandene im selben File abgleichen, statt eine dritte Schreibweise einzuführen (aus #224, Review-Runde-1-Finding)
-- Fix für falschen WHY-Kommentar (falsche Kausalkette) per Grep auf kopierte Geschwister-Stellen im selben PR ausweiten, nicht nur die gemeldete Zeile fixen (aus #264, Review-Runde-1-Finding, Rezidiv in Runde 3)
-- „Empirisch verifiziert" im Kommentar ohne tatsächliche Prüfung in dieser Session – Rezidiv an anderer Stelle trotz Fix, plus Versionsangabe unbemerkt auf 7 Stellen kopiert (aus #268, Review-Runde 2 W3 + Runde 4 W1)
-- TL;DR-Merksatz über einem umformulierten Detail-Absatz im selben Abschnitt nicht mitgezogen – Widerspruch existiert rein innerhalb der eigenen, im selben PR neu verfassten Prosa, keine externe Referenz nötig, um ihn zu finden (aus #322, Review-Runde-3-Finding)
-- „X erzwingt Y" ist eine überprüfbare Tatsachenbehauptung über fremden Code – vor dem Schreiben den Enforcer öffnen (wo verdrahtet? was lehnt er ab?); dreimal falsch im selben PR, einmal gegen Information aus derselben Session (aus #319); Rezidiv beim **Kopieren** eines bereits geschriebenen Kommentars in vier Geschwisterdateien, erst in `/review` gefunden (aus #59); Rezidiv als falsche Aufzählung mehrerer Funktionen mit gemeinsamer Eigenschaftsbehauptung in einer sicherheitsrelevanten Risikoakzeptanz-Begründung, erst in `/security-review` gefunden (aus #352)
-- Massen-Ersetzung beim Extrahieren eines Helfers trifft auch dessen eigenen Rumpf → Selbstrekursion; „null verbliebene Vorkommen" ist das Warnzeichen, nicht der Erfolg (aus #319, /refactor-Selbstfund)
-- BSD-`awk`: Zeichenklasse mit `\`/`[`/`]` scheitert still – Zeichen-Mitgliedschaft per `index()` prüfen, nicht per Bracket-Ausdruck (aus #426, /implement-Selbstfund)
-
-**[`lessons/factory-workflow.md`](lessons/factory-workflow.md)** – Git/CI, Pipeline-Skills, Patch-Workflow, Branch/Label, Review-Scope, Terminologie-Sweep, kanonische Quellen, Blocker · **Laden bei:** je Eintrag unterschiedlich – Trigger je Zeile
-
-- Agenten-Blockerverhalten (aus Task 002 / K-01, K-02) → jeder Skill – beim Blockieren/Abbruch
-- Kanonische Quellen immer referenzieren (aus Task 002 / W-02, W-03) → `/codify`, `/implement` – bei Regel-Listen
-- Fast-Forward-Pushes aus CI brauchen vollen Verlauf (aus Task 42, bei Live-Verifikation #40) → CI-/Deploy-Gate-Arbeit
-- Branch-Typ und Label korrigieren wenn Scope über die initiale Annahme hinauswächst (aus #120) → `/architecture`→`/implement` – Branch/Label
-- Branch-Protection required Checks: nur `pull_request`-getriggerte Jobs (aus #155) → CI-/Ruleset-Arbeit
-- Report-Guard: Stale-Verdict bei Pipeline-Re-Lauf (aus #91, Review-Finding; Within-Run-Variante in der Review-Iterationsschleife aus #310, Task-308-Selbstfund; Frische-Fingerprint pro `run_skill`-Aufruf umgesetzt in #310; symmetrisch auf den Exit-0-Rückkehrpfad ausgeweitet + Verdict-Gültigkeit verlangt + Security-Gate fail-closed in #312) → `/pipeline` (run-pipeline.sh)
-- `.claude/**`-Änderungen erfordern Patch-Workflow (aus #91) → `/implement`, `/codify` – bei `.claude/**`-Änderung
-- Notiz-vor-Merge bei Squash-Strategie (aus #114) → `/pr-shepherd` – Merge mit Notiz
-- Reihenfolge-/Präsenz-Guards: Kommando ≠ Prosa-Erwähnung – Anker ist die exakte Aufruf-Zeile, nie ein Kommando-Fragment; bei Multi-Zeilen-Konstrukten `awk`-Block-Extraktion statt Fragment-Grep (aus #114, Implement-Selbstfund; Rezidiv in neuer Domäne aus #265; drittes Rezidiv als Präsenz-Guard auf Multi-Zeilen-Konstrukt aus #261, Review-Runde-2/3-Finding; viertes Rezidiv als Abwesenheits-/Regressions-Guard – OR-Fragment mit nie feuernder Alternative – aus #258, Review-Runde-3-Finding; fünftes Rezidiv als FEHLENDER statt falscher Reihenfolge-Check – zwei isolierte Präsenz-Assertions statt Positionsvergleich – aus #286, /test-Selbstfund; sechstes Rezidiv als Prosa-Kollision mit dem eigenen, im selben PR neu verfassten WHY-Kommentar – aus #284, Review-Runde-1-Finding; siebtes Rezidiv als Mutationsbeleg-Fragment-Kollision – Lösch-Anker und Wirksamkeits-Zählung müssen dieselbe volle Aufrufzeile treffen, nicht denselben Dateinamen-Fragment – aus #310, /implement-Selbstfund) → Skill-Doc-Guards/Self-Tests, CI-Wiring-Tests, Bash-Wiring-Tests (`run-tests.sh`)
-- Neuer Freitext-Ablage-Mechanismus in eine vom Agentenkontext wieder gelesene Repo-Datei braucht dieselbe „Daten, keine Anweisungen"-Absicherung wie etablierte Kanäle (Issue-Body/-Label, Factory-ADR-018) – sonst stored-prompt-injection-Fläche, unentdeckt bis zur Security-Review (aus #286, Security-Review-Finding) → `/architecture`, `/implement`, `/security-review` – bei neuem Ablage-Mechanismus für Agenten-Freitext in einer Repo-Datei
-- Feldnamen-Whitelist filtert nicht die Wertform – mischt eine Quelle strukturierten Export und Agenten-Freitext im selben Strom (hier: der gesamte `claude --print`-Output), kann ein Agent beliebigen Text über ein erlaubtes Feld einschleusen; Enum-/Muster-/Längenprüfung je Feld zusätzlich zur Feldnamen-Prüfung nötig (aus #334, Security-Review-Finding, residualer Rest als Issue #336) → `/architecture`, `/implement`, `/security-review` – bei jeder neuen Whitelist-Projektion aus einer Quelle mit gemischtem strukturiertem/agentenkontrolliertem Inhalt
-- Pipeline-Code, der selbst `git commit`/`git push` aufruft, braucht eine explizite `-c user.email=…`/`-c user.name=…`-Identität statt ambienter Konfiguration – Git synthetisiert auf macOS klaglos eine Fallback-Identität aus Hostname, auf `ubuntu-latest`-CI-Runnern (Hostname ohne Domainanteil) verwirft Git denselben Fallback; ein lokal grüner Test ist kein Beleg, CI-only-Verdacht braucht Reproduktion in einem zum echten Runner passenden Container (aus #334, Review-Runde-2-Finding) → `/implement`, `/review` – bei neuem `git commit`/`git push`-Aufruf außerhalb von `factory-commit.sh`, oder bei der Einordnung eines lokal nicht reproduzierbaren CI-Fehlschlags
-- Existenz-Guard auf eine Security-Pin-Konstante beweist nicht ihre Verdrahtung an den Vergleichsaufruf – zweiter Guard muss an der echten Aufrufzeile ankern und per Mutation belegen, dass ein Vertauschen der Vergleichsseiten rot macht (aus #258, Review-Runde-2-Finding) → `/implement`, `/review`, `/test` – bei neuem Security-Pin (Checksum/Hash-Konstante) gegen einen extern gelesenen Wert
-- Terminologie-Sweep: `-w`-Grep ist blind für Komposita, und Pfad-Beispiele sind nicht „neutral" (aus #144) → Doku-/Rename-Sweeps
-- Repo-Setting „Allow auto-merge" muss aktiv sein, sonst scheitert `--auto` (aus #155/#158) → `/pr-shepherd` – Merge-Freigabe
-- Doku über „die Gates": required CI-Checks ≠ lokale pre-push-Gates nicht vermischen (aus #160) → Doku über CI/Gates
-- Review-Diff-Scope: `git diff main...HEAD` zeigt Fremd-PRs, wenn lokales `main` hinter `origin/main` liegt (aus #161; Skill-Vorlagen seit #176 auf `origin/main...HEAD`) → `/review`, `/security-review`, `/refactor` – Diff-Scope
-- ADR nach Review-Rework auf Drift prüfen – nicht nur `docs/routes.md` (aus #55, Review-Runde-2-Finding) → `/review`, `/implement` – bei ADR-Änderung
-- Turn-Limit-Exhaustion (ursprünglich `/refactor`): Retry ohne Gedächtnis baut auf halbfertigem Fremd-Stand auf (aus #185); tritt auch ohne Code-Diff auf, Orchestrator prüft vor Retry nicht auf `git status` (aus #264, Härtung ausgelagert: #275); drittes Vorkommnis bei `/implement` bestätigt – Defekt ist orchestrator-weit, nicht `/refactor`-spezifisch (aus #324); viertes Vorkommnis trotz auf 80 angehobener Ceiling (#348) – Issue #275 weiterhin offen, Verifikations-Checkliste (git status/log, `gh pr list`, Task-Datei) vor jedem Neustart ab Phase 1 (aus #346) → `/pipeline`, jeder code-schreibende Skill – bei Turn-Limit
-- Manueller Stage-2-Fortsatz nach Pipeline-Abbruch verliert die komplette OTEL-Telemetrie (Factory-ADR-049) – die Instrumentierung hängt am `run-pipeline.sh`-Wrapper, nicht am Skill-Begriff; keine rückwirkende Erhebung möglich, Lücke explizit in der Task-Datei vermerken (aus #346) → jeder Skill – bei manuellem Stage-2-Fortsatz nach Pipeline-Abbruch
-- Turn-Limit, fünftes Vorkommnis: bei sehr großem Task (> 25 AK / > 40 Dateien) reißt auch der Rework nach `/review` das Budget, die Stale-Verdict-Wache lässt die Pipeline nach drei Versuchen abbrechen – vor `run-pipeline.sh` Task teilen oder manuell in frischen Sessions fahren; der „Merge branch 'main' into …"-Commit von `gh pr update-branch` ist gewollt (Factory-ADR-019 §1), kein Rebase-Verstoß (aus #369) → `/pipeline`, `/implement` – bei der Entscheidung für den Lauf eines sehr großen Tasks bzw. nach Abbruch an der Stale-Verdict-Wache
-- „Dieser PR hat X (nicht) hinzugefügt/reduziert"-Aussage in einem `kleinfunde.md`-Eintrag per `git diff --stat origin/main...HEAD` + `git cat-file -e origin/main:<pfad>` belegen, nicht nur die Anker – gleiche Familie wie #291/#351 an der Prosa statt an den Zeilen (aus #369, Review-Iteration 3) → `/review`, `/security-review` – vor Merge-Freigabe, wenn dieser PR selbst einen `kleinfunde.md`-Eintrag angelegt hat
-- Menschliche Scope-Kürzung mitten in `/implement` (Rückfrage nach FS1) sofort in die Spec schreiben – Q-Eintrag, AK als „zurückgestellt/angepasst", AK-Wortlaut der Task-Datei angleichen; sonst findet erst `/review` den Spec-Drift und kostet einen Rework-Zyklus (aus #388, Review-Iteration 1/2) → `/implement`, `/requirements` – sobald der Mensch den Umfang einer laufenden Task kürzt oder ändert
-- Rezidiv #375/#345: Rework verschiebt Doku-Anker (Zeilen eingefügt) und ein neuer Kleinfund empfahl `db.transaction()` gegen Lesson #345 – Anker im selben Commit nachziehen, Fix-Empfehlungen gegen die Lessons der Schicht prüfen (aus #404, Review-Iteration 2) → `/implement`, `/review` – beim Rework mit Zeilenverschiebung in ankergenannten Dateien bzw. beim Anlegen eines `kleinfunde.md`-Eintrags mit Fix-Empfehlung
-- Löscht/ersetzt ein PR ein Modul, alle Doku-Treffer per Grep im selben Schritt abräumen (drei Review-Runden fanden je neue ADRs) + Wegwerf-Sonden als `*.tmp.*` benennen (aus #370, Review-Runde 1–3) → `/implement`, `/review`, `/refactor` – bei Löschen/Umbenennen eines Moduls
-- Verlustfreie Doku-Migration/Split: skriptbasiert + Byte-Reconstruction-Assertion (aus #196) → `/implement` – bei Doku-Migration/Split
-- ADR-Status beim Implementieren einer frisch erstellten ADR auf Accepted flippen (aus #197, Review-Finding) → `/implement`, `/review` – bei ADR-Umsetzung
-- PR ändert die von einer ADR namentlich beschriebene Mechanik → ADR-Beschreibung im selben PR mitpflegen (ergänzt #55; triggert auch ohne ADR-Datei-Änderung) (aus #211, Review-Finding) → `/implement`, `/review` – bei Code-Änderung, die eine ADR beschreibt
-- Auch Lesson-/Kontext-Doku im Präsens beschreibt eine Mechanik / nennt einen offenen „Follow-up (#N)" – erledigt der PR die Mechanik/den Follow-up, dieselbe Prosa im selben PR nachziehen (erweitert #211 über ADRs hinaus; historische Vorfall-Narrative bleiben) (aus #176, Review-Finding) → `/codify`, `/review` – bei Doku, die die geänderte Mechanik/einen erledigten Follow-up beschreibt
-- Test einer `.claude/**`-Patch-Lieferung prüft den Endzustand der committeten Live-Datei, nicht das transiente Patch-Artefakt (ergänzt #145) (aus #212, Review-Finding) → `/implement`, `/review`, `/test` – bei Test zu einer `.claude/**`-Patch-Änderung
-- Neuer Interrupt-Typ → OPERATING.md-Interrupt-Tabelle mitpflegen (kanonische Registry, kein Gate) (aus #212, Review-Finding) → `/implement`, `/review` – bei neuem `raise-interrupt.sh`-Typ
-- Vorbestehenden, scheinbar unabhängigen Bash-Suite-Testfehlschlag mit Hunk-Scope- + Referenz-Check belegen, nicht nur behaupten (aus #239, /review-Selbstfund) → `/review`, `/test` – bei vorbestehendem, scheinbar unabhängigem Testfehlschlag
-- Permission-Regeln in `.claude/settings.json`: slash-freie Muster matchen auf jeder Tiefe (Root-Anker = führender Slash), `Write(pfad)`-Regeln werden von Claude Code aktuell gar nicht ausgewertet (aus #224, claude --print-Verhaltensprobe) → `/implement`, `/security-review` – bei neuer `.claude/settings.json`-Permission-Regel
-- Neue Edit-Freigabe auf bislang gesperrter Config-Klasse: prüfen, ob sie Review-/Security-Review-Tier-Parameter steuert und ob deren Validierung einen Mindest-Floor erzwingt (aus #224, Security-Review-Finding, Issue #241) → `/security-review` – bei neuer Edit-Freigabe auf Pipeline-Config
-- Real-vs-environmental-Einordnung eines gemeldeten Testfehlschlags braucht Wiederholung (isoliert + volle Suite + CI-Historie), nicht nur Diff-Scope-Analyse (aus #244, /requirements-Selbstfund) → `/requirements`, `/review`, `/test` – bei Einordnung eines nicht mehr reproduzierbaren Testfehlschlags
-- Ein Floor auf einen Lookup-Key (Tier-Label, Rollen-Name, Environment-Name) ist kein Floor auf die Zielseite der Indirektion (`model_tiers` u. ä.) – Zielseite mitprüfen oder als eigenes Issue benennen (aus #241, Security-Review-Finding, Issue #249) → `/security-review`, `/implement` – bei Config-Gate mit Pin auf einen Lookup-Key
-- Write-Tool-Zielpfad im Worktree explizit gegen den Worktree-Suffix prüfen, nicht dem Bash-cwd vertrauen (der nach jedem Bash-Aufruf auf den Hauptbaum zurückspringt) (aus #240, /implement-Selbstfund) → jeder Skill – bei neuer Datei per `Write`-Tool in einer Worktree-Session
-- Divergiertes `origin/main` während laufender Pipeline: Rebase-Verantwortung bleibt bei `/pr-shepherd` (`gh pr update-branch`, kein Force-Push) – ein Zwischenschritt rebast nicht eigenständig gegen `main`, sonst erzwingt das einen Force-Push, den `factory-commit.sh` bewusst nicht anbietet (aus #249, /refactor-Selbstfund) → `/review`, `/test`, `/refactor`, `/security-review` – bei divergiertem `origin/main` auf bereits gepushtem Feature-Branch
-- `awk`-Job-Block-Isolation in CI-Wiring-Tests muss auch am Job-Trennkommentar (`# ───`) abbrechen, nicht nur am nächsten Job-Key – sonst bluten Kommentarzeilen des Folge-Jobs in den extrahierten Block hinein (aus #255, Review-Runde-1-Finding) → `/implement`, `/review` – bei neuem `awk`/`sed`-Block-Extraktor für einen CI-Job in `run-tests.sh`
-- Fix zwischen zwei Runden einer laufenden Multi-Agenten-Kette sofort committen (nicht erst am Ende bündeln) – sonst sieht eine spätere Runde, die ihren Kontext per `git diff origin/main...HEAD` bezieht, einen veralteten Stand (aus #251, Review-Runde-3-Finding) → `/review`, `/security-review` – bei Fix zwischen zwei Runden einer laufenden Review-Kette
-- `PR_SHEPHERD`/`FACTORY_STAGE` in der aufrufenden Shell exportiert schlagen in jedes von der Testsuite erzeugte Wegwerf-Repo durch und lösen dort ungewollt Pipeline-Phasen aus – vor der Einordnung als Regression mit `unset` gegenprüfen (aus #262, Task-Selbstfund; Härtung umgesetzt in #264 – gilt weiter für andere Skripte mit eigenen Env-Schaltern) → `/implement`, `/test`, `/review` – bei rotem, diff-unabhängigem E2E-Test während `PR_SHEPHERD`/`FACTORY_STAGE` exportiert sind
-- Neuer `pre-push.sh`-Check, der lokalen Installationszustand voraussetzt (nicht nur Repo-Inhalt): bestehende Self-Tests, die `pre-push.sh` echt gegen das reale `FACTORY_DIR` aufrufen (kein Fixture), brechen in CI, wenn dieser Zustand dort nie erfüllt ist – CI muss den Zustand vor der Self-Test-Suite herstellen, nicht den Check abschwächen (aus #265, User-gemeldete CI-Regression) → `/implement`, `/review` – bei neuem `pre-push.sh`/`pre-commit.sh`-Check mit Abhängigkeit von lokalem Umgebungszustand
-- Frisch im selben PR erstellte/geänderte Spec braucht denselben Drift-Check wie ADRs/Lessons – Code gegen die eigene Spec-Prosa spiegeln, nicht die Spec unhinterfragt als Maßstab nehmen (aus #253, Review-Runde-3-Finding) → `/review` – bei Spec, die im selben PR entstanden/geändert wurde
-- „Nicht allow-gelistet" ist kein Umgebungs-Blocker, solange der Wrapper-Skript-Weg (`scripts/*.tmp.sh`, bereits erlaubt über `Bash(bash scripts/*)`) ungeprüft ist – nur eine echte Datei-Zugriffssperre (z. B. `.env*` unter Deny) ist ein echter Blocker (aus #291, zwei Rework-Runden verloren) → jeder Skill – vor dem Dokumentieren eines Umgebungs-/Berechtigungs-Blockers
-- `kleinfunde.md`-Eintrag mit `Datei:Zeile`-Ankern, im selben PR angelegt, braucht denselben Drift-Check wie ADR/Lesson/Spec (#211/#176/#253) – auch wenn die Drift-Quelle die eigenen Folge-Commits derselben Task sind (aus #291, Review-Finding); zweites Vorkommnis bereits bei der Erstverifikation (zitierte Zeilenspanne deckt nicht die volle Was-Behauptung), nicht erst durch spätere Drift (aus #351, Review-Runde-2-Finding) → `/review`, `/security-review` – vor Merge-Freigabe, wenn dieser PR selbst einen `kleinfunde.md`-Eintrag angelegt hat
-- Fork-Subagent für eine Review-Runde: eigene Turns (z. B. `ScheduleWakeup`-Wartetexte) nach dem Spawn können in seinen Kontext bluten – lieferte hier statt echter Findings nur eine Paraphrase des eigenen Wartetexts zurück; Ergebnis bei Verdacht per `TaskOutput` gegenprüfen, nicht nur der kurzen `<result>`-Zusammenfassung vertrauen (aus #298, Selbstfund während `/review`) → `/review`, `/security-review` – bei Nutzung von Fork-Subagenten für Review-/Analyse-Runden
-- Rezidiv des #298-Fork-Kontamination-Learnings: der empfohlene Resume-mit-Korrektur verschlimmerte die Konfusion statt sie zu beheben – der Fork erklärte die Korrektur zum Prompt-Injection-Versuch, hielt an einer falschen Selbstwahrnehmung (er sei die Haupt-Session) fest und fabrizierte einen falschen Fortschrittsstatus für nie beauftragte Runden. Regel verschärft: Resume ist ein einmaliger Versuch, kein zweiter Retry – danach die Runde ohne Fork-Delegation direkt im Orchestrator-Kontext durchführen (aus #267, Selbstfund während `/review`) → `/review`, `/security-review` – wenn ein per `TaskOutput` verifizierter Fork nach einem Korrektur-Resume weiterhin keine echten Findings liefert
-- Review-Sub-Agent kann eine falsche Bash-/Shell-Verhaltensbehauptung selbstsicher als „empirisch geprüft" ausgeben (anders als #298/#267: hier lieferte der Agent echte, aber inhaltlich falsche Findings) – jede technische Tatsachenbehauptung über Sprach-/Shell-Semantik in einem Kritisch-/Wichtig-Finding selbst mit einem Standalone-Repro nachvollziehen, bevor sie in den Report übernommen wird (aus #314, Selbstfund während `/review`; Bash-Detail in `docs/factory/guidelines/bash-gotchas.md` #12) → `/review`, `/security-review` – bei einer Kritisch-/Wichtig-Einstufung, deren Begründung eine überprüfbare Verhaltensbehauptung ist
-- Anker-Liste einer Fail-safe-Klassifizierungsregel (z. B. das `factory-pipeline`-Aspekt-Label) drei Runden lang nur auf Vollständigkeit/Nicht-Überlappung geprüft, nie auf Vorhersagekraft gegen den echten Repo-Inhalt – ein Anker (`docs/specs/`) erwies sich erst in Runde 4 als nahe 50/50-Münzwurf statt Trennlinie, weil er eine Ablagekonvention statt eine Subsystem-Grenze kodierte (aus #315, Review-Runde-4-Finding) → `/implement`, `/review` – bei neuem oder geprüftem Pfad-Anker in einer Fail-safe-Klassifizierungs-/Tie-Break-Regel
-- AK mit Pflichtinhalt in der PR-Beschreibung selbst (nicht in einer Repo-Datei) wird vom Standard-Draft-Body aus `start-work.sh` nicht automatisch erfüllt – kein Commit-Schritt zieht ihn nach, erst `/review` deckt die Lücke per `gh pr view --json body` auf; Inhalt per `gh pr edit <nr> --body "..."` explizit nachziehen, spätestens vor `/review` (aus #233, Review-Runde-1-Finding) → `/implement`, `/review` – bei einem Spec-AK, das Inhalt in der PR-Beschreibung selbst fordert
-- Content-scannender Anti-Regressions-Guard (`grep -r` über ein ganzes Verzeichnis, nicht nur Wiring-Anker) ist blind für Tracked-Status – ein gitignoretes `*.tmp.*`-Scratch-Artefakt aus einer vorherigen Session kann das verbotene Muster rein textuell enthalten (auch als Log-Zeile einer bestandenen Assertion); bei unerwartetem Rot zuerst `git status --ignored` prüfen, nicht den Guard abschwächen (aus #312, zweimal in derselben Task; drittes Vorkommnis aus #339 – „Artefakte entfernt" ist eine Momentaufnahme, vor jedem Suite-Lauf erneut prüfen; viertes Vorkommnis aus #447 – Alt-Log `scripts/runtests447.tmp.log` ließ den `grep -c`-Muster-Guard rot) → `/review`, `/test`, `/refactor`, `/security-review` – bei unerwartetem Rot eines verzeichnisweiten Content-Scan-Guards in `run-tests.sh` trotz sauberem `git status`
-- Stage-2-Skill außer der kanonischen Reihenfolge (`/security-review` vor `/refactor`/`/codify` statt danach) macht einen bereits committeten Security-/Review-Bericht stale, sobald der spätere Skill weitere Dateien ändert – Reihenfolge aus `CLAUDE.md` vor jedem Stage-2-Aufruf gegen die bisherigen Commits der Task prüfen, sonst kompletter Re-Lauf nötig (aus #351) → jeder Pipeline-Skill in Stage 2 – vor dem Aufruf, wenn zur Task bereits ein `/review`- oder `/security-review`-Commit existiert
-- Rezidiv #251: Review-Nacharbeit nach Iteration 2 unkommittet im Working Tree (+ Task-Datei ohne Häkchen) – Rework-Ende = sauberes `git status` + Commit, erst dann `/review` (aus #391, Review-Iteration 2) → `/implement`, `/review` – am Ende jedes Rework-Schritts
-- Ein von einem Review-Report vorformulierter Fix-Text trägt die Deixis seiner eigenen Perspektive mit („diese Spec selbst" im Report meinte die besprochene Spec) – wörtlich in eine andere Zieldatei (Guideline) übernommen, verliert der Verweis sein Antezedens und geht ins Leere (aus #315, Review-Runde-5-Finding) → `/implement`, `/review` – beim wörtlichen Übernehmen eines Fix-Vorschlags aus einem Review-/Security-/Codify-Report in eine andere Zieldatei
-- Neues Gate verankern: prüfen, ob eine ADR den Ort für Gates dieser Klasse schon entschieden hat – Factory-ADR-047 wiederholte die von Factory-ADR-041 bereits verworfene „einzelne Testzeile als CI-Arm"-Konstruktion, ohne sie zu erwähnen (aus #319, Review-Runde-3-Finding) → `/architecture`, `/implement`, `/review` – bei neuem Check-Skript, Hook-Verdrahtung oder CI-Job
-- AK mit Binär-Artefakt am PR (Screenshots) ist nicht agentenerfüllbar (`gh` lädt keine Bilder hoch) – als menschlichen Schritt vor dem Merge markieren, PR-Body nicht in der Vergangenheitsform, solange der Anhang fehlt; blieb hier drei Review-Runden offen (aus #368, Review-Finding W2) → `/requirements`, `/implement`, `/pr-shepherd` – bei AK mit Screenshot-/Medien-Nachweis am PR
-- Normative Regel (Glossar/Guideline) mit Ist→Soll-Abweichungsliste: nach jeder Änderung am Regelwortlaut, auch im Rework, das Kernmuster per Grep über den ganzen Baum laufen lassen – Beispiele ersetzen den Grep nicht; Review-Fundstellen vor dem Eintragen belegen (aus #375, Review-Iteration 1/2) → `/implement`, `/review` – bei Doku mit Abweichungsliste gegen den Code
-- Als „separat geflaggt"/„Hinweis-Ebene" markierter Out-of-Scope-Fund bleibt Session-Notiz statt sofort kanonisch (Issue/`kleinfunde.md`) verankert zu werden – Klassifizierung und Anlage gehören in denselben Schritt, nicht als Orchestrator-Nacharbeit (aus #345, Orchestrator-Selbstfund) → `/review`, `/security-review`, `/test`, `/refactor`, `/codify` – sobald ein eigener Report das Wort „separat geflaggt"/„Hinweis-Ebene"/„außerhalb des Scopes" für einen Fund verwendet
-- Repo-weiter Referenz-Scanner (`git grep`/`git ls-files`) nimmt `tasks/patch-*.diff` per Pathspec aus – der Patch trägt den künftigen Stand, seine Ziele existieren erst nach `git apply` (aus #426, /implement-Selbstfund) → `/implement`, `/review` – bei neuem Check über alle getrackten Dateien
-- Libs relativ zum Skript sourcen statt zu `FACTORY_DIR` (Tests überschreiben es → ~60 Falsch-Rot am `source`); vor dem Entfernen eines impliziten Defaults alle Fixtures zählen; `env -u`-Reihenfolge des #264-Guards (aus #431, /implement-Selbstfund) → `/implement`, `/refactor` – bei neuer gesourcter Lib in einem Skript mit überschreibbarem `FACTORY_DIR` bzw. beim Entfernen eines Defaults, den Test-Wegwerf-Repos implizit nutzen
-- Tests zwischen Suiten umgezogen: Prosa-Verweise auf den alten Testort (ADR, Lesson) im selben PR nachziehen, toten Patch-Zweig nach dem Anwenden entfernen, Anker gegen den Wortlaut der übernommenen Quelle statt gegen neue Zusammenfassungen setzen (aus #432, Review-Iteration 1/`/refactor`) → `/implement`, `/review`, `/refactor` – bei Umzug/Split von Tests oder Test zu einer `.claude/**`-Patch-Lieferung
+> Hier steht nur der **Index der Projekt-Lessons** (`docs/project/lessons/`, TCH-spezifisch): eine Zeile je Learning
+> (Titel + Herkunfts-Issue), gruppiert nach Ziel-Lesson-Datei, je Gruppe mit **„Laden bei"-Trigger** (Skill +
+> Situation); wo eine Datei gemischte Auslöser hat (`factory-workflow.md`), steht der Trigger `→ …` je Zeile.
+> Die **Factory-Lessons** (`docs/factory/lessons/`, generisch) werden mit der Factory ausgeliefert; ihre Einzelliste steht
+> in `docs/factory/lessons/INDEX.md`, die Trigger je Lesson-Datei in `docs/factory/FACTORY.md`. Danach entscheiden,
+> welche Lesson der aktuelle Skill wirklich braucht. Wohin ein neues Learning gehört, regelt `/codify`
+> (Datei in `factory.lock` → Factory, sonst Projekt).
 
 #### Projekt-Lessons (`docs/project/lessons/`)
 
-**[`docs/project/lessons/frontend-react.md`](../project/lessons/frontend-react.md)** – React/UI, Client Components, route-neutrale UI-Bausteine · **Laden bei:** `/implement`, `/review` bei React/UI-Komponenten
+> Einzelliste (eine Zeile je Learning): [`docs/project/lessons/INDEX.md`](../project/lessons/INDEX.md) – nicht `@import`-geladen (Deckel, #428). Neue Index-Zeilen eines Projekt-Learnings gehören **dorthin**, nicht hierher.
 
-- `useActionState` + Inline-Toggle: ESLint `react-hooks/set-state-in-effect` (aus #49)
-- Route-neutrale Module: keine Feature-Imports beim Implementieren prüfen (aus #52, Review-Finding)
-- Formular-Reset nach jeder Erfassung: key-Remount wirkt nur einmalig (aus #53, Review-Finding W1)
-- `aria-modal="true"` ist ein Versprechen, kein Automatismus – Fokus-Trap explizit bauen + alle Branches testen (aus #134)
-- Schreib-Gate darf die Lese-Ansicht nicht mitverstecken – vorhandenes `editable`-Flag nutzen (aus #54, Review-Runde-1-Finding)
-- `setState`-Updater-Funktionen müssen rein bleiben – keine Seiteneffekte darin (aus #183, Review-Runde-1-Finding)
-- Layout-abhängige DOM-Aktion nach layout-änderndem `setState` erst im nächsten Frame; sticky Header braucht `scroll-margin-top` am Ziel (aus #188)
-- Route-neutrale Komponente: Fremd-Layout-Offset vom Konsumenten via `className` steuern, nicht hardcoden/an fremd-semantischen Prop koppeln (aus #188, Review-Finding; Nachtrag aus #187)
-- Verschieben eines route-neutralen Moduls: alte Datei löschen ist Teil des Moves, nicht optional (aus #187, Review-Eskalation Runde 1–4)
-- `.map`-Key aus Anzeigefeldern statt stabilem Identifier ist eine latente Kollisionsquelle (aus #206, Review-Runde-2-Finding)
-- Reset-Handler für einen gültigen Submit gehört an `onSubmit` des `<form>`, nicht an `onClick` des Buttons – `onClick` feuert auch, wenn die native Pflichtfeld-Validierung die Absendung abbricht (aus #352, Review-Runde-3-Finding)
-- `setState` am Anfang einer Form-Action wird erst mit ihrem Ende sichtbar – „läuft gerade" aus `onSubmit` melden, Ende im `finally` der Action; Test mit nie auflösendem Promise (aus #369, /implement-Selbstfund)
-- Verhaltensvertrag eines geteilten Bausteins (Schließen/Sperren/Fokus) in den Baustein legen und alle Konsumenten prüfen – ein Fix im auffälligen Konsumenten ließ den schwereren Geschwister-Defekt eine Iteration länger stehen (aus #369, Review-Iteration 1/2)
-- Statuswechsel, der den Seitenzweig tauscht, remountet den Auslöser – Fokus-Rückgabe zeigt auf entfernten Knoten; Erfolgsfall gesondert festlegen und testen (aus #371, Review-Nitpick)
-- Nativer Popover: `aria-expanded` ist kein DOM-Attribut und jsdom kennt die API nicht – Unit-Test nur Verdrahtung, Öffnen/Escape/Expanded per Playwright über den AX-Baum (aus #374)
-- Refactor, der Klassen/Konstanten aus gegateten Dateien in eine neue Datei zieht: Zieldatei im selben Commit ins Farb-Gate (`eslint/ui-token-files.mjs`) und Handkopien greppen (aus #374, Review-Runde-2-Finding)
-- `<form action>` setzt Eingaben auch nach Ablehnung zurück – Dialog mit Fehler im Dialog: `onSubmit` + `startTransition` (aus #373, AK1.4)
-- Rezidiv #371: Dialog, dessen Erfolg den Auslöser unmountet, von Anfang an mit Fokus-Ersatzziel + Erfolgsfall-Test bauen; neuer Hook neben ähnlichem vorher abgleichen, route-neutral ablegen (aus #373, Review-Iteration 1 W1/W2)
-- Seitenweites Overlay (Toast) im `<body>` ist bei offenem modalem `<dialog>` verdeckt und inert, `toBeVisible()` bleibt grün – Portal in den offenen Dialog, Nachweis per Klick + Screenshot (aus #372, /implement-Selbstfund)
-- Rezidiv #373: Erfolgs-Fokus-Vertrag in zwei Hooks kopiert – den ganzen Vertrag in einen Helfer ziehen, nicht nur das letzte Stück; Helfer als eigenes Modul, nicht aus einer Komponenten-Datei (aus #372, Review-Iteration 1/2)
-- Schrittwechsel im selben Dialog: `autoFocus` greift nur beim Mount – Fokus je Richtung explizit setzen, je Richtung + Gegenprobe „beim Öffnen nicht“ testen (aus #404, Review-Iteration 1 W1)
-- Ersatz-Fokusziel in zugeklapptem `<details>` ist nicht fokussierbar (Fokus → `<body>`, jsdom blind) – im Hook auf den `<summary>` ausweichen, beide Richtungen + Playwright-Gegenprobe (aus #405, /implement-Selbstfund)
-- Komponente mit Ref-Prop: Props vorab destrukturieren, sonst meldet `react-hooks/refs` jeden `props.x`-Zugriff; Union mit `never`-Gegenstücken + `@ts-expect-error`-Test (aus #405, /implement-Selbstfund)
-- Rezidiv #369: Lauf-Sperre eines Menü-/Dialog-Bausteins im Fix nur für den auffälligen Eintrag gelöst – Geschwister-Einträge (Bearbeiten/Löschen) schlossen weiter; Sperre für alle Interaktionsflächen im Baustein, Test `it.each` (aus #406, Review-Iteration 2)
-- Sonderzweig (leer/gesperrt) in einer Komponente mit Erfassen-/Bearbeiten-Betriebsart: betriebsartabhängige Texte aus einer Hilfsfunktion für beide Zweige, nicht als Literal – „Erfassen“ stand auch beim Bearbeiten (aus #420, Review-Iteration 1 W1)
-
-**[`docs/project/lessons/next-auth.md`](../project/lessons/next-auth.md)** – Next.js-Framework, `proxy.ts`, NextAuth/Session, öffentliche Routen · **Laden bei:** `/implement`, `/review` bei Auth/`proxy.ts`/Routen
-
-- Next.js 16: Middleware heißt `proxy.ts` (aus #48)
-- NextAuth v5: Custom-Session-/JWT-Claims typisieren (aus #48)
-- Öffentliche API-Routen aus dem Auth-Proxy ausnehmen (aus #63)
-- Auto-Prefetch geschützter Routen belebt die Session nach dem Abmelden wieder (aus #164)
-- Früher Gate-/Drossel-Zweig vor einer Server-Action-Route muss deren Antwortprotokoll einhalten, sonst globaler Client-Crash statt Inline-Fehler (aus #297, Security-Review-Finding, Issue #331)
-- `/_next/image`-Rauchtest gegen beliebiges `public/`-Asset kann am eigenen Auth-Proxy-Matcher scheitern (interner Self-Fetch der Bildoptimierung läuft durch denselben Proxy) statt an der Optimierung selbst – gegen einen matcher-ausgenommenen Pfad testen (aus #337, /implement-Selbstfund)
-- Nachtrag: tragfähiger `/_next/image`-Nachweis ist `/favicon.ico` (200); SVG-Ablehnung 400 ist der GHSA-2464-Fix, kein Fehler (aus #443)
-
-**[`docs/project/lessons/db-drizzle.md`](../project/lessons/db-drizzle.md)** – Drizzle ORM, Migrationen, IDOR, Soft-Delete, Joins, guarded UPDATE, Zod-Obergrenzen · **Laden bei:** `/implement`, `/review`, `/test` bei Data-Layer (Drizzle)
-
-- Drizzle-Migration bei Enum-Wert-Wechsel / Spalte→Array (aus #48)
-- Drizzle UPDATE/DELETE: `.returning()` liefert `T | undefined`, nicht `T` (aus #50, Refactoring-Finding)
-- Zod-Schema: Obergrenze für Integer-mapped Inputs fehlt (aus #49, Security-Hint)
-- IDOR: Data-Layer DELETE/UPDATE müssen Parent-ID einschließen (aus #51, Security-Finding)
-- Soft-Delete: `active`-Prüfung nach jedem Laden by ID (aus #51, Review-Finding)
-- Orphan-sichere Joins: Snapshot-Referenz kann verschwinden, auch wenn die Business-Entity bleibt (aus #53, Review-Finding K1)
-- Guarded UPDATE bei Status-Transition-Actions: `undefined`-Rückgabe auswerten, nicht `{ok:true}` annehmen (aus #55, Review-Runde-1-Finding W1)
-- Neue Mehrfach-Write-Funktion in `db/` nutzt `db.transaction()` statt `runAtomic` – Treiber-Inkompatibilität nur in Produktion (Neon-HTTP) sichtbar, lokale/CI-Tests bleiben grün (aus #345, Review-Runde-2-Finding, Architektur-Fokus) · **Laden bei:** `/implement`, `/review` (Architektur-Fokus) – bei neuer Mehrfach-Write-Funktion in `db/`
-- Serverseitig-fix → client-gelesenes Feld (FK-Bezug) öffnet neue DB-Fehlerklassen (z. B. `23503`), die der bestehende Error-Translation-Wrapper nicht abdeckt (aus #345, Security-Review-Hinweis, Issue #353)
-- Zweiter Fehler-Übersetzungs-Wrapper um einen einzelnen DB-Call: Catch-Scope exakt auf den riskanten Aufruf begrenzen, nicht auf nachfolgende unabhängige Schritte (z. B. `revalidatePath`) ausweiten (aus #353, Review-Runde-1-Finding)
-- Wegwerf-E2E-Verifikation gegen den lokalen Dev-Server schreibt in dieselbe geteilte Dev-DB wie die DB-Integrationstests – ohne `__test__`-Präfix oder manuelles Aufräumen danach bricht eine spätere, fremde DB-Regressionstest-Annahme (aus #346, /test-Selbstfund) · **Laden bei:** `/implement` – bei Wegwerf-E2E-Verifikation gegen die lokale Dev-DB; `/test` – bei unerklärtem, diff-unabhängigem DB-Integrationstest-Fehlschlag
-
-**[`docs/project/lessons/testing.md`](../project/lessons/testing.md)** – Vitest, Coverage, Zod-Meldungs-Tests, React-/E2E-/Playwright-Tests der App · **Laden bei:** `/implement`, `/test`, `/review` beim Testschreiben/Coverage der App
-
-- Vitest + Testing Library ohne `globals: true` (aus #48)
-- Guard-Clause-Branches in Server Actions brauchen dedizierte Tests (aus #51, Review-Finding)
-- Zod-Fehlermeldung: Ablehnungs-Test ≠ Meldungs-Test (aus #116, Review-Runde-1-Finding)
-- Layout-Timing-Test-Stub (rAF) vor dem Neuschreiben im selben Verzeichnis suchen, nicht duplizieren (aus #194, Review-Finding)
-- Callback-Prop nur durch Codelesen belegt ist keine Testabdeckung – Coverage-Report gegen jedes Review-Positiv gegenprüfen (aus #187, /test-Selbstfund)
-- ESLint-Ignore-Config verhaltensbasiert testen (`isPathIgnored`, nicht Config-Array) + Diskriminierungs-Kontrolle in der Gegenrichtung (bekanntes Nicht-Mitglied → `false`) (aus #172, /test-Selbstfund)
-- Row/Cell-Index-Assertions gegen einen gerenderten Report sind Magic Numbers – Herleitung sofort mitschreiben, nicht erst im Review (aus #189, Review-Runde-1-Finding)
-- Flaky Timeout durch unamortisierten teuren Erst-Aufruf: in `beforeAll` mit eigenem endlichem Timeout aufwärmen, nicht global das Timeout erhöhen (aus #238)
-- Positions-/Zustand-Freeze-Test braucht vor dem Zielfall eine echte, divergenzerzeugende Aktion – sonst können weder Reihenfolge- noch Status-Assertion zwischen „Freeze wirkt" und „kein Freeze da" unterscheiden (aus #253, dreifach in Review-Runde 1–3 gefunden)
-- Exhaustiveness-Guard (`never`-Check) braucht einen eigenen Test – Zweig per Type-Cast erzwingen (verschoben aus `testing-standards.md`, #319)
-- Mock-Default `mockResolvedValue([])` verdeckt den Mapping-Lambda – mind. ein Test mit befülltem Array (verschoben aus `testing-standards.md`, #319)
-- Diskriminierungs-Kontrolle für Pfad-Präfix-Prädikate vor einem Auth-Gate: Negativtest braucht einen ähnlichen Nachbar-Pfad, nicht nur einen entfernten (Rezidiv von #172, aus #297, Review-Runde-2-Finding)
-- Modulweit geteilter Rate-Limiter-Singleton in Tests: absolut statt relativ einfrieren + `resetModules` pro Test, sonst reihenfolgeabhängig (aus #297, Review-Runde-3-Finding; nur per `--sequence.shuffle` reproduzierbar)
-- DOM-Adjazenz-Behauptung („unmittelbar") mit `toBe(index + 1)` statt `toBeGreaterThan` belegen – Rezidiv von #322 in neuer Domäne (aus #318, Review-Runde-1-Finding)
-- Positions-/Struktur-Test auf der Prop-Kombination schreiben, die der reale Produktions-Konsument tatsächlich nutzt, nicht auf dem Default-Pfad der Komponente (aus #318, Review-Runde-1-Finding)
-- Gleicher Testdaten-Namensliteral in mehreren DB-Integrationstestdateien (gleiche Tabelle, gleiche Unique-Constraint-Spalte) kollidiert unter Vitests Parallelisierung – je Datei ein eigenes Namensfenster statt geteiltem Präfix; Konvention ohne Enforcer, Kommentar muss alle Namensfelder der Tabelle nennen (aus #59/#347)
-- Regex-/Listen-Gate über ein externes Namens-/Syntax-Universum (Tailwind-Paletten, Präfixformen): Enumeration per Drift-Test aus der Quelle ableiten, je Form ein `invalid`-Fall – handgezählte Listen fanden in zwei Review-Runden je neue Lücken (aus #368, Review-Runde-1/2-Findings) · **Laden bei:** `/implement`, `/test`, `/review` – bei neuem/erweitertem Regex-/Listen-Gate
-- Negativ-Fixture auf einem realen Pfad bricht, sobald dieser Pfad später in eine Gate-Liste kommt – vor dem Erweitern der Liste alle „nicht enthalten"-Tests greppen und auf ungelisteten Nachbarn umstellen (aus #371, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test` – bei Erweiterung von `eslint/ui-token-files.mjs` oder ähnlichen Pfad-Listen
-- Playwright `reuseExistingServer` kann gegen einen fremden Dev-Server (anderer Checkout) laufen – eigenen Server auf freiem Port + `PLAYWRIGHT_BASE_URL`, sonst ist „grün" kein Beleg (aus #368, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test` – bei E2E-/Screenshot-Nachweis im Worktree
-- E2E gegen den Dev-Server über `localhost`, nicht `127.0.0.1` – dort blockt Next dev die HMR-Ressourcen (`allowedDevOrigins`), ohne Hydration wirkt es wie eine Regression (aus #374, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test` – bei E2E-Nachweis gegen den lokalen Dev-Server
-- Test-Double, das den geprüften Zweig nicht unterscheiden kann (jsdom-`SVGElement` hat ein wirkungsloses `focus()`), macht den Test zum Abdeckungs-Test – Spion-Double + Mutationsbeleg in drei Schritten (mutieren per `python3`, `git diff --stat` zeigt es, Test rot); BSD-`sed -i` ohne Suffix scheitert still und lässt einen grünen Lauf wie Beleg aussehen (aus #369, Review-Iteration 3 + /refactor-Selbstfund)
-- Playwright-`hasText` mit String ist ein Teilstring-Treffer (`Bier` trifft `Weizenbier`) – Namen exakt matchen; und eine Fehlerursache erst an den echten Daten messen, bevor sie in Kleinfund/Task-Notiz steht (aus #388, Review-Iteration 1)
-- Manuell gestartete Capture-/E2E-Spec (nicht in CI) rottet unbemerkt: Zählungen relativ zum Startwert (`Artikel (1)` brach an den 16 migrierten Standard-Artikeln, Migration 0004), Seed-/Migrations-PRs auf absolute Startannahmen prüfen, Dialog-Screenshots erst nach Fokus-/Scroll-Reset (aus #388, /implement)
-- Opt-in-E2E-Spec (per Env-Flag abgeschaltet), die nie lief, belegt nichts – prüfte hier `transform` statt Tailwind-v4-`rotate`; Lauf-Freigabe früh in `/implement` einholen, CSS-Assertion einmal gegen den echten Browser messen (aus #403, Review-Iteration 1 K1 + Iteration 3; Rezidiv aus #406, Review-Iteration 2 – Lauf im selben `/implement`-Schritt, nicht erst im Rework) · **Laden bei:** `/implement`, `/test`, `/review` – bei E2E-Spec mit Env-Flag-Gate oder CSS-Eigenschafts-Assertion
-- Playwright `getByRole(name)` ist Teilstring-Treffer wie `hasText` – ein neues Bedienelement im Dialog (z. B. „Meldung schließen") bricht Locatoren auf „Schließen"; `exact: true` + Grep über alle Specs (aus #372, /implement) · **Laden bei:** `/implement`, `/test` – bei neuem Element in einem Dialog/einer Seite mit bestehenden E2E-Specs
-- React-19-Async-Actions: nie auflösende Promises halten einen modulweiten Scope offen – spätere Abwesenheits-Tests sind grün aus dem falschen Grund; Resolve-Liste + `afterEach` in `act`, Anwesenheits-Vorbedingung, Mutationsbeleg je Test (aus #370, /implement-Selbstfund) · **Laden bei:** `/implement`, `/test`, `/review` – bei Tests mit offen gehaltener `useActionState`-Action
-
-**[`docs/project/lessons/repo-werkzeuge.md`](../project/lessons/repo-werkzeuge.md)** – Werkzeuge über die ganze Repo-Historie (Herauslösen, Massen-Umschreibung, Secret-/PII-Gate vor öffentlichem Push) · **Laden bei:** `/implement`, `/review`, `/security-review` an `scripts/project/factory-extract*` oder einem neuen Gate um einen externen Scanner
-
-- Gate um einen fremden Scanner: alle Abschalt-Eingänge (Ziel-/Arbeitsverzeichnis-Dateien, Umgebung, Inline-Marker, globale Fingerprints) und alle Datenflächen (Messages, alle Refs) vorab aufzählen, je Eintrag Test + Gegenbeweis mit echtem Scanner (aus #427, Security-Review + Re-Review)
-- Umschreibregel über Repo-Inhalt: alte gegen neue Regel auf dem echten Bestand vergleichen, jede abweichende Zeile ansehen (aus #427, Review-Iteration 1)
-
-**[`docs/project/lessons/build-tooling.md`](../project/lessons/build-tooling.md)** – pnpm, Turbopack/Vercel-Bundling, Typecheck-Gate, Abhängigkeiten/Audit · **Laden bei:** bei Build/CI/Dependencies/Vercel-Bundling
-
-- Lint/Vitest fangen keine Typfehler – Gate-Lücke bis zum manuellen `pnpm build` (aus #137)
-- pnpm@11: `overrides`/Settings gehören in `pnpm-workspace.yaml`, nicht ins `package.json`-`pnpm`-Feld (aus #167)
-- Turbopack/Vercel: Node-Libs mit Laufzeit-`fs.readFileSync(__dirname + …)` externalisieren (aus #193)
-- Verschachtelte alte `@types/node`-Kopie (transitive Dependency) kollidiert mit generischem `Buffer`-Typ bei TS≥5.7 – Cast über die Ziel-Funktionssignatur, nicht `as unknown as Buffer` (aus #189)
-- `pnpm audit` scheitert in dieser Sandbox an einem Gzip-Decoding-Bug – Registry-Endpoint direkt per `curl` + manuellem `gunzip` abfragen liefert echte Advisory-Daten statt nur des Lockfile-Ersatzkriteriums (aus #228, /security-review-Selbstfund)
-- Override-Ziel-Range immer als Caret innerhalb derselben Major-Linie (nicht offenes `>=`), bei Advisories in mehreren Major-Linien disjunkte Selektoren – Ausnahme: hat die Selektor-Linie keinen eigenen Fix, zeigt der Caret in die Fix-Linie (#339); ein „No-op"-Verdacht auf einen Override ist zu messen (entfernen, **ohne Alt-Lockfile** neu auflösen, Version prüfen), nicht aus der Parent-Range anzunehmen (aus #291, Review-Runde-1/2-Findings; #339)
-- `pnpm audit` zeigt bei Paketen mit mehreren parallel gepflegten Major-Linien (z. B. `brace-expansion`) nur eine Range-Gruppe, die nicht zur per `pnpm why` aufgelösten Version passen muss – vor „echtes Finding" die volle GHSA-Advisory-Liste (`vulnerabilities[]` komplett) gegenprüfen (aus #231, /security-review-Selbstfund; drittes Vorkommnis als echte ungedeckte Major-Linie statt Anzeige-Artefakt aus #337, /security-review-Selbstfund)
-- Security-Deps-Durchgang: Alert-AK „Dependabot meldet nichts mehr" ist vor dem Merge nicht prüfbar (nur Default-Branch) – in Vorab- und Nach-Merge-Teil trennen; Ersatz bei defektem `pnpm audit` ist die npm-Bulk-Advisory-API mit Gegenprobe gegen Altversionen, über den ganzen Lockfile-Baum (aus #390, /security-review) · **Laden bei:** `/requirements`, `/implement`, `/security-review` – bei Deps-/Advisory-Durchgang
-- `next dev` (≥16.3) schreibt automatisch einen `<!-- BEGIN:nextjs-agent-rules -->`-Block ans Ende von `CLAUDE.md`/`AGENTS.md` – gehört nicht in einen fachlichen Task-Commit, aus dem Diff entfernen (aus #337, Review-Runde-1-Finding; Rezidiv in #369 und #370 – der Block empfiehlt selbst das Mitcommitten, die Lesson gilt: nach jedem `next dev`-Lauf `git checkout -- CLAUDE.md`)
-- next-Bump: `eslint-config-next` ist versionsgleich gepinnt und mitzuheben; `next dev` legt im Worktree zusätzlich ein untracked `AGENTS.md` an – vor dem Commit löschen (aus #443)
-- Nur als Peer im Baum hängende Dependency (z. B. `vite` via `vitest`): `pnpm update`/`overrides` wirken nicht – `pnpm add -D <peer>@^Floor` + `pnpm remove <peer>`; Lockfile-Streuung am `git diff` messen (aus #444)
-- `pnpm update <paket>@^X` schreibt den neuesten Specifier (`^4.6.7` statt `^4.6.6`) – in Spec/AK die Untergrenze nennen, geschriebenen Specifier in die Task-Notiz übernehmen (aus #448, Review-Nitpick)
-- AK „ohne Alt-Lockfile" nicht mit `pnpm install` gegen das bestehende Lockfile abhaken – Frisch-Auflösung per `pnpm install --lockfile-only` ohne Lockfile, je mit/ohne Override messen (aus #412, Review-Runde-1-Finding)
-
-**[`docs/project/lessons/code-style.md`](../project/lessons/code-style.md)** – Clean-Code-Muster der App (`lib/`, Schema-Konstanten, JSDoc, Tailwind) · **Laden bei:** `/refactor`, `/review` (Clean-Code)
-
-- Neue `lib/`-Module domänenspezifisch benennen, kein generisches `utils` (aus #105, Review-Finding)
-- Magic-Number-Konsistenz-Bewertung braucht projektweiten Grep, nicht nur Datei-/PR-lokalen Vergleich (aus #142, Review→Refactor-Diskrepanz)
-- JSDoc auf einem geteilten Options-Interface, die einen konkreten Produktionswert nennt, driftet beim zweiten Konsumenten mit abweichendem Wert – gleiches Muster an einem Nachbarfeld derselben Struktur übersehen (aus #182, Review-Runde 1 W2 + Runde 2 Nitpick 1)
-- Rezidiv „X schützt vor Y": benannte Tailwind-Gruppe (`group/name`) schützt nur vor fremden `.group`-Vorfahren, nicht vor Verschachtelung – Wirkungsbehauptung gegen die Selektorsemantik prüfen, an allen Fundstellen (ADR, Kommentar, Testname) gleich eng formulieren (aus #403, Review-Iteration 2 W1)
-
-**[`docs/project/lessons/factory-workflow.md`](../project/lessons/factory-workflow.md)** – App-/UI-spezifische Workflow-Stolpersteine (Routen, E2E im Worktree, UI-Einstiegspunkte, Layout-Specs) · **Laden bei:** `/implement`, `/review` bei Routen/UI/E2E im Worktree
-
-- App-Router erzeugt Routen aus mehr als `page.tsx`/`route.ts` (aus #145) → `/implement` – bei Routen/`docs/routes.md`
-- E2E im frischen Worktree: vorhandene `.env.local` ≠ geseedete DB – `CredentialsSignin` zuerst gegen `db:migrate` + `db:seed` prüfen; `dotenv`-Nutzung löst den Secret-Datei-Guardrail aus (aus #370, /test-Nachtest) → `/implement`, `/test` – bei erstem E2E-Lauf im Worktree
-- Neuer Worktree hat kein `.env.local` → irreführender `CredentialsSignin`-E2E-Fehlschlag ist Umgebungsproblem, keine Regression (aus #228, /implement-Selbstfund; Root-Cause-Fix in #236 umgesetzt: `start-work.sh` kopiert die Datei jetzt automatisch, offen bleibt nur `pnpm db:seed`) → `/implement` – bei erstem E2E-Lauf in neuem Worktree
-- Verschobener UI-Einstiegspunkt: E2E-Helfer, Capture-Spec, Screenshots und Anleitung per Grep im selben Schritt mitziehen – kein Unit-Test/Lint fängt sie (aus #391, Review-Iteration 1; Rezidiv in der menschlichen Vor-Merge-Checkbox: jedes betroffene Bild listen, aus #373 W3) → `/implement`, `/review` – bei Verschieben/Umbenennen eines UI-Einstiegs
-- Neues Zeilen-/Listenlayout in einer Spec: Dichte-/Mess-Grenzen bestehender Specs und E2E-Tests vorher greppen und die Wahl als Offene Frage festhalten – spec-407 riss spec-373 AK4.6 (1796 > 1624 px), erst `/review` Iteration 2 fand es, drei Iterationen + Eskalation; „gelöscht"-Notiz erst nach `ls` auf die Dateinamen schreiben (aus #407, Review-Iteration 2/3) → `/requirements`, `/implement` – bei Spec/Änderung eines Zeilen-, Karten- oder Listenlayouts
+| Lesson-Datei | Laden bei |
+|---|---|
+| `frontend-react.md` | `/implement`, `/review` bei React/UI-Komponenten |
+| `next-auth.md` | `/implement`, `/review` bei Auth/`proxy.ts`/Routen |
+| `db-drizzle.md` | `/implement`, `/review`, `/test` bei Data-Layer (Drizzle) |
+| `testing.md` | `/implement`, `/test`, `/review` beim Testschreiben/Coverage der App |
+| `repo-werkzeuge.md` | `/implement`, `/review`, `/security-review` an `scripts/project/factory-extract*` oder einem neuen Gate um einen externen Scanner |
+| `build-tooling.md` | bei Build/CI/Dependencies/Vercel-Bundling |
+| `code-style.md` | `/refactor`, `/review` (Clean-Code) |
+| `factory-workflow.md` | `/implement`, `/review` bei Routen/UI/E2E im Worktree |
 
 ---
 
@@ -496,8 +213,4 @@ Relevante ADRs: siehe `docs/adr/` – insbesondere **ADR-014** (Tech-Stack-Wahl)
 
 _Derzeit keine offenen Fragen._
 
-> **Erledigt (ADR-024, #120):** Die Frage nach dem Route-Schnitt des Veranstaltungs-Bereichs
-> (`/abrechnung/veranstaltung` – Bereich- vs. Ressource-zuerst) ist entschieden: Bereich nach
-> der Entität benennen → **`/veranstaltung`** (Liste) + **`/veranstaltung/[id]`** (Detail), je
-> Lifecycle-Phase eine Unterroute. Zugleich Rolle `abrechner` → `veranstalter` umbenannt.
-> Details in [ADR-024](../adr/024-route-schnitt-veranstaltung-lifecycle.md).
+> **Erledigt (ADR-024, #120):** Route-Schnitt des Veranstaltungs-Bereichs → `/veranstaltung` + `/veranstaltung/[id]`; Rolle `abrechner` → `veranstalter`.

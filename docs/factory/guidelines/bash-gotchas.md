@@ -25,7 +25,7 @@ mycmd && return 0
 reason="exit $?"                        # korrekter Code
 ```
 
-**Bit uns 2×:** `post-merge-verify.sh` (#23 und nochmal #24, CMD-Exit-Code wurde als 0 gemeldet).
+**Bit uns 2×:** `post-merge-verify.sh` (nothra/tch-gastro-services#23 und nochmal nothra/tch-gastro-services#24, CMD-Exit-Code wurde als 0 gemeldet).
 
 ---
 
@@ -48,8 +48,8 @@ n=$(grep -c foo file 2>/dev/null); n=${n:-0}
 n=$(grep -c foo file 2>/dev/null || true); n=${n:-0}
 ```
 
-**Bit uns:** `metrics.sh`/`interrupt-log`-Zählung (#12); und Falle 2 nochmal in
-`run-pipeline.sh` `pipeline_summary` — eingeführt **beim Fix von Falle 1** (#33). Lehrstück:
+**Bit uns:** `metrics.sh`/`interrupt-log`-Zählung (nothra/tch-gastro-services#12); und Falle 2 nochmal in
+`run-pipeline.sh` `pipeline_summary` — eingeführt **beim Fix von Falle 1** (nothra/tch-gastro-services#33). Lehrstück:
 der naive Fix einer Gotcha lief direkt in die nächste.
 
 ---
@@ -69,16 +69,16 @@ out=$(producer)
 printf '%s' "$out" | grep -q muster
 ```
 
-**Bit uns:** Test-Suite-Fälle (#23, #24 – Vorrang-/Guard-Checks wurden fälschlich rot).
+**Bit uns:** Test-Suite-Fälle (nothra/tch-gastro-services#23, nothra/tch-gastro-services#24 – Vorrang-/Guard-Checks wurden fälschlich rot).
 
-**Verschärfung bei Negation (aus #284):** Wird das Pipe-Ergebnis zusätzlich negiert
+**Verschärfung bei Negation (aus nothra/tch-gastro-services#284):** Wird das Pipe-Ergebnis zusätzlich negiert
 (`! producer | grep -q muster`, etwa um „Muster NICHT gefunden" zu prüfen), kippt die
 SIGPIPE-Falle von Falschrot in **Falschgrün**: Im Fund-Fall liefert die Pipe unter `pipefail`
 exit 141 (SIGPIPE des Producers), die vorangestellte Negation macht daraus 0 – der Guard meldet
 „nicht gefunden", obwohl das Muster da war. Betroffen ist damit ausgerechnet der Fall, den der
 Guard fangen soll; ein still versagender Guard ohne sichtbaren Fehlschlag. Fix bleibt identisch:
 Producer-Output zuerst einfangen (Variable/Here-String), dann greppen – keine Pipe, die ein
-SIGPIPE erzeugen kann. In #284 bewusst so konstruiert (Here-String statt Pipe für
+SIGPIPE erzeugen kann. In nothra/tch-gastro-services#284 bewusst so konstruiert (Here-String statt Pipe für
 `poll_trigger_guard`), bevor die Falle zuschlagen konnte.
 
 ---
@@ -111,7 +111,7 @@ gh issue create ${opts[@]+"${opts[@]}"} --title "$t"
    Faustregel: Wenn die Aufrufer `set -euo pipefail` setzen, muss mindestens ein Test die
    Funktion unter `set -euo pipefail` fahren – inkl. der Grenzfälle mit leeren Arrays.
 
-**Bit uns:** #82 (`create-issue.sh`) – der no-repo-Pfad (`repo_args` leer, der dokumentierte
+**Bit uns:** nothra/tch-gastro-services#82 (`create-issue.sh`) – der no-repo-Pfad (`repo_args` leer, der dokumentierte
 gh-Auto-Erkennungs-Pfad, den die Skills nutzen) crashte unter `set -u` auf bash 3.2. Der
 „deckende" Test lief ohne `set -u` und übersah es; erst der **unabhängige Review** fand den
 Bug. `${#arr[@]}` und `${arr[@]+"${arr[@]}"}` sind unter `set -u` sicher – die eine leere
@@ -147,7 +147,7 @@ bash "$tmp/run-pipeline.sh" …
 **Faustregel:** Nach jedem `cp <skript> $tmp`: `grep -E '^\. |source ' "$skript"` prüfen –
 alle gefundenen relativen Pfade müssen ebenfalls in `$tmp` landen.
 
-**Bit uns:** #91 – 3 Self-Tests liefen nach dem Patch rot, weil `run-pipeline.sh` neu
+**Bit uns:** nothra/tch-gastro-services#91 – 3 Self-Tests liefen nach dem Patch rot, weil `run-pipeline.sh` neu
 `scripts/lib/report-verdict.sh` sourct und die Testaufbauten die Kopie fehlten.
 
 ---
@@ -180,7 +180,7 @@ echo "${avg_h} h"   # → "1.6 h", unabhängig von LC_NUMERIC/LC_ALL
 Falls ein festes `x.x`-Format nötig ist, mit `if . == floor then tostring + ".0" else tostring end`
 erzwingen. In rein indikativen KPI-Reports (wie Lead-Time) ist das YAGNI.
 
-**Bit uns:** `metrics.sh` (#96) – Lead-Time zeigte unter `de_DE.UTF-8` `0,0 h` statt dem
+**Bit uns:** `metrics.sh` (nothra/tch-gastro-services#96) – Lead-Time zeigte unter `de_DE.UTF-8` `0,0 h` statt dem
 korrekten Wert; beobachtet bei Task 67.
 
 ---
@@ -205,7 +205,7 @@ spezifischsten String** nehmen – nie eine Abkürzung, die als Substring einer 
 Variante aufgehen könnte. Zur Absicherung: einen Test mit Negativ-Beispiel schreiben
 (geänderter Befehl → Guard schlägt an).
 
-**Bit uns:** #101 – `grep -q 'make test'` im Default-Guard deckte `make test-coverage`
+**Bit uns:** nothra/tch-gastro-services#101 – `grep -q 'make test'` im Default-Guard deckte `make test-coverage`
 implizit ab; eine Änderung des Coverage-Befehls wäre unentdeckt geblieben.
 
 ---
@@ -233,7 +233,7 @@ if [ -n "$CMD" ]; then eval "$CMD"; else echo "Gate deaktiviert (FACTORY_X leer)
 (einfacher Bindestrich). Soll leer wie unset behandelt werden (immer Default) → `${VAR:-default}`.
 Die Wahl explizit im WHY-Kommentar begründen; sie ist auf den ersten Blick unsichtbar.
 
-**Struktur-Guard darauf abstimmen (Querbezug §7 + PROJECT-CONTEXT #114):** Ein Struktur-Test,
+**Struktur-Guard darauf abstimmen (Querbezug §7 + PROJECT-CONTEXT nothra/tch-gastro-services#114):** Ein Struktur-Test,
 der so ein Gate absichert, muss den **vollständigen `${VAR-default}`-Ausdruck** pinnen
 (`grep -qF '${FACTORY_X-make gate}'`), nicht nur den Bezeichner `FACTORY_X` – der steht meist
 auch in der Kommentar-Prosa und matcht dann fälschlich. Das pinnt zugleich den **Default-Literal**,
@@ -241,7 +241,7 @@ den ein Verhaltens-Test **nicht** abdeckt: wer im Test den Override immer expliz
 (`FACTORY_X=false/true/""`), prüft nie den unset-Default. Ein versehentlich auf `true` geänderter
 Default (Gate per Default aus) bliebe sonst grün.
 
-**Bit uns:** #149 – Format-Gate in `pre-push.sh`. Erst `:-` gewählt (leerer Override sollte
+**Bit uns:** nothra/tch-gastro-services#149 – Format-Gate in `pre-push.sh`. Erst `:-` gewählt (leerer Override sollte
 deaktivieren, tat es aber nicht → Test rot); auf `-` korrigiert. Der Struktur-Grep matchte
 anfangs die Kommentar-Prosa (`format:check`); erst der Grep auf `${FACTORY_FORMAT_COMMAND-make format-check}`
 pinnte Default + Semantik code-eindeutig.
@@ -282,7 +282,7 @@ man zuerst denkt (meist `-m`). Für `commit-msg` mindestens: `-m`, Editor ohne `
 Abbruchmarke (hier: der Scissors-Zeile) stoppen, nicht nur zeilenweise nach Präfix filtern –
 sonst rutscht unpräfigierter Inhalt unterhalb der Abbruchmarke durch.
 
-**Bit uns:** #262 – Editor-Pfad-Lücke in Review-Runde 2 gefunden und gefixt, Verbose-Pfad-Lücke
+**Bit uns:** nothra/tch-gastro-services#262 – Editor-Pfad-Lücke in Review-Runde 2 gefunden und gefixt, Verbose-Pfad-Lücke
 (dieselbe Fehlerklasse, andere Ursache) erst in Review-Runde 3.
 
 ---
@@ -309,7 +309,7 @@ gelaufen ist, den Zustand direkt gegen das erwartete Ergebnis dieses Schritts pr
 bleibt `??` untracked), nicht über einen Index-vs-HEAD-Vergleich, der auch durch einen ganz
 anderen, weiter gelaufenen Schritt (ein Commit) wieder "leer" werden kann.
 
-**Bit uns:** #262 – die Assertion „führt kein `git add` aus" wäre bei entferntem Guard trotzdem
+**Bit uns:** nothra/tch-gastro-services#262 – die Assertion „führt kein `git add` aus" wäre bei entferntem Guard trotzdem
 grün geblieben, weil der nachfolgende Commit den Index wieder mit HEAD in Deckung gebracht hätte.
 
 ---
@@ -341,7 +341,7 @@ gegen `set -e` – auch (gerade) der Befehl, der selbst zur Fehlerbehandlung geh
 schon der Fehlerpfad" ist kein Freibrief; der Fehlerpfad ist Code wie jeder andere und kann
 selbst scheitern.
 
-**Bit uns:** #236 – Review-Runde 3 fand die Lücke, Runde 4 fixte sie über zwei sich ergänzende
+**Bit uns:** nothra/tch-gastro-services#236 – Review-Runde 3 fand die Lücke, Runde 4 fixte sie über zwei sich ergänzende
 Wege: `rm -f … 2>/dev/null || true` (deckt jeden `rm`-Fehler ab) **und** eine
 Nicht-Verzeichnis-Guard-Bedingung am Blockeintritt (deckt den konkret reproduzierten
 `ENOTDIR`-Fall, verhindert zugleich, dass der Kopier-Block zum neuen, früheren Abbruchpunkt
@@ -394,7 +394,7 @@ Fehlschlag darin unter `set -e` den Exit-Code überschreiben. Eine Behauptung, e
 Standalone-Tests und einer echten Mutation (`return`-Zeilen aus dem Skript entfernt, Exit-Code
 blieb erhalten) widerlegt.
 
-**Bit uns:** #314 – ein Review-Sub-Agent behauptete, `return "$_exit_code"` am Ende von
+**Bit uns:** nothra/tch-gastro-services#314 – ein Review-Sub-Agent behauptete, `return "$_exit_code"` am Ende von
 `measure_process_metrics_on_exit()` (`run-pipeline.sh`) sei „empirisch geprüft" tragend für den
 Exit-Code-Erhalt. Zwei unabhängige Gegenproben (Koordinator-Session + separate Review-Runde)
 widerlegten das (siehe `docs/factory/lessons/factory-workflow.md` → „Review-Sub-Agent kann eine
@@ -417,7 +417,7 @@ total=$((total + lines))                     # kein Fehler, addiert 0
 
 Das ist besonders tückisch in **fail-closed-Gates**: der Check meldet „0 von 1100" und Exit 0,
 also genau das Bild eines erfolgreich bestandenen Laufs. Ein Gate, das seine Fail-closed-
-Eigenschaft zusichert, verliert sie hier lautlos (beobachtet in #319: ein fehlschlagendes `awk`
+Eigenschaft zusichert, verliert sie hier lautlos (beobachtet in nothra/tch-gastro-services#319: ein fehlschlagendes `awk`
 machte den @import-Deckel grün, während der Kontext die Grenze um das Doppelte riss).
 
 **Gegenprobe zum Verständnis:** Ein **nicht-numerischer** Wert verhält sich anders – `lines="abc"`
@@ -426,7 +426,7 @@ ab (Exit ≠ 0, also rot). Nur der *leere* Wert ist der stille Fall. Wer nur den
 Fall testet, hält das Gate fälschlich für abgesichert.
 
 **Regel:** Jeder von außen bezogene Wert wird **vor** dem arithmetischen Gebrauch als Integer
-abgesichert – dieselbe Guard-Klausel, die `clean-code.md` → „Portabilität in Gate-/Shell-Skripten"
+abgesichert – dieselbe Guard-Klausel, die § 20 („Portabilität in Gate-/Shell-Skripten")
 für Vergleiche fordert, gilt für Additionen genauso:
 
 ```bash
@@ -436,6 +436,104 @@ case "$lines" in
 esac
 total=$((total + lines))
 ```
+
+---
+
+## 14. `echo "$wert"` mit fremdem Wert: ein führendes `-n`/`-e`/`-E` ist eine Option, der Wert geht verloren
+
+Steht ein von außen bezogener Wert (Pfad aus einem Manifest, Dateiname, Eingabezeile) als **erstes** Argument von `echo`, behandelt der
+Builtin `-n`, `-e` und `-E` als Optionen und gibt den Wert **nicht** aus (bash 3.2 und 5.x gleich):
+
+```bash
+echo "-n" >> findings.txt          # schreibt NICHTS (kein Zeilenumbruch, kein Text)
+echo "-e" | od -c                  # nur "\n" – der Text „-e“ fehlt
+```
+
+Besonders tückisch, wenn die Zeilen **gezählt** werden: In `ownership-check.sh` ging so ein nicht getrackter Lock-Pfad `-n` aus dem Fundzähler
+verloren – die `✗`-Meldung kam noch (sie beginnt mit einem Literal), der Zähler blieb 0, das Gate endete mit **Exit 0**. Ein fail-closed-Gate wurde damit
+durch einen Dateinamen fail-open (Factory-Task #22, bei der Gegenprüfung des `/security-review`; weder der Sicherheitsagent noch eine der drei Review-Runden hatte es gesehen).
+
+**Regel:** Fremde Werte nie als erstes `echo`-Argument – `printf '%s\n' "$wert"` (oder `echo -- …` ist **nicht** portabel: manche `echo` geben `--` mit aus).
+Ein Test mit `-n`, `-e`, `-E` als Wert gehört zu jedem Zähler/jeder Sammelschleife über fremde Zeilen.
+
+---
+
+## 15. Rückgabewerte als Zähler: Exit-Codes laufen modulo 256 um – es gibt keinen Deckel bei 255
+
+`return "$n"` / `exit "$n"` liefern `n mod 256`: `return 300` ergibt `44`, `return 256` ergibt `0` (verifiziert, bash 3.2). Wer die Zahl der Funde als
+Funktionsrückgabe weiterreicht und zusätzlich auf 255 „kappt“, meldet bei mehr Funden eine falsche Zahl („255 Fund(e)“ bei 300 `✗`-Zeilen); ohne Kappung
+wäre bei genau 256 Funden das Ergebnis `0` = „alles gut“.
+
+**Regel:** Mengen zählen **nicht** über Exit-Codes, sondern über Daten: Funde in eine Datei/Variable schreiben und dort zählen (`grep -c ''`, `wc -l`),
+den Exit-Code nur als Wahrheitswert (0/≠0) verwenden. Der Kommentar nennt dann „modulo 256“, nicht „gekappt“. Ein Test mit mehr als 255 Funden
+(hier: 300) sichert es ab.
+
+---
+
+## 16. `git ls-files` quotet Nicht-ASCII-Pfade – Vergleiche gegen Klartext-Pfade schlagen falsch-rot an
+
+Mit der Git-Voreinstellung `core.quotepath=true` liefert `git ls-files` `"docs/f\303\274r.md"` statt `docs/für.md`. Ein Check, der getrackte Dateien mit Pfaden aus
+einem Manifest vergleicht, meldet dann „nicht getrackt“, obwohl die Datei da ist.
+
+**Regel:** Skripte, die Pfade aus Git mit Klartext vergleichen, rufen `git -c core.quotepath=false ls-files` auf (oder `-z`). Der zugehörige Test läuft gegen **echtes**
+`git` (nicht gegen eine Dateiliste, die das Quoting nie zeigt) und isoliert sein Fixture-Repo von der globalen Konfiguration
+(`git -C <repo> config core.quotepath true`), sonst ist er auf Rechnern mit `core.quotepath=false` zufällig grün.
+
+---
+
+## 17. `[ -e datei ]` folgt Symlinks: ein hängender Symlink gilt als „nicht vorhanden“
+
+Hängt die **Moduswahl** eines Skripts an der Existenz einer Datei (`[ -e factory.lock ]` → Lock-Modus, sonst Tabellenmodus), fällt ein hängender Symlink
+(`factory.lock -> /nicht/vorhanden`) still in den anderen Modus zurück – genau das Rückfallverhalten, das ein fail-closed-Gate verhindern soll. `-L` erkennt den Link selbst.
+
+**Regel:** `[ -e "$f" ] || [ -L "$f" ]`, wenn „es gibt etwas unter diesem Namen“ gemeint ist; danach die eigentliche Prüfung (`[ -r … ]` mit Exit 2) entscheiden lassen.
+Zusätzlich gilt: Wo die bloße Existenz einer Datei ein Gate umschaltet, braucht das Repo, in dem diese Datei **nicht** liegen darf, einen Guard-Test (dort: kein
+`factory.lock` im Factory-Repo).
+
+---
+
+## 18. Ungequotetes Heredoc und Doppelquotes führen Backticks und `$(…)` aus
+
+Markdown-Text mit Inline-Code (Backticks) in `<<EOF` oder in einem `"…"`-String wird von der Shell als Kommando-Ersetzung ausgewertet: Aus `` `factory` `` wurde
+`command not found: factory`, aus `` `tasks/review-22.md` `` ein Ausführungsversuch (`permission denied`) – harmlos nur, weil das Ziel nichts tat.
+
+**Regel:** Text mit Backticks oder `$` immer über ein **gequotetes** Heredoc (`<<'EOF'`) oder eine Datei schreiben (Editor-/Write-Werkzeug), nie über
+`<<EOF` oder einen Doppelquote-String. Das gilt auch für `python3 - <<EOF`-Aufrufe, die Markdown in Dateien schreiben.
+
+---
+
+## 19. Pfade aus fremden Quellen: `dirname`, `rmdir`, `cp` & Co. lesen ein führendes `-` als Option
+
+`dirname "-d/x.sh"` bricht mit `illegal option` ab und liefert **leer** – kein Exit-Code-Check im `$(…)`, und eine nachfolgende Schleife
+„bis `.` erreicht ist“ läuft ins Leere. In `factory-sync.sh` hieß das: Die Symlink-Prüfung der Elternverzeichnisse wurde übersprungen, eine
+Abholung schrieb über einen Symlink `-d` **außerhalb des Repos** (Repro im Security-Bericht von Factory-Task #23). Das Hashen war schon mit `./`-Präfix
+gehärtet, `dirname` und `rmdir -p` desselben Pfads nicht.
+
+**Regel:** Jeder Befehl, der einen Pfad aus Manifest/Lock/Fremdinhalt bekommt, steht mit `--` (`dirname -- "$p"`, `rmdir -p -- "$d"`) oder mit absolutem
+Ziel (`"$ROOT/$p"`). Wird eine Fehlerklasse an **einer** Stelle gehärtet, per `grep -n` alle Aufrufe desselben Befehlsfamilien-Musters im Skript prüfen – nicht
+nur die gemeldete Zeile. Ein Test braucht einen Pfad mit führendem `-` **und** die Gegenprobe, dass ein legitimer solcher Pfad weiter funktioniert.
+
+---
+
+## 20. Portabilität in Gate-/Shell-Skripten
+
+Quality-Gates (`scripts/checks/`) laufen lokal (macOS/BSD) **und** in CI (GNU/Alpine).
+Nicht-portable Regex bricht still oder läuft ins Leere – ein Gate, das nicht greift,
+ist gefährlicher als gar keins.
+
+- **Nur POSIX-Regex in `grep -E`.** Kein `\s`, `\d`, `\w` (nutze `[[:space:]]`,
+  `[[:digit:]]`); kein PCRE-Lookahead/-behind (`(?!…)`, `(?=…)`).
+- Brauchst du Lookahead-Logik, nimm `awk` oder eine zweistufige Pipe statt `grep -P`
+  (`grep -P` ist auf BSD-grep nicht verfügbar).
+- Ein Gate-Regex gehört durch einen Test abgesichert, der das echte Gate gegen
+  ein Positiv- **und** ein Negativ-Beispiel laufen lässt – sonst merkt niemand,
+  wenn das Muster nicht mehr greift.
+- **Config-/nutzerkontrollierte Werte als Daten behandeln, nie als Optionen/Code**
+  (aus nothra/tch-gastro-services#36-Codify, ADR-010): Bei `grep -F`/`grep` mit variablem Suchwert immer `--`
+  vor das Pattern setzen (`grep -qxF -- "$wert"`), sonst wird ein Wert wie `-x` als
+  Option interpretiert. Werte vor arithmetischen Tests (`[ "$n" -lt 1 ]`) erst per
+  `case "$n" in ''|*[!0-9]*)` als Integer absichern. Faustregel für Validierungs-Gates:
+  fail-closed – im Zweifel ablehnen, nie still durchwinken.
 
 ---
 

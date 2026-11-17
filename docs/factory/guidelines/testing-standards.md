@@ -2,13 +2,13 @@
 
 Regeln für Test-Qualität und Test-Aufbau in diesem Projekt.
 
-> **Ausgelagert nach [`lessons/testing.md`](../lessons/testing.md)** (ADR-047, #319): die drei
+> **Ausgelagert nach [`lessons/testing.md`](../lessons/testing.md)** (ADR-047, nothra/tch-gastro-services#319): die drei
 > `/codify`-artigen Einträge „Exhaustiveness-Guards (`never`-Check)", „Mock-Default mit leerem
 > Array verdeckt Mapping-Code" und „Coverage-Ausgabe nur in ignorierte Pfade (ADR-040)". Seit
-> #426 liegen die beiden TypeScript-/Vitest-spezifischen davon in `docs/project/lessons/testing.md`,
+> nothra/tch-gastro-services#426 liegen die beiden stack-spezifischen davon in `docs/project/lessons/testing.md`,
 > die Coverage-Regel in `lessons/testing.md`.
 > Sie gelten unverändert weiter; „Laden bei" steht kanonisch im Lessons-Index
-> (`PROJECT-CONTEXT.md` → `lessons/testing.md`), nicht hier. Die ADR-040-Regel selbst bleibt
+> (`FACTORY.md` → Factory-Lessons → `lessons/testing.md`), nicht hier. Die ADR-040-Regel selbst bleibt
 > zusätzlich als Kurzregel unter „Coverage-Anforderungen" in dieser Datei – nur ihre Begründung
 > und der Vorfall stehen in der Lesson.
 
@@ -74,6 +74,13 @@ einfache Utilities ohne Side Effects.
 - Kein geteilter mutable State zwischen Tests
 - Test-Daten werden pro Test aufgebaut, nicht geteilt
 - Bei Datenbank-Tests: Rollback nach jedem Test oder Test-Container
+
+**Testgruppen der Factory-Suite (Factory-ADR-066):** `scripts/checks/tests/factory-lock-*-tests.sh`
+laufen als parallele Teilprozesse von `run-tests.sh`; eine neue Datei nach diesem Muster läuft
+automatisch mit. Eine Gruppe ist allein startbar, setzt keine Variable der Suite voraus, baut in
+eigenem `mktemp -d` (EXIT-Trap per `test_group_trap`) eine eigene Vorlage und endet mit
+`test_group_finish; exit $?`. `FACTORY_SELF_TEST_SERIAL=1` startet die Gruppen nacheinander
+(Debuggen, knappe Runner).
 
 ---
 

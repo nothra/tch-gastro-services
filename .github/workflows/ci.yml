@@ -1,6 +1,6 @@
 # Projekt-CI (TCH) – Lint + Tests der App
 #
-# Projekteigen (docs/factory/OWNERSHIP.md): aus factory-ci.yml herausgelöst (#431), damit
+# Projekteigen (nicht in factory.lock): aus factory-ci.yml herausgelöst (#431), damit
 # factory-ci.yml keinen pnpm-Aufruf mehr enthält. Job-Namen `lint`/`test`, Trigger und
 # Inhalt unverändert – die Required Checks von `protect-main` bleiben gleich (Factory-ADR-029).
 #

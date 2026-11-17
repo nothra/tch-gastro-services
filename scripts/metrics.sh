@@ -86,7 +86,7 @@ if [ "$USE_API" = true ]; then
       # printf parst sein `%f`-Argument lokale-abhaengig (strtod) – unter einer
       # Locale mit Komma-Dezimaltrenner (z. B. de_DE) schlaegt das Parsen eines
       # Punkt-Werts wie "1.643..." fehl ("invalid number") und printf faellt
-      # still auf "0,0" zurueck (aus #96, beobachtet bei Task 67).
+      # still auf "0,0" zurueck (aus nothra/tch-gastro-services#96, beobachtet bei Task 67).
       avg_h=$(printf '%s' "$prs" | jq -r '
         [ .[] | select(.mergedAt != null)
           | ((.mergedAt[0:19]+"Z")|fromdateiso8601) - ((.createdAt[0:19]+"Z")|fromdateiso8601) ]
@@ -171,7 +171,7 @@ publish_issue_comment() {
     echo "→ Issue-Kommentar übersprungen: FACTORY_METRICS_ISSUE nicht gesetzt"
     return 0
   fi
-  # Config-/nutzerkontrollierten Wert als Daten behandeln (clean-code.md), fail-closed:
+  # Config-/nutzerkontrollierten Wert als Daten behandeln (bash-gotchas.md § 20), fail-closed:
   # nicht-numerische Werte erreichen gh nie (ADR-045 Entscheidung 5). Der leere String ist
   # hier bereits durch den [ -z "$issue" ]-Guard oben ausgeschlossen, kein eigenes Pattern nötig.
   case "$issue" in
