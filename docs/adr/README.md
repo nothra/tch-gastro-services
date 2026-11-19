@@ -7,7 +7,7 @@ Vorlage und Nummerierungsregel stehen in [`docs/factory/adr/README.md`](../facto
 > Skills, Gates, Konfiguration) liegen unter [`docs/factory/adr/`](../factory/adr/README.md). Wer
 > hier im Fließtext eine davon nennt, schreibt `Factory-ADR-NNN`; ein einfaches `ADR-NNN` meint
 > eine ADR aus diesem Verzeichnis. Neue App-ADRs führen die Nummer ab der höchsten hier vorhandenen
-> fort. Welche Datei welcher Seite gehört, steht in [`docs/factory/OWNERSHIP.md`](../factory/OWNERSHIP.md).
+> fort. Welche Datei welcher Seite gehört, steht im [`factory.lock`](../../factory.lock) (gelistet = Seite `factory`, sonst Projekt).
 
 ## Index
 
@@ -53,3 +53,4 @@ passt). Doppelte Nummern (027, 032) sind bekannt, siehe #321.
 | 060 | [ListenZeile als Dialog-Auslöser (Button-Variante) und Notice-Art „warnung"](060-listenzeile-dialog-ausloeser-notice-warnung.md) | Accepted |
 | 061 | [Baustein „AktionsMenue", `ListenZeile`-Slot „kennzeichen" und Auslagen-Umbau](061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md) | Accepted |
 | 062 | [„Katalog bearbeiten" – Mehr-Aktionen-Dialog mit Bestätigungsschritt statt Dialog über Dialog](062-katalog-bearbeiten-dialog-bestaetigungsschritt.md) | Accepted |
+| 063 | [`factory-integrity` als Required Check im Ruleset `protect-main`](063-required-check-factory-integrity-protect-main.md) | Proposed |
