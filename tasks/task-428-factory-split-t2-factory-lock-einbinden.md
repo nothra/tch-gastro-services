@@ -5,7 +5,7 @@
 - [ ] Review bestanden
 - [x] Tests vollständig
 - [ ] Security-Review bestanden
-- [ ] Refactoring abgeschlossen
+- [x] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
 - [ ] Fertig / PR erstellt
 
@@ -92,3 +92,7 @@ Erstellt: 2026-10-24 14:30
 - App-Code (`app/`, `db/`, `lib/`, `e2e/`) unverändert → App-Coverage unberührt, kein Coverage-Lauf nötig.
 - Lücke gefunden: AK2.17a/b/d/e/f/g hatten nur Belege per Hand, keinen Test. Neu: `scripts/project/tests/factory-lock-einbindung-tests.sh` (in `run-project-tests.sh` gesourct), 16 Assertions inkl. Gegenprobe `e2e/x.spec.ts` nicht ignoriert. AK2.17c deckt der Preflight-Lauf, AK2.17h/2.14c sind menschlich.
 - Projekt-Suite: 349 grün, 0 rot. Factory-Suite unverändert (vendort, CI grün).
+
+### /refactor
+- Eigener Code dieser Task besteht nur aus den Test-Dateien; vendorte Factory-Dateien sind per `factory-integrity` gesperrt und bleiben unangetastet.
+- `factory-lock-einbindung-tests.sh`: sechs gleichförmige `grep -qF` + `assert_exit`-Paare in den Helfer `assert_file_has_428` gezogen (kein neues Verhalten). Projekt-Suite vorher und nachher 349 grün, 0 rot.
