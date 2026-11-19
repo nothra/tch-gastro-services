@@ -81,3 +81,9 @@ Entscheidungen: [ADR-063 Nachtrag 2026-10-24 + „Zweiter Schnitt von T2a“](..
 ---
 Branch: `feature/428-factory-split-t2-factory-lock-einbinden`
 Erstellt: 2026-10-24 14:30
+
+### Rework nach /review Iteration 1
+- Projekt-Test `#431 AK-F4` las die gelöschte `OWNERSHIP.md` (CI `test` rot): auf `factory.lock` umgestellt (Workflows nicht gelistet + Positivkontrolle `factory-ci.yml`); Mutationsbeleg: Eintrag ins Lock → `jq -e` liefert 1.
+- Projekt-Test `#431 AK-D3` (Rekonstruktion der alten CLAUDE.md gegen Commit bcba043, lief nur lokal, in CI Skip) entfernt: `FACTORY.md` ist jetzt vendort und hash-gesichert, die Prämisse entfällt. Lokal war er nach dem Sync rot.
+- Projekt-Suite nach dem Löschen der OWNERSHIP.md: 333 grün, 0 rot (der frühere „334 grün"-Lauf lag vor der Löschung).
+- `factory-self-test` #49 AK1 (SIGPIPE-Flake `printf | grep -q` in vendortem `run-tests.sh:3709`): nicht lokal änderbar; CI-Neustart, bei Wiederholung Issue in nothra/dev-factory (Freigabe nötig).
