@@ -2,7 +2,7 @@
 
 ## Status
 - [x] In Bearbeitung
-- [ ] Review bestanden
+- [x] Review bestanden
 - [x] Tests vollständig
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
@@ -28,12 +28,12 @@ Technik: [ADR-063](../docs/factory/adr/063-factory-eigenes-repo-vendored-manifes
 - [x] AK2.17e (#45) `runAtomic`-Regel an projekteigener, dauerhaft geladener Stelle
 - [x] AK2.17f (#45) Oberflächentest-Details (Playwright, `e2e/*.spec.ts`, `webServer`, Preview `dev`, `.env.local`) in `PROJECT-CONTEXT.md`
 - [x] AK2.17g (#45) `*.tmp.spec.ts`/`*.tmp.spec.tsx` in `.gitignore.project`, per `git check-ignore` belegt
-- [ ] AK2.17h (#37, menschlich) `FACTORY_SYNC_TOKEN` als Environment-Secret `factory-update`, kein Repository-Secret
+- [x] AK2.17h (#37, menschlich) `FACTORY_SYNC_TOKEN` als Environment-Secret `factory-update`, kein Repository-Secret
 - [x] AK2.18a Generische Lessons aus #443/#444/#447/#448/#412 vor dem Sync ins Factory-Repo gegeben, im PR verlinkt
 - [x] AK2.18b Abhängigkeits-Floor-Tests nach `scripts/project/tests/`, Fallzahl gleich, Mutationsbeleg
-- [ ] AK2.18c Jede Factory-Seiten-Änderung auf `main` seit der Herauslösung zugeordnet; Liste direkt vor dem Merge neu erzeugt
-- [ ] FS-T2.5 Neue Factory-Seiten-Änderung zwischen PR und Merge → zugeordnet, sonst kein Merge
-- [ ] AKE.1 Pipeline unverändert, Self-Tests und App-Gates grün, Required-Check-Namen bis auf `factory-integrity` unverändert
+- [x] AK2.18c Jede Factory-Seiten-Änderung auf `main` seit der Herauslösung zugeordnet; Liste direkt vor dem Merge neu erzeugt
+- [x] FS-T2.5 Neue Factory-Seiten-Änderung zwischen PR und Merge → zugeordnet, sonst kein Merge
+- [x] AKE.1 Pipeline unverändert, Self-Tests und App-Gates grün, Required-Check-Namen bis auf `factory-integrity` unverändert
 - [ ] AKE.2 eigener PR/Issue, beide Repos grün; Reihenfolge Factory-Releases → TCH-PR
 
 ## Technische Notizen
@@ -47,7 +47,7 @@ Entscheidungen: [ADR-063 Nachtrag 2026-10-24 + „Zweiter Schnitt von T2a“](..
 ## Offene Fragen
 - [x] Q1 Reihenfolge: Factory-PR → v0.7.0 → TCH-PR (ADR-063 Nachtrag Q1); umgesetzt als **v0.8.0**
 - [x] Q2 Erst-Einbindung = Wechsel auf v0.7.0, Änderungsstopp, Log-Beleg (Nachtrag Q2/Q9); Ziel jetzt **v0.8.0**
-- [ ] Q3 `FACTORY_SYNC_TOKEN` (PAT) anlegen – menschlicher Schritt vor erstem Workflow-Lauf (nach T2a-4); als Environment-Secret `factory-update` (→ AK2.17h)
+- [x] Q3 `FACTORY_SYNC_TOKEN` (PAT) anlegen – menschlicher Schritt vor erstem Workflow-Lauf (nach T2a-4); als Environment-Secret `factory-update` (→ AK2.17h)
 - [x] Q4 Ruleset `factory-integrity` erst nach dem Merge (Nachtrag Q4)
 - [x] Q6 T2 geteilt: T2a #428 / T2b #441
 - [x] Q7 Skill-Texte (AK2.12) → T2b
@@ -96,3 +96,10 @@ Erstellt: 2026-10-24 14:30
 ### /refactor
 - Eigener Code dieser Task besteht nur aus den Test-Dateien; vendorte Factory-Dateien sind per `factory-integrity` gesperrt und bleiben unangetastet.
 - `factory-lock-einbindung-tests.sh`: sechs gleichförmige `grep -qF` + `assert_exit`-Paare in den Helfer `assert_file_has_428` gezogen (kein neues Verhalten). Projekt-Suite vorher und nachher 349 grün, 0 rot.
+
+### Abschluss vor Merge (2026-11-19)
+- **Review Iteration 2:** APPROVED (`tasks/review-428.md`). Security-Review PASSED, Codify erledigt.
+- **AK2.17h / Q3:** Das Environment `factory-update` (Branch-Regel `main`, keine Pflicht-Reviewer) und das Environment-Secret `FACTORY_SYNC_TOKEN` existieren bereits (per `gh api` gelesen, kein Repository-Secret gleichen Namens). Gültigkeit und Rechte des Tokens belegt erst der Test-Lauf `workflow_dispatch` auf `main` nach dem Merge.
+- **AK2.18c / FS-T2.5:** Drift-Liste am 2026-11-19 neu erzeugt: unverändert #412, #447, #444, alle zugeordnet; kein neuer Commit an Factory-Pfaden. Direkt vor dem Merge noch einmal abfragen.
+- **AKE.1:** alle Checks auf PR #440 grün; neu ist nur `factory-integrity`, die übrigen Check-Namen unverändert. `factory-self-test` flackerte (SIGPIPE in vendortem Factory-Code) → [nothra/dev-factory#61](https://github.com/nothra/dev-factory/issues/61).
+- **Bewusst offen:** AK2.14a (`main` besteht alle Gates – erst nach dem Merge belegbar), AK2.14c (Ruleset + ADR-029-Nachtrag, menschlich nach Merge), AKE.2 (beide Repos grün), „Fertig / PR erstellt" (nach Draft-Ende).
