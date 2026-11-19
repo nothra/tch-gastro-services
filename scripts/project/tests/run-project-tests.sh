@@ -10,6 +10,7 @@
 #   - Workflow-Tests zu deploy-gate.yml und deploy-freeze-release.yml (#66, #173)
 #   - factory-extract.sh (#427) – in factory-extract-tests.sh, unten gesourct
 #   - Dependency-Security-Floors (#291ff., #428) – in dependency-floor-tests.sh, unten gesourct
+#   - Erst-Einbindung per factory.lock (#428) – in factory-lock-einbindung-tests.sh, unten gesourct
 # Die Prüf-Helfer kommen aus der Factory-Lib (scripts/checks/tests/lib/assert-helpers.sh, Q10).
 # Läuft in CI im Required Check `test` des projekteigenen ci.yml (AK-J3).
 
@@ -516,6 +517,9 @@ source "$PROJECT_TESTS_DIR/factory-extract-tests.sh"
 
 # ─── #291/#337/#339/#390/#412/#444/#447/#448: Dependency-Security-Floors (#428 AK2.18b: aus der Factory-Suite hierher) ───
 source "$PROJECT_TESTS_DIR/dependency-floor-tests.sh"
+
+# ─── #428: Projekt-Anteile der Erst-Einbindung per factory.lock (AK2.17a/b/d–g) ───
+source "$PROJECT_TESTS_DIR/factory-lock-einbindung-tests.sh"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 print_summary

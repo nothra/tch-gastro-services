@@ -3,7 +3,7 @@
 ## Status
 - [x] In Bearbeitung
 - [ ] Review bestanden
-- [ ] Tests vollständig
+- [x] Tests vollständig
 - [ ] Security-Review bestanden
 - [ ] Refactoring abgeschlossen
 - [ ] Codify ausgeführt
@@ -87,3 +87,8 @@ Erstellt: 2026-10-24 14:30
 - Projekt-Test `#431 AK-D3` (Rekonstruktion der alten CLAUDE.md gegen Commit bcba043, lief nur lokal, in CI Skip) entfernt: `FACTORY.md` ist jetzt vendort und hash-gesichert, die Prämisse entfällt. Lokal war er nach dem Sync rot.
 - Projekt-Suite nach dem Löschen der OWNERSHIP.md: 333 grün, 0 rot (der frühere „334 grün"-Lauf lag vor der Löschung).
 - `factory-self-test` #49 AK1 (SIGPIPE-Flake `printf | grep -q` in vendortem `run-tests.sh:3709`): nicht lokal änderbar; CI-Neustart, bei Wiederholung Issue in nothra/dev-factory (Freigabe nötig).
+
+### /test
+- App-Code (`app/`, `db/`, `lib/`, `e2e/`) unverändert → App-Coverage unberührt, kein Coverage-Lauf nötig.
+- Lücke gefunden: AK2.17a/b/d/e/f/g hatten nur Belege per Hand, keinen Test. Neu: `scripts/project/tests/factory-lock-einbindung-tests.sh` (in `run-project-tests.sh` gesourct), 16 Assertions inkl. Gegenprobe `e2e/x.spec.ts` nicht ignoriert. AK2.17c deckt der Preflight-Lauf, AK2.17h/2.14c sind menschlich.
+- Projekt-Suite: 349 grün, 0 rot. Factory-Suite unverändert (vendort, CI grün).
