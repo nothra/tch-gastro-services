@@ -198,7 +198,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 
 ### Erst-Einbindung (neu, nicht im Epic)
 
-- [ ] **AK2.14a** GIVEN TCH heute (eigene Dateien, kein Lock) WHEN T2 gemergt ist THEN existiert
+- [ ] **AK2.14a** *(Beleg nach dem Merge)* GIVEN TCH heute (eigene Dateien, kein Lock) WHEN T2 gemergt ist THEN existiert
   `factory.lock`, `main` besteht alle Gates inkl. `factory-integrity`, und **jede** Datei der
   Seite `factory` ist durch das Lock gedeckt (AK2.1c).
 - [ ] **AK2.14b** GIVEN die TCH-Fassung weicht von der Fassung im Factory-Repo ab (Bereinigung in T1b)
@@ -206,7 +206,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   **oder** als „gehört nach `nothra/dev-factory`" ins Factory-Repo gegeben – es gibt keinen
   stillen Verlust und keine neue stille Abweichung. Das Ergebnis ist im PR dokumentiert
   (Dateiliste Vorher/Nachher).
-- [ ] **AK2.14c** GIVEN `protect-main` WHEN T2 abgeschlossen ist THEN führt das Ruleset
+- [ ] **AK2.14c** *(Beleg nach dem Merge)* GIVEN `protect-main` WHEN T2 abgeschlossen ist THEN führt das Ruleset
   `factory-integrity` als Required Check; die bisherigen Check-Namen sind unverändert
   (der ADR-Nachtrag dazu gehört der Factory und steht als nothra/dev-factory#62 aus, nicht in diesem Repo).
 
@@ -288,7 +288,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
 - [ ] **AKE.1** GIVEN T2a ist gemergt WHEN TCH die Pipeline fährt (Stage 2/3) THEN verhält sie sich wie
   zuvor; Self-Tests und App-Gates sind grün, die Required-Check-Namen sind bis auf die Ergänzung
   `factory-integrity` unverändert.
-- [ ] **AKE.2** GIVEN T2a WHEN gearbeitet wird THEN läuft sie als eigener PR mit eigenem Issue (#428)
+- [ ] **AKE.2** *(Beleg nach dem Merge)* GIVEN T2a WHEN gearbeitet wird THEN läuft sie als eigener PR mit eigenem Issue (#428)
   und gilt erst nach grünen Gates in **beiden** Repos als fertig; die Reihenfolge ist Factory-PR →
   Release `v0.8.0` (ursprünglich `v0.7.0` geplant, Nachtrag 2026-11-15) → TCH-PR (ADR-063 Nachtrag Q1).
 

@@ -7,7 +7,7 @@
 - [x] Security-Review bestanden
 - [x] Refactoring abgeschlossen
 - [x] Codify ausgeführt
-- [ ] Fertig / PR erstellt
+- [x] Fertig / PR erstellt
 
 ## Beschreibung
 Teil-Task T2 des Epics #424: TCH bindet die Factory als versionierte Kopie aus `nothra/dev-factory`
@@ -17,9 +17,7 @@ Technik: [ADR-063](../docs/factory/adr/063-factory-eigenes-repo-vendored-manifes
 
 ## Akzeptanzkriterien
 > Volltext in spec-428 (eine Quelle). **Nur T2a-4**; die übrigen Kriterien gehören den Factory-Tasks.
-- [ ] AK2.14a `factory.lock` existiert, `main` besteht alle Gates inkl. `factory-integrity`, jede Datei der Seite `factory` ist durch das Lock gedeckt
 - [x] AK2.14b jede Abweichung TCH ↔ eingebundene Version ist Teil der Version oder ins Factory-Repo gegeben; Dateiliste Vorher/Nachher + `git log`-Beleg im PR
-- [ ] AK2.14c `protect-main` führt `factory-integrity` als Required Check (nach dem Merge, menschlich); ADR-029-Nachtrag
 - [x] AK2.15d TCHs `OWNERSHIP.md` entfernt, kein Text verweist mehr darauf als Quelle der Zuordnung
 - [x] AK2.17a (#44) Gruppe „Factory-Lessons" aus `PROJECT-CONTEXT.md` im selben PR wie der Sync entfernt; Import-Deckel aus v0.8.0 grün
 - [x] AK2.17b (#47) `start_work.copy_files: [".env.local"]` in `factory.config.yml`; `.env.local` wird weiter kopiert
@@ -34,7 +32,14 @@ Technik: [ADR-063](../docs/factory/adr/063-factory-eigenes-repo-vendored-manifes
 - [x] AK2.18c Jede Factory-Seiten-Änderung auf `main` seit der Herauslösung zugeordnet; Liste direkt vor dem Merge neu erzeugt
 - [x] FS-T2.5 Neue Factory-Seiten-Änderung zwischen PR und Merge → zugeordnet, sonst kein Merge
 - [x] AKE.1 Pipeline unverändert, Self-Tests und App-Gates grün, Required-Check-Namen bis auf `factory-integrity` unverändert
-- [ ] AKE.2 eigener PR/Issue, beide Repos grün; Reihenfolge Factory-Releases → TCH-PR
+
+## Nach dem Merge (menschlich, nicht Teil von Done)
+> Diese drei Kriterien bleiben in spec-428 gültig, sind aber erst **nach** dem Merge belegbar. Die Task-Datei wird vor dem Merge
+> abgeschlossen (FACTORY.md „Task-Datei final auf dem Feature-Branch abschließen"); der Beleg gehört als Kommentar an Issue #428.
+- AK2.14a `main` besteht alle Gates inkl. `factory-integrity`, jede Datei der Seite `factory` ist durch das Lock gedeckt – Beleg: grüner CI-Lauf auf dem Merge-Commit.
+- AK2.14c `protect-main` führt `factory-integrity` als Required Check, übrige Check-Namen unverändert – Beleg: `gh api repos/nothra/tch-gastro-services/rulesets/19162920` (Soll-Ist-Abgleich). Der ADR-Nachtrag ist [nothra/dev-factory#62](https://github.com/nothra/dev-factory/issues/62), keine Merge-Voraussetzung.
+- AKE.2 Eigener PR/Issue, beide Repos grün, Reihenfolge Factory-Releases → TCH-PR – Beleg: grüne CI in `nothra/dev-factory` (v0.8.0) und im TCH-Merge-Commit.
+- Zusätzlich: Test-Lauf *Factory Update* per `workflow_dispatch` auf `main` (Token/Rechte, AK2.17h).
 
 ## Technische Notizen
 Entscheidungen: [ADR-063 Nachtrag 2026-10-24 + „Zweiter Schnitt von T2a“](../docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md) (Q1–Q9).
