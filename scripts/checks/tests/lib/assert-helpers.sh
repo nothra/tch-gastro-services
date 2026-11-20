@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# assert-helpers.sh – gemeinsame Prüf-Helfer der Test-Suiten (Factory-Datei, #432 / Q10)
+# assert-helpers.sh – gemeinsame Prüf-Helfer der Test-Suiten (Factory-Datei, nothra/tch-gastro-services#432 / Q10)
 #
 # Wird gesourct – nie direkt ausgeführt – von `scripts/checks/tests/run-tests.sh` (Factory-Suite)
-# und `scripts/project/tests/run-project-tests.sh` (Projekt-Suite). Es gibt genau eine Kopie:
+# und `scripts/project/tests/run-tests.sh` (Projekt-Suite). Es gibt genau eine Kopie:
 # die Helfer gehören der Factory und kommen ab T2 mit Factory-Updates.
 #
 # Stellt bereit: die Zähler PASS/FAIL, die Farben, assert_exit/assert_true/assert_contains_286/
-# assert_absent, flat_286, mk_feature_repo, ls_mode_matches, HAS_YQ/skip_yq, ci_job_block und
-# print_summary (Ergebnis-Fußzeile samt Exit-Code).
+# assert_absent, flat_286, label_drift_431, mk_feature_repo, ls_mode_matches, HAS_YQ/skip_yq, ci_job_block, cp_pipeline_libs, bare_factory_adr_426,
+# lessons_index_guard_44 und print_summary (Ergebnis-Fußzeile samt Exit-Code).
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
+
+# NO_LOCK_FILE: Pfad, den es nie gibt – Tests des Tabellenmodus setzen ihn als FACTORY_LOCK_FILE, damit ein factory.lock im Repo
+# (Konsument) sie nicht in den Lock-Modus zieht. Eine Stelle, falls der Env-Name von ownership-check.sh sich je ändert.
+NO_LOCK_FILE=/nicht/vorhanden/factory.lock
+
+# Repo-lokale Git-Variablen neutralisieren (Factory-Issue #6): Läuft eine Suite aus einem Git-Hook (z. B. als
+# commands.test im pre-push-Hook eines Worktrees), exportiert Git GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE. Sie würden
+# in jedes Wegwerf-Repo der Tests durchschlagen und den echten Worktree verändern (Branch, Remote, Dateien).
+# Bewusst eine feste Liste statt `git rev-parse --local-env-vars`: GIT_CONFIG_* bleibt erhalten (kein Repo-Bezug).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX GIT_IMPLICIT_WORK_TREE \
+      GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
+
 
 PASS=0
 FAIL=0
@@ -43,24 +55,42 @@ assert_true() {
 # Mehrwort-Content-Checks gegen Markdown-Prosa prüfen eine Aussage, keine Kommando-/Aufrufzeile –
 # ein harmloser Umbruch mitten im Satz macht einen reinen `grep -qF`-Mehrwort-Anker sonst lautlos
 # rot (Präsenz-Guard) bzw. lautlos grün (Abwesenheits-Guard). Lesson factory-workflow.md
-# ("grep -qF-Fixed-String-Regressionstest gegen Markdown-Prosa", #240/#249/#286): ab zwei
+# ("grep -qF-Fixed-String-Regressionstest gegen Markdown-Prosa", nothra/tch-gastro-services#240/#249/#286): ab zwei
 # Mehrwort-Checks gegen dieselbe Datei lohnt der Helper mehr als Zeilen-für-Zeile-Vorsicht.
-# Der Namenssuffix stammt aus dem #286-Block, in dem der Helper entstand; er steht hier oben,
-# weil ihn inzwischen mehrere Blöcke nutzen (#236, #286).
+# Der Namenssuffix stammt aus dem nothra/tch-gastro-services#286-Block, in dem der Helper entstand; er steht hier oben,
+# weil ihn inzwischen mehrere Blöcke nutzen (nothra/tch-gastro-services#236, nothra/tch-gastro-services#286).
 # Das zweite `tr` fasst Leerzeichen-Folgen zusammen: der dominante Markdown-Stil dieser Doku
 # rückt Folgezeilen um zwei Leerzeichen ein, sonst wäre die Umbruch-Toleranz genau bei
 # eingerückten Fortsetzungen wieder wirkungslos. Preis: Phrasen mit MEHREREN aufeinander
 # folgenden Leerzeichen sind über diesen Lesepfad nicht ankerbar.
 flat_286() { tr '\n' ' ' < "$1" | tr -s ' '; }
 
+# label_drift_431 <defaults> <config> <git-workflow.md> <PROJECT-CONTEXT.md> → Liste der Abweichungen (leer = ok); braucht yq.
+# Generische Labels stehen als Tabellenzeile in git-workflow.md, projekteigene (labels.aspects_extra) als Tabellenzeile in
+# PROJECT-CONTEXT.md – und nicht umgekehrt. Hier statt in einer Suite, weil die ausgelieferte Suite den Guard gegen eine
+# Fixture-PROJECT-CONTEXT.md fährt und die Projekt-Suite gegen die echte (Factory-Issue #28).
+label_drift_431() {
+  local eff g l out="" gw pc
+  eff="$(yq eval-all '. as $i ireduce ({}; . * $i)' "$1" "$2")"
+  gw="$(flat_286 "$3")"; pc="$(flat_286 "$4")"
+  for g in $(printf '%s' "$eff" | yq '.labels.kinds[], .labels.aspects[]' -); do
+    grep -qF -- "| \`$g\` |" <<< "$gw" || out="$out generisch-fehlt-in-git-workflow:$g"
+  done
+  for l in $(printf '%s' "$eff" | yq '.labels.aspects_extra[]' -); do
+    grep -qF -- "| \`$l\` |" <<< "$pc" || out="$out projekt-fehlt-in-PROJECT-CONTEXT:$l"
+    grep -qF -- "| \`$l\` |" <<< "$gw" && out="$out projekt-steht-in-git-workflow:$l"
+  done
+  printf '%s' "$out"
+}
+
 # assert_contains_286 <geflachter-inhalt> <phrase> <beschreibung>
 #
-# Das `--` vor dem Pattern (seit #334) ist nicht kosmetisch: ohne es liest grep eine Phrase,
+# Das `--` vor dem Pattern (seit nothra/tch-gastro-services#334) ist nicht kosmetisch: ohne es liest grep eine Phrase,
 # die mit `-` beginnt (`--no-telemetry`, `-v`, …), als OPTION und bricht mit einem
 # Usage-Fehler ab – der Test wird rot bzw. der Abwesenheits-Spiegel grün, ohne dass die
-# Phrase je gesucht wurde. Genau diese Falle traf #319 dreimal im selben PR und #334 erneut;
-# clean-code.md („Config-/nutzerkontrollierte Werte als Daten behandeln") verlangt das `--`
-# ohnehin. Die Kontroll-Assertion dazu steht im #334-Block.
+# Phrase je gesucht wurde. Genau diese Falle traf nothra/tch-gastro-services#319 dreimal im selben PR und nothra/tch-gastro-services#334 erneut;
+# bash-gotchas.md § 20 („Config-/nutzerkontrollierte Werte als Daten behandeln") verlangt das `--`
+# ohnehin. Die Kontroll-Assertion dazu steht im nothra/tch-gastro-services#334-Block.
 # Verdichtet das wiederkehrende "enthält der geflachte Inhalt die Phrase?" auf einen Aufruf.
 assert_contains_286() {
   printf '%s' "$1" | grep -qF -- "$2"
@@ -80,11 +110,29 @@ assert_absent() {
 # mk_feature_repo <verzeichnis> <branch> – leeres git-Repo auf einem Feature-Branch, bereit für
 # einen echten pre-push.sh-Lauf. Die lokale Git-Identität wird explizit gesetzt: ohne sie
 # scheitert der Commit in einer identitätslosen Umgebung (CI), wo kein globaler Fallback
-# existiert (Lesson aus #265). Genutzt von den pre-push-Verhaltenstests in #149 und #319.
+# existiert (Lesson aus nothra/tch-gastro-services#265). Genutzt von den pre-push-Verhaltenstests in nothra/tch-gastro-services#149 und nothra/tch-gastro-services#319.
 mk_feature_repo() {
   git -C "$1" init -q
   git -C "$1" checkout -q -b "$2"
   git -C "$1" -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init
+}
+
+# mk_spec_fixture <repo-root> <task_id> [ak_zahl=3] – legt docs/specs/spec-<id>-fixture.md mit
+# <ak_zahl> offenen AK-Checkboxen im Abschnitt "## Akzeptanzkriterien" an. run-pipeline.sh stoppt im
+# Preflight ohne Spec mit AK (Factory-ADR-065 §3); jedes Wegwerf-Repo, das die Pipeline startet, braucht
+# darum eine. 3 AK = unterste Turn-Stufe (20) und Modell-Tier light. Einziger Ort für den Fixture-Aufbau
+# (Lesson testing.md: kein paralleler Scaffold-Zweitaufbau).
+mk_spec_fixture() {
+  local root="$1" task_id="$2" count="${3:-3}" i=1
+  mkdir -p "$root/docs/specs"
+  {
+    printf '# Spec %s (Fixture)\n\n## Akzeptanzkriterien\n\n' "$task_id"
+    while [ "$i" -le "$count" ]; do
+      printf -- '- [ ] AK%s\n' "$i"
+      i=$((i + 1))
+    done
+    printf '\n## Fehlerszenarien\n\n- [ ] F1: nicht als AK zaehlen\n'
+  } > "$root/docs/specs/spec-${task_id}-fixture.md"
 }
 
 # ls_mode_matches <datei> <modus-präfix, z. B. '-rw-------'>
@@ -107,9 +155,67 @@ skip_yq() { echo "  • ${1} – übersprungen (yq fehlt, ADR-009)"; }
 # Nötig, weil eine Prüfung über das ganze File an einem Fremd-Job vorbeirutschen kann (ein
 # anderer Job nutzt pnpm/yq durchaus). Bricht sowohl am nächsten Job-Key als auch am nächsten
 # Job-Trennkommentar ("  # ─── …") ab – reine Key-Erkennung würde den führenden Kommentarkopf
-# des Folge-Jobs (kein "wort:"-Muster) fälschlich mit einschließen (Lesson #255).
+# des Folge-Jobs (kein "wort:"-Muster) fälschlich mit einschließen (Lesson nothra/tch-gastro-services#255).
 ci_job_block() {
   awk -v j="$1" '$0 ~ "^  " j ":" {f=1; next} /^  ([A-Za-z0-9_-]+:|# ───)/{if (f) exit} f' "$2"
+}
+
+# cp_pipeline_libs <repo-root> – legt ALLE von run-pipeline.sh gesourcten scripts/lib/-Dateien
+# in eine Temp-Repo-Kopie. Einziger Ort, an dem eine neu gesourcte Lib nachzutragen ist: fehlt
+# sie, bricht run-pipeline.sh unter `set -euo pipefail` schon am `source` ab und der Test wird
+# rot aus dem falschen Grund (bash-gotchas.md §5; Vorfälle nothra/tch-gastro-services#91, nothra/tch-gastro-services#197). Vor nothra/tch-gastro-services#334 stand dieselbe
+# cp-Gruppe achtmal kopiert in der Suite – jede Kopie eine Stelle, die man beim nächsten Seam
+# vergessen kann.
+cp_pipeline_libs() {
+  mkdir -p "$1/scripts/lib"
+  cp "$SCRIPTS_DIR/lib/report-verdict.sh" \
+     "$SCRIPTS_DIR/lib/tier-select.sh" \
+     "$SCRIPTS_DIR/lib/verify-final-state.sh" \
+     "$SCRIPTS_DIR/lib/telemetry-harvest.sh" \
+     "$SCRIPTS_DIR/lib/gate-config.sh" \
+     "$1/scripts/lib/"
+}
+
+# bare_factory_adr_426 <datei> <nummernliste> – Treffer `ADR-NNN` ohne Präfix (Spec nothra/tch-gastro-services#426 AK-B5); geteilt zwischen
+# der ausgelieferten Suite (Kontrollen) und der Projekt-Suite (Prüfung der Projekt-Dateien).
+bare_factory_adr_426() { # $1 = Datei, $2 = Nummernliste (Leerzeichen) → Treffer `ADR-NNN` ohne Präfix
+  local alt; alt="$(printf '%s' "$2" | tr ' ' '|')"
+  grep -noE "(^|[^A-Za-z-])ADR-($alt)([^0-9]|$)" "$1"
+}
+
+# lessons_index_guard_44 <factory_md> <index_md> <lessons_dir> <customization_txt> – Guard „Lessons-Index ausgeliefert" (Factory-Issue #44);
+# geteilt zwischen der ausgelieferten Suite und factory-lock-44-tests.sh, konsumenten-neutral (liest nur Dateien der Seite `factory`
+# und die Anpassungsstellen-Liste). Gibt je Verstoß eine Zeile aus, Exit 1 bei Fund:
+#   UNLESBAR:<pfad> | keine-lessons:<dir> | fehlt-uebersicht:<datei> | fehlt-gruppe:<datei> | toter-link:<datei> | anpassungsstelle:<pfad>
+#   | fehlt-index-link | importiert-index
+lessons_index_guard_44() {
+  local fmd="$1" idx="$2" dir="$3" cust="$4" lesson name hdr tgt shipped_path bad=0 found=0 src
+  for src in "$fmd" "$idx" "$cust"; do
+    [ -r "$src" ] || { echo "UNLESBAR:$src"; bad=1; }
+  done
+  [ -d "$dir" ] || { echo "UNLESBAR:$dir"; bad=1; }
+  [ "$bad" -eq 0 ] || return 1
+  for lesson in "$dir"/*.md; do
+    [ -f "$lesson" ] || continue   # ohne nullglob bleibt das Glob-Literal stehen
+    name="$(basename "$lesson")"; [ "$name" = INDEX.md ] && continue
+    found=1
+    grep -F -- "](lessons/$name)" "$fmd" | grep -qF -- '**Laden bei:**' || { echo "fehlt-uebersicht:$name"; bad=1; }
+    hdr="$(grep -F -- "**[\`lessons/$name\`](" "$idx" | head -1)"
+    if [ -z "$hdr" ]; then
+      echo "fehlt-gruppe:$name"; bad=1
+    else
+      tgt="$(printf '%s' "$hdr" | sed -E 's/^\*\*\[`[^`]*`\]\(([^)]*)\).*/\1/')"
+      # Das Ziel muss die eigene Lesson-Datei sein – ein Link auf eine andere, existierende Datei ist ebenso tot.
+      { [ "$tgt" = "$name" ] && [ -f "$dir/$tgt" ]; } || { echo "toter-link:$name"; bad=1; }
+    fi
+  done
+  [ "$found" -eq 1 ] || { echo "keine-lessons:$dir"; bad=1; }
+  for shipped_path in docs/factory/FACTORY.md docs/factory/lessons/INDEX.md; do
+    grep -qxF -- "$shipped_path" "$cust" && { echo "anpassungsstelle:$shipped_path"; bad=1; }
+  done
+  grep -qF -- '](lessons/INDEX.md)' "$fmd" || { echo "fehlt-index-link"; bad=1; }
+  grep -qF -- '@docs/factory/lessons/INDEX.md' "$fmd" && { echo "importiert-index"; bad=1; }
+  [ "$bad" -eq 0 ]
 }
 
 # print_summary – Ergebnis-Fußzeile; der Rückgabewert (0 nur ohne Rot) ist der Exit-Code der Suite.

@@ -4,7 +4,7 @@
 > **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
 > Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen in die Lesson-Datei **ihrer Seite** (Zuordnungsregel: betrifft das Learning eine
-> Datei der Factory laut `docs/factory/OWNERSHIP.md` → `docs/factory/lessons/`, sonst → `docs/project/lessons/`;
+> Datei, die in `factory.lock` steht, → `docs/factory/lessons/`, sonst → `docs/project/lessons/`;
 > siehe `/codify` + ADR-037).
 > Factory-Anteil dieses Themas: [`docs/factory/lessons/testing.md`](../../factory/lessons/testing.md).
 
@@ -522,3 +522,17 @@ einmal gegen den echten Browser messen, bevor die AK-Checkbox hängt.
 Review-Finding. Beim Anlegen einer Opt-in-Spec den Lauf (eigener Port, `localhost`, `db:migrate` + `db:seed`) **im selben
 `/implement`-Schritt** ausführen, bevor die Oberflächentest-Checkbox hängt. Grenze mitschreiben: Eine verzögerte
 Server-Ablehnung lässt sich im E2E nicht ohne Eingriff in die Action erzeugen – solche Zustände bleiben jsdom-belegt.
+
+## Projekt-Test liest eine Datei, die ein Factory-Sync löscht oder ersetzt (aus #428, Review-Iteration 1)
+
+**Was passiert ist:** Der Sync auf Factory `v0.8.0` löschte `docs/factory/OWNERSHIP.md` und ersetzte `FACTORY.md`. Zwei
+Projekt-Tests lasen genau diese Dateien (`#431 AK-F4` las `OWNERSHIP.md`; `#431 AK-D3` rekonstruierte die alte `CLAUDE.md`
+aus `FACTORY.md` gegen einen Alt-Commit). Der im Bericht genannte „Projekt-Suite grün"-Lauf stammte aus der Zeit **vor** dem
+Löschen; erst die CI (`test` rot) und ein erneuter lokaler Lauf zeigten es. AK-D3 lief in CI nur nicht rot, weil der flache
+Klon den Commit nicht hat (Skip) – lokal war er nach dem Sync rot.
+
+**Regel:** (1) Nach einem Factory-Sync (oder jedem Löschen/Ersetzen vendorter Dateien) die Projekt-Suite **nach dem letzten
+Dateieingriff** voll laufen lassen und nur diesen Lauf zitieren. (2) Vorher `git grep` auf Pfad der gelöschten/ersetzten Datei
+in `scripts/project/tests/`. (3) Projekt-Tests, die Factory-Dateien als Quelle lesen, auf die Lock-Aussage umstellen
+(`factory.lock`: Datei gelistet = Seite `factory`), nicht auf deren Inhalt. (4) Einmalige Migrations-Rekonstruktionstests
+gegen einen Alt-Commit entfernen, sobald ihre Prämisse (Datei gehört dem Projekt) entfällt.

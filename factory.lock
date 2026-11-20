@@ -1,0 +1,524 @@
+{
+  "schema": 1,
+  "repo": "nothra/dev-factory",
+  "version": "v0.8.0",
+  "commit": "aec0a2b62322719c9e29f9b7bb1b9684559e7956",
+  "files": [
+    {
+      "path": ".claude/commands/architecture.md",
+      "sha256": "b5d680f06391f526df62a56e2ee863fd4515f7a475017fda40ad2a5f247dd036"
+    },
+    {
+      "path": ".claude/commands/bug-fix.md",
+      "sha256": "1d18b649ec10b2d59822c19d79a5775762732bc9263c232ab575f3474a7a4564"
+    },
+    {
+      "path": ".claude/commands/codify.md",
+      "sha256": "ed2a4fe26d10956b9bd75511f73320d53b428a1e6e6ab1e8e9c1f6fdc3e88a97"
+    },
+    {
+      "path": ".claude/commands/configure-factory.md",
+      "sha256": "668e2a3320e808f8211817c08b0382565254c0190fff7a252d8893b5bceefa65"
+    },
+    {
+      "path": ".claude/commands/daily-metrics.md",
+      "sha256": "55b389ada59f5d20c3d683afa5171a1e630877868af7043f68a751f5991b51cc"
+    },
+    {
+      "path": ".claude/commands/implement.md",
+      "sha256": "e1214e041bd75e76541d5d484ecdd14a57a8f98e8e1954a80e968379d0f0257f"
+    },
+    {
+      "path": ".claude/commands/pipeline.md",
+      "sha256": "c3fd505acd18e76e79ff0e244fdbe09396592f568442de8539ef02cd124608f4"
+    },
+    {
+      "path": ".claude/commands/post-merge-verify.md",
+      "sha256": "f3194c07604592b556ee8eb19fc473ad354227b41ea54213b287e27a49d747a5"
+    },
+    {
+      "path": ".claude/commands/pr-shepherd.md",
+      "sha256": "5bd88982cacd42154557e102938a3994c1fe0bffe2976b0939310c1d9e274cff"
+    },
+    {
+      "path": ".claude/commands/refactor.md",
+      "sha256": "931d9375a578a0cca4fdd25a3e2ca93f2f74d0e9282a47c1142149a2e78efb16"
+    },
+    {
+      "path": ".claude/commands/release-notes.md",
+      "sha256": "61a631c3c8bd63cd38c8dfdc81d6ac31334e5475e64dc3ff1ec87fba056f2ba8"
+    },
+    {
+      "path": ".claude/commands/requirements.md",
+      "sha256": "cc80eb19f004f1720bff93f4934810a2d6e3ebb412148e2e3e641fa5a68254f4"
+    },
+    {
+      "path": ".claude/commands/review.md",
+      "sha256": "ac23bb5a1fdbb57f25b36a6c795da13789d6e970b6bc830bb21bf8c88956e71f"
+    },
+    {
+      "path": ".claude/commands/security-review.md",
+      "sha256": "96a89d636dc7a901c18fb13cf3fed3feb3c5afd76360d20b6841a8a1401da556"
+    },
+    {
+      "path": ".claude/commands/setup-project.md",
+      "sha256": "0fb617722886b39a67334b581fc5e3c519be6b1195b4e84743c7d0df8c9f7a44"
+    },
+    {
+      "path": ".claude/commands/test.md",
+      "sha256": "933d87732066fbc7443604db3d180eea001634518be844ede2ca8612deebdd19"
+    },
+    {
+      "path": ".claude/settings.factory.json",
+      "sha256": "2e37638fd7b351e818cef85451175c6fe6e49142a7e22d4de61f0dc9bca89429"
+    },
+    {
+      "path": ".github/workflows/factory-ci.yml",
+      "sha256": "ef68aa10e69d30ff2221e7558ea4f8c071d93a50cd7ffd5147a07d751244e951"
+    },
+    {
+      "path": ".github/workflows/factory-poll.yml",
+      "sha256": "8d54385278abe0b1a8266ee0e25d2f5e6c8795c68250096bad261778f2084fd6"
+    },
+    {
+      "path": ".github/workflows/factory-update.yml",
+      "sha256": "e956aac4fc36576362e9d68b894a127ab7772d71fafdb12a19b160d76fd39258"
+    },
+    {
+      "path": "config/otel.env.example",
+      "sha256": "64e8d82e0ffc2fd633550be1a74abff085fddfd767443e33f0a9197d1d7f6abe"
+    },
+    {
+      "path": "docs/factory/FACTORY.md",
+      "sha256": "aa445c691125048ae8ed47303a784ec289250a02a7896388f9661e5cee7102f0"
+    },
+    {
+      "path": "docs/factory/OPERATING.md",
+      "sha256": "64eb364a4bb8171defb264f2f11bc41dad6e57544cad2e1e94fb63bcbc9f30da"
+    },
+    {
+      "path": "docs/factory/adr/001-dynamic-workflows-complementary-orchestration.md",
+      "sha256": "a2bdec1dd6f558d2f18f311212a5010b9d75527a0a15a81e2b6d6428260e7c4e"
+    },
+    {
+      "path": "docs/factory/adr/002-adr-trigger-check-implementation.md",
+      "sha256": "1373d7e2855f5e4a51e47906807b22905824b09c4291f4d3ad7986327427f8ab"
+    },
+    {
+      "path": "docs/factory/adr/003-hook-input-via-stdin-json.md",
+      "sha256": "eeee0c738e8a7aca6dc3780209b3f5756a86a8dabaf90a0fbc9cc87044b56b97"
+    },
+    {
+      "path": "docs/factory/adr/004-stage3-interrupt-mechanism.md",
+      "sha256": "43777fba6235f60c76da8a5384341233e8875a44dbe6c3a3f73521a8c1302789"
+    },
+    {
+      "path": "docs/factory/adr/005-pipeline-step-order.md",
+      "sha256": "5f9c685cbd9e7307a59c2d45f0a3c5cc7d70aa960eaaaab273809b71e8a89cd2"
+    },
+    {
+      "path": "docs/factory/adr/006-measurement-architecture.md",
+      "sha256": "4a8de70fc17adefad426a2d89f15a75141ac23344b50d5d25d825630c6cd7316"
+    },
+    {
+      "path": "docs/factory/adr/007-post-merge-verification.md",
+      "sha256": "ee0adf4d827f29dc716591d8c2c6b34e6f2f57680982ac27cc13787c2c5a846a"
+    },
+    {
+      "path": "docs/factory/adr/008-async-trigger-mechanism.md",
+      "sha256": "827936b04a5fd02b1226e9d58bedde0f75358a6e496a8f4d1cb391a25c2d82a6"
+    },
+    {
+      "path": "docs/factory/adr/009-factory-configuration.md",
+      "sha256": "e4d69bbb3291603ecd949d2ef0219fe39e5648bc8b132bfbfae5d24495e85a34"
+    },
+    {
+      "path": "docs/factory/adr/010-config-validation-gate.md",
+      "sha256": "9ab2318c3e30098782ef741adc53e56d378af2144c30eec4adb3bd4bef2bd5a0"
+    },
+    {
+      "path": "docs/factory/adr/011-config-annotation-convention.md",
+      "sha256": "d0d6b83ae550c3ded44932c5b17074bf99a0dd6144ba3435829d2cda219c5cbf"
+    },
+    {
+      "path": "docs/factory/adr/012-github-platform-migration.md",
+      "sha256": "8d7437422f9bdb1eeb614228790449057a867095099ef6bd1342ebc205e40ce4"
+    },
+    {
+      "path": "docs/factory/adr/013-task-issue-invariant.md",
+      "sha256": "3104acfcc0ec7ede5a3ebd0f2622ba51c552be8ad92fd103905927ee8a895620"
+    },
+    {
+      "path": "docs/factory/adr/018-central-issue-seam.md",
+      "sha256": "c87a3190a87356475e7abf43c1e41942864a5acc9e0456ddf959e1d1e8dc1d4d"
+    },
+    {
+      "path": "docs/factory/adr/019-stage3-commit-seam-report-guard.md",
+      "sha256": "f32ee83d4058a7fa362ec1c0a645b0c738e7d9e069a20635c7a931276125f57e"
+    },
+    {
+      "path": "docs/factory/adr/029-branch-protection-main-ruleset.md",
+      "sha256": "7b34293aff1f788a52a01953c7d4662a20b892ca82fc25e51288a91b1b436646"
+    },
+    {
+      "path": "docs/factory/adr/030-pr-shepherd-direct-merge-fallback.md",
+      "sha256": "6d1c193ebfebdd8e875f4f805307faf6d92a802095d3af277c1dd008c4aff568"
+    },
+    {
+      "path": "docs/factory/adr/037-lessons-auslagern-aus-import-kontext.md",
+      "sha256": "b8da8162164abcc49b43f39c9615e5eb87323e5ee09657df12795f50fa680fd6"
+    },
+    {
+      "path": "docs/factory/adr/038-groessenabhaengige-modell-tier-wahl.md",
+      "sha256": "ffd1a4724f74862efef5addb0c17651eef8e41fb74147672814bec86c5dc2803"
+    },
+    {
+      "path": "docs/factory/adr/040-idempotenter-issue-seam-fuer-pipeline-retries.md",
+      "sha256": "7401080caa23fb1be69d448bbf25a6967213380d04bec356dc416f3fc8cf0fb9"
+    },
+    {
+      "path": "docs/factory/adr/040-pipeline-endzustands-verifikation.md",
+      "sha256": "2d1a6ffe3224a1318bb534cf61d34af68fb49611f0feab922bdd607479056299"
+    },
+    {
+      "path": "docs/factory/adr/041-config-validation-ci-required-check.md",
+      "sha256": "acec1b5ea288f2cceac77dded0ee62798856e5b1d40dc11e0657f389f7d08a32"
+    },
+    {
+      "path": "docs/factory/adr/042-hook-installation-single-source.md",
+      "sha256": "75e0de477b07c255a715ecd60f44107707d72fda4d8a28d5d5d8f444f4cfe419"
+    },
+    {
+      "path": "docs/factory/adr/043-schwelle-fuer-autonome-issue-anlage.md",
+      "sha256": "1a802954efce1aa7dd29a8a732aed81a9ba0dca10c9b63c41f3714ba2c36ec1d"
+    },
+    {
+      "path": "docs/factory/adr/045-prozess-messung-je-pipeline-lauf.md",
+      "sha256": "3d32d672ecc96d25ec1f482a50acf9c68d4058e86a996d3317c6aa58c86f8855"
+    },
+    {
+      "path": "docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md",
+      "sha256": "41efcb4ce314b25ed50305dca921a7c188dc7aa7f33340f35d34509183eb2f94"
+    },
+    {
+      "path": "docs/factory/adr/049-telemetrie-persistenz-je-pipeline-lauf.md",
+      "sha256": "098a40a1f6c5f24ed6cf3279a06108a2b5fb1effe4f75553f985f4e502d24d39"
+    },
+    {
+      "path": "docs/factory/adr/051-turn-limit-ceiling-implement-80.md",
+      "sha256": "9951c4664ce7f05399cd181e72e3756ff9a2a2d2c297591238ecc38fa21bbc27"
+    },
+    {
+      "path": "docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md",
+      "sha256": "edc290b048108323d3dbb8e117e147c9d9211dc91f52a498ef600f5e0c4860dc"
+    },
+    {
+      "path": "docs/factory/adr/064-konsumenten-vertrag-lock-als-ownership-quelle.md",
+      "sha256": "c0b6e8be7b3172228ab039c3a56488fdb89911308948f5c7cfc53b16aea8eef2"
+    },
+    {
+      "path": "docs/factory/adr/065-turn-budget-nach-ak-zahl.md",
+      "sha256": "b1feabb6d765582b093e1f2623342d170de44970de8871b152de78e18275e75a"
+    },
+    {
+      "path": "docs/factory/adr/066-self-test-gruppen-parallel.md",
+      "sha256": "18362b14c5f8fe6bd14143f227c38f3e40f3e1919578d8fb74779aba6f111991"
+    },
+    {
+      "path": "docs/factory/adr/README.md",
+      "sha256": "126a0be90ff64a47a9c13b415896429986886424052b6ccc79f8ab7e6e6afb40"
+    },
+    {
+      "path": "docs/factory/agents/architect-agent.md",
+      "sha256": "5ae587fecbeca0d638a58d792ea6c66f79e3ab921f5f584cb4e784d10476976b"
+    },
+    {
+      "path": "docs/factory/agents/coding-agent.md",
+      "sha256": "5dee45f5b12759ad7b1f51ab902e20688b5b2748340a9020caed6edfeae1d4dc"
+    },
+    {
+      "path": "docs/factory/agents/refactor-agent.md",
+      "sha256": "70d3b4ecbf653f403b8c65ed760dd493285a6a13cf4cc6ea3581f2bd0727f8e1"
+    },
+    {
+      "path": "docs/factory/agents/requirements-agent.md",
+      "sha256": "cb7870990917ce77e72d3828f2fd8847e17fd8be62d2b2f0cba91506a9e83f8b"
+    },
+    {
+      "path": "docs/factory/agents/review-agent.md",
+      "sha256": "4fc4a8ca83d945798d462a572496b84d52b57b4f6fc1183878335a04a5fb224c"
+    },
+    {
+      "path": "docs/factory/agents/security-agent.md",
+      "sha256": "8fbfc3ac3f5570a558aeb3c5fbda58ec7b37129020ae314236c4ee5b5ef5f655"
+    },
+    {
+      "path": "docs/factory/agents/testing-agent.md",
+      "sha256": "6845de45c94eed0266a6ab5309e8df8d189bf845eee65804730f663f0fdc7396"
+    },
+    {
+      "path": "docs/factory/gitignore.factory",
+      "sha256": "26f2d6c421a9700ad3aa6a65072a97de98b486e84224fda9756f359efa0b6cbd"
+    },
+    {
+      "path": "docs/factory/guidelines/architecture-principles.md",
+      "sha256": "8c26cb11875d1901feb30f449ba2516647168357c4c3cdff51f58dbe2986f237"
+    },
+    {
+      "path": "docs/factory/guidelines/bash-gotchas.md",
+      "sha256": "c74c745250fec85bbd4a341f0e5e53806eb5c850e909087a8044d1cb9986db66"
+    },
+    {
+      "path": "docs/factory/guidelines/clean-code.md",
+      "sha256": "5f9553a7e4333409008554bb1e4f983e00941bee52a53e04a263679cc8b04770"
+    },
+    {
+      "path": "docs/factory/guidelines/git-workflow.md",
+      "sha256": "682c5ed1902d803583773c489b177b4fb967f392dbee60f89ab8abe721ed2f26"
+    },
+    {
+      "path": "docs/factory/guidelines/tdd-principles.md",
+      "sha256": "09f82f3438de0fee5bb4bd561232c4209a8ed9bc1976f00fecd63afff8849718"
+    },
+    {
+      "path": "docs/factory/guidelines/testing-standards.md",
+      "sha256": "866d1049505dc8b6cedcf47e5fb2bfa1153f78b151d32637a3a3d1549365c04a"
+    },
+    {
+      "path": "docs/factory/guidelines/token-efficiency.md",
+      "sha256": "cc610bead61e71a717517885440e884776eb0ae1b25538150d488fc5c9678f57"
+    },
+    {
+      "path": "docs/factory/kleinfunde.md",
+      "sha256": "9e4dd92c0126986a49aa13fa04156c83ea37377dbdcfc6090705ff888c656e1a"
+    },
+    {
+      "path": "docs/factory/lessons/INDEX.md",
+      "sha256": "7affafa4f65cd5bb72bab8a719d9d24af2ced8dcea06b043e41628340011086d"
+    },
+    {
+      "path": "docs/factory/lessons/build-tooling.md",
+      "sha256": "19db2cc014763cb3ef227e5cf375f5a592fb4745e5cc2ca78b7f5e9355947869"
+    },
+    {
+      "path": "docs/factory/lessons/code-style.md",
+      "sha256": "ef3af0cc60e9e06d8624441e35770cbb09f410c2df071057d2936aed99abfe7d"
+    },
+    {
+      "path": "docs/factory/lessons/factory-workflow.md",
+      "sha256": "6e862a2df17fd7267ea96567dcb4c69183ff0b8152e8195c3bbe2c5c4857f1ea"
+    },
+    {
+      "path": "docs/factory/lessons/testing.md",
+      "sha256": "bacea818949077c2ed6c7ec41ad36c712f1c53ec0867cedd76a80027d975bd63"
+    },
+    {
+      "path": "factory.config.yml.example",
+      "sha256": "d9af41f0830cd85f12398d56cb32247193415c2de837447ad0a1697396cb450c"
+    },
+    {
+      "path": "factory.defaults.yml",
+      "sha256": "2761376168017a414cf3f30958223f37a0f9b05642e1fc52ad20340ff196ce7e"
+    },
+    {
+      "path": "scripts/checks/adr-links-check.sh",
+      "sha256": "8e576aa754c96801feead628d8c2260b21ae7b043cb7ac3fe2503fd2a74f6226"
+    },
+    {
+      "path": "scripts/checks/branch-name-check.sh",
+      "sha256": "e0006f09b3706b9db6b0b5a4b59cd3044244b813861bcb9e93625263d3cf1191"
+    },
+    {
+      "path": "scripts/checks/check.sh",
+      "sha256": "0c49993d13259397c17be882dcf4ca0c118111ec130068c01043e9b8c610680c"
+    },
+    {
+      "path": "scripts/checks/commit-msg-check.sh",
+      "sha256": "b5e2ab26dfdd3dd66c9b8672f9e4780dc9ff574572c67c3c64bf77dcb6f53fb8"
+    },
+    {
+      "path": "scripts/checks/completion-check.sh",
+      "sha256": "86cd790251ac7703269afedba908f1db97278ef387d837e36a56b8ade7a9ffb4"
+    },
+    {
+      "path": "scripts/checks/config-validation-check.sh",
+      "sha256": "260b733a4d66bcfc7ca955abf48e0d1ad2064f6a0450255b22f34dbe36ca6e0e"
+    },
+    {
+      "path": "scripts/checks/customization-points.txt",
+      "sha256": "07cc4a780316d4a5744746e55de69cc6c3b8e23544cf1840e2ba3bbc6cd9d811"
+    },
+    {
+      "path": "scripts/checks/factory-integrity-check.sh",
+      "sha256": "0416ca171fdc255e3051aaa5d1d164d3825b10e905ac208524137ba132878844"
+    },
+    {
+      "path": "scripts/checks/git-context-check.sh",
+      "sha256": "98cb866a461ba4f5ab37e6939123da9c64947f15917c0503e88c2055157722d9"
+    },
+    {
+      "path": "scripts/checks/hooks-installed-check.sh",
+      "sha256": "e0a9a8ae67a320a69f30ccf0e2241b6b8d7ad814274cd5db3594a34387d8841a"
+    },
+    {
+      "path": "scripts/checks/import-context-limit-check.sh",
+      "sha256": "c4a70044974e0f736fa147ed247f9eed5a1f7d8d3b93ef45a0fd99ac56910b1f"
+    },
+    {
+      "path": "scripts/checks/interrupt-check.sh",
+      "sha256": "6ee3423f245cac117bda02596af3a02b8592bca6d486e5d01de1972753c2e0b4"
+    },
+    {
+      "path": "scripts/checks/ownership-check.sh",
+      "sha256": "5531d0b92d09975200354612edec29825ba0db7389a1ee48517b94fa69bdc83e"
+    },
+    {
+      "path": "scripts/checks/pr-closes-keyword-check.sh",
+      "sha256": "4c990ed76519aab132ae0c3b969218120897a15d8a6003291b4ddf24b02a7414"
+    },
+    {
+      "path": "scripts/checks/pre-commit.sh",
+      "sha256": "6ac73f3c27f6872aaab550da40cf0ca49297809107400672ee9ff819b4ea06b5"
+    },
+    {
+      "path": "scripts/checks/pre-push.sh",
+      "sha256": "6fe5976ca5f18080cbc14016ec92b87e4d6fab8dbb06d8f0a1c03420f54f4e16"
+    },
+    {
+      "path": "scripts/checks/tests/factory-lock-23-tests.sh",
+      "sha256": "0b129cbaee3cf84f0bcb1207fec94d6316fbcab239cc1a1e66a4b8ca1b8ceef0"
+    },
+    {
+      "path": "scripts/checks/tests/factory-lock-24a-tests.sh",
+      "sha256": "cb8eebe3ec4d034f6165e8c7ab82eb8a82506d8274a6902c9cc357350497aeff"
+    },
+    {
+      "path": "scripts/checks/tests/factory-lock-24b-tests.sh",
+      "sha256": "c0c767150d264485f846245d5c2fa2e22acd249aa35b3ebf5fc72216c4899b68"
+    },
+    {
+      "path": "scripts/checks/tests/factory-lock-37a-tests.sh",
+      "sha256": "0cb739588f9d6061dabe7e55ccfdbe7a7d43e659795bed9b60947fc306a43a9b"
+    },
+    {
+      "path": "scripts/checks/tests/factory-lock-37b-tests.sh",
+      "sha256": "1d3711fabce0652d6a008a186018eb7268bedf7f43fb45479e55a180c7c24f06"
+    },
+    {
+      "path": "scripts/checks/tests/factory-lock-44-tests.sh",
+      "sha256": "8620911a6f937ea338c97624e831d694b0ea43e76757c0884a9c145357cfaa51"
+    },
+    {
+      "path": "scripts/checks/tests/fixtures/lessons-split-426.tsv",
+      "sha256": "67acc5f13b1daa4150c50222fe1ada8fdc70a0e4566cceebc90974ec936b99b3"
+    },
+    {
+      "path": "scripts/checks/tests/fixtures/otel-console-sample.txt",
+      "sha256": "22603fa8f760d42484fd68852db337629946502f6b0d43ed72b3ff68a14fc8ff"
+    },
+    {
+      "path": "scripts/checks/tests/lib/assert-helpers.sh",
+      "sha256": "41ffe8caf90704d7e49d15fbd80d907049fb1dce5bd3a01c9db86ad8f02fe355"
+    },
+    {
+      "path": "scripts/checks/tests/lib/factory-lock-fixtures.sh",
+      "sha256": "5f302c803274f62981b95009e96c18309c2a8667dd41cb94ff50965bcefb7638"
+    },
+    {
+      "path": "scripts/checks/tests/lib/test-groups.sh",
+      "sha256": "6ade0817305b5166e511a97303ddf78d4698f29804009a43873e55d5e741ebb7"
+    },
+    {
+      "path": "scripts/checks/tests/run-tests.sh",
+      "sha256": "7b14bf760ef6031e934d8672bb1ff8262dd4e46931a65c278470f2ef7b089209"
+    },
+    {
+      "path": "scripts/factory-commit.sh",
+      "sha256": "1c2a125fd6d7e7a572f73d17fab0a930595a18eb7bb7b546f839a411cf74cf07"
+    },
+    {
+      "path": "scripts/factory-poll.sh",
+      "sha256": "c16bfccd656f3d35150c97d59033bd42ca2e681b077fa1ae72876f0ca46052fa"
+    },
+    {
+      "path": "scripts/factory-release-check.sh",
+      "sha256": "1d6fae31750440ebadd10094b310475791f3ebd674f4f3d613a7ed9f54b95704"
+    },
+    {
+      "path": "scripts/factory-release-manifest.sh",
+      "sha256": "143afbdd98252525011fdad072037d85ead97502a0852aa244ed8cc253aa4376"
+    },
+    {
+      "path": "scripts/factory-sync.sh",
+      "sha256": "83f7d2dd62c5078a39c5bd7495688915c459838a0df448f9e8f29f155386fedb"
+    },
+    {
+      "path": "scripts/factory-update.sh",
+      "sha256": "69b95bec5024fcc036f7ba7249c5b8f0a059c9bdac898298428a0c19987c77e0"
+    },
+    {
+      "path": "scripts/init-factory.sh",
+      "sha256": "a73c8bc093d01bd3b73c1cfd5d6290908feca7be2dc71ca32acedbaa27364aa0"
+    },
+    {
+      "path": "scripts/install-hooks.sh",
+      "sha256": "fc4ac862a816c1612b3c2b5ca233123b9e397e8d2e734ed83dfa66a5d094517a"
+    },
+    {
+      "path": "scripts/install-yq.sh",
+      "sha256": "5dc3a567379f98aa6055d5822bc5522655f917703343d96869d174e7352bf676"
+    },
+    {
+      "path": "scripts/lib/create-issue.sh",
+      "sha256": "0747aaa6d4b286a1d107904092461fa61e44fd10667a5d7a4e93e0b49a5d6717"
+    },
+    {
+      "path": "scripts/lib/factory-lock.sh",
+      "sha256": "e312ba548c7f54502e3ae3b439cc87bf91a765e5dc7090784c9d600d4dad1abd"
+    },
+    {
+      "path": "scripts/lib/gate-config.sh",
+      "sha256": "2838210229b80bd8a00060dfa64267fd7cbae26eadfb03743516c41ffef8a35c"
+    },
+    {
+      "path": "scripts/lib/report-verdict.sh",
+      "sha256": "0a886db840ee22ee6846fe13d3c3bfbaf99511315a86870f97a54f334e418c44"
+    },
+    {
+      "path": "scripts/lib/telemetry-harvest.sh",
+      "sha256": "982c3f3e502ef48f7ff97b7e96e61f5b03f48dffbfca150250499f8943635bbb"
+    },
+    {
+      "path": "scripts/lib/tier-select.sh",
+      "sha256": "e8b46e1900ebe58bad368ec2a00b5edd75a3fe21f540133972d3b512e160e4f6"
+    },
+    {
+      "path": "scripts/lib/verify-final-state.sh",
+      "sha256": "8facdb9b8c1c347a62433460d16c2c6bb2ddd8412ebe077d691d76d1db7cf301"
+    },
+    {
+      "path": "scripts/metrics.sh",
+      "sha256": "05710066f012fc3a9102780f1af4ed1c3cf4fd8fb65dee1789657d16a15568c8"
+    },
+    {
+      "path": "scripts/post-merge-verify.sh",
+      "sha256": "05d5495cd3d4c6326dc48e68e6d84c2dfcdb8677396fde5cdd831e704cc0e545"
+    },
+    {
+      "path": "scripts/raise-interrupt.sh",
+      "sha256": "a24026e5897135ecf3b89062b3780be3331555207f8cd1ef73a8eb6aabf6bd9b"
+    },
+    {
+      "path": "scripts/run-pipeline.sh",
+      "sha256": "4ac35b0ba8fac6567098843a25e9d03073183f1d95d222dd9da3927e52102fc8"
+    },
+    {
+      "path": "scripts/start-work.sh",
+      "sha256": "6246816fb2d070dd00f3826051b4aea871611960f51176bf7899ecee23c9b3f6"
+    },
+    {
+      "path": "scripts/sync-issues.sh",
+      "sha256": "aec9b53fba7b8fc7ce8b8af356b081ca8ea8c69b99319eeab721cad91ed891dc"
+    }
+  ]
+}

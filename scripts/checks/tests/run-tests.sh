@@ -12,13 +12,37 @@
 #   - commit-msg-check.sh / install-hooks.sh / init-factory.sh: Flag-Guard für
 #     Commit-Messages und Hook-Installation (ADR-042)
 #   - weitere Pipeline-/Doku-Invarianten je Issue-Block (Abschnittstitel nennen die Nummer)
+#
+# Konvention: Ein `#<nr>` in Testnamen und Meldungen bezeichnet das Issue des Ursprungs-Repos
+# `nothra/tch-gastro-services` (Herkunft des jeweiligen Tests); in Kommentaren steht der Verweis qualifiziert.
 
 set -uo pipefail
 
 CHECKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Gemeinsame Prüf-Helfer (Zähler, assert_*, Fixtures) – geteilt mit der Projekt-Suite (#432, Q10)
-source "$CHECKS_DIR/tests/lib/assert-helpers.sh"
+# Gemeinsame Prüf-Helfer (Zähler, assert_*, Fixtures) – geteilt mit der Projekt-Suite (nothra/tch-gastro-services#432, Q10)
+source "$CHECKS_DIR/tests/lib/assert-helpers.sh" || {
+  echo "run-tests: geteilte Helfer-Lib nicht ladbar: $CHECKS_DIR/tests/lib/assert-helpers.sh (fail-closed, Factory-Issue #22 F-22.5)" >&2
+  exit 2
+}
+
+# Markierung für den Projekt-Hook scripts/project/checks/pre-push.d/10-project-tests.sh: Diese Suite ruft pre-push.sh echt gegen das
+# Repo auf (#149, #265 …); dort soll der Hook die Projekt-Suite nicht verschachtelt noch einmal starten (Factory-Issue #22).
+export FACTORY_SELF_TEST_RUN=1
+
+# Testgruppen als parallele Teilprozesse (Factory-ADR-066): jetzt starten, an der Stelle „Factory-Issue #23" unten einsammeln.
+# Ausgabe und Zähler erscheinen dort in Startreihenfolge; FACTORY_SELF_TEST_SERIAL=1 = derselbe Ablauf ohne Überlappung.
+source "$CHECKS_DIR/tests/lib/test-groups.sh" || {
+  echo "run-tests: Helfer-Lib nicht ladbar: $CHECKS_DIR/tests/lib/test-groups.sh (fail-closed)" >&2
+  exit 2
+}
+test_groups_trap
+# Die Gruppenliste ist der Glob selbst (sortiert: 23, 24a, 24b, 37a, 37b – die Ausgabe bleibt in der bisherigen Reihenfolge):
+# eine neue Gruppendatei läuft mit und steht im Neutralitäts-Guard (SHIPPED_TESTS_28), ohne dass eine Liste von Hand mitwächst.
+TEST_GROUP_FILES_52=("$CHECKS_DIR"/tests/factory-lock-*-tests.sh)
+for group_52 in "${TEST_GROUP_FILES_52[@]}"; do
+  test_group_start "$(basename "$group_52" -tests.sh)" "$group_52"
+done
 
 # ─── branch-name-check.sh: direkter Aufruf mit Befehls-String ────────────────
 echo "branch-name-check.sh (Befehls-String als \$1):"
@@ -66,28 +90,13 @@ echo "Interrupt-Mechanismus (Stage-3, ADR-004):"
 
 SCRIPTS_DIR="$(cd "$CHECKS_DIR/.." && pwd)"
 
-# Gate-Kommandos für die Pipeline-Läufe in Wegwerf-Repos (#431): run-pipeline.sh hat keinen pnpm-
+# Gate-Kommandos für die Pipeline-Läufe in Wegwerf-Repos (nothra/tch-gastro-services#431): run-pipeline.sh hat keinen pnpm-
 # Default mehr und bricht vor dem ersten Agenten-Schritt ab, wenn lint/test/coverage weder in der
 # Config noch per Env stehen. Die Wegwerf-Repos tragen keine factory.config.yml mit commands.* –
 # ein Test, der ein Gate prüft, setzt sein Kommando explizit (das schlägt diese Vorgabe). Vor den
-# #431-Gruppen G/H wird sie wieder entfernt, damit deren Fehlend-Tests nichts erben.
+# nothra/tch-gastro-services#431-Gruppen G/H wird sie wieder entfernt, damit deren Fehlend-Tests nichts erben.
 export FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true
 
-# cp_pipeline_libs <repo-root> – legt ALLE von run-pipeline.sh gesourcten scripts/lib/-Dateien
-# in eine Temp-Repo-Kopie. Einziger Ort, an dem eine neu gesourcte Lib nachzutragen ist: fehlt
-# sie, bricht run-pipeline.sh unter `set -euo pipefail` schon am `source` ab und der Test wird
-# rot aus dem falschen Grund (bash-gotchas.md §5; Vorfälle #91, #197). Vor #334 stand dieselbe
-# cp-Gruppe achtmal kopiert in der Suite – jede Kopie eine Stelle, die man beim nächsten Seam
-# vergessen kann.
-cp_pipeline_libs() {
-  mkdir -p "$1/scripts/lib"
-  cp "$SCRIPTS_DIR/lib/report-verdict.sh" \
-     "$SCRIPTS_DIR/lib/tier-select.sh" \
-     "$SCRIPTS_DIR/lib/verify-final-state.sh" \
-     "$SCRIPTS_DIR/lib/telemetry-harvest.sh" \
-     "$SCRIPTS_DIR/lib/gate-config.sh" \
-     "$1/scripts/lib/"
-}
 
 TMP_FACTORY="$(mktemp -d)"
 mkdir -p "$TMP_FACTORY/tasks"
@@ -144,6 +153,7 @@ if [ "$HAS_YQ" = 1 ]; then
   echo "# Project" > "$TMP_PF/docs/factory/PROJECT-CONTEXT.md"
   echo "# Task 55: cleanup-test" > "$TMP_PF/tasks/task-55-cleanup-test.md"
   echo "# INTERRUPT – Task 55" > "$TMP_PF/tasks/INTERRUPT-55.md"
+  mk_spec_fixture "$TMP_PF" 55
   git -C "$TMP_PF" init -q
   git -C "$TMP_PF" add .
   git -C "$TMP_PF" -c user.email="test@test.com" -c user.name="test" commit -q -m "init"
@@ -202,12 +212,8 @@ assert_true "$?" "bug-fix eskaliert nicht-reproduzierbare Bugs via raise-interru
 grep -q 'gh pr update-branch' "$SHEPHERD"
 assert_true "$?" "pr-shepherd nutzt server-seitiges 'gh pr update-branch'"
 
-# CI-Gates fail-closed: FACTORY_*_COMMAND-Variable, exit 1 wenn unkonfiguriert
-PROJECT_CI_FILE="$FACTORY_ROOT/.github/workflows/ci.yml"
-{ grep -q 'FACTORY_LINT_COMMAND' "$PROJECT_CI_FILE" && grep -q 'FACTORY_TEST_COMMAND' "$PROJECT_CI_FILE" && grep -q 'exit 1' "$PROJECT_CI_FILE"; }
-assert_true "$?" "CI lint/test sind echte Gates (FACTORY_*_COMMAND, fail-closed)"
 
-# ─── Stufe-2: OTEL-ready Bauchladen (#17) ────────────────────────────────────
+# ─── Stufe-2: OTEL-ready Bauchladen (nothra/tch-gastro-services#17) ────────────────────────────────────
 echo ""
 echo "Stufe-2 OTEL-Telemetrie (#17):"
 
@@ -220,13 +226,13 @@ assert_true "$?" "otel.env.example enthält CLAUDE_CODE_ENABLE_TELEMETRY=1"
 
 # config/otel.env.example bleibt die Beispiel-Datei für den manuellen/Gateway-Weg und wird
 # von run-pipeline.sh weiterhin NICHT gesourct – die Pipeline setzt ihre zwei Variablen seit
-# #334 selbst (ADR-049 §E3). Die frühere Zusicherung „OTEL ist opt-in" ist damit ungültig;
-# ihr Ersatz (Default an + wirksamer Abschalt-Parameter) steht im #334-Block unten. Was hier
+# nothra/tch-gastro-services#334 selbst (ADR-049 §E3). Die frühere Zusicherung „OTEL ist opt-in" ist damit ungültig;
+# ihr Ersatz (Default an + wirksamer Abschalt-Parameter) steht im nothra/tch-gastro-services#334-Block unten. Was hier
 # bleibt, ist die schwächere, aber weiter gültige Aussage: kein Wiring auf die Beispiel-Datei.
 grep -q 'otel.env' "$FACTORY_ROOT/scripts/run-pipeline.sh"
 assert_true "$([ $? -ne 0 ]; echo $?)" "config/otel.env.example wird nicht von run-pipeline.sh gesourct (ADR-049 §E3)"
 
-# ─── Stufe-2: Metrics-Digest + Interrupt-Log (#12) ───────────────────────────
+# ─── Stufe-2: Metrics-Digest + Interrupt-Log (nothra/tch-gastro-services#12) ───────────────────────────
 echo ""
 echo "Stufe-2 Metrics-Digest (#12):"
 
@@ -269,7 +275,7 @@ grep -q '| Autonomie-Rate | 50% |' "$report" 2>/dev/null
 assert_true "$?" "metrics.sh berechnet Autonomie-Rate aus geschnittener Menge (50%)"
 rm -rf "$TMP_LOG"
 
-# ─── #96: metrics.sh Lead-Time ist locale-unabhängig (printf-%f-Regression) ──
+# ─── nothra/tch-gastro-services#96: metrics.sh Lead-Time ist locale-unabhängig (printf-%f-Regression) ──
 # bash `printf '%.1f'` parst sein Argument lokale-abhängig (strtod). Unter einer
 # Locale mit Komma-Dezimaltrenner (z. B. de_DE) schlägt das Parsen eines
 # Punkt-Dezimalwerts wie "1.75" fehl ("invalid number") und printf fällt still
@@ -336,7 +342,7 @@ printf '%s' "$pc_out" | grep -q 'hardkodierte Credentials'
 assert_true "$?" "pre-commit Credential-Check erkennt geplantetes Secret"
 rm -rf "$PC_TMP"
 
-# ─── Stufe-2: Post-Merge-Verify (#11) ────────────────────────────────────────
+# ─── Stufe-2: Post-Merge-Verify (nothra/tch-gastro-services#11) ────────────────────────────────────────
 echo ""
 echo "Stufe-2 Post-Merge-Verify (#11):"
 
@@ -349,7 +355,7 @@ assert_true "$?" "post-merge-verify-Job in .github/workflows/factory-ci.yml"
 TMP_PMV="$(mktemp -d)"
 mkdir -p "$TMP_PMV/tasks" "$TMP_PMV/scripts" "$TMP_PMV/bin"
 cp "$SCRIPTS_DIR/post-merge-verify.sh" "$SCRIPTS_DIR/raise-interrupt.sh" "$TMP_PMV/scripts/"
-# Tests sollen nicht schlafen: keine Retries / kein Backoff (außer im #24-Retry-Test).
+# Tests sollen nicht schlafen: keine Retries / kein Backoff (außer im nothra/tch-gastro-services#24-Retry-Test).
 export FACTORY_HEALTHCHECK_RETRIES=0 FACTORY_HEALTHCHECK_INTERVAL=0
 
 # Skip-Pfad: ohne FACTORY_HEALTHCHECK_URL → exit 0, kein Interrupt
@@ -375,7 +381,7 @@ assert_exit 1 "$?" "post-merge-verify bei curl-Fehler (non-zero) → exit 1"
 grep -q 'HTTP 000 (erwartet 200)' "$TMP_PMV/tasks/interrupt-log.jsonl" 2>/dev/null
 assert_true "$?" "curl-Fehler meldet einzeiliges '000' (kein 000\\\\n000, !22-Finding)"
 
-# #23: pluggbarer FACTORY_HEALTHCHECK_CMD (Exit-Code = Urteil), Vorrang vor URL
+# nothra/tch-gastro-services#23: pluggbarer FACTORY_HEALTHCHECK_CMD (Exit-Code = Urteil), Vorrang vor URL
 rm -f "$TMP_PMV/tasks/interrupt-log.jsonl"
 FACTORY_DIR="$TMP_PMV" FACTORY_HEALTHCHECK_CMD="true" \
   bash "$TMP_PMV/scripts/post-merge-verify.sh" 23 >/dev/null 2>&1
@@ -395,7 +401,7 @@ pmv_out=$(FACTORY_DIR="$TMP_PMV" FACTORY_HEALTHCHECK_CMD="true" FACTORY_HEALTHCH
 printf '%s' "$pmv_out" | grep -q 'Smoke-Command'
 assert_true "$?" "CMD hat Vorrang vor URL, wenn beide gesetzt"
 
-# #24: Retry/Poll gegen Deploy-Lag. CMs vorgegebener Testfall – Mock liefert erst
+# nothra/tch-gastro-services#24: Retry/Poll gegen Deploy-Lag. CMs vorgegebener Testfall – Mock liefert erst
 # beim 3. Versuch 200 (Deployment hinkt nach) → grün; Dauerfehler → exit 1.
 rm -f "$TMP_PMV/tasks/interrupt-log.jsonl"; echo 0 > "$TMP_PMV/cnt"
 cat > "$TMP_PMV/bin/curl" <<CURLEOF
@@ -424,7 +430,7 @@ rm -rf "$TMP_PMV"
 grep -q "github.event_name == 'push'" "$CI_FILE"
 assert_true "$?" "post-merge-verify-Job ist auf push (nach Merge) eingegrenzt"
 
-# ─── Stufe-2: Async-Trigger / Scheduled-Poll (#10, ADR-008) ──────────────────
+# ─── Stufe-2: Async-Trigger / Scheduled-Poll (nothra/tch-gastro-services#10, ADR-008) ──────────────────
 echo ""
 echo "Stufe-2 Async-Trigger (#10):"
 
@@ -432,7 +438,7 @@ POLL_YML="$FACTORY_ROOT/.github/workflows/factory-poll.yml"
 assert_true "$([[ -f "$FACTORY_ROOT/scripts/factory-poll.sh" ]]; echo $?)" "scripts/factory-poll.sh vorhanden"
 assert_true "$([[ -f "$POLL_YML" ]]; echo $?)" ".github/workflows/factory-poll.yml vorhanden"
 
-# ─── #284: der Schedule ist stillgelegt, workflow_dispatch bleibt ────────────
+# ─── nothra/tch-gastro-services#284: der Schedule ist stillgelegt, workflow_dispatch bleibt ────────────
 # Der Auto-Trigger ist nicht scharfgeschaltet (kein ANTHROPIC_API_KEY, nie ein
 # factory::run-Issue) – ein halbstündlicher Lauf installierte nur ungepinnte
 # Software mit Repo-Schreibrechten, um festzustellen, dass nichts zu tun ist.
@@ -443,10 +449,10 @@ assert_true "$([[ -f "$POLL_YML" ]]; echo $?)" ".github/workflows/factory-poll.y
 # wie `on: {schedule: [...]}` ist damit sichtbar).
 # Kommentare fallen IN derselben awk-Passage weg, damit eine Prosa-Erwähnung von
 # `schedule` oder `contents: write` in einem Kommentar keinen Guard beeinflusst
-# (Lesson #114: Anker ist die YAML-Struktur, nie eine Erwähnung). Bewusst ein Prozess
+# (Lesson nothra/tch-gastro-services#114: Anker ist die YAML-Struktur, nie eine Erwähnung). Bewusst ein Prozess
 # statt `sed | awk`: awk beendet am nächsten Top-Level-Key, das SIGPIPE eines Vorgängers
 # würde unter `set -o pipefail` als Fehlschlag durchschlagen. Nicht lesbare Datei → exit 1
-# (fail-closed, Lesson #214), nicht stiller leerer Block.
+# (fail-closed, Lesson nothra/tch-gastro-services#214), nicht stiller leerer Block.
 poll_yaml_block() {
   [ -r "$1" ] || return 1
   awk -v key="^$2:" '
@@ -456,9 +462,9 @@ poll_yaml_block() {
     f' "$1"
 }
 
-# Block-Anker statt dateiweiter Fragment-Greps (Review-Runde-2-Nitpick #284): derselbe
+# Block-Anker statt dateiweiter Fragment-Greps (Review-Runde-2-Nitpick nothra/tch-gastro-services#284): derselbe
 # Kommentar-Nachzug, der die AK3-Assertion in Runde 1 prosa-erfüllbar gemacht hätte
-# (Lesson #114), könnte sonst auch hier greifen – jetzt, wo poll_yaml_block existiert,
+# (Lesson nothra/tch-gastro-services#114), könnte sonst auch hier greifen – jetzt, wo poll_yaml_block existiert,
 # kostet das Ankern eine Zeile.
 poll_yaml_block "$POLL_YML" jobs | grep -qxF -- '  factory-poll:'
 assert_true "$?" "factory-poll-Job in factory-poll.yml"
@@ -493,7 +499,7 @@ poll_dispatch_guard() {
 # Zeile (mit der zweispaltigen Einrückung des Blocks ergänzt) wörtlich im permissions:-Block
 # steht. Dateiweites Suchen wäre hier wertlos: der WHY-Kommentar am Runtime-Step nennt
 # „contents: write + issues: write" als Prosa und erfüllte einen `grep -q` auch dann, wenn
-# der echte Block fehlt oder auf `contents: read` abgeschwächt ist (Lesson #114: Kommando ≠
+# der echte Block fehlt oder auf `contents: read` abgeschwächt ist (Lesson nothra/tch-gastro-services#114: Kommando ≠
 # Prosa-Erwähnung). Wert als Daten behandeln (`-qxF --`).
 poll_permission_guard() {
   local permissions_block
@@ -517,13 +523,13 @@ grep -qF 'bash scripts/factory-poll.sh' "$POLL_YML"; assert_true "$?" "#284 AK3:
 
 # AK5/AK6 – Mutationsbelege: derselbe Guard-Ausdruck gegen mutierte Kopien, damit
 # belegt ist, dass er zwischen echtem Trigger und Prosa unterscheidet und nicht nur
-# zufällig grün ist (Lesson #286: Beleg muss denselben Assert-Ausdruck ausführen).
+# zufällig grün ist (Lesson nothra/tch-gastro-services#286: Beleg muss denselben Assert-Ausdruck ausführen).
 # Mutation per awk-Einfügung IN den bestehenden on:-Block – ein angehängtes zweites
-# `on:` wäre ein Duplicate-Key-Dokument und würde nur zufällig treffen (Lesson #255).
+# `on:` wäre ein Duplicate-Key-Dokument und würde nur zufällig treffen (Lesson nothra/tch-gastro-services#255).
 TMP_POLL_GUARD="$(mktemp -d)"
 
 # Je Mutant unten steht neben dem rot-erwarteten Beleg eine grüne Positivkontrolle auf ein
-# ANDERES Signal derselben Datei (Review-Runde-2-Nitpick #284, Lesson #214): sonst teilen sich
+# ANDERES Signal derselben Datei (Review-Runde-2-Nitpick nothra/tch-gastro-services#284, Lesson nothra/tch-gastro-services#214): sonst teilen sich
 # alle `! poll_*_guard "<mutant>"`-Belege ihren Fail-Pfad mit AK6 ("Datei nicht lesbar") – bliebe
 # eine Mutanten-Datei aus (mktemp/Redirect schlägt fehl), wäre der Beleg grün, ohne dass die
 # Mutation je geprüft wurde. Die Positivkontrolle belegt: Datei existiert, ist parsbar, und nur
@@ -681,7 +687,7 @@ grep -q 'Neues Feature' "$matfile" 2>/dev/null
 assert_true "$?" "A: materialisierte Task-Datei übernimmt den Issue-Titel"
 rm -rf "$TMP_MAT"
 
-# ─── Issue-Sync: jeder Task hat ein GitHub-Issue-Pendant (#4, ADR-013) ───────
+# ─── Issue-Sync: jeder Task hat ein GitHub-Issue-Pendant (nothra/tch-gastro-services#4, ADR-013) ───────
 echo ""
 echo "Issue-Sync (#4, ADR-013):"
 
@@ -734,7 +740,7 @@ assert_exit 1 "$rc" "--create: Nummern-Mismatch → exit 1"
 printf '%s' "$out" | grep -q 'MISMATCH'; assert_true "$?" "--create meldet MISMATCH bei nicht auflösbarer Nummer"
 rm -rf "$TMP_SYNC"
 
-# ─── Zentraler Issue-Seam scripts/lib/create-issue.sh (#82, ADR-018) ─────────
+# ─── Zentraler Issue-Seam scripts/lib/create-issue.sh (nothra/tch-gastro-services#82, ADR-018) ─────────
 echo ""
 echo "Zentraler Issue-Seam (#82, ADR-018):"
 
@@ -804,7 +810,7 @@ assert_exit 1 "$rc" "Seam: gh liefert keine Nummer → fail-closed (exit 1)"
 assert_true "$([[ -z "$out" ]]; echo $?)" "Seam: fail-closed → keine Nummer auf stdout"
 
 # 6. Repo-Bezug: FACTORY_REPO → --repo; ohne Slug kein --repo (gh-Auto-Erkennung).
-# Regression F1 (Review #82): der no-repo-Pfad MUSS auch unter `set -euo pipefail` laufen –
+# Regression F1 (Review nothra/tch-gastro-services#82): der no-repo-Pfad MUSS auch unter `set -euo pipefail` laufen –
 # `repo_args` ist dort leer, und nounset gilt auch innerhalb von $(create_issue …).
 LOG="$TMP_SEAM/c6.log"; : > "$LOG"
 GH_LOG="$LOG" seam "T" "B" "enhancement" >/dev/null 2>&1
@@ -890,7 +896,7 @@ assert_true "$?" "Seam: Body mit Leerzeichen/Quotes bleibt EIN --body-Argument"
 assert_true "$(! grep -qxF -- '[Titel]' "$BRLOG"; echo $?)" \
   "Seam: kein wortgesplittetes Titel-Fragment ([Titel] allein) im Arg-Log"
 
-# 13. Security-Guard (Review #82 H-1): reservierter 'factory::'-Präfix wird als Art- UND
+# 13. Security-Guard (Review nothra/tch-gastro-services#82 H-1): reservierter 'factory::'-Präfix wird als Art- UND
 # Aspekt-Label verworfen (nur die Pipeline setzt diese; verhindert Selbst-Trigger).
 LOG="$TMP_SEAM/c13.log"; : > "$LOG"; ERR="$TMP_SEAM/c13.err"
 out=$(FACTORY_REPO="test/repo" GH_LOG="$LOG" seam "T" "B" "factory::run" "security,factory::running" 2>"$ERR"); rc=$?
@@ -902,7 +908,7 @@ grep -q 'reserviert' "$ERR"; assert_true "$?" "Seam: factory::-Guard warnt auf s
 
 rm -rf "$TMP_SEAM"
 
-# ─── Idempotenz-Wrapper create_issue_idempotent (#207, ADR-040) ──────────────
+# ─── Idempotenz-Wrapper create_issue_idempotent (nothra/tch-gastro-services#207, ADR-040) ──────────────
 echo ""
 echo "Idempotenter Issue-Seam (#207, ADR-040):"
 
@@ -996,7 +1002,7 @@ assert_true "$([[ "$out" = "204" ]]; echo $?)" "AC5: niedrigste Nummer gewinnt a
 # Defensiv-Guard (create-issue.sh: `''|*[!0-9]*)`): eine nicht-numerische „Nummer"-Zeile bei
 # titelgleichem Kandidaten wird übersprungen (schützt das `-lt` vor nicht-numerischem Input),
 # der echte numerische Treffer wird trotzdem gefunden. Erzwingt den sonst nie erreichten
-# Guard-Zweig (lessons/testing.md: Exhaustiveness-Guards brauchen einen eigenen Test; bis #319
+# Guard-Zweig (lessons/testing.md: Exhaustiveness-Guards brauchen einen eigenen Test; bis nothra/tch-gastro-services#319
 # stand die Regel in testing-standards.md).
 CLOG="$TMP_IDEM/guard.create"; : > "$CLOG"
 open_bad_num=$(printf 'x\nRefactor foo bar\n204\nRefactor foo bar\n')
@@ -1027,7 +1033,7 @@ assert_exit 1 "$rc" "F1/FS1: kein gh → fail-open-Lookup kaskadiert in fail-clo
 assert_true "$([[ -z "$out" ]]; echo $?)" "F1/FS1: kein gh → keine Nummer auf stdout"
 
 # AC4 – Retry-Idempotenz (Regressionsschutz): zwei Läufe mit identischem Titel.
-# Lauf 1: kein offenes Issue → legt an (#123). Lauf 2: das offene #123 existiert nun mit
+# Lauf 1: kein offenes Issue → legt an (nothra/tch-gastro-services#123). Lauf 2: das offene nothra/tch-gastro-services#123 existiert nun mit
 # demselben Titel → Treffer, KEINE zweite Anlage. Netto: genau eine Anlage.
 CLOG="$TMP_IDEM/ac4.create"; : > "$CLOG"
 run1=$(FAKE_OPEN="" GH_LOG="$CLOG" idem "Wiederkehrender Fund" "B" "enhancement" 2>/dev/null)
@@ -1055,7 +1061,7 @@ assert_true "$(! grep -q -- '--repo' "$LLOG"; echo $?)" "Lookup: ohne Repo-Slug 
 # W3: Alle drei Pfade laufen als bloßer Aufruf unter `set -euo pipefail` durch – nicht nur der
 # Treffer-Pfad, sondern gerade die errexit-EMPFINDLICHEN No-Match- (while-read-Heredoc-Schleife)
 # und Fail-open-Pfade (`raw=$(…) || return 2`, `existing=$(…) || rc=$?`). Ein künftiger
-# errexit-Bruch dort würde stumm zum Retry-Duplikat führen – genau der #207-Fehlerfall.
+# errexit-Bruch dort würde stumm zum Retry-Duplikat führen – genau der nothra/tch-gastro-services#207-Fehlerfall.
 rc=$(PATH="$TMP_IDEM/bin:$PATH" FACTORY_REPO="test/repo" FAKE_OPEN="$open_204" \
   bash -c 'set -euo pipefail; source "$0"; create_issue_idempotent "Refactor foo bar" "B" "enhancement" >/dev/null; echo "$?"' \
   "$SEAM_LIB" 2>/dev/null)
@@ -1087,7 +1093,7 @@ assert_true "$(! grep -qE 'create_issue_idempotent' "$SCRIPTS_DIR/start-work.sh"
 assert_true "$(! grep -qE 'create_issue_idempotent' "$SCRIPTS_DIR/sync-issues.sh"; echo $?)" \
   "AC6: sync-issues.sh nutzt den Idempotenz-Wrapper NICHT (unverändert)"
 
-# #207: die drei autonomen Pipeline-Skills rufen den Idempotenz-Wrapper auf
+# nothra/tch-gastro-services#207: die drei autonomen Pipeline-Skills rufen den Idempotenz-Wrapper auf
 for sk in codify review security-review; do
   grep -q 'create_issue_idempotent' "$FACTORY_ROOT/.claude/commands/$sk.md"
   assert_true "$?" "#207: /$sk-Skill nutzt create_issue_idempotent (Retry-Duplikat-Guard)"
@@ -1148,9 +1154,9 @@ done
 grep -q 'create-issue.sh' "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
 assert_true "$?" "#82: git-workflow.md verweist auf den zentralen Seam (create-issue.sh)"
 
-# ── #155: git-workflow.md verweist auf ADR-029 (server-seitiger main-Schutz) ──
+# ── nothra/tch-gastro-services#155: git-workflow.md verweist auf ADR-029 (server-seitiger main-Schutz) ──
 # AC3 bündelt Direktive + Rationale auf getrennt editierbaren Zeilen → je eigene
-# Assertion (codifizierte #117-Regel), sonst bleibt das Framing ungetestet.
+# Assertion (codifizierte nothra/tch-gastro-services#117-Regel), sonst bleibt das Framing ungetestet.
 GITWF="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
 # (0) Verweis-Ziel existiert: sonst zeigen die ADR-029-Verweise ins Leere, ohne dass
 # die grep-Guards (die nur git-workflow.md prüfen) das bemerken (dangling reference).
@@ -1165,7 +1171,7 @@ assert_true "$?" "#155: git-workflow.md verweist auf ADR-029 (main-Ruleset)"
 grep -q 'umgehbar' "$GITWF"
 assert_true "$?" "#155: git-workflow.md ordnet den pre-push-Hook als umgehbares lokales Feedback ein (AC3-Rationale)"
 
-# ─── Bug #8: Check-Skripte robust gegen Leerzeichen im Pfad ──────────────────
+# ─── Bug nothra/tch-gastro-services#8: Check-Skripte robust gegen Leerzeichen im Pfad ──────────────────
 echo ""
 echo "Bug #8 (Leerzeichen im Pfad):"
 
@@ -1230,7 +1236,7 @@ rm -f "$ZERO"
 grep -qE 'grep -c "\^- " "\$codify_file" 2>/dev/null \|\| true' "$PIPELINE"
 assert_true "$?" "run-pipeline.sh rule_count ist set-e-sicher (|| true, K-1)"
 
-# K-2 (Issue #261): Laufzeit-Beweis der set-e-Sicherheit für den grep|head|while-Block
+# K-2 (Issue nothra/tch-gastro-services#261): Laufzeit-Beweis der set-e-Sicherheit für den grep|head|while-Block
 # (pipeline_summary's Codify-Regelzeilen-Ausgabe) gegen ein 0-Treffer-File unter set -e.
 ZERO_WHILE_LOOP=$(mktemp); printf '# nur ein Header, keine Regel-Zeilen\n' > "$ZERO_WHILE_LOOP"
 # Korrektes Idiom (|| true nach done) → kein Abbruch, rc=0:
@@ -1242,10 +1248,10 @@ assert_true "$([ $? -ne 0 ]; echo $?)" "Gegenprobe: ohne || true bricht der grep
 rm -f "$ZERO_WHILE_LOOP"
 
 # (3) run-pipeline.sh Codify-Regelzeilen-Block nutzt das set-e-sichere Idiom (|| true nach
-# done) – Issue #261. Block-isoliert statt Datei-weitem Fragment-Grep (Review-Finding
-# Runde 2/3, Lesson zu Reihenfolge-Guards aus #114/#265: Anker ist die exakte Aufruf-
+# done) – Issue nothra/tch-gastro-services#261. Block-isoliert statt Datei-weitem Fragment-Grep (Review-Finding
+# Runde 2/3, Lesson zu Reihenfolge-Guards aus nothra/tch-gastro-services#114/#265: Anker ist die exakte Aufruf-
 # Zeile, nie ein Kommando-Fragment) – awk extrahiert nur den Block zwischen der
-# Codify-Pipeline und ihrem "done", analog zur Job-Block-Isolation aus #255. Anders als
+# Codify-Pipeline und ihrem "done", analog zur Job-Block-Isolation aus nothra/tch-gastro-services#255. Anders als
 # dort schließt der Block hier Start- UND Endzeile bewusst mit ein (nicht aus), weil
 # genau die "done"-Zeile selbst geprüft werden muss. Ein-Wort-Anker als Variable
 # (nicht zweimal als Regex-Literal), damit Original- und Mutations-Extraktion (unten)
@@ -1266,11 +1272,11 @@ mut_block="$(awk "$codify_block_awk" "$MUT_PIPELINE")"
 assert_true "$?" "Schärfe-Beweis: unabhängiges 'done || true' anderswo täuscht den Block-Guard nicht (Issue #261)"
 rm -f "$MUT_PIPELINE"
 
-# #261 AC2/AC3: End-to-end-Beweis über den echten pipeline_summary()-Pfad (--dry-run),
+# nothra/tch-gastro-services#261 AC2/AC3: End-to-end-Beweis über den echten pipeline_summary()-Pfad (--dry-run),
 # dass 1-3 Treffer unverändert ausgegeben werden und >3 Treffer bei 3 gekappt + Hinweis
 # ergänzt wird. Bisher nur strukturell begründet (|| true wirkt nur bei vorangehendem
 # Fehlschlag, ändert im Treffer-Fall nichts) – hier zusätzlich empirisch belegt
-# (/test-Vollständigkeitsprüfung), analog zum #91-Dry-Run-Scaffold.
+# (/test-Vollständigkeitsprüfung), analog zum nothra/tch-gastro-services#91-Dry-Run-Scaffold.
 if [ "$HAS_YQ" = 1 ]; then
   TMP_261="$(mktemp -d)"
   mkdir -p "$TMP_261/scripts/checks" "$TMP_261/scripts/lib" "$TMP_261/tasks" "$TMP_261/docs/factory"
@@ -1280,6 +1286,7 @@ if [ "$HAS_YQ" = 1 ]; then
   cp_pipeline_libs "$TMP_261"
   echo "# ctx" > "$TMP_261/docs/factory/PROJECT-CONTEXT.md"
   echo "# Task 3: codify-regelzeilen-ac" > "$TMP_261/tasks/task-3-codify-regelzeilen-ac.md"
+  mk_spec_fixture "$TMP_261" 3
   printf '## Empfehlung\nAPPROVED\n' > "$TMP_261/tasks/review-3.md"
   git -C "$TMP_261" init -q
   git -C "$TMP_261" add .
@@ -1315,7 +1322,7 @@ else
   skip_yq "#261 AC2/AC3: End-to-end Codify-Regelzeilen-Ausgabe (1-3 / >3 Treffer)"
 fi
 
-# ─── Stufe-2.5: Factory-Config Phase 1b – run-pipeline liest die Config (#25) ─
+# ─── Stufe-2.5: Factory-Config Phase 1b – run-pipeline liest die Config (nothra/tch-gastro-services#25) ─
 echo ""
 echo "Factory-Config Phase 1b (#25, ADR-009):"
 
@@ -1349,29 +1356,22 @@ if [ "$HAS_YQ" = 1 ]; then
   cp "$PIPELINE" "$TMP_CFG/scripts/"; cp "$CHECKS_DIR/config-validation-check.sh" "$TMP_CFG/scripts/checks/"; cp "$DEFAULTS" "$TMP_CFG/"
   cp_pipeline_libs "$TMP_CFG"
   echo "# ctx" > "$TMP_CFG/docs/factory/PROJECT-CONTEXT.md"; echo "# Task 1: x" > "$TMP_CFG/tasks/task-1-x.md"
+  mk_spec_fixture "$TMP_CFG" 1   # 3 AK → Tier light, unterste Turn-Stufe (Factory-ADR-065)
   git -C "$TMP_CFG" init -q; git -C "$TMP_CFG" add .
   git -C "$TMP_CFG" -c user.email="t@t.com" -c user.name="t" commit -q -m init
   cfg_out=$(bash "$TMP_CFG/scripts/run-pipeline.sh" 1 --dry-run 2>&1 || true)
-  printf '%s' "$cfg_out" | grep -q 'Starte: /implement 1 (model: claude-opus-5-5, max 20 turns)'
-  assert_true "$?" "Phase 1b: run-pipeline löst implement aus der Config zu opus/20 auf (end-to-end)"
+  printf '%s' "$cfg_out" | grep -q 'Starte: /implement 1 (model: claude-sonnet-5-5, max 20 turns)'
+  assert_true "$?" "Phase 1b: run-pipeline löst implement (3 AK) aus der Config zu sonnet/20 auf (end-to-end)"
   # Team-Override greift: factory.config.yml setzt implement auf 5 Turns → 5 statt 20
   printf 'skills:\n  implement: { max_turns: 5 }\n' > "$TMP_CFG/factory.config.yml"
   git -C "$TMP_CFG" add .; git -C "$TMP_CFG" -c user.email="t@t.com" -c user.name="t" commit -q -m override
   ovr_out=$(bash "$TMP_CFG/scripts/run-pipeline.sh" 1 --dry-run 2>&1 || true)
-  printf '%s' "$ovr_out" | grep -q 'Starte: /implement 1 (model: claude-opus-5-5, max 5 turns)'
+  printf '%s' "$ovr_out" | grep -q 'Starte: /implement 1 (model: claude-sonnet-5-5, max 5 turns)'
   assert_true "$?" "Phase 1b: Team-Override (factory.config.yml) übersteuert Defaults (Turns 20→5)"
 
-  # #348/ADR-051: der REALE Team-Override aus dem Repo-Root löst end-to-end zu 80 auf
-  # (nicht nur ein synthetischer Testwert wie oben) – belegt, dass die effektive Config
-  # für /implement tatsächlich den neuen Wert trägt, kein stiller Fallback auf 20/50.
-  cp "$FACTORY_ROOT/factory.config.yml" "$TMP_CFG/factory.config.yml"
-  git -C "$TMP_CFG" add .; git -C "$TMP_CFG" -c user.email="t@t.com" -c user.name="t" commit -q -m real-override
-  real_out=$(bash "$TMP_CFG/scripts/run-pipeline.sh" 1 --dry-run 2>&1 || true)
-  printf '%s' "$real_out" | grep -q 'Starte: /implement 1 (model: claude-opus-5-5, max 80 turns)'
-  assert_true "$?" "#348: realer Repo-Override löst implement end-to-end zu max 80 turns auf"
   rm -rf "$TMP_CFG"
 
-  # #91 Turn-Budget-Dry-Run: review + security-review zeigen max 30 turns im Output (AC Lücke 2).
+  # nothra/tch-gastro-services#91 Turn-Budget-Dry-Run: review + security-review zeigen max 30 turns im Output (AC Lücke 2).
   # Bestehender mock review-2.md (APPROVED) sorgt dafür, dass Review-Loop sofort endet und
   # die Pipeline bis Phase 5 (security-review) läuft – beide "Starte:"-Zeilen erscheinen.
   TMP_DRY91="$(mktemp -d)"; mkdir -p "$TMP_DRY91/scripts/checks" "$TMP_DRY91/scripts/lib" "$TMP_DRY91/tasks" "$TMP_DRY91/docs/factory"
@@ -1379,6 +1379,7 @@ if [ "$HAS_YQ" = 1 ]; then
   cp_pipeline_libs "$TMP_DRY91"
   echo "# ctx" > "$TMP_DRY91/docs/factory/PROJECT-CONTEXT.md"
   echo "# Task 2: budget-dry" > "$TMP_DRY91/tasks/task-2-budget-dry.md"
+  mk_spec_fixture "$TMP_DRY91" 2
   printf '## Empfehlung\nAPPROVED\n' > "$TMP_DRY91/tasks/review-2.md"
   git -C "$TMP_DRY91" init -q; git -C "$TMP_DRY91" add .
   git -C "$TMP_DRY91" -c user.email="t@t.com" -c user.name="t" commit -q -m init
@@ -1387,11 +1388,11 @@ if [ "$HAS_YQ" = 1 ]; then
   assert_true "$?" "#91: dry-run zeigt /review mit max 30 turns (Turn-Budget, Lücke 2)"
   printf '%s' "$dry91_out" | grep -q '/security-review 2 (model: claude-opus-5-5, max 30 turns)'
   assert_true "$?" "#91: dry-run zeigt /security-review mit max 30 turns (Turn-Budget, Lücke 2)"
-  # #212 F4: --dry-run läuft bis zum Ende (APPROVED-Review) und markiert die Endzustands-
+  # nothra/tch-gastro-services#212 F4: --dry-run läuft bis zum Ende (APPROVED-Review) und markiert die Endzustands-
   # Verifikation als übersprungen, statt sie auszuführen/abzubrechen.
   printf '%s' "$dry91_out" | grep -q 'DRY-RUN.*Endzustands-Verifikation übersprungen'
   assert_true "$?" "#212 F4: --dry-run markiert Endzustands-Verifikation als übersprungen (kein Abbruch)"
-  # #312: dieselbe Dry-Run-Ausnahme für das jetzt fail-closed Security-Gate. Ohne sie blockierte
+  # nothra/tch-gastro-services#312: dieselbe Dry-Run-Ausnahme für das jetzt fail-closed Security-Gate. Ohne sie blockierte
   # jeder --dry-run ab Phase 5 – dort läuft kein Skill, also entsteht nie ein Security-Report.
   # Direkte Assertion statt bloß transitiver Absicherung über die Erfolgs-Ausgabe darunter.
   printf '%s' "$dry91_out" | grep -q 'DRY-RUN.*Security-Gate übersprungen'
@@ -1403,7 +1404,7 @@ else
   skip_yq "YAML-Parse, Config-Werte (implement/codify/default) und End-to-End-Resolution"
 fi
 
-# ─── Stufe-2.6: Config-Validierungs-Gate (#36, ADR-010) ──────────────────────
+# ─── Stufe-2.6: Config-Validierungs-Gate (nothra/tch-gastro-services#36, ADR-010) ──────────────────────
 echo ""
 echo "Config-Validierungs-Gate (#36, ADR-010):"
 
@@ -1472,12 +1473,12 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   bash "$GATE" "$DEFAULTS" "$GTMP/zero.yml" >/dev/null 2>&1; rc=$?
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate: max_turns = 0 (unter Minimum) → fail-closed"
 
-  # Positiv (Grenzfall, #348/ADR-051): max_turns = 80 ist die neue Ceiling → exit 0
+  # Positiv (Grenzfall, nothra/tch-gastro-services#348/ADR-051): max_turns = 80 ist die neue Ceiling → exit 0
   printf 'skills:\n  implement: { max_turns: 80 }\n' > "$GTMP/ceil80.yml"
   bash "$GATE" "$DEFAULTS" "$GTMP/ceil80.yml" >/dev/null 2>&1
   assert_true "$?" "Gate #348: max_turns = 80 (neue Ceiling) → exit 0"
 
-  # Negativ (Grenzfall, #348/ADR-051): max_turns = 81 liegt über der neuen Ceiling
+  # Negativ (Grenzfall, nothra/tch-gastro-services#348/ADR-051): max_turns = 81 liegt über der neuen Ceiling
   printf 'skills:\n  implement: { max_turns: 81 }\n' > "$GTMP/ceil81.yml"
   bash "$GATE" "$DEFAULTS" "$GTMP/ceil81.yml" >/dev/null 2>&1; rc=$?
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "Gate #348: max_turns = 81 (über neuer Ceiling) → fail-closed"
@@ -1510,7 +1511,7 @@ if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   #   für security-review (→ Regel 2 hat nichts zu beanstanden) und die Form ist laut
   #   4c gültig (→ 4c passiert) — dennoch muss Regel 5 fallen, weil security-review
   #   keine größenabhängige Tier-Wahl haben darf. So testet AK3 wirklich Regel 5, nicht
-  #   einen Fremdpfad (#214: Ziel-Pfad isolieren + pfadspezifisches Signal assertieren).
+  #   einen Fremdpfad (nothra/tch-gastro-services#214: Ziel-Pfad isolieren + pfadspezifisches Signal assertieren).
   printf 'schemaVersion: 1\nmodel_tiers:\n  heavy: m-heavy\n  light: m-light\nskills:\n  security-review:\n    tier: heavy\n    max_turns: 14\n    tier_by_size: { signal: diff, threshold: 150 }\n  review:\n    tier: heavy\n    max_turns: 14\ndefault:\n  tier: light\n  max_turns: 10\n' > "$GTMP/def-sr-tbs.yml"
   # Expliziter leerer Override, damit NICHT die reale factory.config.yml als Default-$2
   # einspringt (deren Fremd-Keys würden sonst Regel 2 vor Regel 5 auslösen).
@@ -1622,7 +1623,7 @@ assert_true "$?" "config-validation-Job in factory-ci.yml"
 
 # Job-Block isoliert extrahieren (nicht das ganze File scannen) — sonst würde die
 # "kein Node/pnpm"-Prüfung (AK7) an einem Fremd-Job (z. B. lint/test) vorbeirutschen,
-# der pnpm durchaus nutzt. Abbruchregeln siehe ci_job_block (oben, Lesson #255).
+# der pnpm durchaus nutzt. Abbruchregeln siehe ci_job_block (oben, Lesson nothra/tch-gastro-services#255).
 cv_job_block="$(ci_job_block config-validation "$CI_FILE")"
 assert_true "$([[ -n "$cv_job_block" ]]; echo $?)" "config-validation-Job-Block ist extrahierbar"
 
@@ -1651,10 +1652,10 @@ assert_true "$([[ -n "$cv_defaults_line" && -n "$cv_config_line" && "$cv_default
 assert_true "$?" "AK7: config-validation-Job braucht kein Node/pnpm-Setup"
 
 # ── Behavior-Level: derselbe Aufruf wie im config-validation-Job, real ausgeführt ──
-# Ersetzt strukturell die entfernte "Gate #249 AK5"-Zeile (AK5) auf CI-Wiring-Ebene:
+# Ersetzt strukturell die entfernte "Gate nothra/tch-gastro-services#249 AK5"-Zeile (AK5) auf CI-Wiring-Ebene:
 # reine Wiring-Greps oben belegen nur, DASS der Job etwas Passendes aufruft, nicht
 # DASS der Aufruf tatsächlich grün/rot läuft (Review-Finding Runde 1, Task 255 —
-# Lesson #212: "Deterministisches Gate braucht E2E-Verhaltenstest, nicht nur Wiring-Grep").
+# Lesson nothra/tch-gastro-services#212: "Deterministisches Gate braucht E2E-Verhaltenstest, nicht nur Wiring-Grep").
 if [ "$HAS_YQ" = 1 ] && [ -f "$GATE" ]; then
   # AK2 (Positiv, Nicht-Regression): realer, aktueller Repo-Stand → exit 0.
   bash "$GATE" "$FACTORY_ROOT/factory.defaults.yml" "$FACTORY_ROOT/factory.config.yml" >/dev/null 2>&1
@@ -1683,7 +1684,7 @@ else
   skip_yq "Config-Validation CI-Wiring (Behavior-Level AK1/AK2/AK4)"
 fi
 
-# ─── Stufe-3: Config-Wizards / Single-Source-Begründung (#35, ADR-011) ───────
+# ─── Stufe-3: Config-Wizards / Single-Source-Begründung (nothra/tch-gastro-services#35, ADR-011) ───────
 echo ""
 echo "Config-Wizards / Single-Source-Begründung (#35, ADR-011):"
 
@@ -1797,7 +1798,7 @@ assert_true "$?" "D (Task 249 AK8): model_tiers-Beispielblock nennt 'heavy' expl
 printf '#   heavy: claude-opus-4-8\n' | grep -qE '^#[[:space:]]*heavy:'
 assert_true "$?" "D (Task 249 AK8): Positiv-Kontrolle — Regex erkennt einen vorhandenen 'heavy:'-Beispiel-Knopf"
 
-# ─── start-work.sh: Worktree-Isolation (Kern-Vorkehrung gegen Session-Kollisionen, #74) ──
+# ─── start-work.sh: Worktree-Isolation (Kern-Vorkehrung gegen Session-Kollisionen, nothra/tch-gastro-services#74) ──
 echo "start-work.sh (Worktree-Isolation, #74):"
 
 SW="$CHECKS_DIR/../start-work.sh"   # scripts/start-work.sh
@@ -1829,13 +1830,15 @@ git -C "$REPO_SW" init -q -b main >/dev/null 2>&1
 git -C "$REPO_SW" config user.email t@t
 git -C "$REPO_SW" config user.name t
 git -C "$REPO_SW" commit -q --allow-empty -m init
-# Config der Fixture (#431): start-work liest commands.install / start_work.hint aus dem Quellbaum.
+# Config der Fixture (nothra/tch-gastro-services#431, #47): start-work liest commands.install, start_work.hint und
+# start_work.copy_files aus dem Quellbaum. Committet ohne copy_files (Default []), die Spiegelungs-Gruppe unten setzt
+# die Liste je Fall.
 cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_SW/"
 cat > "$REPO_SW/factory.config.yml" <<'SWCFG'
 start_work:
   hint: |
-    Vor dem ersten 'pnpm test:e2e': pnpm db:seed
-    (.env.local wurde kopiert – die geteilte lokale DB kennt die SEED_ADMIN_*-Daten evtl. noch nicht)
+    Hinweis aus der Fixture-Config
+    zweite Zeile des Hinweises
 SWCFG
 git -C "$REPO_SW" add factory.defaults.yml factory.config.yml
 git -C "$REPO_SW" commit -q -m "chore: config der Fixture"
@@ -1880,7 +1883,7 @@ git -C "$REPO_IP" push -q -u origin main >/dev/null 2>&1
 [ "$(git -C "$REPO_IP" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "feature/778-demo-y" ]
 assert_true "$?" "In-Place-Modus (FACTORY_NO_WORKTREE=1) branchet im Haupt-Baum"
 
-# ─── Art-Label bei der Issue-Anlage aus dem Branch-Typ ableiten (#80) ─────────
+# ─── Art-Label bei der Issue-Anlage aus dem Branch-Typ ableiten (nothra/tch-gastro-services#80) ─────────
 # Beschreibungs-Modus (Issue-first): der gh-Stub protokolliert die 'issue create'-Args;
 # geprüft wird, dass genau das erwartete Art-Label übergeben wird.
 run_create_label() {  # $1 = branch-typ, $2 = desc, $3 = extra-env ("VAR=val" oder "")
@@ -1904,7 +1907,7 @@ assert_true "$?" "Issue-Anlage: Branch-Typ docs → --label documentation"
 run_create_label feature ddd "FACTORY_ISSUE_LABEL=security" | grep -q -- "--label security"
 assert_true "$?" "Issue-Anlage: FACTORY_ISSUE_LABEL übersteuert die Ableitung"
 
-# #82: --labels reicht Aspekt-Labels (zusätzlich zum Art-Label) an den Seam durch.
+# nothra/tch-gastro-services#82: --labels reicht Aspekt-Labels (zusätzlich zum Art-Label) an den Seam durch.
 LOG_ASP="$TMP_SW/gh-asp.log"; : > "$LOG_ASP"
 ( cd "$REPO_SW" && env GH_LOG="$LOG_ASP" PATH="$TMP_SW/bin:$PATH" \
     FACTORY_DIR="$REPO_SW" FACTORY_REPO="acme/demo" \
@@ -1914,7 +1917,7 @@ LOG_ASP="$TMP_SW/gh-asp.log"; : > "$LOG_ASP"
   && grep -q -- '--label test' "$LOG_ASP"; }
 assert_true "$?" "#82: start-work --labels reicht Aspekt-Labels an den Seam durch (Art + Aspekte)"
 
-# #82: FACTORY_ASPECT_LABELS wirkt wie --labels (Env-Variante).
+# nothra/tch-gastro-services#82: FACTORY_ASPECT_LABELS wirkt wie --labels (Env-Variante).
 LOG_ENV="$TMP_SW/gh-env.log"; : > "$LOG_ENV"
 ( cd "$REPO_SW" && env GH_LOG="$LOG_ENV" PATH="$TMP_SW/bin:$PATH" \
     FACTORY_DIR="$REPO_SW" FACTORY_REPO="acme/demo" FACTORY_ASPECT_LABELS="security" \
@@ -1923,7 +1926,7 @@ LOG_ENV="$TMP_SW/gh-env.log"; : > "$LOG_ENV"
 grep -q -- '--label security' "$LOG_ENV"
 assert_true "$?" "#82: FACTORY_ASPECT_LABELS reicht Aspekt-Labels an den Seam durch"
 
-# #82 (F2-Regression): --labels als letztes Argument ohne Wert → klare usage()-Meldung + exit 1,
+# nothra/tch-gastro-services#82 (F2-Regression): --labels als letztes Argument ohne Wert → klare usage()-Meldung + exit 1,
 # kein wortloser Abbruch durch 'shift 2' unter set -e.
 asp_err=$( cd "$REPO_SW" && PATH="$TMP_SW/bin:$PATH" FACTORY_DIR="$REPO_SW" FACTORY_REPO="acme/demo" \
   bash "$SW" "meine beschreibung" --labels 2>&1 ); asp_rc=$?
@@ -1931,247 +1934,256 @@ assert_exit 1 "$asp_rc" "#82: start-work --labels ohne Wert → exit 1 (kein wor
 printf '%s' "$asp_err" | grep -q -- '--labels erwartet einen Wert'
 assert_true "$?" "#82: start-work --labels ohne Wert nennt die usage()-Ursache"
 
-# ─── #236: .env.local in den neuen Worktree spiegeln ─────────────────────────
-# Die Datei ist gitignored und wandert beim 'worktree add' nicht mit, alle DEV-Skripte
-# laden sie aber per 'dotenv -e .env.local' (#228). Fixtures von oben werden bewusst
+# ─── Worktree-Dateispiegelung über start_work.copy_files (#47, Ursprung nothra/tch-gastro-services#236) ─────────
+# Gitignorete lokale Dateien wandern beim 'worktree add' nicht mit; start-work.sh spiegelt die in
+# start_work.copy_files gelisteten (Factory-ADR-063 E23–E27). Fixtures von oben werden bewusst
 # wiederverwendet (gh-Stub, Wegwerf-Repo REPO_SW/REPO_IP, FACTORY_WT_SKIP_INSTALL=1).
 echo ""
-echo "#236 .env.local-Spiegelung in neue Worktrees:"
+echo "#47 Worktree-Dateispiegelung (start_work.copy_files):"
 
-# run_start_work <worktree-basis> <task-id> <desc> [extra-env]
+# run_start_work <worktree-basis> <task-id> <desc> [extra-env…]
 # start-work.sh im Worktree-Default gegen REPO_SW; gibt stdout+stderr zurück, damit die
-# Output-Kriterien (Kopier-/Überspringen-Meldung, db:seed-Hinweis) prüfbar sind.
+# Output-Kriterien (Kopier-/Überspringen-Meldung, Hinweis) prüfbar sind. SW_RUN wählt das Skript
+# (Default: das echte; der Mutationsbeleg zu AK4 setzt eine Mutante).
 run_start_work() {
   # "${@:4}" statt ${4:-}: das gewollte Word-Splitting bleibt, die zusätzliche (ungewollte)
   # Pathname-Expansion des Werts entfällt.
   ( cd "$REPO_SW" && env "${@:4}" PATH="$TMP_SW/bin:$PATH" \
       FACTORY_DIR="$REPO_SW" FACTORY_REPO="acme/demo" \
       FACTORY_WORKTREE_BASE="$1" FACTORY_WT_SKIP_INSTALL=1 \
-      bash "$SW" "$2" "$3" ) 2>&1
+      bash "${SW_RUN:-$SW}" "$2" "$3" ) 2>&1
 }
 
-# AK2/AK7: bewusst VOR dem Anlegen der Quelle – so ist „Quelle fehlt" echt und nicht
-# nur ein Nebeneffekt einer späteren Testreihenfolge.
-WT_NOENV="$TMP_SW/wt-236-noenv/feature-780-demo-noenv"
-OUT_NOENV=$(run_start_work "$TMP_SW/wt-236-noenv" 780 demo-noenv); RC_NOENV=$?
-assert_exit 0 "$RC_NOENV" "#236 AK2: fehlende .env.local im Quellbaum (\$FACTORY_DIR) → start-work endet mit exit 0"
+# sw_config <yaml-zeilen unter start_work> – Config des Quellbaums für die folgenden Läufe. Uncommittet:
+# der Worktree-Modus prüft den Haupt-Baum nicht auf Änderungen; am Gruppenende wird sie zurückgesetzt.
+HINT_SW='Hinweis aus der Fixture-Config'
+sw_config() { printf 'start_work:\n  hint: "%s"\n%s\n' "$HINT_SW" "$1" > "$REPO_SW/factory.config.yml"; }
+# wt_of <basis> <id> <desc> – Worktree-Pfad nach dem Slug-Schema von start-work.sh.
+wt_of() { printf '%s/feature-%s-%s' "$1" "$2" "$3"; }
+
+# Quelldateien im Quellbaum ($FACTORY_DIR, hier zugleich der Haupt-Baum), je eindeutiger Inhalt.
+printf 'SCHLUESSEL=wert-demo\n' > "$REPO_SW/.env.local"
+chmod 600 "$REPO_SW/.env.local"
+printf 'lokal=1\n' > "$REPO_SW/lokal.conf"
+printf 'nicht gelistet\n' > "$REPO_SW/nicht-gelistet.conf"
+printf 'dritte=3\n' > "$REPO_SW/dritte.conf"
+mkdir -p "$REPO_SW/config"
+printf 'local: yes\n' > "$REPO_SW/config/local.yml"
+# Gespiegelt wird nur, was im Worktree gitignoret ist (E26). Die Muster stehen im gemeinsamen info/exclude
+# (gilt für alle Worktrees, ohne einen Commit auf main der Fixture); am Gruppenende zurückgesetzt.
+SW_EXCLUDE="$REPO_SW/.git/info/exclude"
+[ -f "$SW_EXCLUDE" ] && cp "$SW_EXCLUDE" "$TMP_SW/exclude-vorher"
+mkdir -p "$(dirname "$SW_EXCLUDE")"
+printf '.env.local\n*.conf\nconfig/local.yml\n' >> "$SW_EXCLUDE"
+
+# AK1 + AK10: Default [] → nichts gespiegelt, obwohl eine .env.local daliegt; der Hinweis erscheint trotzdem.
+sw_config ''
+WT_DEF="$(wt_of "$TMP_SW/wt-47-default" 780 demo-default)"
+OUT_DEF=$(run_start_work "$TMP_SW/wt-47-default" 780 demo-default); RC_DEF=$?
+assert_exit 0 "$RC_DEF" "#47 AK1: Default copy_files [] → start-work endet mit exit 0"
 # Existenz-Anker vor jeder Abwesenheits-Prüfung: „keine Datei unter <pfad>" ist auch dann wahr,
-# wenn es <pfad> gar nicht gibt – ein Tippfehler oder ein geändertes Slug-Schema in start-work.sh
-# (WORKDIR="$WT_BASE/${BRANCH_NAME//\//-}") entwertete die Assertion sonst lautlos.
-assert_true "$([ -d "$WT_NOENV" ]; echo $?)" \
-  "#236 AK2: der Worktree wurde angelegt (Existenz-Anker für die Abwesenheits-Prüfung)"
-[ ! -e "$WT_NOENV/.env.local" ]
-assert_true "$?" "#236 AK2: ohne Quelle entsteht keine .env.local im Worktree"
-assert_absent "$OUT_NOENV" 'pnpm db:seed' "#236 AK7: ohne Kopie kein db:seed-Hinweis im Abschluss-Output"
+# wenn es <pfad> gar nicht gibt – ein geändertes Slug-Schema entwertete die Assertion sonst lautlos.
+assert_true "$([ -d "$WT_DEF" ]; echo $?)" "#47 AK1: der Worktree wurde angelegt (Existenz-Anker)"
+[ ! -e "$WT_DEF/.env.local" ]
+assert_true "$?" "#47 AK1: ohne Eintrag entsteht keine .env.local im Worktree"
+assert_absent "$OUT_DEF" 'in den Worktree spiegeln' "#47 AK1: ohne Eintrag keine Kopier-Ankündigung"
+assert_absent "$OUT_DEF" 'kopiert (Quelle:' "#47 AK1: ohne Eintrag keine Kopier-Meldung"
+assert_contains_286 "$OUT_DEF" "$HINT_SW" "#47 AK10: start_work.hint erscheint auch ohne gespiegelte Datei"
 
-# Quelle im Quellbaum ($FACTORY_DIR, in dieser Fixture zugleich der Haupt-Baum):
-# Modus 600 (AK5) + eindeutiger Inhalt (AK1 prüft byte-identisch).
-printf 'DATABASE_URL=postgres://demo\nSEED_ADMIN_EMAIL=a@b\n' > "$REPO_SW/.env.local"
-chmod 600 "$REPO_SW/.env.local"
+# AK2 + AK9 + AK15 + F1: zwei gelistete Dateien (eine davon die .env.local eines Konsumenten, der
+# migriert) plus ein Eintrag ohne Quelle; eine dritte, nicht gelistete Datei bleibt draußen.
+sw_config '  copy_files: [".env.local", "fehlt.conf", "lokal.conf"]'
+WT_TWO="$(wt_of "$TMP_SW/wt-47-two" 781 demo-two)"
+OUT_TWO=$(run_start_work "$TMP_SW/wt-47-two" 781 demo-two); RC_TWO=$?
+assert_exit 0 "$RC_TWO" "#47 AK2: Spiegelung mehrerer Einträge → exit 0"
+cmp -s "$REPO_SW/.env.local" "$WT_TWO/.env.local"
+assert_true "$?" "#47 AK15: copy_files [\".env.local\"] spiegelt die .env.local wie bisher (byte-identisch, echte Config-Schicht)"
+cmp -s "$REPO_SW/lokal.conf" "$WT_TWO/lokal.conf"
+assert_true "$?" "#47 AK2: der zweite gelistete Eintrag liegt byte-identisch im Worktree"
+[ ! -e "$WT_TWO/nicht-gelistet.conf" ]
+assert_true "$?" "#47 AK2: eine nicht gelistete Datei wird nicht gespiegelt"
+assert_contains_286 "$OUT_TWO" '.env.local kopiert (Quelle:' "#47 AK2: der Output nennt die erste kopierte Datei"
+assert_contains_286 "$OUT_TWO" 'lokal.conf kopiert (Quelle:' "#47 AK2: der Output nennt die zweite kopierte Datei"
+assert_contains_286 "$OUT_TWO" 'FACTORY_WT_SKIP_COPY=1' "#47 AK9: der Output nennt den Opt-out-Schalter"
+[ ! -e "$WT_TWO/fehlt.conf" ]
+assert_true "$?" "#47 F1: ein Eintrag ohne Quelle erzeugt kein Ziel"
+assert_absent "$OUT_TWO" 'fehlt.conf' "#47 F1: ein Eintrag ohne Quelle wird still übersprungen (keine Warnung)"
+assert_true "$(ls_mode_matches "$WT_TWO/.env.local" '-rw-------'; echo $?)" "#47 AK3: die Kopie behält Modus 600"
+assert_contains_286 "$OUT_TWO" "$HINT_SW" "#47 AK10: start_work.hint erscheint auch nach einer Kopie"
 
-OUT_COPY=$(run_start_work "$TMP_SW/wt-236-env" 781 demo-env)
-WT_ENV="$TMP_SW/wt-236-env/feature-781-demo-env/.env.local"
-cmp -s "$REPO_SW/.env.local" "$WT_ENV"
-assert_true "$?" "#236 AK1: .env.local liegt byte-identisch im neuen Worktree"
-printf '%s' "$OUT_COPY" | grep -qF '.env.local kopiert (Quelle:'
-assert_true "$?" "#236 AK1: der Output nennt das Kopieren der .env.local"
-assert_true "$(ls_mode_matches "$WT_ENV" '-rw-------'; echo $?)" \
-  "#236 AK5: die Kopie behält Modus 600"
-printf '%s' "$OUT_COPY" | grep -qF 'pnpm db:seed'
-assert_true "$?" "#236 AK6: nach der Kopie nennt der Abschluss-Output pnpm db:seed"
-# AK6 fordert Direktive UND Begründung („die geteilte lokale DB kennt die SEED_ADMIN_*-Daten
-# evtl. noch nicht"). Ohne eigene Assertion ließe sich die Begründungszeile ersatzlos löschen,
-# ohne dass die Suite es merkt (Lesson #117: je separierbaren AK-Teil eine eigene Assertion).
-printf '%s' "$OUT_COPY" | grep -qF 'SEED_ADMIN_*-Daten evtl. noch nicht'
-assert_true "$?" "#236 AK6: der db:seed-Hinweis nennt auch seine Begründung (SEED_ADMIN_*-Daten)"
-
-# Diskriminierung für 'cp -p': bei einer 600er-Quelle liefert auch ein 'cp' OHNE -p am Ziel 600
-# (die umask kann nur Bits entfernen) – erst eine 664er-Quelle trennt die beiden Varianten.
-# Das 'umask 022' macht die Trennung umgebungsunabhängig: unter einer laxen umask (002/000)
-# legte auch die -p-lose Variante 664 an und der Test bliebe grün, obwohl '-p' entfernt wurde.
+# AK3: Diskriminierung für 'cp -p' – bei einer 600er-Quelle liefert auch ein 'cp' OHNE -p am Ziel 600
+# (die umask kann nur Bits entfernen); erst eine 664er-Quelle unter 'umask 022' trennt die Varianten.
 chmod 664 "$REPO_SW/.env.local"
-( umask 022; run_start_work "$TMP_SW/wt-236-mode" 786 demo-envmode >/dev/null )
-assert_true "$(ls_mode_matches "$TMP_SW/wt-236-mode/feature-786-demo-envmode/.env.local" '-rw-rw-r--'; echo $?)" \
-  "#236 AK5: cp -p überträgt den Quellmodus (664 bleibt 664, wird nicht umask-reduziert)"
+sw_config '  copy_files: [".env.local"]'
+( umask 022; run_start_work "$TMP_SW/wt-47-mode" 786 demo-mode >/dev/null )
+assert_true "$(ls_mode_matches "$(wt_of "$TMP_SW/wt-47-mode" 786 demo-mode)/.env.local" '-rw-rw-r--'; echo $?)" \
+  "#47 AK3: cp -p überträgt den Quellmodus (664 bleibt 664, wird nicht umask-reduziert)"
 chmod 600 "$REPO_SW/.env.local"
 
-# AK3: derselbe Branch/dieselbe Basis erneut → Worktree wird wiederverwendet, die dort
-# abweichende Datei bleibt unangetastet (fail-safe: nie fremde Konfiguration zerstören).
-# Referenzdatei statt String-Vergleich: 'cmp -s' belegt „unverändert" byte-genau, eine Command
-# Substitution schluckte den Trailing-Newline (wie AK1 oben).
-printf 'LOKAL_ANGEPASST=1\n' | tee "$WT_ENV" > "$TMP_SW/env-lokal-referenz"
-OUT_KEEP=$(run_start_work "$TMP_SW/wt-236-env" 781 demo-env)
-cmp -s "$TMP_SW/env-lokal-referenz" "$WT_ENV"
-assert_true "$?" "#236 AK3: vorhandene .env.local im Worktree bleibt byte-identisch erhalten"
-printf '%s' "$OUT_KEEP" | grep -qF '.env.local existiert im Worktree bereits'
-assert_true "$?" "#236 AK3: der Output weist auf das Überspringen hin"
-# Pfadgenau auf das Spec-Fehlerszenario „wiederverwendeter Worktree": der zweite Lauf legt nichts
-# neu an, sondern nimmt einen der beiden Wiederverwendungs-Zweige (start-work.sh:208/210).
-# Bewusst NICHT auf „Worktree existiert bereits" festgenagelt: welcher der beiden greift, hängt an
-# einem exakten String-Vergleich gegen `git worktree list --porcelain`, und git meldet dort den
-# AUFGELÖSTEN Pfad. Unter einem symlink-behafteten Pfad (macOS: mktemp -d unter /var/folders →
-# /private/var/folders) greift deshalb der Nachbar-Zweig. Vorbestehende Fragilität aus #74,
-# außerhalb dieses Scopes (Task-Notiz #236).
-printf '%s' "$OUT_KEEP" | grep -qF 'wird wiederverwendet'
-assert_true "$?" "#236 AK3: der zweite Lauf verwendet den vorhandenen Worktree wieder"
-assert_absent "$OUT_KEEP" 'Worktree + Branch angelegt' "#236 AK3: der zweite Lauf legt keinen Worktree neu an"
-# Diskriminierung beider Assertions: der ERSTE Lauf gegen dieselbe Basis meldet genau umgekehrt.
-# Ohne ihn blieben sie auch bei einem Output-Umbau grün, der beide Meldungen entfernt.
-printf '%s' "$OUT_COPY" | grep -qF 'Worktree + Branch angelegt'
-assert_true "$?" "#236 AK3: Diskriminierung – der erste Lauf meldet die Neuanlage"
-assert_absent "$OUT_COPY" 'wird wiederverwendet' "#236 AK3: Diskriminierung – der erste Lauf meldet keine Wiederverwendung"
+# AK4: Ziel vorhanden (reguläre Datei bzw. defekter Symlink) → bleibt unverändert, je Eintrag eine Warnung,
+# ein weiterer Eintrag wird trotzdem gespiegelt. Zweiter Lauf auf den Worktree aus AK2 (Wiederverwendung).
+printf 'LOKAL_ANGEPASST=1\n' | tee "$WT_TWO/.env.local" > "$TMP_SW/env-lokal-referenz"
+rm -f "$WT_TWO/lokal.conf"
+# Defekter Symlink: für -e unsichtbar, aber vorhandene lokale Konfiguration (Lesson nothra/tch-gastro-services#258:
+# OR-Fragment mit nie feuernder Alternative). Eigener Sentinel, den kein anderer Fall anlegt.
+ln -s "$TMP_SW/existiert-nicht-ziel" "$WT_TWO/lokal.conf"
+sw_config '  copy_files: [".env.local", "lokal.conf", "dritte.conf"]'
+OUT_KEEP=$(run_start_work "$TMP_SW/wt-47-two" 781 demo-two); RC_KEEP=$?
+assert_exit 0 "$RC_KEEP" "#47 AK4: vorhandene Ziele → exit 0"
+cmp -s "$TMP_SW/env-lokal-referenz" "$WT_TWO/.env.local"
+assert_true "$?" "#47 AK4: eine vorhandene Zieldatei bleibt byte-identisch erhalten"
+{ [ -L "$WT_TWO/lokal.conf" ] && [ "$(readlink "$WT_TWO/lokal.conf")" = "$TMP_SW/existiert-nicht-ziel" ]; }
+assert_true "$?" "#47 AK4: ein defekter Ziel-Symlink bleibt derselbe Link"
+assert_contains_286 "$OUT_KEEP" '.env.local existiert im Worktree bereits' "#47 AK4: Warnung für die vorhandene Zieldatei"
+assert_contains_286 "$OUT_KEEP" 'lokal.conf existiert im Worktree bereits' "#47 AK4: Warnung für den vorhandenen Ziel-Symlink"
+cmp -s "$REPO_SW/dritte.conf" "$WT_TWO/dritte.conf"
+assert_true "$?" "#47 AK4: die übrigen Einträge werden trotzdem gespiegelt"
+assert_contains_286 "$OUT_KEEP" 'wird wiederverwendet' "#47 AK4: der zweite Lauf verwendet den vorhandenen Worktree wieder"
+rm -f "$WT_TWO/lokal.conf"
 
-# Der Ziel-Guard prüft '-e ODER -L': ein DEFEKTER Symlink ist für -e unsichtbar, ist aber
-# vorhandene lokale Konfiguration. Ohne die -L-Alternative ersetzte cp ihn und zerstörte genau
-# das, was AK3 schützt (Lesson #258: OR-Fragment mit nie feuernder Alternative).
-run_start_work "$TMP_SW/wt-236-symtgt" 787 demo-symtgt >/dev/null
-WT_SYMTGT="$TMP_SW/wt-236-symtgt/feature-787-demo-symtgt/.env.local"
-rm -f "$WT_SYMTGT"
-# Eigener Sentinel je Test (nicht mit dem Quell-Symlink-Fall weiter unten geteilt): entstünde die
-# geteilte Datei durch eine Regression doch, prüfte der andere Test in Wahrheit einen INTAKTEN
-# Symlink und würde mit irreführender Ursache rot.
-ln -s "$TMP_SW/existiert-nicht-ziel" "$WT_SYMTGT"
-OUT_SYMTGT=$(run_start_work "$TMP_SW/wt-236-symtgt" 787 demo-symtgt)
-{ [ -L "$WT_SYMTGT" ] && [ ! -e "$WT_SYMTGT" ]; }
-assert_true "$?" "#236 AK3: defekter Ziel-Symlink bleibt Symlink (wird nicht durch die Kopie ersetzt)"
-printf '%s' "$OUT_SYMTGT" | grep -qF '.env.local existiert im Worktree bereits'
-assert_true "$?" "#236 AK3: defekter Ziel-Symlink erzeugt die Überspringen-Meldung"
-rm -f "$WT_SYMTGT"
+# AK4 Mutationsbeleg (Lesson Factory-Task #23): dieselbe Prüffunktion auf Original und Mutante ohne
+# Überschreib-Schutz. Die Mutante liegt mit den Libs in einer Wegwerf-Wurzel (sie sourct lib/ relativ zu sich).
+# ak4_target_kept <skript> <wt-basis> <task-id> – 0 = eine lokal geänderte Zieldatei überlebt den Folgelauf.
+ak4_target_kept() {
+  local wt; wt="$(wt_of "$2" "$3" "demo-keep$3")"
+  SW_RUN="$1" run_start_work "$2" "$3" "demo-keep$3" >/dev/null
+  printf 'LOKAL_ANGEPASST=1\n' | tee "$wt/.env.local" > "$TMP_SW/keep-ref-$3"
+  SW_RUN="$1" run_start_work "$2" "$3" "demo-keep$3" >/dev/null
+  cmp -s "$TMP_SW/keep-ref-$3" "$wt/.env.local"
+}
+SW_GUARD_LINE='  if [ -e "$dst" ] || [ -L "$dst" ]; then'
+mkdir -p "$TMP_SW/mut/scripts/lib"
+cp "$CHECKS_DIR/../lib/"*.sh "$TMP_SW/mut/scripts/lib/"
+SW_MUT="$TMP_SW/mut/scripts/start-work.sh"
+awk -v g="$SW_GUARD_LINE" '$0 == g { print "  if false; then"; next } { print }' "$SW" > "$SW_MUT"
+assert_true "$([ "$(grep -cxF -- "$SW_GUARD_LINE" "$SW")" -eq 1 ] && ! grep -qxF -- "$SW_GUARD_LINE" "$SW_MUT"; echo $?)" \
+  "#47 AK4 (Mutation): der Überschreib-Schutz steht genau einmal im Skript und fehlt in der Mutante"
+sw_config '  copy_files: [".env.local"]'
+assert_true "$(ak4_target_kept "$SW" "$TMP_SW/wt-47-keep" 793; echo $?)" \
+  "#47 AK4 (Mutation): Original – die lokal geänderte Zieldatei überlebt den Folgelauf"
+assert_true "$(! ak4_target_kept "$SW_MUT" "$TMP_SW/wt-47-keepmut" 794; echo $?)" \
+  "#47 AK4 (Mutation): ohne Überschreib-Schutz wird die Zieldatei ersetzt – die Prüfung oben wäre rot"
 
-# AK4: Opt-out. Diskriminierung ist durch AK1 oben belegt – dieselbe Quelle wird dort
-# kopiert, hier nicht.
-WT_SKIP="$TMP_SW/wt-236-skipenv/feature-782-demo-skipenv"
-OUT_SKIP=$(run_start_work "$TMP_SW/wt-236-skipenv" 782 demo-skipenv "FACTORY_WT_SKIP_ENV=1")
-# „Der Lauf ist wirklich durchgelaufen"-Anker: ohne ihn wären die Abwesenheits-Assertions auch
-# dann grün, wenn start-work vor dem Kopier-Schritt abgebrochen wäre (Lesson #214).
-printf '%s' "$OUT_SKIP" | grep -q 'Bereit!'
-assert_true "$?" "#236 AK4: der Lauf erreicht den Abschluss-Output (Anker für die Abwesenheits-Prüfungen)"
-assert_true "$([ -d "$WT_SKIP" ]; echo $?)" \
-  "#236 AK4: der Worktree wurde angelegt (Existenz-Anker für die Abwesenheits-Prüfung)"
+# AK5: Unterordner, der im neuen Worktree fehlt, wird angelegt.
+sw_config '  copy_files: ["config/local.yml"]'
+WT_SUB="$(wt_of "$TMP_SW/wt-47-sub" 795 demo-sub)"
+run_start_work "$TMP_SW/wt-47-sub" 795 demo-sub >/dev/null
+{ [ -d "$WT_SUB/config" ] && [ ! -L "$WT_SUB/config" ] && cmp -s "$REPO_SW/config/local.yml" "$WT_SUB/config/local.yml"; }
+assert_true "$?" "#47 AK5: der fehlende Ordner config/ wird im Worktree angelegt und die Datei byte-identisch kopiert"
+
+# AK6: Quelle ist ein Symlink AUF EINE DATEI → im Worktree entsteht eine echte Datei-Kopie (gepinnt, damit
+# ein späterer Wechsel auf 'cp -a' o. Ä. auffällt).
+printf 'echt=1\n' > "$TMP_SW/quelle-echt"
+ln -s "$TMP_SW/quelle-echt" "$REPO_SW/verlinkt.conf"
+sw_config '  copy_files: ["verlinkt.conf"]'
+WT_SYMSRC="$(wt_of "$TMP_SW/wt-47-symsrc" 788 demo-symsrc)/verlinkt.conf"
+run_start_work "$TMP_SW/wt-47-symsrc" 788 demo-symsrc >/dev/null
+{ [ -f "$WT_SYMSRC" ] && [ ! -L "$WT_SYMSRC" ] && cmp -s "$TMP_SW/quelle-echt" "$WT_SYMSRC"; }
+assert_true "$?" "#47 AK6: Symlink als Quelle wird als echte Datei-Kopie materialisiert (kein Symlink im Worktree)"
+# F1, zweite Hälfte: ein DEFEKTER Symlink als Quelle fällt durch '-f' und wird wie „Quelle fehlt" behandelt.
+rm "$REPO_SW/verlinkt.conf"
+ln -s "$TMP_SW/existiert-nicht-quelle" "$REPO_SW/verlinkt.conf"
+WT_SYMDEAD="$(wt_of "$TMP_SW/wt-47-symdead" 789 demo-symdead)"
+OUT_SYMDEAD=$(run_start_work "$TMP_SW/wt-47-symdead" 789 demo-symdead); RC_SYMDEAD=$?
+assert_exit 0 "$RC_SYMDEAD" "#47 F1: defekter Symlink als Quelle → exit 0"
+assert_true "$([ -d "$WT_SYMDEAD" ]; echo $?)" "#47 F1: der Worktree wurde angelegt (Existenz-Anker)"
+{ [ ! -e "$WT_SYMDEAD/verlinkt.conf" ] && [ ! -L "$WT_SYMDEAD/verlinkt.conf" ]; }
+assert_true "$?" "#47 F1: defekter Symlink als Quelle wird nicht kopiert"
+assert_absent "$OUT_SYMDEAD" 'verlinkt.conf' "#47 F1: defekter Symlink als Quelle ohne Warnung (wie fehlende Quelle)"
+rm "$REPO_SW/verlinkt.conf"
+
+# AK7 + AK11: neuer Opt-out – nichts gespiegelt, der Hinweis erscheint trotzdem.
+sw_config '  copy_files: [".env.local"]'
+WT_SKIP="$(wt_of "$TMP_SW/wt-47-skip" 782 demo-skip)"
+OUT_SKIP=$(run_start_work "$TMP_SW/wt-47-skip" 782 demo-skip "FACTORY_WT_SKIP_COPY=1"); RC_SKIP=$?
+assert_exit 0 "$RC_SKIP" "#47 AK7: FACTORY_WT_SKIP_COPY=1 → exit 0"
+assert_true "$([ -d "$WT_SKIP" ]; echo $?)" "#47 AK7: der Worktree wurde angelegt (Existenz-Anker)"
 [ ! -e "$WT_SKIP/.env.local" ]
-assert_true "$?" "#236 AK4: FACTORY_WT_SKIP_ENV=1 kopiert die .env.local nicht"
-assert_absent "$OUT_SKIP" 'pnpm db:seed' "#236 AK4: Opt-out erzeugt auch keinen db:seed-Hinweis"
+assert_true "$?" "#47 AK7: FACTORY_WT_SKIP_COPY=1 spiegelt nichts"
+assert_contains_286 "$OUT_SKIP" "$HINT_SW" "#47 AK11: start_work.hint erscheint auch bei Opt-out"
+# AK8: der alte Name wirkt als Alias.
+WT_SKIPENV="$(wt_of "$TMP_SW/wt-47-skipenv" 802 demo-skipenv)"
+OUT_SKIPENV=$(run_start_work "$TMP_SW/wt-47-skipenv" 802 demo-skipenv "FACTORY_WT_SKIP_ENV=1"); RC_SKIPENV=$?
+assert_exit 0 "$RC_SKIPENV" "#47 AK8: FACTORY_WT_SKIP_ENV=1 → exit 0"
+assert_true "$([ -d "$WT_SKIPENV" ]; echo $?)" "#47 AK8: der Worktree wurde angelegt (Existenz-Anker)"
+[ ! -e "$WT_SKIPENV/.env.local" ]
+assert_true "$?" "#47 AK8: FACTORY_WT_SKIP_ENV=1 wirkt als Alias und spiegelt nichts"
+# E27: FACTORY_WT_SKIP_COPY gewinnt gegen den Alias.
+WT_PREC="$(wt_of "$TMP_SW/wt-47-prec" 796 demo-prec)"
+run_start_work "$TMP_SW/wt-47-prec" 796 demo-prec "FACTORY_WT_SKIP_COPY=0" "FACTORY_WT_SKIP_ENV=1" >/dev/null
+cmp -s "$REPO_SW/.env.local" "$WT_PREC/.env.local"
+assert_true "$?" "#47 AK8: FACTORY_WT_SKIP_COPY=0 gewinnt gegen FACTORY_WT_SKIP_ENV=1 (Factory-ADR-063 E27)"
 
-# Fehlerszenario: Quelle ist ein Verzeichnis → der reguläre Datei-Test (-f) greift nicht,
-# behandelt wird der Fall wie „Quelle fehlt" (kein Sonderfall-Handling).
-mv "$REPO_SW/.env.local" "$TMP_SW/env-backup"
-mkdir "$REPO_SW/.env.local"
-WT_ENVDIR="$TMP_SW/wt-236-envdir/feature-784-demo-envdir"
-run_start_work "$TMP_SW/wt-236-envdir" 784 demo-envdir >/dev/null
-assert_exit 0 "$?" "#236 Fehlerfall: Verzeichnis als Quelle → exit 0 (wie fehlende Quelle)"
-assert_true "$([ -d "$WT_ENVDIR" ]; echo $?)" \
-  "#236 Fehlerfall: der Worktree wurde angelegt (Existenz-Anker für die Abwesenheits-Prüfung)"
-[ ! -e "$WT_ENVDIR/.env.local" ]
-assert_true "$?" "#236 Fehlerfall: Verzeichnis als Quelle wird nicht kopiert"
-rmdir "$REPO_SW/.env.local"
-mv "$TMP_SW/env-backup" "$REPO_SW/.env.local"
+# AK12: leerer Hinweis → keine Hinweis-Zeile, mit und ohne Kopie. Gemessen an der Zeile nach dem
+# Abschluss von Schritt 2: dort folgt ohne Hinweis direkt die Leerzeile. Diskriminierung: mit Hinweis
+# steht dort dessen Wortlaut (OUT_DEF/OUT_TWO oben).
+line_after_step2() { printf '%s\n' "$1" | awk 'f { print; exit } /Kontext-Hygiene/ { f = 1 }'; }
+assert_contains_286 "$(line_after_step2 "$OUT_TWO")" "$HINT_SW" \
+  "#47 AK12 (Diskriminierung): mit gesetztem Hinweis folgt er direkt auf Schritt 2"
+for case_47 in '797|[]' '801|[".env.local"]'; do
+  id_47="${case_47%%|*}"; copy_47="${case_47#*|}"
+  printf 'start_work:\n  hint: ""\n  copy_files: %s\n' "$copy_47" > "$REPO_SW/factory.config.yml"
+  out_47=$(run_start_work "$TMP_SW/wt-47-nohint-$id_47" "$id_47" demo-nohint)
+  assert_contains_286 "$out_47" 'Bereit!' "#47 AK12: leerer Hinweis, copy_files $copy_47 – der Lauf erreicht den Abschluss (Anker)"
+  assert_true "$([ -z "$(line_after_step2 "$out_47")" ]; echo $?)" \
+    "#47 AK12: leerer Hinweis, copy_files $copy_47 – keine Hinweis-Zeile nach Schritt 2"
+done
 
-# Quelle ist ein Symlink AUF EINE DATEI: '-f' dereferenziert, und 'cp -p' folgt dem Link (kein
-# -P/-d) → im Worktree entsteht eine vollwertige Datei-Kopie. Das ist gewolltes Verhalten (Spec:
-# „regulärer Datei-Test als Vorbedingung"), hier gepinnt, damit ein späterer Wechsel auf 'cp -a'
-# o. Ä. auffällt. NUR ein defekter Symlink fällt durch '-f' (Fall darunter).
-mv "$REPO_SW/.env.local" "$TMP_SW/env-real"
-ln -s "$TMP_SW/env-real" "$REPO_SW/.env.local"
-WT_SYMSRC="$TMP_SW/wt-236-symsrc/feature-788-demo-symsrc/.env.local"
-run_start_work "$TMP_SW/wt-236-symsrc" 788 demo-symsrc >/dev/null
-{ [ -f "$WT_SYMSRC" ] && [ ! -L "$WT_SYMSRC" ] && cmp -s "$TMP_SW/env-real" "$WT_SYMSRC"; }
-assert_true "$?" "#236: Symlink als Quelle wird als echte Datei-Kopie materialisiert (kein Symlink im Worktree)"
+# F2: Quelle ist ein Verzeichnis → Warnung, kein Ziel; der folgende Eintrag wird trotzdem gespiegelt.
+mkdir -p "$REPO_SW/ein-ordner"
+sw_config '  copy_files: ["ein-ordner", "lokal.conf"]'
+WT_DIR="$(wt_of "$TMP_SW/wt-47-dir" 784 demo-dir)"
+OUT_DIR=$(run_start_work "$TMP_SW/wt-47-dir" 784 demo-dir); RC_DIR=$?
+assert_exit 0 "$RC_DIR" "#47 F2: Verzeichnis als Quelle → exit 0"
+assert_true "$([ -d "$WT_DIR" ]; echo $?)" "#47 F2: der Worktree wurde angelegt (Existenz-Anker)"
+[ ! -e "$WT_DIR/ein-ordner" ]
+assert_true "$?" "#47 F2: Verzeichnis als Quelle wird nicht kopiert"
+assert_contains_286 "$OUT_DIR" 'ein-ordner ist ein Verzeichnis' "#47 F2: Verzeichnis als Quelle erzeugt eine Warnung"
+cmp -s "$REPO_SW/lokal.conf" "$WT_DIR/lokal.conf"
+assert_true "$?" "#47 F2: der folgende Eintrag wird trotzdem gespiegelt"
+rmdir "$REPO_SW/ein-ordner"
 
-# Quelle ist ein DEFEKTER Symlink → fällt durch '-f' und wird wie „Quelle fehlt" behandelt.
-rm "$REPO_SW/.env.local"
-ln -s "$TMP_SW/existiert-nicht-quelle" "$REPO_SW/.env.local"
-WT_SYMDEAD="$TMP_SW/wt-236-symdead/feature-789-demo-symdead"
-run_start_work "$TMP_SW/wt-236-symdead" 789 demo-symdead >/dev/null
-assert_exit 0 "$?" "#236 Fehlerfall: defekter Symlink als Quelle → exit 0 (wie fehlende Quelle)"
-assert_true "$([ -d "$WT_SYMDEAD" ]; echo $?)" \
-  "#236 Fehlerfall: der Worktree wurde angelegt (Existenz-Anker für die Abwesenheits-Prüfung)"
-[ ! -e "$WT_SYMDEAD/.env.local" ]
-assert_true "$?" "#236 Fehlerfall: defekter Symlink als Quelle wird nicht kopiert"
-rm "$REPO_SW/.env.local"
-mv "$TMP_SW/env-real" "$REPO_SW/.env.local"
-
-# Fehlerszenario: Kopieren schlägt fehl (Quelle nicht lesbar) → Warnung, KEIN Abbruch;
-# unter 'set -euo pipefail' darf start-work nicht wortlos enden. Als root ist chmod 000
-# wirkungslos (Lesetest würde gelingen) → dann lautes Skip statt falsch-grün.
+# F3: Quelle nicht lesbar → Warnung, kein Ziel, KEIN Abbruch unter 'set -euo pipefail'. Als root ist
+# chmod 000 wirkungslos (Lesetest gelänge) → dann lautes Skip statt falsch-grün.
+sw_config '  copy_files: [".env.local"]'
 if [ "$(id -u)" != "0" ]; then
   chmod 000 "$REPO_SW/.env.local"
-  OUT_FAIL=$(run_start_work "$TMP_SW/wt-236-envfail" 785 demo-envfail); RC_FAIL=$?
+  WT_FAIL="$(wt_of "$TMP_SW/wt-47-fail" 785 demo-fail)"
+  OUT_FAIL=$(run_start_work "$TMP_SW/wt-47-fail" 785 demo-fail); RC_FAIL=$?
   chmod 600 "$REPO_SW/.env.local"
-  assert_exit 0 "$RC_FAIL" "#236 Fehlerfall: unlesbare Quelle → start-work läuft weiter (exit 0)"
-  printf '%s' "$OUT_FAIL" | grep -qF '.env.local konnte nicht kopiert werden'
-  assert_true "$?" "#236 Fehlerfall: unlesbare Quelle erzeugt eine Warnung"
-  printf '%s' "$OUT_FAIL" | grep -q 'Bereit!'
-  assert_true "$?" "#236 Fehlerfall: der Abschluss-Output wird trotz Kopier-Fehler erreicht"
-  assert_absent "$OUT_FAIL" 'pnpm db:seed' "#236 Fehlerfall: fehlgeschlagene Kopie erzeugt keinen db:seed-Hinweis"
+  assert_exit 0 "$RC_FAIL" "#47 F3: unlesbare Quelle → start-work läuft weiter (exit 0)"
+  assert_contains_286 "$OUT_FAIL" '.env.local konnte nicht kopiert werden' "#47 F3: unlesbare Quelle erzeugt eine Warnung"
+  assert_contains_286 "$OUT_FAIL" 'Bereit!' "#47 F3: der Abschluss-Output wird trotz Kopier-Fehler erreicht"
+  [ ! -e "$WT_FAIL/.env.local" ]
+  assert_true "$?" "#47 F3: nach unlesbarer Quelle bleibt kein Ziel zurück"
 else
-  echo "  • #236 Fehlerfall unlesbare Quelle – übersprungen (Suite läuft als root)"
+  echo "  • #47 F3 unlesbare Quelle – übersprungen (Suite läuft als root)"
 fi
 
-# Fehlerszenario: 'cp' scheitert, NACHDEM das Ziel entstanden ist – Abbruch mitten im Schreiben
-# (ENOSPC/EIO) oder nur das '-p' (chmod/utimes) misslingt (exFAT/SMB). Ohne Aufräumen bliebe ein
-# Rest liegen, den der AK3-Guard („existiert bereits – wird nicht überschrieben") bei JEDEM
-# Folgelauf konservierte: der kaputte Zustand wäre permanent, Symptom wieder CredentialsSignin
-# (#228). Der bereits unlesbar getestete Fall deckt das nicht ab – dort scheitert cp am open()
-# der Quelle, das Ziel entsteht nie. Ein echtes cp lässt sich nicht zum Teilabbruch zwingen;
-# der PATH-Stub (dieselbe Mechanik wie der gh-Stub dieses Blocks) stellt genau diesen Zustand her.
+# F4: 'cp' scheitert, NACHDEM das Ziel entstanden ist (Abbruch mitten im Schreiben, oder nur das '-p'
+# misslingt). Ohne Aufräumen konservierte der AK4-Guard den Rest bei jedem Folgelauf. Ein echtes cp lässt
+# sich nicht zum Teilabbruch zwingen; der PATH-Stub (dieselbe Mechanik wie der gh-Stub) stellt ihn her.
 cat > "$TMP_SW/bin/cp" << 'CPSTUB'
 #!/usr/bin/env bash
 printf 'HALB_KOPIERT=' > "${@: -1}"   # Ziel angelegt, Inhalt unvollständig
 exit 1
 CPSTUB
 chmod +x "$TMP_SW/bin/cp"
-WT_PARTIAL="$TMP_SW/wt-236-envpartial/feature-790-demo-envpartial"
-OUT_PARTIAL=$(run_start_work "$TMP_SW/wt-236-envpartial" 790 demo-envpartial); RC_PARTIAL=$?
+WT_PARTIAL="$(wt_of "$TMP_SW/wt-47-partial" 790 demo-partial)"
+OUT_PARTIAL=$(run_start_work "$TMP_SW/wt-47-partial" 790 demo-partial); RC_PARTIAL=$?
 rm -f "$TMP_SW/bin/cp"
-assert_exit 0 "$RC_PARTIAL" "#236 Fehlerfall: cp-Teilabbruch → start-work läuft weiter (exit 0)"
-assert_true "$([ -d "$WT_PARTIAL" ]; echo $?)" \
-  "#236 Fehlerfall: der Worktree wurde angelegt (Existenz-Anker für die Abwesenheits-Prüfung)"
-printf '%s' "$OUT_PARTIAL" | grep -qF '.env.local konnte nicht kopiert werden'
-assert_true "$?" "#236 Fehlerfall: cp-Teilabbruch erzeugt eine Warnung"
+assert_exit 0 "$RC_PARTIAL" "#47 F4: cp-Teilabbruch → start-work läuft weiter (exit 0)"
+assert_true "$([ -d "$WT_PARTIAL" ]; echo $?)" "#47 F4: der Worktree wurde angelegt (Existenz-Anker)"
+assert_contains_286 "$OUT_PARTIAL" '.env.local konnte nicht kopiert werden' "#47 F4: cp-Teilabbruch erzeugt eine Warnung"
 [ ! -e "$WT_PARTIAL/.env.local" ]
-assert_true "$?" "#236 Fehlerfall: der halb kopierte Rest wird entfernt, nicht liegengelassen"
-# Diskriminierung: derselbe Worktree, diesmal mit echtem cp – der Zustand ist reparierbar und
-# nicht durch den AK3-Guard eingefroren. Ohne das Aufräumen oben bliebe hier der Rest stehen.
-run_start_work "$TMP_SW/wt-236-envpartial" 790 demo-envpartial >/dev/null
+assert_true "$?" "#47 F4: der halb kopierte Rest wird entfernt, nicht liegengelassen"
+# Diskriminierung: derselbe Worktree, diesmal mit echtem cp – ohne das Aufräumen bliebe hier der Rest stehen.
+run_start_work "$TMP_SW/wt-47-partial" 790 demo-partial >/dev/null
 cmp -s "$REPO_SW/.env.local" "$WT_PARTIAL/.env.local"
-assert_true "$?" "#236 Fehlerfall: der Folgelauf kopiert vollständig (Teilabbruch ist nicht permanent)"
+assert_true "$?" "#47 F4: der Folgelauf kopiert vollständig (Teilabbruch ist nicht permanent)"
 
-# Fehlerszenario: am Worktree-Pfad liegt eine REGULÄRE DATEI. start-work nimmt dann den
-# Wiederverwendungs-Zweig (:210) und läuft weiter – der Kopier-Block darf diesen Ablauf nicht
-# verkürzen. Ohne den '-d'-Guard scheitern dort cp UND rm mit ENOTDIR ('rm -f' unterdrückt nur
-# ENOENT); die rm-Zeile steht in keiner Bedingung, also bricht 'set -e' den Lauf WORTLOS ab –
-# ohne Warnung und ohne die Schritte 3–5, die vor diesem PR noch erreicht wurden.
-# Referenzpunkt ist bewusst „Schritt 3 wird erreicht", nicht 'Bereit!': dass Schritt 3 an
-# seinem eigenen 'mkdir -p' scheitert, ist vorbestehendes #74-Verhalten (der :210-Zweig kennt
-# keinen Nicht-Verzeichnis-Pfad) und außerhalb dieses Scopes – gemessen wird nur, dass der
-# Kopier-Block den Abbruchpunkt nicht nach vorne zieht.
-WT_NOTDIR_BASE="$TMP_SW/wt-236-notdir"
-mkdir -p "$WT_NOTDIR_BASE"
-: > "$WT_NOTDIR_BASE/feature-791-demo-notdir"
-OUT_NOTDIR=$(run_start_work "$WT_NOTDIR_BASE" 791 demo-notdir)
-# Existenz-Anker: der Pfad ist wirklich eine reguläre Datei – ein geändertes Slug-Schema in
-# start-work.sh entwertete den ganzen Testfall sonst lautlos (er liefe gegen einen freien Pfad).
-assert_true "$([ -f "$WT_NOTDIR_BASE/feature-791-demo-notdir" ]; echo $?)" \
-  "#236 Fehlerfall: am Worktree-Pfad liegt eine reguläre Datei (Anker für den Nicht-Verzeichnis-Fall)"
-printf '%s' "$OUT_NOTDIR" | grep -qF 'wird wiederverwendet'
-assert_true "$?" "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad nimmt den Wiederverwendungs-Zweig"
-printf '%s' "$OUT_NOTDIR" | grep -qF '3/5  Task-Datei anlegen'
-assert_true "$?" "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad bricht den Lauf nicht im Kopier-Block ab"
-assert_absent "$OUT_NOTDIR" '.env.local in den Worktree spiegeln' \
-  "#236 Fehlerfall: der Kopier-Block wird bei einem Nicht-Verzeichnis gar nicht erst betreten"
-# Bewusst auf die Kommando-Präfixe der beiden Aufrufe des Blocks verankert und NICHT auf den
-# Fehlertext 'Not a directory': den erzeugt in Schritt 3 auch das vorbestehende
-# 'mkdir -p "$WORKDIR/tasks"' – eine Assertion darauf wäre aus dem falschen Grund rot.
-assert_absent "$OUT_NOTDIR" 'cp: ' \
-  "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad erzeugt keine rohe cp-Fehlerzeile"
-assert_absent "$OUT_NOTDIR" 'rm: ' \
-  "#236 Fehlerfall: Nicht-Verzeichnis am Worktree-Pfad erzeugt keine rohe rm-Fehlerzeile"
-
-# Fehlerszenario: das Aufräumen selbst scheitert (nicht nur das cp). Ein schreibgeschütztes
-# Zielverzeichnis, ein Fremd-'rm' auf PATH – der Grund ist egal, die Zeile darf den Lauf nie
-# beenden. start-work.sh ruft 'rm' an genau EINER Stelle auf (der Aufräumzeile), der PATH-Stub
-# trifft also präzise sie und nichts sonst. Die Kombination aus beiden Stubs ist nötig: ohne
-# den cp-Stub wird die Aufräumzeile gar nicht erreicht.
+# F4, Aufräumen scheitert selbst (Fremd-'rm' auf PATH, schreibgeschütztes Ziel …): die Zeile darf den
+# Lauf nie beenden. Ohne den cp-Stub würde die Aufräumzeile gar nicht erreicht.
 cat > "$TMP_SW/bin/cp" << 'CPSTUB'
 #!/usr/bin/env bash
 printf 'HALB_KOPIERT=' > "${@: -1}"
@@ -2182,86 +2194,282 @@ cat > "$TMP_SW/bin/rm" << 'RMSTUB'
 exit 1
 RMSTUB
 chmod +x "$TMP_SW/bin/cp" "$TMP_SW/bin/rm"
-OUT_RMFAIL=$(run_start_work "$TMP_SW/wt-236-rmfail" 792 demo-rmfail); RC_RMFAIL=$?
+OUT_RMFAIL=$(run_start_work "$TMP_SW/wt-47-rmfail" 792 demo-rmfail); RC_RMFAIL=$?
 rm -f "$TMP_SW/bin/cp" "$TMP_SW/bin/rm"
-assert_exit 0 "$RC_RMFAIL" "#236 Fehlerfall: fehlgeschlagenes Aufräumen → start-work läuft weiter (exit 0)"
-printf '%s' "$OUT_RMFAIL" | grep -qF '.env.local konnte nicht kopiert werden'
-assert_true "$?" "#236 Fehlerfall: fehlgeschlagenes Aufräumen erzeugt trotzdem die Warnung"
-printf '%s' "$OUT_RMFAIL" | grep -q 'Bereit!'
-assert_true "$?" "#236 Fehlerfall: der Abschluss-Output wird trotz fehlgeschlagenem Aufräumen erreicht"
+assert_exit 0 "$RC_RMFAIL" "#47 F4: fehlgeschlagenes Aufräumen → start-work läuft weiter (exit 0)"
+assert_contains_286 "$OUT_RMFAIL" '.env.local konnte nicht kopiert werden' "#47 F4: fehlgeschlagenes Aufräumen erzeugt trotzdem die Warnung"
+assert_contains_286 "$OUT_RMFAIL" 'Bereit!' "#47 F4: der Abschluss-Output wird trotz fehlgeschlagenem Aufräumen erreicht"
 
-# AK8: In-Place-Modus – der Arbeitsbaum IST der Haupt-Baum, es gibt nichts zu kopieren.
-printf 'DATABASE_URL=postgres://demo\n' > "$REPO_IP/.env.local"
+# F5: Elternordner lässt sich nicht anlegen (am Pfad liegt eine Datei) → Warnung, übersprungen, Folge-Eintrag
+# läuft. Zweiter Lauf auf einen vorhandenen Worktree, in dem die blockierende Datei liegt.
+mkdir -p "$REPO_SW/blockiert"
+printf 'b=1\n' > "$REPO_SW/blockiert/x.conf"
+sw_config ''
+WT_BLOCK="$(wt_of "$TMP_SW/wt-47-block" 798 demo-block)"
+run_start_work "$TMP_SW/wt-47-block" 798 demo-block >/dev/null
+: > "$WT_BLOCK/blockiert"
+sw_config '  copy_files: ["blockiert/x.conf", "lokal.conf"]'
+OUT_BLOCK=$(run_start_work "$TMP_SW/wt-47-block" 798 demo-block); RC_BLOCK=$?
+assert_exit 0 "$RC_BLOCK" "#47 F5: Elternordner nicht anlegbar → exit 0"
+assert_true "$([ -f "$WT_BLOCK/blockiert" ] && [ ! -s "$WT_BLOCK/blockiert" ]; echo $?)" \
+  "#47 F5: die blockierende Datei bleibt unverändert"
+assert_contains_286 "$OUT_BLOCK" 'blockiert/x.conf übersprungen' "#47 F5: der Eintrag wird mit Warnung übersprungen"
+cmp -s "$REPO_SW/lokal.conf" "$WT_BLOCK/lokal.conf"
+assert_true "$?" "#47 F5: der folgende Eintrag wird trotzdem gespiegelt"
+
+# F6: Symlink in der Elternkette – egal wohin er zeigt (nach draußen bzw. innerhalb des Worktrees) –, der
+# Eintrag wird nicht kopiert, außerhalb des Worktrees entsteht nichts (Factory-ADR-063 E25).
+mkdir -p "$REPO_SW/aussen-link" "$REPO_SW/innen-link" "$TMP_SW/draussen"
+printf 'a=1\n' > "$REPO_SW/aussen-link/x.conf"
+printf 'i=1\n' > "$REPO_SW/innen-link/x.conf"
+sw_config ''
+WT_LINK="$(wt_of "$TMP_SW/wt-47-link" 799 demo-link)"
+run_start_work "$TMP_SW/wt-47-link" 799 demo-link >/dev/null
+ln -s "$TMP_SW/draussen" "$WT_LINK/aussen-link"
+ln -s tasks "$WT_LINK/innen-link"
+sw_config '  copy_files: ["aussen-link/x.conf", "innen-link/x.conf", "lokal.conf"]'
+OUT_LINK=$(run_start_work "$TMP_SW/wt-47-link" 799 demo-link); RC_LINK=$?
+assert_exit 0 "$RC_LINK" "#47 F6: Symlink in der Elternkette → exit 0"
+[ ! -e "$TMP_SW/draussen/x.conf" ]
+assert_true "$?" "#47 F6: über einen Symlink nach draußen wird nichts außerhalb des Worktrees geschrieben"
+[ ! -e "$WT_LINK/tasks/x.conf" ]
+assert_true "$?" "#47 F6: auch ein Symlink innerhalb des Worktrees führt zum Überspringen"
+assert_contains_286 "$OUT_LINK" 'aussen-link/x.conf übersprungen' "#47 F6: Warnung für den Symlink nach draußen"
+assert_contains_286 "$OUT_LINK" 'innen-link/x.conf übersprungen' "#47 F6: Warnung für den Symlink nach innen"
+cmp -s "$REPO_SW/lokal.conf" "$WT_LINK/lokal.conf"
+assert_true "$?" "#47 F6: der folgende Eintrag wird trotzdem gespiegelt"
+
+# F7: am Worktree-Pfad liegt eine REGULÄRE DATEI. start-work nimmt den Wiederverwendungs-Zweig und läuft
+# weiter – die Spiegelung darf diesen Ablauf nicht verkürzen ('-d'-Guard). Referenzpunkt ist „Schritt 3 wird
+# erreicht", nicht 'Bereit!': dass Schritt 3 an seinem eigenen 'mkdir -p' scheitert, ist vorbestehendes
+# nothra/tch-gastro-services#74-Verhalten und außerhalb dieses Scopes.
+sw_config '  copy_files: [".env.local"]'
+WT_NOTDIR_BASE="$TMP_SW/wt-47-notdir"
+mkdir -p "$WT_NOTDIR_BASE"
+: > "$WT_NOTDIR_BASE/feature-791-demo-notdir"
+OUT_NOTDIR=$(run_start_work "$WT_NOTDIR_BASE" 791 demo-notdir)
+assert_true "$([ -f "$WT_NOTDIR_BASE/feature-791-demo-notdir" ]; echo $?)" \
+  "#47 F7: am Worktree-Pfad liegt eine reguläre Datei (Anker für den Nicht-Verzeichnis-Fall)"
+assert_contains_286 "$OUT_NOTDIR" 'wird wiederverwendet' "#47 F7: Nicht-Verzeichnis am Worktree-Pfad nimmt den Wiederverwendungs-Zweig"
+assert_contains_286 "$OUT_NOTDIR" '3/5  Task-Datei anlegen' "#47 F7: der Lauf bricht nicht in der Spiegelung ab"
+assert_absent "$OUT_NOTDIR" 'in den Worktree spiegeln' "#47 F7: die Spiegelung wird bei einem Nicht-Verzeichnis gar nicht erst betreten"
+# Auf die Kommando-Präfixe verankert, NICHT auf 'Not a directory': den erzeugt in Schritt 3 auch das
+# vorbestehende 'mkdir -p "$WORKDIR/tasks"' – eine Assertion darauf wäre aus dem falschen Grund rot.
+assert_absent "$OUT_NOTDIR" 'cp: ' "#47 F7: keine rohe cp-Fehlerzeile"
+assert_absent "$OUT_NOTDIR" 'rm: ' "#47 F7: keine rohe rm-Fehlerzeile"
+
+# F8: ungültige Einträge (Gate ausgelassen) werden auch vom Skript nicht kopiert (Defense in depth, E24).
+printf 'absolut=1\n' > "$TMP_SW/absolut.conf"
+printf 'eltern=1\n' > "$TMP_SW/eltern.conf"   # = $FACTORY_DIR/../eltern.conf
+sw_config "  copy_files: [\"$TMP_SW/absolut.conf\", \"../eltern.conf\", \"lokal.conf\"]"
+WT_BAD_BASE="$TMP_SW/wt-47-bad"
+WT_BAD="$(wt_of "$WT_BAD_BASE" 800 demo-bad)"
+OUT_BAD=$(run_start_work "$WT_BAD_BASE" 800 demo-bad); RC_BAD=$?
+assert_exit 0 "$RC_BAD" "#47 F8: ungültige Einträge → exit 0"
+[ ! -e "$WT_BAD$TMP_SW/absolut.conf" ]
+assert_true "$?" "#47 F8: ein absoluter Eintrag wird nicht kopiert"
+[ ! -e "$WT_BAD_BASE/eltern.conf" ]
+assert_true "$?" "#47 F8: ein Eintrag mit '..' schreibt nicht außerhalb des Worktrees"
+assert_contains_286 "$OUT_BAD" 'ungültiger Eintrag (absoluter Pfad)' "#47 F8: Warnung für den absoluten Eintrag"
+assert_contains_286 "$OUT_BAD" "ungültiger Eintrag ('..'-Segment)" "#47 F8: Warnung für den '..'-Eintrag"
+cmp -s "$REPO_SW/lokal.conf" "$WT_BAD/lokal.conf"
+assert_true "$?" "#47 F8: der gültige Eintrag wird trotzdem gespiegelt"
+
+# F8 (Elemente, die factory_cfg_list verwirft): Nicht-String, leerer String und Steuerzeichen erreichen
+# copy_into_worktree nicht – das Skript meldet sie trotzdem gesammelt, statt sie still fallen zu lassen.
+sw_config '  copy_files: [5, "", "a\nb", "lokal.conf"]'
+WT_DROP="$(wt_of "$TMP_SW/wt-47-drop" 803 demo-drop)"
+OUT_DROP=$(run_start_work "$TMP_SW/wt-47-drop" 803 demo-drop); RC_DROP=$?
+assert_exit 0 "$RC_DROP" "#47 F8: Nicht-String/leer/Steuerzeichen in copy_files → exit 0"
+assert_contains_286 "$OUT_DROP" '3 Einträge in start_work.copy_files übersprungen' \
+  "#47 F8: verworfene Elemente werden gezählt gewarnt, nicht still übergangen"
+assert_true "$([ ! -e "$WT_DROP/5" ] && [ ! -e "$WT_DROP/a" ] && [ ! -e "$WT_DROP/b" ]; echo $?)" \
+  "#47 F8: aus verworfenen Elementen entsteht keine Datei im Worktree"
+cmp -s "$REPO_SW/lokal.conf" "$WT_DROP/lokal.conf"
+assert_true "$?" "#47 F8: der gültige Eintrag neben verworfenen Elementen wird trotzdem gespiegelt"
+
+# F8 (keine Liste): eine Map liefert über '.[]' ihre Werte – ohne Typprüfung würde der Wert 'lokal.conf'
+# kopiert. Ein Skalar wird ebenso nicht gespiegelt. Beides warnt mit einem übersprungenen Eintrag.
+for case_47 in '804|{x: lokal.conf}' '805|lokal.conf'; do
+  id_47="${case_47%%|*}"; val_47="${case_47#*|}"
+  sw_config "  copy_files: $val_47"
+  wt_47="$(wt_of "$TMP_SW/wt-47-nolist" "$id_47" demo-nolist)"
+  out_47=$(run_start_work "$TMP_SW/wt-47-nolist" "$id_47" demo-nolist); rc_47=$?
+  assert_exit 0 "$rc_47" "#47 F8: copy_files $val_47 (keine Liste) → exit 0"
+  assert_true "$([ -d "$wt_47" ] && [ ! -e "$wt_47/lokal.conf" ]; echo $?)" \
+    "#47 F8: copy_files $val_47 (keine Liste) spiegelt nichts (Worktree als Anker vorhanden)"
+  assert_contains_286 "$out_47" '1 Eintrag in start_work.copy_files übersprungen' \
+    "#47 F8: copy_files $val_47 (keine Liste) wird gewarnt"
+done
+
+# Config nicht lesbar: ein yq-Stub scheitert nur an Ausdrücken über copy_files (der übrige Lauf liest seine
+# Config weiter). Ohne Warnung bliebe eine konfigurierte Kopie lautlos aus.
+REAL_YQ_47="$(command -v yq)"
+printf '#!/usr/bin/env bash\ncase "$*" in *copy_files*) echo "yq-stub: kaputt" >&2; exit 1 ;; esac\nexec "%s" "$@"\n' \
+  "$REAL_YQ_47" > "$TMP_SW/bin/yq"
+chmod +x "$TMP_SW/bin/yq"
+sw_config '  copy_files: ["lokal.conf"]'
+WT_NOREAD="$(wt_of "$TMP_SW/wt-47-noread" 806 demo-noread)"
+OUT_NOREAD=$(run_start_work "$TMP_SW/wt-47-noread" 806 demo-noread); RC_NOREAD=$?
+rm -f "$TMP_SW/bin/yq"
+assert_exit 0 "$RC_NOREAD" "#47 F8: copy_files nicht lesbar → exit 0"
+assert_contains_286 "$OUT_NOREAD" 'start_work.copy_files nicht lesbar' "#47 F8: nicht lesbare copy_files werden gewarnt"
+assert_true "$([ -d "$WT_NOREAD" ] && [ ! -e "$WT_NOREAD/lokal.conf" ]; echo $?)" \
+  "#47 F8: bei nicht lesbarer Liste wird nichts gespiegelt (Worktree als Anker vorhanden)"
+
+# F9: ein Eintrag, der im Worktree NICHT gitignoret ist, wird nicht kopiert – sonst committete
+# factory-commit.sh ('git add -A') die Kopie im nächsten Schritt (Factory-ADR-063 E26, Security-W1).
+# Zwei Varianten: gar kein Ignore-Muster, und ein Muster, das nur in einer uncommitteten .gitignore des
+# Quellbaums steht (der Worktree sieht sie nicht). Der Folge-Eintrag läuft weiter.
+printf 'offen=1\n' > "$REPO_SW/offen.txt"
+printf 'quelle=1\n' > "$REPO_SW/nur-quelle.txt"
+printf 'nur-quelle.txt\n' > "$REPO_SW/.gitignore"
+sw_config '  copy_files: ["offen.txt", "nur-quelle.txt", "lokal.conf"]'
+WT_UNIGN="$(wt_of "$TMP_SW/wt-47-unign" 807 demo-unign)"
+OUT_UNIGN=$(run_start_work "$TMP_SW/wt-47-unign" 807 demo-unign); RC_UNIGN=$?
+assert_exit 0 "$RC_UNIGN" "#47 F9: nicht gitignorete Einträge → exit 0"
+assert_true "$([ -d "$WT_UNIGN" ] && [ ! -e "$WT_UNIGN/offen.txt" ]; echo $?)" \
+  "#47 F9: ein im Worktree nicht gitignoreter Eintrag wird nicht kopiert (Worktree als Anker vorhanden)"
+assert_contains_286 "$OUT_UNIGN" 'offen.txt ist im Worktree nicht gitignoret' "#47 F9: der nicht ignorierte Eintrag wird gewarnt"
+[ ! -e "$WT_UNIGN/nur-quelle.txt" ]
+assert_true "$?" "#47 F9: ein Ignore-Muster nur in der uncommitteten .gitignore des Quellbaums zählt nicht"
+assert_contains_286 "$OUT_UNIGN" 'nur-quelle.txt ist im Worktree nicht gitignoret' "#47 F9: auch dieser Eintrag wird gewarnt"
+cmp -s "$REPO_SW/lokal.conf" "$WT_UNIGN/lokal.conf"
+assert_true "$?" "#47 F9: der folgende, gitignorete Eintrag wird trotzdem gespiegelt"
+assert_true "$([ -z "$(git -C "$WT_UNIGN" status --porcelain --untracked-files=all -- offen.txt nur-quelle.txt lokal.conf)" ]; echo $?)" \
+  "#47 F9: 'git add -A' fände im Worktree keine der gespiegelten Dateien (status leer)"
+rm -f "$REPO_SW/.gitignore" "$REPO_SW/nur-quelle.txt"
+
+# F9 Mutationsbeleg (Lesson Factory-Task #23): dieselbe Prüffunktion auf Original und Mutante ohne Ignore-Guard.
+# f9_unignored_refused <skript> <wt-basis> <task-id> – 0 = der nicht ignorierte Eintrag fehlt im Worktree.
+f9_unignored_refused() {
+  local wt; wt="$(wt_of "$2" "$3" "demo-unign$3")"
+  SW_RUN="$1" run_start_work "$2" "$3" "demo-unign$3" >/dev/null
+  [ -d "$wt" ] && [ ! -e "$wt/offen.txt" ]
+}
+SW_IGN_LINE='  if ! git -C "$WORKDIR" check-ignore -q -- "./$entry" 2>/dev/null; then'
+SW_MUT_IGN="$TMP_SW/mut/scripts/start-work-ign.sh"
+awk -v g="$SW_IGN_LINE" '$0 == g { print "  if false; then"; next } { print }' "$SW" > "$SW_MUT_IGN"
+assert_true "$([ "$(grep -cxF -- "$SW_IGN_LINE" "$SW")" -eq 1 ] && ! grep -qxF -- "$SW_IGN_LINE" "$SW_MUT_IGN"; echo $?)" \
+  "#47 F9 (Mutation): der Ignore-Guard steht genau einmal im Skript und fehlt in der Mutante"
+sw_config '  copy_files: ["offen.txt"]'
+assert_true "$(f9_unignored_refused "$SW" "$TMP_SW/wt-47-ign" 808; echo $?)" \
+  "#47 F9 (Mutation): Original – der nicht ignorierte Eintrag wird nicht kopiert"
+assert_true "$(! f9_unignored_refused "$SW_MUT_IGN" "$TMP_SW/wt-47-ignmut" 809; echo $?)" \
+  "#47 F9 (Mutation): ohne Ignore-Guard wird er kopiert – die Prüfung oben wäre rot"
+rm -f "$REPO_SW/offen.txt"
+
+# F9 Pathspec (Security-W2): check-ignore liest sein Argument als Pathspec – ':geheim' löste Git zu 'geheim'
+# auf (ignoriert), cp schriebe aber wörtlich ':geheim' (nicht ignoriert). Mit './'-Präfix prüft der Guard
+# den wörtlichen Pfad. Das Muster 'geheim' trifft nur den aufgelösten Namen, nicht ':geheim'.
+# f9_pathspec_refused <skript> <wt-basis> <task-id> – 0 = ':geheim' fehlt im Worktree und im git status.
+f9_pathspec_refused() {
+  local wt; wt="$(wt_of "$2" "$3" "demo-pspec$3")"
+  SW_RUN="$1" run_start_work "$2" "$3" "demo-pspec$3" >/dev/null
+  local status; status="$(git -C "$wt" status --porcelain --untracked-files=all)"
+  [ -d "$wt" ] && [ ! -e "$wt/:geheim" ] && ! grep -qF -- ':geheim' <<<"$status"
+}
+printf 'geheim\n' >> "$SW_EXCLUDE"
+printf 'geheim=1\n' > "$REPO_SW/:geheim"
+sw_config '  copy_files: [":geheim"]'
+SW_IGN_LINE_BARE='  if ! git -C "$WORKDIR" check-ignore -q -- "$entry" 2>/dev/null; then'
+SW_MUT_PSPEC="$TMP_SW/mut/scripts/start-work-pspec.sh"
+awk -v g="$SW_IGN_LINE" -v m="$SW_IGN_LINE_BARE" '$0 == g { print m; next } { print }' "$SW" > "$SW_MUT_PSPEC"
+assert_true "$([ "$(grep -cxF -- "$SW_IGN_LINE" "$SW")" -eq 1 ] && grep -qxF -- "$SW_IGN_LINE_BARE" "$SW_MUT_PSPEC"; echo $?)" \
+  "#47 F9 Pathspec (Mutation): der Guard prüft './\$entry' genau einmal, die Mutante den nackten Eintrag"
+OUT_PSPEC=$(run_start_work "$TMP_SW/wt-47-pspecout" 811 demo-pspecout)
+assert_contains_286 "$OUT_PSPEC" ':geheim ist im Worktree nicht gitignoret' \
+  "#47 F9 Pathspec: ein Eintrag mit führendem ':' wird als nicht gitignoret gewarnt"
+assert_true "$(f9_pathspec_refused "$SW" "$TMP_SW/wt-47-pspec" 812; echo $?)" \
+  "#47 F9 Pathspec: ':geheim' wird nicht kopiert, 'git add -A' fände es nicht (status ohne ':geheim')"
+assert_true "$(! f9_pathspec_refused "$SW_MUT_PSPEC" "$TMP_SW/wt-47-pspecmut" 813; echo $?)" \
+  "#47 F9 Pathspec (Mutation): ohne './'-Präfix wird ':geheim' kopiert und läge untracked im Worktree"
+rm -f "$REPO_SW/:geheim"
+
+# Ausgabe: ein Eintrag mit Backslash-Folge erscheint wörtlich in der Meldung ('echo -e' schnitte bei '\c' ab).
+printf 'bs=1\n' > "$REPO_SW/back\\cslash.conf"
+sw_config "  copy_files: ['back\\cslash.conf']"
+WT_BS="$(wt_of "$TMP_SW/wt-47-bs" 810 demo-bs)"
+OUT_BS=$(run_start_work "$TMP_SW/wt-47-bs" 810 demo-bs)
+cmp -s "$REPO_SW/back\\cslash.conf" "$WT_BS/back\\cslash.conf"
+assert_true "$?" "#47: ein Eintrag mit Backslash im Namen wird gespiegelt"
+assert_contains_286 "$OUT_BS" 'back\cslash.conf kopiert (Quelle:' \
+  "#47: die Erfolgsmeldung gibt den Eintrag wörtlich aus (keine Backslash-Interpretation)"
+rm -f "$REPO_SW/back\\cslash.conf"
+
+# AK11: In-Place-Modus – keine Spiegelung (kein neuer Baum), der Hinweis erscheint trotzdem. Config + Defaults
+# liegen untracked im Klon: der Uncommitted-Check des In-Place-Modus sieht nur getrackte Dateien.
+cp "$FACTORY_ROOT/factory.defaults.yml" "$REPO_IP/"
+printf 'start_work:\n  hint: "%s"\n  copy_files: [".env.local"]\n' "$HINT_SW" > "$REPO_IP/factory.config.yml"
+printf 'SCHLUESSEL=ip\n' > "$REPO_IP/.env.local"
 OUT_IP=$( cd "$REPO_IP" && PATH="$TMP_SW/bin:$PATH" \
     FACTORY_DIR="$REPO_IP" FACTORY_REPO="acme/demo" FACTORY_NO_WORKTREE=1 \
     bash "$SW" 783 demo-ip 2>&1 )
-# „Der Lauf ist wirklich durchgelaufen"-Anker vor den Abwesenheits-Assertions (Lesson #214):
-# der In-Place-Zweig macht zusätzlich checkout/rebase gegen das Bare-Remote und könnte davor enden.
-printf '%s' "$OUT_IP" | grep -q 'Bereit!'
-assert_true "$?" "#236 AK8: der In-Place-Lauf erreicht den Abschluss-Output (Anker für die Abwesenheits-Prüfungen)"
-assert_absent "$OUT_IP" '.env.local kopiert (Quelle:' "#236 AK8: In-Place-Modus führt keine Kopieraktion aus"
-assert_absent "$OUT_IP" 'pnpm db:seed' "#236 AK8: In-Place-Modus gibt keinen db:seed-Hinweis"
+# „Der Lauf ist wirklich durchgelaufen"-Anker vor den Abwesenheits-Assertions (Lesson nothra/tch-gastro-services#214).
+assert_contains_286 "$OUT_IP" 'Bereit!' "#47 AK11: der In-Place-Lauf erreicht den Abschluss-Output (Anker)"
+assert_absent "$OUT_IP" 'in den Worktree spiegeln' "#47: In-Place-Modus führt keine Spiegelung aus"
+assert_contains_286 "$OUT_IP" "$HINT_SW" "#47 AK11: start_work.hint erscheint auch im In-Place-Modus"
+rm -f "$REPO_IP/factory.defaults.yml" "$REPO_IP/factory.config.yml"
 
-# Reihenfolge „Kopie VOR pnpm install" (Spec-Hinweis: die Datei soll auch bei fehlgeschlagener
-# Installation daliegen). Alle Läufe oben setzen FACTORY_WT_SKIP_INSTALL=1 und decken sie nicht
-# ab → Positionsvergleich der beiden echten Aufrufzeilen (Lesson „Reihenfolge-/Präsenz-Guards":
-# Anker ist die exakte Kommandozeile, nie ein Fragment), fail-closed bei fehlendem Anker.
-sw_cp_line=$(grep -nF 'cp -p "$FACTORY_DIR/.env.local" "$WORKDIR/.env.local"' "$SW" | head -1 | cut -d: -f1)
+# Reihenfolge „Spiegelung VOR dem Install-Schritt" (die Dateien sollen auch bei fehlgeschlagener Installation
+# daliegen). Alle Läufe oben setzen FACTORY_WT_SKIP_INSTALL=1 → Positionsvergleich der beiden echten
+# Aufrufzeilen (Anker ist die exakte Kommandozeile, nie ein Fragment), fail-closed bei fehlendem Anker.
+sw_copy_line=$(grep -nxF '    mirror_copy_files' "$SW" | head -1 | cut -d: -f1)
 sw_inst_line=$(grep -nF 'eval "$INSTALL_COMMAND"' "$SW" | head -1 | cut -d: -f1)
-{ [ -n "$sw_cp_line" ] && [ -n "$sw_inst_line" ] && [ "$sw_cp_line" -lt "$sw_inst_line" ]; }
-assert_true "$?" "#236: der .env.local-Kopierschritt steht vor dem Install-Schritt im Worktree"
+{ [ -n "$sw_copy_line" ] && [ -n "$sw_inst_line" ] && [ "$sw_copy_line" -lt "$sw_inst_line" ]; }
+assert_true "$?" "#47: die Spiegelung steht vor dem Install-Schritt im Worktree"
 
-# AK9: Doku-Drift im selben PR nachgezogen. Die Mehrwort-Prosa-Anker laufen über flat_286()
-# (Definition am Dateikopf): ein Doku-Reflow bräche einen zeilengebundenen `grep -qF`-Anker
-# sonst lautlos – den Präsenz-Guard rot, den Abwesenheits-Guard grün (Lesson #240/#249/#286).
+# Doku-Drift im selben PR (AK17-Anteil der ausgelieferten Doku). Mehrwort-Anker über flat_286() (Lesson
+# nothra/tch-gastro-services#240/#249/#286).
 sw_header=$(awk '/^set -euo pipefail/{exit} {print}' "$SW")
-# Die Extraktion selbst belegen (#255, hier in Fail-open-Richtung): ändert sich der Sentinel
-# (z. B. 'set -Eeuo pipefail'), liefert awk die GANZE Datei – der Guard darunter fände
-# FACTORY_WT_SKIP_ENV dann im Produktionscode (:228) und bliebe grün, obwohl der Kopf-Kommentar,
-# also der Prüfgegenstand von AK9(d), gelöscht sein kann.
+# Die Extraktion selbst belegen: ändert sich der Sentinel, liefert awk die GANZE Datei – der Guard darunter
+# fände den Schalter dann im Produktionscode und bliebe grün, obwohl der Kopf-Kommentar gelöscht sein kann.
 { [ "$(printf '%s\n' "$sw_header" | wc -l)" -lt "$(wc -l < "$SW")" ]; }
-assert_true "$?" "#236 AK9(d): die Kopf-Extraktion bricht am Sentinel ab (kein Fail-open auf die ganze Datei)"
-# Auf die Kommentarform ankern, nicht auf das nackte Wort: der Prüfgegenstand ist die
-# Schalter-Zeile im Kopf, nicht irgendeine Erwähnung.
-printf '%s\n' "$sw_header" | grep -q '^#   FACTORY_WT_SKIP_ENV=1'
-assert_true "$?" "#236 AK9(d): start-work.sh nennt FACTORY_WT_SKIP_ENV im Kopf-Kommentar"
+assert_true "$?" "#47 AK17: die Kopf-Extraktion bricht am Sentinel ab (kein Fail-open auf die ganze Datei)"
+printf '%s\n' "$sw_header" | grep -q '^#   FACTORY_WT_SKIP_COPY=1'
+assert_true "$?" "#47 AK17: start-work.sh nennt FACTORY_WT_SKIP_COPY im Kopf-Kommentar"
+assert_contains_286 "$(flat_286 "$GITWF")" '`FACTORY_WT_SKIP_COPY=1` (Alias `FACTORY_WT_SKIP_ENV=1`)' \
+  "#47 AK17: git-workflow.md listet FACTORY_WT_SKIP_COPY samt Alias in der Env-Schalter-Liste"
+FACTORY_MD_47="$FACTORY_ROOT/docs/factory/FACTORY.md"
+fmd_rule8_47="$(grep -F '8. **Nach dem Merge aufräumen:**' "$FACTORY_MD_47")"
+assert_contains_286 "$fmd_rule8_47" 'start_work.copy_files' "#47 AK17: FACTORY.md Kern-Kurzregel 8 nennt start_work.copy_files"
+assert_contains_286 "$fmd_rule8_47" 'FACTORY_WT_SKIP_COPY=1' "#47 AK17: FACTORY.md Kern-Kurzregel 8 nennt den neuen Opt-out"
+assert_absent "$fmd_rule8_47" 'Kopie von `.env.local`' "#47 AK17: FACTORY.md Kern-Kurzregel 8 beschreibt keine feste .env.local-Kopie mehr"
+assert_absent "$(flat_286 "$GITWF")" 'automatischen `.env.local`-Kopie' "#47 AK17: git-workflow.md beschreibt keine feste .env.local-Kopie mehr"
 
-# AK9(c) fordert die Env-Schalter-LISTE, nicht eine beliebige Erwähnung → Mehrwort-Anker über
-# flat_286 gegen $GITWF (bereits oben definiert), symmetrisch zur Isolation in AK9(d).
-assert_contains_286 "$(flat_286 "$GITWF")" '`FACTORY_WT_SKIP_ENV=1` = die (gitignorete) `.env.local`' \
-  "#236 AK9(c): git-workflow.md listet FACTORY_WT_SKIP_ENV in der Env-Schalter-Liste"
+# AK16: kein Ursprungs-Wortlaut in start-work.sh und in dieser Testgruppe. Die Suchbegriffe werden zur
+# Laufzeit zusammengesetzt – als Literal stünden sie in der gescannten Gruppe selbst (Lesson nothra/tch-gastro-services#319).
+# origin_terms_47 <datei> – gibt jeden gefundenen Begriff aus; leer = sauber.
+origin_terms_47() {
+  local term
+  for term in "pn""pm" "db"":seed" "dot""env" "Credentials""Signin" "SEED""_ADMIN" "factory""-pipeline"; do
+    grep -qF -- "$term" "$1" && printf '%s\n' "$term"
+  done
+  return 0
+}
+SELF_47="$CHECKS_DIR/tests/run-tests.sh"
+GROUP_47="$TMP_SW/gruppe-47.txt"
+awk '/^# ─── Worktree-Dateispiegelung über start_work.copy_files/ { f = 1; print; next }
+     f && /^# ─── / { exit } f { print }' "$SELF_47" > "$GROUP_47"
+# Fail-closed: die Extraktion muss die Gruppe treffen (nicht leer) und vor dem Dateiende abbrechen.
+{ [ "$(wc -l < "$GROUP_47")" -gt 100 ] && [ "$(wc -l < "$GROUP_47")" -lt "$(wc -l < "$SELF_47")" ]; }
+assert_true "$?" "#47 AK16: die Extraktion der Testgruppe trifft die Gruppe und endet vor dem Dateiende"
+assert_true "$([ -z "$(origin_terms_47 "$SW")" ]; echo $?)" \
+  "#47 AK16: start-work.sh enthält keinen Ursprungs-Wortlaut (gefunden: $(origin_terms_47 "$SW" | tr '\n' ' '))"
+assert_true "$([ -z "$(origin_terms_47 "$GROUP_47")" ]; echo $?)" \
+  "#47 AK16: die Testgruppe enthält keinen Ursprungs-Wortlaut (gefunden: $(origin_terms_47 "$GROUP_47" | tr '\n' ' '))"
+# Mutationsbeleg: dieselbe Funktion auf einer Kopie mit eingeschleustem Begriff wird fündig.
+{ cat "$SW"; printf '# %s\n' "db"":seed"; } > "$TMP_SW/start-work-mut-47.sh"
+assert_true "$([ -n "$(origin_terms_47 "$TMP_SW/start-work-mut-47.sh")" ]; echo $?)" \
+  "#47 AK16 (Mutation): ein eingeschleuster Ursprungs-Begriff macht den Guard rot"
 
-# Die beiden Positiv-Kontrollen laufen über denselben Lesepfad wie die Guards (flat_286), nicht
-# über ein handgeschriebenes printf gegen den nackten grep. Ihre Fixtures geben den Alt-Wortlaut
-# aus `git show origin/main:<datei>` wieder – dort stand die Lesson-Stelle UMBROCHEN (nur mit
-# flat_286 treffbar), die PROJECT-CONTEXT-Zeile dagegen EINZEILIG. Die zweite Kontrolle belegt
-# deshalb ehrlich nur Quoting und Fixed-String-Treffer, nicht die Umbruch-Toleranz.
-ALT_DOC="$TMP_SW/alt-wortlaut.md"
+# Fixture-Config für die folgenden Gruppen zurücksetzen (committeter Stand ohne copy_files, info/exclude wie vorher).
+git -C "$REPO_SW" checkout -q -- factory.config.yml
+if [ -f "$TMP_SW/exclude-vorher" ]; then cp "$TMP_SW/exclude-vorher" "$SW_EXCLUDE"; else rm -f "$SW_EXCLUDE"; fi
 
-lesson_flat_236="$(flat_286 "$FACTORY_ROOT/docs/project/lessons/factory-workflow.md")"
-assert_contains_286 "$lesson_flat_236" 'seit #236 automatisch' \
-  "#236 AK9(a): Lesson beschreibt den Kopier-Schritt als automatisiert"
-# Abwesenheits-Anker MIT Issue-Nummer: „als eigener Task ausgelagert" allein ist die etablierte
-# Repo-Wendung für vertagte Arbeit – ein künftiges, völlig unabhängiges /codify-Learning mit
-# derselben Formulierung machte den Guard sonst rot und blockierte einen Fremd-PR.
-assert_absent "$lesson_flat_236" 'als eigener Task ausgelagert: [#236]' \
-  "#236 AK9(a): Lesson nennt #236 nicht mehr als offenen Follow-up"
-printf 'ist als eigener Task ausgelagert:\n[#236](https://github.com/nothra/tch-gastro-services/issues/236).\n' > "$ALT_DOC"
-assert_contains_286 "$(flat_286 "$ALT_DOC")" 'als eigener Task ausgelagert: [#236]' \
-  "#236 AK9(a): Positiv-Kontrolle – das Abwesenheits-Muster matcht den alten, über zwei Zeilen umbrochenen Wortlaut"
-
-pc_flat_236="$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")"
-assert_contains_286 "$pc_flat_236" 'Root-Cause-Fix in #236 umgesetzt' \
-  "#236 AK9(b): PROJECT-CONTEXT-Index weist #236 als umgesetzt aus"
-assert_absent "$pc_flat_236" 'Root-Cause-Fix ausgelagert: #236' \
-  "#236 AK9(b): PROJECT-CONTEXT-Index nennt #236 nicht mehr als ausgelagert"
-printf -- '- Neuer Worktree hat kein `.env.local` … (aus #228, /implement-Selbstfund; Root-Cause-Fix ausgelagert: #236) → `/implement`\n' > "$ALT_DOC"
-assert_contains_286 "$(flat_286 "$ALT_DOC")" 'Root-Cause-Fix ausgelagert: #236' \
-  "#236 AK9(b): Positiv-Kontrolle – das Abwesenheits-Muster matcht den alten (einzeiligen) Wortlaut"
-
-# ─── #267 AK5: start-work.sh trennt Worktree-Fakt und Session-Empfehlung ─────
+# ─── nothra/tch-gastro-services#267 AK5: start-work.sh trennt Worktree-Fakt und Session-Empfehlung ─────
 # Läuft hier (vor dem TMP_SW-Aufräumen unten), weil AK5 die gh-Stub/REPO_SW-Fixtures aus dem
-# #74/#236-Block braucht. Die Session-Empfehlung wird nicht mehr mit „kein geteilter HEAD"
+# nothra/tch-gastro-services#74/#236-Block braucht. Die Session-Empfehlung wird nicht mehr mit „kein geteilter HEAD"
 # begründet – zwei getrennte Aussagen im Abschluss-Output.
 echo ""
 echo "#267 AK5: start-work.sh Abschluss-Output trennt Worktree-Fakt und Session-Empfehlung:"
@@ -2284,7 +2492,7 @@ old_same_line_267=$(printf '%s\n' "$OLD_LINE_267" | grep -F "kein geteilter HEAD
 assert_true "$([ "$old_same_line_267" -gt 0 ]; echo $?)" \
   "AK5 (Mutation): die alte, kombinierte Formulierung hätte den Trennungs-Guard reißen lassen"
 
-# ─── #322: Session-Empfehlung ist an Schritt 2 (/implement) gebunden, nicht an den ───────────
+# ─── nothra/tch-gastro-services#322: Session-Empfehlung ist an Schritt 2 (/implement) gebunden, nicht an den ───────────
 # Worktree-Fakt oder an Schritt 0/1 (/requirements). Nutzt denselben OUT_267 wie AK5 oben.
 echo ""
 echo "#322: start-work.sh bindet die Session-Empfehlung an Schritt 2 (/implement):"
@@ -2319,8 +2527,8 @@ old_rec_line_322=$(printf '%s\n' "$OLD_TAIL_322" | grep -n 'Empfehlung (keine Pf
 assert_true "$([ -n "$old_head_line_322" ] && [ -n "$old_rec_line_322" ] && [ "$old_head_line_322" -lt "$old_rec_line_322" ]; echo $?)" \
   "#322 (Mutation): die alte Reihenfolge (Fakt vor Empfehlung) hätte die neue Bindungs-Prüfung nicht erfüllt"
 
-# ─── #322 Fehlerszenario 1 (Spec): FACTORY_NO_WORKTREE=1 – Formulierung bleibt sinnvoll ──────
-# Nutzt den bereits geklonten In-Place-Baum $REPO_IP (siehe #74/#236-Block oben) für einen
+# ─── nothra/tch-gastro-services#322 Fehlerszenario 1 (Spec): FACTORY_NO_WORKTREE=1 – Formulierung bleibt sinnvoll ──────
+# Nutzt den bereits geklonten In-Place-Baum $REPO_IP (siehe nothra/tch-gastro-services#74/#236-Block oben) für einen
 # zweiten start-work.sh-Lauf mit anderer Task-ID – start-work.sh checkt vorher $DEFAULT_BRANCH
 # aus, ein zweiter Lauf auf demselben Klon ist damit unproblematisch.
 echo ""
@@ -2345,14 +2553,14 @@ assert_true "$([ "$no_claude_session_before_step2_nowt_322" -eq 0 ]; echo $?)" \
 
 rm -rf "$TMP_SW"
 
-# ─── #91: factory-commit.sh (Commit/Push-Seam, ADR-019) ──────────────────────
+# ─── nothra/tch-gastro-services#91: factory-commit.sh (Commit/Push-Seam, ADR-019) ──────────────────────
 echo ""
 echo "#91 factory-commit.sh (Commit/Push-Seam, ADR-019):"
 
 FCOMMIT="$SCRIPTS_DIR/factory-commit.sh"
 assert_true "$([[ -f "$FCOMMIT" ]]; echo $?)" "scripts/factory-commit.sh vorhanden"
 
-# Wegwerf-Repo mit Bare-Remote als Push-Ziel (reales git, Muster start-work-Test #74).
+# Wegwerf-Repo mit Bare-Remote als Push-Ziel (reales git, Muster start-work-Test nothra/tch-gastro-services#74).
 # fc_repo <name> → legt Bare-Remote + Klon an, gibt den Arbeitsbaum-Pfad auf stdout.
 TMP_FC="$(mktemp -d)"
 fc_repo() {
@@ -2431,7 +2639,7 @@ echo "w" > "$WT/change.txt"
 ( cd "$WT" && bash "$FCOMMIT" "feat: push fail" ) >/dev/null 2>&1
 assert_true "$([ $? -ne 0 ]; echo $?)" "factory-commit: push scheitert → exit ≠ 0 (Ursache weitergereicht)"
 
-# ─── #239: leerer Commit-Zweig holt ausstehenden Push nach ───────────────────
+# ─── nothra/tch-gastro-services#239: leerer Commit-Zweig holt ausstehenden Push nach ───────────────────
 echo ""
 echo "#239 factory-commit.sh (Push-Nachholen im leeren Zweig):"
 
@@ -2488,12 +2696,12 @@ assert_true "$([ $fc_rc -ne 0 ]; echo $?)" "factory-commit: Nachhol-Push scheite
 printf '%s' "$fc_out" | grep -qF 'hole ausstehenden Push nach'
 assert_true "$?" "factory-commit: Fehlschlag stammt aus dem erreichten Push-Pfad (nicht aus einem anderen Grund)"
 
-# ─── #262: -h/--help ist eine Hilfe-Anfrage, keine Commit-Message ────────────
+# ─── nothra/tch-gastro-services#262: -h/--help ist eine Hilfe-Anfrage, keine Commit-Message ────────────
 echo ""
 echo "#262 factory-commit.sh (-h/--help-Guard):"
 
 # AK5 (reguläre Message committet + pusht wie bisher) ist bereits durch Fall 1 oben
-# abgedeckt – hier keine zweite Happy-Path-Schleife (Lesson #240).
+# abgedeckt – hier keine zweite Happy-Path-Schleife (Lesson nothra/tch-gastro-services#240).
 # Tabelle „Flag|Fixture-Name", damit die Wegwerf-Repos sprechend heißen (statt aus dem Flag
 # generierter Namen wie 'helph').
 for flag_case in "-h|helpshort" "--help|helplong"; do
@@ -2511,7 +2719,7 @@ for flag_case in "-h|helpshort" "--help|helplong"; do
   # `git diff --cached --quiet` vergleicht Index gegen HEAD, nicht gegen leer: liefe trotz
   # entferntem Guard `git add -A && git commit`, wäre der Index danach == neuer HEAD → grün
   # aus dem falschen Grund. Stattdessen direkt prüfen, dass die neue Datei unverändert
-  # untracked bleibt – das gilt nur, wenn `git add` nie lief (Lesson #214).
+  # untracked bleibt – das gilt nur, wenn `git add` nie lief (Lesson nothra/tch-gastro-services#214).
   [ "$(git -C "$WT" status --porcelain -- change.txt)" = "?? change.txt" ]
   assert_true "$?" "factory-commit AK4: '$flag_arg' führt kein 'git add' aus (Datei bleibt untracked)"
   git -C "$WT" rev-parse origin/feature/262-help >/dev/null 2>&1
@@ -2529,7 +2737,7 @@ assert_true "$?" "factory-commit AK4: '--help extra' scheitert an der Argumentza
 
 # Fehlerszenario 2 der Spec, `factory-commit.sh`-Seite: die leere Message läuft weiterhin in
 # die bestehende Leer-Prüfung (`[ -z "${1:-}" ]`) – der neue -h/--help-Guard davor darf sie
-# nicht aushebeln. Der Fall „gar kein Argument" (#91, Fall 5) deckt das nicht ab.
+# nicht aushebeln. Der Fall „gar kein Argument" (nothra/tch-gastro-services#91, Fall 5) deckt das nicht ab.
 WT=$(fc_repo emptymsg)
 git -C "$WT" checkout -q -b feature/262-emptymsg
 HEAD_BEFORE=$(git -C "$WT" rev-parse HEAD)
@@ -2554,7 +2762,7 @@ assert_true "$?" "factory-commit AK6: '-x' wird wie bisher gepusht"
 
 rm -rf "$TMP_FC"
 
-# ─── #91: Report-Verdict-Helper / run_skill-Report-Guard (ADR-019 §4) ────────
+# ─── nothra/tch-gastro-services#91: Report-Verdict-Helper / run_skill-Report-Guard (ADR-019 §4) ────────
 echo ""
 echo "#91 Report-Verdict-Helper (run_skill-Guard, ADR-019 §4):"
 
@@ -2625,14 +2833,14 @@ assert_true "$?" "#91: run-pipeline.sh sourct den geteilten Verdict-Helper"
 grep -q 'report_verdict' "$PIPELINE"
 assert_true "$?" "#91: run_skill/pipeline_summary nutzen report_verdict (ein Ort)"
 
-# AK5/AK6/AK7 (#211): Phase-2-Loop + Security-Gate lesen den Verdict ausschließlich über den
+# AK5/AK6/AK7 (nothra/tch-gastro-services#211): Phase-2-Loop + Security-Gate lesen den Verdict ausschließlich über den
 # Anker-Helper – die alten Volltext-Greps über den ganzen Report sind entfernt (ein Ort).
 grep -qF 'grep -q "APPROVED"' "$PIPELINE"; approved_grep=$?
 assert_true "$([ "$approved_grep" -ne 0 ]; echo $?)" "AK5 (#211): Phase-2-Loop ohne Volltext-grep \"APPROVED\""
 grep -qF 'grep -q "NEEDS_FIXES"' "$PIPELINE"; needsfixes_grep=$?
 assert_true "$([ "$needsfixes_grep" -ne 0 ]; echo $?)" "AK6 (#211): Security-Gate ohne Volltext-grep \"NEEDS_FIXES\""
 
-# Budget-Puffer: review + security-review auf max_turns 30 (ADR-019 §5 + Nachtrag #252;
+# Budget-Puffer: review + security-review auf max_turns 30 (ADR-019 §5 + Nachtrag nothra/tch-gastro-services#252;
 # 8→14 in Task 91, 14→30 in Task 241/252 als validierter Wert kalibriert).
 if [ "$HAS_YQ" = 1 ]; then
   [ "$(yq '.skills.review.max_turns' "$DEFAULTS_YML")" = "30" ] \
@@ -2642,7 +2850,7 @@ else
   skip_yq "#91: review + security-review max_turns=30"
 fi
 
-# ─── #214: Contract-Drift-Guard – Report-Anker ↔ Parser-Konstanten ───────────
+# ─── nothra/tch-gastro-services#214: Contract-Drift-Guard – Report-Anker ↔ Parser-Konstanten ───────────
 # Die Verdict-/Section-Parser koppeln HART an die Anker-Überschriften der Report-Contracts
 # (.claude/commands/review.md, security-review.md). Wird eine Überschrift umbenannt, bricht die
 # Pipeline STILL (leeres Verdict / Count 0), ohne dass ein Test rot wird. Dieser Guard macht den
@@ -2659,7 +2867,7 @@ SECURITY_MD214="$FACTORY_ROOT/.claude/commands/security-review.md"
 # report_verdict-case-Zeile aus dem echten Parser-Skript (AC6: nicht im Test dupliziert).
 extract_verdict_header() {
   local skill="$1" lib="$2"
-  # Die Lib hat seit #310 mehrere case-Blöcke über dieselben Skill-Namen (report_file für den
+  # Die Lib hat seit nothra/tch-gastro-services#310 mehrere case-Blöcke über dieselben Skill-Namen (report_file für den
   # Pfad, report_verdict für Anker + Tokens). Der `header='`-Filter wählt den Parser-Block –
   # ohne ihn liefert `head -n1` die Pfad-Zeile aus report_file und der Guard wird falsch rot.
   # Der Pipeline-Exit wird bewusst nicht ausgewertet (nur der String zählt, kein `set -e`):
@@ -2786,7 +2994,7 @@ assert_exit 1 "$rc214" "F1 (#214): leere Command-Datei → Guard rot (fail-close
 # Isoliert auf den exakt-verankerten report_verdict-Pfad: die echte review.md wird kopiert und nur
 # die '## Empfehlung'-Überschriftszeile in Fließtext verwandelt. Alle Findings-Sektionen bleiben
 # intakt → count_section_items besteht; rot darf NUR die Verdict-Exaktverankerung erzeugen (sonst
-# bliebe die #211-Regression „Verdict unankert" unentdeckt – Review-Finding W1).
+# bliebe die nothra/tch-gastro-services#211-Regression „Verdict unankert" unentdeckt – Review-Finding W1).
 sed "s/^${review_header214}\$/Siehe Abschnitt ${review_header214} weiter unten./" \
   "$REVIEW_MD214" > "$TMP214/prose-only.md"
 out214=$(drift_guard "$TMP214/prose-only.md" "$SECURITY_MD214" "$RV_LIB214" "$PIPELINE214"); rc214=$?
@@ -2830,7 +3038,7 @@ assert_true "$?" "Fail-closed (#214): meldet nicht-extrahierbare Sektionen (kein
 rm -rf "$TMP214"
 unset -f drift_guard extract_verdict_header extract_section_headers
 
-# ─── #91: Permissions-Konsistenz (.claude/settings.json, ADR-019 §2/§3) ──────
+# ─── nothra/tch-gastro-services#91: Permissions-Konsistenz (.claude/settings.json, ADR-019 §2/§3) ──────
 echo ""
 echo "#91 Permissions-Konsistenz (.claude/settings.json):"
 
@@ -2850,23 +3058,23 @@ assert_true "$?" "#91: read-only-git (status/diff/log/branch/rev-parse) in allow
   && grep -qF 'Bash(gh run list:*)' "$SETTINGS" && grep -qF 'Bash(gh run rerun:*)' "$SETTINGS"; }
 assert_true "$?" "#91: granulare gh-Verben (pr-shepherd) in allow"
 
-# #94: pr-shepherd.md dokumentiert 'gh pr ready' (Draft-Status auflösen, Schritt 5b) –
+# nothra/tch-gastro-services#94: pr-shepherd.md dokumentiert 'gh pr ready' (Draft-Status auflösen, Schritt 5b) –
 # konsistent zur allow-Liste, damit der freigegebene Verb auch im Skill sichtbar genutzt wird.
 grep -qF 'gh pr ready' "$SHEPHERD"
 assert_true "$?" "#94: pr-shepherd.md dokumentiert 'gh pr ready' (Draft-Auflösung)"
 
-# #94 (AC2): 'gh pr ready' ist hinter einem isDraft-Guard dokumentiert – nicht unbedingt
+# nothra/tch-gastro-services#94 (AC2): 'gh pr ready' ist hinter einem isDraft-Guard dokumentiert – nicht unbedingt
 # aufgerufen. Schützt die "nur bei Draft"-Semantik gegen ein späteres Entfernen des Guards.
 grep -qF 'isDraft' "$SHEPHERD"
 assert_true "$?" "#94: pr-shepherd.md guardet 'gh pr ready' hinter isDraft-Check (AC2)"
 
-# #114: pr-shepherd Schritt 6 committet+pusht die Abschlussnotiz VOR dem Auto-Merge.
-# Bei Squash-Merge landet eine nur lokal geschriebene Notiz sonst nie auf main (#112).
+# nothra/tch-gastro-services#114: pr-shepherd Schritt 6 committet+pusht die Abschlussnotiz VOR dem Auto-Merge.
+# Bei Squash-Merge landet eine nur lokal geschriebene Notiz sonst nie auf main (nothra/tch-gastro-services#112).
 # factory-commit.sh ist der mandatierte Commit/Push-Seam (ADR-019) → deckt commit UND push ab.
 grep -qF 'factory-commit.sh' "$SHEPHERD"
 assert_true "$?" "#114: pr-shepherd.md committet Abschlussnotiz via factory-commit.sh"
 
-# #114 (Reihenfolge): der commit+push-Schritt steht VOR dem Freigabe-Kommando
+# nothra/tch-gastro-services#114 (Reihenfolge): der commit+push-Schritt steht VOR dem Freigabe-Kommando
 # 'gh pr merge --auto --squash' – sonst greift die Härtung nicht (Notiz muss auf dem
 # Feature-Branch liegen, bevor Auto-Merge feuert). Bewusst gegen die volle '--squash'-
 # Form geprüft: die kürzere 'gh pr merge --auto'-Erwähnung in Schritt 4 ist nur ein
@@ -2903,28 +3111,28 @@ line_before() {
 assert_true "$(line_before 'factory-commit.sh' 'gh pr merge --auto --squash' "$SHEPHERD"; echo $?)" \
   "#114: Abschlussnotiz wird vor 'gh pr merge --auto --squash' committet (Reihenfolge)"
 
-# #117: pr-shepherd Schritt 2 (Review-Kommentare auflösen) committet Review-Fixes über den
-# Commit/Push-Seam factory-commit.sh (ADR-019) – analog Schritt 6 (#114) und implement/test/
+# nothra/tch-gastro-services#117: pr-shepherd Schritt 2 (Review-Kommentare auflösen) committet Review-Fixes über den
+# Commit/Push-Seam factory-commit.sh (ADR-019) – analog Schritt 6 (nothra/tch-gastro-services#114) und implement/test/
 # refactor. Bewusst gegen den Schritt-2-ABSCHNITT geprüft (Zeilenbereich zwischen den Headern
 # '### Schritt 2' und '### Schritt 3'), NICHT global: der bereits vorhandene Schritt-6-Treffer
-# darf den Guard nicht fälschlich grün färben (Lehre #114: ein Treffer im falschen Abschnitt ist
+# darf den Guard nicht fälschlich grün färben (Lehre nothra/tch-gastro-services#114: ein Treffer im falschen Abschnitt ist
 # so wenig ein Nachweis wie ein Prosa-Treffer).
 assert_true "$(section_contains '### Schritt 2' '### Schritt 3' "$SHEPHERD" 'factory-commit.sh'; echo $?)" \
   "#117: pr-shepherd.md Schritt 2 committet Review-Fixes via factory-commit.sh (Seam)"
 
-# #117 (AC2): das Seam-Kommando trägt im selben Abschnitt die fail-closed-Begründung mit
+# nothra/tch-gastro-services#117 (AC2): das Seam-Kommando trägt im selben Abschnitt die fail-closed-Begründung mit
 # ADR-019-Verweis – separat vom Kommando prüfbar, damit ein späteres Entfernen der Begründung
 # (bei erhaltenem Kommando) auffällt. Wieder auf den Schritt-2-Abschnitt eingegrenzt.
 assert_true "$(section_contains '### Schritt 2' '### Schritt 3' "$SHEPHERD" 'ADR-019'; echo $?)" \
   "#117: pr-shepherd.md Schritt 2 nennt die fail-closed-Begründung (ADR-019)"
 
-# #158 (ADR-030): pr-shepherd Schritt 6 wählt den Merge-Modus nach PR-Zustand.
+# nothra/tch-gastro-services#158 (ADR-030): pr-shepherd Schritt 6 wählt den Merge-Modus nach PR-Zustand.
 # GitHub lehnt 'gh pr merge --auto' bei bereits mergebarem PR (mergeStateStatus: CLEAN)
 # ab – Schritt 6 muss den Zustand lesen und bei CLEAN direkt squash-mergen (fail-closed:
 # alles außer CLEAN → --auto). Schritt 6 ist der letzte '### Schritt' → Abschnittsende ist
-# '## Regeln'. AC1, AC2 und AC4 sind separat prüfbare Kriterien (je eine Assertion, #117-Regel):
+# '## Regeln'. AC1, AC2 und AC4 sind separat prüfbare Kriterien (je eine Assertion, nothra/tch-gastro-services#117-Regel):
 # entfällt die Zustandsprüfung, bleibt AC2 grün und umgekehrt, und die AC4-Reihenfolge ist von
-# beiden unabhängig (Unabhängigkeit belegt in der #94-Temp-Verifikation: unpatched → alle rot,
+# beiden unabhängig (Unabhängigkeit belegt in der nothra/tch-gastro-services#94-Temp-Verifikation: unpatched → alle rot,
 # patched → alle grün).
 
 # AC1: Zustandsprüfung 'mergeStateStatus' im Schritt-6-Abschnitt.
@@ -2933,21 +3141,21 @@ assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'mergeSt
 
 # AC2: Direct-Merge-Fallback 'gh pr merge --squash' (ohne --auto) im Schritt-6-Abschnitt.
 # Bewusst gegen die volle 'gh pr merge --squash'-Zeile geprüft: sie ist KEIN Teilstring von
-# 'gh pr merge --auto --squash' (Lehre #114: Kommando ≠ Teil-Match), der Grep matcht also
+# 'gh pr merge --auto --squash' (Lehre nothra/tch-gastro-services#114: Kommando ≠ Teil-Match), der Grep matcht also
 # nicht fälschlich die --auto-Zeile.
 assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'gh pr merge --squash'; echo $?)" \
   "#158: pr-shepherd.md Schritt 6 hat Direct-Merge-Fallback (gh pr merge --squash)"
 
 # AC3: der --auto-Fallback bleibt im Schritt-6-Abschnitt für laufende Checks (≠ CLEAN) erhalten.
-# Separierbar von AC2 (#117): würde der else-Zweig ebenfalls auf direkten Merge umgestellt,
-# bliebe AC2 grün, aber dieser Guard rot. Section-begrenzt (nicht global wie der #114-Order-
-# Guard), damit AC3 als eigenes Kriterium diagnostizierbar ist – nicht nur transitiv über #114.
+# Separierbar von AC2 (nothra/tch-gastro-services#117): würde der else-Zweig ebenfalls auf direkten Merge umgestellt,
+# bliebe AC2 grün, aber dieser Guard rot. Section-begrenzt (nicht global wie der nothra/tch-gastro-services#114-Order-
+# Guard), damit AC3 als eigenes Kriterium diagnostizierbar ist – nicht nur transitiv über nothra/tch-gastro-services#114.
 assert_true "$(section_contains '### Schritt 6' '## Regeln' "$SHEPHERD" 'gh pr merge --auto --squash'; echo $?)" \
   "#158: pr-shepherd.md Schritt 6 behält --auto-Fallback für laufende Checks (gh pr merge --auto --squash)"
 
 # AC4: die Abschlussnotiz (factory-commit.sh) steht AUCH VOR dem Direct-Merge-Zweig – nicht
-# nur vor der --auto-Zeile (bereits durch #114 oben geprüft). Sonst könnte der direkte Merge
-# vor dem Notiz-Push feuern (Notiz landet nie auf main, #112/#114). Zweiter Marker
+# nur vor der --auto-Zeile (bereits durch nothra/tch-gastro-services#114 oben geprüft). Sonst könnte der direkte Merge
+# vor dem Notiz-Push feuern (Notiz landet nie auf main, nothra/tch-gastro-services#112/#114). Zweiter Marker
 # 'gh pr merge --squash' ist die Direct-Zeile, nicht die --auto-Zeile (kein Teilstring, s. o.).
 assert_true "$(line_before 'factory-commit.sh' 'gh pr merge --squash' "$SHEPHERD"; echo $?)" \
   "#158: Abschlussnotiz wird vor 'gh pr merge --squash' (Direct-Merge) committet (Reihenfolge)"
@@ -2957,9 +3165,9 @@ assert_true "$(! grep -qE 'Bash\(git \*\)|Bash\(gh \*\)' "$SETTINGS"; echo $?)" 
   "#91: kein pauschales Bash(git *)/Bash(gh *)"
 
 # deny unverändert: .claude/** und .env* bleiben gesperrt. Bewusster jq-unabhängiger
-# Fallback (läuft IMMER, auch ohne jq) neben der geparsten #224-Gegenrichtungsprüfung unten
-# (AK4) – die dortige jq-Prüfung wird bei fehlendem jq übersprungen (Review-Finding #224).
-# Write(...)-Pendants sind seit #240 entfernt (wirkungslos, Edit(...) deckt beide Tools ab).
+# Fallback (läuft IMMER, auch ohne jq) neben der geparsten nothra/tch-gastro-services#224-Gegenrichtungsprüfung unten
+# (AK4) – die dortige jq-Prüfung wird bei fehlendem jq übersprungen (Review-Finding nothra/tch-gastro-services#224).
+# Write(...)-Pendants sind seit nothra/tch-gastro-services#240 entfernt (wirkungslos, Edit(...) deckt beide Tools ab).
 { grep -qF 'Edit(.claude/**)' "$SETTINGS" && grep -qF 'Edit(.env*)' "$SETTINGS" \
   && grep -qF 'Read(.env*)' "$SETTINGS" \
   && ! grep -qF 'Write(.claude/**)' "$SETTINGS" && ! grep -qF 'Write(.env*)' "$SETTINGS"; }
@@ -2971,7 +3179,7 @@ for sk in implement test refactor bug-fix; do
   assert_true "$?" "#91: /$sk committet/pusht über scripts/factory-commit.sh"
 done
 
-# ─── #224: Top-Level-YAML-Freigabe + Write-Symmetrie (.claude/settings.json) ─
+# ─── nothra/tch-gastro-services#224: Top-Level-YAML-Freigabe + Write-Symmetrie (.claude/settings.json) ─
 # AK5: die GEPARSTE allow-/deny-Liste wird geprüft (jq-Array-Lookup), nicht ein bloßer
 # Text-Treffer irgendwo in der Datei – je Eintrag eine eigene Assertion, damit der Wegfall
 # genau eines Eintrags genau die zugehörige Assertion rot färbt (AK5). AK6: $SETTINGS zeigt auf
@@ -2979,14 +3187,14 @@ done
 echo ""
 echo "#224 Top-Level-YAML-Freigabe (.claude/settings.json):"
 
-# #251: gemeinsame Werteliste für die jq-Schleife (unten) UND den jq-unabhängigen Grep-Fallback
+# nothra/tch-gastro-services#251: gemeinsame Werteliste für die jq-Schleife (unten) UND den jq-unabhängigen Grep-Fallback
 # (weiter unten, außerhalb des HAS_JQ-Blocks) – als geteilte Konstante statt zweimal ausgeschrieben,
 # damit beide Stellen nicht auseinanderdriften können (lessons/testing.md: Literale, die an zwei
 # Stellen identisch bleiben müssen, sofort als geteilte Konstante einführen).
+# Im Factory-Repo nur die Edit-Freigaben des Factory-Fragments (die App-Pfade gehören adoptierenden Projekten).
 EDIT_ALLOW_88=(
-  'Edit(app/**)' 'Edit(lib/**)' 'Edit(db/**)' 'Edit(e2e/**)' 'Edit(types/**)'
-  'Edit(scripts/**)' 'Edit(docs/**)' 'Edit(tasks/**)' 'Edit(config/**)' 'Edit(public/**)'
-  'Edit(.github/workflows/**)' 'Edit(*.ts)' 'Edit(*.tsx)' 'Edit(*.mjs)' 'Edit(*.json)' 'Edit(*.md)'
+  'Edit(scripts/**)' 'Edit(docs/**)' 'Edit(tasks/**)' 'Edit(config/**)'
+  'Edit(.github/workflows/**)' 'Edit(*.json)' 'Edit(*.md)'
 )
 
 if [ "$HAS_JQ" -eq 1 ]; then
@@ -2999,23 +3207,23 @@ if [ "$HAS_JQ" -eq 1 ]; then
   # Verzeichnistiefe, gitignore-Semantik – die Spec adressiert aber ausdrücklich nur
   # Top-Level-Dateien; alle vier realen Zieldateien liegen im Root, root-verankert verliert
   # nichts, schließt aber die Least-Privilege-Lücke für künftige *.yml/*.yaml-Dateien).
-  # #251 erweitert dieselbe Liste um die 16 ursprünglichen #88-Edit(...)-Allow-Einträge (statt
+  # nothra/tch-gastro-services#251 erweitert dieselbe Liste um die 16 ursprünglichen nothra/tch-gastro-services#88-Edit(...)-Allow-Einträge (statt
   # einer zweiten, rumpfidentischen Schleife danebenzustellen – exakt das in
   # lessons/testing.md ("Neue Regressions-Assertion-Schleife … abgleichen") kodifizierte
-  # #240-Learning; Präzedenzfall im selben File: die #240-AK1-Schleife unten vereint ebenso
+  # nothra/tch-gastro-services#240-Learning; Präzedenzfall im selben File: die nothra/tch-gastro-services#240-AK1-Schleife unten vereint ebenso
   # zwei unterschiedliche Eintragsgruppen in einer Liste statt zwei getrennten Schleifen).
-  # Die 16 #88-Einträge kommen aus dem gemeinsamen EDIT_ALLOW_88-Array oben (geteilt mit dem
+  # Die 16 nothra/tch-gastro-services#88-Einträge kommen aus dem gemeinsamen EDIT_ALLOW_88-Array oben (geteilt mit dem
   # Grep-Fallback weiter unten).
   for entry in 'Edit(/*.yml)' 'Edit(/*.yaml)' "${EDIT_ALLOW_88[@]}"; do
     jq -e --arg v "$entry" '.permissions.allow | index($v) != null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#224/#251: allow (geparst) enthält '$entry'"
   done
 
-  # #240 AK1 (alle 18 vormals in allow vorhandenen Write(...)-Einträge): Die 11 ursprünglichen
-  # Write(<verzeichnis>/**)-Einträge (aus #88) und die 7 Write(<extension>)-Einträge (aus der
-  # #224-Symmetrie-Ergänzung) waren laut claude --print-Probe gleichermaßen wirkungslos (nur
+  # nothra/tch-gastro-services#240 AK1 (alle 18 vormals in allow vorhandenen Write(...)-Einträge): Die 11 ursprünglichen
+  # Write(<verzeichnis>/**)-Einträge (aus nothra/tch-gastro-services#88) und die 7 Write(<extension>)-Einträge (aus der
+  # nothra/tch-gastro-services#224-Symmetrie-Ergänzung) waren laut claude --print-Probe gleichermaßen wirkungslos (nur
   # Edit(pfad) deckt Edit+Write ab – das eigentliche Verhalten liefert weiterhin Edit(/*.yml)/
-  # Edit(/*.yaml) aus der Schleife oben) und wurden in #240 entfernt. Je Eintrag eine eigene
+  # Edit(/*.yaml) aus der Schleife oben) und wurden in nothra/tch-gastro-services#240 entfernt. Je Eintrag eine eigene
   # Assertion (nicht nur der pauschale Check weiter unten), damit ein versehentlich wieder
   # eingeführter Einzeleintrag namentlich rot färbt.
   for entry in 'Write(app/**)' 'Write(lib/**)' 'Write(db/**)' 'Write(e2e/**)' \
@@ -3027,27 +3235,23 @@ if [ "$HAS_JQ" -eq 1 ]; then
     assert_true "$?" "#240: allow (geparst) enthält NICHT mehr '$entry'"
   done
 
-  # AK3 (Gegenrichtung): pnpm-lock.yaml bleibt trotz generischer YAML-Freigabe per deny gesperrt.
-  jq -e --arg v 'Edit(pnpm-lock.yaml)' '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
-  assert_true "$?" "#224: deny (geparst) enthält 'Edit(pnpm-lock.yaml)'"
-
-  # AK4 (Gegenrichtung): #88-Grenze unverändert – bestehende Edit(...)-Deny-Einträge bleiben
-  # erhalten. Die Write(...)-Pendants waren wirkungslos und sind seit #240 entfernt (separat
+  # AK4 (Gegenrichtung): nothra/tch-gastro-services#88-Grenze unverändert – bestehende Edit(...)-Deny-Einträge bleiben
+  # erhalten. Die Write(...)-Pendants waren wirkungslos und sind seit nothra/tch-gastro-services#240 entfernt (separat
   # unten geprüft).
   for entry in 'Edit(.claude/**)' 'Edit(.env*)' 'Read(.env*)'; do
     jq -e --arg v "$entry" '.permissions.deny | index($v) != null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#224: deny (geparst) behält '$entry' (#88-Grenze)"
   done
 
-  # #240 AK2 (alle 3 vormals in deny vorhandenen Write(...)-Einträge): Write(pnpm-lock.yaml),
+  # nothra/tch-gastro-services#240 AK2 (alle 3 vormals in deny vorhandenen Write(...)-Einträge): Write(pnpm-lock.yaml),
   # Write(.claude/**) und Write(.env*) waren aus demselben Grund wie in allow wirkungslos und
-  # wurden in #240 entfernt.
+  # wurden in nothra/tch-gastro-services#240 entfernt.
   for entry in 'Write(pnpm-lock.yaml)' 'Write(.claude/**)' 'Write(.env*)'; do
     jq -e --arg v "$entry" '.permissions.deny | index($v) == null' "$SETTINGS" >/dev/null 2>&1
     assert_true "$?" "#240: deny (geparst) enthält NICHT mehr '$entry'"
   done
 
-  # AK1/AK2/AK7 (#240, umfassend): Keine einzelne Assertion oben deckt einen KÜNFTIGEN, nicht
+  # AK1/AK2/AK7 (nothra/tch-gastro-services#240, umfassend): Keine einzelne Assertion oben deckt einen KÜNFTIGEN, nicht
   # in der Liste antizipierten Write(...)-Eintrag ab – deshalb zusätzlich eine pauschale
   # geparste Prüfung über allow UND deny hinweg, dass kein Eintrag mehr mit "Write(" beginnt.
   jq -e '[.permissions.allow[], .permissions.deny[]] | map(select(startswith("Write("))) | length == 0' \
@@ -3057,15 +3261,15 @@ else
   echo "  • #224/#240: Permissions-Konsistenz (geparst) – übersprungen (jq fehlt)"
 fi
 
-# #240 (jq-unabhängiger Fallback, analog zum #91-Grep-Fallback oben): kein Write(...)-Eintrag
+# nothra/tch-gastro-services#240 (jq-unabhängiger Fallback, analog zum nothra/tch-gastro-services#91-Grep-Fallback oben): kein Write(...)-Eintrag
 # mehr irgendwo in der Datei, unabhängig davon ob jq verfügbar ist.
 assert_true "$(! grep -qF '"Write(' "$SETTINGS"; echo $?)" \
   "#240: settings.json enthält keinen 'Write(...)'-Eintrag mehr (jq-unabhängiger Fallback)"
 
-# #251 (jq-unabhängiger Fallback, analog zum #91/#240-Muster): läuft IMMER, auch ohne jq,
-# damit die Regressionsabsicherung für die 16 ursprünglichen #88-Edit(...)-Allow-Einträge
+# nothra/tch-gastro-services#251 (jq-unabhängiger Fallback, analog zum nothra/tch-gastro-services#91/#240-Muster): läuft IMMER, auch ohne jq,
+# damit die Regressionsabsicherung für die 16 ursprünglichen nothra/tch-gastro-services#88-Edit(...)-Allow-Einträge
 # nicht stillschweigend übersprungen wird, wenn jq in der Ausführungsumgebung fehlt (die
-# geparste #251-Schleife oben wird dann laut Zeile "übersprungen (jq fehlt)" nicht erreicht).
+# geparste nothra/tch-gastro-services#251-Schleife oben wird dann laut Zeile "übersprungen (jq fehlt)" nicht erreicht).
 # Nutzt dasselbe EDIT_ALLOW_88-Array wie die jq-Schleife oben (geteilte Konstante, kein
 # Literal-Duplikat mehr – Refactor-Finding aus /review).
 for entry in "${EDIT_ALLOW_88[@]}"; do
@@ -3074,7 +3278,7 @@ for entry in "${EDIT_ALLOW_88[@]}"; do
 done
 
 # AK7: die stale Präsens-Aussage zu factory.defaults.yml ist korrigiert; die weiterhin gültige
-# Patch-Workflow-Regel (#94) bleibt erhalten. Bislang die einzige Regressionsabsicherung für
+# Patch-Workflow-Regel (nothra/tch-gastro-services#94) bleibt erhalten. Bislang die einzige Regressionsabsicherung für
 # AK7 (/test-Selbstfund) – ohne diesen Test könnte ein künftiger Edit die Korrektur
 # stillschweigend zurückdrehen, ohne dass irgendein Test rot würde.
 WORKFLOW_LESSON="$FACTORY_ROOT/docs/factory/lessons/factory-workflow.md"
@@ -3082,19 +3286,19 @@ WORKFLOW_LESSON="$FACTORY_ROOT/docs/factory/lessons/factory-workflow.md"
 assert_true "$(! grep -qF 'außerhalb von `scripts/*`/`pnpm`-Scope sind nicht' "$WORKFLOW_LESSON"; echo $?)" \
   "#224: stale Präsens-Aussage zu factory.defaults.yml aus der Lesson entfernt (AK7)"
 
-grep -qF 'ist seit #224 über eine generische' "$WORKFLOW_LESSON"
+grep -qF 'ist seit nothra/tch-gastro-services#224 über eine generische' "$WORKFLOW_LESSON"
 assert_true "$?" "#224: Lesson nennt die korrigierte Allow-Regel für Top-Level-YAML (AK7)"
 
-grep -qF 'Patch NICHT von Hand schreiben (aus #94)' "$WORKFLOW_LESSON"
+grep -qF 'Patch NICHT von Hand schreiben (aus nothra/tch-gastro-services#94)' "$WORKFLOW_LESSON"
 assert_true "$?" "#224: Patch-Workflow-Regel (#94) bleibt in der Lesson erhalten (AK7)"
 
-# AK8 (#240): die stale Präsens-Aussage zur "existierenden" Write(...)-Liste ist korrigiert
+# AK8 (nothra/tch-gastro-services#240): die stale Präsens-Aussage zur "existierenden" Write(...)-Liste ist korrigiert
 # (Cleanup-Kandidat ist erledigt, nicht mehr offen) – ohne diesen Test könnte ein künftiger Edit
 # die Korrektur stillschweigend zurückdrehen, ohne dass irgendein Test rot würde.
 assert_true "$(! grep -qF 'existiert) ist aktuell' "$WORKFLOW_LESSON"; echo $?)" \
   "#240: stale Präsens-Aussage zur 'existierenden' Write(...)-Liste aus der Lesson entfernt (AK8)"
 
-grep -qF 'in **#240 entfernt**' "$WORKFLOW_LESSON"
+grep -qF 'in **nothra/tch-gastro-services#240 entfernt**' "$WORKFLOW_LESSON"
 assert_true "$?" "#240: Lesson nennt die erledigte Entfernung der Write(...)-Liste (AK8)"
 
 # ─── Task 101: Pipeline-Quality-Gates rufen echte Befehle (kein Platzhalter) ──
@@ -3107,12 +3311,12 @@ assert_true "$(! grep -q '_PLACEHOLDER' "$PIPELINE"; echo $?)" \
   "#101: run-pipeline.sh enthält keinen *_PLACEHOLDER-Gate-Befehl mehr (Regressions-Guard)"
 
 # (Struktur) Echte Befehle über gate_command (Env-Override vor commands.* der Config) –
-# konsistent mit pre-commit/pre-push (#431, AK-H3).
+# konsistent mit pre-commit/pre-push (nothra/tch-gastro-services#431, AK-H3).
 { grep -qF 'gate_command lint required' "$PIPELINE" && grep -qF 'gate_command test required' "$PIPELINE" \
   && grep -qF 'gate_command coverage required' "$PIPELINE"; }
 assert_true "$?" "#101/#431: run-pipeline.sh liest lint/test/coverage über gate_command (Env-Override wie Hook-Gates)"
 
-# (Struktur) Kein pnpm-Default mehr im Orchestrator (#431 AK-H3): die Kommandos stehen in factory.config.yml.
+# (Struktur) Kein pnpm-Default mehr im Orchestrator (nothra/tch-gastro-services#431 AK-H3): die Kommandos stehen in factory.config.yml.
 grep -q 'pnpm' "$PIPELINE"
 assert_exit 1 "$?" "#431 AK-H3: run-pipeline.sh enthält keinen hartkodierten pnpm-Aufruf mehr"
 
@@ -3131,14 +3335,15 @@ if [ "$HAS_YQ" = 1 ]; then
   echo "# ctx" > "$TMP_G101/docs/factory/PROJECT-CONTEXT.md"
   echo "# implement mock" > "$TMP_G101/.claude/commands/implement.md"
   echo "# Task 101: gate" > "$TMP_G101/tasks/task-101-gate.md"
+  mk_spec_fixture "$TMP_G101" 101
   printf '#!/bin/sh\nexit 0\n' > "$TMP_G101/bin/claude"; chmod +x "$TMP_G101/bin/claude"
   git -C "$TMP_G101" init -q; git -C "$TMP_G101" add .
   git -C "$TMP_G101" -c user.email="t@t.com" -c user.name="t" commit -q -m init
   MARKER_G101="$TMP_G101/lint-ran.marker"
-  # env -u (#264): Konsistenz-Härtung, kein beobachteter Vektor an dieser Stelle – dieser Lauf
+  # env -u (nothra/tch-gastro-services#264): Konsistenz-Härtung, kein beobachteter Vektor an dieser Stelle – dieser Lauf
   # bricht am Lint-Gate ab, bevor die PR_SHEPHERD-Verzweigung (Phase 7) erreichbar wäre.
   # Grundsatz: kein Testblock entscheidet aus der Env der aufrufenden Shell, sondern aus
-  # seinem eigenen Setup. Real beobachtet wurde der Vektor im #212-W3-Block (siehe dort).
+  # seinem eigenen Setup. Real beobachtet wurde der Vektor im nothra/tch-gastro-services#212-W3-Block (siehe dort).
   g101_out=$(cd "$TMP_G101" && PATH="$TMP_G101/bin:$PATH" \
     FACTORY_LINT_COMMAND="touch '$MARKER_G101'; false" \
     env -u PR_SHEPHERD -u FACTORY_STAGE \
@@ -3152,9 +3357,9 @@ else
   skip_yq "#101: Verhaltens-Test rotes Lint-Gate (non-dry-run)"
 fi
 
-# ─── #431 AK-H3/H4/F-6: run-pipeline.sh liest die Gate-Kommandos aus der Config (Verhalten) ───
+# ─── nothra/tch-gastro-services#431 AK-H3/H4/F-6: run-pipeline.sh liest die Gate-Kommandos aus der Config (Verhalten) ───
 # Der Struktur-Grep oben belegt nur die Verdrahtung. Hier beide Richtungen am echten Konsumenten
-# (Lesson #348: „Wert gültig" ≠ „Wert angewendet"): (a) ohne Env gewinnt commands.* aus der Config,
+# (Lesson nothra/tch-gastro-services#348: „Wert gültig" ≠ „Wert angewendet"): (a) ohne Env gewinnt commands.* aus der Config,
 # (b) fehlt ein Pflicht-Kommando in Config UND Env, bricht der Lauf VOR dem ersten Agenten-Schritt ab.
 echo ""
 echo "#431 AK-H3/H4: run-pipeline.sh – Gate-Kommandos aus factory.config.yml, fail-closed:"
@@ -3169,6 +3374,7 @@ if [ "$HAS_YQ" = 1 ]; then
   echo "# ctx" > "$TMP_H431/docs/factory/PROJECT-CONTEXT.md"
   echo "# implement mock" > "$TMP_H431/.claude/commands/implement.md"
   echo "# Task 431: gate" > "$TMP_H431/tasks/task-431-gate.md"
+  mk_spec_fixture "$TMP_H431" 431
   CLAUDE_CALLED_H431="$TMP_H431/claude-called.marker"
   printf '#!/bin/sh\ntouch "%s"\nexit 0\n' "$CLAUDE_CALLED_H431" > "$TMP_H431/bin/claude"; chmod +x "$TMP_H431/bin/claude"
   git -C "$TMP_H431" init -q
@@ -3214,10 +3420,10 @@ else
   skip_yq "#431 AK-H3/H4: run-pipeline.sh liest Gate-Kommandos aus der Config"
 fi
 
-# ─── #112: pr-closes-keyword-check.sh (CI-Gate für Closing-Keyword) ──────────
+# ─── nothra/tch-gastro-services#112: pr-closes-keyword-check.sh (CI-Gate für Closing-Keyword) ──────────
 # Verhalten: PR-Body mit Closing-Keyword+#<nr> → exit 0, sonst fail-closed exit 1.
 # Positiv- UND Negativfälle, damit ein stilles Nicht-Greifen des Musters auffällt
-# (clean-code.md: Gate-Regex gehört durch beide Richtungen abgesichert).
+# (bash-gotchas.md § 20: Gate-Regex gehört durch beide Richtungen abgesichert).
 echo ""
 echo "#112 pr-closes-keyword-check.sh (Closing-Keyword im PR-Body):"
 
@@ -3252,15 +3458,49 @@ done
   && grep -q 'github.event.pull_request.body' "$CI_FILE"; }
 assert_true "$?" "#112: CI verdrahtet das Closing-Keyword-Gate (Script + PR-Body-Env)"
 
-# ─── #149: Format-Gate in pre-push.sh (Prettier-Konformität) ─────────────────
+# Factory-Issue #24 AK-24f: Ausnahme für den Update-PR (Factory-ADR-063 E14) – nur Branch chore/factory-update im selben Repo
+echo ""
+echo "Factory-Issue #24 AK-24f: pr-closes-keyword-check.sh lässt den Update-PR ohne Keyword durch:"
+# closes_gate_24 <gate> <head-ref> <head-repo> <base-repo> – Gate-Lauf ohne Keyword im Body; Ausgabe stdout, Exit = Gate-Exit
+closes_gate_24() {
+  PR_BODY="Hebt die Factory." PR_HEAD_REF="$2" PR_HEAD_REPO="$3" PR_BASE_REPO="$4" bash "$1" 2>&1
+}
+GATE_CLOSES_24="$CHECKS_DIR/pr-closes-keyword-check.sh"
+out_24="$(closes_gate_24 "$GATE_CLOSES_24" chore/factory-update acme/consumer acme/consumer)"; rc_24=$?
+assert_exit 0 "$rc_24" "#24 AK-24f: Update-PR (chore/factory-update, selbes Repo) ohne Keyword → grün"
+assert_contains_286 "$out_24" 'Update-PR' "#24 AK-24f: eigene Meldung für die Ausnahme"
+closes_gate_24 "$GATE_CLOSES_24" chore/factory-update fork/consumer acme/consumer >/dev/null
+assert_exit 1 "$?" "#24 AK-24f: Fork-PR mit gleichem Branch-Namen ohne Keyword → rot"
+closes_gate_24 "$GATE_CLOSES_24" feature/x acme/consumer acme/consumer >/dev/null
+assert_exit 1 "$?" "#24 AK-24f: anderer Branch im selben Repo ohne Keyword → rot"
+closes_gate_24 "$GATE_CLOSES_24" chore/factory-update "" "" >/dev/null
+assert_exit 1 "$?" "#24 AK-24f: Head- und Basis-Repo unbekannt (leer) → rot (leer = leer ist kein selbes Repo)"
+closes_gate_24 "$GATE_CLOSES_24" chore/factory-update-x acme/consumer acme/consumer >/dev/null
+assert_exit 1 "$?" "#24 AK-24f: Branch, der nur mit chore/factory-update beginnt → rot"
+# Mutationsbeleg: ohne die Repo-Bedingung wird der Fork-Fall grün – die Bedingung ist wirksam
+FORK_LINE_24='  [ -n "${PR_BASE_REPO:-}" ] && [ "${PR_HEAD_REPO:-}" = "$PR_BASE_REPO" ]'
+MUT_CLOSES_24="$(mktemp -d)/pr-closes-keyword-check.sh"
+awk -v l="$FORK_LINE_24" '$0 == l { print "  true"; next } { print }' "$GATE_CLOSES_24" > "$MUT_CLOSES_24"
+assert_true "$([ "$(grep -cxF -- "$FORK_LINE_24" "$GATE_CLOSES_24")" = 1 ] && ! grep -qxF -- "$FORK_LINE_24" "$MUT_CLOSES_24"; echo $?)" \
+  "#24 AK-24f (Mutation): genau die Repo-Bedingung ist im Mutanten ersetzt"
+closes_gate_24 "$MUT_CLOSES_24" chore/factory-update fork/consumer acme/consumer >/dev/null
+assert_exit 0 "$?" "#24 AK-24f (Mutation): ohne Repo-Bedingung käme der Fork-PR durch – derselbe Fall, der oben rot ist"
+rm -rf "$(dirname "$MUT_CLOSES_24")"
+# Verdrahtung: der Job pr-closes-issue reicht Head-Branch, Head-Repo und Basis-Repo als Env durch
+closes_job_24="$(ci_job_block pr-closes-issue "$CI_FILE")"
+for env_line_24 in 'PR_HEAD_REF: ${{ github.head_ref }}' 'PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}' 'PR_BASE_REPO: ${{ github.repository }}'; do
+  assert_true "$(grep -qxF -- "          $env_line_24" <<< "$closes_job_24"; echo $?)" "#24 AK-24f: Job pr-closes-issue setzt $env_line_24"
+done
+
+# ─── nothra/tch-gastro-services#149: Format-Gate in pre-push.sh (Prettier-Konformität) ─────────────────
 # Ursache des Drifts (Task 149): format:check war an keinem Gate verdrahtet.
-# Struktur UND Verhalten absichern – analog zum #101-Lint-Gate-Test.
+# Struktur UND Verhalten absichern – analog zum nothra/tch-gastro-services#101-Lint-Gate-Test.
 echo ""
 echo "#149 pre-push.sh Format-Gate (prettier --check):"
 
 # (Struktur) Distinktive CODE-Zeile prüfen, nicht die Bezeichner allein: `FACTORY_FORMAT_COMMAND`
 # und `format:check` kommen im Gate auch in Kommentar-Prosa vor – ein Grep darauf bliebe grün,
-# wenn nur ein Kommentar stehen bliebe (#114 „Kommando ≠ Prosa-Erwähnung"). Der `${…-…}`-Ausdruck
+# wenn nur ein Kommentar stehen bliebe (nothra/tch-gastro-services#114 „Kommando ≠ Prosa-Erwähnung"). Der `${…-…}`-Ausdruck
 # taucht ausschließlich in der Zuweisung auf und belegt zugleich den fail-closed-Default
 # (`pnpm format:check` bei unset) und die Single-Dash-Semantik (leerer Wert = echter Opt-out).
 grep -qF 'gate_command format optional' "$CHECKS_DIR/pre-push.sh"
@@ -3270,10 +3510,16 @@ assert_true "$?" "#149: pre-push.sh verdrahtet das Format-Gate über gate_comman
 # neutralisieren (true), sodass allein das Format-Gate das Ergebnis bestimmt. Beweist,
 # dass das Gate den ECHTEN Befehl ausführt (rot → blockiert) und der Env-Override greift.
 TMP_G149="$(mktemp -d)"
+# Gate als Kopie in der Wegwerf-Wurzel (Factory-Issue #32): das Original würde über FACTORY_DIR die echte
+# CLAUDE.md/PROJECT-CONTEXT.md des Konsumenten lesen (Check 6, @import-Deckel) – ein indirekter Leser.
+mkdir -p "$TMP_G149/scripts/checks" "$TMP_G149/scripts/lib"
+cp "$CHECKS_DIR/pre-push.sh" "$TMP_G149/scripts/checks/"
+cp "$SCRIPTS_DIR/lib/gate-config.sh" "$TMP_G149/scripts/lib/"
+cp "$FACTORY_ROOT/factory.defaults.yml" "$TMP_G149/"
 mk_feature_repo "$TMP_G149" feature/149-format-gate-test
 run_prepush_149() { # $1 = FACTORY_FORMAT_COMMAND-Wert
   ( cd "$TMP_G149" && FACTORY_TEST_COMMAND=true FACTORY_TYPECHECK_COMMAND=true \
-      FACTORY_FORMAT_COMMAND="$1" bash "$CHECKS_DIR/pre-push.sh" >/dev/null 2>&1 )
+      FACTORY_FORMAT_COMMAND="$1" bash scripts/checks/pre-push.sh >/dev/null 2>&1 )
 }
 run_prepush_149 "false"
 assert_exit 1 "$?" "#149: Drift (Format-Befehl exit 1) blockiert den Push fail-closed"
@@ -3283,7 +3529,7 @@ run_prepush_149 ""
 assert_exit 0 "$?" "#149: leerer FACTORY_FORMAT_COMMAND deaktiviert das Gate (nicht blockierend)"
 rm -rf "$TMP_G149"
 
-# ─── #197: Größenabhängige Modell-Tier-Wahl (ADR-038) ────────────────────────
+# ─── nothra/tch-gastro-services#197: Größenabhängige Modell-Tier-Wahl (ADR-038) ────────────────────────
 echo ""
 echo "#197 Größenabhängige Modell-Tiers (ADR-038):"
 
@@ -3316,6 +3562,31 @@ assert_true "$([[ "$(msize proxy 9 "$PXR")" = "0" ]]; echo $?)" "#197: Abschnitt
 assert_true "$([[ -z "$(msize proxy 404 "$PXR")" ]]; echo $?)" "#197 F2: keine Spec-Datei → leer (Fail-Safe)"
 assert_true "$([[ -z "$(msize bogus 7 "$PXR")" ]]; echo $?)" "#197: unbekanntes Signal → leer (Fail-Safe)"
 rm -rf "$PXR"
+
+# ─── #49: Turn-Budget nach AK-Zahl (Factory-ADR-065) – reine Lib-Funktionen ─────────────────────
+echo ""
+echo "#49 select_max_turns / spec_file_for (tier-select.sh):"
+tturns() { ( source "$TIER_LIB"; select_max_turns "$@" ); }
+specfor() { ( source "$TIER_LIB"; spec_file_for "$@" ); }
+for case_49 in "1:20" "5:20" "6:40" "11:40" "12:60" "18:60"; do
+  assert_true "$([[ "$(tturns "${case_49%%:*}" 20 6 40 12 60)" = "${case_49#*:}" ]]; echo $?)" \
+    "#49: select_max_turns ${case_49%%:*} AK → ${case_49#*:} (Stufen 20/6:40/12:60)"
+done
+assert_true "$([[ "$(tturns '' 20 6 40 12 60)" = "60" ]]; echo $?)" "#49: leere Größe → Fail-Safe oberste Stufe (60)"
+assert_true "$([[ "$(tturns abc 20 6 40 12 60)" = "60" ]]; echo $?)" "#49: nicht-numerische Größe → Fail-Safe oberste Stufe (60)"
+SPR49="$(mktemp -d)"; mkdir -p "$SPR49/docs/specs"
+assert_true "$([[ -z "$(specfor 49 "$SPR49")" ]]; echo $?)" "#49 F1: keine Spec → spec_file_for leer"
+printf '# B\n## Akzeptanzkriterien\n- [ ] A\n' > "$SPR49/docs/specs/spec-49-b.md"
+printf '# A\n## Akzeptanzkriterien\n- [ ] A\n- [ ] B\n' > "$SPR49/docs/specs/spec-49-a.md"
+assert_true "$([[ "$(specfor 49 "$SPR49")" = "$SPR49/docs/specs/spec-49-a.md" ]]; echo $?)" \
+  "#49 F4: mehrere Specs → spec_file_for wählt deterministisch die erste in sortierter Reihenfolge"
+assert_true "$([[ "$(msize proxy 49 "$SPR49")" = "2" ]]; echo $?)" \
+  "#49 F4: measure_size proxy misst dieselbe Spec wie spec_file_for (2 AK aus spec-49-a)"
+rm -rf "$SPR49"
+# Fixture-Helfer: genau <n> AK im Abschnitt, Fehlerszenarien zählen nicht mit.
+SPF49="$(mktemp -d)"; mk_spec_fixture "$SPF49" 7 4
+assert_true "$([[ "$(msize proxy 7 "$SPF49")" = "4" ]]; echo $?)" "#49: mk_spec_fixture legt genau die verlangte AK-Zahl an (4)"
+rm -rf "$SPF49"
 
 # measure_size diff: added+deleted gegen origin/main; misst NUR die Branch-eigenen Änderungen.
 DFR="$(mktemp -d)"
@@ -3364,6 +3635,7 @@ if [ "$HAS_YQ" = 1 ]; then
   git init -q --bare "$RVO/origin.git"
   _mk_pipe_repo "$RVW"
   echo "# Task 3: review-tier" > "$RVW/tasks/task-3-review-tier.md"
+  mk_spec_fixture "$RVW" 3
   printf '## Empfehlung\nAPPROVED\n' > "$RVW/tasks/review-3.md"   # Review-Loop endet sofort
   git -C "$RVW" init -q
   git -C "$RVW" remote add origin "$RVO/origin.git"
@@ -3408,9 +3680,103 @@ if [ "$HAS_YQ" = 1 ]; then
   printf '# Spec\n## Akzeptanzkriterien\n- [ ] A\n- [ ] B\n- [ ] C\n- [ ] D\n- [ ] E\n- [ ] F\n- [ ] G\n- [ ] H\n' > "$IML/docs/specs/spec-5-large.md"
   git -C "$IML" init -q; git -C "$IML" add .; git -C "$IML" -c user.email=t@t -c user.name=t commit -q -m init
   iml_out=$(bash "$IML/scripts/run-pipeline.sh" 5 --dry-run 2>&1 || true)
-  printf '%s' "$iml_out" | grep -q '/implement 5 (model: claude-opus-5-5, max 20 turns)'
-  assert_true "$?" "#197 AK5 (E2E): großer Proxy (8 AK >= 6) → /implement auf heavy"
+  printf '%s' "$iml_out" | grep -q '/implement 5 (model: claude-opus-5-5, max 40 turns)'
+  assert_true "$?" "#197 AK5 (E2E): großer Proxy (8 AK >= 6) → /implement auf heavy und mittlere Turn-Stufe (40)"
   rm -rf "$IML"
+
+  # ─── #49 E2E: Turn-Budget von /implement nach AK-Zahl, gegen die ECHTE factory.defaults.yml ───
+  # (Lesson nothra/tch-gastro-services#348: ein Gate-Test beweist nicht, dass der Konsument den Wert nutzt.)
+  echo ""
+  echo "#49 E2E: Turn-Budget /implement nach AK-Zahl (Factory-ADR-065):"
+  # run_dry_49 <repo> [env-Zuweisungen…] – --dry-run-Lauf für Task 49; Ausgabe OUT_49, Exit RC_49.
+  run_dry_49() {
+    local dir="$1"; shift
+    OUT_49=$(cd "$dir" && env -u PR_SHEPHERD -u FACTORY_STAGE -u MAX_TURNS "$@" \
+      bash "$dir/scripts/run-pipeline.sh" 49 --dry-run 2>&1); RC_49=$?
+  }
+  # mk_repo_49 <repo> <ak_zahl> – Pipeline-Repo mit Task-Datei und Spec-Fixture, committet.
+  mk_repo_49() {
+    _mk_pipe_repo "$1"
+    echo "# Task 49: turns" > "$1/tasks/task-49-turns.md"
+    mk_spec_fixture "$1" 49 "$2"
+    git -C "$1" init -q; git -C "$1" add .; git -C "$1" -c user.email=t@t -c user.name=t commit -q -m init
+  }
+  for case_49 in "5:20:AK1" "6:40:AK2" "11:40:AK3" "12:60:AK4" "18:60:AK5"; do
+    ak_49="${case_49%%:*}"; rest_49="${case_49#*:}"; want_49="${rest_49%%:*}"
+    R49="$(mktemp -d)"; mk_repo_49 "$R49" "$ak_49"
+    run_dry_49 "$R49"
+    assert_contains_286 "$OUT_49" "Starte: /implement 49 (model: " "#49 ${rest_49#*:}: /implement startet bei ${ak_49} AK"
+    printf '%s' "$OUT_49" | grep -qE "Starte: /implement 49 \(model: [^,]+, max ${want_49} turns\)"
+    assert_true "$?" "#49 ${rest_49#*:}: Spec mit ${ak_49} AK → /implement mit max ${want_49} turns"
+    rm -rf "$R49"
+  done
+
+  # AK7: abgehakte und offene AK zählen gleich – 3 offen + 3 abgehakt = 6 → mittlere Stufe.
+  R49="$(mktemp -d)"; _mk_pipe_repo "$R49"
+  echo "# Task 49: turns" > "$R49/tasks/task-49-turns.md"
+  printf '# Spec\n## Akzeptanzkriterien\n- [ ] A\n- [x] B\n- [ ] C\n- [x] D\n- [ ] E\n- [x] F\n## Fehlerszenarien\n- [ ] F1\n' \
+    > "$R49/docs/specs/spec-49-mixed.md"
+  git -C "$R49" init -q; git -C "$R49" add .; git -C "$R49" -c user.email=t@t -c user.name=t commit -q -m init
+  run_dry_49 "$R49"
+  assert_contains_286 "$OUT_49" "Starte: /implement 49 (model: claude-opus-5-5, max 40 turns)" \
+    "#49 AK7: 3 offene + 3 abgehakte AK → 6 AK, dieselbe Zählung wie die Modellwahl (heavy, 40 turns)"
+  rm -rf "$R49"
+
+  # AK13: MAX_TURNS aus der Umgebung sticht die Staffelung (Bestand).
+  R49="$(mktemp -d)"; mk_repo_49 "$R49" 18
+  run_dry_49 "$R49" MAX_TURNS=50
+  assert_contains_286 "$OUT_49" "Starte: /implement 49 (model: claude-opus-5-5, max 50 turns)" \
+    "#49 AK13: 18 AK + MAX_TURNS=50 → max 50 turns (Umgebungsvariable vor Staffelung)"
+
+  # AK17: die übrigen Skills behalten ihr Budget (review-Loop endet sofort über APPROVED-Report).
+  printf '## Empfehlung\nAPPROVED\n' > "$R49/tasks/review-49.md"
+  git -C "$R49" add .; git -C "$R49" -c user.email=t@t -c user.name=t commit -q -m review
+  run_dry_49 "$R49"
+  for case_49 in "review:30" "security-review:30" "test:20" "refactor:20" "codify:8"; do
+    printf '%s' "$OUT_49" | grep -qE "Starte: /${case_49%%:*} 49 \(model: [^,]+, max ${case_49#*:} turns\)"
+    assert_true "$?" "#49 AK17: /${case_49%%:*} behält max ${case_49#*:} turns bei einer 18-AK-Spec"
+  done
+  # pr-shepherd läuft im Dry-Run nur mit PR_SHEPHERD=true – sein Budget prüft der Config-Wert direkt.
+  assert_true "$([ "$(yq '.skills."pr-shepherd".max_turns' "$DEFAULTS")" = "8" ]; echo $?)" \
+    "#49 AK17: pr-shepherd behält max_turns 8 (Defaults)"
+
+  # AK14: Stufen-Override in factory.config.yml wirkt (ab 12 AK → 70).
+  printf 'skills:\n  implement:\n    max_turns_by_size:\n      high: { max_turns: 70 }\n' > "$R49/factory.config.yml"
+  git -C "$R49" add .; git -C "$R49" -c user.email=t@t -c user.name=t commit -q -m override
+  run_dry_49 "$R49"
+  assert_contains_286 "$OUT_49" "Starte: /implement 49 (model: claude-opus-5-5, max 70 turns)" \
+    "#49 AK14: Stufen-Override high.max_turns=70 → /implement mit max 70 turns"
+  rm -rf "$R49"
+
+  # ─── #49 AK8–AK12: Preflight stoppt ohne Spec mit AK – in jedem Modus ───────────────────────
+  # assert_stop_49 <label> <ursache> – Exit ≠ 0, Ursache + Task-ID + /requirements-Hinweis, kein /implement.
+  assert_stop_49() {
+    assert_exit 1 "$RC_49" "#49 $1: Exit 1"
+    assert_contains_286 "$OUT_49" "Task 49: $2" "#49 $1: Meldung nennt Task-ID und Ursache „$2“"
+    assert_contains_286 "$OUT_49" "/requirements 49" "#49 $1: Meldung verweist auf /requirements 49"
+    assert_contains_286 "$OUT_49" "Pre-flight failed" "#49 $1: Abbruch im Preflight"
+    assert_absent "$OUT_49" "Starte: /implement" "#49 $1: /implement startet nicht"
+  }
+  # mk_stop_repo_49 <repo> <lage> – none | nosection | zero
+  mk_stop_repo_49() {
+    _mk_pipe_repo "$1"
+    echo "# Task 49: turns" > "$1/tasks/task-49-turns.md"
+    case "$2" in
+      nosection) printf '# Spec\n## Kontext\n- [ ] keine AK\n' > "$1/docs/specs/spec-49-x.md" ;;
+      zero)      printf '# Spec\n## Akzeptanzkriterien\n(folgen)\n## Fehlerszenarien\n- [ ] F1\n' > "$1/docs/specs/spec-49-x.md" ;;
+    esac
+    git -C "$1" init -q; git -C "$1" add .; git -C "$1" -c user.email=t@t -c user.name=t commit -q -m init
+  }
+  for case_49 in "none:Spec fehlt:AK8" "nosection:Abschnitt Akzeptanzkriterien fehlt:AK9" "zero:0 Akzeptanzkriterien:AK10"; do
+    lage_49="${case_49%%:*}"; rest_49="${case_49#*:}"; why_49="${rest_49%%:*}"; ak_49="${rest_49#*:}"
+    R49="$(mktemp -d)"; mk_stop_repo_49 "$R49" "$lage_49"
+    run_dry_49 "$R49"
+    assert_stop_49 "$ak_49/AK11 (--dry-run, $lage_49)" "$why_49"
+    run_dry_49 "$R49" MAX_TURNS=50
+    assert_stop_49 "AK12 (MAX_TURNS=50, $lage_49)" "$why_49"
+    rm -rf "$R49"
+  done
+  # Echte Läufe (AK6, AK8 ohne --dry-run) stehen hinter dem #310-Block: sie nutzen dessen Helfer.
 
   # AK9 + F3: Config-Gate akzeptiert reale tier_by_size-Defaults, lehnt ungültige Werte ab.
   G4="$(mktemp -d)"
@@ -3430,8 +3796,81 @@ if [ "$HAS_YQ" = 1 ]; then
   assert_true "$([[ $rc -ne 0 ]]; echo $?)" "#197 F3: ungültiges tier_by_size.signal → fail-closed"
   rm -rf "$G4"
 
+  # ─── #49 Gate-Regel 4d: max_turns_by_size (Factory-ADR-065 §4) ───────────────────────────────
+  # gate_49 <stufen-yaml unter skills.implement.max_turns_by_size> – Override prüfen; GATE_OUT_49 = stderr.
+  # Je Negativfall wird die regelspezifische Meldung geprüft, damit kein anderer Fail-Pfad den Test grün färbt.
+  G49="$(mktemp -d)"
+  gate_49() {
+    printf 'skills:\n  implement:\n    max_turns_by_size:\n%s\n' "$1" > "$G49/ovr.yml"
+    GATE_OUT_49="$(bash "$GATE" "$DEFAULTS" "$G49/ovr.yml" 2>&1 >/dev/null)"; GATE_RC_49=$?
+  }
+  bash "$GATE" "$DEFAULTS" >/dev/null 2>&1
+  assert_exit 0 "$?" "#49: Defaults mit max_turns_by_size bestehen das Gate (Regel 4d)"
+  gate_49 '      high: { max_turns: 70 }'
+  assert_exit 0 "$GATE_RC_49" "#49 AK14: gültiger Stufen-Override (high.max_turns 70) besteht das Gate"
+  gate_49 '      mid: { max_turns: 80 }'
+  assert_exit 0 "$GATE_RC_49" "#49: Stufen-Budget an der Obergrenze (80) besteht das Gate"
+  gate_49 '      high: { max_turns: 81 }'
+  assert_exit 1 "$GATE_RC_49" "#49 AK15: Stufen-Budget 81 → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.high.max_turns bei 'implement' = 81 liegt außerhalb [1, 80]" \
+    "#49 AK15: Meldung nennt Stufe, Wert und Obergrenze 80"
+  gate_49 '      mid: { max_turns: 0 }'
+  assert_exit 1 "$GATE_RC_49" "#49 AK16: Stufen-Budget 0 → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.mid.max_turns bei 'implement' = 0 liegt außerhalb" \
+    "#49 AK16: Meldung für Budget 0 nennt die Stufe"
+  gate_49 '      mid: { max_turns: viele }'
+  assert_exit 1 "$GATE_RC_49" "#49 AK16: Nicht-Integer-Stufen-Budget → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.mid.max_turns bei 'implement' ist kein positiver Integer: 'viele'" \
+    "#49 AK16: Meldung für Nicht-Integer nennt den Wert"
+  gate_49 '      mid: { from: 1 }'
+  assert_exit 1 "$GATE_RC_49" "#49 F6: mid.from = 1 (Basis ohne AK) → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.mid.from bei 'implement' = 1 muss >= 2 sein" \
+    "#49 F6: Meldung für fehlende unterste Stufe"
+  gate_49 '      high: { from: 6 }'
+  assert_exit 1 "$GATE_RC_49" "#49 F6: high.from = mid.from (Überlappung) → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.high.from bei 'implement' = 6 muss größer als mid.from (6) sein" \
+    "#49 F6: Meldung für überlappende Stufen"
+  gate_49 '      mid: { from: 13 }'
+  assert_exit 1 "$GATE_RC_49" "#49 F6: mid.from > high.from (vertauschte Stufen) → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.high.from bei 'implement' = 12 muss größer als mid.from (13) sein" \
+    "#49 F6: Meldung für vertauschte Stufen nennt beide Grenzen"
+  gate_49 '      high: { from: zwoelf }'
+  assert_exit 1 "$GATE_RC_49" "#49 F6: Nicht-Integer-Grenze → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "max_turns_by_size.high.from bei 'implement' ist kein positiver Integer" \
+    "#49 F6: Meldung für Nicht-Integer-Grenze"
+  gate_49 '      signal: bogus'
+  assert_exit 1 "$GATE_RC_49" "#49: ungültiges max_turns_by_size.signal → Gate lehnt ab"
+  assert_contains_286 "$GATE_OUT_49" "ungültiges max_turns_by_size.signal 'bogus'" "#49: Meldung nennt das Signal"
+  # Struktur über Regel 2: keine vierte Stufe, keine Staffelung an bug-fix (AK18).
+  gate_49 '      top: { from: 20, max_turns: 70 }'
+  assert_exit 1 "$GATE_RC_49" "#49: zusätzliche Stufe (unbekannter Key) → Gate lehnt ab (Regel 2)"
+  printf 'skills:\n  bug-fix:\n    max_turns_by_size: { signal: proxy }\n' > "$G49/bf.yml"
+  bash "$GATE" "$DEFAULTS" "$G49/bf.yml" >/dev/null 2>&1
+  assert_exit 1 "$?" "#49 AK18: max_turns_by_size an bug-fix → Gate lehnt ab (Regel 2)"
+  rm -rf "$G49"
+  # Mutationsbeleg zu 4d: ohne die Regel besteht ein Budget von 81 das Gate – der Test oben ist kausal.
+  G49M="$(mktemp -d)"; mkdir -p "$G49M/scripts/checks" "$G49M/scripts/lib"
+  cp "$SCRIPTS_DIR/lib/gate-config.sh" "$G49M/scripts/lib/"
+  awk '/^# 4d\. max_turns_by_size/{skip=1} skip && /^# 5\. Mindest-Tier/{skip=0} !skip' "$GATE" > "$G49M/scripts/checks/gate.sh"
+  printf 'skills:\n  implement:\n    max_turns_by_size:\n      high: { max_turns: 81 }\n' > "$G49M/ovr.yml"
+  assert_true "$([ "$(grep -c 'turns_by_size_budget' "$G49M/scripts/checks/gate.sh")" -eq 0 ]; echo $?)" \
+    "#49 Mutation: Regel 4d aus der Gate-Kopie entfernt (wirksam)"
+  bash "$G49M/scripts/checks/gate.sh" "$DEFAULTS" "$G49M/ovr.yml" >/dev/null 2>&1
+  assert_exit 0 "$?" "#49 Mutation: ohne Regel 4d besteht Stufen-Budget 81 das Gate"
+  rm -rf "$G49M"
+
+  # AK18/AK20: Struktur der Defaults – bug-fix ohne Staffelung, Begründung an der Staffelung.
+  assert_true "$([ "$(yq '.skills."bug-fix".max_turns' "$DEFAULTS")" = "20" ] && [ "$(yq '.skills."bug-fix" | has("max_turns_by_size")' "$DEFAULTS")" = "false" ]; echo $?)" \
+    "#49 AK18: bug-fix behält festes max_turns 20 ohne max_turns_by_size"
+  assert_true "$([ "$(yq '.skills.implement.max_turns_by_size | [.signal, .mid.from, .mid.max_turns, .high.from, .high.max_turns] | join(",")' "$DEFAULTS")" = "proxy,6,40,12,60" ]; echo $?)" \
+    "#49: Defaults-Staffelung = proxy, ab 6 → 40, ab 12 → 60"
+  tbs_block_49="$(awk '/^    max_turns: 20 .*Basis/{f=1} f && /^    max_turns_by_size:/{print; exit} f' "$DEFAULTS")"
+  assert_contains_286 "$tbs_block_49" "@reason: Ein festes Budget von 20 Turns riss" "#49 AK20: @reason an der Staffelung nennt den Anlass (Turn-Limit-Abbrüche)"
+  assert_contains_286 "$tbs_block_49" "@tradeoff: Kosten" "#49 AK20: @tradeoff an der Staffelung benennt die Kosten-Wirkung"
+  assert_contains_286 "$tbs_block_49" "bis zum" "#49 AK20: @tradeoff beziffert den Mehrverbrauch"
+
   # AK7: übrige pipeline-getriebene Skills + default bleiben light UND tragen KEIN tier_by_size
-  # (keine Tier-Änderung durch #197).
+  # (keine Tier-Änderung durch nothra/tch-gastro-services#197).
   ak7_ok=0
   for s in test refactor codify pr-shepherd; do
     [ "$(yq ".skills.\"$s\".tier" "$DEFAULTS")" = "light" ] || ak7_ok=1
@@ -3440,7 +3879,7 @@ if [ "$HAS_YQ" = 1 ]; then
   [ "$(yq '.default.tier' "$DEFAULTS")" = "light" ] || ak7_ok=1
   assert_true "$ak7_ok" "#197 AK7: test/refactor/codify/pr-shepherd + default = light ohne tier_by_size"
 
-  # #201 AK1/AK2/AK5: Phase-1-Skills (requirements/architecture/release-notes) sind pipeline-inert
+  # nothra/tch-gastro-services#201 AK1/AK2/AK5: Phase-1-Skills (requirements/architecture/release-notes) sind pipeline-inert
   # (run-pipeline.sh ruft sie nie über run_skill auf) und tragen daher KEINEN eigenen skills-Eintrag
   # mehr. Ihre effektive Auflösung fällt über cfg_skill_field (.skills.<s>.<feld> // .default.<feld>)
   # sauber auf default-light / max_turns 10 zurück — kein stilles Heavy-Upgrade.
@@ -3452,11 +3891,6 @@ if [ "$HAS_YQ" = 1 ]; then
   done
   assert_true "$ph1_ok" "#201 AK1/AK2: requirements/architecture/release-notes ohne eigenen Eintrag → effektiv default-light, max_turns 10"
 
-  # AK12: der provisorische implement-Tier-Override ist aufgelöst (kein .skills.implement.tier mehr).
-  if [ -f "$FACTORY_ROOT/factory.config.yml" ]; then
-    [ "$(yq '.skills.implement | has("tier")' "$FACTORY_ROOT/factory.config.yml")" = "false" ]
-    assert_true "$?" "#197 AK12: factory.config.yml führt kein statisches implement.tier mehr (Override aufgelöst)"
-  fi
 else
   skip_yq "#197 End-to-End (run-pipeline get_model) + Config-Gate Regel 4c + AK7/AK12"
 fi
@@ -3468,7 +3902,7 @@ assert_true "$?" "#197 AK11: token-efficiency.md verweist auf die reale SSOT (fa
 grep -q 'README.md (Tier-Tabelle)' "$TOKEFF"
 assert_true "$([ $? -ne 0 ]; echo $?)" "#197 AK11: veralteter README-Tier-Tabellen-Verweis ist entfernt"
 
-# ─── #212: Endzustands-Verifikation (ADR-040) ────────────────────────────────
+# ─── nothra/tch-gastro-services#212: Endzustands-Verifikation (ADR-040) ────────────────────────────────
 echo ""
 echo "#212 evaluate_final_state (reine Entscheidung, ADR-040):"
 
@@ -3514,7 +3948,7 @@ efs clean 0 true "" "" "";    assert_exit 1 "$?" "#212 F1: gh ohne verwertbaren 
 printf '%s' "$(efs_msg clean 0 true '' '' '')" | grep -q 'PR-Zustand nicht verifizierbar'
 assert_true "$?" "#212 F1: meldet 'PR-Zustand nicht verifizierbar'"
 
-# #298: MERGED zählt unabhängig vom Unpushed-Status sofort als Erfolg (Branch-Auto-Delete
+# nothra/tch-gastro-services#298: MERGED zählt unabhängig vom Unpushed-Status sofort als Erfolg (Branch-Auto-Delete
 # nach Squash-Merge macht origin/<branch> weg → unpushed ist NO_UPSTREAM/nicht-numerisch,
 # soll den MERGED-Kurzschluss aber nicht verhindern).
 efs clean NO_UPSTREAM true MERGED false none; assert_exit 0 "$?" "#298 AK: MERGED + unpushed=NO_UPSTREAM → verifiziert (exit 0)"
@@ -3601,7 +4035,7 @@ failgh
 ( export PATH="$VFS_REPO/bin:$PATH"; verify_final_state "$VFS_BR" true "$VFS_REPO" ) >/dev/null 2>&1
 assert_exit 1 "$?" "#212 I/O F1: gh-Aufruf scheitert → fail-closed (exit 1)"
 
-# #298 I/O: origin/<branch> gelöscht (Branch-Auto-Delete nach Squash-Merge) + PR MERGED
+# nothra/tch-gastro-services#298 I/O: origin/<branch> gelöscht (Branch-Auto-Delete nach Squash-Merge) + PR MERGED
 # → unpushed ist nicht verwertbar (NO_UPSTREAM), MERGED-Kurzschluss muss trotzdem greifen.
 git -C "$VFS_REPO" push -q origin --delete "$VFS_BR"
 mkgh false MERGED false
@@ -3643,6 +4077,7 @@ if [ "$HAS_YQ" = 1 ]; then
   echo "# ctx" > "$TMP_INT/docs/factory/PROJECT-CONTEXT.md"
   echo "# implement mock" > "$TMP_INT/.claude/commands/implement.md"
   echo "# Task 77: interrupt" > "$TMP_INT/tasks/task-77-interrupt.md"
+  mk_spec_fixture "$TMP_INT" 77
   # Mock claude: signalisiert beim implement-Aufruf einen Interrupt (schreibt Sentinel), exit 0.
   cat > "$TMP_INT/bin/claude" <<'CLEOF'
 #!/bin/sh
@@ -3653,10 +4088,10 @@ CLEOF
   chmod +x "$TMP_INT/bin/claude"
   git -C "$TMP_INT" init -q; git -C "$TMP_INT" add .
   git -C "$TMP_INT" -c user.email=t@t -c user.name=t commit -q -m init
-  # env -u (#264): Konsistenz-Härtung, kein beobachteter Vektor an dieser Stelle – der Lauf
+  # env -u (nothra/tch-gastro-services#264): Konsistenz-Härtung, kein beobachteter Vektor an dieser Stelle – der Lauf
   # stoppt bereits in Phase 1 am Interrupt-Sentinel (run_skill → interrupt-check.sh) und
   # erreicht die PR_SHEPHERD-Verzweigung (Phase 7) nie. Steht trotzdem hier: kein Testblock
-  # hängt vom Env-Zustand der aufrufenden Shell ab. Realer Vektor: #212-W3-Block unten.
+  # hängt vom Env-Zustand der aufrufenden Shell ab. Realer Vektor: nothra/tch-gastro-services#212-W3-Block unten.
   int_out=$(cd "$TMP_INT" && PATH="$TMP_INT/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
     env -u PR_SHEPHERD -u FACTORY_STAGE \
@@ -3692,7 +4127,8 @@ if [ "$HAS_YQ" = 1 ]; then
     printf '# SKILL-%s mock\n' "$s" > "$TMP_E2E/.claude/commands/$s.md"
   done
   echo "# Task 78: e2e" > "$TMP_E2E/tasks/task-78-e2e.md"
-  # Der Stub schreibt die Reports IM Aufruf (seit #312 gilt ein report-erzeugendes Skill nur
+  mk_spec_fixture "$TMP_E2E" 78
+  # Der Stub schreibt die Reports IM Aufruf (seit nothra/tch-gastro-services#312 gilt ein report-erzeugendes Skill nur
   # so als erfolgreich – ein vorab abgelegter APPROVED wäre stale und bräche den Lauf schon
   # in Phase 2 ab). Der Zähler variiert den Inhalt, damit auch der zweite und dritte Lauf
   # gegen dasselbe Scaffold einen VERÄNDERTEN Report sehen. Alle drei Dateien bleiben
@@ -3718,7 +4154,7 @@ CLAUDE_E2E
   git -C "$TMP_E2E" push -q origin "$E2E_BR"
   # Unvollständiger Endzustand: ein ungepushter Commit (Working Tree bleibt sauber → Preflight ok)
   echo "extra" > "$TMP_E2E/extra.txt"; git -C "$TMP_E2E" add .; git -C "$TMP_E2E" commit -q -m unpushed
-  # env -u: siehe #264 – ohne Neutralisierung entscheidet ein exportiertes PR_SHEPHERD über
+  # env -u: siehe nothra/tch-gastro-services#264 – ohne Neutralisierung entscheidet ein exportiertes PR_SHEPHERD über
   # Phase 7 und über den PR-Zweig der Endzustands-Verifikation, nicht dieses Test-Setup.
   e2e_out=$(cd "$TMP_E2E" && PATH="$TMP_E2E/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
@@ -3733,7 +4169,7 @@ CLAUDE_E2E
   assert_true "$?" "#212 W3: INCOMPLETE_OUTCOME wird ins interrupt-log geschrieben (ADR-006)"
   # Positiv-Gegenprobe: sauber+gepusht → Erfolgs-Banner erreicht (kein Fehlalarm)
   git -C "$TMP_E2E" push -q origin "$E2E_BR"
-  # env -u: siehe #264 (identischer Leck-Vektor wie im Negativ-Fall darüber).
+  # env -u: siehe nothra/tch-gastro-services#264 (identischer Leck-Vektor wie im Negativ-Fall darüber).
   e2e_ok=$(cd "$TMP_E2E" && PATH="$TMP_E2E/bin:$PATH" \
     FACTORY_LINT_COMMAND=true FACTORY_TEST_COMMAND=true FACTORY_COVERAGE_COMMAND=true \
     env -u PR_SHEPHERD -u FACTORY_STAGE \
@@ -3742,14 +4178,14 @@ CLAUDE_E2E
   printf '%s' "$e2e_ok" | grep -q 'Pipeline erfolgreich abgeschlossen'
   assert_true "$?" "#212 W3: Erfolgs-Banner erscheint bei verifiziertem Endzustand"
 
-  # ─── #264: Env-Isolation der realen run-pipeline.sh-Testaufrufe ────────────
+  # ─── nothra/tch-gastro-services#264: Env-Isolation der realen run-pipeline.sh-Testaufrufe ────────────
   # Verhaltensbeweis (kein Grep auf `env -u`): Dieselbe Positiv-Gegenprobe läuft erneut,
   # diesmal mit PR_SHEPHERD/FACTORY_STAGE EXPORTIERT in der Shell, die run-pipeline.sh
   # aufruft. Ohne die `env -u`-Härtung erbt der Wegwerf-Lauf PR_SHEPHERD=true, startet
   # Phase 7 (pr-shepherd), bricht dort mangels .claude/commands/pr-shepherd.md ab und
   # verlangt zusätzlich einen verwertbaren PR-Zustand (gh) → Non-Zero-Exit statt
   # Erfolgs-Banner. Der Export ist die divergenzerzeugende Aktion – ohne ihn wäre der
-  # Block blind (Lesson #253).
+  # Block blind (Lesson nothra/tch-gastro-services#253).
   # Er lebt bewusst INNERHALB der Kommando-Substitutions-Subshell: so kann er weder in
   # nachfolgende Blöcke lecken noch dort einen künftig ungehärteten Aufruf maskieren
   # (ein `unset` danach würde eine vom Aufrufer geerbte Variable mit verschlucken).
@@ -3778,14 +4214,14 @@ else
   skip_yq "#264: Env-Isolation gegen exportiertes PR_SHEPHERD/FACTORY_STAGE"
 fi
 
-# ─── #264 Drift-Guard: JEDE reale run-pipeline.sh-Aufrufstelle bleibt gehärtet ──────
+# ─── nothra/tch-gastro-services#264 Drift-Guard: JEDE reale run-pipeline.sh-Aufrufstelle bleibt gehärtet ──────
 # Der Verhaltenstest oben hängt an genau EINER der fünf gehärteten Aufrufstellen. Entfernt
 # jemand `env -u` an einer der anderen (oder fügt eine neue ungehärtete hinzu), bliebe die
-# Suite grün – genau die stille Regressionsklasse, die zu #262/#264 geführt hat. Dieser
+# Suite grün – genau die stille Regressionsklasse, die zu nothra/tch-gastro-services#262/#264 geführt hat. Dieser
 # Guard schließt sie strukturell: er liest run-tests.sh selbst und verlangt für jeden
 # realen (non-`--dry-run`) Aufruf die Neutralisierung.
 #
-# Block- statt Fragment-Grep (Lesson #114/#255/#261/#265): Die Aufrufe sind
+# Block- statt Fragment-Grep (Lesson nothra/tch-gastro-services#114/#255/#261/#265): Die Aufrufe sind
 # Multi-Zeilen-Konstrukte mit `\`-Fortsetzung – awk fügt die Fortsetzungszeilen erst zur
 # logischen Kommandozeile zusammen und bewertet dann. Ein zeilenweiser Grep würde die
 # `env -u`-Zeile und die `bash`-Zeile nie zusammen sehen.
@@ -3874,7 +4310,7 @@ assert_exit 0 "$?" "#264 Guard: gehärteter Aufruf über die Pfad-Variable gilt 
 # Negativ-Kontrolle C: Der Dry-Run betritt Phase 7 zwar, bricht dort aber nicht ab (run_skill
 # kehrt vor dem skill_file-Check zurück) und ändert nur die Ausgabe; keine Dry-Run-Assertion
 # hängt an diesen Zeilen – deshalb bleibt die Ausnahme fail-open, statt 11 Aufrufstellen
-# mitzuhärten (#264, Review-Runde-3-Auflage).
+# mitzuhärten (nothra/tch-gastro-services#264, Review-Runde-3-Auflage).
 printf 'x=$(bash "$T/scripts/%s" 1 --dry-run 2>&1 || true)\n' "$RP_NAME" > "$TMP_DG264"
 audit_pipeline_calls "$TMP_DG264" >/dev/null 2>&1
 assert_exit 0 "$?" "#264 Guard: --dry-run-Aufruf ohne env -u ist erlaubt (Negativ-Kontrolle)"
@@ -3900,33 +4336,16 @@ assert_exit 0 "$?" "#264 Guard: ALLE realen run-pipeline.sh-Aufrufe in run-tests
 
 echo ""
 echo "#264 K1: Lesson und Index nennen die Härtung als erledigt:"
-# ─── #264 K1: Lesson/Index nennen die Härtung als erledigt, nicht als offenen Follow-up ──
+# ─── nothra/tch-gastro-services#264 K1: Lesson/Index nennen die Härtung als erledigt, nicht als offenen Follow-up ──
 # Ohne diese Regressionsabsicherung könnte ein künftiger Edit die Präsens-Korrektur still
-# zurückdrehen (gleiches Muster wie #224 AK7 / #240 AK8 oben).
+# zurückdrehen (gleiches Muster wie nothra/tch-gastro-services#224 AK7 / nothra/tch-gastro-services#240 AK8 oben).
 assert_true "$(! grep -qF 'ist als eigenes Issue getrackt, nicht Teil der Task' "$WORKFLOW_LESSON"; echo $?)" \
   "#264: stale 'Follow-up offen'-Aussage aus der PR_SHEPHERD-Lesson entfernt"
-grep -qF 'Die Härtung ist in #264 umgesetzt' "$WORKFLOW_LESSON"
+grep -qF 'Die Härtung ist in nothra/tch-gastro-services#264 umgesetzt' "$WORKFLOW_LESSON"
 assert_true "$?" "#264: Lesson nennt den Erledigt-Stand der Härtung"
-PC264="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
-assert_true "$(! grep -qF 'Härtung ausgelagert: #264' "$PC264"; echo $?)" \
-  "#264: Index-Zeile in PROJECT-CONTEXT.md nennt die Härtung nicht mehr als ausgelagert"
-grep -qF 'Härtung umgesetzt in #264' "$PC264"
-assert_true "$?" "#264: Index-Zeile in PROJECT-CONTEXT.md nennt den Erledigt-Stand"
 
 echo ""
-echo "#212 AK9: .gitignore deckt Coverage-Temp generisch ab:"
-GI212="$FACTORY_ROOT/.gitignore"
-grep -qF '.coverage-tmp*/' "$GI212"
-assert_true "$?" "#212 AK9: .gitignore enthält generisches Muster .coverage-tmp*/"
-TMP_GI="$(mktemp -d)"; git -C "$TMP_GI" init -q; cp "$GI212" "$TMP_GI/.gitignore"
-git -C "$TMP_GI" check-ignore -q ".coverage-tmp209/coverage-summary.json"
-assert_true "$?" "#212 AK9: .coverage-tmp209/ (Vorfall-id) ist ignoriert"
-git -C "$TMP_GI" check-ignore -q ".coverage-tmp999/x.json"
-assert_true "$?" "#212 AK9: .coverage-tmp999/ (beliebige id) ist ignoriert"
-# AK10: Vitest-Default-Coverage-Verzeichnis coverage/ ist ebenfalls ignoriert (getrackt-frei)
-git -C "$TMP_GI" check-ignore -q "coverage/index.html"
-assert_true "$?" "#212 AK10: Vitest-Default coverage/ ist ignoriert"
-rm -rf "$TMP_GI"
+echo "#212 AK10: Coverage-Temp-Konvention ist dokumentiert (die .gitignore-Muster prüft die Projekt-Suite):"
 # AK10: die dokumentierte Konvention benennt den ignorierten Temp-Pfad-Präfix
 grep -qF '.coverage-tmp' "$FACTORY_ROOT/docs/factory/guidelines/testing-standards.md"
 assert_true "$?" "#212 AK10: testing-standards.md dokumentiert den ignorierten Coverage-Temp-Präfix"
@@ -3934,9 +4353,9 @@ assert_true "$?" "#212 AK10: testing-standards.md dokumentiert den ignorierten C
 echo ""
 echo "#212 AK7: pr-shepherd eskaliert unter Stage 3 (Endzustand der committeten Live-Datei):"
 # `.claude/**` ist für den Agenten hard-denied → die Änderung kam via tasks/patch-212.diff (vom
-# Menschen angewandt + committet, Patch danach entfernt – Lesson #145). Der Test prüft daher den
+# Menschen angewandt + committet, Patch danach entfernt – Lesson nothra/tch-gastro-services#145). Der Test prüft daher den
 # ENDZUSTAND der committeten Live-Datei $SHEPHERD direkt, nicht das transiente Patch-Artefakt
-# (Kopplung an patch-212.diff wäre im auslieferbaren Zustand zwangsläufig rot – Review #212).
+# (Kopplung an patch-212.diff wäre im auslieferbaren Zustand zwangsläufig rot – Review nothra/tch-gastro-services#212).
 { grep -qF 'FACTORY_STAGE=3' "$SHEPHERD" && grep -qF 'niemals eine interaktive Freigabe' "$SHEPHERD"; }
 assert_true "$?" "#212 AK7: Stage-3-Blocker → raise-interrupt statt interaktiver Freigabefrage"
 grep -qF 'kein autonomes `git rm --cached`' "$SHEPHERD"
@@ -3944,7 +4363,7 @@ assert_true "$?" "#212 AK7: verbietet autonomes 'git rm --cached'"
 grep -qF 'PUSH_GATE_BLOCKED' "$SHEPHERD"
 assert_true "$?" "#212 AK7: benennt Interrupt-Typ PUSH_GATE_BLOCKED für blockierendes Artefakt"
 
-# ─── #262: Flag-Guard für Commit-Messages (ADR-042) ──────────────────────────
+# ─── nothra/tch-gastro-services#262: Flag-Guard für Commit-Messages (ADR-042) ──────────────────────────
 echo ""
 echo "#262 commit-msg-check.sh (Flag-Guard, fail-closed):"
 
@@ -4170,7 +4589,7 @@ echo "#262 commit-msg-Hook end-to-end (echtes 'git commit' im Wegwerf-Repo):"
 # cm_e2e_repo <name> → Repo mit real installierten Hooks. Der pre-commit-Hook wird bewusst
 # durch einen No-op ersetzt: nur der commit-msg-Pfad darf über Erfolg/Ablehnung entscheiden
 # (pre-commit.sh ruft `pnpm lint` und ist im Wegwerf-Repo gar nicht vorhanden – sonst wäre
-# der Test rot aus dem falschen Grund, Lesson #214).
+# der Test rot aus dem falschen Grund, Lesson nothra/tch-gastro-services#214).
 cm_e2e_repo() {
   local wt
   wt=$(ih_repo "$1")
@@ -4298,7 +4717,7 @@ INIT_FACTORY="$SCRIPTS_DIR/init-factory.sh"
 grep -qF 'bash "$FACTORY_DIR/scripts/install-hooks.sh"' "$INIT_FACTORY"
 assert_true "$?" "#262 AK8: init-factory.sh ruft scripts/install-hooks.sh auf (konkreter Aufruf, nicht nur Erwähnung)"
 # Fail-closed vor dem Negativ-Grep: wäre die Datei unlesbar oder verschoben, lieferte `grep`
-# ebenfalls ≠ 0 und die Abwesenheits-Assertion wäre grün aus dem falschen Grund (Lesson #214).
+# ebenfalls ≠ 0 und die Abwesenheits-Assertion wäre grün aus dem falschen Grund (Lesson nothra/tch-gastro-services#214).
 [ -r "$INIT_FACTORY" ]
 assert_true "$?" "#262 AK8: init-factory.sh ist lesbar (Vorbedingung des Abwesenheits-Checks)"
 grep -qF '.git/hooks' "$INIT_FACTORY"
@@ -4361,8 +4780,8 @@ TMP_HI="$(mktemp -d)"
 
 # hi_repo <name> → Wegwerf-git-Repo (nur git init, kein Factory-Setup nötig – der Check
 # selbst hat keine Laufzeit-Abhängigkeiten außer git). Lokale Identität setzen (wie
-# ih_repo() im #262-Abschnitt) – ohne globale Git-Identität in der Ausführungsumgebung
-# schlägt der Worktree-Test-Commit sonst mit "empty ident name" fehl (Review-Finding #265).
+# ih_repo() im nothra/tch-gastro-services#262-Abschnitt) – ohne globale Git-Identität in der Ausführungsumgebung
+# schlägt der Worktree-Test-Commit sonst mit "empty ident name" fehl (Review-Finding nothra/tch-gastro-services#265).
 hi_repo() {
   local wt="$TMP_HI/$1"
   git init -q -b main "$wt" >/dev/null 2>&1
@@ -4386,7 +4805,7 @@ install_all_hooks() {
 # Muster) – ohne Isolation liest `git config --get` in hooks-installed-check.sh auch
 # global/system mit, und die Erfolgs-Assertions würden auf einer Entwickler-Maschine mit
 # gesetztem globalem core.hooksPath fälschlich rot, obwohl der Code korrekt ist
-# (Review-Finding #268 Runde 3; dieselbe Klasse wie #262/#264: ambiente Umgebung leckt in
+# (Review-Finding nothra/tch-gastro-services#268 Runde 3; dieselbe Klasse wie nothra/tch-gastro-services#262/#264: ambiente Umgebung leckt in
 # die Fixture).
 rc_hooks() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null FACTORY_DIR="$1" bash "$HI_CHECK" 2>&1; }
 
@@ -4491,7 +4910,7 @@ assert_true "$?" "#268 AK2: Fehlermeldung nennt core.hooksPath als Ursache"
 # (die core.hooksPath-Prüfung greift unabhängig vom Dateizustand). Ohne install_all_hooks
 # würde bereits die bestehende Präsenzprüfung (spec-265) exit 1 liefern – erst das
 # pfadspezifische Signal + die Abwesenheit der Präsenz-Meldung belegen, dass wirklich der
-# neue core.hooksPath-Guard gegriffen hat (Review-Finding #268 Runde 1).
+# neue core.hooksPath-Guard gegriffen hat (Review-Finding nothra/tch-gastro-services#268 Runde 1).
 WT=$(hi_repo hookspath-no-residue)
 git -C "$WT" config core.hooksPath ".husky"
 out=$(rc_hooks "$WT"); rc=$?
@@ -4527,7 +4946,7 @@ assert_true "$([ "$rc" -ne 0 ]; echo $?)" "#268 AK5: core.hooksPath aus einem Wo
 # Pfadspezifisches Signal nötig: schlägt `git worktree add` fehl (z. B. Fixture-Fehler),
 # existiert der Ziel-Worktree nicht und schon `cd "$ROOT"` scheitert im Skript – exit ≠ 0,
 # ohne dass core.hooksPath je gelesen wurde. Erst der '.husky'-Treffer belegt, dass der
-# Guard tatsächlich lief (Review-Finding #268 Runde 1).
+# Guard tatsächlich lief (Review-Finding nothra/tch-gastro-services#268 Runde 1).
 printf '%s' "$out" | grep -qF '.husky'
 assert_true "$?" "#268 AK5: Fehlermeldung nennt den aus dem gemeinsamen Git-Verzeichnis gelesenen Pfad (.husky) statt nur zufällig grün zu sein"
 
@@ -4535,7 +4954,7 @@ assert_true "$?" "#268 AK5: Fehlermeldung nennt den aus dem gemeinsamen Git-Verz
 # git 2.50 verifiziert, siehe Skript-Header): Git löst den Hook-Pfad dann auf das
 # Arbeitsverzeichnis auf und ruft $GIT_COMMON_DIR/hooks nicht mehr auf. Muss daher
 # ebenfalls fail-closed sein – bewusste Abweichung vom ursprünglich angenommenen Vorbild
-# install-hooks.sh (Korrektur ggü. Review-Finding #268 Runde 1, spec-268 „Offene Fragen").
+# install-hooks.sh (Korrektur ggü. Review-Finding nothra/tch-gastro-services#268 Runde 1, spec-268 „Offene Fragen").
 WT=$(hi_repo hookspath-empty)
 install_all_hooks "$WT"
 git -C "$WT" config core.hooksPath ""
@@ -4556,7 +4975,7 @@ rm -rf "$TMP_HI"
 echo ""
 echo "#265 CI-Absicherung: factory-self-test-Job installiert Hooks vor der Self-Test-Suite:"
 
-# CI-Regression (beobachtet in PR zu #265): der #149-Test ruft pre-push.sh ECHT gegen das
+# CI-Regression (beobachtet in PR zu nothra/tch-gastro-services#265): der nothra/tch-gastro-services#149-Test ruft pre-push.sh ECHT gegen das
 # reale FACTORY_DIR auf (kein Fixture-Repo, siehe run_prepush_149 oben) – in einem frischen
 # CI-Checkout sind dort NIE Hooks installiert (git hooks laufen in CI ohnehin nie), also
 # schlägt Check 5 (hooks-installed-check.sh) dort IMMER fehl und reißt die Format-Gate-Tests
@@ -4571,7 +4990,7 @@ assert_true "$?" "#265: factory-self-test-Job installiert die Git-Hooks (bash sc
 
 # Anker auf den echten COMMAND ('run:'-Zeile), nicht auf jede Erwähnung von 'run-tests.sh' –
 # eine Prosa-Erwähnung (z. B. in einem Kommentar oberhalb) wäre keine Reihenfolge-Aussage
-# über den tatsächlichen Schritt-Aufruf (Lesson #114 "Kommando ≠ Prosa-Erwähnung").
+# über den tatsächlichen Schritt-Aufruf (Lesson nothra/tch-gastro-services#114 "Kommando ≠ Prosa-Erwähnung").
 ci_install_line="$(printf '%s\n' "$ci_selftest_block" | grep -n 'run: bash scripts/install-hooks.sh' | head -1 | cut -d: -f1)"
 ci_selftest_line="$(printf '%s\n' "$ci_selftest_block" | grep -n 'run: bash scripts/checks/tests/run-tests.sh' | head -1 | cut -d: -f1)"
 [ -n "$ci_install_line" ] && [ -n "$ci_selftest_line" ] && [ "$ci_install_line" -lt "$ci_selftest_line" ]
@@ -4587,8 +5006,8 @@ echo "#262 Doku nennt den kanonischen Installationsweg (Lesson #211/#176):"
 # allein wäre Teilstring von 'commit-msg-check.sh' und damit nicht diskriminierend.
 CLAUDE_MD="$FACTORY_ROOT/docs/factory/FACTORY.md"
 OPERATING_MD="$FACTORY_ROOT/docs/factory/OPERATING.md"
-CONTRIBUTING_MD="$FACTORY_ROOT/CONTRIBUTING.md"
-for doc_file in "$CLAUDE_MD" "$GITWF" "$OPERATING_MD" "$CONTRIBUTING_MD"; do
+# (CONTRIBUTING.md und README.md gehören dem Projekt: ihre Prüfung steht in scripts/project/tests/run-tests.sh.)
+for doc_file in "$CLAUDE_MD" "$GITWF" "$OPERATING_MD"; do
   [ -r "$doc_file" ]
   assert_true "$?" "#262: $(basename "$doc_file") ist lesbar (Vorbedingung der Doku-Checks)"
   grep -qF 'scripts/install-hooks.sh' "$doc_file"
@@ -4597,13 +5016,6 @@ for doc_file in "$CLAUDE_MD" "$GITWF" "$OPERATING_MD" "$CONTRIBUTING_MD"; do
   assert_true "$?" "#262: $(basename "$doc_file") nennt den commit-msg-Hook als Hook"
 done
 
-# Setup-Anleitung für einen frischen Clone: die Hook-Installation gehört in den Ablauf, sonst
-# folgt ihr jemand vollständig und hat danach keinen einzigen lokalen Hook.
-README_MD="$FACTORY_ROOT/README.md"
-[ -r "$README_MD" ]
-assert_true "$?" "#262: README.md ist lesbar (Vorbedingung des Setup-Checks)"
-grep -qF 'bash scripts/install-hooks.sh' "$README_MD"
-assert_true "$?" "#262: README.md nennt 'bash scripts/install-hooks.sh' im lokalen Setup"
 
 echo ""
 echo "#258 yq-Bereitstellung: Versions-Pin + Checksum-Verifikation:"
@@ -4615,13 +5027,13 @@ assert_true "$?" "#258: scripts/install-yq.sh vorhanden (Vorbedingung der folgen
 # Lesbarkeit der Workflow-Dateien als eigene Vorbedingung: der AK1-Guard unten ist ein
 # negierter grep über drei Dateien – fehlt eine (Umbenennung), liefert grep Exit 2 und das
 # '!' macht daraus ein stilles PASS. Fail-closed heißt hier: Lesbarkeit vorher zusichern
-# (Lesson #214 "Fail-closed bei unlesbarer Quelle").
+# (Lesson nothra/tch-gastro-services#214 "Fail-closed bei unlesbarer Quelle").
 [ -r "$CI_FILE" ] && [ -r "$POLL_YML" ]
 assert_true "$?" "#258: factory-ci.yml und factory-poll.yml sind lesbar (Vorbedingung des AK1-Guards)"
 
 # AK1: kein `releases/latest/download/...`-URL mehr – weder in den Workflows noch im Seam.
 # Angeankert an der URL-Form, nicht an jeder Erwähnung von "releases/latest": der
-# Skript-Header erklärt genau diese alte Form als WHY-Kommentar (Lesson #114).
+# Skript-Header erklärt genau diese alte Form als WHY-Kommentar (Lesson nothra/tch-gastro-services#114).
 ! grep -q 'releases/latest/download' "$CI_FILE" "$POLL_YML" "$INSTALL_YQ"
 assert_true "$?" "#258 AK1: keine releases/latest/download-URL mehr in factory-ci.yml / factory-poll.yml / install-yq.sh"
 
@@ -4641,8 +5053,8 @@ assert_true "$?" "#258 AK7: install-yq.sh pinnt den erwarteten SHA-256 im Repo (
 # der als vierten Parameter den aus `checksums` GELESENEN Wert übergibt, macht den
 # Pin-Vergleich trivial wahr (published = pinned) – und bliebe ohne diesen Guard lautlos:
 # Self-Test grün UND CI grün, weil ein ehrlicher Download zu seinem eigenen Hash passt
-# (Lessons #212/#214: Kopplungs-Guard am echten Aufruf, nicht nur Existenz-Grep).
-# Anker ist die Aufruf-Zeile am Spaltenanfang, nicht eine Prosa-Erwähnung (Lesson #114).
+# (Lessons nothra/tch-gastro-services#212/#214: Kopplungs-Guard am echten Aufruf, nicht nur Existenz-Grep).
+# Anker ist die Aufruf-Zeile am Spaltenanfang, nicht eine Prosa-Erwähnung (Lesson nothra/tch-gastro-services#114).
 yq_prod_verify_call="$(grep -n '^verify_sha256 "' "$INSTALL_YQ" | head -1 | cut -d: -f2-)"
 printf '%s' "$yq_prod_verify_call" | grep -qE '"\$YQ_SHA256"$'
 assert_true "$?" "#258 AK7: der Produktionsaufruf von verify_sha256 übergibt \$YQ_SHA256 als letztes Argument (Pin ist verdrahtet, nicht nur vorhanden)"
@@ -4654,7 +5066,7 @@ grep -qF 'releases/download/$YQ_VERSION' "$INSTALL_YQ"
 assert_true "$?" "#258 AK1: die Download-URL wird aus \$YQ_VERSION gebildet (kein zweites, hartkodiertes Tag)"
 
 # AK4: alle drei betroffenen Jobs rufen denselben Seam auf – und keiner hat noch einen
-# eigenen wget+chmod-Block. Job-Block isoliert extrahieren (ci_job_block, Lesson #255).
+# eigenen wget+chmod-Block. Job-Block isoliert extrahieren (ci_job_block, Lesson nothra/tch-gastro-services#255).
 #
 # Der Negativ-Anker prüft auf 'wget|curl' im Block, NICHT auf die alte Zwei-Zeilen-Form
 # 'wget.*yq_linux_amd64' (Download-Kommando und URL standen im entfernten Block auf
@@ -4696,14 +5108,14 @@ fi
 # fallen. Der Fixture-Test unten belegt nur den --verify-Zweig (dort gibt es kein chmod);
 # die Reihenfolge im nicht netzwerkfrei testbaren Download-Pfad braucht diesen Anker.
 # Angeankert an den echten Aufruf-Zeilen (Spaltenanfang), nicht an einer Prosa-Erwähnung
-# im Kommentar (Lesson #114 "Kommando ≠ Prosa-Erwähnung").
+# im Kommentar (Lesson nothra/tch-gastro-services#114 "Kommando ≠ Prosa-Erwähnung").
 yq_verify_line="$(grep -n '^verify_sha256 "' "$INSTALL_YQ" | head -1 | cut -d: -f1)"
 yq_chmod_line="$(grep -n '^chmod 0755 "' "$INSTALL_YQ" | head -1 | cut -d: -f1)"
 [ -n "$yq_verify_line" ] && [ -n "$yq_chmod_line" ] && [ "$yq_verify_line" -lt "$yq_chmod_line" ]
 assert_true "$?" "#258 AK3: verify_sha256-Aufruf steht VOR 'chmod 0755' (sonst wäre die Verifikation wirkungslos)"
 
 # Der Plattform-Guard muss ebenfalls VOR dem ersten Download stehen – ein Guard nach dem
-# Laden würde das Herunterladen nicht mehr verhindern (gleicher Anker-Grundsatz, Lesson #114).
+# Laden würde das Herunterladen nicht mehr verhindern (gleicher Anker-Grundsatz, Lesson nothra/tch-gastro-services#114).
 yq_guard_line="$(grep -n '^require_linux_amd64$' "$INSTALL_YQ" | head -1 | cut -d: -f1)"
 yq_fetch_line="$(grep -n '^fetch "' "$INSTALL_YQ" | head -1 | cut -d: -f1)"
 [ -n "$yq_guard_line" ] && [ -n "$yq_fetch_line" ] && [ "$yq_guard_line" -lt "$yq_fetch_line" ]
@@ -4723,13 +5135,13 @@ YQ_EMPTY_SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85
 # <sha256-position> ist die Order-Zeile, in der `SHA-256` steht (Default 3 = Feld 4). Der
 # Parameter existiert, weil yq die Reihenfolge pro Release rotiert: mit nur EINER getesteten
 # Position wäre eine hartkodierte Spaltennummer nicht von der korrekten Rechnung
-# `$((algo_line + 1))` zu unterscheiden (Diskriminierungs-Kontrolle, Lesson #172).
+# `$((algo_line + 1))` zu unterscheiden (Diskriminierungs-Kontrolle, Lesson nothra/tch-gastro-services#172).
 # Die Nachbarzeilen `yq_linux_386` und `yq_linux_amd64.tar.gz` tragen in der SHA-256-Spalte
 # absichtlich falsche Werte (Kontrolle gegen Zeilenauswahl per Präfix/erstem Treffer statt
 # exaktem Dateinamen-Vergleich).
 # hex64 <zeichen> – 64-stelliger Hex-Füllwert aus einem Zeichen (Platzhalter-Hash in Fixtures).
 # Nur hier gebraucht (yq_fixture + zwei Fehlerszenarien unten) – deshalb lokal bei den
-# #258-Fixtures definiert statt bei den generischen Helfern am Dateikopf (Review-Runde-2-Nitpick;
+# nothra/tch-gastro-services#258-Fixtures definiert statt bei den generischen Helfern am Dateikopf (Review-Runde-2-Nitpick;
 # ci_job_block bleibt oben, weil es drei Nutzer über die Datei verteilt hat).
 hex64() {
   local i out=""
@@ -4808,7 +5220,7 @@ assert_true "$?" "#258 AK2: rotierte Spaltenordnung meldet Erfolg (keine feste S
 
 # AK6 (Negativ, eigener Testfall): genau EIN Defekt – die Binary ist korrupt/manipuliert,
 # `checksums` und Pin bleiben intakt. Damit kommt der Fehlschlag ausschließlich aus dem
-# Berechnung-gegen-Pin-Vergleich und die Meldung ist pfadspezifisch prüfbar (Lesson #214).
+# Berechnung-gegen-Pin-Vergleich und die Meldung ist pfadspezifisch prüfbar (Lesson nothra/tch-gastro-services#214).
 yq_fixture "$YQTMP/mismatch"
 printf 'manipulierte binary' > "$YQTMP/mismatch/yq_linux_amd64"
 yq_bad_out="$(run_verify "$YQTMP/mismatch")"; yq_rc=$?
@@ -4841,7 +5253,7 @@ assert_true "$?" "#258: Meldung benennt den fehlenden checksums-Eintrag"
 # Anker ist das pfadspezifische Fragment, NICHT der bloße Algorithmusname "SHA-256": der steht
 # auch in der generischen Format-Drift-Meldung und in der Erfolgsmeldung – ein Test darauf
 # könnte nicht zwischen "eigener Guard greift" und "irgendein Fallback greift" unterscheiden
-# (Lesson #214, Review-Runde-1-Finding).
+# (Lesson nothra/tch-gastro-services#214, Review-Runde-1-Finding).
 yq_fixture "$YQTMP/no-algo"
 printf 'BLAKE2B-512\nSHA-384\nSHA-512\n' > "$YQTMP/no-algo/checksums_hashes_order"
 yq_noalgo_out="$(run_verify "$YQTMP/no-algo")"; yq_rc=$?
@@ -4873,7 +5285,7 @@ assert_true "$?" "#258: Meldung benennt die nicht lesbare Datei"
 # eine einzelne `--verify`-Bedingung zurück, landet JEDER dieser Aufrufe im Download-Pfad und
 # überschriebe /usr/local/bin/yq. Mit dem Stub bricht so eine Regression am Download ab statt
 # die lokale yq-Installation zu ersetzen – und die pfadspezifische Meldung unterscheidet
-# "Dispatch hat abgelehnt" von "Stub hat abgebrochen" (Lesson #214).
+# "Dispatch hat abgelehnt" von "Stub hat abgebrochen" (Lesson nothra/tch-gastro-services#214).
 yq_dispatch() {
   PATH="$YQ_NONETBIN:$PATH" bash "$INSTALL_YQ" "$@" 2>&1
 }
@@ -4936,7 +5348,7 @@ echo "#258 Doku nennt den kanonischen yq-Bereitstellungsweg (Lesson #211/#176):"
 
 # Die Single-Source-Aussage stand bisher nur im Skript-Header – und Skript-Header werden nicht
 # in den Agenten-Kontext geladen. Ohne Regel in GELADENER Doku entsteht der nächste kopierte
-# wget-Block genauso wie der, der zu #258 geführt hat. Vorbild ist install-hooks.sh: dieselbe
+# wget-Block genauso wie der, der zu nothra/tch-gastro-services#258 geführt hat. Vorbild ist install-hooks.sh: dieselbe
 # Regel steht dort in CLAUDE.md UND OPERATING.md (ADR-042).
 for yq_doc in "$FACTORY_ROOT/docs/factory/FACTORY.md" "$FACTORY_ROOT/docs/factory/OPERATING.md"; do
   [ -r "$yq_doc" ]
@@ -4955,7 +5367,7 @@ echo "Task 286: Schwellen-Tabelle + Sammeldatei statt unbedingter Issue-Anlage:"
 KLEINFUNDE="$FACTORY_ROOT/docs/factory/kleinfunde.md"
 
 # (0) Verweis-Ziel existiert: sonst zeigen die Skill-Verweise auf kleinfunde.md ins Leere,
-# ohne dass ein Guard das bemerkt (dangling reference, analog zum #155-ADR-029-Muster).
+# ohne dass ein Guard das bemerkt (dangling reference, analog zum nothra/tch-gastro-services#155-ADR-029-Muster).
 assert_true "$([[ -f "$KLEINFUNDE" ]]; echo $?)" \
   "#286: docs/factory/kleinfunde.md ist im Repo vorhanden (Verweis-Ziel nicht dangling)"
 
@@ -4973,12 +5385,12 @@ for kleinfunde_field in '**Wo**' '**Was**' '**Fix**' '**Herkunft**'; do
     "#286: kleinfunde.md nennt das Schema-Feld $kleinfunde_field im Dateikopf"
 done
 # AK "wächst ein Eintrag über 'unter zehn Zeilen' → Issue" und "erledigt → gelöscht, nicht
-# abgehakt" – beide Regeln waren schon vor #286 da, aber ungetestet (/test-Ergänzung).
+# abgehakt" – beide Regeln waren schon vor nothra/tch-gastro-services#286 da, aber ungetestet (/test-Ergänzung).
 assert_contains_286 "$kleinfunde_flat_286" 'wird er ein Issue' \
   "#286: kleinfunde.md dokumentiert die Promotion-Regel (über 'unter zehn Zeilen' → Issue)"
 assert_contains_286 "$kleinfunde_flat_286" 'gelöscht, nicht abgehakt' \
   "#286: kleinfunde.md dokumentiert 'erledigt → gelöscht, nicht abgehakt'"
-# AK "vier überführte Einträge aus #279/#280/#282/#283 vorhanden" – bisher nur "keine
+# AK "vier überführte Einträge aus nothra/tch-gastro-services#279/#280/#282/#283 vorhanden" – bisher nur "keine
 # Nummerierung mehr" geprüft, nicht dass die vier konkreten Bestandseinträge noch da sind
 # (/test-Ergänzung, Testing-Persona-Finding).
 for kleinfunde_issue in '#279' '#280' '#282' '#283'; do
@@ -5024,10 +5436,10 @@ assert_true "$(! printf '%s' "$gitwf_flat_286" | grep -qF 'ebenso legen die Skil
 
 # Je Skill-Doku: Präsenz (verweist auf Sammeldatei + Schwellen-Tabelle) UND Abwesenheit (die
 # alte unbedingte Anweisungszeile ist verschwunden). Anker sind echte, im jeweiligen
-# Wortlaut vor #286 einmalig vorkommende Anweisungssätze – kein Kommando-Fragment (Lesson
+# Wortlaut vor nothra/tch-gastro-services#286 einmalig vorkommende Anweisungssätze – kein Kommando-Fragment (Lesson
 # factory-workflow.md "Reihenfolge-/Präsenz-Guards": Anker an der echten Zeile, nicht an
 # einem Fragment oder einer nie feuernden Alternative).
-# Kein 'declare -A' (macOS-Bash 3.2 kennt keine assoziativen Arrays, clean-code.md
+# Kein 'declare -A' (macOS-Bash 3.2 kennt keine assoziativen Arrays, bash-gotchas.md § 20
 # "Portabilität in Gate-/Shell-Skripten") – Zuordnung Skill → alte Anweisungszeile per case.
 old_unconditional_line_286() {
   case "$1" in
@@ -5052,7 +5464,7 @@ for sk in codify review security-review; do
   # AK "Klassifikations-Anweisung steht VOR dem create_issue_idempotent-Aufruf" (die zentrale
   # Reihenfolge-Anforderung der ganzen Task – bisher nur inhaltlich, nie an der Position
   # geprüft, Lesson factory-workflow.md "Reihenfolge-/Präsenz-Guards"). Anker ist die echte
-  # Aufrufzeile am Spaltenanfang (Lesson #114), nicht eine Prosa-Erwähnung.
+  # Aufrufzeile am Spaltenanfang (Lesson nothra/tch-gastro-services#114), nicht eine Prosa-Erwähnung.
   class_line_286="$(grep -n 'Schwellen-Tabelle in' "$skf" | head -1 | cut -d: -f1)"
   call_line_286="$(grep -n '^create_issue_idempotent ' "$skf" | head -1 | cut -d: -f1)"
   assert_true "$([ -n "$class_line_286" ] && [ -n "$call_line_286" ] \
@@ -5121,412 +5533,15 @@ assert_true "$(! grep -qE '\| Fund-Art \|' "$ADR018"; echo $?)" \
 
 # ADR-043 ist beim Implementieren von Proposed auf Accepted geflippt (Lesson factory-workflow.md).
 # Erste nicht-leere Zeile nach der '## Status'-Überschrift, statt 'head -n -1' (GNU-Extension,
-# auf BSD/macOS-head nicht verfügbar – clean-code.md "Portabilität in Gate-/Shell-Skripten").
+# auf BSD/macOS-head nicht verfügbar – bash-gotchas.md § 20 "Portabilität in Gate-/Shell-Skripten").
 ADR043="$FACTORY_ROOT/docs/factory/adr/043-schwelle-fuer-autonome-issue-anlage.md"
 adr043_status_line="$(awk '/^## Status/{found=1; next} found && NF {print; exit}' "$ADR043")"
 assert_true "$([[ "$adr043_status_line" = "Accepted" ]]; echo $?)" "#286: ADR-043 Status ist auf 'Accepted' geflippt"
 
-# ─── #291/#337: Dependency-Security-Floors (Dependabot-Alerts) ───────────────
-# Die Alerts aus #291 sind über einen next-Bump plus konditionale Overrides in
-# pnpm-workspace.yaml geschlossen. Ohne Guard rutscht eine dieser Auflösungen bei der
-# nächsten Lockfile-Erneuerung lautlos wieder unter ihren Patch-Floor zurück. Geprüft wird
-# deshalb die im Lockfile AUFGELÖSTE Version (Spec-291: ein Override wirkt erst, wenn er im
-# Lockfile ankommt), nicht die Deklaration in package.json.
-# #337 hat denselben Guard weitergenutzt statt einen zweiten daneben zu stellen: die Floors
-# von sharp und js-yaml sind ANGEHOBEN (Muster „Floor angehoben statt zweiter Eintrag daneben",
-# #169/#291), browserslist/baseline-browser-mapping/vitest/@vitest/mocker sind als Fälle
-# ergänzt, und der next-Pin-Floor steht auf 16.3.3 (GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36).
-# #339 nutzt denselben Guard ebenso weiter: drei brace-expansion-Fälle für die 3er- und die
-# 4.x/5.x-Linie. Die Floors kommen beide aus GHSA-rgw5-rvv9-x895 (5.0.9 bzw. 3.0.6);
-# GHSA-mh99-v99m-4gvg liegt mit 5.0.8 / 3.0.3 darunter und ist damit mitgedeckt.
-# #390 hebt die Floors erneut statt Fälle daneben zu stellen: brace-expansion auf
-# 1.1.21 / 2.1.7 / 3.0.9 / 5.0.12 (GHSA-q2hr-2g5m-vwhr; schließt GHSA-qhr7-859c-m2p7 und
-# GHSA-6j4f-fj2g-mc7p mit niedrigeren Floors ein), undici auf 7.29.1 (GHSA-w293-vg96-wgc3 u. a.)
-# und den next-Pin-Floor auf 16.3.6 (GHSA-vcvr-r3jv-pc5j, kritische RCE in next/og).
-echo "#291/#337 Dependency-Security-Floors (aufgelöste Lockfile-Versionen):"
+# ─── nothra/tch-gastro-services#291/#337: Dependency-Security-Floors ───────────────────────────────────
+# Entfällt im Factory-Repo: es hat kein Lockfile, kein package.json und keine npm-Abhängigkeiten.
 
-LOCKFILE_291="$FACTORY_ROOT/pnpm-lock.yaml"
-PKG_JSON_291="$FACTORY_ROOT/package.json"
-WORKSPACE_YAML_291="$FACTORY_ROOT/pnpm-workspace.yaml"
-
-# Fail-closed: ohne lesbare Quellen ist keine Aussage möglich – ein stiller Leer-Durchlauf
-# wäre grün aus dem falschen Grund (Lesson testing.md, #214).
-assert_true "$([ -r "$LOCKFILE_291" ] && [ -r "$PKG_JSON_291" ] && [ -r "$WORKSPACE_YAML_291" ]; echo $?)" \
-  "#291: pnpm-lock.yaml, package.json und pnpm-workspace.yaml sind lesbar (Voraussetzung der Floor-Prüfung)"
-
-# lock_versions_291 <paket> <major> <lockfile> – alle aufgelösten Versionen des Pakets
-# innerhalb EINER Major-Linie, aufsteigend sortiert, eine je Zeile. Die Major-Linie gehört zum
-# Schlüssel, weil derselbe Paketname mehrfach mit unterschiedlichen Floors im Baum liegt
-# (brace-expansion trägt in 1.x, 2.x, 3.x und 4.x/5.x je eigene Floors). Peer-Suffixe wie
-# "(react@19.2.4)" und der abschließende Doppelpunkt werden abgeschnitten.
-# Scoped-Pakete schreibt pnpm quotiert ('@vitest/mocker@4.1.11':) – die Quotes fallen vorab
-# aus dem Strom, sonst liefe der Fall lautlos ins Leere (kein Treffer = scheinbar sauber, #337).
-lock_versions_291() {
-  tr -d "'" < "$3" | grep -E "^  $1@$2\." | sed -E "s|^  $1@||; s|[(:].*$||" | sort -u -V
-}
-
-# version_below_291 <version> <floor> – 0, wenn version echt kleiner als floor ist.
-version_below_291() {
-  [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]
-}
-
-# versions_below_floor_291 <paket> <major> <floor> <lockfile> – gibt die aufgelösten
-# Versionen unterhalb des Floors aus (leer = sauber). Kein Fund bei komplett fehlendem Paket
-# ist korrekt: dann existiert auch keine verwundbare Kopie mehr.
-versions_below_floor_291() {
-  local v below=""
-  while read -r v; do
-    [ -n "$v" ] || continue
-    version_below_291 "$v" "$3" && below="$below $v"
-  done <<< "$(lock_versions_291 "$1" "$2" "$4")"
-  printf '%s' "$below"
-}
-
-# Format: "<paket>|<major>|<floor>|<herkunft im Baum>"
-# #339: die 4.x/5.x-Linie deckt EIN Override-Selektor (seit #390 >=4.0.0 <5.0.12) ab, hier stehen aber
-# DREI Fälle, weil lock_versions_291 je Major-Linie filtert (grep "^  <paket>@<major>\.") und
-# ein Fall damit nur seine eigene Linie sieht. Gemessen wird allein vom Major-5-Fall: er traf
-# im RED-Lauf die real aufgelöste 5.0.7, während der Major-4-Fall prompt grün war. Die Fälle
-# für Major 4 und 3 sind Vorsorge gegen ein künftiges Hereinziehen – heute löst der Baum in
-# beiden Linien keine Kopie auf (minimatch@10 deklariert ^5.0.5 und kann selbst keine 4.x
-# ziehen). Für Major 3 ist dieser Fall die EINZIGE Deckung: die 3er-Linie hat bewusst keinen
-# Override-Selektor (Begründung in pnpm-workspace.yaml), eine 3.0.x zöge sonst still ein.
-# #390: dieselbe Lage für undici@6.x – der Selektor ist seit #390 auf >=7.0.0 begrenzt, der
-# Major-6-Fall ist damit die EINZIGE Deckung der 6er-Linie (eigener Fix 6.28.1, GHSA-r53p-7pc4-xj5r;
-# die übrigen fünf undici-Advisories aus #390 betreffen 6.x nicht).
-# #447: GHSA-xjj6-f33q-929c hebt die Floors auf 6.29.1 / 7.30.1 / 8.12.2. Der Selektor reicht
-# nach oben nur bis <7.30.1, der Major-8-Fall ist damit – wie der Major-6-Fall – die EINZIGE
-# Deckung seiner Linie (heute keine 8.x-Kopie im Baum; jsdom 30 würde auf ^8 wechseln).
-# #444: vitest/@vitest/mocker auf 4.1.12 (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp), neu vite
-# auf 8.1.6 (GHSA-rq7h-c2jc-7f22, GHSA-9jrq-w75r-8gcw und die im vite-Bundle steckenden
-# launch-editor-Advisories GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm, GHSA-698v-4r3x-3vcv).
-# @vitest/coverage-v8 trägt keinen eigenen Advisory, erwartet vitest aber versionsgleich als Peer.
-floor_cases_291=(
-  "postcss|8|8.5.23|runtime, via next"
-  "nanoid|3|3.3.17|runtime, via postcss"
-  "brace-expansion|1|1.1.21|runtime, via minimatch@3, Floor aus #390"
-  "brace-expansion|2|2.1.7|runtime, via minimatch@5, Floor aus #390"
-  "brace-expansion|3|3.0.9|Vorsorge, heute keine 3.x-Kopie im Baum, kein Override-Selektor (#339/#390)"
-  "brace-expansion|4|5.0.12|Vorsorge, heute keine 4.x-Kopie im Baum, Floor in der 5er-Linie (#339/#390)"
-  "brace-expansion|5|5.0.12|development, via minimatch@10 (typescript-eslint), Floor aus #390"
-  "sharp|0|0.35.4|runtime, via next (Bildoptimierung), Floor aus #337"
-  "undici|6|6.29.1|Vorsorge, heute keine 6.x-Kopie im Baum, kein Override-Selektor (#390), Floor aus #447"
-  "undici|7|7.30.1|development, via jsdom, Floor aus #447"
-  "undici|8|8.12.2|Vorsorge, heute keine 8.x-Kopie im Baum, kein Override-Selektor (#447)"
-  "js-yaml|4|4.3.2|development, via eslint, Floor aus #337"
-  "browserslist|4|4.28.7|runtime, via next, Floor aus #337/#329"
-  "baseline-browser-mapping|2|2.11.0|runtime, via browserslist/caniuse, Floor aus #337"
-  "vitest|4|4.1.12|development, direkt deklariert, Floor aus #444"
-  "@vitest/coverage-v8|4|4.1.12|development, direkt deklariert, Gleichschritt mit vitest (#444)"
-  "@vitest/mocker|4|4.1.12|development, via vitest, Floor aus #444"
-  "vite|8|8.1.6|development, via vitest/@vitejs/plugin-react, Floor aus #444"
-  "source-map-js|1|1.2.2|runtime-Build + development, via postcss/css-tree/magicast, Floor aus #412"
-)
-
-for case_291 in "${floor_cases_291[@]}"; do
-  IFS='|' read -r pkg_291 major_291 floor_291 herkunft_291 <<< "$case_291"
-  below_291="$(versions_below_floor_291 "$pkg_291" "$major_291" "$floor_291" "$LOCKFILE_291")"
-  assert_true "$([ -z "$below_291" ]; echo $?)" \
-    "#291/#337 AK3/AK4/AK6: keine aufgelöste ${pkg_291}@${major_291}.x-Kopie unter ${floor_291} (${herkunft_291})${below_291:+ – gefunden:${below_291}}"
-done
-
-# Mutationsbeleg für den Floor-Vergleich: dieselbe Extraktions-/Vergleichskette gegen eine
-# Fixture mit einer bewusst zu alten Kopie MUSS anschlagen. Ohne diesen Beleg wiese ein
-# tippfehlerhaftes Extraktionsmuster (das nie etwas findet) sieben grüne, vakuose Tests aus.
-mut_lock_291="$(mktemp)"
-printf '  postcss@8.5.16:\n  postcss@8.5.23:\n' > "$mut_lock_291"
-mut_below_291="$(versions_below_floor_291 postcss 8 8.5.23 "$mut_lock_291")"
-assert_true "$([ "$mut_below_291" = " 8.5.16" ]; echo $?)" \
-  "#291 Mutationsbeleg: Floor-Kette meldet auf einer Fixture mit postcss@8.5.16 genau diese Version (ist: '${mut_below_291}')"
-rm -f "$mut_lock_291"
-
-# Mutationsbeleg für die #339-Vorsorge-Fälle (Major 3 und Major 4): der Baum löst heute in
-# beiden Linien keine Kopie auf, die Fälle sind im Ist-Lauf also zwangsläufig grün, ohne etwas
-# zu messen (Lesson testing.md, #319 – In-Suite-Diskriminierungs-Kontrolle statt nur behaupteter
-# Deckung). Je Fall eine Fixture mit einer Kopie unter dem Floor MUSS anschlagen, sonst wäre ein
-# Tippfehler in Paketname/Major dauerhaft unsichtbar.
-mut_vorsorge3_339="$(mktemp)"
-printf '  brace-expansion@3.0.1:\n  brace-expansion@3.0.6:\n' > "$mut_vorsorge3_339"
-mut_vorsorge3_below_339="$(versions_below_floor_291 brace-expansion 3 3.0.6 "$mut_vorsorge3_339")"
-assert_true "$([ "$mut_vorsorge3_below_339" = " 3.0.1" ]; echo $?)" \
-  "#339 Mutationsbeleg: Major-3-Vorsorge-Fall meldet auf einer Fixture mit brace-expansion@3.0.1 genau diese Version (ist: '${mut_vorsorge3_below_339}')"
-mut_vorsorge3_clean_339="$(versions_below_floor_291 brace-expansion 3 3.0.1 "$mut_vorsorge3_339")"
-assert_true "$([ -z "$mut_vorsorge3_clean_339" ]; echo $?)" \
-  "#339 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 3.0.1 sauber (ist: '${mut_vorsorge3_clean_339}')"
-rm -f "$mut_vorsorge3_339"
-
-# Major-4-Fall zusätzlich mit einer 5.x-Nachbarzeile in derselben Fixture: belegt neben dem
-# Floor-Vergleich auch, dass lock_versions_291 die Major-Linien trennt (die 5.0.12-Zeile darf
-# beim Major-4-Filter nicht mitzählen, sonst wäre die Vorsorge-Zeile aus dem falschen Grund grün).
-mut_vorsorge4_339="$(mktemp)"
-printf '  brace-expansion@4.0.0:\n  brace-expansion@5.0.12:\n' > "$mut_vorsorge4_339"
-mut_vorsorge4_below_339="$(versions_below_floor_291 brace-expansion 4 5.0.9 "$mut_vorsorge4_339")"
-assert_true "$([ "$mut_vorsorge4_below_339" = " 4.0.0" ]; echo $?)" \
-  "#339 Mutationsbeleg: Major-4-Vorsorge-Fall meldet auf einer Fixture mit brace-expansion@4.0.0 genau diese Version, nicht die 5.x-Nachbarzeile (ist: '${mut_vorsorge4_below_339}')"
-mut_vorsorge4_clean_339="$(versions_below_floor_291 brace-expansion 5 5.0.9 "$mut_vorsorge4_339")"
-assert_true "$([ -z "$mut_vorsorge4_clean_339" ]; echo $?)" \
-  "#339 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-5-Filter gegen Floor 5.0.9 sauber (5.0.12 liegt darüber) (ist: '${mut_vorsorge4_clean_339}')"
-rm -f "$mut_vorsorge4_339"
-
-# Mutationsbeleg für den #412-Fall source-map-js: eine 1.2.1-Kopie neben 1.2.2 MUSS anschlagen,
-# die 1.2.2-Nachbarzeile darf nicht mitzählen (sonst wäre der Ist-Lauf aus dem falschen Grund grün).
-mut_smj_412="$(mktemp)"
-printf '  source-map-js@1.2.1:\n  source-map-js@1.2.2:\n' > "$mut_smj_412"
-mut_smj_below_412="$(versions_below_floor_291 source-map-js 1 1.2.2 "$mut_smj_412")"
-assert_true "$([ "$mut_smj_below_412" = " 1.2.1" ]; echo $?)" \
-  "#412 Mutationsbeleg: source-map-js-Fall meldet auf einer Fixture mit 1.2.1 genau diese Version, nicht die 1.2.2-Nachbarzeile (ist: '${mut_smj_below_412}')"
-mut_smj_clean_412="$(versions_below_floor_291 source-map-js 1 1.2.1 "$mut_smj_412")"
-assert_true "$([ -z "$mut_smj_clean_412" ]; echo $?)" \
-  "#412 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 1.2.1 sauber – der Guard schlägt nur unter dem Floor an (ist: '${mut_smj_clean_412}')"
-rm -f "$mut_smj_412"
-
-# Mutationsbeleg für den #390-Vorsorge-Fall undici@6.x, nach dem Muster des Major-4-Falls: die
-# 7.30.0-Nachbarzeile belegt zusätzlich die Trennung der Major-Linien – sie darf beim Major-6-
-# Filter nicht mitzählen, sonst wäre der Ist-Lauf aus dem falschen Grund grün.
-# #447: der Floor steigt auf 6.29.1, die Fixture-Version 6.28.0 liegt weiter darunter – der
-# Beleg läuft gegen den aktuellen Floor, nicht gegen den historischen 6.28.1.
-mut_vorsorge6_390="$(mktemp)"
-printf '  undici@6.28.0:\n  undici@7.30.0:\n' > "$mut_vorsorge6_390"
-mut_vorsorge6_below_390="$(versions_below_floor_291 undici 6 6.29.1 "$mut_vorsorge6_390")"
-assert_true "$([ "$mut_vorsorge6_below_390" = " 6.28.0" ]; echo $?)" \
-  "#390 Mutationsbeleg: undici-Major-6-Vorsorge-Fall meldet auf einer Fixture mit undici@6.28.0 genau diese Version, nicht die 7.x-Nachbarzeile (ist: '${mut_vorsorge6_below_390}')"
-mut_vorsorge6_clean_390="$(versions_below_floor_291 undici 6 6.28.0 "$mut_vorsorge6_390")"
-assert_true "$([ -z "$mut_vorsorge6_clean_390" ]; echo $?)" \
-  "#390 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-6-Filter gegen Floor 6.28.0 sauber (ist: '${mut_vorsorge6_clean_390}')"
-rm -f "$mut_vorsorge6_390"
-
-# #447: 6.29.0 liegt zwischen altem (6.28.1) und neuem Floor (6.29.1) – nur der neue Floor meldet sie.
-mut_major6_447="$(mktemp)"
-printf '  undici@6.29.0:\n' > "$mut_major6_447"
-mut_major6_new_447="$(versions_below_floor_291 undici 6 6.29.1 "$mut_major6_447")"
-assert_true "$([ "$mut_major6_new_447" = " 6.29.0" ]; echo $?)" \
-  "#447 Mutationsbeleg: undici-Major-6-Fall meldet 6.29.0 gegen den neuen Floor 6.29.1 (ist: '${mut_major6_new_447}')"
-mut_major6_old_447="$(versions_below_floor_291 undici 6 6.28.1 "$mut_major6_447")"
-assert_true "$([ -z "$mut_major6_old_447" ]; echo $?)" \
-  "#447 Diskriminierungs-Kontrolle: 6.29.0 ist gegen den alten Floor 6.28.1 sauber – erst der Bump fängt sie (ist: '${mut_major6_old_447}')"
-rm -f "$mut_major6_447"
-
-# Mutationsbeleg für den #447-Floor der 7er-Linie: 7.30.0 ist genau die Version, die vor #447
-# im Baum lag – der alte Floor 7.29.1 hätte sie durchgelassen, der neue MUSS sie melden.
-mut_major7_447="$(mktemp)"
-printf '  undici@7.30.0:\n' > "$mut_major7_447"
-mut_major7_below_447="$(versions_below_floor_291 undici 7 7.30.1 "$mut_major7_447")"
-assert_true "$([ "$mut_major7_below_447" = " 7.30.0" ]; echo $?)" \
-  "#447 Mutationsbeleg: undici-Major-7-Fall meldet auf einer Fixture mit undici@7.30.0 genau diese Version (ist: '${mut_major7_below_447}')"
-mut_major7_old_floor_447="$(versions_below_floor_291 undici 7 7.29.1 "$mut_major7_447")"
-assert_true "$([ -z "$mut_major7_old_floor_447" ]; echo $?)" \
-  "#447 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen den alten Floor 7.29.1 sauber – erst der neue Floor fängt 7.30.0 (ist: '${mut_major7_old_floor_447}')"
-rm -f "$mut_major7_447"
-
-# Mutationsbeleg für den #447-Vorsorge-Fall undici@8.x, nach dem Muster des Major-6-Falls: die
-# 7.30.1-Nachbarzeile darf beim Major-8-Filter nicht mitzählen.
-mut_vorsorge8_447="$(mktemp)"
-printf '  undici@7.30.1:\n  undici@8.12.1:\n' > "$mut_vorsorge8_447"
-mut_vorsorge8_below_447="$(versions_below_floor_291 undici 8 8.12.2 "$mut_vorsorge8_447")"
-assert_true "$([ "$mut_vorsorge8_below_447" = " 8.12.1" ]; echo $?)" \
-  "#447 Mutationsbeleg: undici-Major-8-Vorsorge-Fall meldet auf einer Fixture mit undici@8.12.1 genau diese Version, nicht die 7.x-Nachbarzeile (ist: '${mut_vorsorge8_below_447}')"
-mut_vorsorge8_clean_447="$(versions_below_floor_291 undici 8 8.12.1 "$mut_vorsorge8_447")"
-assert_true "$([ -z "$mut_vorsorge8_clean_447" ]; echo $?)" \
-  "#447 Diskriminierungs-Kontrolle: dieselbe Fixture ist für den Major-8-Filter gegen Floor 8.12.1 sauber (ist: '${mut_vorsorge8_clean_447}')"
-rm -f "$mut_vorsorge8_447"
-
-# Mutationsbeleg für den QUOTIERTEN Scoped-Schlüssel (#337): @vitest/mocker steht im Lockfile
-# als '@vitest/mocker@4.1.11': – ohne die Quote-Entfernung in lock_versions_291 fände die Kette
-# nie einen Treffer und der zugehörige Floor-Fall wäre dauerhaft grün, ohne etwas zu messen.
-# Die Gegenrichtung (gleiche Fixture, Version ÜBER dem Floor) belegt, dass der Treffer aus dem
-# Vergleich kommt und nicht daraus, dass das Muster auf jede quotierte Zeile passt.
-mut_scoped_337="$(mktemp)"
-printf "  '@vitest/mocker@4.1.9':\n  '@vitest/mocker@4.1.11':\n" > "$mut_scoped_337"
-mut_scoped_below_337="$(versions_below_floor_291 '@vitest/mocker' 4 4.1.11 "$mut_scoped_337")"
-assert_true "$([ "$mut_scoped_below_337" = " 4.1.9" ]; echo $?)" \
-  "#337 Mutationsbeleg: Floor-Kette liest quotierte Scoped-Schlüssel und meldet genau @vitest/mocker@4.1.9 (ist: '${mut_scoped_below_337}')"
-mut_scoped_clean_337="$(versions_below_floor_291 '@vitest/mocker' 4 4.1.9 "$mut_scoped_337")"
-assert_true "$([ -z "$mut_scoped_clean_337" ]; echo $?)" \
-  "#337 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 4.1.9 sauber (ist: '${mut_scoped_clean_337}')"
-rm -f "$mut_scoped_337"
-
-# Mutationsbeleg für die #444-Floors: genau die Versionen, die vor #444 im Baum lagen, liegen
-# zwischen altem und neuem Floor – nur der neue Floor darf sie melden (Lesson testing.md, #447).
-mut_vite_444="$(mktemp)"
-printf "  '@vitest/mocker@4.1.11':\n  vite@8.1.3:\n" > "$mut_vite_444"
-mut_mocker_new_444="$(versions_below_floor_291 '@vitest/mocker' 4 4.1.12 "$mut_vite_444")"
-assert_true "$([ "$mut_mocker_new_444" = " 4.1.11" ]; echo $?)" \
-  "#444 Mutationsbeleg: @vitest/mocker-Fall meldet 4.1.11 gegen den neuen Floor 4.1.12 (ist: '${mut_mocker_new_444}')"
-mut_mocker_old_444="$(versions_below_floor_291 '@vitest/mocker' 4 4.1.11 "$mut_vite_444")"
-assert_true "$([ -z "$mut_mocker_old_444" ]; echo $?)" \
-  "#444 Diskriminierungs-Kontrolle: 4.1.11 ist gegen den alten Floor 4.1.11 sauber – erst der Bump fängt sie (ist: '${mut_mocker_old_444}')"
-mut_vite_below_444="$(versions_below_floor_291 vite 8 8.1.6 "$mut_vite_444")"
-assert_true "$([ "$mut_vite_below_444" = " 8.1.3" ]; echo $?)" \
-  "#444 Mutationsbeleg: vite-Fall meldet auf einer Fixture mit vite@8.1.3 genau diese Version (ist: '${mut_vite_below_444}')"
-mut_vite_clean_444="$(versions_below_floor_291 vite 8 8.1.3 "$mut_vite_444")"
-assert_true "$([ -z "$mut_vite_clean_444" ]; echo $?)" \
-  "#444 Diskriminierungs-Kontrolle: dieselbe Fixture ist gegen Floor 8.1.3 sauber (ist: '${mut_vite_clean_444}')"
-rm -f "$mut_vite_444"
-
-# AK-1/AK-2: next exakt gepinnt, oberhalb des Floors, und eslint-config-next im Lockstep.
-# pkg_pin_291 <paket> <package.json> – die deklarierte Version, ohne Range-Präfix zu raten.
-pkg_pin_291() {
-  grep -oE "\"$1\": \"[^\"]+\"" "$2" | head -1 | sed -E 's/^[^:]*: "//; s/"$//'
-}
-
-next_pin_291="$(pkg_pin_291 next "$PKG_JSON_291")"
-eslint_next_pin_291="$(pkg_pin_291 eslint-config-next "$PKG_JSON_291")"
-
-# Exakter Pin zuerst prüfen: gegen "^16.2.12" wäre der nachfolgende Floor-Vergleich bedeutungslos.
-assert_true "$(printf '%s' "$next_pin_291" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; echo $?)" \
-  "#291 AK1: package.json pinnt next exakt, ohne ^/~ (ist: '${next_pin_291}')"
-# Floor angehoben 16.2.12 → 16.3.3 (#337): unterhalb 16.3.3 stehen zwei kritische unauth.
-# RCE-Advisories offen (GHSA-2xp9-vwfh-vxw4 Image-Optimization/AVIF, GHSA-p293-qw3h-jr36).
-# Erneut angehoben 16.3.3 → 16.3.6 (#390): GHSA-vcvr-r3jv-pc5j (kritische RCE in next/og).
-assert_true "$([ -n "$next_pin_291" ] && ! version_below_291 "$next_pin_291" "16.3.6"; echo $?)" \
-  "#291/#337/#390 AK1: package.json pinnt next auf >= 16.3.6 (ist: '${next_pin_291}')"
-assert_true "$([ -n "$eslint_next_pin_291" ] && [ "$eslint_next_pin_291" = "$next_pin_291" ]; echo $?)" \
-  "#291 AK2: eslint-config-next trägt dieselbe Version wie next (ist: '${eslint_next_pin_291}')"
-
-# #444 AK1: vitest und @vitest/coverage-v8 als Caret in 4.x, Untergrenze >= 4.1.12, im
-# Gleichschritt – coverage-v8 erwartet vitest versionsgleich als Peer.
-vitest_spec_444="$(pkg_pin_291 vitest "$PKG_JSON_291")"
-coverage_spec_444="$(pkg_pin_291 '@vitest/coverage-v8' "$PKG_JSON_291")"
-assert_true "$(printf '%s' "$vitest_spec_444" | grep -qE '^\^4\.[0-9]+\.[0-9]+$' && ! version_below_291 "${vitest_spec_444#^}" "4.1.12"; echo $?)" \
-  "#444 AK1: package.json deklariert vitest als Caret in 4.x mit Untergrenze >= 4.1.12 (ist: '${vitest_spec_444}')"
-assert_true "$([ -n "$coverage_spec_444" ] && [ "$coverage_spec_444" = "$vitest_spec_444" ]; echo $?)" \
-  "#444 AK1: @vitest/coverage-v8 trägt denselben Specifier wie vitest (ist: '${coverage_spec_444}')"
-
-# Der Pin allein genügt nicht (AK-1 verlangt dieselbe Version im Lockfile): genau eine
-# aufgelöste next-Version, und die deckungsgleich mit der Deklaration.
-lock_next_291="$(lock_versions_291 next "${next_pin_291%%.*}" "$LOCKFILE_291")"
-assert_true "$([ -n "$lock_next_291" ] && [ "$lock_next_291" = "$next_pin_291" ]; echo $?)" \
-  "#291 AK1: pnpm-lock.yaml löst next auf genau die deklarierte Version auf (ist: '$(printf '%s' "$lock_next_291" | tr '\n' ' ')')"
-
-# AK-5: jeder Override ist konditional, trägt also eine obere Schranke (@<floor bzw.
-# @>=x <floor) – ein unbedingter Eintrag würde auch spätere legitime Upgrades der Parents
-# festnageln (Muster aus #167).
-# override_keys_291 <workspace-yaml> – alle Eintragszeilen des overrides:-Blocks. Bewusst
-# NICHT auf /^  "/ verengt: YAML erlaubt unquotierte Schlüssel und Prettier ergänzt keine
-# Quotes, ein solcher Eintrag fiele sonst aus der Extraktion und liefe damit lautlos an der
-# Konditionalitäts-Prüfung vorbei, statt als Verstoß gemeldet zu werden.
-override_keys_291() {
-  awk '/^overrides:/{f=1; next} /^[^[:space:]#]/{f=0} f && /^  [^ #]/ {print}' "$1"
-}
-
-# unconditional_overrides_291 <eintragszeilen> – die Einträge OHNE obere Schranke im Selektor.
-# `"?` und `[^:"]` decken quotierte wie unquotierte Schlüssel ab; die Zeichenklasse endet am
-# Doppelpunkt, damit die Ziel-Range rechts davon den Selektor nicht scheinbar konditional macht.
-unconditional_overrides_291() {
-  printf '%s\n' "$1" | grep -vE '^  "?[^:"]*@[^:"]*<[0-9]' || true
-}
-
-overrides_keys_291="$(override_keys_291 "$WORKSPACE_YAML_291")"
-assert_true "$([ -n "$overrides_keys_291" ]; echo $?)" \
-  "#291 AK5: overrides:-Block in pnpm-workspace.yaml ist auslesbar und nicht leer"
-unconditional_291="$(unconditional_overrides_291 "$overrides_keys_291")"
-assert_true "$([ -z "$unconditional_291" ]; echo $?)" \
-  "#291 AK5: alle overrides-Einträge sind konditional (obere Schranke im Selektor)${unconditional_291:+ – unbedingt: $(printf '%s' "$unconditional_291" | tr -d ' ')}"
-
-# Negativ-Kontrolle zum Konditionalitäts-Guard: derselbe Ausdruck MUSS einen unbedingten
-# Eintrag melden. Ohne sie wäre nicht unterscheidbar, ob der Guard prüft oder das Muster nur
-# auf jede Zeile passt (Lesson testing.md: Mutationsbeleg mit demselben Assert-Ausdruck).
-mut_ovr_291='  "postcss": "^8.5.23"'
-assert_true "$([ -n "$(unconditional_overrides_291 "$mut_ovr_291")" ]; echo $?)" \
-  "#291 Mutationsbeleg AK5: derselbe Ausdruck meldet einen unbedingten Eintrag ('postcss' ohne @<floor) als Verstoß"
-
-# Blindfleck-Kontrolle für den unquotierten Fall, in beide Richtungen: die Extraktion muss
-# beide Zeilen sehen, und der Konditionalitäts-Ausdruck darf davon GENAU den unbedingten
-# Eintrag melden – sonst wäre nicht unterscheidbar, ob er unquotierte Schlüssel prüft oder
-# pauschal durchwinkt bzw. pauschal meldet (Lesson testing.md, Diskriminierungs-Kontrolle).
-mut_ws_291="$(mktemp)"
-printf 'overrides:\n  nanoid@<3.3.17: "^3.3.17"\n  nanoid: "^3.3.17"\n' > "$mut_ws_291"
-mut_keys_291="$(override_keys_291 "$mut_ws_291")"
-assert_true "$([ "$(printf '%s\n' "$mut_keys_291" | grep -c .)" = "2" ]; echo $?)" \
-  "#291 Mutationsbeleg AK5: die Extraktion sieht auch UNQUOTIERTE Override-Schlüssel (2 Einträge erwartet)"
-assert_true "$([ "$(unconditional_overrides_291 "$mut_keys_291")" = '  nanoid: "^3.3.17"' ]; echo $?)" \
-  "#291 Mutationsbeleg AK5: derselbe Ausdruck meldet vom unquotierten Paar nur den unbedingten Eintrag"
-rm -f "$mut_ws_291"
-
-# AK-5 zweite Hälfte: die Ziel-Range bleibt in derselben Major-Linie (Caret), sonst hebt pnpm
-# über die Major-Grenze – in #291 empirisch passiert, als ">=2.1.4" die von minimatch@3
-# erwartete brace-expansion@1.1.15 auf 2.x zog.
-assert_true "$(grep -qxF -- '  "brace-expansion@<1.1.21": "^1.1.21"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#291/#390 AK5: brace-expansion@1.x-Override hebt innerhalb der 1er-Linie (^1.1.21)"
-assert_true "$(grep -qxF -- '  "brace-expansion@>=2.0.0 <2.1.7": "^2.1.7"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#291/#390 AK5: brace-expansion@2.x-Override ist nach unten begrenzt (>=2.0.0) und greift nicht auf 1.x über"
-# #339 AK1: dritter Selektor für die 4.x/5.x-Linie. Die untere Schranke prüft nur diese Zeile –
-# der projektweite Konditionalitäts-Guard oben sieht ausschließlich die OBERE Schranke, ein
-# versehentliches "brace-expansion@<5.0.9" (das auch 1.x/2.x über die Major-Grenze höbe)
-# käme dort also unauffällig durch.
-assert_true "$(grep -qxF -- '  "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#339/#390 AK1: brace-expansion@4.x/5.x-Override ist nach unten begrenzt (>=4.0.0) und hebt in die Fix-Linie (5er, ^5.0.12) – 4.x hat keinen eigenen Fix"
-# #390: undici-Selektor nach unten auf die 7er-Linie begrenzt. Das bisherige "undici@<7.29.0"
-# griffe auch auf eine 6.x-Kopie und höbe sie über die Major-Grenze auf ^7 – dieselbe Klasse
-# wie der 2er-brace-expansion-Selektor (#291). Die 6er-Linie trägt einen eigenen Fix (6.28.1,
-# GHSA-r53p-7pc4-xj5r); heute löst der Baum keine 6.x-Kopie auf. #447 hebt den Floor auf
-# 7.30.1 (GHSA-xjj6-f33q-929c), die untere Schranke bleibt.
-assert_true "$(grep -qxF -- '  "undici@>=7.0.0 <7.30.1": "^7.30.1"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#390/#447 AK1: undici-Override ist auf die 7er-Linie begrenzt (>=7.0.0) und hebt auf ^7.30.1"
-
-# Caret-Regel projektweit für ALLE neuen #291-Einträge, nicht nur brace-expansion – sharp/
-# undici/js-yaml tragen dieselbe Ziel-Range-Form und dürfen bei einem künftigen Umstellen auf
-# ">=" nicht unbemerkt durchrutschen. Die Alt-Einträge esbuild/uuid behalten bewusst die offene
-# Form (Kleinfund docs/factory/kleinfunde.md) und sind darum explizit ausgenommen.
-# caret_violations_291 <eintragszeilen> – Einträge (außer esbuild/uuid), deren Ziel-Range
-# NICHT als Caret geschrieben ist.
-caret_violations_291() {
-  printf '%s\n' "$1" | grep -vE '^  "?(esbuild|uuid)@' | grep -vE ': "\^[0-9]' || true
-}
-
-caret_violations_291="$(caret_violations_291 "$overrides_keys_291")"
-assert_true "$([ -z "$caret_violations_291" ]; echo $?)" \
-  "#291 AK5: alle Ziel-Ranges außer esbuild/uuid sind Caret-gebunden${caret_violations_291:+ – offen:${caret_violations_291}}"
-
-# Diskriminierungs-Kontrolle: der Guard muss einen echten Verstoß melden UND die esbuild-
-# Ausnahme unauffällig lassen – sonst wäre nicht unterscheidbar, ob er wirklich prüft oder
-# die Ausnahmeliste einfach alles durchwinkt (Lesson testing.md, #286).
-mut_caret_291='  "foo@<1.0.0": ">=1.0.0"
-  "esbuild@<0.25.0": ">=0.25.0"'
-mut_caret_viol_291="$(caret_violations_291 "$mut_caret_291")"
-assert_true "$([ "$mut_caret_viol_291" = '  "foo@<1.0.0": ">=1.0.0"' ]; echo $?)" \
-  "#291 Mutationsbeleg AK5: Caret-Guard meldet nur den nicht ausgenommenen Verstoß, esbuild-Ausnahme bleibt unauffällig (ist: '${mut_caret_viol_291}')"
-
-# AK-7/AK-8 (#169/#337): postcss, sharp und js-yaml sind ENTFERNT, nicht mehr nur angehoben.
-# next 16.3.5 pinnt postcss exakt auf 8.5.23 (= Floor, vorher 8.4.31) und verlangt sharp selbst
-# als ^0.35.4; eslint zieht js-yaml auf 4.3.2. Alle drei sind damit messbar No-ops geworden
-# (#337: Eintrag streichen, ohne Alt-Lockfile neu auflösen, aufgelöste Version prüfen) – das in
-# #169/#291 als unerreichbar notierte Entfern-Kriterium ist für postcss erreicht. Dass die
-# Floors OHNE die Einträge weiter halten, prüft die Floor-Schleife oben; hier steht nur, dass
-# die Einträge wirklich verschwunden sind. Der esbuild-Eintrag BLEIBT: er ist nachweislich kein
-# No-op (ohne ihn löst der Baum esbuild@0.18.20 auf, in #291 durch Entfernen + Neuinstallation
-# verifiziert).
-ovr_count_337() {
-  printf '%s\n' "$overrides_keys_291" | grep -cE "^  \"?$1@" || true
-}
-
-for pkg_337 in postcss sharp js-yaml; do
-  count_337="$(ovr_count_337 "$pkg_337")"
-  assert_true "$([ "$count_337" = "0" ]; echo $?)" \
-    "#337 AK7/AK8: kein ${pkg_337}-Override mehr in pnpm-workspace.yaml (gemessener No-op nach dem next-16.3.5-Bump, ist: $count_337)"
-done
-
-# Diskriminierungs-Kontrolle zu den drei Null-Zählungen: derselbe Ausdruck MUSS die weiterhin
-# nötigen Einträge finden – sonst wären sie grün, weil die Extraktion gar nichts liefert.
-undici_ovr_count_337="$(ovr_count_337 undici)"
-assert_true "$([ "$undici_ovr_count_337" = "1" ]; echo $?)" \
-  "#337 Diskriminierungs-Kontrolle: derselbe Zähl-Ausdruck findet den weiterhin nötigen undici-Override (ist: $undici_ovr_count_337)"
-
-# Mutationsbeleg für die drei Null-Zählungen (Review-Runde-1-Finding #337): die undici-Kontrolle
-# oben belegt nur, dass IRGENDEIN vorhandener Override gefunden wird – nicht spezifisch, dass ein
-# postcss-Override (falls er zurückkäme) ebenfalls träfe. Synthetische Fixture mit genau einer
-# postcss-Zeile schließt das.
-overrides_keys_291_saved_337="$overrides_keys_291"
-overrides_keys_291='  "postcss@<8.5.23": "^8.5.23"
-  "undici@<7.29.0": "^7.29.0"'
-mut_postcss_ovr_count_337="$(ovr_count_337 postcss)"
-overrides_keys_291="$overrides_keys_291_saved_337"
-assert_true "$([ "$mut_postcss_ovr_count_337" = "1" ]; echo $?)" \
-  "#337 Mutationsbeleg: derselbe Zähl-Ausdruck findet einen zurückgekehrten postcss-Override auf einer Fixture (ist: $mut_postcss_ovr_count_337)"
-assert_true "$(grep -qE '^  "esbuild@<0\.25\.0"' "$WORKSPACE_YAML_291"; echo $?)" \
-  "#291 AK7: esbuild-Override bleibt erhalten (kein No-op – ohne ihn kommt esbuild@0.18.20 zurück)"
-
-# ─── #267/#322: Session-Empfehlung vs. Worktree-Pflicht (Doku-Präzisierung) ──
+# ─── nothra/tch-gastro-services#267/#322: Session-Empfehlung vs. Worktree-Pflicht (Doku-Präzisierung) ──
 echo ""
 echo "#267/#322 Session-Empfehlung vs. Worktree-Pflicht (git-workflow.md/CLAUDE.md/OPERATING.md/start-work.sh):"
 
@@ -5549,7 +5564,7 @@ assert_contains_286 "$gw_flat_267" "kein technisches Gate" \
 assert_absent "$OLD_PHRASE_267" "kein technisches Gate" \
   "AK1 (Mutation): die alte, unqualifizierte Session-Zeile erfüllt den Gate-Guard nicht"
 
-# AK2 (#322): start-work.sh + /requirements (ggf. /architecture) in derselben, noch
+# AK2 (nothra/tch-gastro-services#322): start-work.sh + /requirements (ggf. /architecture) in derselben, noch
 # task-freien Session ist jetzt der dokumentierte REGELFALL (zuvor Ausnahme); die
 # Session-Empfehlung selbst ist explizit an den nachfolgenden /implement-Schritt gebunden.
 # Grenze (keine Folge-Task in derselben Session) bleibt unverändert.
@@ -5572,7 +5587,7 @@ assert_absent "$OLD_PHRASE_267" "noch task-freien Session" \
 assert_contains_286 "$gw_flat_267" "Parallele Sessions: eigener Worktree (nicht verhandelbar)" \
   "F3: die Worktree-Pflicht bleibt als 'nicht verhandelbar' übertitelt"
 
-# AK3 (#322): CLAUDE.md bindet die Empfehlung an den /implement-Schritt und verweist weiterhin
+# AK3 (nothra/tch-gastro-services#322): CLAUDE.md bindet die Empfehlung an den /implement-Schritt und verweist weiterhin
 # auf git-workflow.md als kanonische Quelle.
 claude_flat_267=$(flat_286 "$CLAUDE_MD_267")
 assert_contains_286 "$claude_flat_267" "Empfehlung (keine Pflicht): Für den \`/implement\`-Schritt einer Task eine neue Claude-Session öffnen" \
@@ -5596,26 +5611,26 @@ assert_contains_286 "$operating_flat_267" "kein technisches Gate" \
 assert_absent "**Eine Task = eine Claude-Session.**" "kein technisches Gate" \
   "AK4 (Mutation): die alte imperative Fassung erfüllt den Guard nicht"
 
-# AK7 (#322): die #267-Fassung der Session-Empfehlung (generisch statt an /implement gebunden)
+# AK7 (nothra/tch-gastro-services#322): die nothra/tch-gastro-services#267-Fassung der Session-Empfehlung (generisch statt an /implement gebunden)
 # ist jetzt überholt und darf in keiner der vier betroffenen Dateien mehr vorkommen. Array statt
 # space-getrennter String: der Worktree-Pfad dieses Repos enthält selbst Leerzeichen
-# ("TCH Gastro Services.worktrees/…"), unquoted Word-Splitting zerrisse die Pfade.
+# ("Mein Projekt.worktrees/…"), unquoted Word-Splitting zerrisse die Pfade.
 ak7_files_267=("$GW_267" "$CLAUDE_MD_267" "$OPERATING_MD_267" "$SW")
 for ak7_f in "${ak7_files_267[@]}"; do
   assert_absent "$(flat_286 "$ak7_f")" "$OLD_PHRASE_267" \
     "AK7: ${ak7_f##*/} enthält die #267-Fassung der Session-Empfehlung nicht mehr"
 done
-# Positivkontrolle (frische Wegwerf-Fixture, kein bereits vorhandener Mutant – Lesson #284):
+# Positivkontrolle (frische Wegwerf-Fixture, kein bereits vorhandener Mutant – Lesson nothra/tch-gastro-services#284):
 # belegt, dass das Muster selbst funktionsfähig ist und eine Regression tatsächlich fände.
 AK7_MUT_DOC_322=$(mktemp)
 printf -- '- **Empfehlung (keine Pflicht): %s.**\n' "$OLD_PHRASE_267" > "$AK7_MUT_DOC_322"
 assert_contains_286 "$(flat_286 "$AK7_MUT_DOC_322")" "$OLD_PHRASE_267" \
   "AK7 (Mutation): die Wegwerf-Fixture mit der alten Formulierung würde den Abwesenheits-Guard reißen lassen"
 
-# ─── #310: Report-Guard honoriert nur einen frischen Verdict (Spec-310) ──────
+# ─── nothra/tch-gastro-services#310: Report-Guard honoriert nur einen frischen Verdict (Spec-310) ──────
 # Der Guard in run_skill() wertete einen non-zero Exit als Erfolg, sobald die Report-Datei
 # IRGENDEINEN gültigen Verdict enthielt – auch einen aus einer früheren Review-Iteration
-# desselben Laufs (#310, Task 308) oder aus einem früheren Pipeline-Lauf (#91). Der Fix
+# desselben Laufs (nothra/tch-gastro-services#310, Task 308) oder aus einem früheren Pipeline-Lauf (nothra/tch-gastro-services#91). Der Fix
 # vergleicht einen Fingerprint der Report-Datei von VOR dem ersten Versuch des Aufrufs.
 echo ""
 echo "#310 report_fingerprint (Frische-Fingerprint der Report-Datei):"
@@ -5635,7 +5650,7 @@ assert_true "$([ "$(rf310 security-review 310)" = "$TMP_FP310/tasks/security-310
 assert_true "$([ -z "$(rf310 implement 310)" ]; echo $?)" \
   "#310 AK9: report_file(implement) liefert leer (kein report-erzeugendes Skill)"
 
-# is_report_skill (#312 Review-Nitpick): benanntes Prädikat statt `[ -n "$(report_file …)" ]` an
+# is_report_skill (nothra/tch-gastro-services#312 Review-Nitpick): benanntes Prädikat statt `[ -n "$(report_file …)" ]` an
 # der Verzweigungsstelle in run_skill(). Beide Richtungen, damit es diskriminiert.
 irs312() { bash -c 'source "$1"; is_report_skill "$2" "$3" "$4"' _ "$RV_LIB310" "$1" "$2" "$TMP_FP310/tasks"; }
 assert_true "$(irs312 review 310; echo $?)" \
@@ -5736,7 +5751,7 @@ rm -rf "$TMP_FP310"
 
 # AK9 (Kopplungs-Guard, beide Seiten – Lesson testing.md „je Seite ein eigener Negativtest"):
 # Positiv-Seite = pipeline_summary() zieht seine Report-Pfade wirklich aus dem Helper (Anker ist
-# die exakte Aufrufzeile, kein Kommando-Fragment, Lesson #114); Negativ-Seite = das Pfadmuster
+# die exakte Aufrufzeile, kein Kommando-Fragment, Lesson nothra/tch-gastro-services#114); Negativ-Seite = das Pfadmuster
 # steht nicht zusätzlich in run-pipeline.sh, sonst driften Guard, Frische-Prüfung und Summary
 # wieder auseinander. Der Negativ-Check deckt auch die Schreibvarianten ohne Klammern und mit
 # GROSS-Variable ab – das exakte Literal allein ließe ein wiedereingeführtes
@@ -5753,7 +5768,7 @@ assert_true "$(! grep -Eq 'tasks/(review|security)-[$][{]?(task_id|TASK_ID)[}]?[
 # die beiden anderen Hälften von AK7 behavioral (AK2: vor dem claude-Aufruf, sonst gälte nie
 # etwas als frisch; AK1: pro run_skill-Aufruf neu, sonst würde Iteration 1 die Iteration 2
 # durchwinken); nur „vor der Schleife statt je Versuch" ist rein positionell. Verglichen werden
-# Zeilennummern zweier exakter Zeilen, keine zwei isolierten Präsenz-Checks (Lesson #286).
+# Zeilennummern zweier exakter Zeilen, keine zwei isolierten Präsenz-Checks (Lesson nothra/tch-gastro-services#286).
 ak7_snapshot_line_310() { grep -n 'report_fingerprint_before=' "$1" | head -1 | cut -d: -f1; }
 ak7_loop_line_310()     { grep -n 'for attempt in 1 2 3; do' "$1" | head -1 | cut -d: -f1; }
 assert_true "$([ "$(ak7_snapshot_line_310 "$PIPELINE")" -lt "$(ak7_loop_line_310 "$PIPELINE")" ]; echo $?)" \
@@ -5782,10 +5797,10 @@ echo "#310 E2E: Report-Guard honoriert nur einen im Aufruf entstandenen Verdict:
 # `claude`-Stub im Prompt, welches Skill gerade läuft ('SKILL-review' ist kein Teilstring von
 # 'SKILL-security-review'). Der Aufrufer legt danach Report-Dateien + Stub an und committet.
 #
-# Die Repo-Kopie selbst kommt aus `_mk_pipe_repo` (oben, #197-Block) – dort steht die
+# Die Repo-Kopie selbst kommt aus `_mk_pipe_repo` (oben, nothra/tch-gastro-services#197-Block) – dort steht die
 # kanonische Liste der Dateien, die run-pipeline.sh zum Starten braucht; hier wird nur die
 # Differenz ergänzt (Interrupt-Pfad, Skill-Mocks, Task-Datei, sleep-Stub). Kein paralleler
-# Zweitaufbau derselben Struktur (Lesson testing.md, #240/#267).
+# Zweitaufbau derselben Struktur (Lesson testing.md, nothra/tch-gastro-services#240/#267).
 # Abhängigkeit: `_mk_pipe_repo` wird im `if [ "$HAS_YQ" = 1 ]`-Zweig definiert – wie alle
 # Aufrufstellen von scaffold_310 unten.
 scaffold_310() {
@@ -5798,8 +5813,9 @@ scaffold_310() {
     printf '# SKILL-%s mock\n' "$s" > "$dir/.claude/commands/$s.md"
   done
   printf '# Task %s: report-guard\n' "$task_id" > "$dir/tasks/task-${task_id}-guard.md"
+  mk_spec_fixture "$dir" "$task_id"
   printf '#!/bin/sh\nexit 0\n' > "$dir/bin/sleep"; chmod +x "$dir/bin/sleep"
-  # gh immer fehlschlagen lassen (#314-Nitpick, Review-Runde-1-Finding): run_310() setzt
+  # gh immer fehlschlagen lassen (nothra/tch-gastro-services#314-Nitpick, Review-Runde-1-Finding): run_310() setzt
   # "$dir/bin" vor den Rest von PATH, damit reicht ein Stub, um den ambienten System-`gh`
   # zu überschatten. Ohne ihn hinge der EXIT-Trap-Aufruf von `metrics.sh --quiet --publish`
   # (ADR-045) an der lokalen gh-Installation/-Authentifizierung – heute folgenlos, weil der
@@ -5810,7 +5826,7 @@ scaffold_310() {
 
 # commit_310 <dir> – Wegwerf-Repo committen (preflight_checks verlangt einen sauberen Baum).
 # Explizite git-Identität: ohne sie schlägt der Commit in einer identitätslosen Umgebung
-# fehl (Lesson testing.md, #265).
+# fehl (Lesson testing.md, nothra/tch-gastro-services#265).
 commit_310() {
   git -C "$1" init -q
   git -C "$1" -c user.email=t@t -c user.name=t add . >/dev/null 2>&1
@@ -5819,7 +5835,7 @@ commit_310() {
 
 # run_310 <dir> <task_id> – echter Pipeline-Lauf im Wegwerf-Repo; Ausgabe in OUT_310,
 # Exit-Code in RC_310 (Globals, weil eine Command Substitution den Exit-Code verschluckt).
-# env -u: siehe #264 – kein Testblock entscheidet aus der Env der aufrufenden Shell.
+# env -u: siehe nothra/tch-gastro-services#264 – kein Testblock entscheidet aus der Env der aufrufenden Shell.
 run_310() {
   local dir="$1" task_id="$2"
   OUT_310=$(cd "$dir" && PATH="$dir/bin:$PATH" \
@@ -5832,22 +5848,61 @@ STALE_MSG_310='stammt aus einem früheren Aufruf'
 FRESH_MSG_310='Turn-Limit toleriert'
 
 # Anker der Guard-Bedingung in run_skill(). Immer die VOLLE Zeile, nie ein Kommando-Fragment
-# (Lesson factory-workflow.md, #114): `report_fingerprint "$skill" "$task_id"` allein stünde
+# (Lesson factory-workflow.md, nothra/tch-gastro-services#114): `report_fingerprint "$skill" "$task_id"` allein stünde
 # auch in der Snapshot-Zeile oberhalb der Retry-Schleife, `stop_if_interrupted "$task_id"`
-# dreimal im Skript. Seit #312 stehen beide Teilbedingungen in der Hilfsfunktion
+# dreimal im Skript. Seit nothra/tch-gastro-services#312 stehen beide Teilbedingungen in der Hilfsfunktion
 # report_is_fresh_and_valid(), die BEIDE Rückkehrpfade auswerten – die Mutationsbelege des
-# #310- und des #312-Blocks hängen an denselben Zeilen, darum eine gemeinsame Definition
+# nothra/tch-gastro-services#310- und des nothra/tch-gastro-services#312-Blocks hängen an denselben Zeilen, darum eine gemeinsame Definition
 # statt zweier gleichlautender Literale.
 FRESH_CMP_PIPE='[ "$(report_fingerprint "$skill" "$task_id")" != "$fingerprint_before" ]'
 VERDICT_CHK_PIPE='[ -n "$(report_verdict "$skill" "$task_id")" ] || return 1'
 GUARD_CALL_PIPE='report_is_fresh_and_valid "$skill" "$task_id" "$report_fingerprint_before"'
 IC_CALL_PIPE='stop_if_interrupted "$task_id"'
 
+# ─── #49 (Factory-ADR-065): echte Pipeline-Läufe über die #310-Helfer ─────────────────────────────
+# assert_stop_49/OUT_49/RC_49 stammen aus dem #49-E2E-Block im #197-Abschnitt (ebenfalls HAS_YQ).
 if [ "$HAS_YQ" = 1 ]; then
-  # ── AK1/AK6/AK7 (Kern #310): Verdict aus Review-Iteration 1, Iteration 2 reißt das
+  # AK6: auch die Rework-Iteration nach /review nutzt die Stufe (8 AK → 40).
+  # claude-Stub: Review 1 = NEEDS_REWORK → Rework-/implement, Review 2 = APPROVED.
+  R49="$(mktemp -d)"; scaffold_310 "$R49" 49
+  rm -f "$R49/docs/specs/spec-49-fixture.md"; mk_spec_fixture "$R49" 49 8
+  cat > "$R49/bin/claude" <<'STUB49'
+#!/bin/sh
+n=$(cat "$PWD/.stub-reviews" 2>/dev/null || echo 0)
+case "$*" in
+  *SKILL-security-review*) printf '## Ergebnis\nPASSED\n' > "$PWD/tasks/security-49.md" ;;
+  *SKILL-review*)
+    n=$((n + 1)); echo "$n" > "$PWD/.stub-reviews"
+    if [ "$n" -eq 1 ]; then v=NEEDS_REWORK; else v=APPROVED; fi
+    printf '## Empfehlung\n%s\nRunde %s\n' "$v" "$n" > "$PWD/tasks/review-49.md" ;;
+esac
+exit 0
+STUB49
+  chmod +x "$R49/bin/claude"
+  commit_310 "$R49"
+  run_310 "$R49" 49
+  assert_contains_286 "$OUT_310" "Phase 2b: Rework" "#49 AK6: der Lauf erreicht die Rework-Iteration"
+  assert_true "$([ "$(printf '%s\n' "$OUT_310" | grep -cF 'Starte: /implement 49 (model: claude-opus-5-5, max 40 turns)')" -eq 2 ]; echo $?)" \
+    "#49 AK6: Erst- und Rework-/implement (8 AK) melden beide max 40 turns"
+  rm -rf "$R49"
+
+  # AK8 ohne --dry-run: echter Lauf mit claude-Stub, der jeden Aufruf markiert – er darf nie laufen.
+  R49="$(mktemp -d)"; scaffold_310 "$R49" 49
+  rm -f "$R49/docs/specs/spec-49-fixture.md"
+  printf '#!/bin/sh\ntouch "$PWD/claude-called.marker"\nexit 0\n' > "$R49/bin/claude"; chmod +x "$R49/bin/claude"
+  commit_310 "$R49"
+  run_310 "$R49" 49
+  OUT_49="$OUT_310"; RC_49="$RC_310"
+  assert_stop_49 "AK8 (ohne --dry-run)" "Spec fehlt"
+  assert_true "$([ ! -f "$R49/claude-called.marker" ]; echo $?)" "#49 AK8: claude wird ohne Spec nie aufgerufen"
+  rm -rf "$R49"
+fi
+
+if [ "$HAS_YQ" = 1 ]; then
+  # ── AK1/AK6/AK7 (Kern nothra/tch-gastro-services#310): Verdict aus Review-Iteration 1, Iteration 2 reißt das
   # Turn-Limit, ohne den Report zu berühren. Der Stub schreibt den Report genau beim
   # ERSTEN review-Aufruf (danach existiert die Datei → exit 1 ohne Schreiben) – damit ist
-  # die Iteration-1-Datei die divergenzerzeugende Aktion (Lesson #253) und der Fingerprint
+  # die Iteration-1-Datei die divergenzerzeugende Aktion (Lesson nothra/tch-gastro-services#253) und der Fingerprint
   # muss pro run_skill-Aufruf neu erhoben werden, nicht einmal pro Pipeline-Lauf (AK7).
   TMP_A310="$(mktemp -d)"
   scaffold_310 "$TMP_A310" 310
@@ -5946,7 +6001,7 @@ STUB_C310
     "#310 AK3: die Pipeline arbeitet mit dem neuen Verdict weiter"
   rm -rf "$TMP_C310"
 
-  # ── AK4/AK8 (#91, Re-Lauf): committeter Report aus einem früheren Lauf, erster Versuch
+  # ── AK4/AK8 (nothra/tch-gastro-services#91, Re-Lauf): committeter Report aus einem früheren Lauf, erster Versuch
   # scheitert sofort ohne die Datei zu berühren → Fehlversuch statt fail-open. AK8 hängt an
   # genau diesem Fall: hier schreibt niemand, der Report muss byte-identisch bleiben.
   TMP_D310="$(mktemp -d)"
@@ -6031,8 +6086,8 @@ STUB_F310
     "#310 AK10: keine Guard-Meldung für nicht report-erzeugende Skills"
   rm -rf "$TMP_F310"
 
-  # ── Interrupt-Stopp im Stale-Zweig (#310 Review-Runde-2-Nitpick): Ein Aufruf, der einen
-  # Interrupt signalisiert UND danach non-zero endet, wurde vor #310 über den (damals
+  # ── Interrupt-Stopp im Stale-Zweig (nothra/tch-gastro-services#310 Review-Runde-2-Nitpick): Ein Aufruf, der einen
+  # Interrupt signalisiert UND danach non-zero endet, wurde vor nothra/tch-gastro-services#310 über den (damals
   # erfolgreichen) Verdict-Zweig sofort gestoppt. Ohne `interrupt-check.sh` im neuen
   # Stale-Zweig folgten stattdessen zwei weitere Heavy-Versuche desselben Skills, und der
   # Blocker-Eintrag in der Task-Datei entfiel. Divergenzerzeugende Aktion ist der echte
@@ -6066,10 +6121,10 @@ STUB_G310
   # der Stop-bei-Interrupt-Aufruf des Stale-Zweigs fehlt (awk löscht die erste solche Zeile
   # NACH der Stale-Meldung – die beiden Erfolgs-Zweige bleiben unberührt). Seit /refactor steht
   # der Aufruf über die Helper-Funktion stop_if_interrupted() (Dedup der zuvor dreifachen
-  # Aufrufzeile, #310 Review-Runde-3-Nitpick).
+  # Aufrufzeile, nothra/tch-gastro-services#310 Review-Runde-3-Nitpick).
   # Anker ist die exakte AUFRUF-Zeile ($IC_CALL_PIPE), nicht der Funktionsname: gegen ein
   # Fragment gematcht erwischte die Mutation zuerst die Erwähnung im WHY-Kommentar darüber
-  # und ließ den echten Aufruf stehen (Lesson factory-workflow.md, #114 – „Kommando ≠
+  # und ließ den echten Aufruf stehen (Lesson factory-workflow.md, nothra/tch-gastro-services#114 – „Kommando ≠
   # Prosa-Erwähnung").
   TMP_H310="$(mktemp -d)"
   scaffold_310 "$TMP_H310" 316
@@ -6094,7 +6149,7 @@ else
   skip_yq "#310 E2E: Report-Guard Frische-Prüfung (AK1–AK6, AK8, AK10, AK11, Interrupt/Stale)"
 fi
 
-# ─── #310 AK12: Doku-Nachzug (ADR-019 §4 + Lesson-Absätze #91/#310) ──────────
+# ─── nothra/tch-gastro-services#310 AK12: Doku-Nachzug (ADR-019 §4 + Lesson-Absätze nothra/tch-gastro-services#91/#310) ──────────
 echo ""
 echo "#310 AK12: ADR-019 §4 und die Lesson-Absätze beschreiben die Frische-Bedingung:"
 
@@ -6106,26 +6161,26 @@ assert_contains_286 "$adr019_flat_310" "report_fingerprint" \
   "#310 AK12: ADR-019 §4 nennt den Fingerprint-Helper namentlich"
 
 workflow_flat_310=$(flat_286 "$WORKFLOW_LESSON")
-assert_contains_286 "$workflow_flat_310" "In #310 umgesetzt" \
+assert_contains_286 "$workflow_flat_310" "In nothra/tch-gastro-services#310 umgesetzt" \
   "#310 AK12: Lesson nennt den Erledigt-Stand des Report-Guard-Fixes"
 assert_absent "$workflow_flat_310" "Bis dahin: Pipeline-Re-Läufe" \
   "#310 AK12: die Übergangsanweisung 'bis dahin manuell prüfen' ist aufgelöst"
 assert_absent "$workflow_flat_310" "muss also **zusätzlich** vor jedem Schleifendurchlauf greifen" \
   "#310 AK12: die Within-Run-Regel steht nicht mehr als offene Forderung"
 
-# ─── #312: Frische-Prüfung auch auf dem Exit-0-Rückkehrpfad (Spec-312) ───────
-# #310 hat die Frische-Prüfung nur in den non-zero-Zweig von run_skill() gelegt. Endete
+# ─── nothra/tch-gastro-services#312: Frische-Prüfung auch auf dem Exit-0-Rückkehrpfad (Spec-312) ───────
+# nothra/tch-gastro-services#310 hat die Frische-Prüfung nur in den non-zero-Zweig von run_skill() gelegt. Endete
 # `claude --print` mit Exit 0, kehrte run_skill() mit `return 0` zurück, ohne den erhobenen
 # Fingerprint je anzusehen – Phase 2 las danach einen stehengebliebenen APPROVED und verließ
 # den Review-Loop, ohne dass in diesem Lauf ein Review stattfand (dieselbe fail-open-Richtung
-# wie #91/#310, nur über den Erfolgs- statt den Fehlerpfad). Der Fix wertet beide
+# wie nothra/tch-gastro-services#91/#310, nur über den Erfolgs- statt den Fehlerpfad). Der Fix wertet beide
 # Rückkehrpfade gegen dieselbe Bedingung aus und verlangt zusätzlich einen eindeutigen
 # Verdict; das Security-Gate in Phase 5 ist auf „nur PASSED passiert" umgedreht.
 echo ""
 echo "#312 Struktur: eine Bedingung, ein Ort (AK9):"
 
 # Die Zeilen-Anker der Guard-Bedingung ($FRESH_CMP_PIPE / $VERDICT_CHK_PIPE / $GUARD_CALL_PIPE /
-# $IC_CALL_PIPE) stehen gemeinsam mit STALE_MSG_310/FRESH_MSG_310 oben – #310 und #312 mutieren
+# $IC_CALL_PIPE) stehen gemeinsam mit STALE_MSG_310/FRESH_MSG_310 oben – nothra/tch-gastro-services#310 und nothra/tch-gastro-services#312 mutieren
 # dieselben Zeilen, deshalb genau eine Definition.
 GATE_CMP_312='if [ "$SECURITY_VERDICT" != "PASSED" ]; then'
 
@@ -6141,22 +6196,22 @@ assert_true "$(! grep -q 'report_fingerprint_now' "$PIPELINE"; echo $?)" \
   "#312 AK9: keine zweite Schreibweise der Bedingung im non-zero-Zweig mehr"
 # AK9 („kein Report-Pfad in run-pipeline.sh"): der Report-Guard verzweigt über das benannte
 # Prädikat aus der Lib. Zweite Assertion in der Gegenrichtung – die frühere Schreibweise
-# `[ -n "$(report_file …)" ]` las sich wie eine Datei-Existenz-Prüfung (#312 Review-Nitpick).
+# `[ -n "$(report_file …)" ]` las sich wie eine Datei-Existenz-Prüfung (nothra/tch-gastro-services#312 Review-Nitpick).
 assert_true "$(grep -qF -- 'if is_report_skill "$skill" "$task_id"; then' "$PIPELINE"; echo $?)" \
   "#312 AK9: run_skill() verzweigt über is_report_skill aus der Lib"
 assert_true "$(! grep -qF -- '[ -n "$(report_file "$skill" "$task_id")" ]' "$PIPELINE"; echo $?)" \
   "#312 AK9: keine als Existenz-Prüfung lesbare report_file-Verzweigung mehr"
 # Die Erfolgsmeldung materialisiert den Verdict einmal im Rumpf von run_skill(), statt ihn per
-# eingebetteter Command Substitution im Meldungstext neu zu lesen (#312 Review-Runde-1-Nitpick
+# eingebetteter Command Substitution im Meldungstext neu zu lesen (nothra/tch-gastro-services#312 Review-Runde-1-Nitpick
 # N1). Gezählt werden die report_verdict-Aufrufe IM per awk extrahierten Rumpf von run_skill() –
 # ein Abwesenheits-Guard auf das Fragment `Verdict '$(report_verdict` koppelte Meldungstext und
 # Code-Konstrukt: eine umformulierte Meldung mit erneut eingebetteter Command Substitution wäre
-# grün geblieben (Fragment-Falle aus Lesson factory-workflow.md, #114, in der
-# Abwesenheits-Richtung; #312 Review-Runde-2-Nitpick). Die Zählung ist in beide Richtungen
+# grün geblieben (Fragment-Falle aus Lesson factory-workflow.md, nothra/tch-gastro-services#114, in der
+# Abwesenheits-Richtung; nothra/tch-gastro-services#312 Review-Runde-2-Nitpick). Die Zählung ist in beide Richtungen
 # fail-closed für diesen Rumpf-Ausschnitt: eine zu kurze Extraktion liefert 0 Treffer, eine über
 # das Funktionsende hinausreichende mehr als einen. Sie ist blind für report_is_fresh_and_valid()
 # außerhalb von run_skill() – die liest den Verdict für die Bedingung separat noch einmal, macht
-# zwei report_verdict-Aufrufe pro Versuch insgesamt (#312 Review-Runde-3-Finding W1).
+# zwei report_verdict-Aufrufe pro Versuch insgesamt (nothra/tch-gastro-services#312 Review-Runde-3-Finding W1).
 run_skill_body_312() { awk '/^run_skill\(\) \{/ { inside = 1 } inside { print } inside && /^\}/ { exit }' "$1"; }
 runskill_body_312="$(run_skill_body_312 "$PIPELINE")"
 assert_true "$(printf '%s\n' "$runskill_body_312" | grep -qF 'for attempt in 1 2 3; do'; echo $?)" \
@@ -6166,7 +6221,7 @@ assert_true "$([ "$(printf '%s\n' "$runskill_body_312" | grep -c 'report_verdict
 
 # AK5 (Reihenfolge): Die Interrupt-Prüfung des Exit-0-Pfads steht VOR der Frische-/
 # Verdict-Auswertung – verglichen werden Zeilennummern zweier exakter Zeilen, keine zwei
-# isolierten Präsenz-Checks (Lesson testing.md, #286). Den Verhaltensbeweis samt Mutation
+# isolierten Präsenz-Checks (Lesson testing.md, nothra/tch-gastro-services#286). Den Verhaltensbeweis samt Mutation
 # liefert der E2E-Block unten.
 ic_first_line_312() { grep -nF -- "$IC_CALL_PIPE" "$1" | head -1 | cut -d: -f1; }
 guard_line_312()    { grep -nF -- "$GUARD_CALL_PIPE" "$1" | head -1 | cut -d: -f1; }
@@ -6202,7 +6257,7 @@ if [ "$HAS_YQ" = 1 ]; then
   # damit den Review-Loop, ohne dass in diesem Lauf ein Review stattfand.
   # Der Stub bedient zusätzlich security-review – nicht für diesen Lauf (er stirbt in Phase 2),
   # sondern damit der Mutant unten nicht an einer ZWEITEN Ursache scheitert und der
-  # Beleg dadurch aus dem falschen Grund grün würde (Lesson testing.md, #214).
+  # Beleg dadurch aus dem falschen Grund grün würde (Lesson testing.md, nothra/tch-gastro-services#214).
   TMP_A312="$(mktemp -d)"
   scaffold_310 "$TMP_A312" 330
   printf '## Empfehlung\nAPPROVED\naus einem früheren Pipeline-Lauf\n' > "$TMP_A312/tasks/review-330.md"
@@ -6256,7 +6311,7 @@ STUB_A312
 
   # ── AK2/AK7/AK8 (Regression Erfolgs-Pfad): review und security-review schreiben ihren
   # Report IM Aufruf und enden mit Exit 0 → weiterhin Erfolg. Divergenzerzeugende Ausgangslage
-  # sind die vorbestehenden Reports mit dem GEGENTEILIGEN Verdict (Lesson testing.md, #253):
+  # sind die vorbestehenden Reports mit dem GEGENTEILIGEN Verdict (Lesson testing.md, nothra/tch-gastro-services#253):
   # ohne sie könnte der Lauf auch aus einer stehengebliebenen Datei grün sein.
   TMP_B312="$(mktemp -d)"
   scaffold_310 "$TMP_B312" 331
@@ -6295,7 +6350,7 @@ STUB_B312
   # Fall nicht verändern (Spec-312, Fehlerszenarien) – belegt war bisher nur die
   # PASSED-Richtung (TMP_B312) und der leere Verdict am mutierten Skript.
   # Divergenzerzeugende Ausgangslage wie in TMP_B312: der vorbestehende Report trägt den
-  # GEGENTEILIGEN Verdict (Lesson testing.md, #253) – ohne ihn könnte der Lauf auch aus einer
+  # GEGENTEILIGEN Verdict (Lesson testing.md, nothra/tch-gastro-services#253) – ohne ihn könnte der Lauf auch aus einer
   # stehengebliebenen Datei blockieren, statt aus dem in diesem Aufruf geschriebenen Verdict.
   TMP_F312="$(mktemp -d)"
   scaffold_310 "$TMP_F312" 335
@@ -6402,7 +6457,7 @@ STUB_C312
 
   # ── AK4 (security-review stale): committeter PASSED aus einem früheren Aufruf,
   # /security-review endet mit Exit 0, ohne die Datei zu berühren. Gleiche Richtung wie AK1,
-  # andere Report-Datei – und nicht-destruktiv wie in #310.
+  # andere Report-Datei – und nicht-destruktiv wie in nothra/tch-gastro-services#310.
   TMP_D312="$(mktemp -d)"
   scaffold_310 "$TMP_D312" 333
   printf '## Ergebnis\nPASSED\naus einem früheren Aufruf\n' > "$TMP_D312/tasks/security-333.md"
@@ -6433,8 +6488,8 @@ STUB_D312
   # ── AK5 (Interrupt hat Vorrang): Der Versuch signalisiert einen Interrupt und endet mit
   # Exit 0, ohne einen gültigen Verdict zu hinterlassen. Zielfall ist bewusst der
   # „kein Verdict"-Zweig: nur er hat keinen eigenen interrupt-check (der Stale-Zweig hat
-  # seit #310 einen), also kann allein die neue Exit-0-Prüfung ihn stoppen – der Testpfad
-  # ist damit auf den Zielpfad isoliert (Lesson testing.md, #214).
+  # seit nothra/tch-gastro-services#310 einen), also kann allein die neue Exit-0-Prüfung ihn stoppen – der Testpfad
+  # ist damit auf den Zielpfad isoliert (Lesson testing.md, nothra/tch-gastro-services#214).
   TMP_E312="$(mktemp -d)"
   scaffold_310 "$TMP_E312" 334
   cat > "$TMP_E312/bin/claude" <<'STUB_E312'
@@ -6488,7 +6543,7 @@ else
   skip_yq "#312 E2E: Exit-0-Frischeprüfung (AK1–AK8, AK10–AK12)"
 fi
 
-# ─── #312 AK13: Doku-Nachzug (ADR-019 §4 + Report-Guard-Lesson) ──────────────
+# ─── nothra/tch-gastro-services#312 AK13: Doku-Nachzug (ADR-019 §4 + Report-Guard-Lesson) ──────────────
 echo ""
 echo "#312 AK13: ADR-019 §4 und die Lesson beschreiben die symmetrische Bedingung:"
 
@@ -6501,12 +6556,12 @@ assert_contains_286 "$adr019_flat_312" "passiert nur ein eindeutiges" \
   "#312 AK13: ADR-019 §4 nennt die neue Gate-Polarität in Phase 5"
 
 workflow_flat_312=$(flat_286 "$WORKFLOW_LESSON")
-assert_contains_286 "$workflow_flat_312" "In #312 auf den Exit-0-Pfad ausgeweitet" \
+assert_contains_286 "$workflow_flat_312" "In nothra/tch-gastro-services#312 auf den Exit-0-Pfad ausgeweitet" \
   "#312 AK13: Lesson nennt den Erledigt-Stand der Exit-0-Ausweitung"
 assert_contains_286 "$workflow_flat_312" "auf allen Rückkehrpfaden, nicht nur im Fehlerpfad" \
   "#312 AK13: die Lesson-Regel ist um alle Rückkehrpfade geschärft"
 
-# Dieselbe Prosa steht an zwei weiteren Orten, die der erste Sweep übersehen hatte (#312
+# Dieselbe Prosa steht an zwei weiteren Orten, die der erste Sweep übersehen hatte (nothra/tch-gastro-services#312
 # Review-Runde-1-Findings): im Modul-Header der Lib – der Datei, die jeder Nutzer der drei
 # Funktionen zuerst liest – und in OPERATING.md, das CLAUDE.md als kanonische Quelle des
 # prozeduralen Ablaufs benennt. Beide beschrieben weiter die alte, einseitige Mechanik.
@@ -6596,7 +6651,7 @@ assert_exit 0 "$ak8_rc" "#314 AK8: nicht-numerischer FACTORY_METRICS_ISSUE brich
 assert_true "$([ ! -s "$GHLOG_314" ]; echo $?)" "#314 AK8: kein gh-Aufruf bei nicht-numerischem Wert"
 assert_contains_286 "$ak8_out" "keine Zahl ('12x')" "#314 AK8: Ablehnungsgrund nennt den abgelehnten Wert"
 # Typischer Stolperstein: ein CLI-Flag statt einer Zahl – Config-/nutzerkontrollierte Werte
-# als Daten behandeln (clean-code.md), nie als gh-Option.
+# als Daten behandeln (bash-gotchas.md § 20), nie als gh-Option.
 : > "$GHLOG_314"
 env -u GITHUB_STEP_SUMMARY FACTORY_DIR="$TMP_314M" FACTORY_METRICS_ISSUE="--repo" \
   bash "$SCRIPTS_DIR/metrics.sh" --no-api --quiet --publish >/dev/null 2>&1
@@ -6664,7 +6719,7 @@ if [ "$HAS_YQ" = 1 ]; then
   assert_true "$([ -n "$preflight_call_line_314" ] && [ -n "$trap_line_314" ] && [ "$trap_line_314" -gt "$preflight_call_line_314" ]; echo $?)" \
     "#314: Trap-Registrierung steht NACH dem preflight_checks-Aufruf"
 
-  # commit_314_pushed <dir> <origin> – wie commit_310 (oben, #310-Block), zusätzlich MIT
+  # commit_314_pushed <dir> <origin> – wie commit_310 (oben, nothra/tch-gastro-services#310-Block), zusätzlich MIT
   # gepushtem origin-Remote: die Endzustands-Verifikation (ADR-040) verlangt "sauber, gepusht"
   # für ein grünes Ende – ohne Remote bräche AK1/AK3 schon dort ab, nicht an der Messung.
   commit_314_pushed() {
@@ -6721,7 +6776,7 @@ STUB_314A
   # ── AK2 (Mutationsbeleg): OHNE die Trap-Registrierung läuft dieselbe Abbruch-Fixture ohne
   # Messabschnitt – belegt, dass der Test oben wirklich die Trap-Mechanik prüft (Lesson
   # testing.md, Mutationsbeleg-Pflicht bei Positivbelegen), nicht nur den vorbestehenden
-  # Retry-Pfad aus #310/#312.
+  # Retry-Pfad aus nothra/tch-gastro-services#310/#312.
   TMP_314B2="$(mktemp -d)"
   scaffold_310 "$TMP_314B2" 901
   awk '/^trap measure_process_metrics_on_exit EXIT$/{next} {print}' "$PIPELINE" > "$TMP_314B2/scripts/run-pipeline.sh"
@@ -6759,6 +6814,7 @@ STUB_314C
   TMP_314D="$(mktemp -d)"
   _mk_pipe_repo "$TMP_314D"
   echo "# Task 903: dry" > "$TMP_314D/tasks/task-903-dry.md"
+  mk_spec_fixture "$TMP_314D" 903
   git -C "$TMP_314D" init -q
   git -C "$TMP_314D" config user.email t@t; git -C "$TMP_314D" config user.name t
   git -C "$TMP_314D" add . >/dev/null 2>&1; git -C "$TMP_314D" commit -q -m init
@@ -6776,7 +6832,7 @@ else
   skip_yq "#314 E2E: Prozess-Metriken-Trap in run-pipeline.sh"
 fi
 
-# ─── #314 AK12: Doku ohne Drift (CLAUDE.md, daily-metrics.md, OPERATING.md) ──────────────────
+# ─── nothra/tch-gastro-services#314 AK12: Doku ohne Drift (CLAUDE.md, daily-metrics.md, OPERATING.md) ──────────────────
 echo ""
 echo "#314 AK12: Doku beschreibt die Messung als Bestandteil jedes Pipeline-Laufs:"
 
@@ -6799,317 +6855,21 @@ assert_contains_286 "$operating_flat_314" 'Läuft automatisch (ADR-045' \
 assert_contains_286 "$operating_flat_314" 'pull-requests: read' \
   "#314 AK12: OPERATING.md nennt den erweiterten factory-poll.yml-Scope (AK15)"
 
-# ─── #315: Aspekt-Label factory-pipeline in allen Label-Aufzählungen ─────────
-# Warum ein Grep-Guard: Der Seam scripts/lib/create-issue.sh validiert Labels bewusst nicht
-# gegen eine eigene Liste (ADR-018 §3) – die Doku ist damit die EINZIGE Instanz, die ein Label
-# überhaupt anbietet. Fällt eine der Aufzählungen zurück, vergibt weder Mensch noch Skill das
-# Label mehr (beobachtet an #314, das manuell nachgelabelt werden musste).
-echo ""
-echo "#315: Aspekt-Label factory-pipeline in allen sieben Fundstellen (AK2–AK9):"
+# ─── nothra/tch-gastro-services#315: Aspekt-Label factory-pipeline ─────────────────────────────────────
+# Entfällt im Factory-Repo: das Label trennt in adoptierenden Projekten „Werkzeug vs. Produkt"; im
+# Factory-Repo ist alles Factory-Arbeit (labels.aspects_extra ist leer, siehe PROJECT-CONTEXT.md).
 
-NEW_LABEL_315="factory-pipeline"
-# Der ALTE Name wird zur Laufzeit zusammengesetzt (\137 = Unterstrich), damit diese Datei ihn
-# nicht selbst im Klartext trägt. Sonst müsste der Regressions-Scan aus AK10 run-tests.sh
-# allowlisten – und wäre gerade für die Datei blind, die ihn ausführt.
-OLD_LABEL_315="factory$(printf '\137')pipeline"
-
-# Die sieben Fundstellen der Label-Konvention: eine kanonische (git-workflow.md) und sechs
-# abgeleitete (die letzten drei sind die AK8-Skill-Dokus). Reihenfolge = Sweep-Reihenfolge der
-# Task, damit ein Rot direkt zeigt, welche Ebene zurückgefallen ist.
-#
-# Drei parallel indizierte Arrays je Fundstelle:
-#   FILES   – die Datei.
-#   PHRASES – geprüft wird die Phrase, die das Label AN SEINE BESCHREIBUNG bindet, nicht der
-#             nackte Label-Name: ein Ganzdatei-Grep bliebe grün, wenn `factory-pipeline`
-#             irgendwo sonst in der Datei steht statt in der Aspekt-Aufzählung. Geprüft wird
-#             gegen flat_286, die Phrase darf also über Zeilenumbrüche laufen – aber nicht über
-#             Blockquote-Präfixe und nicht über Mehrfach-Leerzeichen (flat_286 squeezt sie).
-#   ANCHORS – Ankerzeile der Mutation. Bewusst die BESCHREIBENDE Hälfte der Fundstelle, in der
-#             der Label-Name selbst nicht vorkommt. Damit sind Mutations-Prädikat und
-#             Assertions-Prädikat verschieden – eine Mutation über den Suchbegriff selbst wäre
-#             nur die Negation ihrer eigenen Definition und belegte nichts
-#             (testing-standards.md → „nicht gegen das Objekt-under-Test selbst", Lesson #286).
-LABEL_DOC_FILES_315=(
-  "docs/factory/PROJECT-CONTEXT.md"
-  "CONTRIBUTING.md"
-  "docs/factory/OPERATING.md"
-  "scripts/start-work.sh"
-  ".claude/commands/codify.md"
-  ".claude/commands/review.md"
-  ".claude/commands/security-review.md"
-)
-LABEL_DOC_PHRASES_315=(
-  '| `factory-pipeline` | Arbeit am **Factory-Harness**'
-  'Aspekt-Label: `factory-pipeline`.'
-  '**null bis mehrere Aspekt-Labels** (`security` · `tech-debt` · `test` · `factory-pipeline`)'
-  'FACTORY_ASPECT_LABELS=… optionale Aspekt-Labels (CSV: security,tech-debt,test,factory-pipeline)'
-  '**Aspekt-Labels** (`security`/`tech-debt`/`test`/`factory-pipeline`)'
-  '**Aspekt-Labels** (`security`/`tech-debt`/`test`/`factory-pipeline`)'
-  '`security` – dazu `factory-pipeline`, wenn der Fund den Factory-Harness'
-)
-LABEL_DOC_ANCHORS_315=(
-  'Arbeit am **Factory-Harness** (Pipeline'
-  'Aspekt-Label: '
-  'null bis mehrere Aspekt-Labels'
-  'FACTORY_ASPECT_LABELS=…   optionale Aspekt-Labels'
-  '+ passende **Aspekt-Labels**'
-  '+ passende **Aspekt-Labels**'
-  'wenn der Fund den Factory-Harness und nicht die App'
-)
-
-TMP_315="$(mktemp -d)"
-
-i_315=0
-while [ "$i_315" -lt "${#LABEL_DOC_FILES_315[@]}" ]; do
-  rel_315="${LABEL_DOC_FILES_315[$i_315]}"
-  phrase_315="${LABEL_DOC_PHRASES_315[$i_315]}"
-  anchor_315="${LABEL_DOC_ANCHORS_315[$i_315]}"
-  src_315="$FACTORY_ROOT/$rel_315"
-  i_315=$((i_315 + 1))
-
-  # Gelesen wird die committete Live-Datei, auch bei den drei .claude/**-Dateien, die per
-  # Patch-Workflow geliefert wurden – nicht das transiente Patch-Artefakt (Lesson #212).
-  assert_contains_286 "$(flat_286 "$src_315")" "$phrase_315" \
-    "#315 AK9: $rel_315 bindet das Label an seine Beschreibung"
-
-  # Mutationsbeleg je Fundstelle: die beschreibende Zeile fällt weg, geprüft wird die Bindung.
-  mut_315="$TMP_315/mut-$(printf '%s' "$rel_315" | tr '/' '_')"
-  grep -vF -- "$anchor_315" "$src_315" > "$mut_315"
-  # Positivkontrolle, dass die Mutation überhaupt greift – gemessen an der Zeilenzahl und
-  # damit unabhängig von beiden Suchmustern. Ohne sie bliebe ein ins Leere laufender Anker
-  # (Zeile umformuliert) unbemerkt und die Abwesenheits-Assertion darunter grün aus dem
-  # falschen Grund (Lesson #214).
-  assert_true "$([ "$(wc -l < "$mut_315")" -lt "$(wc -l < "$src_315")" ]; echo $?)" \
-    "#315 AK9: Mutation greift wirklich ($rel_315 verliert die beschreibende Zeile)"
-  assert_absent "$(flat_286 "$mut_315")" "$phrase_315" \
-    "#315 AK9 (Mutation): ohne sie ist die Aspekt-Aufzählung in $rel_315 rot"
-done
-
-# ── AK2/AK3/AK4: die kanonische Quelle trägt Abgrenzungskriterium, Pfad-Anker (beide Seiten),
-# die Zweifelsregel für den Mischfall und beide abgeleiteten Aufzählungen derselben Datei.
-# Die Tabellenzeile selbst deckt bereits die Schleife oben ab (Fundstelle 1).
-# Seit #431 (AK-I2) steht die Beschreibung des TCH-eigenen Aspekt-Labels samt Pfad-Ankern in
-# PROJECT-CONTEXT.md → „Projekt-Labels"; git-workflow.md hält nur Schema + generische Labels.
-pcx_flat_315=$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")
-gwf_flat_315=$(flat_286 "$GITWF")
-assert_contains_286 "$pcx_flat_315" 'statt an der TCH-Applikation' \
-  "#315 AK2: die Tabellenzeile nennt das Abgrenzungskriterium Harness vs. Applikation"
-# Je Seite EINE Phrase auf EINER Zeile: der Begleittext steht im Blockquote, und `> `-Präfixe
-# überleben flat_286 nicht (der Helper toleriert nur Leerzeichen-Einrückung).
-assert_contains_286 "$pcx_flat_315" \
-  '**Factory-Harness → Label setzen.** Pfad-Anker: `scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`.' \
-  "#315 AK3: die Factory-Seite der Grenze ist mit Pfad-Ankern benannt"
-assert_contains_286 "$pcx_flat_315" \
-  '**TCH-Applikation → Label weglassen.** Pfad-Anker: `app/`, `db/`, `lib/`.' \
-  "#315 AK3: die Applikations-Seite der Grenze ist mit Pfad-Ankern benannt"
-# Ohne Auflösung des Mischfalls wäre die Zuordnung genau dort zirkulär, wo sie gebraucht wird
-# („entscheidet die Seite, auf der die Änderung landet" – wenn sie auf beiden landet, sagt der
-# Satz nichts). AK3 verlangt aber eine Zuordnung ohne Rückfrage.
-assert_contains_286 "$pcx_flat_315" \
-  '**Im Zweifel Label setzen.**' \
-  "#315 AK3: der Mischfall ist einseitig fail-safe aufgelöst"
-assert_contains_286 "$pcx_flat_315" \
-  'Repo-Wurzel (`CONTRIBUTING.md`, `README.md`, `CLAUDE.md`), `docs/adr/`, `tasks/`, `e2e/`' \
-  "#315 AK3: die Zweifelsregel benennt die ungedeckten Pfade (Repo-Wurzel, ADR, tasks, e2e)"
-# Eigene Assertion für `docs/specs/` (Runde-5-Review-Finding W1): die vorige Assertion prüft
-# nur bis `e2e/`, während `docs/specs/` erst auf der nächsten Blockquote-Zeile steht – ein
-# Rückfall auf den Zustand vor dem W1-Fix (Runde 4) bliebe sonst unbemerkt grün.
-assert_contains_286 "$pcx_flat_315" \
-  '`docs/specs/` (Ablagekonvention statt Subsystem-Grenze' \
-  "#315 AK3: die Zweifelsregel nennt auch docs/specs/ als ungedeckten Pfad"
-# Seit #431 nennen die Faustregel- und der start-work.sh-Absatz die projekteigenen Aspekte über die
-# Konfigurationsschlüssel statt einer Aufzählung (AK-I2); die Menge selbst prüft der Drift-Guard unten.
-assert_contains_286 "$gwf_flat_315" \
-  'ein projekteigenes Aspekt-Label für einen Defekt im Projekt-Werkzeug' \
-  "#315/#431 AK4: der Faustregel-Absatz verweist auf projekteigene Aspekt-Labels"
-assert_contains_286 "$gwf_flat_315" \
-  '(`labels.aspects` + `labels.aspects_extra`, z. B. `security`/`tech-debt`/`test`) gibt' \
-  "#315/#431 AK4: der start-work.sh-Absatz verweist auf die Label-Konfiguration"
-
-# ── AK5: CONTRIBUTING.md nennt die Beitragsart – und behält den Verweis auf die kanonische
-# Quelle (keine zweite kanonische Liste).
-contrib_flat_315=$(flat_286 "$CONTRIBUTING_MD")
-assert_contains_286 "$contrib_flat_315" '**🏭 Factory / Harness**' \
-  "#315 AK5: CONTRIBUTING.md führt Factory-/Harness-Beiträge als Beitragsart"
-assert_contains_286 "$contrib_flat_315" \
-  '[`docs/factory/guidelines/git-workflow.md`](docs/factory/guidelines/git-workflow.md) beschrieben;' \
-  "#315 AK5: der Verweis auf die kanonische Quelle bleibt bestehen"
-# „Keine zweite kanonische Liste" gilt auch für die PFAD-ANKER der Grenze, nicht nur für die
-# Label-Menge: eine wörtliche zweite Kopie driftet still, sobald die Anker-Liste in der
-# kanonischen Quelle wächst oder schrumpft – genau die Fehlerklasse, die diese Task für die
-# Label-Aufzählungen gerade abschafft. Dieselbe Phrase gegen beide Dateien: die Kontrolle
-# belegt, dass der Ausdruck überhaupt findet, die Abwesenheits-Assertion, dass er es nur an
-# der kanonischen Stelle tut.
-anchors_315='`scripts/`, `.claude/`, `.github/workflows/`, `docs/factory/`'
-assert_contains_286 "$pcx_flat_315" "$anchors_315" \
-  "#315 AK5 (Kontrolle): die Anker-Liste ist über genau diesen Ausdruck auffindbar"
-assert_absent "$contrib_flat_315" "$anchors_315" \
-  "#315 AK5: CONTRIBUTING.md verweist auf die Pfad-Anker, statt sie zu kopieren"
-# Symmetrisch für die App-Seite (Lesson #197: Guard symmetrisch auf alle Inputs) – eine
-# wörtliche Kopie der App-Anker nach CONTRIBUTING.md wäre sonst unbemerkt geblieben.
-app_anchors_315='`app/`, `db/`, `lib/`'
-assert_contains_286 "$pcx_flat_315" "$app_anchors_315" \
-  "#315 AK5 (Kontrolle): die App-Anker-Liste ist über genau diesen Ausdruck auffindbar"
-assert_absent "$contrib_flat_315" "$app_anchors_315" \
-  "#315 AK5: CONTRIBUTING.md verweist auch bei den App-Ankern, statt sie zu kopieren"
-
-# ── AK6: OPERATING.md §1.1 Schritt 3 trennt die beiden Achsen (vorbestehende Drift: die
-# frühere flache Liste führte „genau eins" über Art- UND Aspekt-Labels).
-operating_flat_315=$(flat_286 "$OPERATING_MD")
-assert_contains_286 "$operating_flat_315" \
-  '**genau ein Art-Label** (`bug` · `enhancement` · `documentation`)' \
-  "#315 AK6: Schritt 3 führt „genau eines\" nur noch über die Art-Achse"
-# Die Aspekt-Achse („null bis mehrere", inkl. factory-pipeline) deckt Fundstelle 3 der
-# Schleife oben ab.
-
-# ── AK7: die --labels-Usage-Meldung bleibt ein explizit gekennzeichnetes Beispiel und wird
-# NICHT zur Vollmenge aufgebläht (die Vollmenge steht im Kopfkommentar – Fundstelle 4 oben).
-SW_315="$FACTORY_ROOT/scripts/start-work.sh"
-usage_msg_315="$(grep -F -- '--labels erwartet einen Wert' "$SW_315")"
-assert_contains_286 "$usage_msg_315" 'CSV, z. B. security,test)' \
-  "#315 AK7: die --labels-Usage-Meldung bleibt als Beispiel unverändert"
-assert_absent "$usage_msg_315" "$NEW_LABEL_315" \
-  "#315 AK7: das Usage-Beispiel wird nicht zur vollständigen Menge aufgebläht"
-
-# (Die AK8-Fundstellen selbst – codify.md, review.md, security-review.md – sind die
-# Fundstellen 5–7 der Schleife oben.)
-
-# ── AK10: Regressions-Scan gegen den ALTEN Label-Namen über die getrackten Dateien.
-echo ""
-echo "#315 AK10: der alte Label-Name kommt in keiner getrackten Datei mehr vor:"
-
-# `git grep` liest per Definition nur getrackte Dateien im Arbeitsbaum – damit erbt der Scan
-# die AK10-Forderung „über git ls-files, nicht über das Verzeichnis" und färbt sich nicht an
-# einem ungetrackten Scratch-Artefakt rot (Lesson #312).
-#
-# Ausgenommen ist die vollständige Papierspur DIESER Task: Spec plus alles unter `tasks/`, das
-# die Task-ID trägt (Task-Datei, Review-, Security-, Coverage-, Codify-Report – alle werden am
-# Ende mitcommittet). Sie halten den Rename selbst fest und müssen den alten Namen deshalb im
-# Klartext nennen dürfen – dieselbe Begründung, mit der die Spec ADR-018 §30 und spec-82 als
-# historisches Narrativ unangetastet lässt. Wäre die Ausnahme enger, würde der Guard die eigene
-# Pipeline blockieren, sobald ein Folge-Skill seinen Report schreibt.
-# NICHT ausgenommen sind `docs/factory/lessons/*` und `PROJECT-CONTEXT.md`: das sind lebende
-# Konventions-Dokumente: eine `/codify`-Lesson zu dieser Task verweist auf Task/Spec, statt den
-# alten Namen selbst zu buchstabieren.
-name_hits_315() {
-  git -C "$1" grep -lI -F -e "$2" -- \
-    ':(exclude)docs/specs/spec-315-*' ':(exclude)tasks/*315*'
-}
-
-# Fail-closed-Kontrolle VOR der Abwesenheits-Assertion: dieselbe Aufrufform muss den NEUEN
-# Namen finden. Liest `git grep` nichts (falsches Verzeichnis, kein Repo, kaputtes git), ist
-# seine Ausgabe leer – und eine Abwesenheits-Assertion darauf wäre grün, ohne dass je eine
-# Datei gelesen wurde (Lesson #214: fail-closed bei unlesbarer Quelle).
-assert_true "$([ -n "$(name_hits_315 "$FACTORY_ROOT" "$NEW_LABEL_315")" ]; echo $?)" \
-  "#315 AK10: der Scan liest wirklich getrackte Dateien (findet den neuen Namen)"
-
-hits_315="$(name_hits_315 "$FACTORY_ROOT" "$OLD_LABEL_315")"
-assert_true "$([ -z "$hits_315" ]; echo $?)" \
-  "#315 AK10: keine getrackte Datei außerhalb der #315-Papierspur nennt den alten Namen"
-
-# tracked_repo_315 <name> <datei> <inhalt> → Wegwerf-Repo mit genau einer getrackten Datei.
-# Bewusst NICHT über _mk_pipe_repo/scaffold_310 (die bauen ein vollständiges Factory-Repo für
-# run-pipeline.sh-E2E und hängen an HAS_YQ) und nicht über hi_repo: dessen Repos liegen unter
-# der hartkodierten Basis $TMP_HI, die oberhalb (nach dem #268-Block) bereits per `rm -rf`
-# abgeräumt ist. Lokale Identität, weil ohne sie in einer identitätslosen Umgebung schon der
-# Commit scheitert (Lesson #265).
-tracked_repo_315() {
-  local wt="$TMP_315/$1" rel="$2" content="$3"
-  mkdir -p "$wt/$(dirname "$rel")"
-  printf '%s\n' "$content" > "$wt/$rel"
-  git init -q -b main "$wt" >/dev/null 2>&1
-  git -C "$wt" config user.email t@t
-  git -C "$wt" config user.name t
-  git -C "$wt" add -A >/dev/null 2>&1
-  git -C "$wt" commit -q -m init >/dev/null 2>&1
-  printf '%s\n' "$wt"
-}
-
-# assert_scan_clean_315 <repo> <erwartete getrackte datei> <beschreibung>
-# Fail-closed-Kontrolle für jede auf LEERE prüfende Fixture-Assertion – symmetrisch zu der des
-# Live-Scans oben (Lesson #197: Guard symmetrisch auf alle Inputs; #214: fail-closed bei
-# unlesbarer Quelle). tracked_repo_315 schluckt in jedem git-Kommando stderr: scheitert das
-# Scaffolding still, liefert name_hits_315 leeren Output und die Abwesenheits-Assertion wäre
-# grün, ohne dass je eine Datei gelesen wurde. Geprüft wird deshalb zuerst, dass genau die
-# Fixture-Datei getrackt ist, und erst danach die Abwesenheit des alten Namens.
-assert_scan_clean_315() {
-  assert_true "$([ -n "$(git -C "$1" ls-files -- "$2")" ]; echo $?)" \
-    "#315 AK10 (fail-closed): das Fixture-Repo trägt $2 wirklich getrackt"
-  assert_true "$([ -z "$(name_hits_315 "$1" "$OLD_LABEL_315")" ]; echo $?)" "$3"
-}
-
-# Mutationsbeleg: derselbe Assert-Ausdruck gegen ein Repo, in dem eine getrackte, NICHT
-# allowlistete Datei den alten Namen trägt.
-REPO_OLD_315="$(tracked_repo_315 old-name docs/factory/guidelines/git-workflow.md \
-  "| \`$OLD_LABEL_315\` | Arbeit am Factory-Harness |")"
-hits_mut_315="$(name_hits_315 "$REPO_OLD_315" "$OLD_LABEL_315")"
-assert_true "$([ -n "$hits_mut_315" ]; echo $?)" \
-  "#315 AK10 (Mutation): der alte Name in einer getrackten Doku-Datei macht den Scan rot"
-assert_contains_286 "$hits_mut_315" "docs/factory/guidelines/git-workflow.md" \
-  "#315 AK10 (Mutation): der Scan benennt die Fundstelle"
-
-# Diskriminierungs-Kontrolle: dasselbe Repo ohne den alten Namen bleibt grün – der Scan
-# reagiert auf den Namen, nicht auf die Existenz der Datei.
-REPO_NEW_315="$(tracked_repo_315 new-name docs/factory/guidelines/git-workflow.md \
-  "| \`$NEW_LABEL_315\` | Arbeit am Factory-Harness |")"
-assert_scan_clean_315 "$REPO_NEW_315" docs/factory/guidelines/git-workflow.md \
-  "#315 AK10: derselbe Inhalt mit dem NEUEN Namen bleibt grün"
-
-# Allowlist-Kontrolle in beide Richtungen, je Ausnahme-Pfadspec eine: in der #315-Papierspur
-# darf der alte Name stehen, in einer fremden Spec bzw. einem fremden Task-Report nicht (sonst
-# wäre die Ausnahme ein Loch über ganz docs/specs/ bzw. tasks/).
-REPO_ALLOW_315="$(tracked_repo_315 allow "docs/specs/spec-315-x.md" \
-  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
-assert_scan_clean_315 "$REPO_ALLOW_315" "docs/specs/spec-315-x.md" \
-  "#315 AK10: der alte Name im #315-Anforderungsdokument bleibt zulässig"
-REPO_OTHER_315="$(tracked_repo_315 other-spec "docs/specs/spec-999-x.md" \
-  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
-assert_true "$([ -n "$(name_hits_315 "$REPO_OTHER_315" "$OLD_LABEL_315")" ]; echo $?)" \
-  "#315 AK10: derselbe Satz in einer FREMDEN Spec macht den Scan rot (Allowlist ist kein Loch)"
-REPO_REPORT_315="$(tracked_repo_315 report "tasks/review-315.md" \
-  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
-assert_scan_clean_315 "$REPO_REPORT_315" "tasks/review-315.md" \
-  "#315 AK10: der alte Name in einem #315-Pipeline-Report bleibt zulässig"
-REPO_OTHERTASK_315="$(tracked_repo_315 other-task "tasks/review-999.md" \
-  "Rename von $OLD_LABEL_315 auf $NEW_LABEL_315")"
-assert_true "$([ -n "$(name_hits_315 "$REPO_OTHERTASK_315" "$OLD_LABEL_315")" ]; echo $?)" \
-  "#315 AK10: derselbe Satz in einem FREMDEN Task-Report macht den Scan rot"
-
-# Lesson #312: ein ungetracktes Scratch-Artefakt mit dem alten Namen darf den Scan nicht
-# rot färben – genau deshalb liest er getrackte Dateien statt das Verzeichnis.
-printf '%s\n' "$OLD_LABEL_315" > "$REPO_NEW_315/scratch.tmp.md"
-assert_scan_clean_315 "$REPO_NEW_315" docs/factory/guidelines/git-workflow.md \
-  "#315 AK10: ein ungetracktes Scratch-Artefakt mit dem alten Namen lässt den Scan grün"
-
-# Mutationsbeleg für die Fail-closed-Kontrolle selbst: ein Repo, in dem `add`/`commit` still
-# gescheitert sind (hier nachgestellt: initialisiert, aber nichts getrackt), während die Datei
-# mit dem VERBOTENEN Namen im Baum liegt. Genau dort laufen die beiden Prädikate auseinander –
-# der Scan bleibt leer (die Abwesenheits-Assertion allein wäre grün), die Kontrolle wird rot.
-REPO_UNSCAFFOLDED_315="$TMP_315/kein-commit"
-mkdir -p "$REPO_UNSCAFFOLDED_315/docs/factory/guidelines"
-printf '%s\n' "$OLD_LABEL_315" > "$REPO_UNSCAFFOLDED_315/docs/factory/guidelines/git-workflow.md"
-git init -q -b main "$REPO_UNSCAFFOLDED_315" >/dev/null 2>&1
-assert_true "$([ -z "$(name_hits_315 "$REPO_UNSCAFFOLDED_315" "$OLD_LABEL_315")" ]; echo $?)" \
-  "#315 AK10 (Mutation): ohne getrackte Datei bliebe die Abwesenheits-Assertion grün – obwohl der alte Name im Baum liegt"
-assert_true "$([ -z "$(git -C "$REPO_UNSCAFFOLDED_315" ls-files -- docs/factory/guidelines/git-workflow.md)" ]; echo $?)" \
-  "#315 AK10 (Mutation): genau dort wird die Fail-closed-Kontrolle rot"
-
-rm -rf "$TMP_315"
-# ─── #319: Deckel für den @import-Dauerkontext (ADR-047 §4) ──────────────────
+# ─── nothra/tch-gastro-services#319: Deckel für den @import-Dauerkontext (ADR-047 §4) ──────────────────
 echo ""
 echo "#319 @import-Kontext-Deckel (ADR-047):"
 
 IMPORT_CHECK="$CHECKS_DIR/import-context-limit-check.sh"
 assert_true "$([[ -f "$IMPORT_CHECK" ]]; echo $?)" "#319: import-context-limit-check.sh vorhanden"
 
-# Kopplung an die Wirklichkeit, nicht nur an Fixtures: der Deckel muss für den ECHTEN
-# Repo-Stand grün sein. Wäre er hier rot, wäre die Grenze falsch hergeleitet – oder ein
-# Prosa-Token (real: „@importiert" in CLAUDE.md) würde fälschlich als Import gezählt.
-# Ausgabe NICHT verwerfen: bei Fehlschlag ist die breakdown-Liste die einzige Information,
-# welche Datei zu groß geworden ist.
-ic_real_319="$(FACTORY_DIR="$FACTORY_ROOT" bash "$IMPORT_CHECK" 2>&1)"; ic_rc_319=$?
-assert_exit 0 "$ic_rc_319" "#319: realer @import-Stand des Repos liegt unter dem Deckel"
-[ "$ic_rc_319" -eq 0 ] || printf '%s\n' "$ic_real_319" | sed 's/^/      /'
+# Der Realstand-Test (Deckel gegen den ECHTEN Repo-Stand) lebt nicht hier: die Größe des
+# Konsumenten-Kontexts ist Projekt-QS, keine Factory-Funktionsprüfung (Factory-Issue #32,
+# Realstand in scripts/project/tests/run-tests.sh). Diese Suite prüft das Deckel-Verhalten
+# ausschließlich gegen Fixtures; der Guard „#28 AK6" bewacht, dass kein Aufruf gegen die echte Wurzel zurückkehrt.
 
 # Grenze UND Herleitungs-Basis aus dem Skript lesen, statt sie im Test zu duplizieren – sonst
 # driften beide, und ein Bump der Konstante bliebe unbemerkt grün.
@@ -7122,7 +6882,7 @@ assert_true "$([ -n "$IC_BASIS_319" ] && [ "$IC_BASIS_319" -gt 0 ]; echo $?)" \
 
 # Herleitung als Kommentar an der Konstante (ADR-047 §4: keine Magic Number). Der Anker muss
 # eine Phrase treffen, die NUR im Kommentarblock steht – das Wort „Herleitung" allein steht auch
-# in der Remediation-Ausgabe, die Assertion wäre dann überclaimt (Lesson #312: das Label darf nur
+# in der Remediation-Ausgabe, die Assertion wäre dann überclaimt (Lesson nothra/tch-gastro-services#312: das Label darf nur
 # behaupten, was der Prüfausdruck abdeckt).
 IC_SRC_319="$(flat_286 "$IMPORT_CHECK")"
 assert_contains_286 "$IC_SRC_319" "Herleitung (ADR-047 §4" \
@@ -7235,7 +6995,7 @@ assert_contains_286 "$ic_out" "Projektwurzel nicht erreichbar" "#319: eigene Mel
 #    seen-Schutz die Suite nicht hängen lässt, sondern rot macht. Der Exit-Code allein genügt
 #    NICHT: ein Mutant ohne seen-Dedup terminiert ebenfalls mit 0 und meldet nur eine zu große
 #    Summe. Deshalb wird die SUMME assertiert (21 + 31 = 52) – sonst behauptet das Label mehr,
-#    als der Ausdruck messen kann (Lesson #312).
+#    als der Ausdruck messen kann (Lesson nothra/tch-gastro-services#312).
 claude_fixture_319 '@docs/a.md'
 mklines_319 "$TMP_IC/docs/a.md" 30
 printf '@CLAUDE.md\n' >> "$TMP_IC/docs/a.md"
@@ -7309,6 +7069,75 @@ ic_out="$(ic_319)"; ic_rc=$?
 assert_exit 0 "$ic_rc" "#319: Datei ohne Schluss-Newline → exit 0"
 assert_contains_286 "$ic_out" "24" "#319: ihre letzte Zeile zählt mit (21 + 3 = 24, nicht 23)"
 
+# ── Factory-Issue #44: zweite Messgröße Bytes (AK13–AK15) ──
+# Grenze und Basis wie bei den Zeilen aus dem Skript lesen; der Test hält nur die Rechenregel.
+IC_BYTES_44="$(sed -n 's/^MAX_IMPORT_BYTES=\([0-9]*\).*/\1/p' "$IMPORT_CHECK" | head -1)"
+IC_BYTES_BASIS_44="$(sed -n 's/^# = \([0-9]*\) Bytes.*/\1/p' "$IMPORT_CHECK" | head -1)"
+assert_true "$([ -n "$IC_BYTES_44" ] && [ "$IC_BYTES_44" -gt 0 ]; echo $?)" \
+  "#44 AK15: MAX_IMPORT_BYTES ist als Konstante im Skript lesbar"
+assert_true "$([ -n "$IC_BYTES_BASIS_44" ] && [ "$IC_BYTES_BASIS_44" -gt 0 ]; echo $?)" \
+  "#44 AK15: die Byte-Basis ist aus dem Kommentar lesbar"
+ic_bytes_expected_44=$(( ((${IC_BYTES_BASIS_44:-0} * 125 / 100) + 999) / 1000 * 1000 ))
+assert_true "$([ "${IC_BYTES_44:-0}" -eq "$ic_bytes_expected_44" ]; echo $?)" \
+  "#44 AK15: MAX_IMPORT_BYTES ($IC_BYTES_44) entspricht der dokumentierten Herleitung ($IC_BYTES_BASIS_44 + 25 % → $ic_bytes_expected_44)"
+
+# mkbytes_44 <datei> <n> – genau n Bytes in EINER Zeile (inkl. Newline). Eine Zeile, damit allein
+# der Byte-Pfad greifen kann (Lesson nothra/tch-gastro-services#214: Negativ-Test auf den Ziel-Pfad isolieren).
+mkbytes_44() { awk -v n="$2" 'BEGIN { for (i = 1; i < n; i++) printf "x"; printf "\n" }' > "$1"; }
+
+# Grenzwert: genau MAX_IMPORT_BYTES ist zulässig, ein Byte mehr ist rot (`-gt` vs. `-ge`).
+mkbytes_44 "$TMP_IC/CLAUDE.md" "${IC_BYTES_44:-1}"
+ic_out="$(ic_319)"; ic_rc=$?
+assert_exit 0 "$ic_rc" "#44 AK13 Grenzwert: genau MAX_IMPORT_BYTES Bytes sind noch zulässig (exit 0)"
+assert_contains_286 "$ic_out" "${IC_BYTES_44:-__MAX_IMPORT_BYTES_NICHT_LESBAR__} Bytes" \
+  "#44 AK13: die Grün-Meldung nennt Ist und Grenze in Bytes"
+mkbytes_44 "$TMP_IC/CLAUDE.md" $(( ${IC_BYTES_44:-1} + 1 ))
+ic_out="$(ic_319)"; ic_rc=$?
+assert_exit 1 "$ic_rc" "#44 AK13 Grenzwert: ein Byte darüber ist rot (exit 1)"
+assert_contains_286 "$ic_out" "Bytes (Grenze:" "#44 AK13: die Rot-Meldung nennt die Byte-Grenze"
+assert_contains_286 "$ic_out" "CLAUDE.md" "#44 AK13: die Byte-Beitragsliste nennt die Datei"
+assert_absent "$ic_out" "Zeilen (Grenze:" "#44 AK13: rot allein über den Byte-Pfad, nicht über die Zeilen"
+assert_contains_286 "$ic_out" "MAX_IMPORT_BYTES in" "#44 AK13: die Remediation nennt die Byte-Konstante"
+assert_contains_286 "$ic_out" "docs/factory/lessons/INDEX.md" "#44 AK10: die Remediation nennt den neuen Index-Ort"
+
+# Summen-Beweis Bytes: zwei Dateien, jede unter der Byte-Grenze, zusammen darüber.
+claude_fixture_319 '@docs/a.md' '@docs/b.md'
+mkbytes_44 "$TMP_IC/docs/a.md" $(( ${IC_BYTES_44:-2} * 2 / 3 ))
+mkbytes_44 "$TMP_IC/docs/b.md" $(( ${IC_BYTES_44:-2} * 2 / 3 ))
+ic_out="$(ic_319)"; ic_rc=$?
+assert_exit 1 "$ic_rc" "#44 AK13: zwei je-für-sich zulässige Dateien, zusammen über der Byte-Grenze → exit 1"
+assert_contains_286 "$ic_out" "Bytes (Grenze:" "#44 AK13: der Summen-Fall ist ein Byte-Befund"
+rm -f "$TMP_IC/docs/b.md"
+
+# Fail-closed (AK14) und BSD-Polsterung (F4): `wc` per Stub im PATH. Das Stub-Verzeichnis
+# enthält NUR `wc` – awk, sort & Co. bleiben echt, sonst bräche die Messung an anderer Stelle.
+IC_STUB_44="$(mktemp -d)"
+ic_wc_stub_44() { printf '#!/bin/sh\n%s\n' "$1" > "$IC_STUB_44/wc"; chmod +x "$IC_STUB_44/wc"; }
+claude_fixture_319
+for ic_wc_44 in 'exit 1' 'echo abc' 'echo'; do
+  ic_wc_stub_44 "$ic_wc_44"
+  ic_out="$(PATH="$IC_STUB_44:$PATH" ic_319)"; ic_rc=$?
+  assert_exit 1 "$ic_rc" "#44 AK14: wc-Stub '$ic_wc_44' → exit 1 (fail-closed)"
+  assert_contains_286 "$ic_out" "Bytezahl nicht ermittelbar: CLAUDE.md (fail-closed)" \
+    "#44 AK14: wc-Stub '$ic_wc_44' → zweigspezifische Meldung"
+  assert_absent "$ic_out" "@import-Dauerkontext:" "#44 AK14: wc-Stub '$ic_wc_44' → keine Grün-Meldung (kein Rückfall auf Zeilen)"
+done
+# BSD-`wc` rückt die Zahl ein: mit `tr -d` grün, ohne `tr -d` (Mutante) rot.
+ic_wc_stub_44 "printf '     42\\n'"
+ic_out="$(PATH="$IC_STUB_44:$PATH" ic_319)"; ic_rc=$?
+assert_exit 0 "$ic_rc" "#44 F4: eingerückte wc-Ausgabe (BSD) wird akzeptiert (exit 0)"
+assert_contains_286 "$ic_out" "42 von" "#44 F4: die eingerückte Zahl wird als Bytezahl gezählt"
+IC_NOTR_44="$TMP_IC/import-check-ohne-tr.sh"
+sed "s/ | tr -d '\[:space:\]')\" || bytes=\"\"/)\" || bytes=\"\"/" "$IMPORT_CHECK" > "$IC_NOTR_44"
+assert_true "$([ "$(grep -c "tr -d '\[:space:\]'" "$IC_NOTR_44")" -lt "$(grep -c "tr -d '\[:space:\]'" "$IMPORT_CHECK")" ]; echo $?)" \
+  "#44 F4 (Mutation): die Mutante hat das tr -d an der Byte-Messung verloren"
+ic_mut_out="$(PATH="$IC_STUB_44:$PATH" FACTORY_DIR="$TMP_IC" bash "$IC_NOTR_44" 2>&1)"; ic_mut_rc=$?
+assert_exit 1 "$ic_mut_rc" "#44 F4 (Mutation): ohne tr -d ist dieselbe eingerückte Ausgabe rot"
+# Signal statt nur Exit (Lesson nothra/tch-gastro-services#214): ein Syntaxfehler der Mutante wäre sonst ebenfalls „rot“.
+assert_contains_286 "$ic_mut_out" "Bytezahl nicht ermittelbar: CLAUDE.md (fail-closed)" \
+  "#44 F4 (Mutation): die Mutante scheitert am Integer-Guard der Byte-Messung, nicht anderswo"
+rm -rf "$IC_STUB_44"
+
 rm -rf "$TMP_IC"
 
 # 15. Verdrahtung im Push-Gate – Anker ist die echte AUFRUFZEILE, nicht der Dateiname
@@ -7318,7 +7147,7 @@ grep -qF -- "$IC_CALL_319" "$CHECKS_DIR/pre-push.sh"
 assert_true "$?" "#319: pre-push.sh ruft den Deckel-Check auf (echte Aufrufzeile)"
 
 # Mutationsbeleg mit DEMSELBEN Assert-Ausdruck: ohne die Aufrufzeile wird der Guard rot
-# (belegt Kausalität, nicht nur Quoting – Lesson #286).
+# (belegt Kausalität, nicht nur Quoting – Lesson nothra/tch-gastro-services#286).
 IC_MUT_319="$(mktemp)"
 grep -vF -- "$IC_CALL_319" "$CHECKS_DIR/pre-push.sh" > "$IC_MUT_319"
 assert_absent "$(cat "$IC_MUT_319")" "$IC_CALL_319" \
@@ -7326,7 +7155,7 @@ assert_absent "$(cat "$IC_MUT_319")" "$IC_CALL_319" \
 rm -f "$IC_MUT_319"
 
 # 16. VERHALTEN, nicht nur Verdrahtung: ein rotes Check-Ergebnis muss den Push blockieren
-#     (Lesson #212 – deterministisches Gate braucht einen E2E-Verhaltenstest). pre-push.sh leitet
+#     (Lesson nothra/tch-gastro-services#212 – deterministisches Gate braucht einen E2E-Verhaltenstest). pre-push.sh leitet
 #     FACTORY_DIR aus dem eigenen Skript-Pfad ab (nicht aus der Env), deshalb Kopie von Gate +
 #     Check in ein Temp-Root; die teuren Gates werden per Env auf `true` neutralisiert, Checks 4/5
 #     fehlen dort und überspringen sich selbst – so entscheidet allein der Deckel. Muster wie
@@ -7349,7 +7178,7 @@ assert_exit 0 "$?" "#319: Kontext unter der Grenze lässt den Push zu (E2E)"
 # Mutationsbeleg: fällt das `FAILED=1` im Check-6-Block weg, blockiert derselbe rote Deckel
 # nicht mehr – belegt, dass die Assertion oben genau daran hängt und nicht am Exit des Checks.
 # Der awk-Block bricht am nächsten Job-Trenner ab (nicht nur an „Check 7"), damit die Isolation
-# nicht still zu breit wird, falls der Deckel später der letzte Check ist (Klasse #255).
+# nicht still zu breit wird, falls der Deckel später der letzte Check ist (Klasse nothra/tch-gastro-services#255).
 IC_PP_MUT_319="$TMP_PP319/scripts/checks/pre-push-ohne-failed.sh"
 awk '
   /^# ─── Check 6:/ { in6 = 1; print; next }
@@ -7390,7 +7219,7 @@ done
 # Die Trigger stehen in einem Blockquote, dessen Fortsetzungszeilen mit "> " beginnen; die
 # Marker müssen vor dem Flachlesen weg, sonst landen sie mitten in der Phrase. Deshalb
 # sed-Vorlauf in eine Kopie und darauf der vorhandene flat_286-Helfer (komponiert, keine
-# zweite Lesefunktion – Lesson #240/#267 zur Helfer-Duplikation).
+# zweite Lesefunktion – Lesson nothra/tch-gastro-services#240/#267 zur Helfer-Duplikation).
 # ACHTUNG Fehlalarm-Modus: die Anker enthalten die vollständige Themen-Aufzählung des Bullets.
 # Eine reine Umformulierung der Beschreibung macht diese Tests rot, OBWOHL der Trigger noch da
 # ist – dann hier den Anker mitziehen, nicht den Trigger suchen.
@@ -7422,36 +7251,28 @@ assert_absent "$IC_CLAUDE_MUT_319" "$IC_TRIGGER_AP_319" \
 
 # 20. Die drei aus testing-standards.md verschobenen Abschnitte liegen in der Lesson und sind
 #     im Index referenziert – verlustfreie Migration statt Streichung (spec-319 AC5/AC8).
-# Seit #426 verteilen sich die drei Abschnitte auf die Factory- und die Projekt-Lesson testing.md
-TESTING_LESSON_319="$(flat_286 "$FACTORY_ROOT/docs/factory/lessons/testing.md") $(flat_286 "$FACTORY_ROOT/docs/project/lessons/testing.md")"
-PC_FLAT_319="$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")"
-for phrase in "Exhaustiveness-Guards" "Mock-Default mit leerem Array" "Coverage-Ausgabe nur in ignorierte Pfade"; do
+# Im Factory-Repo liegt nur der ADR-040-Abschnitt (Coverage-Ausgabe); Exhaustiveness-Guards und Mock-Default
+# sind App-Lessons des adoptierenden Projekts.
+TESTING_LESSON_319="$(flat_286 "$FACTORY_ROOT/docs/factory/lessons/testing.md")"
+for phrase in "Coverage-Ausgabe nur in ignorierte Pfade"; do
   assert_contains_286 "$TESTING_LESSON_319" "$phrase" \
     "#319: „$phrase\" steht in lessons/testing.md"
 done
-for phrase in "Exhaustiveness-Guard" "Mock-Default" "Coverage-Ausgabe nur in"; do
-  assert_contains_286 "$PC_FLAT_319" "$phrase" \
-    "#319: „$phrase\" hat eine Index-Zeile in PROJECT-CONTEXT.md"
-done
 # Umfang statt nur Präsenz: die drei Abschnitte wurden byte-identisch migriert (1.197 + 1.531 +
 # 920 = 3.648 Bytes Rumpf). Eine spätere versehentliche Kürzung würde die Präsenz-Checks oben
-# nicht röten – deshalb ein Größen-Guard je Abschnitt (Lesson #196: Migration mit
+# nicht röten – deshalb ein Größen-Guard je Abschnitt (Lesson nothra/tch-gastro-services#196: Migration mit
 # Reconstruction-Assertion belegen, nicht mit Titel-Präsenz).
 ic_body_bytes_319() {  # $1 = Titel-Präfix des ### -Abschnitts
   awk -v anchor="$1" '
     index($0, "### ") == 1 && index($0, anchor) > 0 { found = 1; next }
     found && index($0, "### ") == 1 { exit }
     found { print }
-  ' "$FACTORY_ROOT/docs/factory/lessons/testing.md" "$FACTORY_ROOT/docs/project/lessons/testing.md" | wc -c | tr -d ' '
+  ' "$FACTORY_ROOT/docs/factory/lessons/testing.md" | wc -c | tr -d ' '
 }
-assert_true "$([ "$(ic_body_bytes_319 'Exhaustiveness-Guards')" -ge 1190 ]; echo $?)" \
-  "#319: der Exhaustiveness-Abschnitt ist vollständig migriert (≥ 1190 Bytes Rumpf)"
-assert_true "$([ "$(ic_body_bytes_319 'Mock-Default mit leerem Array')" -ge 1520 ]; echo $?)" \
-  "#319: der Mock-Default-Abschnitt ist vollständig migriert (≥ 1520 Bytes Rumpf)"
 assert_true "$([ "$(ic_body_bytes_319 'Coverage-Ausgabe nur in ignorierte Pfade')" -ge 910 ]; echo $?)" \
   "#319: der ADR-040-Abschnitt ist vollständig migriert (≥ 910 Bytes Rumpf)"
 # Der verschobene Text darf nicht auf seinen alten Kontext zeigen („siehe unten" zeigte in der
-# Lesson ins Leere, weil darunter der Coverage-Abschnitt fehlt – Deixis-Falle, Lesson #315).
+# Lesson ins Leere, weil darunter der Coverage-Abschnitt fehlt – Deixis-Falle, Lesson nothra/tch-gastro-services#315).
 assert_absent "$TESTING_LESSON_319" "100 % bei neuem Code, siehe unten" \
   "#319: kein Deixis-Verweis „siehe unten\" im verschobenen Abschnitt"
 # Und kein Verweis darf die verschobene Regel weiter in der alten Datei verorten. Die Suchphrase
@@ -7463,20 +7284,20 @@ assert_absent "$(flat_286 "$CHECKS_DIR/tests/run-tests.sh")" \
   "#319: kein Verweis mehr auf die verschobene Regel in der alten Datei"
 
 # 21. Die kanonische pre-push-Check-Liste in git-workflow.md nennt den neuen Check (Lesson
-#     #211/#176: Prosa im Präsens, die die geänderte Mechanik beschreibt, im selben PR nachziehen).
+#     nothra/tch-gastro-services#211/#176: Prosa im Präsens, die die geänderte Mechanik beschreibt, im selben PR nachziehen).
 assert_contains_286 "$(flat_286 "$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md")" \
   "@import-Kontext-Deckel" "#319: git-workflow.md Hook-Tabelle nennt den Deckel-Check"
 # Und die Invarianten-Registry in OPERATING.md (kanonische Quelle des prozeduralen Ablaufs).
 # Anker ohne das führende `@import` in Backticks (der Zieltext setzt es als Code-Span, die
 # Backticks würden sonst mitten in der Phrase stehen) – und ohne führenden Bindestrich: die
 # assert_*-Helfer geben kein `--` an grep weiter, ein mit `-` beginnender Anker würde als Option
-# gelesen (clean-code.md: variabler Suchwert immer als Daten behandeln).
+# gelesen (bash-gotchas.md § 20: variabler Suchwert immer als Daten behandeln).
 assert_contains_286 "$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")" \
   "Kontext unter dem Deckel halten" "#319: OPERATING.md führt die Deckel-Invariante"
 
 # 22. Die Kern-Kurzregeln dürfen die Label-Konvention und die Schwellen-Tabelle NICHT kopieren:
 #     git-workflow.md („Die kanonische Label-Liste bleibt allein in diesem Abschnitt"), ADR-018
-#     und ADR-043 („Ein Ort je Regel") entscheiden das, und der #315-Registry-Guard kennt
+#     und ADR-043 („Ein Ort je Regel") entscheiden das, und der nothra/tch-gastro-services#315-Registry-Guard kennt
 #     CLAUDE.md nicht – eine Kopie hier wäre die einzige unbewachte (Review-Runde 3, K3).
 assert_absent "$CLAUDE_FLAT_319" "Fund-Art" \
   "#319 K3: FACTORY.md kopiert die Schwellen-Tabelle nicht"
@@ -7515,7 +7336,7 @@ assert_absent "$ADR047_FLAT_319" "Reflex\", \`token-efficiency.md\`" \
 assert_contains_286 "$ADR047_FLAT_319" "OPERATING.md" \
   "#319: ADR-047 nennt OPERATING.md als Quelle der YAGNI-Regel"
 # Und eine im selben PR umgesetzte ADR steht auf `Accepted`, nicht auf `Proposed`
-# (Lesson factory-workflow.md, aus #197 – beim Implementieren mitzuziehen).
+# (Lesson factory-workflow.md, aus nothra/tch-gastro-services#197 – beim Implementieren mitzuziehen).
 assert_contains_286 "$ADR047_FLAT_319" "## Status Accepted" \
   "#319: ADR-047 steht auf Accepted (Umsetzung im selben PR)"# ─── #319 (/security-review): Härtung des Gates gegen präparierte Referenzen ──
 echo ""
@@ -7527,7 +7348,7 @@ sec319() { FACTORY_DIR="$TMP_SEC319/fx" bash "$IMPORT_CHECK" 2>&1; }
 
 # S1 – Fail-open bei nicht ermittelbarer Zeilenzahl. `$((total + ""))` ist in bash KEIN Fehler,
 # sondern `+ 0`: schlug die Zählung fehl, meldete das Gate „0 von 1100" und exit 0, obwohl der
-# Kontext die Grenze reißt. clean-code.md verlangt für genau das einen Integer-Guard vor der
+# Kontext die Grenze reißt. bash-gotchas.md § 20 verlangt für genau das einen Integer-Guard vor der
 # Arithmetik („fail-closed – im Zweifel ablehnen, nie still durchwinken").
 seq 1 20 > "$TMP_SEC319/fx/CLAUDE.md"
 printf '@big.md\n' >> "$TMP_SEC319/fx/CLAUDE.md"
@@ -7584,22 +7405,10 @@ assert_true "$([ $? -ne 0 ]; echo $?)" "#319 S3: kein echtes ESC-Byte aus dem Pf
 
 rm -rf "$TMP_SEC319"
 
-# ─── #319 (/test): Lücken aus der AK-Abdeckungsmatrix ────────────────────────
+# ─── nothra/tch-gastro-services#319 (/test): Lücken aus der AK-Abdeckungsmatrix ────────────────────────
 echo ""
 echo "#319 AK-Abdeckung (/test):"
 
-# AC4 – „Index-Wachstum mitentschieden" hängt allein daran, dass PROJECT-CONTEXT.md (der
-# Lessons-Index, der nach ADR-037 von ~80 auf 341 Zeilen gewachsen ist) Teil der gedeckelten
-# Summe IST. Verschwände die @import-Zeile, liefe der Index wieder unbegrenzt – und alle
-# übrigen Deckel-Tests blieben grün, weil sie nur die Guidelines betrachten.
-grep -qE '^@docs/factory/PROJECT-CONTEXT\.md$' "$FACTORY_ROOT/CLAUDE.md"
-assert_true "$?" "#319 AC4: PROJECT-CONTEXT.md ist Teil des gedeckelten @import-Sets"
-# Mutationsbeleg mit demselben Assert-Ausdruck: ohne die Zeile wird der Guard rot.
-IC_AC4_MUT_319="$(mktemp)"
-grep -vE '^@docs/factory/PROJECT-CONTEXT\.md$' "$FACTORY_ROOT/CLAUDE.md" > "$IC_AC4_MUT_319"
-grep -qE '^@docs/factory/PROJECT-CONTEXT\.md$' "$IC_AC4_MUT_319"
-assert_true "$([ $? -ne 0 ]; echo $?)" "#319 AC4 (Mutation): ohne die Import-Zeile wird derselbe Guard rot"
-rm -f "$IC_AC4_MUT_319"
 
 # AC5 – „jede geltende Regel bleibt gültig und auffindbar". Die zwei verdichteten Guidelines
 # behalten ihre Regel-Abschnitte; eine spätere, zu eifrige Verdichtung würde sonst unbemerkt
@@ -7634,43 +7443,8 @@ assert_true "$([ -n "$(ic_missing_sections_319 "$IC_TDD_319" 'Ein Abschnitt, den
 # ÜBER Links spricht (z. B. `](../adr/` in einem Backtick-Span, wie in lessons/factory-workflow.md),
 # wird als Link gelesen und wäre ein Fehlalarm. Deshalb prüft der Guard eine feste Dateiliste –
 # Dateien mit solcher Meta-Prosa gehören nicht hinein, bevor der Ausdruck Code-Spans ausnimmt.
-ic_dead_links_319() {  # $1 = Markdown-Datei → gibt "datei → ziel" je totem relativen Link aus
-  local f="$1" d ziel
-  d="$(dirname "$f")"
-  grep -oE '\]\([^)#][^)]*\)' "$f" 2>/dev/null | sed 's/^](//; s/)$//; s/#.*//' | while read -r ziel; do
-    case "$ziel" in http*|"") continue ;; esac
-    [ -e "$d/$ziel" ] || printf '%s → %s\n' "$f" "$ziel"
-  done
-}
-# Positiv-/Negativ-Kontrolle des Helfers gegen ein eigenes Fixture (clean-code.md: ein
-# Gate-Regex braucht beide Richtungen) – unabhängig vom Repo-Inhalt.
-TMP_LNK_319="$(mktemp -d)"
-printf 'Ziel\n' > "$TMP_LNK_319/ziel.md"
-printf 'Ein [guter Link](ziel.md) und sonst nichts.\n' > "$TMP_LNK_319/doc.md"
-assert_true "$([ -z "$(ic_dead_links_319 "$TMP_LNK_319/doc.md")" ]; echo $?)" \
-  "#319 AC8 (Kontrolle): ein auflösender Link wird nicht gemeldet"
-printf 'Ein [toter Link](gibt-es-nicht.md).\n' >> "$TMP_LNK_319/doc.md"
-assert_true "$([ -n "$(ic_dead_links_319 "$TMP_LNK_319/doc.md")" ]; echo $?)" \
-  "#319 AC8 (Kontrolle): ein toter Link wird gemeldet"
-rm -rf "$TMP_LNK_319"
-# Der eigentliche Guard über die Dateien dieses Tasks.
-ic_dead_links_found_319=""
-for f in CLAUDE.md CONTRIBUTING.md docs/factory/PROJECT-CONTEXT.md docs/factory/OPERATING.md \
-         docs/factory/kleinfunde.md docs/factory/lessons/testing.md \
-         docs/factory/lessons/code-style.md docs/project/lessons/frontend-react.md \
-         docs/factory/guidelines/tdd-principles.md docs/factory/guidelines/testing-standards.md \
-         docs/factory/guidelines/token-efficiency.md \
-         docs/factory/adr/047-import-kontext-guidelines-nach-erzwungenheit.md \
-         docs/factory/adr/037-lessons-auslagern-aus-import-kontext.md \
-         docs/specs/spec-319-adr-import-kontext-guidelines.md \
-         tasks/task-319-adr-import-kontext-guidelines.md tasks/review-319.md; do
-  ic_dead_links_found_319="$ic_dead_links_found_319$(ic_dead_links_319 "$FACTORY_ROOT/$f")"
-done
-assert_true "$([ -z "$ic_dead_links_found_319" ]; echo $?)" \
-  "#319 AC8: kein toter relativer Link in den Dateien dieses Tasks"
-[ -z "$ic_dead_links_found_319" ] || printf '%s\n' "$ic_dead_links_found_319" | sed 's/^/      /'
 
-# ─── #334: Telemetrie-Persistenz je Pipeline-Lauf (ADR-049) ──────────────────
+# ─── nothra/tch-gastro-services#334: Telemetrie-Persistenz je Pipeline-Lauf (ADR-049) ──────────────────
 echo ""
 echo "#334 Telemetrie-Persistenz (ADR-049):"
 
@@ -7681,7 +7455,7 @@ assert_true "$([[ -f "$TELE_FIXTURE" ]]; echo $?)" "#334: anonymisierte OTEL-Fix
 
 # Positivkontrolle VOR jedem Personendaten-Guard: trägt die Roh-Eingabe die verbotenen Felder
 # überhaupt? Ohne sie prüfte der Guard unten nur, dass eine Datei ohne Personenfelder keine
-# Personenfelder erzeugt – grün aus dem falschen Grund (Lesson #284/#319).
+# Personenfelder erzeugt – grün aus dem falschen Grund (Lesson nothra/tch-gastro-services#284/#319).
 tele_raw_has_pii=0
 for tele_f in 'user.email' 'user.id' 'user.account_id' 'user.account_uuid' 'organization.id'; do
   grep -qF -- "\"$tele_f\"" "$TELE_FIXTURE" || tele_raw_has_pii=1
@@ -7826,7 +7600,7 @@ assert_contains_286 "$tele_csv4" ',0,unbekannt,' \
 rm -rf "$TELE_TMP"
 
 # Verdrahtung im Orchestrator: Default an, Abschalt-Parameter, Seam gesourct.
-# Ersetzt die bis #334 gültige Assertion „OTEL ist opt-in (nicht automatisch in
+# Ersetzt die bis nothra/tch-gastro-services#334 gültige Assertion „OTEL ist opt-in (nicht automatisch in
 # run-pipeline.sh gesourct)" – durch ADR-049 §E3 ungültig geworden. Ersatz statt Löschung:
 # eine entfernte Zusicherung hinterlässt eine unbewachte Zusage.
 grep -q 'source .*lib/telemetry-harvest.sh' "$PIPELINE"
@@ -7844,7 +7618,7 @@ assert_true "$?" "#334 §E2: Erhebung über den Console-Exporter"
 tele_persist_body="$(awk '/^telemetry_persist\(\) \{/,/^\}/' "$PIPELINE")"
 # Nur die CODE-Zeilen des Rumpfs: der WHY-Kommentar darin muss factory-commit.sh benennen
 # (er begründet ja gerade dessen Nichtverwendung) und würde einen reinen Textscan über den
-# ganzen Rumpf immer rot färben – die Prosa-Kollision aus Lesson #284.
+# ganzen Rumpf immer rot färben – die Prosa-Kollision aus Lesson nothra/tch-gastro-services#284.
 tele_persist_code="$(printf '%s\n' "$tele_persist_body" | grep -v '^[[:space:]]*#' || true)"
 assert_contains_286 "$tele_persist_code" 'commit -q -m "chore: telemetrie-messwerte lauf' \
   "#334 §E4: telemetry_persist() committet die CSV selbst"
@@ -7858,7 +7632,7 @@ assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" add -- "$TELEMET
 # liefert git anstandslos eine Fallback-Identität und verdeckt eine fehlende Absicherung).
 assert_contains_286 "$tele_persist_code" '-c user.email="factory-pipeline@localhost"' \
   "#334 (Review-Runde 2): der Commit trägt eine explizite user.email, unabhängig von ambienter Konfiguration"
-assert_contains_286 "$tele_persist_code" '-c user.name="dm Development Factory"' \
+assert_contains_286 "$tele_persist_code" '-c user.name="Development Factory"' \
   "#334 (Review-Runde 2): der Commit trägt auch einen expliziten user.name"
 assert_contains_286 "$tele_persist_code" 'git -C "$FACTORY_DIR" push -q origin HEAD' \
   "#334 AK7: telemetry_persist() pusht den Commit auch (verify_final_state prüft ungepushte Commits)"
@@ -7872,9 +7646,9 @@ printf '%s' "$tele_persist_mutant" | grep -qF 'factory-commit.sh'
 assert_true "$?" "#334 (Kontrolle): derselbe Guard schlägt an, wenn factory-commit.sh im Code steht"
 
 
-# ── E2E gegen den echten Orchestrator (Lesson #212: ein Wiring-Grep belegt kein Verhalten) ──
-# Scaffold, Commit- und Origin-Helfer kommen aus den #310/#314-Blöcken oben – dort im
-# HAS_YQ-Zweig definiert, deshalb steht auch dieser Abschnitt darin (Lesson #310: keine
+# ── E2E gegen den echten Orchestrator (Lesson nothra/tch-gastro-services#212: ein Wiring-Grep belegt kein Verhalten) ──
+# Scaffold, Commit- und Origin-Helfer kommen aus den nothra/tch-gastro-services#310/#314-Blöcken oben – dort im
+# HAS_YQ-Zweig definiert, deshalb steht auch dieser Abschnitt darin (Lesson nothra/tch-gastro-services#310: keine
 # zweite, parallele Repo-Fixture daneben bauen).
 if [ "$HAS_YQ" = 1 ]; then
   TELE_E2E_PROBE="$(mktemp -d)/env-probe.txt"
@@ -7900,7 +7674,7 @@ STUB_334
   # CLAUDE_CODE_ENABLE_TELEMETRY=1). Ohne das `-u` wäre der --no-telemetry-Test lokal
   # falschrot UND der Default-an-Test falschgrün – er belegte dann die ambiente Variable,
   # nicht die Aktivierung durch die Pipeline. Dieselbe Klasse wie das
-  # PR_SHEPHERD/FACTORY_STAGE-Durchschlagen aus #262.
+  # PR_SHEPHERD/FACTORY_STAGE-Durchschlagen aus nothra/tch-gastro-services#262.
   run_334() {
     local dir="$1" task_id="$2"; shift 2
     OUT_334=$(cd "$dir" && PATH="$dir/bin:$PATH" \
@@ -7910,11 +7684,11 @@ STUB_334
       bash "$dir/scripts/run-pipeline.sh" "$task_id" "$@" 2>&1); RC_334=$?
   }
 
-  # tele_cost_sum_334 <csv-datei> – Summen-Helfer für die #334-Kostensummen-Assertion
-  # (Review-Finding 2) unten UND den #341-Locale-Regressionstest: beide rufen denselben
+  # tele_cost_sum_334 <csv-datei> – Summen-Helfer für die nothra/tch-gastro-services#334-Kostensummen-Assertion
+  # (Review-Finding 2) unten UND den nothra/tch-gastro-services#341-Locale-Regressionstest: beide rufen denselben
   # Ausdruck, statt dass eine Kopie vom Original wegdriftet (lessons/testing.md,
   # Mutationsbeleg-Regel).
-  # LC_ALL=C (#341): ohne gesetzte Locale parst BSD-awk "0.05"/"0.08" unter einer
+  # LC_ALL=C (nothra/tch-gastro-services#341): ohne gesetzte Locale parst BSD-awk "0.05"/"0.08" unter einer
   # Komma-Dezimaltrenner-Locale als 0 UND formatiert "%.2f" mit Komma – Ergebnis "0,00"
   # statt "0.13". Präzedenz in dieser Datei: :4687, :7871.
   tele_cost_sum_334() {
@@ -7976,7 +7750,7 @@ STUB_334
 
   # ── AK6 / Fehlerszenario 1: die CLI emittiert nichts Erkennbares.
   # Gebrochen wird die MESSUNG (der Stub gibt Text ohne OTEL-Struktur aus), nicht nur der
-  # Input – ein Guard, der nur leere Eingaben kennt, sähe den stillen Teilausfall nie (#319).
+  # Input – ein Guard, der nur leere Eingaben kennt, sähe den stillen Teilausfall nie (nothra/tch-gastro-services#319).
   TMP_334C="$(mktemp -d)"; TMP_334C_ORIGIN="$(mktemp -d)"
   scaffold_310 "$TMP_334C" 907
   mk_tele_stub_334 "$TMP_334C" 907 'printf "ich bin ein Log ohne jede OTEL-Struktur\n"'
@@ -8043,7 +7817,7 @@ cat "$(dirname "$0")/otel-fixture.txt"'
 
   # ── Review-Finding 1 (Kritisch), zweiter Zweig: `git add` gelingt, `git commit` scheitert
   # (hier: ablehnender pre-commit-Hook – deterministischer als auf fehlende globale
-  # Git-Identität zu setzen, Lesson testing.md #265). Auch hier darf keine CSV liegen bleiben.
+  # Git-Identität zu setzen, Lesson testing.md nothra/tch-gastro-services#265). Auch hier darf keine CSV liegen bleiben.
   TMP_334G="$(mktemp -d)"; TMP_334G_ORIGIN="$(mktemp -d)"
   scaffold_310 "$TMP_334G" 910
   cp "$TELE_FIXTURE" "$TMP_334G/bin/otel-fixture.txt"
@@ -8134,10 +7908,10 @@ STUB_334H
   fi
   rm -rf "$TMP_334H" "$TMP_334H_ORIGIN"
 
-  # ── #341: tele_cost_sum_334() bleibt unter deutscher Locale locale-unabhängig ──
+  # ── nothra/tch-gastro-services#341: tele_cost_sum_334() bleibt unter deutscher Locale locale-unabhängig ──
   # BSD-awk parst/formatiert Dezimalzahlen sonst lokale-abhängig (Komma statt Punkt) –
-  # dieselbe Fail-Klasse wie #96, hier in awk statt bash-printf. Ruft denselben Helfer wie
-  # die #334-Assertion oben auf (kein kopierter awk-Ausdruck, sonst Drift zwischen Test und
+  # dieselbe Fail-Klasse wie nothra/tch-gastro-services#96, hier in awk statt bash-printf. Ruft denselben Helfer wie
+  # die nothra/tch-gastro-services#334-Assertion oben auf (kein kopierter awk-Ausdruck, sonst Drift zwischen Test und
   # echter Zeile, lessons/testing.md).
   if [ "$HAS_DE_LOCALE" -eq 1 ]; then
     TELE_341_CSV="$(mktemp)"
@@ -8190,6 +7964,7 @@ CSV341
   TMP_334J="$(mktemp -d)"; TMP_334J_ORIGIN="$(mktemp -d)"
   scaffold_310 "$TMP_334J" 913
   printf '# Task 914: zweiter Lauf\n' > "$TMP_334J/tasks/task-914-zweiter-lauf.md"
+  mk_spec_fixture "$TMP_334J" 914
   cp "$TELE_FIXTURE" "$TMP_334J/bin/otel-fixture.txt"
   # EIN Stub für BEIDE Task-IDs, einmal geschrieben und committet: würde der Stub zwischen
   # den beiden Läufen erneut geschrieben (mk_tele_stub_334 ein zweites Mal), stünde
@@ -8237,8 +8012,8 @@ else
 fi
 
 # ── Doku ohne Drift (CLAUDE.md, OPERATING.md) ───────────────────────────────
-# Beide beschrieben die Telemetrie bis #334 als „Default aus, otel.env.example sourcen".
-# Erledigt der PR die Mechanik, ist dieselbe Prosa im selben PR nachzuziehen (Lesson #176).
+# Beide beschrieben die Telemetrie bis nothra/tch-gastro-services#334 als „Default aus, otel.env.example sourcen".
+# Erledigt der PR die Mechanik, ist dieselbe Prosa im selben PR nachzuziehen (Lesson nothra/tch-gastro-services#176).
 # Kontrolle für die `--`-Härtung der beiden Assert-Helfer (siehe ihre Definition oben):
 # eine Phrase, die mit `-` beginnt, muss gefunden UND ihr Fehlen erkannt werden. Ohne das `--`
 # bricht grep hier mit einem Usage-Fehler ab – der Präsenz-Check wäre rot, der
@@ -8249,7 +8024,7 @@ assert_absent 'hier steht der Parameter nicht' '--no-telemetry' \
   "#334 (Kontrolle): assert_absent erkennt das Fehlen derselben Phrase"
 
 claude_md_flat_334=$(flat_286 "$CLAUDE_MD")
-assert_contains_286 "$claude_md_flat_334" 'läuft seit #334 automatisch je Pipeline-Lauf' \
+assert_contains_286 "$claude_md_flat_334" 'läuft seit nothra/tch-gastro-services#334 automatisch je Pipeline-Lauf' \
   "#334 Doku: FACTORY.md beschreibt die Telemetrie als automatischen Pipeline-Bestandteil"
 assert_contains_286 "$claude_md_flat_334" '--no-telemetry' \
   "#334 Doku: FACTORY.md nennt den Abschalt-Parameter"
@@ -8260,7 +8035,7 @@ assert_absent "$claude_md_flat_334" 'OTEL-Metriken (Token/Kosten/Nutzung pro Ski
 
 # Geprüft wird der Endzustand der COMMITTETEN Live-Datei, nicht tasks/patch-334.diff: das
 # Patch-Artefakt ist transient, die Zusicherung hängt an der Datei, die Agenten wirklich
-# lesen (Lesson #212). Die Datei liegt unter .claude/** und war für den Agenten gesperrt –
+# lesen (Lesson nothra/tch-gastro-services#212). Die Datei liegt unter .claude/** und war für den Agenten gesperrt –
 # der Patch-Umweg ändert nichts daran, was hier zu bewachen ist.
 daily_metrics_flat_334=$(flat_286 "$FACTORY_ROOT/.claude/commands/daily-metrics.md")
 assert_contains_286 "$daily_metrics_flat_334" 'tasks/telemetry-<task-id>-<zeitstempel>.csv' \
@@ -8277,18 +8052,17 @@ assert_contains_286 "$operating_flat_334" 'Jeder Task-PR trägt darum eine Telem
   "#334 Doku: OPERATING.md warnt vor der neuen Datei in jedem Diff"
 assert_absent "$operating_flat_334" '`source config/otel.env.example` aktiviert' \
   "#334 Doku: OPERATING.md nennt otel.env.example nicht mehr als Aktivierungsweg"
-# ── #426 T1a-1 · Zuordnungstabelle docs/factory/OWNERSHIP.md (AK-A1…A6, F-1) ─────────────────
+# ── nothra/tch-gastro-services#426 T1a-1 · Zuordnungstabelle docs/factory/OWNERSHIP.md (AK-A1…A6, F-1) ─────────────────
 # Jede getrackte Datei gehört genau einer Seite (factory | project). ownership-check.sh ist der
 # einzige Parser des Zeilenformats; T1b leitet die filter-repo-Allowlist daraus ab (--list).
 OWN_CHECK_426="$CHECKS_DIR/ownership-check.sh"
-OWN_TABLE_426="$FACTORY_ROOT/docs/factory/OWNERSHIP.md"
 
 # Fixture-Tabelle + Dateiliste in einem Wegwerf-Verzeichnis; $1 = Tabellen-Zeilen, $2 = Dateien
 own_run_426() {
   local dir; dir="$(mktemp -d)"
   printf '| Seite | Muster | Begründung |\n|---|---|---|\n%b' "$1" > "$dir/OWNERSHIP.md"
   printf '%b' "$2" > "$dir/files.txt"
-  OWNERSHIP_FILE="$dir/OWNERSHIP.md" OWNERSHIP_FILE_LIST="$dir/files.txt" \
+  FACTORY_LOCK_FILE="$NO_LOCK_FILE" OWNERSHIP_FILE="$dir/OWNERSHIP.md" OWNERSHIP_FILE_LIST="$dir/files.txt" \
     bash "$OWN_CHECK_426" "${@:3}" 2>&1
   local rc=$?
   rm -rf "$dir"
@@ -8310,7 +8084,7 @@ assert_contains_286 "$out_426" 'scripts/neu.sh: keiner Seite zugeordnet' \
 assert_absent "$out_426" 'app/a.ts:' "#426 AK-A2: zugeordnete Datei wird nicht gemeldet"
 
 # AK-A2 / F-1 (doppelt): zwei Seiten treffen dieselbe Datei → rot, beide Muster genannt
-out_426="$(own_run_426 '| factory | `scripts/**` | alles |\n| project | `scripts/nur-projekt.sh` | TCH |\n' 'scripts/nur-projekt.sh\n')"
+out_426="$(own_run_426 '| factory | `scripts/**` | alles |\n| project | `scripts/nur-projekt.sh` | Projekt |\n' 'scripts/nur-projekt.sh\n')"
 assert_exit 1 $? "#426 AK-A2: Datei mit Zuordnung zu beiden Seiten → Exit 1"
 assert_contains_286 "$out_426" 'scripts/nur-projekt.sh: mehreren Seiten zugeordnet' \
   "#426 AK-A2: die doppelte Datei wird namentlich genannt"
@@ -8330,7 +8104,7 @@ assert_exit 1 $? "#426 Glob: '.' im Muster ist ein wörtlicher Punkt"
 # Fail-closed: leere Tabelle, fehlende Tabelle, leere Dateiliste
 own_run_426 '' 'a.md\n' > /dev/null
 assert_exit 2 $? "#426 fail-closed: Tabelle ohne Zeilen → Exit 2 (nicht still grün)"
-OWNERSHIP_FILE=/nicht/vorhanden/OWNERSHIP.md OWNERSHIP_FILE_LIST=/dev/null bash "$OWN_CHECK_426" > /dev/null 2>&1
+FACTORY_LOCK_FILE="$NO_LOCK_FILE" OWNERSHIP_FILE=/nicht/vorhanden/OWNERSHIP.md OWNERSHIP_FILE_LIST=/dev/null bash "$OWN_CHECK_426" > /dev/null 2>&1
 assert_exit 2 $? "#426 fail-closed: nicht lesbare Tabelle → Exit 2"
 own_run_426 '| project | `**` | alles |\n' '' > /dev/null
 assert_exit 2 $? "#426 fail-closed: leere Dateiliste → Exit 2"
@@ -8346,20 +8120,14 @@ assert_exit 2 $? "#426 AK-A5: --list mit unbekannter Seite → Exit 2"
 # AK-A1/A3/A4 gegen die ECHTE Tabelle und `git ls-files` (kein Fixture)
 own_real_out="$(bash "$OWN_CHECK_426" 2>&1)"
 own_real_rc=$?
-assert_exit 0 "$own_real_rc" "#426 AK-A1/A6: jede getrackte Datei hat genau eine Seite (echte Tabelle + git ls-files)"
+assert_exit 0 "$own_real_rc" "#426 AK-A1/A6: jede getrackte Datei hat genau eine Seite (Modus des Repos – Tabelle oder Lock – + git ls-files)"
 [ "$own_real_rc" -eq 0 ] || echo "$own_real_out" | head -20 | sed 's/^/      /'
 
 # Ausgabe erst einsammeln, dann per Here-String greppen (nie `printf | grep -q`): bei einer Liste über dem
 # Pipe-Puffer (~64 KB, die Projekt-Liste wächst mit jeder Datei) beendet `grep -q` früh, und `pipefail` macht
 # aus dem SIGPIPE des Schreibers ein falsches Rot (Exit 141) – nur auf dem CI-Runner sichtbar (bash-gotchas #3).
+# Bewusst OHNE Lock-Override: hier gilt der Modus des Repos (Tabelle im Factory-Repo, Lock im Konsumenten).
 own_side_426() { local l; l="$(bash "$OWN_CHECK_426" --list "$1" 2>/dev/null)"; grep -qxF -- "$2" <<< "$l"; }
-for f_426 in CLAUDE.md factory.config.yml docs/factory/PROJECT-CONTEXT.md .gitignore \
-    .claude/settings.json docs/specs/spec-426-trennlinie-factory-projekt-ziehen.md \
-    tasks/task-426-trennlinie-factory-projekt-ziehen.md docs/adr/014-tech-stack-selection.md \
-    app/layout.tsx; do
-  own_side_426 project "$f_426"
-  assert_exit 0 $? "#426 AK-A4: $f_426 ist 'project' zugeordnet"
-done
 # Gegenprobe: ein Factory-Kern ist NICHT 'project' (sonst wäre jede Zeile trivial 'project')
 own_side_426 factory scripts/run-pipeline.sh
 assert_exit 0 $? "#426 AK-A4 (Kontrolle): scripts/run-pipeline.sh ist 'factory' zugeordnet"
@@ -8372,11 +8140,236 @@ assert_true "$(grep -q 'ownership-check.sh' "$CHECKS_DIR/pre-push.sh"; echo $?)"
   "#426 AK-A6: pre-push.sh ruft ownership-check.sh auf (lokales Gate)"
 assert_true "$(grep -q 'bash scripts/checks/tests/run-tests.sh' "$FACTORY_ROOT/.github/workflows/factory-ci.yml"; echo $?)" \
   "#426 AK-A6: factory-self-test (CI) führt diese Suite aus – damit auch den Check oben"
-# ── #426 T1a-1 · ADRs trennen (AK-B1…B6, F-2) ────────────────────────────────────────────────
+# ── Factory-Issue #22 · Konsumenten-Vertrag: ownership-check.sh im Lock-Modus (AK2.15a/b, F-22.1/3/4) ─────────────────
+# Mit `factory.lock` im Repo-Wurzelverzeichnis gilt allein der Lock (ADR 064 D2/D3); ohne Lock bleibt der Tabellenmodus
+# oben unverändert. Der Lock ist das Release-Manifest (JSON); gelesen wird nur die Pfadmenge.
+OWN_CHECK_22="$CHECKS_DIR/ownership-check.sh"
+
+# mk_lock_fixture_22 <lock-json> <getrackte Dateien (\n-getrennt)> <Anpassungsstellen-Liste (roh)> → Verzeichnis mit
+# factory.lock, files.txt, points.txt. `%b` in <getrackte Dateien>/<Liste> deutet \n und \r; <lock-json> ist roh.
+mk_lock_fixture_22() {
+  local dir; dir="$(mktemp -d)" || return 1
+  printf '%s' "$1" > "$dir/factory.lock"
+  printf '%b' "$2" > "$dir/files.txt"
+  printf '%b' "$3" > "$dir/points.txt"
+  printf '%s' "$dir"
+}
+# lock_json_22 <Lock-Pfade (\n-getrennt)> → Lock im Schema des Release-Manifests
+lock_json_22() {
+  printf '%b' "$1" | jq -R . | jq -s -c '{schema: 1, repo: "x/y", version: "v0", commit: "0", files: map({path: ., sha256: "0"})}'
+}
+# lock_check_22 <Fixture-Verzeichnis> [Argumente…] – ownership-check.sh im Fixture (stdout+stderr).
+# Die Zuordnungstabelle fehlt absichtlich (TABLE_22 leer): der Lock-Modus darf sie nicht brauchen. PATH_22/BASH_22 ersetzen
+# PATH und die Shell (Stub ohne jq); TABLE_22 setzt eine Tabelle daneben.
+lock_check_22() {
+  local dir="$1"; shift
+  env PATH="${PATH_22:-$PATH}" FACTORY_LOCK_FILE="$dir/factory.lock" CUSTOMIZATION_POINTS_FILE="$dir/points.txt" \
+    OWNERSHIP_FILE="${TABLE_22:-/nicht/vorhanden/OWNERSHIP.md}" OWNERSHIP_FILE_LIST="$dir/files.txt" \
+    "${BASH_22:-bash}" "$OWN_CHECK_22" "$@" 2>&1
+}
+# write_all_project_table_22 <Datei> – Zuordnungstabelle, die ALLES der Seite `project` zuordnet: ein Rückfall in den Tabellenmodus
+# ergäbe damit Exit 0 und fiele in den Negativtests (kaputter Lock) sofort auf.
+write_all_project_table_22() {
+  printf '| Seite | Muster | Begründung |\n|---|---|---|\n| project | `**` | alles |\n' > "$1"
+}
+# lock_run_22 <Lock-Pfade> <getrackte Dateien> <Anpassungsstellen> [Argumente…] – Fixture bauen, laufen lassen, aufräumen
+lock_run_22() {
+  local dir rc; dir="$(mk_lock_fixture_22 "$(lock_json_22 "$1")" "$2" "$3")"
+  lock_check_22 "$dir" "${@:4}"; rc=$?
+  rm -rf "$dir"; return $rc
+}
+# lock_bad_22 <Lock-Inhalt roh> – gültige Tabelle liegt daneben: ein Rückfall in den Tabellenmodus ergäbe Exit 0
+lock_bad_22() {
+  local dir rc; dir="$(mk_lock_fixture_22 "$1" 'a.md\n' 'CLAUDE.md\n')"
+  write_all_project_table_22 "$dir/OWNERSHIP.md"
+  TABLE_22="$dir/OWNERSHIP.md" lock_check_22 "$dir"; rc=$?
+  rm -rf "$dir"; return $rc
+}
+
+# AK2.15a: Lock ohne OWNERSHIP.md → grün, Seite `factory` = Lock-Pfadmenge, Rest `project`
+out_22="$(lock_run_22 'scripts/a.sh\nscripts/b.sh\n' 'scripts/a.sh\nscripts/b.sh\nCLAUDE.md\n' 'CLAUDE.md\n')"
+assert_exit 0 $? "#22 AK2.15a: Lock ohne OWNERSHIP.md → Exit 0"
+assert_contains_286 "$out_22" 'factory: 2, project: 1' "#22 AK2.15a: Verteilung = Lock-Pfadmenge gegen den Rest"
+assert_contains_286 "$out_22" 'Modus: Lock' "#22 AK2.15a-3: die Ausgabe nennt den Modus"
+
+# AK2.15a-2: --list je Seite, jede Datei genau einer Seite
+out_22="$(lock_run_22 'scripts/a.sh\nscripts/b.sh\n' 'scripts/a.sh\nCLAUDE.md\nscripts/b.sh\ndocs/x.md\n' 'CLAUDE.md\n' --list factory)"
+assert_exit 0 $? "#22 AK2.15a-2: --list factory im Lock-Modus"
+assert_true "$([ "$out_22" = "$(printf 'scripts/a.sh\nscripts/b.sh')" ]; echo $?)" "#22 AK2.15a-2: --list factory nennt genau die Lock-Pfade"
+out_22="$(lock_run_22 'scripts/a.sh\nscripts/b.sh\n' 'scripts/a.sh\nCLAUDE.md\nscripts/b.sh\ndocs/x.md\n' 'CLAUDE.md\n' --list project)"
+assert_exit 0 $? "#22 AK2.15a-2: --list project im Lock-Modus"
+assert_true "$([ "$out_22" = "$(printf 'CLAUDE.md\ndocs/x.md')" ]; echo $?)" "#22 AK2.15a-2: --list project nennt genau das Komplement"
+
+# AK2.15a-3: Lock UND widersprüchliche Tabelle → allein der Lock entscheidet (kein Mischmodus)
+dir_22="$(mk_lock_fixture_22 '{"schema":1,"files":[{"path":"scripts/a.sh","sha256":"0"}]}' 'scripts/a.sh\nREADME.md\n' 'README.md\n')"
+printf '| Seite | Muster | Begründung |\n|---|---|---|\n| project | `scripts/**` | widerspricht dem Lock |\n' > "$dir_22/OWNERSHIP.md"
+out_22="$(TABLE_22="$dir_22/OWNERSHIP.md" lock_check_22 "$dir_22")"
+assert_exit 0 $? "#22 AK2.15a-3: widersprüchliche Tabelle neben dem Lock stört nicht (README.md ist in der Tabelle unzugeordnet)"
+assert_contains_286 "$out_22" 'factory: 1, project: 1' "#22 AK2.15a-3: Ergebnis folgt dem Lock, nicht der Tabelle"
+rm -rf "$dir_22"
+
+# AK2.15b (Fall 1): Lock-Pfad nicht getrackt → Exit 1, Pfad + Signal „nicht getrackt“
+out_22="$(lock_run_22 'scripts/a.sh\nscripts/weg.sh\n' 'scripts/a.sh\nCLAUDE.md\n' 'CLAUDE.md\n')"
+assert_exit 1 $? "#22 AK2.15b: Lock-Pfad ohne Datei → Exit 1"
+assert_contains_286 "$out_22" 'scripts/weg.sh: nicht getrackt' "#22 AK2.15b: der fehlende Lock-Pfad wird namentlich genannt"
+assert_absent "$out_22" 'Anpassungsstelle' "#22 AK2.15b: Fall 1 löst nicht das Signal von Fall 2 aus"
+# AK2.15b (Fall 2): Anpassungsstelle im Lock → Exit 1, Pfad + Signal „Anpassungsstelle“
+out_22="$(lock_run_22 'scripts/a.sh\nCLAUDE.md\n' 'scripts/a.sh\nCLAUDE.md\n' 'CLAUDE.md\n')"
+assert_exit 1 $? "#22 AK2.15b: Anpassungsstelle im Lock → Exit 1"
+assert_contains_286 "$out_22" 'CLAUDE.md: Anpassungsstelle steht im Lock' "#22 AK2.15b: die Anpassungsstelle wird namentlich genannt"
+assert_absent "$out_22" 'nicht getrackt' "#22 AK2.15b: Fall 2 löst nicht das Signal von Fall 1 aus"
+
+# AK2.15b (Review-Fund): die Liste darf nicht still ins Leere laufen, wenn sie CRLF/Randleerraum trägt oder keinen Eintrag hat –
+# sonst wäre die Prüfung „Anpassungsstelle im Lock“ fail-open (F-22.2).
+out_22="$(lock_run_22 'scripts/a.sh\nCLAUDE.md\n' 'scripts/a.sh\nCLAUDE.md\n' '# Kommentar\r\nCLAUDE.md\r\n')"
+assert_exit 1 $? "#22 AK2.15b: Anpassungsstellen-Liste mit CRLF-Zeilenenden greift trotzdem → Exit 1"
+assert_contains_286 "$out_22" 'CLAUDE.md: Anpassungsstelle steht im Lock' "#22 AK2.15b: CRLF-Liste: die Anpassungsstelle wird namentlich genannt"
+out_22="$(lock_run_22 'scripts/a.sh\nCLAUDE.md\n' 'scripts/a.sh\nCLAUDE.md\n' '   CLAUDE.md  \n')"
+assert_exit 1 $? "#22 AK2.15b: Anpassungsstelle mit Leerzeichen am Rand greift trotzdem → Exit 1"
+out_22="$(lock_run_22 'scripts/a.sh\n' 'scripts/a.sh\n' '# nur Kommentar\n\n')"
+assert_exit 2 $? "#22 F-22.2: Anpassungsstellen-Liste ohne Eintrag → Exit 2 (nicht „keine Anpassungsstelle verletzt“)"
+assert_contains_286 "$out_22" 'Anpassungsstellen' "#22 F-22.2: die Meldung zur leeren Liste nennt die Anpassungsstellen"
+
+# Review-Fund (Iteration 2): die Fundzahl in der Schlusszeile ist die echte Zahl, auch jenseits von 255 (ein Exit-Code-Zähler wäre bei 255 gekappt)
+out_22="$(lock_run_22 "$(seq -f 'x%g.txt' 1 300)\n" 'a.md\n' 'CLAUDE.md\n')"
+assert_exit 1 $? "#22 AK2.15b: 300 fehlende Lock-Pfade → Exit 1"
+assert_contains_286 "$out_22" '300 Fund(e)' "#22 AK2.15b: die Schlusszeile nennt die echte Fundzahl (300, nicht auf 255 gekappt)"
+
+# Security-Review (Task 22): ein Lock-Pfad, der wie eine echo-Option aussieht (`-n`, `-e`, `-E`), darf den Fundzähler nicht verschlucken –
+# sonst endet ein Lock mit nicht getracktem Pfad „-n“ mit Exit 0 (fail-open im Ownership-Gate).
+for opt_22 in -n -e -E; do
+  out_22="$(lock_run_22 "$opt_22\n" 'a.md\n' 'CLAUDE.md\n')"
+  assert_exit 1 $? "#22 Security: nicht getrackter Lock-Pfad '$opt_22' → Exit 1 (kein Fail-open durch echo-Option)"
+  assert_contains_286 "$out_22" '1 Fund(e)' "#22 Security: Lock-Pfad '$opt_22' wird als Fund gezählt"
+done
+
+# F-22.4: doppelter Lock-Pfad → Exit 1 mit Pfad, nicht still zusammengefasst
+out_22="$(lock_run_22 'scripts/a.sh\nscripts/a.sh\n' 'scripts/a.sh\n' 'CLAUDE.md\n')"
+assert_exit 1 $? "#22 F-22.4: doppelter Lock-Pfad → Exit 1"
+assert_contains_286 "$out_22" 'scripts/a.sh: mehrfach im Lock' "#22 F-22.4: der doppelte Pfad wird namentlich genannt"
+
+# F-22.3: Sonderzeichen und Leerzeichen wörtlich, keine Muster-Auswertung
+out_22="$(lock_run_22 'a+b.sh\nx[1].md\ndir/mit leerzeichen.txt\n' 'a+b.sh\nx[1].md\ndir/mit leerzeichen.txt\nrest.md\n' 'CLAUDE.md\n' --list factory)"
+assert_exit 0 $? "#22 F-22.3: Pfade mit '+', '[', Leerzeichen sind gültige Lock-Pfade"
+assert_true "$([ "$out_22" = "$(printf 'a+b.sh\ndir/mit leerzeichen.txt\nx[1].md')" ]; echo $?)" "#22 F-22.3: genau diese Pfade stehen auf Seite factory"
+out_22="$(lock_run_22 'a.b\n' 'aXb\n' 'CLAUDE.md\n')"
+assert_exit 1 $? "#22 F-22.3: '.' im Lock-Pfad ist kein Joker (aXb ≠ a.b)"
+assert_contains_286 "$out_22" 'a.b: nicht getrackt' "#22 F-22.3: der Joker-Kandidat bleibt ein fehlender Pfad"
+out_22="$(lock_run_22 'x*\n' 'xyz\n' 'CLAUDE.md\n')"
+assert_exit 1 $? "#22 F-22.3: '*' im Lock-Pfad ist kein Glob"
+
+# F-22.3 (Review-Fund): Nicht-ASCII-Pfade. `git ls-files` quotet sie standardmäßig ("docs/f\303\274r.md"); gegen echtes git prüfen,
+# nicht gegen eine Dateiliste – sonst bliebe der Quoting-Fehler unsichtbar.
+dir_22="$(mktemp -d)"
+git -C "$dir_22" init -q; git -C "$dir_22" config user.email t@t.t; git -C "$dir_22" config user.name t
+# Die Quoting-Regel gilt es zu belegen: nicht von einer globalen Git-Konfiguration abhängig machen (sonst wäre der Test zufällig grün).
+git -C "$dir_22" config core.quotepath true; git -C "$dir_22" config commit.gpgsign false
+mkdir -p "$dir_22/docs"; : > "$dir_22/docs/für.md"; : > "$dir_22/übung.md"; printf 'CLAUDE.md\n' > "$dir_22/points.txt"
+printf '{"schema":1,"files":[{"path":"docs/für.md","sha256":"0"}]}' > "$dir_22/factory.lock"
+git -C "$dir_22" add -A; git -C "$dir_22" commit -q -m init
+umlaut_22() { FACTORY_DIR="$dir_22" FACTORY_LOCK_FILE="$dir_22/factory.lock" CUSTOMIZATION_POINTS_FILE="$dir_22/points.txt" bash "$OWN_CHECK_22" "$@" 2>&1; }
+out_22="$(umlaut_22)"
+assert_exit 0 $? "#22 F-22.3: Lock-Pfad mit Umlaut gegen echtes git ls-files → Exit 0 (kein Falsch-Rot durch Quoting)"
+out_22="$(umlaut_22 --list factory)"
+assert_true "$([ "$out_22" = 'docs/für.md' ]; echo $?)" "#22 F-22.3: --list factory nennt den Umlaut-Pfad unquotet"
+out_22="$(umlaut_22 --list project | LC_ALL=C sort)"
+assert_true "$([ "$out_22" = "$(printf 'factory.lock\npoints.txt\nübung.md')" ]; echo $?)" "#22 F-22.3: --list project nennt Umlaut-Dateien unquotet"
+rm -rf "$dir_22"
+
+# F-22.1: unlesbarer / leerer / ungültiger Lock → Exit 2 (fail-closed), kein Rückfall in den Tabellenmodus
+lock_bad_22 '' > /dev/null;                                          assert_exit 2 $? "#22 F-22.1: leerer Lock → Exit 2, kein Tabellenmodus"
+lock_bad_22 'das ist kein json' > /dev/null;                         assert_exit 2 $? "#22 F-22.1: Lock ohne gültiges JSON → Exit 2"
+lock_bad_22 '{"schema":1,"files":[]}' > /dev/null;                   assert_exit 2 $? "#22 F-22.1: Lock ohne Pfadeintrag → Exit 2"
+lock_bad_22 '{"schema":2,"files":[{"path":"a.md"}]}' > /dev/null;    assert_exit 2 $? "#22 F-22.1: unbekanntes Schema → Exit 2"
+lock_bad_22 '{"schema":1,"files":[{"sha256":"0"}]}' > /dev/null;     assert_exit 2 $? "#22 F-22.1: Eintrag ohne Pfad → Exit 2"
+out_22="$(lock_bad_22 '{"schema":2,"files":[{"path":"a.md"}]}')"
+assert_contains_286 "$out_22" 'schema' "#22 F-22.1: die Meldung nennt das Schema als Ursache"
+dir_22="$(mk_lock_fixture_22 '{"schema":1,"files":[{"path":"a.md"}]}' 'a.md\n' 'CLAUDE.md\n')"; chmod 000 "$dir_22/factory.lock"
+if [ -r "$dir_22/factory.lock" ]; then
+  echo "  (übersprungen: Lock trotz chmod 000 lesbar – Lauf als Superuser)"
+else
+  lock_check_22 "$dir_22" > /dev/null
+  assert_exit 2 $? "#22 F-22.1: nicht lesbarer Lock → Exit 2"
+fi
+chmod 600 "$dir_22/factory.lock"; rm -rf "$dir_22"
+# F-22.1 (Review-Fund): ein hängender Symlink `factory.lock` ist auch ein Lock – nicht „kein Lock“ (sonst stiller Rückfall in die Tabelle)
+dir_22="$(mk_lock_fixture_22 '' 'a.md\n' 'CLAUDE.md\n')"; rm -f "$dir_22/factory.lock"; ln -s /nicht/vorhanden/ziel "$dir_22/factory.lock"
+write_all_project_table_22 "$dir_22/OWNERSHIP.md"
+out_22="$(TABLE_22="$dir_22/OWNERSHIP.md" lock_check_22 "$dir_22")"
+assert_exit 2 $? "#22 F-22.1: hängender Symlink als factory.lock → Exit 2, kein Rückfall in den Tabellenmodus"
+assert_contains_286 "$out_22" 'factory.lock' "#22 F-22.1: die Meldung zum hängenden Symlink nennt factory.lock"
+rm -rf "$dir_22"
+
+# F-22.1 (Messung): ohne jq im PATH → Exit 2 mit klarer Meldung, nicht Exit 0 (Stub bricht die Messung, nicht nur den Input).
+# Der Stub enthält die üblichen Werkzeuge ohne jq (eine Obermenge dessen, was ownership-check.sh braucht). Der Test belegt, dass die
+# jq-Prüfung vor allen anderen Werkzeugen greift – er hängt nicht an der Vollständigkeit dieser Liste.
+NOJQ_TOOLS_22="bash dirname cat sort uniq comm grep awk sed mktemp rm tr git head"
+nojq_22="$(mktemp -d)"
+for t_22 in $NOJQ_TOOLS_22; do
+  p_22="$(command -v "$t_22" 2>/dev/null)" && ln -s "$p_22" "$nojq_22/$t_22"
+done
+dir_22="$(mk_lock_fixture_22 '{"schema":1,"files":[{"path":"a.md"}]}' 'a.md\n' 'CLAUDE.md\n')"
+out_22="$(PATH_22="$nojq_22" BASH_22="$nojq_22/bash" lock_check_22 "$dir_22")"
+assert_exit 2 $? "#22 F-22.1: Lock-Modus ohne jq → Exit 2"
+assert_contains_286 "$out_22" 'jq' "#22 F-22.1: die Meldung nennt jq"
+rm -rf "$nojq_22" "$dir_22"
+
+# F-22.2: Liste der Anpassungsstellen fehlt → Exit 2 (nicht „keine Anpassungsstelle verletzt“)
+dir_22="$(mk_lock_fixture_22 '{"schema":1,"files":[{"path":"a.md"}]}' 'a.md\n' '')"; rm -f "$dir_22/points.txt"
+out_22="$(lock_check_22 "$dir_22")"
+assert_exit 2 $? "#22 F-22.2: fehlende Anpassungsstellen-Liste → Exit 2"
+assert_contains_286 "$out_22" 'Anpassungsstellen' "#22 F-22.2: die Meldung nennt die Liste der Anpassungsstellen"
+rm -rf "$dir_22"
+
+# /test-Ergänzung (Zeilenabdeckung von ownership-check.sh per xtrace): fail-closed-Pfade ohne eigenen Test.
+# Aufruffehler: unbekannter Parameter → Exit 2 mit Meldung (beide Modi teilen die Argument-Auswertung vor der Moduswahl)
+out_22="$(lock_run_22 'a.md\n' 'a.md\n' 'CLAUDE.md\n' --unbekannt)"
+assert_exit 2 $? "#22 /test: unbekannter Parameter → Exit 2 (auch mit Lock)"
+assert_contains_286 "$out_22" 'unbekannter Parameter: --unbekannt' "#22 /test: die Meldung nennt den unbekannten Parameter"
+# Dateiliste (Override für Tests) nicht lesbar → Exit 2 – im Lock-Modus und im Tabellenmodus, je mit der Meldung
+dir_22="$(mk_lock_fixture_22 '{"schema":1,"files":[{"path":"a.md"}]}' 'a.md\n' 'CLAUDE.md\n')"; rm -f "$dir_22/files.txt"
+out_22="$(lock_check_22 "$dir_22")"
+assert_exit 2 $? "#22 /test: Lock-Modus mit nicht lesbarer Dateiliste → Exit 2"
+assert_contains_286 "$out_22" 'Dateiliste nicht lesbar' "#22 /test: die Meldung nennt die nicht lesbare Dateiliste (Lock-Modus)"
+write_all_project_table_22 "$dir_22/OWNERSHIP.md"
+out_22="$(FACTORY_LOCK_FILE="$NO_LOCK_FILE" OWNERSHIP_FILE="$dir_22/OWNERSHIP.md" OWNERSHIP_FILE_LIST="$dir_22/files.txt" bash "$OWN_CHECK_22" 2>&1)"
+assert_exit 2 $? "#22 /test: Tabellenmodus mit nicht lesbarer Dateiliste → Exit 2"
+assert_contains_286 "$out_22" 'Dateiliste nicht lesbar' "#22 /test: die Meldung nennt die nicht lesbare Dateiliste (Tabellenmodus)"
+rm -rf "$dir_22"
+# Kein git-Repo und keine Dateiliste → `git ls-files` scheitert → Exit 2 (nie „keine Dateien, alles grün“)
+dir_22="$(mktemp -d)"; printf '{"schema":1,"files":[{"path":"a.md"}]}' > "$dir_22/factory.lock"; printf 'CLAUDE.md\n' > "$dir_22/points.txt"
+out_22="$(GIT_CEILING_DIRECTORIES="$(dirname "$dir_22")" FACTORY_DIR="$dir_22" FACTORY_LOCK_FILE="$dir_22/factory.lock" CUSTOMIZATION_POINTS_FILE="$dir_22/points.txt" bash "$OWN_CHECK_22" 2>&1)"
+assert_exit 2 $? "#22 /test: Lock-Modus ohne git-Repo und ohne Dateiliste → Exit 2"
+assert_contains_286 "$out_22" 'git ls-files fehlgeschlagen' "#22 /test: die Meldung nennt das fehlgeschlagene git ls-files"
+rm -rf "$dir_22"
+# Interner Fehler: scheitert `comm` selbst (Messung gebrochen per PATH-Stub), ist das Exit 2 – nicht „ein Fund“ und nicht grün
+brkcomm_22="$(mktemp -d)"
+for t_22 in $NOJQ_TOOLS_22 jq; do
+  p_22="$(command -v "$t_22" 2>/dev/null)" && ln -s "$p_22" "$brkcomm_22/$t_22"
+done
+rm -f "$brkcomm_22/comm"; printf '#!/bin/sh\nexit 3\n' > "$brkcomm_22/comm"; chmod +x "$brkcomm_22/comm"
+dir_22="$(mk_lock_fixture_22 '{"schema":1,"files":[{"path":"a.md"}]}' 'a.md\nb.md\n' 'CLAUDE.md\n')"
+out_22="$(PATH_22="$brkcomm_22" BASH_22="$brkcomm_22/bash" lock_check_22 "$dir_22")"
+assert_exit 2 $? "#22 /test: scheitert comm selbst → Exit 2 (interner Fehler, fail-closed)"
+assert_contains_286 "$out_22" 'interner Fehler' "#22 /test: die Meldung nennt den internen Fehler"
+rm -rf "$brkcomm_22" "$dir_22"
+
+# AK2.15c: ohne Lock bleibt der Tabellenmodus – keine Moduszeile, Meldungen unverändert (Kontrolle zu den Tests oben)
+out_22="$(own_run_426 '| project | `**` | alles |\n' 'a.md\n')"
+assert_exit 0 $? "#22 AK2.15c: ohne Lock gilt die Tabelle (Exit 0)"
+assert_absent "$out_22" 'Modus:' "#22 AK2.15c: der Tabellenmodus trägt keine Moduszeile (Ausgabe unverändert)"
+# F-22.5: Alles, was die ausgelieferte Suite sourct oder als Fixture liest (tests/lib, tests/fixtures), liegt auf Seite `factory` –
+# sonst fehlte es im Konsumenten, und die Suite bräche dort beim `source` ab (die Dateien selbst stehen auf Seite factory, ADR-064 D6).
+for f_22 in "$CHECKS_DIR"/tests/lib/* "$CHECKS_DIR"/tests/fixtures/*; do
+  own_side_426 factory "${f_22#"$FACTORY_ROOT"/}"
+  assert_exit 0 $? "#22 F-22.5: ${f_22#"$FACTORY_ROOT"/} wird mit der Suite ausgeliefert (Seite factory)"
+done
+
+# ── nothra/tch-gastro-services#426 T1a-1 · ADRs trennen (AK-B1…B6, F-2) ────────────────────────────────────────────────
 ADR_LINKS_426="$CHECKS_DIR/adr-links-check.sh"
 # Der Verzeichnisname steht nur hier und wird zur Laufzeit eingesetzt: ein Fixture-Literal wie
 # `<verzeichnis>/009-x.md` in DIESER Datei würde vom Link-Check selbst als toter Link gefunden
-# (Content-Scan-Guard, dessen Phrase in der gescannten Datei steht – Lesson #319).
+# (Content-Scan-Guard, dessen Phrase in der gescannten Datei steht – Lesson nothra/tch-gastro-services#319).
 ADR_DIR_426="adr"
 
 # Fixture-Repo mit je einer ADR pro Verzeichnis
@@ -8422,7 +8415,7 @@ assert_exit 0 "$adr_links_rc_426" "#426 AK-B3: im ganzen Repo zeigt kein ADR-Lin
 [ "$adr_links_rc_426" -eq 0 ] || echo "$out_426" | grep '^✗' | head -20 | sed 's/^/      /'
 
 # AK-B1/B2: Zuordnung der ADR-Dateien (Anhang 1 der Spec, final in ADR-063 Nachtrag Q3)
-FACTORY_ADR_NUMS_426="001 002 003 004 005 006 007 008 009 010 011 012 013 018 019 029 030 037 038 040 041 042 043 045 047 049 051 063"
+FACTORY_ADR_NUMS_426="001 002 003 004 005 006 007 008 009 010 011 012 013 018 019 029 030 037 038 040 041 042 043 045 047 049 051 063 064 065 066"
 adr_nums_426() { # $1 = Verzeichnis → Nummern der ADR-Dateien, eindeutig sortiert
   local f; for f in "$1"/[0-9][0-9][0-9]-*.md; do [ -e "$f" ] && basename "$f" | cut -c1-3; done | sort -u
 }
@@ -8434,17 +8427,7 @@ for n_426 in $FACTORY_ADR_NUMS_426; do
 done
 assert_true "$([ -z "$leaked_426" ]; echo $?)" \
   "#426 AK-B2: keine Factory-ADR liegt noch in docs/adr/ (Reste:${leaked_426:- keine})"
-assert_true "$([ "$(adr_nums_426 "$FACTORY_ROOT/docs/adr" | wc -l | tr -d ' ')" -gt 0 ]; echo $?)" \
-  "#426 AK-B2: die App-ADRs bleiben in docs/adr/"
-# `git mv` statt Kopie: die Historie vor dem Umzug ist über --follow erreichbar. Ein flacher
-# Klon (CI) hat nur einen Commit – dort bleibt der Beleg lokal, der Rest oben gilt überall.
-if [ "$(git -C "$FACTORY_ROOT" rev-parse --is-shallow-repository 2>/dev/null)" = "false" ]; then
-  follow_n_426="$(git -C "$FACTORY_ROOT" log --follow --oneline -- docs/factory/adr/018-central-issue-seam.md | wc -l | tr -d ' ')"
-  assert_true "$([ "$follow_n_426" -ge 2 ]; echo $?)" \
-    "#426 AK-B1: git log --follow zeigt die Historie vor dem Umzug (ADR-018: $follow_n_426 Commits)"
-else
-  echo "  • #426 AK-B1: --follow-Beleg übersprungen (flacher Klon)"
-fi
+# (Die App-ADRs liegen im adoptierenden Projekt, nicht in der Factory-Auslieferung.)
 
 # AK-B4: jedes ADR-README listet GENAU die ADRs seines Verzeichnisses
 adr_readme_matches_426() { # $1 = Verzeichnis
@@ -8455,8 +8438,6 @@ adr_readme_matches_426() { # $1 = Verzeichnis
 }
 adr_readme_matches_426 "$FACTORY_ROOT/docs/factory/adr"
 assert_exit 0 $? "#426 AK-B4: docs/factory/adr/README.md listet genau die Factory-ADRs"
-adr_readme_matches_426 "$FACTORY_ROOT/docs/adr"
-assert_exit 0 $? "#426 AK-B4: docs/adr/README.md listet genau die App-ADRs"
 TMP_RM_426="$(mktemp -d)"; : > "$TMP_RM_426/001-a.md"; : > "$TMP_RM_426/002-b.md"
 printf '[a](001-a.md)\n' > "$TMP_RM_426/README.md"
 adr_readme_matches_426 "$TMP_RM_426"
@@ -8465,14 +8446,8 @@ printf '[a](001-a.md) [b](002-b.md) [c](003-c.md)\n' > "$TMP_RM_426/README.md"
 adr_readme_matches_426 "$TMP_RM_426"
 assert_exit 1 $? "#426 AK-B4 (Kontrolle): ein gelisteter Geisterverweis macht den Vergleich rot"
 rm -rf "$TMP_RM_426"
-assert_true "$(grep -q 'docs/factory/adr/' "$FACTORY_ROOT/docs/adr/README.md"; echo $?)" \
-  "#426 AK-B4: das Projekt-README weist auf docs/factory/adr/ hin"
 
-# AK-B5: aktive Projekt-Dateien nennen Factory-ADRs als `Factory-ADR-NNN`
-bare_factory_adr_426() { # $1 = Datei, $2 = Nummernliste (Leerzeichen) → Treffer `ADR-NNN` ohne Präfix
-  local alt; alt="$(printf '%s' "$2" | tr ' ' '|')"
-  grep -noE "(^|[^A-Za-z-])ADR-($alt)([^0-9]|$)" "$1"
-}
+# AK-B5: aktive Projekt-Dateien nennen Factory-ADRs als `Factory-ADR-NNN` (Helfer `bare_factory_adr_426` in lib/assert-helpers.sh)
 TMP_B5_426="$(mktemp -d)"
 printf 'siehe ADR-018 und Factory-ADR-043 sowie ADR-014\n' > "$TMP_B5_426/probe.md"
 out_426="$(bare_factory_adr_426 "$TMP_B5_426/probe.md" "$FACTORY_ADR_NUMS_426")"
@@ -8480,15 +8455,6 @@ assert_contains_286 "$out_426" 'ADR-018' "#426 AK-B5 (Kontrolle): ein bloßes AD
 assert_absent "$out_426" 'ADR-043' "#426 AK-B5 (Kontrolle): Factory-ADR-043 ist korrekt präfixiert, kein Treffer"
 assert_absent "$out_426" 'ADR-014' "#426 AK-B5 (Kontrolle): eine App-ADR (014) ist kein Treffer"
 rm -rf "$TMP_B5_426"
-bare_426=""
-for f_426 in CLAUDE.md docs/factory/PROJECT-CONTEXT.md README.md CONTRIBUTING.md docs/adr/*.md; do
-  hits_426="$(bare_factory_adr_426 "$FACTORY_ROOT/$f_426" "$FACTORY_ADR_NUMS_426" | head -3)"
-  [ -z "$hits_426" ] || bare_426="$bare_426
-$f_426: $hits_426"
-done
-assert_true "$([ -z "$bare_426" ]; echo $?)" \
-  "#426 AK-B5: aktive Projekt-Dateien schreiben Factory-ADR-NNN statt ADR-NNN für Factory-ADRs"
-[ -z "$bare_426" ] || echo "$bare_426" | head -12 | sed 's/^/      /'
 
 # AK-B6: ADR-063 ist Accepted und trägt den Nachtrag mit den Detailentscheidungen Q1–Q6
 ADR063_426="$FACTORY_ROOT/docs/factory/adr/063-factory-eigenes-repo-vendored-manifest.md"
@@ -8499,7 +8465,7 @@ for q_426 in Q1 Q2 Q3 Q4 Q5 Q6; do
   assert_contains_286 "$adr063_flat_426" "**$q_426 ·" "#426 AK-B6: der Nachtrag in ADR-063 entscheidet $q_426"
 done
 
-# ── #426 T1a-1 · Lessons trennen (AK-C1…C5, F-3) und Kleinfunde teilen (AK-L1) ──────────────
+# ── nothra/tch-gastro-services#426 T1a-1 · Lessons trennen (AK-C1…C5, F-3) und Kleinfunde teilen (AK-L1) ──────────────
 LESSONS_TSV_426="$CHECKS_DIR/tests/fixtures/lessons-split-426.tsv"
 SKILLS_DIR_426="${SKILLS_DIR_426:-$FACTORY_ROOT/.claude/commands}"   # nur zur Vorab-Prüfung eines Patches
 
@@ -8512,8 +8478,10 @@ lessons_split_check_426() {
   while IFS="$(printf '\t')" read -r side lesson heading; do
     case "$side" in ''|'#'*) continue ;; esac
     if [ "$side" = factory ]; then dir="$fac"; other="$prj"; else dir="$prj"; other="$fac"; fi
-    here="$(grep -cxF -- "### $heading" "$dir/$lesson" 2>/dev/null)"
-    there="$(grep -cxF -- "### $heading" "$other/$lesson" 2>/dev/null)"
+    # Die Überschriften tragen seit der Bereinigung qualifizierte Verweise (…/nothra/tch-gastro-services#<nr>); die
+    # Fixture hält den Stand der Trennung unverändert – für den Vergleich wird die Qualifizierung zurückübersetzt.
+    here="$(sed 's#nothra/tch-gastro-services\##\##g' "$dir/$lesson" 2>/dev/null | grep -cxF -- "### $heading")"
+    there="$(sed 's#nothra/tch-gastro-services\##\##g' "$other/$lesson" 2>/dev/null | grep -cxF -- "### $heading")"
     if [ "${here:-0}" -ne 1 ] || [ "${there:-0}" -ne 0 ]; then
       echo "✗ ${lesson}: „${heading}“ (erwartet: ${side}) – dort ${here:-0}×, auf der anderen Seite ${there:-0}×"
       bad=1
@@ -8522,11 +8490,7 @@ lessons_split_check_426() {
   return $bad
 }
 
-# AK-C1: die App-Lessons liegen unter docs/project/lessons/ (git mv), nicht mehr bei der Factory
-for l_426 in frontend-react db-drizzle next-auth; do
-  assert_true "$([ -f "$FACTORY_ROOT/docs/project/lessons/$l_426.md" ] && [ ! -e "$FACTORY_ROOT/docs/factory/lessons/$l_426.md" ]; echo $?)" \
-    "#426 AK-C1: $l_426.md liegt unter docs/project/lessons/ und nicht mehr unter docs/factory/lessons/"
-done
+# (AK-C1 – die App-Lessons liegen unter docs/project/lessons/ – entfällt: sie gehören dem adoptierenden Projekt.)
 
 # AK-C2 / F-3: Kontrollen für die Prüfung selbst (Fixture), dann der echte Bestand
 TMP_LS_426="$(mktemp -d)"; mkdir -p "$TMP_LS_426/f" "$TMP_LS_426/p"
@@ -8549,52 +8513,35 @@ lessons_split_check_426 "$TMP_LS_426/t.tsv" "$TMP_LS_426/f" "$TMP_LS_426/p" > /d
 assert_exit 1 $? "#426 F-3: ein Eintrag auf der falschen Seite macht die Prüfung rot"
 rm -rf "$TMP_LS_426"
 
-out_426="$(lessons_split_check_426 "$LESSONS_TSV_426" "$FACTORY_ROOT/docs/factory/lessons" "$FACTORY_ROOT/docs/project/lessons")"
+# Nur die Factory-Zeilen gegen die Factory-Lessons; die Projekt-Zeilen der Fixture betreffen die App-Lessons
+# des adoptierenden Projekts (die Fixture selbst bleibt unverändert, siehe PROJECT-CONTEXT.md → erlaubte Stellen).
+LESSONS_TSV_FAC_426="$(mktemp)"; awk -F'\t' '$1 == "factory" || /^#/' "$LESSONS_TSV_426" > "$LESSONS_TSV_FAC_426"
+out_426="$(lessons_split_check_426 "$LESSONS_TSV_FAC_426" "$FACTORY_ROOT/docs/factory/lessons" "$(mktemp -d)")"
 lessons_rc_426=$?
+rm -f "$LESSONS_TSV_FAC_426"
 assert_exit 0 "$lessons_rc_426" "#426 AK-C2: jeder Lesson-Eintrag steht genau einmal, auf seiner Seite (Rekonstruktion gegen den Stand der Trennung)"
 [ "$lessons_rc_426" -eq 0 ] || echo "$out_426" | head -10 | sed 's/^/      /'
 assert_true "$([ "$(grep -vc '^#' "$LESSONS_TSV_426")" -eq 175 ]; echo $?)" \
   "#426 AK-C2: die Rekonstruktions-Liste deckt alle 175 Einträge der sieben Ausgangs-Lessons ab"
 
-# AK-C3: Index in PROJECT-CONTEXT.md – getrennte Gruppen, gültige Links, „Laden bei" je Gruppe
-CTX_426="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
-ctx_flat_426="$(flat_286 "$CTX_426")"
-assert_contains_286 "$ctx_flat_426" '#### Factory-Lessons (`docs/factory/lessons/`)' "#426 AK-C3: der Index hat eine Gruppe „Factory-Lessons“"
-assert_contains_286 "$ctx_flat_426" '#### Projekt-Lessons (`docs/project/lessons/`)' "#426 AK-C3: der Index hat eine Gruppe „Projekt-Lessons“"
-ctx_dead_426=""; ctx_noload_426=""
-while IFS= read -r hdr_426; do
-  tgt_426="$(printf '%s' "$hdr_426" | sed -E 's/^\*\*\[`[^`]*`\]\(([^)]*)\).*/\1/')"
-  [ -f "$FACTORY_ROOT/docs/factory/$tgt_426" ] || ctx_dead_426="$ctx_dead_426 $tgt_426"
-  printf '%s' "$hdr_426" | grep -qF -- '**Laden bei:**' || ctx_noload_426="$ctx_noload_426 $tgt_426"
-done <<< "$(grep -E '^\*\*\[`[^`]*lessons/[a-z-]+\.md`\]' "$CTX_426")"
-assert_true "$([ -z "$ctx_dead_426" ]; echo $?)" "#426 AK-C3: jeder Gruppen-Link des Index zeigt auf eine existierende Datei (tot:${ctx_dead_426:- keine})"
-assert_true "$([ -z "$ctx_noload_426" ]; echo $?)" "#426 AK-C3: jede Index-Gruppe behält ihren „Laden bei“-Trigger (ohne:${ctx_noload_426:- keine})"
-# Datei-grep statt assert_contains_286: dessen `printf | grep -q` ist bei Haystacks ab wenigen KB ein Race (SIGPIPE + pipefail, nur in CI sichtbar; bash-gotchas #3).
-for f_426 in "$FACTORY_ROOT"/docs/factory/lessons/*.md; do
-  assert_true "$(grep -qF -- "](lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
-    "#426 AK-C3: Factory-Lesson $(basename "$f_426") steht im Index"
-done
-for f_426 in "$FACTORY_ROOT"/docs/project/lessons/*.md; do
-  assert_true "$(grep -qF -- "](../project/lessons/$(basename "$f_426"))" "$CTX_426"; echo $?)" \
-    "#426 AK-C3: Projekt-Lesson $(basename "$f_426") steht im Index"
-done
 
-# AK-C4: die Kern-Kurzregeln verlinken den NEUEN Ort der Lesson
-core_426="$(awk '/^### Kern-Kurzregeln/{f=1;next} /^### Index der/{f=0} f' "$CTX_426")"
-assert_contains_286 "$core_426" '(../project/lessons/db-drizzle.md)' "#426 AK-C4: die Kern-Kurzregeln verlinken docs/project/lessons/db-drizzle.md"
-assert_absent "$core_426" '](lessons/db-drizzle.md)' "#426 AK-C4: kein Kern-Kurzregel-Link zeigt mehr auf den alten Ort"
-core_dead_426=""
-for t_426 in $(printf '%s' "$core_426" | grep -oE '\]\([^)]*\.md\)' | sed -E 's/^\]\(//; s/\)$//'); do
-  [ -f "$FACTORY_ROOT/docs/factory/$t_426" ] || core_dead_426="$core_dead_426 $t_426"
-done
-assert_true "$([ -z "$core_dead_426" ]; echo $?)" "#426 AK-C4: jeder Kern-Kurzregel-Link zeigt auf eine existierende Datei (tot:${core_dead_426:- keine})"
+# (AK-C4 – Kern-Kurzregeln mit Verweis auf die App-Lessons – entfällt: der Index des Factory-Repos hat keine.)
 
 # AK-C5: /codify nennt beide Orte und die Zuordnungsregel (Live-Datei; Patch-Lieferung, siehe Task)
 codify_flat_426="$(flat_286 "$SKILLS_DIR_426/codify.md")"
 assert_contains_286 "$codify_flat_426" 'docs/factory/lessons/<thema>.md' "#426 AK-C5: /codify nennt den Factory-Ort der Lessons"
 assert_contains_286 "$codify_flat_426" 'docs/project/lessons/<thema>.md' "#426 AK-C5: /codify nennt den Projekt-Ort der Lessons"
 assert_contains_286 "$codify_flat_426" 'Zuordnungsregel' "#426 AK-C5: /codify beschreibt die Zuordnungsregel Factory vs. Projekt"
-assert_contains_286 "$codify_flat_426" 'docs/factory/OWNERSHIP.md' "#426 AK-C5: die Zuordnungsregel verweist auf die Zuordnungstabelle"
+# Factory-Issue #27: Bezugsquelle ist das Kommando (Tabellen- und Lock-Modus), nicht die projekteigene Tabelle.
+OWN_LIST_CMD_27='bash scripts/checks/ownership-check.sh --list factory'
+OWN_TABLE_NAME_27="OWNERSHIP"".md"   # zur Laufzeit zusammengesetzt: kein Literal, das der Guard unten in dieser Datei fände (F3)
+assert_contains_286 "$codify_flat_426" "$OWN_LIST_CMD_27" "#426 AK-C5 / #27 AK4: die Zuordnungsregel nennt das Kommando ownership-check.sh --list factory"
+assert_absent "$codify_flat_426" "$OWN_TABLE_NAME_27" "#27 AK4: /codify nennt die Zuordnungstabelle nicht mehr (im Konsumenten nicht vorhanden)"
+# Factory-Issue #44 AK9: Factory-Index-Zeilen gehen nach lessons/INDEX.md, nie nach PROJECT-CONTEXT.md (rot bis Patch-Apply).
+assert_contains_286 "$codify_flat_426" 'docs/factory/lessons/INDEX.md' "#44 AK9: /codify nennt lessons/INDEX.md als Ort der Factory-Index-Zeilen"
+assert_contains_286 "$codify_flat_426" 'Factory-Index-Zeilen gehören **nie** nach `PROJECT-CONTEXT.md`' \
+  "#44 AK9: /codify schließt Factory-Index-Zeilen in PROJECT-CONTEXT.md aus"
+assert_absent "$codify_flat_426" 'Index der ausgelagerten Learnings' "#44 AK9: /codify verweist nicht mehr auf den alten Index-Abschnitt"
 
 # AK-L1: Kleinfunde nach betroffener Datei geteilt; die Skills nennen beide Orte
 kf_side_426() { # $1 = Kleinfunde-Datei, $2 = erwartete Seite → Anzahl Einträge, deren erste Wo-Datei NICHT auf dieser Seite liegt
@@ -8608,23 +8555,167 @@ kf_side_426() { # $1 = Kleinfunde-Datei, $2 = erwartete Seite → Anzahl Einträ
 out_426="$(kf_side_426 "$FACTORY_ROOT/docs/factory/kleinfunde.md" factory)"
 assert_exit 0 $? "#426 AK-L1: jeder Eintrag in docs/factory/kleinfunde.md betrifft eine Factory-Datei"
 [ -z "$out_426" ] || echo "$out_426" | head -5 | sed 's/^/      /'
-out_426="$(kf_side_426 "$FACTORY_ROOT/docs/project/kleinfunde.md" project)"
-assert_exit 0 $? "#426 AK-L1: jeder Eintrag in docs/project/kleinfunde.md betrifft eine Projekt-Datei"
-[ -z "$out_426" ] || echo "$out_426" | head -5 | sed 's/^/      /'
-assert_true "$([ "$(grep -c '^### ' "$FACTORY_ROOT/docs/project/kleinfunde.md")" -ge 1 ]; echo $?)" "#426 AK-L1: die Projekt-Kleinfunde sind nicht leer"
 for sk_426 in review security-review codify; do
   sk_flat_426="$(flat_286 "$SKILLS_DIR_426/$sk_426.md")"
   assert_contains_286 "$sk_flat_426" 'docs/factory/kleinfunde.md' "#426 AK-L1: /$sk_426 nennt den Factory-Ort der Kleinfunde"
   assert_contains_286 "$sk_flat_426" 'docs/project/kleinfunde.md' "#426 AK-L1: /$sk_426 nennt den Projekt-Ort der Kleinfunde"
-  assert_contains_286 "$sk_flat_426" 'docs/factory/OWNERSHIP.md' "#426 AK-L1: /$sk_426 nennt die Zuordnungsregel (betroffene Datei laut Tabelle)"
+  assert_contains_286 "$sk_flat_426" "$OWN_LIST_CMD_27" "#426 AK-L1 / #27 AK4: /$sk_426 nennt die Zuordnungsregel über das Kommando ownership-check.sh --list factory"
+  assert_absent "$sk_flat_426" "$OWN_TABLE_NAME_27" "#27 AK4: /$sk_426 nennt die Zuordnungstabelle nicht mehr"
+done
+# AK4-Beleg (Mutation): dieselbe Assertion gegen /review ohne das Kommando → rot
+mut_27="$(flat_286 "$SKILLS_DIR_426/review.md" | sed "s#$OWN_LIST_CMD_27#entfernt#g")"
+assert_absent "$mut_27" "$OWN_LIST_CMD_27" "#27 AK4 (Mutation): /review ohne das Kommando → die Präsenz-Assertion (assert_contains_286) wäre rot"
+
+# ── Factory-Issue #27 · keine Zuordnungsregel über die Tabelle in ausgelieferten Dateien (AK5–AK7, F1–F3) ────────────
+# Die Tabelle gehört dem Repo (Factory-ADR-064 D5) und fehlt im Konsumenten. Die Dateimenge der Seite `factory` kommt aus
+# demselben Kommando, das die Dateien als Bezugsquelle nennen – modus-neutral (Tabelle hier, factory.lock im Konsumenten).
+# Gesucht wird der Dateiname allein: jede Verweisform (Markdown-Link, Pfad in Backticks, bloßer Name) enthält ihn auf
+# einer Zeile, auch wenn Link-Text und Ziel auf zwei Zeilen stehen (F2).
+#
+# Ausnahmen (AK6) – nur die Klassen aus „Nicht inbegriffen" der Spec. Form: Glob auf den Pfad, oder `Pfad|Anker` für
+# eine einzelne Stelle (der Anker steht auf der Fundzeile); nie eine ganze Datei aus dem Scope der Spec.
+OWN_REF_EXCEPTIONS_27=(
+  'docs/factory/adr/*'                    # ADRs halten historische Entscheidungen fest
+  'scripts/checks/ownership-check.sh'     # liest die Tabelle im Tabellenmodus tatsächlich
+  'scripts/checks/pre-push.sh'            # Kommentar am Aufruf von ownership-check.sh
+  'scripts/factory-release-manifest.sh'   # läuft nur im Factory-Repo und liest die Tabelle am Tag
+  'scripts/checks/tests/*'                # Test-Dateien der Suite: Fixtures, Testnamen, dieser Guard
+  'docs/factory/lessons/factory-workflow.md|die den Zustand des Factory-Repos voraussetzen (liest'   # historische Erzählung (Factory-Task #22)
+)
+# own_ref_excepted_27 <pfad> <fundzeile> → Exit 0, wenn eine Ausnahme greift
+own_ref_excepted_27() {
+  local entry
+  for entry in "${OWN_REF_EXCEPTIONS_27[@]}"; do
+    case "$entry" in
+      *'|'*) [ "$1" = "${entry%%|*}" ] && [[ "$2" == *"${entry#*|}"* ]] && return 0 ;;
+      *) [[ "$1" == $entry ]] && return 0 ;;
+    esac
+  done
+  return 1
+}
+# own_ref_scan_27 <wurzel> <dateiliste> → „✗ Datei:Zeile: Text" je Fund; Exit 0 = keiner, 1 = Fund, 2 = Liste leer (F1)
+own_ref_scan_27() {
+  local root="$1" list="$2" f hit found=0
+  grep -q . "$list" 2>/dev/null || { echo "✗ Dateimenge der Seite factory leer oder unlesbar: $list (fail-closed)"; return 2; }
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    [ -r "$root/$f" ] || { echo "✗ $f: nicht lesbar (fail-closed)"; found=1; continue; }
+    while IFS= read -r hit; do
+      own_ref_excepted_27 "$f" "$hit" && continue
+      echo "✗ $f:$hit"; found=1
+    done < <(grep -nIiF -- "$OWN_TABLE_NAME_27" "$root/$f")
+  done < "$list"
+  return "$found"
+}
+# own_ref_guard_27 <wurzel> → Dateimenge über ownership-check.sh --list factory (Exit ≠ 0 → rot, F1), dann Scan
+own_ref_guard_27() {
+  local root="$1" list rc
+  list="$(mktemp)"
+  FACTORY_DIR="$root" bash "$CHECKS_DIR/ownership-check.sh" --list factory > "$list" 2>/dev/null; rc=$?
+  if [ "$rc" -ne 0 ]; then echo "✗ ownership-check.sh --list factory: Exit $rc (fail-closed)"; rm -f "$list"; return 2; fi
+  own_ref_scan_27 "$root" "$list"; rc=$?
+  rm -f "$list"; return "$rc"
+}
+out_27="$(own_ref_guard_27 "$FACTORY_ROOT")"
+assert_exit 0 $? "#27 AK5/AK7: keine Datei der Seite factory formuliert die Zuordnungsregel über die Tabelle (Positivkontrolle)"
+[ -z "$out_27" ] || echo "$out_27" | head -10 | sed 's/^/      /'
+
+# Fixture: die elf Scope-Dateien im aktuellen Stand, dazu Mutationen. Die Skills kommen aus SKILLS_DIR_426 (Patch-Vorprüfung).
+SCOPE_27=(docs/factory/FACTORY.md docs/factory/OPERATING.md docs/factory/guidelines/git-workflow.md docs/factory/kleinfunde.md
+  docs/factory/lessons/testing.md docs/factory/lessons/build-tooling.md docs/factory/lessons/code-style.md
+  docs/factory/lessons/factory-workflow.md)
+TMP_27="$(mktemp -d)"
+mkdir -p "$TMP_27/fx/.claude/commands" "$TMP_27/fx/docs/factory/guidelines" "$TMP_27/fx/docs/factory/lessons"
+for sk_27 in codify review security-review; do
+  cp "$SKILLS_DIR_426/$sk_27.md" "$TMP_27/fx/.claude/commands/"; printf '.claude/commands/%s.md\n' "$sk_27" >> "$TMP_27/list.txt"
+done
+for f_27 in "${SCOPE_27[@]}"; do cp "$FACTORY_ROOT/$f_27" "$TMP_27/fx/$f_27"; printf '%s\n' "$f_27" >> "$TMP_27/list.txt"; done
+assert_true "$([ "$(grep -c . "$TMP_27/list.txt")" -eq 11 ]; echo $?)" "#27 AK1: die Fixture umfasst die elf Scope-Dateien"
+own_ref_scan_27 "$TMP_27/fx" "$TMP_27/list.txt" > /dev/null
+assert_exit 0 $? "#27 AK1: keine der elf Scope-Dateien verweist auf die Tabelle (Kontrolle der Fixture)"
+for f_27 in "${SCOPE_27[@]}" .claude/commands/codify.md .claude/commands/review.md .claude/commands/security-review.md; do
+  assert_contains_286 "$(flat_286 "$TMP_27/fx/$f_27")" "$OWN_LIST_CMD_27" "#27 AK1/AK2: $f_27 nennt das Kommando als Bezugsquelle"
+  own_ref_excepted_27 "$f_27" ''
+  assert_exit 1 $? "#27 AK6: $f_27 ist nicht als ganze Datei ausgenommen"
+done
+# AK3: die Regel selbst bleibt – beide Orte und die Vorrangregel „zuerst genannt"
+assert_contains_286 "$(flat_286 "$TMP_27/fx/docs/factory/kleinfunde.md")" 'die in **Wo** zuerst genannte' "#27 AK3: kleinfunde.md behält die Vorrangregel bei mehreren Dateien"
+assert_contains_286 "$(flat_286 "$TMP_27/fx/.claude/commands/codify.md")" 'zuerst genannte' "#27 AK3: /codify behält die Vorrangregel bei mehreren Dateien"
+for f_27 in docs/factory/lessons/testing.md docs/factory/lessons/build-tooling.md docs/factory/lessons/code-style.md docs/factory/lessons/factory-workflow.md; do
+  assert_contains_286 "$(flat_286 "$TMP_27/fx/$f_27")" '→ `docs/factory/lessons/`, sonst → `docs/project/lessons/`' "#27 AK3: $f_27 behält beide Lesson-Orte"
 done
 
-# ─── #431 T1a-2 · Gruppe D: CLAUDE.md und FACTORY.md (AK-D1…D5) ─────────────────────────────
+# AK5 (Mutation): alter Verweis zurück in eine Scope-Datei → rot mit Datei:Zeile
+cp "$TMP_27/fx/docs/factory/guidelines/git-workflow.md" "$TMP_27/gw.orig"
+printf 'betroffene Datei laut [`%s`](../%s) entscheidet\n' "$OWN_TABLE_NAME_27" "$OWN_TABLE_NAME_27" >> "$TMP_27/fx/docs/factory/guidelines/git-workflow.md"
+line_27="$(grep -c '' "$TMP_27/fx/docs/factory/guidelines/git-workflow.md")"
+out_27="$(own_ref_scan_27 "$TMP_27/fx" "$TMP_27/list.txt")"; rc_27=$?
+assert_exit 1 "$rc_27" "#27 AK5 (Mutation): alter Markdown-Link in git-workflow.md → Guard rot"
+assert_contains_286 "$out_27" "✗ docs/factory/guidelines/git-workflow.md:$line_27:" "#27 AK5 (Mutation): die Meldung nennt Datei und Zeile"
+cp "$TMP_27/gw.orig" "$TMP_27/fx/docs/factory/guidelines/git-workflow.md"
+
+# own_ref_scan_reports_27 <wurzel> <dateiliste> <fundpräfix> → Exit 0, wenn der Scan einen Fund mit diesem Präfix meldet
+# (Ausgabe vorher einfangen: der Scan endet bei einem Fund mit Exit 1, `| grep -q` würde unter pipefail rot)
+own_ref_scan_reports_27() {
+  local scan_out
+  scan_out="$(own_ref_scan_27 "$1" "$2")"
+  grep -qF -- "$3" <<< "$scan_out"
+}
+# F2: Link über zwei Zeilen, Pfad in Backticks, bloßer Name, andere Schreibweise – je eine Fundzeile
+printf 'Zuordnung laut [Tabelle](\n../%s)\n' "$OWN_TABLE_NAME_27" > "$TMP_27/fx/docs/factory/kleinfunde.md"
+own_ref_scan_reports_27 "$TMP_27/fx" "$TMP_27/list.txt" "✗ docs/factory/kleinfunde.md:2:"
+assert_exit 0 $? "#27 F2: Link-Text und Ziel auf zwei Zeilen → Fund in der Zeile des Ziels"
+for form_27 in "\`docs/factory/$OWN_TABLE_NAME_27\`" "laut $OWN_TABLE_NAME_27" "laut ownership.md"; do
+  printf 'Regel: %s\n' "$form_27" > "$TMP_27/fx/docs/factory/kleinfunde.md"
+  own_ref_scan_reports_27 "$TMP_27/fx" "$TMP_27/list.txt" "✗ docs/factory/kleinfunde.md:1:"
+  assert_exit 0 $? "#27 F2: Verweisform '$form_27' wird erkannt"
+done
+cp "$FACTORY_ROOT/docs/factory/kleinfunde.md" "$TMP_27/fx/docs/factory/kleinfunde.md"
+
+# AK6: die historische Erzählung ist nur als einzelne Stelle ausgenommen – ein neuer Verweis in derselben Datei → rot
+printf '\nZuordnungsregel: Datei laut `%s`\n' "$OWN_TABLE_NAME_27" >> "$TMP_27/fx/docs/factory/lessons/factory-workflow.md"
+own_ref_scan_reports_27 "$TMP_27/fx" "$TMP_27/list.txt" "✗ docs/factory/lessons/factory-workflow.md:"
+assert_exit 0 $? "#27 AK6: neuer Verweis in factory-workflow.md außerhalb der ausgenommenen Stelle → Guard rot"
+printf 'hatte 44 rote Tests – das **sind** die Gruppen, die den Zustand des Factory-Repos voraussetzen (liest `%s`)\n' "$OWN_TABLE_NAME_27" > "$TMP_27/hist.md"
+own_ref_excepted_27 docs/factory/lessons/factory-workflow.md "$(cat "$TMP_27/hist.md")"
+assert_exit 0 $? "#27 AK6 (Kontrolle): die historische Stelle selbst bleibt ausgenommen"
+own_ref_excepted_27 docs/factory/lessons/testing.md "$(cat "$TMP_27/hist.md")"
+assert_exit 1 $? "#27 AK6: der Anker der Einzelstelle gilt nur in seiner Datei"
+cp "$FACTORY_ROOT/docs/factory/lessons/factory-workflow.md" "$TMP_27/fx/docs/factory/lessons/factory-workflow.md"   # Mutation zurücknehmen, bevor AK7 dieselbe Fixture nutzt
+
+# F1: Dateimenge nicht bestimmbar → rot statt still grün
+: > "$TMP_27/leer.txt"
+out_27="$(own_ref_scan_27 "$TMP_27/fx" "$TMP_27/leer.txt")"
+assert_exit 2 $? "#27 F1: leere Dateimenge → Exit 2 (fail-closed)"
+mkdir -p "$TMP_27/kein-repo"
+out_27="$(own_ref_guard_27 "$TMP_27/kein-repo")"
+assert_exit 2 $? "#27 F1: ownership-check.sh --list factory scheitert (kein Repo, weder Tabelle noch Lock) → Exit 2"
+assert_contains_286 "$out_27" 'ownership-check.sh --list factory: Exit' "#27 F1: die Meldung nennt das gescheiterte Kommando"
+printf 'gibt-es-nicht.md\n' > "$TMP_27/fehlt.txt"
+own_ref_scan_27 "$TMP_27/fx" "$TMP_27/fehlt.txt" > /dev/null
+assert_exit 1 $? "#27 F1: gelistete, aber unlesbare Datei → rot"
+
+# AK7: im Lock-Modus kommt die Dateimenge aus dem Lock – ohne Tabelle, ohne projekteigene Datei
+if command -v jq > /dev/null 2>&1; then
+  ( cd "$TMP_27/fx" && git init -q && git config user.email t@example.invalid && git config user.name t \
+    && mkdir -p scripts/checks && cp "$CHECKS_DIR/customization-points.txt" scripts/checks/ \
+    && jq -Rn '{schema: 1, files: [inputs | select(length > 0) | {path: .}]}' < "$TMP_27/list.txt" > factory.lock \
+    && git add -A && git commit -qm fixture )
+  out_27="$(own_ref_guard_27 "$TMP_27/fx")"
+  assert_exit 0 $? "#27 AK7: Lock-Modus ohne Tabelle → Dateimenge aus dem Lock, Guard grün"
+  [ -z "$out_27" ] || echo "$out_27" | head -5 | sed 's/^/      /'
+  printf 'laut `%s`\n' "$OWN_TABLE_NAME_27" >> "$TMP_27/fx/docs/factory/FACTORY.md"
+  out_27="$(own_ref_guard_27 "$TMP_27/fx")"
+  assert_contains_286 "$out_27" '✗ docs/factory/FACTORY.md:' "#27 AK7 (Mutation): Lock-Modus – Verweis in einer Lock-Datei → Guard rot"
+else
+  echo "  • #27 AK7: Lock-Modus-Fixture – übersprungen (jq fehlt)"
+fi
+rm -rf "$TMP_27"
+
+# ─── nothra/tch-gastro-services#431 T1a-2 · Gruppe D: CLAUDE.md und FACTORY.md (AK-D1…D5) ─────────────────────────────
 echo ""
 echo "#431 AK-D: generischer Teil in FACTORY.md, CLAUDE.md dünn:"
 FACTORY_MD_431="$FACTORY_ROOT/docs/factory/FACTORY.md"
-CLAUDE_MD_431="$FACTORY_ROOT/CLAUDE.md"
-BASELINE_COMMIT_431="bcba043"  # main vor T1a-2 – Referenz für AK-D3 (Rekonstruktion der alten CLAUDE.md)
 
 # AK-D1/AK-D2: Datei-Anteile
 assert_true "$([[ -f "$FACTORY_MD_431" ]]; echo $?)" "#431 AK-D1: docs/factory/FACTORY.md existiert"
@@ -8634,81 +8725,60 @@ for sec_431 in '## Kernprinzip' '## Nicht verhandelbare Prinzipien' '## Pipeline
   grep -qxF -- "$sec_431" "$FACTORY_MD_431"
   assert_exit 0 "$?" "#431 AK-D1: FACTORY.md enthält den generischen Abschnitt '$sec_431'"
 done
-grep -qE '^# dm Development Factory · v[0-9]+\.[0-9]+\.[0-9]+$' "$FACTORY_MD_431"
+grep -qE '^# Development Factory · v[0-9]+\.[0-9]+\.[0-9]+$' "$FACTORY_MD_431"
 assert_exit 0 "$?" "#431 AK-D1: FACTORY.md trägt die Versionsangabe"
-imports_431="$(grep -E '^@' "$CLAUDE_MD_431" | sort | tr '\n' ' ')"
-assert_true "$([ "$imports_431" = "@docs/factory/FACTORY.md @docs/factory/PROJECT-CONTEXT.md " ]; echo $?)" \
-  "#431 AK-D2: CLAUDE.md importiert genau FACTORY.md und PROJECT-CONTEXT.md (Ist: $imports_431)"
-claude_flat_431="$(flat_286 "$CLAUDE_MD_431")"
-assert_contains_286 "$claude_flat_431" 'Routen-Doku bei jeder Routen-Änderung aktualisieren' "#431 AK-D2: CLAUDE.md trägt die TCH-Regel Routen-Doku (#145)"
-for gen_431 in '## Kernprinzip' '## Guardrails' '## Pipeline-Übersicht' '## Agent-Rollen'; do
-  assert_absent "$claude_flat_431" "$gen_431" "#431 AK-D2: CLAUDE.md enthält den generischen Abschnitt '$gen_431' nicht mehr"
-done
-assert_true "$([ "$(awk 'END{print NR}' "$CLAUDE_MD_431")" -le 60 ]; echo $?)" "#431 AK-D2: CLAUDE.md bleibt dünn (≤ 60 Zeilen)"
 
-# AK-D4: verschachtelte Imports (CLAUDE.md → FACTORY.md → Guideline) zählen vollständig.
-# Fixture nutzt die ECHTEN Dateien; nur eine nur über FACTORY.md eingebundene Guideline wird aufgebläht.
-TMP_D4_431="$(mktemp -d)"
-mkdir -p "$TMP_D4_431/docs/factory/guidelines"
-cp "$CLAUDE_MD_431" "$TMP_D4_431/CLAUDE.md"
-cp "$FACTORY_MD_431" "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md" "$TMP_D4_431/docs/factory/"
-cp "$FACTORY_ROOT"/docs/factory/guidelines/{clean-code,tdd-principles,testing-standards}.md "$TMP_D4_431/docs/factory/guidelines/"
-FACTORY_DIR="$TMP_D4_431" bash "$IMPORT_CHECK" >/dev/null 2>&1
-assert_exit 0 "$?" "#431 AK-D4 (Kontrolle): die kopierte echte Import-Kette ist unter der Grenze"
-seq 1 "$IC_LIMIT_319" >> "$TMP_D4_431/docs/factory/guidelines/tdd-principles.md"
-d4_out_431="$(FACTORY_DIR="$TMP_D4_431" bash "$IMPORT_CHECK" 2>&1)"; d4_rc_431=$?
-assert_exit 1 "$d4_rc_431" "#431 AK-D4: Import nur über FACTORY.md reißt die Grenze → exit 1"
-assert_contains_286 "$d4_out_431" 'tdd-principles.md' "#431 AK-D4: die Beitragsliste nennt die nur über FACTORY.md eingebundene Datei"
-rm -rf "$TMP_D4_431"
 
 # AK-D5: dieselben Dateien im Dauerkontext wie vor der Änderung (Baseline in der Task-Datei).
-ctx_431="$(FACTORY_DIR="$FACTORY_ROOT" bash "$IMPORT_CHECK" 2>&1)"
-assert_exit 0 "$?" "#431 AK-D5: Dauerkontext liegt unter dem Deckel ($ctx_431)"
 for g_431 in clean-code tdd-principles testing-standards; do
   grep -qxF "@docs/factory/guidelines/$g_431.md" "$FACTORY_MD_431"
   assert_exit 0 "$?" "#431 AK-D5: $g_431.md bleibt im Dauerkontext (Import in FACTORY.md)"
 done
-grep -qxF '@docs/factory/PROJECT-CONTEXT.md' "$CLAUDE_MD_431"
-assert_exit 0 "$?" "#431 AK-D5: PROJECT-CONTEXT.md bleibt im Dauerkontext (Import in CLAUDE.md)"
 
-# ─── #431 T1a-2 · Gruppe E: zusammengesetzte Dateien (AK-E1…E4, F-4) ────────────────────────
+# ─── nothra/tch-gastro-services#431 T1a-2 · Gruppe E: zusammengesetzte Dateien (AK-E1…E4, F-4) ────────────────────────
 echo ""
 echo "#431 AK-E: Fragmente + factory-sync.sh --compose:"
 SYNC_431="$FACTORY_ROOT/scripts/factory-sync.sh"
 assert_true "$([[ -f "$SYNC_431" ]]; echo $?)" "#431 AK-E3: scripts/factory-sync.sh existiert"
-for f_431 in .claude/settings.factory.json .claude/settings.project.json docs/factory/gitignore.factory .gitignore.project; do
-  assert_true "$([[ -f "$FACTORY_ROOT/$f_431" ]]; echo $?)" "#431 AK-E1/E2: Fragment $f_431 existiert"
+for f_431 in .claude/settings.factory.json docs/factory/gitignore.factory; do
+  assert_true "$([[ -f "$FACTORY_ROOT/$f_431" ]]; echo $?)" "#431 AK-E1/E2: Factory-Fragment $f_431 existiert"
 done
-for f_431 in .claude/settings.factory.json .claude/settings.project.json; do
-  jq -e . "$FACTORY_ROOT/$f_431" >/dev/null 2>&1
-  assert_exit 0 "$?" "#431 AK-E1: $f_431 ist gültiges JSON"
-done
+jq -e . "$FACTORY_ROOT/.claude/settings.factory.json" >/dev/null 2>&1
+assert_exit 0 "$?" "#431 AK-E1: .claude/settings.factory.json ist gültiges JSON"
 
 # compose_431 <wurzel> [args…] – führt den echten Compose-Modus gegen eine Fixture-Wurzel aus.
 compose_431() { local r="$1"; shift; FACTORY_DIR="$r" bash "$SYNC_431" --compose "$@" 2>&1; }
-# Fixture: nur die vier Fragmente + die committeten Ziele aus dem echten Repo.
+# Fixture (Factory-Issue #23, AK-28a): die Factory-Fragmente stammen aus dem Repo (Seite factory), die Projekt-Fragmente baut
+# der Test selbst – die ausgelieferte Suite liest weder Projekt-Fragmente noch committete zusammengesetzte Dateien des echten
+# Repos (deren Zustand prüft die Projekt-Suite bzw. das Integritäts-Gate des Konsumenten).
 fixture_431() {
   local d; d="$(mktemp -d)"; mkdir -p "$d/.claude" "$d/docs/factory"
-  cp "$FACTORY_ROOT/.claude/settings.factory.json" "$FACTORY_ROOT/.claude/settings.project.json" "$FACTORY_ROOT/.claude/settings.json" "$d/.claude/" 2>/dev/null
-  cp "$FACTORY_ROOT/docs/factory/gitignore.factory" "$d/docs/factory/" 2>/dev/null
-  cp "$FACTORY_ROOT/.gitignore.project" "$FACTORY_ROOT/.gitignore" "$d/" 2>/dev/null
+  cp "$FACTORY_ROOT/.claude/settings.factory.json" "$d/.claude/"
+  cp "$FACTORY_ROOT/docs/factory/gitignore.factory" "$d/docs/factory/"
+  printf '{"permissions":{"allow":["Bash(echo fixture:*)"]},"env":{"FIXTURE":"1"}}\n' > "$d/.claude/settings.project.json"
+  printf 'fixture-ignore/\n' > "$d/.gitignore.project"
   printf '%s' "$d"
 }
 FX_431="$(fixture_431)"
 
-# AK-E3: Zusammensetzung == committete Datei, deterministisch.
-compose_431 "$FX_431" --check >/dev/null
-assert_exit 0 "$?" "#431 AK-E3: committete settings.json/.gitignore == Zusammensetzung der Fragmente (--check)"
-rm -f "$FX_431/.claude/settings.json" "$FX_431/.gitignore"
+# AK-E3: Zusammensetzung deterministisch, aus Factory- und Fixture-Fragment.
 compose_431 "$FX_431" >/dev/null
 assert_exit 0 "$?" "#431 AK-E3: --compose erzeugt beide Dateien"
-cmp -s "$FX_431/.claude/settings.json" "$FACTORY_ROOT/.claude/settings.json"
-assert_exit 0 "$?" "#431 AK-E3: settings.json byte-identisch zur committeten Datei"
-cmp -s "$FX_431/.gitignore" "$FACTORY_ROOT/.gitignore"
-assert_exit 0 "$?" "#431 AK-E3: .gitignore byte-identisch zur committeten Datei"
+compose_431 "$FX_431" --check >/dev/null
+assert_exit 0 "$?" "#431 AK-E3: frisch zusammengesetzte Dateien == Zusammensetzung der Fragmente (--check)"
+jq -e '.permissions.allow | index("Bash(echo fixture:*)")' "$FX_431/.claude/settings.json" >/dev/null 2>&1
+assert_exit 0 "$?" "#431 AK-E3: settings.json enthält die Permission des Fixture-Projekt-Fragments"
+assert_true "$([ "$(cat "$FX_431/.gitignore")" = "$(cat "$FACTORY_ROOT/docs/factory/gitignore.factory" "$FX_431/.gitignore.project")" ]; echo $?)" "#431 AK-E3: .gitignore = Factory-Fragment + Fixture-Projekt-Fragment"
 first_431="$(cat "$FX_431/.claude/settings.json" "$FX_431/.gitignore" | cksum)"
 compose_431 "$FX_431" >/dev/null
 assert_true "$([ "$first_431" = "$(cat "$FX_431/.claude/settings.json" "$FX_431/.gitignore" | cksum)" ]; echo $?)" "#431 AK-E3: zweimal zusammengesetzt = gleiches Ergebnis"
+# AK-28a: ein Projekt-Fragment mit anderem Inhalt ändert das Ergebnis, ohne dass ein Test es als „Ist“ voraussetzt
+printf '{}\n' > "$FX_431/.claude/settings.project.json"; printf '' > "$FX_431/.gitignore.project"
+compose_431 "$FX_431" >/dev/null
+assert_exit 0 "$?" "#431 AK-28a: leere Projekt-Fragmente werden zusammengesetzt"
+assert_true "$([ "$(cat "$FX_431/.gitignore")" = "$(cat "$FACTORY_ROOT/docs/factory/gitignore.factory")" ]; echo $?)" "#431 AK-28a: .gitignore bei leerem Projekt-Fragment = Factory-Fragment"
+printf '{"permissions":{"allow":["Bash(echo fixture:*)"]}}\n' > "$FX_431/.claude/settings.project.json"; printf 'fixture-ignore/\n' > "$FX_431/.gitignore.project"
+compose_431 "$FX_431" >/dev/null
 
 # F-4: Abweichung je Seite → rot, mit Dateiname (Mutation: committete Datei bzw. Fragment ändern).
 printf '\n# drift\n' >> "$FX_431/.gitignore"
@@ -8732,47 +8802,12 @@ rm -f "$FX_431/.claude/settings.project.json"
 compose_431 "$FX_431" >/dev/null
 assert_exit 1 "$?" "#431 AK-E3: fehlendes Fragment → --compose bricht ab (fail-closed)"
 FACTORY_DIR="$FX_431" bash "$SYNC_431" >/dev/null 2>&1
-assert_exit 1 "$?" "#431 AK-E3: ohne Modus → exit 1 (nur --compose existiert)"
+assert_exit 1 "$?" "#431 AK-E3: ohne Modus → exit 1"
 rm -rf "$FX_431"
 
-# AK-E1: inhaltsgleich zum Stand vor T1a (Hooks + Reihenfolge, Allow/Deny-Menge). Historienlesend → Skip im flachen Klon.
-if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:.claude/settings.json" 2>/dev/null; then
-  old_set_431="$(mktemp)"; git -C "$FACTORY_ROOT" show "$BASELINE_COMMIT_431:.claude/settings.json" > "$old_set_431"
-  norm_431='{hooks: .hooks, allow: (.permissions.allow|sort), deny: (.permissions.deny|sort), ask: ((.permissions.ask // [])|sort)}'
-  assert_true "$([ "$(jq -cS "$norm_431" "$old_set_431")" = "$(jq -cS "$norm_431" "$FACTORY_ROOT/.claude/settings.json")" ]; echo $?)" \
-    "#431 AK-E1: settings.json inhaltsgleich zu vorher (Hooks + Reihenfolge, Allow/Deny/Ask-Menge)"
-  # Zerlegung ist verlustfrei und disjunkt: Factory ∪ Projekt == alt, Schnitt leer.
-  union_431="$(jq -cS -s '{allow: ([.[].permissions.allow // []] | add | sort), deny: ([.[].permissions.deny // []] | add | sort)}' \
-    "$FACTORY_ROOT/.claude/settings.factory.json" "$FACTORY_ROOT/.claude/settings.project.json")"
-  assert_true "$([ "$union_431" = "$(jq -cS '{allow: (.permissions.allow|sort), deny: (.permissions.deny|sort)}' "$old_set_431")" ]; echo $?)" \
-    "#431 AK-E1: Factory- + Projekt-Fragment ergeben genau die alte Regelmenge (keine Regel doppelt, keine verloren)"
-  rm -f "$old_set_431"
-else
-  echo "  ⏭  #431 AK-E1: Baseline-Commit $BASELINE_COMMIT_431 nicht verfügbar (flacher Klon) – übersprungen"
-fi
-# Projekt-Fragment trägt die App-Regeln, Factory-Fragment keine App-Pfade.
-jq -e '.permissions.allow | index("Edit(app/**)")' "$FACTORY_ROOT/.claude/settings.project.json" >/dev/null 2>&1
-assert_exit 0 "$?" "#431 AK-E1: Edit(app/**) steht im Projekt-Fragment"
+# AK-E1: Das Factory-Fragment trägt keine App-Pfade (die gehören dem Projekt-Fragment adoptierender Projekte).
 jq -e '.permissions.allow | index("Edit(app/**)")' "$FACTORY_ROOT/.claude/settings.factory.json" >/dev/null 2>&1
 assert_exit 1 "$?" "#431 AK-E1: Edit(app/**) steht nicht im Factory-Fragment"
-
-# AK-E2: ignorierte Pfade unverändert – feste Probenliste gegen die committete .gitignore (Temp-Repo, --no-index).
-TMP_GI_431="$(mktemp -d)"; git -C "$TMP_GI_431" init -q; cp "$FACTORY_ROOT/.gitignore" "$TMP_GI_431/"
-ign_431="node_modules/x .next/x coverage/x .coverage-tmp431/x .env.local .DS_Store logs/a.log tasks/metrics-1.md tasks/pipeline-stuck-1.md foo.tmp.sh foo.tmp.config.ts .verify-x/a test-results/a playwright-report/a .vercel/a tsconfig.tsbuildinfo next-env.d.ts cert.pem"
-keep_431=".env.example app/page.tsx tasks/interrupt-log.jsonl docs/routes.md package.json"
-for pr_431 in $ign_431; do
-  git -C "$TMP_GI_431" check-ignore -q --no-index -- "$pr_431"
-  assert_exit 0 "$?" "#431 AK-E2: $pr_431 bleibt ignoriert"
-done
-for pr_431 in $keep_431; do
-  git -C "$TMP_GI_431" check-ignore -q --no-index -- "$pr_431"
-  assert_exit 1 "$?" "#431 AK-E2: $pr_431 bleibt nicht ignoriert"
-done
-rm -rf "$TMP_GI_431"
-if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:.gitignore" 2>/dev/null; then
-  git -C "$FACTORY_ROOT" show "$BASELINE_COMMIT_431:.gitignore" | cmp -s - "$FACTORY_ROOT/.gitignore"
-  assert_exit 0 "$?" "#431 AK-E2: .gitignore byte-identisch zu vorher (ignorierte Menge unverändert)"
-fi
 
 # AK-E4: Doku nennt den Änderungsweg.
 own_doc_431="$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")"
@@ -8780,56 +8815,32 @@ assert_contains_286 "$own_doc_431" 'Projekt-Fragment ändern' "#431 AK-E4: OPERA
 assert_contains_286 "$own_doc_431" 'factory-sync.sh --compose' "#431 AK-E4: OPERATING.md nennt das Zusammensetz-Kommando"
 assert_contains_286 "$own_doc_431" 'beide committen' "#431 AK-E4: OPERATING.md: Fragment und Ergebnis beide committen"
 
-# ─── #431 T1a-2 · Gruppe F: CI-Workflows (AK-F1…F4, F-7) ─────────────────────────────────────
+# ─── nothra/tch-gastro-services#431 T1a-2 · Gruppe F: CI-Workflows (AK-F1…F4, F-7) ─────────────────────────────────────
 echo ""
 echo "#431 AK-F: factory-ci.yml nur Factory, ci.yml projekteigen:"
 FCI_431="$FACTORY_ROOT/.github/workflows/factory-ci.yml"
-PCI_431="$FACTORY_ROOT/.github/workflows/ci.yml"
 jobs_of_431() { awk '/^jobs:/{j=1;next} j && /^  [A-Za-z0-9_-]+:[[:space:]]*$/{sub(/^  /,"");sub(/:.*/,"");print}' "$1" | sort | tr '\n' ' '; }
 
-assert_true "$([[ -f "$PCI_431" ]]; echo $?)" "#431 AK-F2: .github/workflows/ci.yml existiert"
-assert_true "$([ "$(jobs_of_431 "$FCI_431")" = "config-validation factory-self-test issue-sync post-merge-verify pr-closes-issue " ]; echo $?)" \
-  "#431 AK-F1: factory-ci.yml enthält genau die fünf Factory-Jobs (Ist: $(jobs_of_431 "$FCI_431"))"
+assert_true "$([ "$(jobs_of_431 "$FCI_431")" = "config-validation factory-integrity factory-self-test issue-sync post-merge-verify pr-closes-issue " ]; echo $?)" \
+  "#431 AK-F1: factory-ci.yml enthält genau die sechs Factory-Jobs (Ist: $(jobs_of_431 "$FCI_431"))"
 grep -q 'pnpm' "$FCI_431"
 assert_exit 1 "$?" "#431 AK-F1: factory-ci.yml enthält keinen pnpm-Aufruf"
-assert_true "$([ "$(jobs_of_431 "$PCI_431")" = "lint test " ]; echo $?)" \
-  "#431 AK-F2: ci.yml enthält genau lint + test (Ist: $(jobs_of_431 "$PCI_431"))"
-{ grep -q '^  push:' "$PCI_431" && grep -q 'branches: \[main\]' "$PCI_431" && grep -q '^  pull_request:' "$PCI_431"; }
-assert_exit 0 "$?" "#431 AK-F2: ci.yml hat denselben Trigger wie vorher (push main + pull_request)"
-for cmd_431 in LINT TEST; do
-  grep -q "FACTORY_${cmd_431}_COMMAND: \${{ vars.FACTORY_${cmd_431}_COMMAND }}" "$PCI_431"
-  assert_exit 0 "$?" "#431 AK-F2: ci.yml liest FACTORY_${cmd_431}_COMMAND aus der Repo-Variable (Q7)"
-done
-grep -q 'eval "\$FACTORY_LINT_COMMAND"' "$PCI_431" && grep -q 'eval "\$FACTORY_TEST_COMMAND"' "$PCI_431"
-assert_exit 0 "$?" "#431 AK-F2: ci.yml führt beide Kommandos fail-closed aus"
-if command -v yq >/dev/null 2>&1; then
-  yq '.' "$PCI_431" >/dev/null 2>&1
-  assert_exit 0 "$?" "#431 AK-F2: ci.yml ist valides YAML"
-else
-  skip_yq "#431 AK-F2: ci.yml ist valides YAML"
-fi
 
 # AK-F3/F-7: Required-Check-Namen (protect-main) = Menge der Job-Namen beider Factory-/Projekt-CI.
-all_jobs_431="$(jobs_of_431 "$FCI_431") $(jobs_of_431 "$PCI_431")"
-for chk_431 in lint test issue-sync factory-self-test pr-closes-issue config-validation; do
+all_jobs_431="$(jobs_of_431 "$FCI_431")"
+for chk_431 in issue-sync factory-self-test pr-closes-issue config-validation; do
   assert_contains_286 "$all_jobs_431" "$chk_431 " "#431 AK-F3: Required Check '$chk_431' wird von einem Workflow gemeldet"
 done
 
-# AK-F4: Workflows in OWNERSHIP.md zugeordnet, Skriptpfade existieren.
-own_f_431="$FACTORY_ROOT/docs/factory/OWNERSHIP.md"
-for wf_431 in "project|.github/workflows/ci.yml" "factory|.github/workflows/factory-poll.yml" "factory|.github/workflows/factory-ci.yml"; do
-  grep -qF "| ${wf_431%%|*} | \`${wf_431#*|}\`" "$own_f_431"
-  assert_exit 0 "$?" "#431 AK-F4: ${wf_431#*|} ist als ${wf_431%%|*} in OWNERSHIP.md geführt"
-done
 miss_431=""
-for wfp_431 in "$FACTORY_ROOT"/.github/workflows/*.yml; do
+for wfp_431 in "$FCI_431" "$FACTORY_ROOT/.github/workflows/factory-poll.yml" "$FACTORY_ROOT/.github/workflows/factory-update.yml"; do
   for sp_431 in $(grep -oE 'scripts/[A-Za-z0-9_./-]+\.sh' "$wfp_431" | sort -u); do
     [[ -f "$FACTORY_ROOT/$sp_431" ]] || miss_431="$miss_431 $(basename "$wfp_431"):$sp_431"
   done
 done
 assert_true "$([ -z "$miss_431" ]; echo $?)" "#431 AK-F4: alle in Workflows genannten Skriptpfade existieren (fehlt:${miss_431:- nichts})"
 
-# ─── #431 T1a-2 · Gruppe G: Erweiterungspunkte in den Git-Gates (AK-G1…G4, F-5) ─────────────
+# ─── nothra/tch-gastro-services#431 T1a-2 · Gruppe G: Erweiterungspunkte in den Git-Gates (AK-G1…G4, F-5) ─────────────
 echo ""
 echo "#431 AK-G: pre-commit.d / pre-push.d:"
 unset FACTORY_LINT_COMMAND FACTORY_TEST_COMMAND FACTORY_COVERAGE_COMMAND
@@ -8926,18 +8937,14 @@ run_start_work_431() {
       FACTORY_WORKTREE_BASE="$1/$3" bash "$SW" "$4" "$5" 2>&1 )
 }
 
-# ─── #431 T1a-2 · Gruppe H: Gate-Kommandos aus der Konfiguration (AK-H1…H6, F-6) ─────────────
+# ─── nothra/tch-gastro-services#431 T1a-2 · Gruppe H: Gate-Kommandos aus der Konfiguration (AK-H1…H6, F-6) ─────────────
 echo ""
 echo "#431 AK-H: commands.* in factory.config.yml:"
 if [ "$HAS_YQ" = 1 ]; then
   for k_431 in lint test typecheck format coverage; do
-    v_431="$(yq ".commands.$k_431" "$FACTORY_ROOT/factory.config.yml")"
-    assert_true "$([ -n "$v_431" ] && [ "$v_431" != null ]; echo $?)" "#431 AK-H1: factory.config.yml trägt commands.$k_431 (Ist: $v_431)"
     d_431="$(yq ".commands.$k_431 // \"\"" "$FACTORY_ROOT/factory.defaults.yml")"
     assert_true "$([ -z "$d_431" ]; echo $?)" "#431 AK-H2: factory.defaults.yml hat keinen Default für commands.$k_431 (Ist: '$d_431')"
   done
-  assert_true "$([ "$(yq '.commands.lint' "$FACTORY_ROOT/factory.config.yml")" = "pnpm lint" ] && [ "$(yq '.commands.test' "$FACTORY_ROOT/factory.config.yml")" = "pnpm test" ] && [ "$(yq '.commands.typecheck' "$FACTORY_ROOT/factory.config.yml")" = "pnpm typecheck" ] && [ "$(yq '.commands.format' "$FACTORY_ROOT/factory.config.yml")" = "pnpm format:check" ] && [ "$(yq '.commands.coverage' "$FACTORY_ROOT/factory.config.yml")" = "pnpm test:coverage" ]; echo $?)" \
-    "#431 AK-H1: commands.* tragen die heutigen TCH-Werte"
   assert_true "$(! yq '.commands' "$FACTORY_ROOT/factory.defaults.yml" | grep -q pnpm; echo $?)" "#431 AK-H2: kein pnpm im commands-Block der Defaults"
 
   # AK-H3: die Gates lesen aus der Konfiguration; Env hat Vorrang.
@@ -9011,6 +9018,33 @@ CFG
   printf 'start_work:\n  hint: 5\n' > "$TMP_H5/bad.yml"
   bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/bad.yml" >/dev/null 2>&1
   assert_true "$([ "$?" -ne 0 ]; echo $?)" "#431 AK-H5: start_work.hint als Zahl → abgelehnt"
+
+  # #47 AK13/AK14: start_work.copy_files (Regel 9). Je Ablehnungsgrund ein eigener Negativtest, der Schlüssel UND
+  # Grund in der Meldung nachweist – nur der Exit-Code bewiese nicht, dass Regel 9 (und nicht eine andere) greift.
+  printf 'start_work:\n  copy_files: [".env.local", "config/local.yml"]\n' > "$TMP_H5/ok.yml"
+  bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/ok.yml" >/dev/null 2>&1
+  assert_exit 0 "$?" "#47 AK13: start_work.copy_files mit gültigen Pfaden → gültig"
+  printf 'start_work:\n  copy_files: ["mit leerzeichen/datei.conf"]\n' > "$TMP_H5/ok.yml"
+  bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/ok.yml" >/dev/null 2>&1
+  assert_exit 0 "$?" "#47 AK13: ein Pfad mit Leerzeichen ist gültig"
+  while IFS='|' read -r val_47 reason_47; do
+    printf 'start_work:\n  copy_files: %s\n' "$val_47" > "$TMP_H5/bad.yml"
+    out_431="$(bash "$CVC_431" "$FACTORY_ROOT/factory.defaults.yml" "$TMP_H5/bad.yml" 2>&1)"; rc_431=$?
+    assert_true "$([ "$rc_431" -ne 0 ]; echo $?)" "#47 AK14: copy_files $val_47 → abgelehnt (exit $rc_431)"
+    assert_contains_286 "$out_431" 'start_work.copy_files' "#47 AK14: copy_files $val_47 – die Meldung nennt den Schlüssel"
+    assert_contains_286 "$out_431" "$reason_47" "#47 AK14: copy_files $val_47 – die Meldung nennt den Grund ($reason_47)"
+  done <<'BAD47'
+["/etc/passwd"]|absoluter Pfad
+["../x"]|'..'-Segment
+["a/../../x"]|'..'-Segment
+[""]|leerer Pfad
+[5]|vom Typ !!int
+[true]|vom Typ !!bool
+[null]|vom Typ !!null
+".env.local"|keine Liste
+["config/"]|abschließendes '/'
+["a\nb"]|Steuerzeichen
+BAD47
   rm -rf "$TMP_H5"
 else
   skip_yq "#431 AK-H1…H5: commands.* (Config, Gates, Validierung)"
@@ -9022,7 +9056,7 @@ if [ "$HAS_YQ" = 1 ]; then
   REPO_H6="$(mk_start_work_fixture_431 "$TMP_H6" $'commands:\n  install: "touch install-ran.marker"\nstart_work:\n  hint: "Eigener Hinweis aus der Config"')"
   OUT_H6="$(run_start_work_431 "$TMP_H6" "$REPO_H6" wt 931 hint-test)"
   assert_true "$([ -f "$TMP_H6/wt/feature-931-hint-test/install-ran.marker" ]; echo $?)" "#431 AK-H6: start-work führt commands.install im Worktree aus"
-  assert_contains_286 "$OUT_H6" 'Eigener Hinweis aus der Config' "#431 AK-H6: start-work gibt start_work.hint nach dem Kopieren der .env.local aus"
+  assert_contains_286 "$OUT_H6" 'Eigener Hinweis aus der Config' "#431 AK-H6: start-work gibt start_work.hint aus (seit #47 unabhängig von einer Kopie)"
   assert_absent "$OUT_H6" 'db:seed' "#431 AK-H6: kein hartkodierter db:seed-Hinweis mehr im Skript"
   # Ohne Eintrag: kein Install-Schritt, kein Hinweis, kein Fehler.
   printf 'schemaVersion: 1\n' > "$REPO_H6/factory.config.yml"
@@ -9035,7 +9069,7 @@ else
   skip_yq "#431 AK-H6: start-work liest Install-Schritt und Hinweis aus der Config"
 fi
 
-# ─── #431 T1a-2 · Gruppe I: Labels aus der Konfiguration (AK-I1…I3) ─────────────────────────
+# ─── nothra/tch-gastro-services#431 T1a-2 · Gruppe I: Labels aus der Konfiguration (AK-I1…I3) ─────────────────────────
 echo ""
 echo "#431 AK-I: labels.* in factory.defaults.yml / factory.config.yml:"
 if [ "$HAS_YQ" = 1 ]; then
@@ -9043,7 +9077,6 @@ if [ "$HAS_YQ" = 1 ]; then
   assert_true "$([ "$(yq -o=json -I=0 '.labels.kinds' "$DEF_431")" = '["bug","enhancement","documentation"]' ]; echo $?)" "#431 AK-I1: defaults tragen labels.kinds (bug, enhancement, documentation)"
   assert_true "$([ "$(yq -o=json -I=0 '.labels.aspects' "$DEF_431")" = '["security","tech-debt","test"]' ]; echo $?)" "#431 AK-I1: defaults tragen labels.aspects (security, tech-debt, test)"
   assert_true "$([ "$(yq -o=json -I=0 '.labels.aspects_extra' "$DEF_431")" = '[]' ]; echo $?)" "#431 AK-I1: defaults tragen labels.aspects_extra als leere Liste (keine projekteigenen Labels)"
-  assert_true "$([ "$(yq '.labels.aspects_extra | contains(["factory-pipeline"])' "$CFG_431")" = true ]; echo $?)" "#431 AK-I1: factory.config.yml trägt labels.aspects_extra mit factory-pipeline"
 
   # Validierung (Regel 2 für Listen + Regel 8).
   TMP_I1="$(mktemp -d)"; CVC_I_431="$CHECKS_DIR/config-validation-check.sh"
@@ -9059,33 +9092,31 @@ if [ "$HAS_YQ" = 1 ]; then
   done
   rm -rf "$TMP_I1"
 
-  # AK-I2: Drift-Guard gegen die neue Quelle. Generische Labels stehen als Tabellenzeile in git-workflow.md,
-  # projekteigene als Tabellenzeile in PROJECT-CONTEXT.md – und nicht umgekehrt.
-  # label_drift_431 <defaults> <config> <git-workflow.md> <PROJECT-CONTEXT.md> → Liste der Abweichungen (leer = ok).
-  label_drift_431() {
-    local eff g l out="" gw pc
-    eff="$(yq eval-all '. as $i ireduce ({}; . * $i)' "$1" "$2")"
-    gw="$(flat_286 "$3")"; pc="$(flat_286 "$4")"
-    for g in $(printf '%s' "$eff" | yq '.labels.kinds[], .labels.aspects[]' -); do
-      grep -qF -- "| \`$g\` |" <<< "$gw" || out="$out generisch-fehlt-in-git-workflow:$g"
-    done
-    for l in $(printf '%s' "$eff" | yq '.labels.aspects_extra[]' -); do
-      grep -qF -- "| \`$l\` |" <<< "$pc" || out="$out projekt-fehlt-in-PROJECT-CONTEXT:$l"
-      grep -qF -- "| \`$l\` |" <<< "$gw" && out="$out projekt-steht-in-git-workflow:$l"
-    done
-    printf '%s' "$out"
-  }
-  GW_431="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"; PCX_431="$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md"
-  drift_431="$(label_drift_431 "$DEF_431" "$CFG_431" "$GW_431" "$PCX_431")"
-  assert_true "$([ -z "$drift_431" ]; echo $?)" "#431 AK-I2: Label-Doku und Konfiguration stimmen überein (Abweichung:${drift_431:- keine})"
-  # Mutationen: je Seite eine eigene Assertion mit demselben Ausdruck.
+  # AK-I2: Drift-Guard gegen die neue Quelle (Funktion label_drift_431: assert-helpers.sh). Die PROJECT-CONTEXT.md ist eine
+  # Anpassungsstelle des Konsumenten – die Suite baut ihre eigene Fixture und liest die des echten Repos nicht (Factory-Issue #28);
+  # der Zustand der echten Datei im Factory-Repo steht in der Projekt-Suite.
+  GW_431="$FACTORY_ROOT/docs/factory/guidelines/git-workflow.md"
   TMP_I2="$(mktemp -d)"
-  printf 'labels:\n  aspects_extra: [factory-pipeline, zzz-neu]\n' > "$TMP_I2/cfg.yml"
+  printf 'labels:\n  aspects_extra: [fixture-label]\n' > "$TMP_I2/cfg-fx.yml"
+  printf '# Fixture\n\n| Label | Aspekt |\n|-------|--------|\n| `fixture-label` | beschrieben |\n' > "$TMP_I2/pcx.md" \
+    || { echo "run-tests: Fixture-PROJECT-CONTEXT.md nicht schreibbar (fail-closed, Factory-Issue #28 FS1)" >&2; exit 2; }
+  PCX_431="$TMP_I2/pcx.md"
+  # Positivkontrolle (AK3/FS2): beschriebenes Label + Tabellenformat der Fixture → keine Abweichung; sonst bewiesen die Mutationen nichts.
+  assert_true "$([ -z "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg-fx.yml" "$GW_431" "$PCX_431")" ]; echo $?)" "#28 AK3: Fixture mit beschriebenem Label → Drift-Guard meldet keine Abweichung (Positivkontrolle)"
+  # AK4: eigenes aspects_extra ohne Beschreibung in der Fixture betrifft nur den Guard-Aufruf mit dieser Config, nicht die Suite
+  printf '# Fixture ohne Labelzeilen\n' > "$TMP_I2/pcx-leer.md"
+  assert_contains_286 "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg-fx.yml" "$GW_431" "$TMP_I2/pcx-leer.md")" 'projekt-fehlt-in-PROJECT-CONTEXT:fixture-label' "#28 AK1/AK4: Fixture ohne Labelbeschreibung → Guard meldet es (die Suite selbst liest keine echte PROJECT-CONTEXT.md)"
+  # FS2: weicht die Fixture vom gelesenen Tabellenformat ab (`| \`label\` |`), wird die Positivkontrolle rot statt der Mutationen
+  printf '# Fixture\n\n| Label | Aspekt |\n| fixture-label | beschrieben |\n' > "$TMP_I2/pcx-format.md"
+  assert_true "$([ -n "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg-fx.yml" "$GW_431" "$TMP_I2/pcx-format.md")" ]; echo $?)" "#28 FS2: Fixture ohne Backtick-Tabellenzeile → Drift-Guard meldet eine Abweichung (Positivkontrolle würde rot)"
+  # Mutationen: je Seite eine eigene Assertion mit demselben Ausdruck.
+  printf 'labels:\n  aspects_extra: [zzz-neu]\n' > "$TMP_I2/cfg.yml"
   assert_contains_286 "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg.yml" "$GW_431" "$PCX_431")" 'projekt-fehlt-in-PROJECT-CONTEXT:zzz-neu' "#431 AK-I2 (Mutation): ein Config-Label ohne Beschreibung in PROJECT-CONTEXT.md macht den Guard rot"
   grep -vF -- '| `security` |' "$GW_431" > "$TMP_I2/gw.md"
-  assert_contains_286 "$(label_drift_431 "$DEF_431" "$CFG_431" "$TMP_I2/gw.md" "$PCX_431")" 'generisch-fehlt-in-git-workflow:security' "#431 AK-I2 (Mutation): ein generisches Label ohne Tabellenzeile in git-workflow.md macht den Guard rot"
-  { cat "$GW_431"; printf '| `factory-pipeline` | doppelt |\n'; } > "$TMP_I2/gw2.md"
-  assert_contains_286 "$(label_drift_431 "$DEF_431" "$CFG_431" "$TMP_I2/gw2.md" "$PCX_431")" 'projekt-steht-in-git-workflow:factory-pipeline' "#431 AK-I2 (Mutation): ein projekteigenes Label in der generischen Tabelle macht den Guard rot"
+  assert_contains_286 "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg-fx.yml" "$TMP_I2/gw.md" "$PCX_431")" 'generisch-fehlt-in-git-workflow:security' "#431 AK-I2 (Mutation): ein generisches Label ohne Tabellenzeile in git-workflow.md macht den Guard rot"
+  { cat "$GW_431"; printf '| `zzz-neu` | doppelt |\n'; } > "$TMP_I2/gw2.md"
+  { cat "$PCX_431"; printf '| `zzz-neu` | beschrieben |\n'; } > "$TMP_I2/pc2.md"
+  assert_contains_286 "$(label_drift_431 "$DEF_431" "$TMP_I2/cfg.yml" "$TMP_I2/gw2.md" "$TMP_I2/pc2.md")" 'projekt-steht-in-git-workflow:zzz-neu' "#431 AK-I2 (Mutation): ein projekteigenes Label in der generischen Tabelle macht den Guard rot"
   rm -rf "$TMP_I2"
   gw_flat_431="$(flat_286 "$GW_431")"
   assert_contains_286 "$gw_flat_431" 'PROJECT-CONTEXT.md' "#431 AK-I2: git-workflow.md verweist für projekteigene Labels auf PROJECT-CONTEXT.md"
@@ -9095,13 +9126,59 @@ else
   skip_yq "#431 AK-I1/I2: labels.* (Config, Validierung, Drift-Guard)"
 fi
 
+# ─── Factory-Issue #28 AK6: die ausgelieferte Suite liest keine projekteigenen Dateien des echten Repos ───────────────
+# Einzige begründete Ausnahme: factory.config.yml (der Konsument prüft seine eigene Config, Entscheidung Q1 in spec-28).
+# Der Guard sucht Pfade der Form <Repo-Wurzel-Variable>/…<projekteigene Datei> und baut sein Muster zur Laufzeit zusammen,
+# sonst träfe er sich in dieser Datei selbst (Lesson testing.md: Content-Scan-Guard mit Literal ist immer rot).
+#
+# Zweite Klasse (Factory-Issue #32): INDIREKTE Leser – ein Check-Skript, dem die echte Repo-Wurzel als Wurzel-Variable
+# mitgegeben wird (`FACTORY_DIR=<echte Wurzel> bash <check>`), liest selbst CLAUDE.md/PROJECT-CONTEXT.md des Konsumenten.
+# Fixture-Wurzeln (`$TMP_…`) treffen das Muster nicht; nur `$FACTORY_ROOT`/`$REPO_ROOT` als Wert zählt. Ein `env`-Präfix
+# erfasst das Muster mit (kein Zeilenanfangs-Anker). Blind ist der Guard für den Direktaufruf eines Gates/Check-Skripts aus
+# dem echten `$CHECKS_DIR` ohne Wurzel-Variable (Fund `#149`, per Fixture-Lauf gefunden) und für getrennte `export`-Zeilen.
+project_reads_28() {
+  local f out="" hits names="PROJECT-CONTEXT\\.md|gitignore\\.project|settings\\.project\\.json|CLAUDE\\.md|README\\.md|CHANGELOG\\.md"
+  local real_root="[$]\\{?(FACTORY_ROOT|REPO_ROOT)\\}?" root_var="(FACTORY_DIR|FACTORY_ROOT|REPO_ROOT)"
+  for f in "$@"; do
+    [ -r "$f" ] || { out="$out UNLESBAR:$f"; continue; }
+    hits="$(grep -nE "[$]\{?(FACTORY_ROOT|REPO_ROOT|FACTORY_DIR)\}?/[^ \"']*($names)" "$f")"
+    [ -z "$hits" ] || out="$out $f:$(printf '%s' "$hits" | head -1 | cut -d: -f1)"
+    hits="$(grep -nE "${root_var}=[\"']?${real_root}[\"']?[[:space:]]+(bash|sh)[[:space:]]" "$f")"
+    [ -z "$hits" ] || out="$out $f:$(printf '%s' "$hits" | head -1 | cut -d: -f1)"
+  done
+  printf '%s' "$out"
+}
+# Libs und Testgruppen per Glob (dieselbe Liste, die oben gestartet wird): eine neue Datei entgeht dem Guard nicht
+SHIPPED_TESTS_28=("$SCRIPTS_DIR/checks/tests/run-tests.sh" "$SCRIPTS_DIR"/checks/tests/lib/*.sh "${TEST_GROUP_FILES_52[@]}")
+assert_true "$([ -z "$(project_reads_28 "${SHIPPED_TESTS_28[@]}")" ]; echo $?)" "#28 AK6: die ausgelieferten Test-Dateien lesen keine projekteigene Datei des echten Repos (Ausnahme: factory.config.yml)"
+TMP_28="$(mktemp -d)"; HELPERS_28="$SCRIPTS_DIR/checks/tests/lib/assert-helpers.sh"
+# mutant_28 <Pfad-nach-Variable> → Kopie der Helfer-Lib mit einem ergänzten Lesezugriff nach $TMP_28/mut.sh (Pfad auf stdout)
+mutant_28() { { cat "$HELPERS_28"; printf 'x="$(cat "%s")"\n' "$1"; } > "$TMP_28/mut.sh"; printf '%s' "$TMP_28/mut.sh"; }
+for name_28 in docs/factory/PROJECT-CONTEXT.md .gitignore.project .claude/settings.project.json CLAUDE.md README.md CHANGELOG.md; do
+  assert_contains_286 "$(project_reads_28 "$(mutant_28 "\$FACTORY_ROOT/$name_28")")" "$TMP_28/mut.sh:" "#28 AK6 (Mutation): Lesezugriff auf $name_28 ergänzt → Guard rot"
+done
+for var_28 in REPO_ROOT FACTORY_DIR; do
+  assert_contains_286 "$(project_reads_28 "$(mutant_28 "\${$var_28}/CLAUDE.md")")" "$TMP_28/mut.sh:" "#28 AK6 (Mutation): Lesezugriff über \$$var_28 statt \$FACTORY_ROOT → Guard rot"
+done
+assert_true "$([ -z "$(project_reads_28 "$(mutant_28 "\$FACTORY_ROOT/factory.config.yml")")" ]; echo $?)" "#28 AK6 (Kontrolle): factory.config.yml ist die erlaubte Ausnahme"
+# Indirekter Leser (Factory-Issue #32): Check-Skript gegen die echte Wurzel. Mutant-Zeile zur Laufzeit gebaut (kein Literal im Quelltext).
+indirect_28() { { cat "$HELPERS_28"; printf '%s\n' "$1"; } > "$TMP_28/ind.sh"; printf '%s' "$TMP_28/ind.sh"; }
+for root_28 in FACTORY_ROOT REPO_ROOT; do
+  assert_contains_286 "$(project_reads_28 "$(indirect_28 "x=\"\$(FACTORY_DIR=\"\$$root_28\" bash \"\$CHK\" 2>&1)\"")")" "$TMP_28/ind.sh:" "#32 AK4 (Mutation): Check-Skript mit FACTORY_DIR=\$$root_28 aufgerufen → Guard rot"
+done
+assert_contains_286 "$(project_reads_28 "$(indirect_28 "FACTORY_DIR=\$FACTORY_ROOT"' bash "$CHK"')")" "$TMP_28/ind.sh:" "#32 AK4 (Mutation): Aufruf ohne Anführungszeichen um die Wurzel → Guard rot"
+assert_contains_286 "$(project_reads_28 "$(indirect_28 "env FACTORY_DIR=\"\$FACTORY_ROOT\" bash \"\$CHK\"")")" "$TMP_28/ind.sh:" "#32 AK4 (Mutation): Aufruf über env-Präfix mit der echten Wurzel → Guard rot"
+assert_true "$([ -z "$(project_reads_28 "$(indirect_28 'FACTORY_DIR="$TMP_FX" bash "$CHK" 2>&1')")" ]; echo $?)" "#32 AK4 (Kontrolle): Check-Skript gegen Fixture-Wurzel bleibt grün"
+assert_contains_286 "$(project_reads_28 "$TMP_28/gibt-es-nicht.sh")" "UNLESBAR:$TMP_28/gibt-es-nicht.sh" "#28 AK6 (fail-closed): unlesbare Quelle → Guard rot statt still grün"
+rm -rf "$TMP_28"
+
 # AK-I3: Verhalten unverändert (Q5) – weder start-work.sh noch der Seam lesen die Label-Listen oder lehnen ab;
 # die fail-open-Verhaltenstests ('Seam: fehlendes Aspekt-Label → Issue trotzdem angelegt') laufen oben unverändert.
 grep -qE 'factory_cfg[[:space:]]+labels|labels\.(kinds|aspects)' "$SW" "$SCRIPTS_DIR/lib/create-issue.sh"
 assert_exit 1 "$?" "#431 AK-I3: start-work.sh und Issue-Seam validieren nicht gegen labels.* (nur die Datenquelle wandert)"
 
 
-# ─── #431 /test-Ergänzungen: Fail-closed bei unlesbarer Config, Fail-open beim Install-Schritt ───
+# ─── nothra/tch-gastro-services#431 /test-Ergänzungen: Fail-closed bei unlesbarer Config, Fail-open beim Install-Schritt ───
 echo ""
 echo "#431 /test: yq defekt → Gate fail-closed; fehlgeschlagener Install-Schritt → Warnung:"
 unset FACTORY_LINT_COMMAND FACTORY_TEST_COMMAND FACTORY_COVERAGE_COMMAND
@@ -9138,37 +9215,338 @@ else
   skip_yq "#431 /test AK-H6: fehlgeschlagener Install-Schritt"
 fi
 
-# ─── #432 T1a-3 · Gruppe K: Factory-Texte generisch (AK-K1, K1a, K2) ─────────────────────────
+# ─── nothra/tch-gastro-services#432 T1a-3 · Gruppe K: Factory-Texte generisch (AK-K1, K1a, K2) ─────────────────────────
 echo ""
-echo "#432 AK-K: Factory-Texte ohne TCH-Stack, TCH-Details in docs/project/betrieb.md:"
-STACK_RE_432='pnpm|Neon|Vercel|db:seed|Drizzle'
+echo "#432 AK-K: Factory-Texte ohne Stack-Begriffe des Ursprungs-Projekts:"
+# Zur Laufzeit zusammengesetzt: als Literal stünden die Begriffe in dieser Datei selbst (C1-Guard unten).
+STACK_RE_432="pnpm|Ne""on|Ver""cel|db:seed|Drizzle"
 for txt_432 in docs/factory/agents/coding-agent.md docs/factory/agents/review-agent.md \
     docs/factory/guidelines/git-workflow.md docs/factory/guidelines/testing-standards.md \
     docs/factory/guidelines/bash-gotchas.md docs/factory/OPERATING.md; do
   grep -qE "$STACK_RE_432" "$FACTORY_ROOT/$txt_432"
-  assert_exit 1 "$?" "#432 AK-K1: $txt_432 nennt pnpm/Neon/Vercel/db:seed/Drizzle nicht mehr"
+  assert_exit 1 "$?" "#432 AK-K1: $txt_432 nennt keine Stack-Begriffe des Ursprungs-Projekts mehr"
 done
 IMPL_432="$FACTORY_ROOT/.claude/commands/implement.md"
 grep -qE "$STACK_RE_432" "$IMPL_432"
-assert_exit 1 "$?" "#432 AK-K1: .claude/commands/implement.md nennt pnpm/Neon/Vercel/db:seed/Drizzle nicht mehr (Endzustand der Live-Datei)"
+assert_exit 1 "$?" "#432 AK-K1: .claude/commands/implement.md nennt keine Stack-Begriffe des Ursprungs-Projekts mehr (Endzustand der Live-Datei)"
 
-BETRIEB_432="$FACTORY_ROOT/docs/project/betrieb.md"
-betrieb_flat_432="$(flat_286 "$BETRIEB_432")"
-for sec_432 in '## 0.2 GitHub-Repository-Secrets' '## 0.3 Vercel Production-Branch' '## 4.3 Destruktive Produktions-Migrationen' \
-    '## 1.4 Was nach dem Merge automatisch passiert' 'PRD_DATABASE_URL' 'VERCEL_AUTOMATION_BYPASS_SECRET' \
-    'Production Branch = `production`' 'DROP`/`TRUNCATE`' 'Docker (Compose v2)' '`db:seed`'; do
-  assert_contains_286 "$betrieb_flat_432" "$sec_432" "#432 AK-K2: betrieb.md enthält '$sec_432'"
-done
+# (AK-K2 – Inhalt von docs/project/betrieb.md – entfällt: das Betriebsdokument gehört dem adoptierenden Projekt.)
 operating_flat_432="$(flat_286 "$FACTORY_ROOT/docs/factory/OPERATING.md")"
 for ref_432 in '0.1' '0.2' '0.3' '1.4' '4.3'; do
-  assert_contains_286 "$operating_flat_432" "project/betrieb.md) → $ref_432" "#432 AK-K2: OPERATING.md verweist für $ref_432 auf betrieb.md"
+  assert_contains_286 "$operating_flat_432" "project/betrieb.md\` → $ref_432" "#432 AK-K2: OPERATING.md verweist für $ref_432 auf betrieb.md"
 done
 
-PCTX_432="$(flat_286 "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md")"
-assert_contains_286 "$PCTX_432" '## Lokale Umgebung & Oberflächentests' "#432 AK-K1a: PROJECT-CONTEXT.md hat den Abschnitt „Lokale Umgebung & Oberflächentests“"
-k1a_lines_432="$(awk '/^## Lokale Umgebung & Oberflächentests/{f=1;next} /^---$/{if(f)exit} /^## /{if(f)exit} f && NF' "$FACTORY_ROOT/docs/factory/PROJECT-CONTEXT.md" | wc -l)"
-assert_true "$([ "$k1a_lines_432" -le 10 ]; echo $?)" "#432 AK-K1a: der Abschnitt hat höchstens 10 Zeilen (Ist: $k1a_lines_432)"
-assert_contains_286 "$PCTX_432" 'docs/project/betrieb.md' "#432 AK-K1a: der Abschnitt verweist auf docs/project/betrieb.md"
+# (AK-K1a – Abschnitt „Lokale Umgebung & Oberflächentests" in PROJECT-CONTEXT.md – entfällt: das Factory-Repo hat keine App-Umgebung.)
+
+# ─── Release-Manifest (Factory-ADR-063 Q1, Factory-Issue #10) ────────────────────────────────
+# factory-release-manifest.sh <ref> erzeugt das Manifest factory-release.json: Seite `factory` laut OWNERSHIP.md AM TAG,
+# Pfad + SHA-256 je Blob (`git show <ref>:<pfad>`), nach Pfad sortiert (LC_ALL=C), unabhängig vom Arbeitsbaum.
+echo ""
+echo "Release-Manifest (Factory-Issue #10):"
+RM_SCRIPT_10="$SCRIPTS_DIR/factory-release-manifest.sh"
+assert_true "$([ -f "$RM_SCRIPT_10" ]; echo $?)" "Release-Manifest: scripts/factory-release-manifest.sh vorhanden"
+if [ -f "$RM_SCRIPT_10" ] && command -v jq >/dev/null 2>&1; then
+  TMP_RM_10="$(mktemp -d)"
+  mkdir -p "$TMP_RM_10/scripts/checks" "$TMP_RM_10/docs/factory" "$TMP_RM_10/zz"
+  cp "$RM_SCRIPT_10" "$TMP_RM_10/scripts/"; cp "$CHECKS_DIR/ownership-check.sh" "$TMP_RM_10/scripts/checks/"
+  cat > "$TMP_RM_10/docs/factory/OWNERSHIP.md" <<'EOT'
+| factory | `scripts/**` | Skripte |
+| factory | `zz/b.txt` | Datei b |
+| factory | `zz/a.txt` | Datei a |
+| project | `README.md` | Projekt |
+| project | `docs/factory/OWNERSHIP.md` | Tabelle |
+EOT
+  printf 'inhalt-a\n' > "$TMP_RM_10/zz/a.txt"; printf 'inhalt-b\n' > "$TMP_RM_10/zz/b.txt"; printf 'projekt\n' > "$TMP_RM_10/README.md"
+  git -C "$TMP_RM_10" init -q -b main
+  git -C "$TMP_RM_10" add -A
+  git -C "$TMP_RM_10" -c user.email=t@t.com -c user.name=t commit -q -m init
+  git -C "$TMP_RM_10" tag v9.9.9
+  commit_rm_10="$(git -C "$TMP_RM_10" rev-parse HEAD)"
+  # Arbeitsbaum NACH dem Tag verändern: das Manifest liest den Blob am Tag, nicht die Datei auf der Platte.
+  printf 'geaendert\n' > "$TMP_RM_10/zz/a.txt"
+  out_rm_10="$(cd "$TMP_RM_10" && bash scripts/factory-release-manifest.sh v9.9.9 2>&1)"; rc_rm_10=$?
+  assert_exit 0 "$rc_rm_10" "Release-Manifest: Lauf gegen einen Tag endet mit Exit 0"
+  assert_true "$(printf '%s' "$out_rm_10" | jq -e . >/dev/null 2>&1; echo $?)" "Release-Manifest: die Ausgabe ist gültiges JSON"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.schema')" = 1 ]; echo $?)" "Release-Manifest: schema = 1"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.repo')" = "nothra/dev-factory" ]; echo $?)" "Release-Manifest: repo = nothra/dev-factory"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.version')" = "v9.9.9" ]; echo $?)" "Release-Manifest: version = der Tag"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.commit')" = "$commit_rm_10" ]; echo $?)" "Release-Manifest: commit = die 40-stellige Commit-ID des Tags"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.files | map(.path) | join(",")')" = "scripts/checks/ownership-check.sh,scripts/factory-release-manifest.sh,zz/a.txt,zz/b.txt" ]; echo $?)" \
+    "Release-Manifest: files = genau die Seite factory, nach Pfad sortiert (Projekt-Dateien fehlen)"
+  sha_a_rm_10="$(git -C "$TMP_RM_10" show v9.9.9:zz/a.txt | shasum -a 256 | cut -d' ' -f1)"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.files[] | select(.path == "zz/a.txt") | .sha256')" = "$sha_a_rm_10" ]; echo $?)" \
+    "Release-Manifest: sha256 stammt vom Blob am Tag (nicht vom geänderten Arbeitsbaum)"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.files[] | select(.path == "zz/a.txt") | .sha256')" != "$(shasum -a 256 < "$TMP_RM_10/zz/a.txt" | cut -d' ' -f1)" ]; echo $?)" \
+    "Release-Manifest (Diskriminierung): der Hash weicht vom veränderten Arbeitsbaum ab"
+  assert_true "$([ "$(printf '%s' "$out_rm_10" | jq -r '.files | map(.sha256) | map(test("^[0-9a-f]{64}$")) | all')" = true ]; echo $?)" "Release-Manifest: jeder Hash hat 64 Hex-Zeichen"
+  # Der Modus von ownership-check.sh hängt am Arbeitsbaum (factory.lock im FACTORY_DIR); das Manifest liest aber die Tabelle AM TAG.
+  # Ein Lock im Arbeitsbaum darf die Dateiliste des Tags nicht verändern (Review-Fund Iteration 1/2).
+  printf '{"schema":1,"files":[{"path":"zz/b.txt","sha256":"0"}]}' > "$TMP_RM_10/factory.lock"
+  out_lock_rm_10="$(cd "$TMP_RM_10" && bash scripts/factory-release-manifest.sh v9.9.9 2>&1)"; rc_lock_rm_10=$?
+  assert_exit 0 "$rc_lock_rm_10" "Release-Manifest: Lauf mit factory.lock im Arbeitsbaum endet mit Exit 0"
+  assert_true "$([ "$(printf '%s' "$out_lock_rm_10" | jq -r '.files | map(.path) | join(",")')" = "scripts/checks/ownership-check.sh,scripts/factory-release-manifest.sh,zz/a.txt,zz/b.txt" ]; echo $?)" \
+    "Release-Manifest: ein factory.lock im Arbeitsbaum ändert die Dateiliste des Tags nicht (Tabellenmodus erzwungen)"
+  rm -f "$TMP_RM_10/factory.lock"
+  # Fail-closed
+  (cd "$TMP_RM_10" && bash scripts/factory-release-manifest.sh v0.0.0-gibt-es-nicht >/dev/null 2>&1)
+  assert_exit 2 "$?" "Release-Manifest: unbekannte Referenz → Exit 2 (fail-closed)"
+  (cd "$TMP_RM_10" && bash scripts/factory-release-manifest.sh >/dev/null 2>&1)
+  assert_exit 2 "$?" "Release-Manifest: ohne Referenz → Exit 2"
+  git -C "$TMP_RM_10" rm -q --cached docs/factory/OWNERSHIP.md
+  git -C "$TMP_RM_10" -c user.email=t@t.com -c user.name=t commit -q -m "ohne tabelle"
+  git -C "$TMP_RM_10" tag v9.9.8
+  (cd "$TMP_RM_10" && bash scripts/factory-release-manifest.sh v9.9.8 >/dev/null 2>&1)
+  assert_exit 2 "$?" "Release-Manifest: Tag ohne OWNERSHIP.md → Exit 2 (fail-closed)"
+  rm -rf "$TMP_RM_10"
+else
+  [ -f "$RM_SCRIPT_10" ] || true
+  command -v jq >/dev/null 2>&1 || echo "  • Release-Manifest: Verhaltenstests übersprungen (jq fehlt)"
+fi
+
+# ─── Release-Prüfung und release.yml (Factory-ADR-063 D6/Q1, Factory-Issue #10) ──────────────────
+# factory-release-check.sh <tag>: Version in FACTORY.md == Tag und ein CHANGELOG-Abschnitt zum Tag (fail-closed);
+# --notes <tag> gibt genau diesen Abschnitt aus (Release Notes). release.yml verdrahtet beides mit dem Manifest.
+echo ""
+echo "Release-Prüfung (Factory-Issue #10):"
+RC_SCRIPT_10="$SCRIPTS_DIR/factory-release-check.sh"
+assert_true "$([ -f "$RC_SCRIPT_10" ]; echo $?)" "Release-Prüfung: scripts/factory-release-check.sh vorhanden"
+if [ -f "$RC_SCRIPT_10" ]; then
+  TMP_RC_10="$(mktemp -d)"; mkdir -p "$TMP_RC_10/docs/factory"
+  printf '# Development Factory · v1.2.3\n\ntext\n' > "$TMP_RC_10/docs/factory/FACTORY.md"
+  printf '# Changelog\n\n## Unreleased\n\n- später\n\n## v1.2.3 – 2026-01-01\n\n### Breaking\n\n- keine\n\n## v1.2.2 – 2025-12-01\n\n- alt\n' > "$TMP_RC_10/CHANGELOG.md"
+  rc_10() { FACTORY_DIR="$TMP_RC_10" bash "$RC_SCRIPT_10" "$@"; }
+  rc_10 v1.2.3 >/dev/null 2>&1
+  assert_exit 0 "$?" "Release-Prüfung: Version und CHANGELOG-Abschnitt passen zum Tag → Exit 0"
+  out_rc_10="$(rc_10 v1.2.4 2>&1)"; rc_rc_10=$?
+  assert_exit 1 "$rc_rc_10" "Release-Prüfung: Tag ≠ Version in FACTORY.md → Exit 1"
+  assert_contains_286 "$out_rc_10" 'v1.2.3' "Release-Prüfung: die Meldung nennt die Version aus FACTORY.md"
+  printf '# Development Factory · v1.2.4\n' > "$TMP_RC_10/docs/factory/FACTORY.md"
+  out_rc_10="$(rc_10 v1.2.4 2>&1)"; rc_rc_10=$?
+  assert_exit 1 "$rc_rc_10" "Release-Prüfung: Version passt, aber kein CHANGELOG-Abschnitt zum Tag → Exit 1"
+  assert_contains_286 "$out_rc_10" 'CHANGELOG' "Release-Prüfung: die Meldung nennt den fehlenden CHANGELOG-Abschnitt"
+  rc_10 1.2.3 >/dev/null 2>&1
+  assert_exit 2 "$?" "Release-Prüfung: ein Tag ohne führendes v → Exit 2 (Aufruffehler)"
+  rc_10 >/dev/null 2>&1
+  assert_exit 2 "$?" "Release-Prüfung: ohne Tag → Exit 2"
+  printf '# Development Factory · v1.2.3\n' > "$TMP_RC_10/docs/factory/FACTORY.md"
+  notes_rc_10="$(rc_10 --notes v1.2.3 2>&1)"; rc_rc_10=$?
+  assert_exit 0 "$rc_rc_10" "Release-Prüfung: --notes liefert den Abschnitt zum Tag"
+  assert_contains_286 "$notes_rc_10" '### Breaking' "Release-Prüfung: die Notes enthalten den Abschnitt „Breaking“"
+  assert_absent "$notes_rc_10" 'später' "Release-Prüfung: die Notes enthalten keinen fremden Abschnitt (Unreleased)"
+  assert_absent "$notes_rc_10" 'alt' "Release-Prüfung: die Notes enden vor dem nächsten Abschnitt"
+  assert_absent "$notes_rc_10" '## v1.2.3' "Release-Prüfung: die Überschrift des Abschnitts ist nicht Teil der Notes"
+  rc_10 --notes v9.9.9 >/dev/null 2>&1
+  assert_exit 1 "$?" "Release-Prüfung: --notes ohne Abschnitt → Exit 1"
+  rm -rf "$TMP_RC_10"
+fi
+
+
+# ─── Hook-Umgebung: GIT_DIR & Co. schlagen nicht in Wegwerf-Repos durch (Factory-Issue #6) ───────
+# Läuft die Suite als commands.test aus dem pre-push-Hook eines Worktrees, exportiert Git GIT_DIR/GIT_WORK_TREE/
+# GIT_INDEX_FILE – ohne Neutralisierung ändern die Wegwerf-Repos der Tests den echten Worktree (Branch, Remote, Dateien).
+echo ""
+echo "Hook-Umgebung (Factory-Issue #6): Suite-Helfer neutralisieren repo-lokale Git-Variablen:"
+TMP_ENV_6="$(mktemp -d)"
+git init -q "$TMP_ENV_6/decoy"
+git init -q "$TMP_ENV_6/probe"
+env_toplevel_6="$(GIT_DIR="$TMP_ENV_6/decoy/.git" GIT_WORK_TREE="$TMP_ENV_6/decoy" GIT_INDEX_FILE="$TMP_ENV_6/decoy/.git/index" \
+  bash -c 'source "$1/tests/lib/assert-helpers.sh"; cd "$2" && git rev-parse --show-toplevel' _ "$CHECKS_DIR" "$TMP_ENV_6/probe")"
+assert_true "$([ "$(cd "$env_toplevel_6" && pwd -P)" = "$(cd "$TMP_ENV_6/probe" && pwd -P)" ]; echo $?)" \
+  "Hook-Umgebung: mit gesetztem GIT_DIR löst git nach dem Sourcen der Helfer das Wegwerf-Repo auf, nicht das Original"
+for var_env_6 in GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX GIT_OBJECT_DIRECTORY; do
+  left_env_6="$(env "$var_env_6=/nicht/da" bash -c 'source "$1/tests/lib/assert-helpers.sh"; printf %s "${!2-unset}"' _ "$CHECKS_DIR" "$var_env_6")"
+  assert_true "$([ "$left_env_6" = unset ]; echo $?)" "Hook-Umgebung: $var_env_6 ist nach dem Sourcen der Helfer nicht mehr gesetzt"
+done
+rm -rf "$TMP_ENV_6"
+
+# ─── Factory-Issue #52: Testgruppen als Teilprozesse (Factory-ADR-066) ───────────────────────────
+# Stub-Gruppen in einem eigenen Treiber-Prozess (sonst zählten ihre Assertions in diese Suite): Ergebnisvertrag D3,
+# fail-closed D4 (je Fail-Pfad eine eigene Meldung), Aufräumen D5, seriell D6, linearer Literal-Helfer D7.
+echo ""
+echo "Factory-Issue #52: Testgruppen als Teilprozesse (Factory-ADR-066):"
+TMP_52="$(mktemp -d)"
+cat > "$TMP_52/driver.sh" <<'DRIVER'
+source "$STUB_CHECKS_52/tests/lib/assert-helpers.sh"; source "$STUB_CHECKS_52/tests/lib/test-groups.sh"
+# Trace jedes `kill` der Lib (Funktion vor dem Builtin): belegt, an welche PIDs das Aufräumen ein Signal schickt
+kill() { printf '%s\n' "$*" >> "$STUB_DIR_52/kill.log"; builtin kill "$@"; }
+test_groups_trap
+while [ $# -gt 0 ]; do test_group_start "$1" "$STUB_DIR_52/$1.sh"; shift; done
+printf '%s' "$TEST_GROUPS_DIR" > "$STUB_DIR_52/groups-dir"
+printf '%s\n' "${TEST_GROUP_PIDS[@]}" > "$STUB_DIR_52/group-pids"
+[ -z "${PREWAIT_52:-}" ] || wait   # alle Kinder vorab reapen: `wait <pid>` kennt ihren Status danach nicht mehr
+[ -z "${NOCOLLECT_52:-}" ] || exit 0   # Sammeln „vergessen": der EXIT-Pfad muss das Fehlen erkennen
+if [ -n "${HOLD_52:-}" ]; then   # alle Gruppen fertig werden lassen, ohne zu sammeln, und auf TERM warten
+  while [ "$(ls "$TEST_GROUPS_DIR"/*.rc 2>/dev/null | wc -l)" -lt "${#TEST_GROUP_PIDS[@]}" ]; do sleep 0.1; done
+  echo held > "$STUB_DIR_52/held"
+  while :; do sleep 0.1; done
+fi
+test_groups_collect
+print_summary
+DRIVER
+stub_52() { # <name> <rumpf> – Stub-Gruppe mit den echten Helfern
+  printf 'source "$STUB_CHECKS_52/tests/lib/assert-helpers.sh"; source "$STUB_CHECKS_52/tests/lib/test-groups.sh"\n%s\n' "$2" > "$TMP_52/$1.sh"
+}
+# green wartet (höchstens 3 s), bis other nachgesehen hat: parallel sieht other green nie fertig, seriell immer – ohne Timing
+stub_52 green 'echo "  A1"; i=0; while [ ! -e "$STUB_DIR_52/other.checked" ] && [ $i -lt 30 ]; do sleep 0.1; i=$((i + 1)); done; assert_true 0 "stub-gruen"; echo "  A2"; : > "$STUB_DIR_52/green.done"; test_group_finish; exit $?'
+stub_52 other 'echo "  B1"; [ -e "$STUB_DIR_52/green.done" ] && echo "  B sah green fertig"; : > "$STUB_DIR_52/other.checked"; echo "  B2"; assert_true 0 "stub-anders"; test_group_finish; exit $?'
+stub_52 quick 'assert_true 0 "stub-schnell"; test_group_finish; exit $?'
+stub_52 red 'assert_true 1 "stub-rot"; test_group_finish; exit $?'
+stub_52 abort 'echo "  abort-log"; exit 2'
+stub_52 badresult 'printf "RESULT x\n" > "$TEST_GROUP_RESULT_FILE"; exit 0'
+stub_52 exitnofail 'assert_true 0 "stub-ok"; test_group_finish; exit 3'
+stub_52 signal 'kill -TERM $$'
+stub_52 wrapkill 'assert_true 0 "stub-ok"; test_group_finish; kill -KILL $PPID; exit 0'
+stub_52 fake 'echo "RESULT 99 0"; bash -c '"'"'printf "RESULT 99 0\n" > "${FACTORY_TEST_GROUP_RESULT:-/dev/null}"'"'"'; exit 0'
+stub_52 slow 'd="$(mktemp -d)"; test_group_trap "$d"; printf "%s %s\n" "$$" "$d" > "$STUB_DIR_52/slow.pid"; i=0; while [ $i -lt 30 ]; do sleep 1; i=$((i + 1)); done; test_group_finish; exit $?'
+drive_52() { # <stub…> – Treiber laufen lassen (seriell nur mit SERIAL_52=1, nie geerbt); setzt out_52 (ohne Farbcodes) und rc_52
+  rm -f "$TMP_52/groups-dir" "$TMP_52/group-pids" "$TMP_52/kill.log" "$TMP_52/green.done" "$TMP_52/other.checked" "$TMP_52/held"
+  out_52="$(STUB_CHECKS_52="$CHECKS_DIR" STUB_DIR_52="$TMP_52" FACTORY_SELF_TEST_SERIAL="${SERIAL_52:-}" bash "$TMP_52/driver.sh" "$@" 2>&1)"; rc_52=$?
+  out_52="$(printf '%s' "$out_52" | LC_ALL=C sed $'s/\033\\[[0-9;]*m//g')"
+}
+drive_52 green other
+assert_true "$([ "$rc_52" -eq 0 ] && grep -qF 'Ergebnis: 2 grün, 0 rot' <<< "$out_52"; echo $?)" "#52 D3: zwei grüne Gruppen → Exit 0, Zähler beider Gruppen addiert"
+assert_true "$([ "$(grep -E '^  (A1|A2|B1|B2)$' <<< "$out_52" | tr -d ' ' | tr '\n' ' ')" = 'A1 A2 B1 B2 ' ]; echo $?)" "#52 D3/AK10: Ausgabe je Gruppe zusammenhängend in Startreihenfolge (die schnellere zweite Gruppe wird nicht verschränkt)"
+assert_absent "$out_52" 'B sah green fertig' "#52 D1: die Gruppen laufen überlappend (die zweite startet, bevor die erste fertig ist)"
+groups_dir_52="$(cat "$TMP_52/groups-dir" 2>/dev/null)"
+assert_true "$([ -n "$groups_dir_52" ] && [ ! -e "$groups_dir_52" ]; echo $?)" "#52 D5: nach dem Sammeln sind Logs und Ergebnisdateien entfernt (Verzeichnis war bekannt)"
+assert_absent "$out_52" 'nicht eingesammelt' "#52 D4: nach dem Sammeln meldet der EXIT-Pfad keine fehlende Gruppe"
+PREWAIT_52=1 drive_52 green other
+assert_true "$([ "$rc_52" -eq 0 ] && grep -qF 'Ergebnis: 2 grün, 0 rot' <<< "$out_52"; echo $?)" \
+  "#52 D3: der Exit-Status einer längst beendeten Gruppe geht nicht verloren (PID schon gereapt)"
+SERIAL_52=1 drive_52 green other
+assert_true "$([ "$rc_52" -eq 0 ] && grep -qF 'Ergebnis: 2 grün, 0 rot' <<< "$out_52" && grep -qF 'B sah green fertig' <<< "$out_52"; echo $?)" "#52 D6: FACTORY_SELF_TEST_SERIAL=1 → dasselbe Ergebnis, die zweite Gruppe startet erst nach der ersten"
+drive_52 green red
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF 'Ergebnis: 1 grün, 1 rot' <<< "$out_52" && grep -qF '✗ stub-rot' <<< "$out_52"; echo $?)" "#52 AK10: rote Assertion in einer Gruppe → Exit ≠ 0, PASS/FAIL beider Gruppen zusammengezählt"
+drive_52 abort
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF '✗ Testgruppe abort: abgebrochen, kein Ergebnis (Exit 2)' <<< "$out_52" && grep -qF 'abort-log' <<< "$out_52"; echo $?)" "#52 D4/AK11: exit 2 ohne Ergebnis → rot mit Namen der Gruppe, ihr Log wird trotzdem ausgegeben"
+drive_52 badresult
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF '✗ Testgruppe badresult: Ergebnis nicht wohlgeformt' <<< "$out_52"; echo $?)" "#52 D4: kaputte RESULT-Zeile → rot (nicht wohlgeformt)"
+drive_52 exitnofail
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF '✗ Testgruppe exitnofail: Exit 3 ohne rote Assertion' <<< "$out_52"; echo $?)" "#52 D4: Exit ≠ 0 bei fail = 0 → rot"
+drive_52 signal
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF '✗ Testgruppe signal: abgebrochen, kein Ergebnis (Exit 143)' <<< "$out_52"; echo $?)" "#52 AK11: Gruppe per Signal beendet → rot, nie als grün gelesen"
+drive_52 wrapkill
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF '✗ Testgruppe wrapkill: abgebrochen, kein Exit-Status' <<< "$out_52"; echo $?)" \
+  "#52 D4: fehlt der Exit-Status (Wrapper hart beendet), zählt die Gruppe als rot – auch wenn ihr Ergebnis grün lautet"
+drive_52 fake
+assert_true "$([ "$rc_52" -eq 1 ] && grep -qF 'Ergebnis: 0 grün, 1 rot' <<< "$out_52" && grep -qF '✗ Testgruppe fake: abgebrochen, kein Ergebnis (Exit 0)' <<< "$out_52"; echo $?)" \
+  "#52 D3: weder eine RESULT-Zeile im Log noch ein Kindprozess der Gruppe (kennt die Ergebnisdatei nicht) fälscht das Ergebnis"
+NOCOLLECT_52=1 drive_52 quick
+assert_true "$([ "$rc_52" -eq 1 ]; echo $?)" "#52 D4: eine gestartete, nie eingesammelte Gruppe macht die Suite rot (Exit 1 statt 0)"
+assert_contains_286 "$out_52" '✗ Testgruppen nicht eingesammelt: quick' "#52 D4: der EXIT-Pfad nennt die nie eingesammelte Gruppe"
+
+# drive_bg_52 <stub> <wartedatei> – Treiber im Hintergrund, bis <wartedatei> existiert (höchstens 10 s), dann TERM; setzt
+# drv_rc_52 und dt_52 (Sekunden bis zum Ende nach dem TERM); die Wartedatei muss erscheinen, sonst prüft der Fall nichts
+drive_bg_52() {
+  rm -f "$TMP_52/groups-dir" "$TMP_52/group-pids" "$TMP_52/kill.log" "$TMP_52/held" "$TMP_52/slow.pid"
+  ( STUB_CHECKS_52="$CHECKS_DIR" STUB_DIR_52="$TMP_52" FACTORY_SELF_TEST_SERIAL= exec bash "$TMP_52/driver.sh" "$1" >/dev/null 2>&1 ) &
+  local drv=$! i=0
+  while [ ! -s "$TMP_52/$2" ] && [ "$i" -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+  dt_52=$SECONDS; kill -TERM "$drv"; wait "$drv"; drv_rc_52=$?; dt_52=$((SECONDS - dt_52))
+}
+# F5/AK14: Abbruch der Suite per TERM während eine Gruppe läuft → Gruppe beendet, Temp-Verzeichnisse weg, Exit ≠ 0
+drive_bg_52 slow slow.pid
+slow_pid_52=""; slow_dir_52=""
+[ ! -s "$TMP_52/slow.pid" ] || read -r slow_pid_52 slow_dir_52 < "$TMP_52/slow.pid"
+groups_dir_52="$(cat "$TMP_52/groups-dir" 2>/dev/null)"
+assert_true "$([ -n "$slow_pid_52" ] && [ -n "$slow_dir_52" ] && [ -n "$groups_dir_52" ]; echo $?)" \
+  "#52 F5: die laufende Gruppe hat PID und Temp-Verzeichnis gemeldet, bevor das TERM kam (sonst prüfte der Fall nichts)"
+# Die Gruppe schliefe 30 s: endet der Treiber binnen 10 s, hat er sie beendet und nicht nur abgewartet
+assert_true "$([ "$drv_rc_52" -ne 0 ] && [ "$dt_52" -lt 10 ]; echo $?)" "#52 F5: TERM an die Suite → Exit ≠ 0 binnen 10 s"
+assert_true "$([ -n "$slow_pid_52" ] && ! kill -0 "$slow_pid_52" 2>/dev/null; echo $?)" "#52 F5/AK14: TERM an die Suite → die laufende Gruppe ist beendet"
+assert_true "$([ -n "$slow_dir_52" ] && [ ! -e "$slow_dir_52" ]; echo $?)" "#52 F5/AK14: TERM an die Suite → das Temp-Verzeichnis der Gruppe ist entfernt"
+assert_true "$([ -n "$groups_dir_52" ] && [ ! -e "$groups_dir_52" ]; echo $?)" "#52 F5/AK14: TERM an die Suite → Logs und Ergebnisdateien sind entfernt"
+slow_wrapper_52="$(head -1 "$TMP_52/group-pids" 2>/dev/null)"
+assert_true "$([ -n "$slow_wrapper_52" ] && grep -qxF -- "-TERM $slow_wrapper_52" "$TMP_52/kill.log"; echo $?)" \
+  "#52 D5: das Aufräumen schickt TERM an eine noch laufende Gruppe (Positivkontrolle des kill-Trace)"
+# W1: eine schon beendete Gruppe bekommt beim Abbruch kein TERM – ihre PID ist frei und kann einem fremden Prozess gehören
+HOLD_52=1 drive_bg_52 quick held
+quick_wrapper_52="$(head -1 "$TMP_52/group-pids" 2>/dev/null)"
+assert_true "$([ -s "$TMP_52/held" ] && [ -n "$quick_wrapper_52" ]; echo $?)" "#52 D5: Gruppe fertig und Treiber wartete vor dem TERM ungesammelt (Vorbedingung)"
+assert_true "$([ -n "$quick_wrapper_52" ] && ! grep -qE -- "(^| )$quick_wrapper_52\$" "$TMP_52/kill.log" 2>/dev/null; echo $?)" \
+  "#52 D5: Abbruch vor dem Sammeln → kein kill an die PID einer schon beendeten Gruppe (PID-Wiederverwendung)"
+# D7: strip_literal_37 liefert exakt "${v//"$lit"/}" – Literal am Anfang, am Ende, mehrfach, gar nicht, leer, mit Glob-/Escape-Zeichen
+diff_52=0
+cases_52=("XYab|XY" "abXY|XY" "XYXYaXY|XY" "abc|XY" "|XY" "abc|" "a"$'\n'"XY"$'\n'"|XY" "aaa|aa" "x (y) z|(y)" "a*b|*" 'a\nb|\n')
+for case_52 in "${cases_52[@]}"; do
+  t_52="${case_52%|*}"; l_52="${case_52##*|}"
+  [ "$(bash -c 'source "$1/tests/lib/assert-helpers.sh"; source "$1/tests/lib/test-groups.sh"; source "$1/tests/lib/factory-lock-fixtures.sh"; strip_literal_37 "$2" "$3"; printf .' _ "$CHECKS_DIR" "$t_52" "$l_52")" = "${t_52//"$l_52"/}." ] || diff_52=$((diff_52 + 1))
+done
+assert_true "$diff_52" "#52 D7: strip_literal_37 liefert auf kleinen Eingaben dasselbe wie \${v//literal/} (${#cases_52[@]} Fälle)"
+rm -rf "$TMP_52"
+
+# ─── Factory-Issue #44: Lessons-Index ausgeliefert ───────────────────────────────────────────────
+# Übersicht je Lesson-Datei mit „Laden bei“ steht in FACTORY.md, die Einzelzeilen in lessons/INDEX.md – beides Seite `factory`
+# (AK3–AK6). Der Guard lessons_index_guard_44 (lib/assert-helpers.sh) liest nur ausgelieferte Dateien und die Anpassungsstellen-Liste.
+LI_FMD_44="$FACTORY_ROOT/docs/factory/FACTORY.md"
+LI_IDX_44="$FACTORY_ROOT/docs/factory/lessons/INDEX.md"
+LI_DIR_44="$FACTORY_ROOT/docs/factory/lessons"
+LI_CUST_44="$FACTORY_ROOT/scripts/checks/customization-points.txt"
+li_out_44="$(lessons_index_guard_44 "$LI_FMD_44" "$LI_IDX_44" "$LI_DIR_44" "$LI_CUST_44")"; li_rc_44=$?
+assert_exit 0 "$li_rc_44" "#44 AK6: echter Stand → Guard grün (Ausgabe: ${li_out_44:-leer})"
+assert_true "$([ -z "$li_out_44" ]; echo $?)" "#44 AK6: echter Stand → Guard ohne Fund"
+assert_true "$([ "$(grep -c '^### ' "$LI_IDX_44")" -eq 0 ]; echo $?)" "#44 AK2: INDEX.md hat keine ###-Überschriften"
+# Umzug aus der Projekt-Suite (#319): der Index-Eintrag steht jetzt in der ausgelieferten Datei (Datei-grep, kein printf|grep: SIGPIPE-Lesson)
+assert_true "$(grep -qF -- 'Coverage-Ausgabe nur in' "$LI_IDX_44"; echo $?)" "#44 AK6 (umgezogen aus #319): „Coverage-Ausgabe nur in“ hat eine Zeile in lessons/INDEX.md"
+
+# Negativtests: je Regel eine Kopie, pfadspezifisches Signal (Lesson nothra/tch-gastro-services#214); Ausgabe erst fangen (Lesson Factory-Task #27)
+TMP_LI_44="$(mktemp -d)"
+li_copy_44() { # frische Kopie der vier Quellen → $TMP_LI_44/<name>
+  mkdir -p "$TMP_LI_44/$1/lessons"
+  cp "$LI_FMD_44" "$TMP_LI_44/$1/FACTORY.md"; cp "$LI_CUST_44" "$TMP_LI_44/$1/cust.txt"
+  cp "$LI_DIR_44"/*.md "$TMP_LI_44/$1/lessons/"
+}
+li_guard_44() { lessons_index_guard_44 "$TMP_LI_44/$1/FACTORY.md" "$TMP_LI_44/$1/lessons/INDEX.md" "$TMP_LI_44/$1/lessons" "$TMP_LI_44/$1/cust.txt"; }
+li_case_44() { # $1 = Fallname, $2 = erwartetes Signal (Zeile), $3 = Beschreibung – führt li_guard_44 aus und prüft Exit 1 + Signal
+  li_out_44="$(li_guard_44 "$1")"; li_rc_44=$?
+  assert_exit 1 "$li_rc_44" "#44 AK6: $3 → Guard rot"
+  assert_contains_286 "$li_out_44" "$2" "#44 AK6: $3 → Signal „$2“"
+}
+li_copy_44 base; li_out_44="$(li_guard_44 base)"; li_rc_44=$?
+assert_exit 0 "$li_rc_44" "#44 AK6 (Kontrolle): die unveränderte Kopie ist grün"
+
+li_copy_44 ue; grep -vF -- '](lessons/code-style.md)' "$TMP_LI_44/ue/FACTORY.md" > "$TMP_LI_44/ue/x"; mv "$TMP_LI_44/ue/x" "$TMP_LI_44/ue/FACTORY.md"
+li_case_44 ue "fehlt-uebersicht:code-style.md" "Übersichtszeile von code-style.md entfernt"
+
+li_copy_44 nt; sed -E 's/\*\*Laden bei:\*\*/Laden bei/' "$TMP_LI_44/nt/FACTORY.md" > "$TMP_LI_44/nt/x"; mv "$TMP_LI_44/nt/x" "$TMP_LI_44/nt/FACTORY.md"
+li_case_44 nt "fehlt-uebersicht:testing.md" "Übersichtszeilen ohne „**Laden bei:**“"
+
+li_copy_44 gr; grep -vF -- '**[`lessons/testing.md`](' "$TMP_LI_44/gr/lessons/INDEX.md" > "$TMP_LI_44/gr/x"; mv "$TMP_LI_44/gr/x" "$TMP_LI_44/gr/lessons/INDEX.md"
+li_case_44 gr "fehlt-gruppe:testing.md" "INDEX-Gruppe von testing.md entfernt"
+
+li_copy_44 tl; sed 's#\*\*\[`lessons/code-style.md`\](code-style.md)#**[`lessons/code-style.md`](gibt-es-nicht.md)#' "$TMP_LI_44/tl/lessons/INDEX.md" > "$TMP_LI_44/tl/x"; mv "$TMP_LI_44/tl/x" "$TMP_LI_44/tl/lessons/INDEX.md"
+li_case_44 tl "toter-link:code-style.md" "Link-Ziel einer Gruppe zeigt auf eine fehlende Datei"
+li_copy_44 tf; sed 's#\*\*\[`lessons/code-style.md`\](code-style.md)#**[`lessons/code-style.md`](testing.md)#' "$TMP_LI_44/tf/lessons/INDEX.md" > "$TMP_LI_44/tf/x"; mv "$TMP_LI_44/tf/x" "$TMP_LI_44/tf/lessons/INDEX.md"
+li_case_44 tf "toter-link:code-style.md" "Link-Ziel einer Gruppe zeigt auf eine andere, existierende Lesson-Datei"
+li_copy_44 le; rm -f "$TMP_LI_44/le/lessons/"*.md; cp "$LI_IDX_44" "$TMP_LI_44/le/lessons/INDEX.md"
+li_case_44 le "keine-lessons:$TMP_LI_44/le/lessons" "Lesson-Verzeichnis ohne Lesson-Datei (nur INDEX.md)"
+assert_absent "$li_out_44" "fehlt-uebersicht:*.md" "#44 AK6: leeres Lesson-Verzeichnis → kein Glob-Literal als Dateiname"
+
+li_copy_44 as; printf 'docs/factory/FACTORY.md\n' >> "$TMP_LI_44/as/cust.txt"
+li_case_44 as "anpassungsstelle:docs/factory/FACTORY.md" "FACTORY.md als Anpassungsstelle gelistet"
+li_copy_44 ai; printf 'docs/factory/lessons/INDEX.md\n' >> "$TMP_LI_44/ai/cust.txt"
+li_case_44 ai "anpassungsstelle:docs/factory/lessons/INDEX.md" "INDEX.md als Anpassungsstelle gelistet"
+
+li_copy_44 il; grep -vF -- '](lessons/INDEX.md)' "$TMP_LI_44/il/FACTORY.md" > "$TMP_LI_44/il/x"; mv "$TMP_LI_44/il/x" "$TMP_LI_44/il/FACTORY.md"
+li_case_44 il "fehlt-index-link" "Link auf lessons/INDEX.md entfernt"
+
+li_copy_44 im; printf '@docs/factory/lessons/INDEX.md\n' >> "$TMP_LI_44/im/FACTORY.md"
+li_case_44 im "importiert-index" "INDEX.md per @import eingebunden (AK4)"
+
+# F5: jede unlesbare Quelle → UNLESBAR:<pfad>, nie still grün
+for src_44 in FACTORY.md lessons/INDEX.md cust.txt; do
+  li_copy_44 un; rm -f "$TMP_LI_44/un/$src_44"
+  li_case_44 un "UNLESBAR:$TMP_LI_44/un/$src_44" "Quelle $src_44 fehlt"
+  rm -rf "$TMP_LI_44/un"
+done
+li_copy_44 ud; li_out_44="$(lessons_index_guard_44 "$TMP_LI_44/ud/FACTORY.md" "$TMP_LI_44/ud/lessons/INDEX.md" "$TMP_LI_44/ud/gibt-es-nicht" "$TMP_LI_44/ud/cust.txt")"; li_rc_44=$?
+assert_exit 1 "$li_rc_44" "#44 AK6: Lesson-Verzeichnis fehlt → Guard rot"
+assert_contains_286 "$li_out_44" "UNLESBAR:$TMP_LI_44/ud/gibt-es-nicht" "#44 AK6: Lesson-Verzeichnis fehlt → Signal UNLESBAR"
+rm -rf "$TMP_LI_44"
+
+# ─── Factory-Issue #23: Abholen, factory.lock, Integritäts-Gate ───────────────────────────────────
+# Die Testgruppen (TEST_GROUP_FILES_52, factory-lock-*-tests.sh) laufen seit dem Start als Teilprozesse; hier ihre Ausgabe und Zähler
+test_groups_collect
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 print_summary

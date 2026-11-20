@@ -41,11 +41,11 @@ else
 fi
 
 # ─── Check 2: Typecheck ───────────────────────────────────────────────────────
-# Fängt Typfehler (z.B. fehlende `import type`), die Lint und Vitest nicht
-# erkennen: Vitest transpiliert über esbuild (Typen werden vor der Ausführung
-# gestrippt, kein Type-Check) und das ESLint-Setup hier ist nicht typed-aware.
-# Nur `tsc`/`next build` sieht diese Fehler – aus #137 (Build-Break unbemerkt
-# bis zum manuellen `pnpm build` vor dem Merge).
+# Fängt Typfehler, die Lint und Tests nicht erkennen: ein Test-Runner, der Quelltext
+# nur transpiliert, entfernt die Typen vor der Ausführung (kein Type-Check), und ein Linter
+# ohne Typinformation sieht sie ebenfalls nicht. Nur der eigentliche Typecheck bzw. Build
+# findet diese Fehler – aus nothra/tch-gastro-services#137 (Build-Break unbemerkt bis zum
+# manuellen Build vor dem Merge).
 if TYPECHECK_COMMAND="$(gate_command typecheck required)"; then
   echo -e "  ${YELLOW}→${NC} Typecheck: $TYPECHECK_COMMAND"
   if eval "$TYPECHECK_COMMAND" > /dev/null 2>&1; then
@@ -60,11 +60,11 @@ else
   FAILED=1
 fi
 
-# ─── Check 3: Format (Prettier) ──────────────────────────────────────────────
-# Erzwingt Prettier-Konformität vor dem Push. Ohne dieses Gate drifteten unbemerkt
-# 38 Dateien aus dem Format (#149) – weder pre-commit noch CI prüften `format:check`.
-# Ausgabe NICHT unterdrücken: `prettier --check` listet bei Drift die betroffenen
-# Dateien ([warn] …) – direkt umsetzbar mit `pnpm format` (anders als der verbose tsc).
+# ─── Check 3: Format ─────────────────────────────────────────────────────────
+# Erzwingt Format-Konformität vor dem Push. Ohne dieses Gate drifteten unbemerkt
+# 38 Dateien aus dem Format (nothra/tch-gastro-services#149) – weder pre-commit noch CI prüften den Format-Check.
+# Ausgabe NICHT unterdrücken: ein Format-Check listet bei Drift typischerweise die betroffenen
+# Dateien – direkt umsetzbar mit dem Format-Kommando des Projekts (anders als die meist sehr lange Typecheck-Ausgabe).
 # Optionales Kommando (commands.format bzw. FACTORY_FORMAT_COMMAND): ein BEWUSST leer gesetztes
 # FACTORY_FORMAT_COMMAND="" – oder ein leerer commands.format – deaktiviert das Gate (expliziter
 # Opt-out, unten der else-Zweig); ein leerer Env-Wert fällt nicht still auf die Config zurück.
@@ -83,8 +83,8 @@ else
 fi
 
 # ─── Check 4: Projekt-Erweiterungspunkt ──────────────────────────────────────
-# Ausführbare Skripte aus scripts/project/checks/pre-push.d/ (lexikalisch), u. a. der
-# Routen-Doku-Drift-Check (#145). Fehlendes oder leeres Verzeichnis ist kein Fehler;
+# Ausführbare Skripte aus scripts/project/checks/pre-push.d/ (lexikalisch) – die projekteigenen
+# Checks des Konsumenten. Fehlendes oder leeres Verzeichnis ist kein Fehler;
 # Fehlschlag oder fehlendes Ausführbar-Bit blockiert den Push (Skriptname in der Meldung).
 run_project_checks "$FACTORY_DIR/scripts/project/checks/pre-push.d" || FAILED=1
 
@@ -92,7 +92,7 @@ run_project_checks "$FACTORY_DIR/scripts/project/checks/pre-push.d" || FAILED=1
 # Fail-closed-Verifikation, dass pre-commit/pre-push/commit-msg im gemeinsamen
 # Git-Verzeichnis vorhanden und ausführbar sind – ein vergessener Retrofit von
 # install-hooks.sh (frischer Clone, gelöschtes .git/hooks) bliebe sonst unbemerkt
-# (Issue #265, ADR-042 §Consequences).
+# (Issue nothra/tch-gastro-services#265, ADR-042 §Consequences).
 HOOKS_INSTALLED_CHECK="$FACTORY_DIR/scripts/checks/hooks-installed-check.sh"
 if [ -f "$HOOKS_INSTALLED_CHECK" ]; then
   echo -e "  ${YELLOW}→${NC} Git-Hooks: pre-commit/pre-push/commit-msg installiert?"
@@ -131,7 +131,7 @@ fi
 # ─── Check 6a: Zuordnung Factory/Projekt vollständig ──────────────────────────
 # Jede getrackte Datei gehört genau einer Seite (docs/factory/OWNERSHIP.md, ADR-063 D11).
 # Eine neue Datei ohne Zeile in der Tabelle blockiert den Push – dasselbe prüft CI über die
-# Self-Test-Suite (factory-self-test), damit ein umgangener Hook nicht reicht (#426).
+# Self-Test-Suite (factory-self-test), damit ein umgangener Hook nicht reicht (nothra/tch-gastro-services#426).
 OWNERSHIP_CHECK="$FACTORY_DIR/scripts/checks/ownership-check.sh"
 if [ -f "$OWNERSHIP_CHECK" ]; then
   echo -e "  ${YELLOW}→${NC} Zuordnung: jede getrackte Datei genau einer Seite (factory|project)?"
@@ -144,6 +144,22 @@ if [ -f "$OWNERSHIP_CHECK" ]; then
   fi
 else
   echo -e "  ${YELLOW}⚠${NC}  Zuordnungs-Check fehlt ($OWNERSHIP_CHECK) – übersprungen"
+fi
+
+# ─── Check 6b: Übernommene Factory-Dateien unverändert ───────────────────────
+# Lokale Stufe des Integritäts-Gates (offline, Factory-ADR-063 E8): Hashes aus factory.lock + zusammengesetzte
+# Dateien == Fragmente. Im Factory-Repo (kein factory.lock) ein No-op; die CI-Stufe prüft zusätzlich das Manifest.
+INTEGRITY_CHECK="$FACTORY_DIR/scripts/checks/factory-integrity-check.sh"
+if [ -f "$INTEGRITY_CHECK" ]; then
+  if INTEGRITY_OUTPUT="$(FACTORY_DIR="$FACTORY_DIR" bash "$INTEGRITY_CHECK" 2>&1)"; then
+    echo -e "  ${GREEN}✓${NC} Factory-Integrität (übernommene Dateien)"
+  else
+    echo -e "  ${RED}✗${NC} Übernommene Factory-Dateien geändert – push blockiert"
+    echo "$INTEGRITY_OUTPUT" | sed 's/^/     /'
+    FAILED=1
+  fi
+else
+  echo -e "  ${YELLOW}⚠${NC}  Integritäts-Check fehlt ($INTEGRITY_CHECK) – übersprungen"
 fi
 
 # ─── Check 7: Nicht auf main/master pushen ohne PR ───────────────────────────

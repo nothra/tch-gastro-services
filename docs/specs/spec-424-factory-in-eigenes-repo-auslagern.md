@@ -10,7 +10,8 @@
 > |---|---|---|
 > | T1a · Trennlinie ziehen (TCH) – in drei PRs: T1a-1 #426, T1a-2 #431, T1a-3 #432 ([spec-426](spec-426-trennlinie-factory-projekt-ziehen.md) Q1) | #426 | AK1.5, Datei-Anteile AK3.2/AK3.3, AKE.1 |
 > | T1b · Herauslösen nach `nothra/dev-factory` | #427 | AK1.1–AK1.4, AK1.6–AK1.8, F5 |
-> | T2 · Werkzeug abholen | #428 | AK2.1–AK2.13, F1–F4, F7, F8 |
+> | T2a · Werkzeug abholen – Schnitt 2026-10-24 in vier Tasks (T2a-1…3 in `nothra/dev-factory` #22–#24, T2a-4 = TCH #428; [spec-428](spec-428-factory-versioniert-per-factory-lock-einbinden.md)) | #428 | AK2.1–AK2.6, AK2.8, F1–F4, F7 |
+| T2b · Fund-Ablage + Neuprojekt | #441 | AK2.7, AK2.9–AK2.13, F8 |
 > | T3 · Umziehen | #429 | AK3.1–AK3.10, F6 |
 
 ## Kontext

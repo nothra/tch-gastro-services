@@ -70,6 +70,8 @@ start_work:
   hint: |
     Vor dem ersten 'pnpm test:e2e': pnpm db:seed
     (.env.local wurde kopiert – die geteilte lokale DB kennt die SEED_ADMIN_*-Daten evtl. noch nicht)
+  # #428 AK2.17b: v0.8.0 kopiert nichts mehr von sich aus – .env.local bleibt per copy_files in jedem Worktree.
+  copy_files: [".env.local"]
 
 # ── Knopf: labels.aspects_extra (ADR-063 D3, #431) ───────────────────────────
 # TCH-eigene Aspekt-Labels zusätzlich zu den generischen aus factory.defaults.yml. Bedeutung und

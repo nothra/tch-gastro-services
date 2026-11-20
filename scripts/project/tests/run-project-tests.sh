@@ -9,6 +9,8 @@
 #   - Deploy-Freeze (#173, ADR-032): deploy-freeze.sh, deploy-freeze-notify.sh
 #   - Workflow-Tests zu deploy-gate.yml und deploy-freeze-release.yml (#66, #173)
 #   - factory-extract.sh (#427) – in factory-extract-tests.sh, unten gesourct
+#   - Dependency-Security-Floors (#291ff., #428) – in dependency-floor-tests.sh, unten gesourct
+#   - Erst-Einbindung per factory.lock (#428) – in factory-lock-einbindung-tests.sh, unten gesourct
 # Die Prüf-Helfer kommen aus der Factory-Lib (scripts/checks/tests/lib/assert-helpers.sh, Q10).
 # Läuft in CI im Required Check `test` des projekteigenen ci.yml (AK-J3).
 
@@ -450,12 +452,15 @@ for f_426 in scripts/project/neon-reset-int.sh scripts/project/deploy-freeze.sh 
   assert_exit 0 $? "#426 AK-A3: $f_426 ist 'project' zugeordnet"
 done
 
-# AK-F4 (#431): die Projekt-Workflows sind in OWNERSHIP.md als 'project' geführt.
-own_f_431="$FACTORY_ROOT/docs/factory/OWNERSHIP.md"
+# AK-F4 (#431, #428 AK2.17a): die Projekt-Workflows sind Projektseite – seit factory.lock heißt das: nicht im Lock
+# gelistet (OWNERSHIP.md existiert nicht mehr). Positivkontrolle: ein echter Factory-Workflow ist gelistet.
+lock_f_431="$FACTORY_ROOT/factory.lock"
 for wf_431 in ".github/workflows/deploy-gate.yml" ".github/workflows/deploy-freeze-release.yml"; do
-  grep -qF "| project | \`${wf_431}\`" "$own_f_431"
-  assert_exit 0 "$?" "#431 AK-F4: ${wf_431} ist als project in OWNERSHIP.md geführt"
+  jq -e --arg p "$wf_431" '[.files[].path] | index($p) == null' "$lock_f_431" > /dev/null
+  assert_exit 0 "$?" "#431 AK-F4: ${wf_431} ist nicht in factory.lock gelistet (Seite project)"
 done
+jq -e '[.files[].path] | index(".github/workflows/factory-ci.yml") != null' "$lock_f_431" > /dev/null
+assert_exit 0 "$?" "#431 AK-F4: Positivkontrolle – factory-ci.yml ist in factory.lock gelistet"
 
 # mk_gate_root_431 <dir> – Wegwerf-Projektwurzel mit Kopie von pre-push.sh + Lib + Defaults auf einem Feature-Branch.
 mk_gate_root_431() {
@@ -493,35 +498,9 @@ assert_contains_286 "$GATE_OUT_431" 'routes-doc-check.sh' "#431 AK-G4: die Meldu
 rm -rf "$TMP_G4_431"
 
 
-FACTORY_MD_431="$FACTORY_ROOT/docs/factory/FACTORY.md"
-CLAUDE_MD_431="$FACTORY_ROOT/CLAUDE.md"
-BASELINE_COMMIT_431="bcba043"  # main vor T1a-2 – Referenz für AK-D3 (Rekonstruktion der alten CLAUDE.md)
-
-# AK-D3: Rekonstruktion – jede nicht-leere Zeile der alten CLAUDE.md steht in genau einer der beiden
-# Dateien (außer den bewusst entfernten Import-/Überschriftszeilen). Historienlesender Test:
-# im flachen CI-Klon fehlt der Commit → sichtbarer Skip, kein Falsch-Rot (Lesson #426).
-if git -C "$FACTORY_ROOT" cat-file -e "$BASELINE_COMMIT_431:CLAUDE.md" 2>/dev/null; then
-  old_431="$(mktemp)"; git -C "$FACTORY_ROOT" show "$BASELINE_COMMIT_431:CLAUDE.md" > "$old_431"
-  missing_431=""; dup_431=""
-  while IFS= read -r line_431; do
-    [ -n "${line_431//[[:space:]]/}" ] || continue
-    case "$line_431" in '# dm Development Factory'*|'## Projekt-Kontext'|'@docs/factory/PROJECT-CONTEXT.md'|'---') continue ;; esac
-    in_fac_431=0; in_cl_431=0
-    # Erste gewollte Textänderung: Links in FACTORY.md sind relativ zu docs/factory/ (AK-B3).
-    fac_line_431="${line_431//\](docs\/factory\//](}"
-    grep -qxF -- "$fac_line_431" "$FACTORY_MD_431" && in_fac_431=1
-    # Zweite gewollte Textänderung (Etappe G): routes-doc-check.sh zog in den Erweiterungspunkt pre-push.d um.
-    cl_line_431="${line_431//scripts\/checks\/routes-doc-check.sh/scripts/project/checks/pre-push.d/routes-doc-check.sh}"
-    grep -qxF -- "$cl_line_431" "$CLAUDE_MD_431" && in_cl_431=1
-    [ $((in_fac_431 + in_cl_431)) -ge 1 ] || missing_431="$missing_431|$line_431"
-    [ $((in_fac_431 + in_cl_431)) -le 1 ] || dup_431="$dup_431|$line_431"
-  done < "$old_431"
-  rm -f "$old_431"
-  assert_true "$([ -z "$missing_431" ]; echo $?)" "#431 AK-D3: jede Zeile der alten CLAUDE.md ist wiederzufinden (fehlt:${missing_431:- nichts})"
-  assert_true "$([ -z "$dup_431" ]; echo $?)" "#431 AK-D3: keine Zeile steht in beiden Dateien (doppelt:${dup_431:- nichts})"
-else
-  echo "  ⏭  #431 AK-D3: Baseline-Commit $BASELINE_COMMIT_431 nicht verfügbar (flacher Klon) – übersprungen"
-fi
+# AK-D3 (#431, Rekonstruktion der alten CLAUDE.md gegen Baseline-Commit bcba043) entfällt mit #428: docs/factory/FACTORY.md
+# kommt seitdem unverändert aus dem Factory-Release (factory.lock, Hash-Gate factory-integrity) – die einmalige
+# Migrationsprüfung gegen den Alt-Stand hat ihre Prämisse verloren und lief nur lokal (im flachen CI-Klon Skip).
 
 
 # ─── #432 AK-J3: die Projekt-Suite läuft im Required Check `test` des projekteigenen ci.yml ───
@@ -535,6 +514,12 @@ assert_absent "$test_job_432" 'continue-on-error' "#432 AK-J3: der Job test hat 
 
 # ─── #427: factory-extract.sh (Herauslösen der Factory, ADR-063 Nachtrag) ─────
 source "$PROJECT_TESTS_DIR/factory-extract-tests.sh"
+
+# ─── #291/#337/#339/#390/#412/#444/#447/#448: Dependency-Security-Floors (#428 AK2.18b: aus der Factory-Suite hierher) ───
+source "$PROJECT_TESTS_DIR/dependency-floor-tests.sh"
+
+# ─── #428: Projekt-Anteile der Erst-Einbindung per factory.lock (AK2.17a/b/d–g) ───
+source "$PROJECT_TESTS_DIR/factory-lock-einbindung-tests.sh"
 
 # ─── Ergebnis ────────────────────────────────────────────────────────────────
 print_summary

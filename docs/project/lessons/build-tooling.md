@@ -4,7 +4,7 @@
 > **Nicht** `@import`-geladen (ADR-037) – bei Bedarf gezielt lesen. Kanonische Quelle je
 > Regel ist der jeweilige Eintrag hier; im @import-Pfad (`PROJECT-CONTEXT.md`) steht nur eine Index-Zeile.
 > Neue Learnings kommen in die Lesson-Datei **ihrer Seite** (Zuordnungsregel: betrifft das Learning eine
-> Datei der Factory laut `docs/factory/OWNERSHIP.md` → `docs/factory/lessons/`, sonst → `docs/project/lessons/`;
+> Datei, die in `factory.lock` steht, → `docs/factory/lessons/`, sonst → `docs/project/lessons/`;
 > siehe `/codify` + ADR-037).
 > Factory-Anteil dieses Themas: [`docs/factory/lessons/build-tooling.md`](../../factory/lessons/build-tooling.md).
 

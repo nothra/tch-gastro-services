@@ -17,25 +17,29 @@
 #      1c. Override: der Root muss ein YAML-Mapping sein (Skalar/Bool/Sequence → fail,
 #          Task 254) — sonst liefert leaf_paths() keine oder irreführende Pfade.
 #   2. Unbekannte Keys: jeder Override-Blatt-Pfad muss in den Defaults existieren
-#      (die Defaults SIND die erlaubte Oberfläche → keine zweite Schema-Liste, ADR-010)
+#      (die Defaults SIND die erlaubte Oberfläche → keine zweite Schema-Liste, ADR-010);
+#      ein Einzelwert, wo die Defaults eine Liste führen, wird als „keine Liste" gemeldet (#47)
 #   3. schemaVersion: Integer == Defaults-Wert; weicht der Override ab → fail + Upgrade-Hinweis
 #   4. Werte-Constraints (effektive Config): tier ∈ model_tiers,
-#      max_turns Integer in [1, MAX_TURNS_CEILING]
+#      max_turns Integer in [1, MAX_TURNS_CEILING]; 4c tier_by_size, 4d max_turns_by_size
+#      (Stufen-Grenzen steigend, Stufen-Budgets ebenfalls in [1, MAX_TURNS_CEILING], Factory-ADR-065)
 #   5. Mindest-Tier für sicherheitsrelevante Skills (effektive Config): security-review
 #      und review müssen tier == MIN_TIER_REQUIRED behalten; security-review darf zudem
 #      kein tier_by_size tragen (Task 241, s.u.).
 #   6. model_tiers.heavy ist nicht override-bar (Task 249).
-#   8. labels.kinds/aspects/aspects_extra sind Listen nichtleerer Strings ohne Komma/Leerraum (#431).
-#   7. commands.* und start_work.hint müssen Strings sein (#431) – ein Skalar anderen Typs
+#   8. labels.kinds/aspects/aspects_extra sind Listen nichtleerer Strings ohne Komma/Leerraum (nothra/tch-gastro-services#431).
+#   7. commands.* und start_work.hint müssen Strings sein (nothra/tch-gastro-services#431) – ein Skalar anderen Typs
 #      (Zahl, Bool, null) wäre ein Gate-Kommando, das nie so gemeint war.
+#   9. start_work.copy_files ist eine Liste von Strings, jeder Eintrag ein relativer Pfad zu einer
+#      einzelnen Datei (#47, Factory-ADR-063 E24) – Pfadregel aus copy_entry_problem (gate-config.sh).
 #
 # MAX_TURNS_CEILING, MIN_TIER_REQUIRED und die zugehörigen Skill-Listen sind
 # Gate-Policy (ADR-009 §6 / ADR-010), bewusst NICHT in der merge-baren Config — sonst
 # könnte ein Override sein eigenes Maximum/Minimum anheben und den Guard aushebeln.
 set -uo pipefail
 
-# 50 → 80 (#348, ADR-051): wiederkehrendes Turn-Limit-Exhaustion-Muster bei /implement
-# (Task 49: 20→40, Task 53: 40→50, zuletzt #324 erneuter Abbruch am damaligen Maximum).
+# 50 → 80 (nothra/tch-gastro-services#348, ADR-051): wiederkehrendes Turn-Limit-Exhaustion-Muster bei /implement
+# (Task 49: 20→40, Task 53: 40→50, zuletzt nothra/tch-gastro-services#324 erneuter Abbruch am damaligen Maximum).
 MAX_TURNS_CEILING=80
 
 # Mindest-Tier-Policy (Task 241): security-review und review sind Gates ohne
@@ -65,6 +69,12 @@ OVERRIDE="${2:-$REPO_ROOT/factory.config.yml}"
 
 fail() { echo "config-validation: $*" >&2; exit 1; }
 
+# Pfadregel für Regel 9 (copy_entry_problem). Relativ zum Skript, nicht über FACTORY_DIR: Tests
+# überschreiben FACTORY_DIR mit Wegwerf-Wurzeln (Lesson nothra/tch-gastro-services#431).
+# shellcheck source=../lib/gate-config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/gate-config.sh" 2>/dev/null \
+  || fail "scripts/lib/gate-config.sh fehlt neben dem Gate (Pfadregel für start_work.copy_files)."
+
 # Ob überhaupt ein Override-File existiert (einmal ausgewertet, von Regel 1b/2 UND
 # Regel 6 genutzt — beide brauchen denselben Guard, Regel 6 zusätzlich $override_paths).
 override_present() { [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; }
@@ -74,7 +84,7 @@ command -v yq >/dev/null 2>&1 || fail "yq nicht gefunden (Factory-Prerequisite, 
 
 # Alle Blatt-Pfade (Skalare) einer YAML-Datei, ein Pfad pro Zeile (z.B. skills.implement.tier).
 # Listen-Elemente heißen `<pfad>.*` (Index normalisiert) und eine leere Liste in den Defaults erlaubt
-# Elemente im Override (labels.aspects_extra, #431) – sonst wäre eine Liste, die erst das Projekt füllt,
+# Elemente im Override (labels.aspects_extra, nothra/tch-gastro-services#431) – sonst wäre eine Liste, die erst das Projekt füllt,
 # als unbekannter Key abgelehnt.
 leaf_paths() {
   yq eval '(.. | select(tag != "!!map" and tag != "!!seq") | path | join(".")), (.. | select(tag == "!!seq" and length == 0) | path | join(".") + ".*")' "$1" 2>/dev/null \
@@ -126,8 +136,12 @@ if override_present; then
   override_paths="$(leaf_paths "$OVERRIDE")"
   while IFS= read -r path; do
     [ -z "$path" ] && continue
-    grep -qxF -- "$path" <<< "$defaults_paths" \
-      || fail "unbekannter Key im Override: '$path' (nicht in den Defaults — Tippfehler? Ein neuer Knopf gehört in factory.defaults.yml, nicht in den Override)."
+    grep -qxF -- "$path" <<< "$defaults_paths" && continue
+    # Wert statt Liste: eine leere Default-Liste führt nur '<pfad>.*' – ohne diesen Zweig hieße ein
+    # Skalar dort „unbekannter Key“, obwohl der Schlüssel existiert und nur der Typ falsch ist (#47 AK14).
+    grep -qxF -- "$path.*" <<< "$defaults_paths" \
+      && fail "'$path' ist keine Liste – die Defaults führen hier eine Liste, der Override setzt einen Einzelwert."
+    fail "unbekannter Key im Override: '$path' (nicht in den Defaults — Tippfehler? Ein neuer Knopf gehört in factory.defaults.yml, nicht in den Override)."
   done <<< "$override_paths"
 
   # 3. schemaVersion-Mismatch (nur prüfen, wenn der Override ihn setzt).
@@ -186,6 +200,41 @@ while IFS= read -r entry; do
     || fail "tier_by_size.threshold bei '$name' = $threshold muss >= 1 sein (Gate-Policy, ADR-038)."
 done < <(printf '%s' "$effective" | yq eval '.skills | to_entries | .[] | select(.value.tier_by_size) | .key + "=" + (.value.tier_by_size.signal // "") + "|" + (.value.tier_by_size.threshold | tostring)' -)
 
+# 4d. max_turns_by_size (nur wo gesetzt, Factory-ADR-065 §4): signal ∈ {diff, proxy}; mid.from und
+#     high.from Integer mit mid.from >= 2 (die Basis max_turns deckt mindestens 1 AK ab) und
+#     high.from > mid.from (keine Überlappung; Lücken sind in der Struktur nicht ausdrückbar);
+#     mid.max_turns und high.max_turns Integer in [1, MAX_TURNS_CEILING] wie Regel 4b.
+#     Format je Zeile: <skill>=<signal>|<mid.from>|<mid.max_turns>|<high.from>|<high.max_turns>;
+#     fehlende Felder kommen als "null" an und fallen in die Integer-Ablehnung (F5/F6).
+turns_by_size_int() { # <skill> <feld> <wert>
+  case "$3" in
+    ''|*[!0-9]*) fail "max_turns_by_size.$2 bei '$1' ist kein positiver Integer: '$3'." ;;
+  esac
+}
+turns_by_size_budget() { # <skill> <feld> <wert>
+  turns_by_size_int "$@"
+  if [ "$3" -lt 1 ] || [ "$3" -gt "$MAX_TURNS_CEILING" ]; then
+    fail "max_turns_by_size.$2 bei '$1' = $3 liegt außerhalb [1, $MAX_TURNS_CEILING] (Gate-Policy, ADR-009 §6)."
+  fi
+}
+while IFS= read -r entry; do
+  [ -z "$entry" ] && continue
+  name="${entry%%=*}"
+  IFS='|' read -r signal mid_from mid_turns high_from high_turns <<< "${entry#*=}"
+  case "$signal" in
+    diff|proxy) ;;
+    *) fail "ungültiges max_turns_by_size.signal '$signal' bei '$name' (erlaubt: diff, proxy)." ;;
+  esac
+  turns_by_size_int "$name" mid.from "$mid_from"
+  turns_by_size_int "$name" high.from "$high_from"
+  [ "$mid_from" -ge 2 ] \
+    || fail "max_turns_by_size.mid.from bei '$name' = $mid_from muss >= 2 sein (die Basis max_turns deckt mindestens 1 AK ab, Factory-ADR-065)."
+  [ "$high_from" -gt "$mid_from" ] \
+    || fail "max_turns_by_size.high.from bei '$name' = $high_from muss größer als mid.from ($mid_from) sein (Stufen dürfen nicht überlappen, Factory-ADR-065)."
+  turns_by_size_budget "$name" mid.max_turns "$mid_turns"
+  turns_by_size_budget "$name" high.max_turns "$high_turns"
+done < <(printf '%s' "$effective" | yq eval '.skills | to_entries | .[] | select(.value.max_turns_by_size) | .value.max_turns_by_size as $s | .key + "=" + ($s.signal // "") + "|" + ($s.mid.from | tostring) + "|" + ($s.mid.max_turns | tostring) + "|" + ($s.high.from | tostring) + "|" + ($s.high.max_turns | tostring)' -)
+
 # 5. Mindest-Tier für sicherheitsrelevante Skills (Task 241). Läuft NACH 4a, damit ein
 #    strukturell ungültiges tier (z.B. 'medium') zuerst die passende 4a-Meldung erhält
 #    und nicht fälschlich als „unter Mindest-Tier" abgelehnt wird.
@@ -213,7 +262,7 @@ if override_present; then
     && fail "'$LOCKED_MODEL_TIER_PATH' ist nicht override-bar (Gate-Policy, Task 249). Modell-ID-Pflege für 'heavy' läuft ausschließlich über factory.defaults.yml (Template-Update)."
 fi
 
-# 7. Gate-Kommandos (#431): jeder Wert unter commands.* sowie start_work.hint ist ein String.
+# 7. Gate-Kommandos (nothra/tch-gastro-services#431): jeder Wert unter commands.* sowie start_work.hint ist ein String.
 #    Listen/Maps fängt Regel 2 bereits als unbekannten Blatt-Pfad ab; hier die Skalare falschen Typs.
 while IFS= read -r entry; do
   [ -z "$entry" ] && continue
@@ -222,7 +271,7 @@ while IFS= read -r entry; do
     || fail "$name ist kein String (Typ: $tag) – Gate-Kommandos sind Zeichenketten (#431)."
 done < <(printf '%s' "$effective" | yq eval '((.commands // {}) | to_entries | .[] | "commands." + .key + "=" + (.value | tag)), (select(has("start_work")) | "start_work.hint=" + (.start_work.hint | tag))' -)
 
-# 8. Labels (#431): Die Listen landen als CSV im Issue-Seam – ein Eintrag mit Komma/Leerraum oder ein
+# 8. Labels (nothra/tch-gastro-services#431): Die Listen landen als CSV im Issue-Seam – ein Eintrag mit Komma/Leerraum oder ein
 #    Nicht-String würde dort zu zwei Labels bzw. zu einer Fehlmeldung. Je Liste: Sequenz, jedes Element
 #    ein nichtleerer String ohne Komma und Leerraum (Regel 2 deckt unbekannte Listen-Pfade bereits ab).
 while IFS= read -r entry; do
@@ -241,5 +290,26 @@ while IFS= read -r entry; do
     ''|*[[:space:],]*) fail "$name enthält das ungültige Label '$label' (leer oder mit Komma/Leerraum, #431)." ;;
   esac
 done < <(printf '%s' "$effective" | yq eval '(.labels // {}) | to_entries | .[] | select(.value | tag == "!!seq") | .key as $k | .value[] | "labels." + $k + "=" + tag + "|" + .' -)
+
+# 9. Worktree-Dateispiegelung (#47): start_work.copy_files ist eine Liste von Strings, jeder Eintrag
+#    besteht copy_entry_problem. Elemente einzeln per Index lesen, nicht zeilenweise: ein Eintrag mit
+#    Zeilenumbruch muss als EIN ungültiger Eintrag ankommen, nicht als zwei scheinbar gültige.
+#    Das '|' hinter dem Wert schützt abschließende Zeilenumbrüche vor der Command Substitution.
+copy_files_tag="$(printf '%s' "$effective" | yq eval '.start_work.copy_files | tag' -)"
+case "$copy_files_tag" in
+  '!!seq'|'!!null') ;;
+  *) fail "start_work.copy_files ist keine Liste (Typ: $copy_files_tag) – erwartet wird eine Liste von Dateipfaden (#47)." ;;
+esac
+copy_files_count="$(printf '%s' "$effective" | yq eval '.start_work.copy_files // [] | length' -)"
+for ((i = 0; i < copy_files_count; i++)); do
+  tag="$(printf '%s' "$effective" | yq eval ".start_work.copy_files[$i] | tag" -)"
+  [ "$tag" = "!!str" ] \
+    || fail "start_work.copy_files enthält ein Element vom Typ $tag – Einträge sind Dateipfade als Strings (#47)."
+  value="$(printf '%s' "$effective" | yq eval ".start_work.copy_files[$i] + \"|\"" -)"
+  value="${value%|}"
+  problem="$(copy_entry_problem "$value")"
+  [ -z "$problem" ] \
+    || fail "start_work.copy_files enthält den ungültigen Eintrag $(printf '%q' "$value") ($problem, #47)."
+done
 
 exit 0

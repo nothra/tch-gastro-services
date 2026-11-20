@@ -2,7 +2,7 @@
 # factory.defaults.yml — kanonische Default-Konfiguration der Factory (ADR-009)
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# STATUS: Phase 1a von Issue #25. Diese Datei BÜNDELT die heute in
+# STATUS: Phase 1a von Issue nothra/tch-gastro-services#25. Diese Datei BÜNDELT die heute in
 # scripts/run-pipeline.sh hartkodierten Werte (get_model/get_max_turns) an EINER
 # Stelle — als Single Source of Truth + Lehr-Artefakt. In dieser Phase LIEST sie
 # noch niemand (Verhalten unverändert); das Umstellen von run-pipeline.sh auf
@@ -18,7 +18,7 @@
 # eigenständige `#`-Zeilen über dem Schlüssel; Wert-Ebene = Trailing-Kommentar
 # auf der Knopf-Zeile. Dies ist die EINZIGE Heimat dieser Texte — die Wizards
 # (/setup-project, /configure-factory), factory.config.yml.example und etwaige
-# Inline-Kommentare VERWEISEN hierauf, statt zu kopieren (Anti-Drift, Spec #35
+# Inline-Kommentare VERWEISEN hierauf, statt zu kopieren (Anti-Drift, Spec nothra/tch-gastro-services#35
 # Kriterium C). Env-Var-Hinweise (`# CLAUDE_MODEL_HEAVY`) und Abschnitts-Header
 # tragen bewusst KEIN `@`-Tag und sind damit klar von der Quelle getrennt.
 #
@@ -66,7 +66,18 @@ skills:
   implement:
     tier: heavy                                    # @reason: Fail-Safe, wenn die Proxy-Größe nicht bestimmbar ist (F2).
     tier_by_size: { signal: proxy, threshold: 6 }  # @reason: AK-Zahl der Spec als Aufwand-Proxy; < 6 → light, >= 6 → heavy. @tradeoff: misst Spec-Detailtiefe, nicht garantiert Implementierungsaufwand (kalibrierbar, ADR-038).
-    max_turns: 20                                  # @reason: TDD-Zyklen, schreibt Code.
+    max_turns: 20                                  # @reason: Basis für kleine Tasks (unterhalb der ersten Stufe, 1–5 AK): TDD-Zyklen, schreibt Code.
+    # Turn-Budget nach AK-Zahl der Spec (Factory-ADR-065): 1–5 AK → max_turns, ab mid.from → mid,
+    # ab high.from → high. Gleiche Messung wie tier_by_size (signal proxy), eigene Schwellen.
+    # @reason: Ein festes Budget von 20 Turns riss bei großen Tasks wiederholt (Task 47 mit 18 AK
+    #   dreimal in Folge, Lesson „Turn-Limit"); die Pipeline brach ab und die Teilarbeit lag uncommittet.
+    # @tradeoff: Kosten – ein /implement-Lauf darf ab 6 AK bis zum Doppelten, ab 12 AK bis zum
+    #   Dreifachen des Basisbudgets verbrauchen. Höhere Stufen = weniger Abbrüche, aber teurere Läufe;
+    #   niedrigere sparen, lassen große Tasks wieder am Limit scheitern.
+    max_turns_by_size:
+      signal: proxy
+      mid:  { from: 6,  max_turns: 40 }            # @reason: 6–11 AK.
+      high: { from: 12, max_turns: 60 }            # @reason: ab 12 AK (Größe Task 47).
   review:
     tier: heavy                                    # @reason: Fail-Safe, wenn die Diff-Größe nicht bestimmbar ist (F1).
     tier_by_size: { signal: diff, threshold: 150 } # @reason: reine Lese-Analyse, läuft pro Feature ggf. mehrfach → kleiner Diff (< 150 Zeilen) rechtfertigt light. @tradeoff: Richtwert ~150, kalibrierbar (ADR-038).
@@ -92,7 +103,7 @@ default:
   tier: light
   max_turns: 10
 
-# Gate-Kommandos des Projekts (ADR-063 D3, #431): Lint/Test/Typecheck/Format/Coverage und der
+# Gate-Kommandos des Projekts (ADR-063 D3, nothra/tch-gastro-services#431): Lint/Test/Typecheck/Format/Coverage und der
 # Install-Schritt von start-work.sh. Bewusst OHNE Default-Werte – die Factory kennt keinen
 # Paketmanager; das Projekt trägt seine Kommandos in factory.config.yml ein. Die leeren Werte
 # machen die Schlüssel nur zur erlaubten Oberfläche (config-validation Regel 2). Env-Override:
@@ -110,13 +121,21 @@ commands:
   coverage: ""
   install: ""
 
-# Hinweis, den start-work.sh nach dem Kopieren der .env.local ausgibt (Q4, #431). Leer = kein Hinweis.
-# @reason: Projektspezifische Nacharbeit (z. B. DB-Seed) gehört nicht in das generische Skript.
-# @tradeoff: keiner – ohne Eintrag entfällt der Hinweis still.
+# start-work.sh (Q4, nothra/tch-gastro-services#431; Factory-ADR-063 E23–E27, #47):
+#   hint       – Text, den start-work.sh im Abschluss unter Schritt 2 ausgibt, in jedem Modus. Leer = kein Hinweis.
+#   copy_files – gitignorete lokale Dateien (Pfade relativ zur Repo-Wurzel), die start-work.sh aus dem
+#                eigenen Baum in jeden neuen Worktree spiegelt. Nur einzelne Dateien, keine Ordner oder Muster;
+#                eine im Worktree vorhandene Datei wird nie überschrieben, eine dort nicht gitignorete wird
+#                übersprungen (sonst committete 'git add -A' sie). Opt-out: FACTORY_WT_SKIP_COPY=1.
+# @reason: Projektspezifische Nacharbeit und lokale Konfiguration gehören nicht in das generische Skript –
+#   welche Dateien ein frischer Worktree braucht, weiß nur das Projekt.
+# @tradeoff: hint – keiner, ohne Eintrag entfällt er still. copy_files – jede gelistete Datei liegt danach in
+#   jedem Worktree; enthält sie Secrets, gehört das Entfernen des Worktrees nach dem Merge zur Secret-Hygiene.
 start_work:
   hint: ""
+  copy_files: []
 
-# GitHub-Labels (ADR-063 D3, #431): `kinds` = Art-Labels (genau eines je Issue), `aspects` = generische
+# GitHub-Labels (ADR-063 D3, nothra/tch-gastro-services#431): `kinds` = Art-Labels (genau eines je Issue), `aspects` = generische
 # Aspekt-Labels (null bis mehrere). Projekteigene Aspekte trägt das Projekt in factory.config.yml unter
 # `labels.aspects_extra` (leere Liste hier = erlaubte Oberfläche); Bedeutung und Zuordnungsregel stehen
 # in PROJECT-CONTEXT.md. Schema und generische Labels beschreibt docs/factory/guidelines/git-workflow.md.
@@ -130,3 +149,12 @@ labels:
   kinds: [bug, enhancement, documentation]
   aspects: [security, tech-debt, test]
   aspects_extra: []
+
+# Quell-Repo der Factory: von hier holt `factory-sync.sh <version>` den Tag, und das Integritäts-Gate
+# (`factory-integrity-check.sh --ci`) das Release-Manifest (Factory-ADR-063 E2). Das Feld `repo` in
+# factory.lock muss diesem Wert gleichen – der Lock selbst ist nie die Quelle.
+# @reason: Der Lock ist Repo-Inhalt; ohne festen Wert aus der Config könnte ein PR ihn auf ein anderes
+#   Repo mit passendem Manifest zeigen lassen und die CI-Stufe bestehen.
+# @tradeoff: Ein Fork der Factory muss den Wert im Override setzen; sonst holt er vom Original.
+upstream:
+  repo: nothra/dev-factory

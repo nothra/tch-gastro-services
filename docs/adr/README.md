@@ -7,7 +7,7 @@ Vorlage und Nummerierungsregel stehen in [`docs/factory/adr/README.md`](../facto
 > Skills, Gates, Konfiguration) liegen unter [`docs/factory/adr/`](../factory/adr/README.md). Wer
 > hier im Fließtext eine davon nennt, schreibt `Factory-ADR-NNN`; ein einfaches `ADR-NNN` meint
 > eine ADR aus diesem Verzeichnis. Neue App-ADRs führen die Nummer ab der höchsten hier vorhandenen
-> fort. Welche Datei welcher Seite gehört, steht in [`docs/factory/OWNERSHIP.md`](../factory/OWNERSHIP.md).
+> fort. Welche Datei welcher Seite gehört, steht im [`factory.lock`](../../factory.lock) (gelistet = Seite `factory`, sonst Projekt).
 
 ## Index
 

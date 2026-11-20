@@ -1,6 +1,6 @@
 # Betrieb (TCH Gastro Services)
 
-> **Besitzer: Projekt** (`docs/factory/OWNERSHIP.md`, `docs/project/**`). Hier steht, was an der
+> **Besitzer: Projekt** (nicht in `factory.lock`, `docs/project/**`). Hier steht, was an der
 > Betriebsumgebung **TCH-spezifisch** ist: Werkzeuge, lokale Umgebung, Deploy-Gate-Secrets, Vercel,
 > Neon. Die generischen Abläufe der Pipeline stehen in [`docs/factory/OPERATING.md`](../factory/OPERATING.md);
 > sie verweist an den passenden Stellen hierher. Die Abschnitte wurden in #432 (T1a-3) inhaltlich unverändert

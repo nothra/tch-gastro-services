@@ -54,7 +54,7 @@ source "$FACTORY_DIR/scripts/lib/verify-final-state.sh"
 # ohne echten claude-Lauf prüfbar.
 # shellcheck source=scripts/lib/telemetry-harvest.sh
 source "$FACTORY_DIR/scripts/lib/telemetry-harvest.sh"
-# Gate-Kommandos aus factory.config.yml (commands.*), Env-Override vorrangig (#431).
+# Gate-Kommandos aus factory.config.yml (commands.*), Env-Override vorrangig (nothra/tch-gastro-services#431).
 # shellcheck source=scripts/lib/gate-config.sh
 source "$FACTORY_DIR/scripts/lib/gate-config.sh"
 
@@ -109,7 +109,7 @@ TELEMETRY_PERSISTED=false
 
 # --dry-run macht keine echten claude-Aufrufe (run_skill kehrt vor der Retry-Schleife
 # zurück) – Aktivierung und das Anlegen der leeren Roh-Log-Datei unter tasks/ wären dort
-# reine Nebenwirkung ohne jeden Nutzen (Review-Nitpick, #334-Rework).
+# reine Nebenwirkung ohne jeden Nutzen (Review-Nitpick, nothra/tch-gastro-services#334-Rework).
 if [ "$TELEMETRY" = true ] && [ "$DRY_RUN" = false ]; then
   export CLAUDE_CODE_ENABLE_TELEMETRY=1
   export OTEL_METRICS_EXPORTER=console
@@ -188,7 +188,7 @@ telemetry_persist() {
   # Abbruch mitten im Lauf halbfertige Agenten-Änderungen mitcommitten.
   # Vorbedingung leerer Index: nur dann darf der Rollback unten (reset auf head_before)
   # laufen, ohne fremde Staging-Arbeit zu verwerfen.
-  # Review-Finding (Kritisch, #334-Rework): jeder frühe Ausstieg ab hier muss die bereits auf
+  # Review-Finding (Kritisch, nothra/tch-gastro-services#334-Rework): jeder frühe Ausstieg ab hier muss die bereits auf
   # die Platte geschriebene CSV wieder entfernen – sonst bleibt sie als UNTRACKED Datei liegen,
   # macht den Arbeitsbaum dirty und lässt `verify_final_state` (ADR-040) genau den Lauf als
   # gescheitert melden, den AK6/AK7 als „fail-open, sauberer Baum" garantieren sollen.
@@ -211,7 +211,7 @@ telemetry_persist() {
   if [ -z "$head_before" ] \
      || ! git -C "$FACTORY_DIR" add -- "$TELEMETRY_CSV" 2>/dev/null \
      || ! git -C "$FACTORY_DIR" -c user.email="factory-pipeline@localhost" \
-              -c user.name="dm Development Factory" \
+              -c user.name="Development Factory" \
               commit -q -m "chore: telemetrie-messwerte lauf ${RUN_TIMESTAMP} (task ${TASK_ID})" 2>/dev/null; then
     # `git reset` unstaged nur (bringt die Datei zurück auf untracked) – löscht sie NICHT von
     # der Platte. Ohne das anschließende telemetry_discard_csv bliebe genau dieselbe Lücke
@@ -269,8 +269,23 @@ cfg_skill_field() {
   printf '%s' "$FACTORY_CFG" | yq eval ".skills.\"$1\".$2 // .default.$2" - 2>/dev/null
 }
 
+# get_max_turns <skill> [task_id]
+# Statisches max_turns; trägt der Skill max_turns_by_size (Factory-ADR-065), wählt select_max_turns
+# die Stufe nach derselben Messung wie tier_by_size. MAX_TURNS aus der Umgebung sticht beim Aufrufer.
 get_max_turns() {
-  cfg_skill_field "$1" max_turns
+  local skill="$1" task_id="${2:-}"
+  local base signal
+  base="$(cfg_skill_field "$skill" max_turns)"
+  signal="$(cfg_skill_field "$skill" max_turns_by_size.signal)"
+  if [ -z "$signal" ] || [ "$signal" = "null" ]; then
+    echo "$base"
+    return
+  fi
+  select_max_turns "$(measure_size "$signal" "$task_id" "$FACTORY_DIR")" "$base" \
+    "$(cfg_skill_field "$skill" max_turns_by_size.mid.from)" \
+    "$(cfg_skill_field "$skill" max_turns_by_size.mid.max_turns)" \
+    "$(cfg_skill_field "$skill" max_turns_by_size.high.from)" \
+    "$(cfg_skill_field "$skill" max_turns_by_size.high.max_turns)"
 }
 
 # get_model <skill> [task_id]
@@ -303,6 +318,22 @@ get_model() {
   esac
 }
 
+# spec_precondition_problem <task_id> – Ursache, warum die Spec der Task den Lauf nicht trägt
+# (leer = Spec vorhanden mit mindestens einem AK). Dieselbe Spec-Datei und Zählung wie die
+# Modell-/Turn-Wahl (spec_file_for/measure_size, F4).
+spec_precondition_problem() {
+  local task_id="$1"
+  if [ -z "$(spec_file_for "$task_id" "$FACTORY_DIR")" ]; then
+    printf 'Spec fehlt (docs/specs/spec-%s-*.md)' "$task_id"
+    return 0
+  fi
+  case "$(measure_size proxy "$task_id" "$FACTORY_DIR")" in
+    '') printf 'Abschnitt Akzeptanzkriterien fehlt in der Spec' ;;
+    0)  printf '0 Akzeptanzkriterien in der Spec' ;;
+  esac
+  return 0
+}
+
 preflight_checks() {
   local errors=0
 
@@ -314,12 +345,14 @@ preflight_checks() {
     errors=$((errors + 1))
   fi
 
-  # 2. Spec-Datei prüfen (Warnung, kein Abbruch)
-  local spec_file
-  spec_file=$(find "$FACTORY_DIR/docs/specs" -name "spec-${TASK_ID}-*.md" 2>/dev/null | head -1 || true)
-  if [ -z "$spec_file" ]; then
-    echo -e "${YELLOW}⚠${NC}  No spec file found for task ${TASK_ID}."
-    echo "  → Recommended: run /requirements ${TASK_ID} first."
+  # 2. Spec mit Akzeptanzkriterien ist Vorbedingung des Laufs (Factory-ADR-065 §3): ohne sie
+  #    weder Modell- noch Turn-Wahl und keine Abnahme. Gilt für jeden Modus (--dry-run, MAX_TURNS).
+  local spec_problem
+  spec_problem="$(spec_precondition_problem "$TASK_ID")"
+  if [ -n "$spec_problem" ]; then
+    echo -e "${RED}✗${NC} Task ${TASK_ID}: ${spec_problem}."
+    echo "  → Run /requirements ${TASK_ID} first."
+    errors=$((errors + 1))
   fi
 
   # 3. Git Working Tree prüfen
@@ -371,8 +404,8 @@ stop_if_interrupted() {
   bash "$FACTORY_DIR/scripts/checks/interrupt-check.sh" "$1" || exit $?
 }
 
-# Erfolgsmeldung von run_skill() an einem Ort (Review-Runde-3-Nitpick N2, #312): stand vor
-# #312 einmal im Code, seither an zwei Stellen (report-erzeugender Exit-0-Pfad, Exit-0-Pfad
+# Erfolgsmeldung von run_skill() an einem Ort (Review-Runde-3-Nitpick N2, nothra/tch-gastro-services#312): stand vor
+# nothra/tch-gastro-services#312 einmal im Code, seither an zwei Stellen (report-erzeugender Exit-0-Pfad, Exit-0-Pfad
 # der übrigen Skills) – eine reine Textänderung müsste sonst an beiden nachgezogen werden.
 print_skill_done() {
   echo -e "${GREEN}✓${NC} /${1} abgeschlossen"
@@ -380,10 +413,10 @@ print_skill_done() {
 
 # Erfolgsbedingung der zwei report-erzeugenden Skills (ADR-019 §4): Nicht der Exit-Code
 # entscheidet, sondern das Artefakt – der Report muss IN DIESEM AUFRUF verändert worden sein
-# (Fingerprint gegen den Snapshot von vor dem ersten Versuch, #310) UND einen eindeutigen
+# (Fingerprint gegen den Snapshot von vor dem ersten Versuch, nothra/tch-gastro-services#310) UND einen eindeutigen
 # Verdict tragen. Die Bedingung steht nur hier: beide Rückkehrpfade von run_skill() werten
 # sie aus, damit die Prüfung symmetrisch ist und run_skill() per Konstruktion nie mit einem
-# stale oder verdictlosen Report zurückkehrt (#312 – vor dem Fix sah der Exit-0-Pfad den
+# stale oder verdictlosen Report zurückkehrt (nothra/tch-gastro-services#312 – vor dem Fix sah der Exit-0-Pfad den
 # Fingerprint gar nicht an und die Konsumenten in Phase 2/5 lasen fail-open weiter).
 report_is_fresh_and_valid() {
   local skill="$1" task_id="$2" fingerprint_before="$3"
@@ -394,7 +427,7 @@ report_is_fresh_and_valid() {
 run_skill() {
   local skill="$1"
   local task_id="$2"
-  local turns="${MAX_TURNS:-$(get_max_turns "$skill")}"
+  local turns="${MAX_TURNS:-$(get_max_turns "$skill" "$task_id")}"
   local model
   model="$(get_model "$skill" "$task_id")"
   echo -e "${YELLOW}→ Starte: /${skill} ${task_id} (model: ${model}, max ${turns} turns)${NC}"
@@ -422,7 +455,7 @@ run_skill() {
   printf -v prompt '%s\n\n---\n\n# Task-Datei: %s\n\n%s\n' \
     "$skill_body" "$(basename "$TASK_FILE")" "$(cat "$TASK_FILE")"
 
-  # Frische-Referenz für den Report-Guard (#310): Fingerprint der Report-Datei EINMAL vor
+  # Frische-Referenz für den Report-Guard (nothra/tch-gastro-services#310): Fingerprint der Report-Datei EINMAL vor
   # dem ersten Versuch DIESES Aufrufs. Jeder Durchlauf der Review-Schleife in Phase 2 erhebt
   # ihn dadurch neu – sonst würde ein in Iteration 1 geschriebener Report die Iteration 2
   # (Turn-Limit vor dem Report) als vermeintlichen Erfolg durchwinken.
@@ -434,7 +467,7 @@ run_skill() {
   # statt eine Entscheidung zu erfragen, löst er einen Interrupt aus (ADR-004).
   local attempt rc
   for attempt in 1 2 3; do
-    # Review-Finding (Kritisch, #334-Rework): der Marker MUSS vor JEDEM einzelnen Versuch
+    # Review-Finding (Kritisch, nothra/tch-gastro-services#334-Rework): der Marker MUSS vor JEDEM einzelnen Versuch
     # stehen, nicht nur einmal vor der Schleife. Der Retry-mit-Backoff (Rate-Limit-Fall)
     # startet bei jedem Versuch einen NEUEN claude-Prozess mit einem bei 0 beginnenden
     # OTEL-Counter; ein einziger Marker vor der Schleife hätte alle Versuche unter demselben
@@ -449,7 +482,7 @@ run_skill() {
     # Erfolgsbedingung aus, der Exit-Code bestimmt nur noch die Meldung. Ein nacktes
     # `cmd; rc=$?` würde die Shell beenden, bevor der Wert ausgewertet ist.
     #
-    # Seit #334 hängt telemetry_capture als Sink dahinter. Unter `pipefail` färbt ein
+    # Seit nothra/tch-gastro-services#334 hängt telemetry_capture als Sink dahinter. Unter `pipefail` färbt ein
     # Fehler in JEDEM Glied die Pipeline rot, deshalb wird der Code des Producers über
     # PIPESTATUS[0] gelesen statt über `$?` – ein gescheitertes `tee` (Platte voll)
     # verfälscht so nicht den Skill-Exit-Code (fail-open, AK6). Auf bash 3.2 (macOS-Default)
@@ -462,9 +495,9 @@ run_skill() {
       rc=${PIPESTATUS[0]}
     fi
 
-    # Ein signalisierter Interrupt hat Vorrang vor der Frische-Prüfung (#312): sonst folgten
+    # Ein signalisierter Interrupt hat Vorrang vor der Frische-Prüfung (nothra/tch-gastro-services#312): sonst folgten
     # zwei weitere Heavy-Versuche desselben Skills und der Blocker-Eintrag in der Task-Datei
-    # entfiele. Im Exit-0-Pfad lief diese Prüfung auch vor #312 schon – nur eben erst hinter
+    # entfiele. Im Exit-0-Pfad lief diese Prüfung auch vor nothra/tch-gastro-services#312 schon – nur eben erst hinter
     # einem bedingungslosen `return 0`, das es jetzt nicht mehr gibt.
     if [ "$rc" -eq 0 ]; then
       stop_if_interrupted "$task_id"
@@ -472,15 +505,15 @@ run_skill() {
 
     # Report-Guard (ADR-019 §4): Für die zwei report-erzeugenden Skills zählt allein das
     # Artefakt – ein Verdict gilt nur, wenn er in DIESEM Aufruf entstanden ist. Das deckt
-    # beide Richtungen ab: ein Turn-Limit NACH fertigem Report ist Erfolg (#91), ein
-    # stehengebliebener Verdict ist keiner – weder bei non-zero Exit (#310) noch bei Exit 0
-    # (#312). Für alle anderen Skills entscheidet unverändert der Exit-Code.
+    # beide Richtungen ab: ein Turn-Limit NACH fertigem Report ist Erfolg (nothra/tch-gastro-services#91), ein
+    # stehengebliebener Verdict ist keiner – weder bei non-zero Exit (nothra/tch-gastro-services#310) noch bei Exit 0
+    # (nothra/tch-gastro-services#312). Für alle anderen Skills entscheidet unverändert der Exit-Code.
     if is_report_skill "$skill" "$task_id"; then
       # Verdict-String für die Meldungen einmal materialisieren, statt ihn per eingebetteter
       # Command Substitution in jeder Meldung neu zu lesen. report_is_fresh_and_valid() liest
       # den Verdict für die Bedingung separat noch einmal (AK9, ihr einziger Ort) – macht zwei
       # Verdict-Abfragen pro Versuch im report-erzeugenden Zweig, nicht eine (Review-Runde-3-
-      # Finding #312).
+      # Finding nothra/tch-gastro-services#312).
       local verdict
       verdict="$(report_verdict "$skill" "$task_id")"
       if report_is_fresh_and_valid "$skill" "$task_id" "$report_fingerprint_before"; then
@@ -496,10 +529,10 @@ run_skill() {
 
       if [ -n "$verdict" ]; then
         echo -e "${YELLOW}⚠${NC} /${skill}: Verdict '${verdict}' stammt aus einem früheren Aufruf (Report in diesem Aufruf unverändert) – kein Erfolg."
-        # Auch der Stale-Fall darf einen signalisierten Interrupt nicht verschlucken: vor #310
+        # Auch der Stale-Fall darf einen signalisierten Interrupt nicht verschlucken: vor nothra/tch-gastro-services#310
         # lief er in den (damals erfolgreichen) Verdict-Zweig und stoppte dort hart. Ohne diese
         # Zeile folgten zwei weitere Heavy-Versuche desselben Skills, und der Blocker-Eintrag in
-        # der Task-Datei entfiele (#310 Review-Runde-2-Nitpick). Im Exit-0-Fall hat die Prüfung
+        # der Task-Datei entfiele (nothra/tch-gastro-services#310 Review-Runde-2-Nitpick). Im Exit-0-Fall hat die Prüfung
         # oben bereits gegriffen; hier deckt sie den non-zero-Pfad ab.
         stop_if_interrupted "$task_id"
       else
@@ -507,8 +540,8 @@ run_skill() {
         # auswertbaren Anker – und Report gar nicht vorhanden (non-zero Exit, das Skill kam
         # nie zum Schreiben). Anders als der Stale-Fall darüber hat dieser Zweig KEIN
         # stop_if_interrupted: auf dem Exit-0-Pfad hat die Prüfung oben schon gegriffen, auf
-        # dem non-zero-Pfad ist das der vorbestehende Zustand seit #91 (in #310 bewusst nicht
-        # mitgeändert – kein Scope des Fixes, #310 Review-Runde-3-Nitpick).
+        # dem non-zero-Pfad ist das der vorbestehende Zustand seit nothra/tch-gastro-services#91 (in nothra/tch-gastro-services#310 bewusst nicht
+        # mitgeändert – kein Scope des Fixes, nothra/tch-gastro-services#310 Review-Runde-3-Nitpick).
         echo -e "${YELLOW}⚠${NC} /${skill}: kein eindeutiger Verdict aus diesem Aufruf – kein Erfolg."
       fi
     elif [ "$rc" -eq 0 ]; then
@@ -571,7 +604,7 @@ pipeline_summary() {
   local review_iter="$2"
   local task_file="$FACTORY_DIR/tasks/task-${task_id}.md"
   local codify_file="$FACTORY_DIR/tasks/codify-${task_id}.md"
-  # Report-Pfade über den geteilten Helper (#310 AK9): die Skill→Datei-Zuordnung steht
+  # Report-Pfade über den geteilten Helper (nothra/tch-gastro-services#310 AK9): die Skill→Datei-Zuordnung steht
   # ausschließlich in scripts/lib/report-verdict.sh, damit Guard, Frische-Prüfung und
   # Summary nicht auseinanderdriften.
   local review_file security_file
@@ -632,7 +665,7 @@ pipeline_summary() {
     echo "  → ${rule_count} neue Regel(n) hinzugefügt"
     # grep gibt bei 0 Treffern Exit 1; unter pipefail wird das zum Exit-Code der
     # while-Schleife (read trifft sofort auf EOF) → muss geschluckt werden, sonst
-    # bricht die gesamte Pipeline unter set -e ab (Issue #261).
+    # bricht die gesamte Pipeline unter set -e ab (Issue nothra/tch-gastro-services#261).
     grep "^- " "$codify_file" 2>/dev/null | head -3 | while IFS= read -r line; do
       echo "    ${line}"
     done || true
@@ -698,7 +731,7 @@ trap measure_process_metrics_on_exit EXIT
 # Quality-Gate-Befehle – echte Befehle, konsistent mit scripts/checks/pre-commit.sh und
 # pre-push.sh (dieselbe Quelle: commands.* in factory.config.yml, FACTORY_*_COMMAND hat
 # Vorrang). Kein Default: fehlt ein Kommando, bricht der Lauf VOR dem ersten Agenten-Schritt
-# ab (nicht erst nach /implement). Frühere echo-Platzhalter waren fail-open (#101).
+# ab (nicht erst nach /implement). Frühere echo-Platzhalter waren fail-open (nothra/tch-gastro-services#101).
 LINT_CMD="$(gate_command lint required)" || exit 1
 TEST_CMD="$(gate_command test required)" || exit 1
 COVERAGE_CMD="$(gate_command coverage required)" || exit 1
@@ -719,7 +752,7 @@ while [ "$REVIEW_APPROVED" = false ]; do
   run_skill "review" "$TASK_ID"
 
   # Review-Ergebnis prüfen – Verdict ausschließlich aus der Anker-Zeile (report_verdict),
-  # nie per Volltext-Grep über den ganzen Report (#211). Fehlender/uneindeutiger Anker →
+  # nie per Volltext-Grep über den ganzen Report (nothra/tch-gastro-services#211). Fehlender/uneindeutiger Anker →
   # nicht bestanden → Rework-Loop (fail-closed).
   if [ "$(report_verdict review "$TASK_ID")" = "APPROVED" ]; then
     echo -e "${GREEN}✓${NC} Review bestanden"
@@ -753,8 +786,8 @@ echo -e "${BLUE}Phase 5: Security Review${NC}"
 run_skill "security-review" "$TASK_ID"
 
 # Security-Gate – Verdict ausschließlich aus der Anker-Zeile '## Ergebnis' (report_verdict),
-# nie per Volltext-Grep über den ganzen Report (#211). Fail-closed: Das Gate passiert nur ein
-# eindeutiges PASSED (#312). Die frühere Polarität blockierte nur bei eindeutigem NEEDS_FIXES
+# nie per Volltext-Grep über den ganzen Report (nothra/tch-gastro-services#211). Fail-closed: Das Gate passiert nur ein
+# eindeutiges PASSED (nothra/tch-gastro-services#312). Die frühere Polarität blockierte nur bei eindeutigem NEEDS_FIXES
 # und winkte damit auch einen fehlenden Report oder einen Report ohne auswertbaren
 # Verdict-Anker durch – die Fehlrichtung eines Security-Gates darf nicht „durchlassen" sein.
 # --dry-run macht keine echten Skill-Läufe und erzeugt darum nie einen Security-Report; das
