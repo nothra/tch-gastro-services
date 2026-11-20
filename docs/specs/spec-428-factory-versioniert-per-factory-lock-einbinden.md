@@ -208,7 +208,7 @@ nur noch als versionierte Kopie führt (AK3.5 greift auf AK2.5).
   (Dateiliste Vorher/Nachher).
 - [ ] **AK2.14c** GIVEN `protect-main` WHEN T2 abgeschlossen ist THEN führt das Ruleset
   `factory-integrity` als Required Check; die bisherigen Check-Namen sind unverändert
-  (Nachtrag in ADR-029).
+  (der ADR-Nachtrag dazu gehört der Factory und steht als nothra/dev-factory#62 aus, nicht in diesem Repo).
 
 ### Konsumenten-Vertrag (neu, ADR-063 Nachtrag Q7/Q8)
 

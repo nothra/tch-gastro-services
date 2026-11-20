@@ -53,4 +53,3 @@ passt). Doppelte Nummern (027, 032) sind bekannt, siehe #321.
 | 060 | [ListenZeile als Dialog-Auslöser (Button-Variante) und Notice-Art „warnung"](060-listenzeile-dialog-ausloeser-notice-warnung.md) | Accepted |
 | 061 | [Baustein „AktionsMenue", `ListenZeile`-Slot „kennzeichen" und Auslagen-Umbau](061-aktionsmenue-baustein-listenzeile-kennzeichen-auslagen.md) | Accepted |
 | 062 | [„Katalog bearbeiten" – Mehr-Aktionen-Dialog mit Bestätigungsschritt statt Dialog über Dialog](062-katalog-bearbeiten-dialog-bestaetigungsschritt.md) | Accepted |
-| 063 | [`factory-integrity` als Required Check im Ruleset `protect-main`](063-required-check-factory-integrity-protect-main.md) | Proposed |
